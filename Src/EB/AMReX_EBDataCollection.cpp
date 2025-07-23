@@ -23,6 +23,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support >= EBSupport::basic)
     {
+        AMREX_ALWAYS_ASSERT(!m_ngrow.empty());
+
         m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
         a_level.fillEBCellFlag(*m_cellflags, m_geom);
@@ -33,7 +35,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support >= EBSupport::volume)
     {
-        AMREX_ALWAYS_ASSERT(m_ngrow[1] <= m_ngrow[0]);
+        AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 2) && (m_ngrow[1] <= m_ngrow[0]));
 
         m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
         a_level.fillVolFrac(*m_volfrac, m_geom);
@@ -44,7 +46,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support == EBSupport::full)
     {
-        AMREX_ALWAYS_ASSERT(m_ngrow[2] <= m_ngrow[0]);
+        AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 3) && (m_ngrow[2] <= m_ngrow[0]));
 
         const int ng = m_ngrow[2];
 

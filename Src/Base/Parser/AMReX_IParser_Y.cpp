@@ -133,6 +133,50 @@ iparser_newlist (struct iparser_node* nl, struct iparser_node* nr)
     }
 }
 
+namespace {
+struct iparser_node* iparser_get_rightmost_operand (struct iparser_node* node)
+{
+    if (node && node->type == IPARSER_F2) {
+        auto ftype = ((struct iparser_f2*)node)->ftype;
+        if (ftype == IPARSER_CMP_CHAIN) {
+            return iparser_get_rightmost_operand(node->r);
+        } else if (ftype == IPARSER_LT || ftype == IPARSER_GT ||
+                   ftype == IPARSER_LEQ || ftype == IPARSER_GEQ ||
+                   ftype == IPARSER_EQ || ftype == IPARSER_NEQ) {
+            return node->r;
+        }
+    }
+    return nullptr;
+}
+
+bool iparser_is_comparison (struct iparser_node* node)
+{
+    if (node && node->type == IPARSER_F2) {
+        auto ftype = ((struct iparser_f2*)node)->ftype;
+        return (ftype == IPARSER_LT || ftype == IPARSER_GT ||
+                ftype == IPARSER_LEQ || ftype == IPARSER_GEQ ||
+                ftype == IPARSER_EQ || ftype == IPARSER_NEQ ||
+                (ftype == IPARSER_CMP_CHAIN && iparser_is_comparison(node->r)));
+    } else {
+        return false;
+    }
+}
+}
+
+struct iparser_node* iparser_newcmpchain (struct iparser_node* nl, enum iparser_f2_t cmp,
+                                          struct iparser_node* nr)
+{
+    /* If left side is already a comparison, this extends the chain */
+    if (amrex::iparser_is_comparison(nl)) {
+       return amrex::iparser_newf2(amrex::IPARSER_CMP_CHAIN, nl,
+                                   amrex::iparser_newf2(cmp,
+                                                        amrex::iparser_get_rightmost_operand(nl),
+                                                        nr));
+    } else {
+        return amrex::iparser_newf2(cmp, nl, nr); // Initial comparison
+    }
+}
+
 /*******************************************************************/
 
 struct amrex_iparser*
@@ -884,6 +928,9 @@ iparser_ast_optimize (struct iparser_node* node)
     case IPARSER_F2:
         iparser_ast_optimize(node->l);
         iparser_ast_optimize(node->r);
+        if (((struct iparser_f2*)node)->ftype == IPARSER_CMP_CHAIN) {
+            ((struct iparser_f2*)node)->ftype = IPARSER_AND;
+        }
         if (node->l->type == IPARSER_NUMBER &&
             node->r->type == IPARSER_NUMBER)
         {
@@ -1021,6 +1068,7 @@ iparser_ast_print_f2 (struct iparser_f2* f2, std::string const& space, AllPrint&
     case IPARSER_NEQ:
         printer << "NEQ\n";
         break;
+    case IPARSER_CMP_CHAIN:
     case IPARSER_AND:
         printer << "AND\n";
         break;

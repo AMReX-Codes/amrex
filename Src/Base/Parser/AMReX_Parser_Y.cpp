@@ -198,6 +198,50 @@ parser_newlist (struct parser_node* nl, struct parser_node* nr)
     }
 }
 
+namespace {
+struct parser_node* parser_get_rightmost_operand (struct parser_node* node)
+{
+    if (node && node->type == PARSER_F2) {
+        auto ftype = ((struct parser_f2*)node)->ftype;
+        if (ftype == PARSER_CMP_CHAIN) {
+            return parser_get_rightmost_operand(node->r);
+        } else if (ftype == PARSER_LT || ftype == PARSER_GT ||
+                   ftype == PARSER_LEQ || ftype == PARSER_GEQ ||
+                   ftype == PARSER_EQ || ftype == PARSER_NEQ) {
+            return node->r;
+        }
+    }
+    return nullptr;
+}
+
+bool parser_is_comparison (struct parser_node* node)
+{
+    if (node && node->type == PARSER_F2) {
+        auto ftype = ((struct parser_f2*)node)->ftype;
+        return (ftype == PARSER_LT || ftype == PARSER_GT ||
+                ftype == PARSER_LEQ || ftype == PARSER_GEQ ||
+                ftype == PARSER_EQ || ftype == PARSER_NEQ ||
+                (ftype == PARSER_CMP_CHAIN && parser_is_comparison(node->r)));
+    } else {
+        return false;
+    }
+}
+}
+
+struct parser_node* parser_newcmpchain (struct parser_node* nl, enum parser_f2_t cmp,
+                                        struct parser_node* nr)
+{
+    /* If left side is already a comparison, this extends the chain */
+    if (amrex::parser_is_comparison(nl)) {
+       return amrex::parser_newf2(amrex::PARSER_CMP_CHAIN, nl,
+                                  amrex::parser_newf2(cmp,
+                                                      amrex::parser_get_rightmost_operand(nl),
+                                                      nr));
+    } else {
+        return amrex::parser_newf2(cmp, nl, nr); // Initial comparison
+    }
+}
+
 /*******************************************************************/
 
 struct amrex_parser*
@@ -1324,6 +1368,9 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
     case PARSER_F2:
         parser_ast_optimize(((struct parser_f2*)node)->l,local_consts);
         parser_ast_optimize(((struct parser_f2*)node)->r,local_consts);
+        if (((struct parser_f2*)node)->ftype == PARSER_CMP_CHAIN) {
+            ((struct parser_f2*)node)->ftype = PARSER_AND;
+        }
         if (((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
             ((struct parser_f2*)node)->r->type == PARSER_NUMBER)
         {
@@ -1332,6 +1379,54 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
                  ((struct parser_number*)(((struct parser_f2*)node)->l))->value,
                  ((struct parser_number*)(((struct parser_f2*)node)->r))->value);
             parser_set_number(node, v);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
+                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->r) == 0.0)
+        { // ? and false => false
+            parser_set_number(node, 0.0);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
+                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->r) != 0.0)
+        { // ? and true => ?
+            std::memcpy(node, node->l, sizeof(struct parser_node));
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
+                 ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->l) == 0.0)
+        { // false and ? => false
+            parser_set_number(node, 0.0);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_AND &&
+                 ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->l) != 0.0)
+        { // true and ? => ?
+            std::memcpy(node, node->r, sizeof(struct parser_node));
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
+                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->r) != 0.0)
+        { // ? or true => true
+            parser_set_number(node, 1.0);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
+                 ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->r) == 0.0)
+        { // ? or false => ?
+            std::memcpy(node, node->l, sizeof(struct parser_node));
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
+                 ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->l) != 0.0)
+        { // true or ? => true
+            parser_set_number(node, 1.0);
+        }
+        else if (((struct parser_f2*)node)->ftype == PARSER_OR &&
+                 ((struct parser_f2*)node)->l->type == PARSER_NUMBER &&
+                 parser_get_number(((struct parser_f2*)node)->l) == 0.0)
+        { // false or ? => ?
+            std::memcpy(node, node->r, sizeof(struct parser_node));
         }
         else if (((struct parser_f2*)node)->ftype == PARSER_POW &&
                  ((struct parser_f2*)node)->r->type == PARSER_NUMBER &&

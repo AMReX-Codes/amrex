@@ -14,6 +14,8 @@
 #include <iostream>
 #include <tuple>
 #include <type_traits>
+#include <utility>
+
 
 namespace amrex {
 
@@ -377,11 +379,11 @@ namespace amrex {
         }
 
         //! Returns matrix product of two matrices
-        template <class U, int N1, int N2, int N3, Order Ord, int SI>
+        template <class U, class V, int N1, int N2, int N3, Order Ord, int SI>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        friend SmallMatrix<U,N1,N3,Ord,SI>
+        friend decltype(auto)
         operator* (SmallMatrix<U,N1,N2,Ord,SI> const& lhs,
-                   SmallMatrix<U,N2,N3,Ord,SI> const& rhs);
+                   SmallMatrix<V,N2,N3,Ord,SI> const& rhs);
 
         //! Returns the dot product of two vectors
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -406,17 +408,20 @@ namespace amrex {
         T m_mat[NRows*NCols];
     };
 
-    template <class U, int N1, int N2, int N3, Order Ord, int SI>
+    template <class U, class V, int N1, int N2, int N3, Order Ord, int SI>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SmallMatrix<U,N1,N3,Ord,SI>
+    decltype(auto)
     operator* (SmallMatrix<U,N1,N2,Ord,SI> const& lhs,
-               SmallMatrix<U,N2,N3,Ord,SI> const& rhs)
+               SmallMatrix<V,N2,N3,Ord,SI> const& rhs)
     {
         static_assert(SI == 0 || SI == 1);
-        SmallMatrix<U,N1,N3,Ord,SI> r;
+
+        using P = decltype(std::declval<U>() * std::declval<V>());
+        SmallMatrix<P,N1,N3,Ord,SI> r;
+
         if constexpr (Ord == Order::F) {
             for (int j = SI; j < N3+SI; ++j) {
-                constexpr_for<SI,N1+SI>([&] (int i) { r(i,j) = U(0); });
+                constexpr_for<SI,N1+SI>([&] (int i) { r(i,j) = P(0); });
                 for (int k = SI; k < N2+SI; ++k) {
                     auto b = rhs(k,j);
                     constexpr_for<SI,N1+SI>([&] (int i)
@@ -427,7 +432,7 @@ namespace amrex {
             }
         } else {
             for (int i = SI; i < N1+SI; ++i) {
-                constexpr_for<SI,N3+SI>([&] (int j) { r(i,j) = U(0); });
+                constexpr_for<SI,N3+SI>([&] (int j) { r(i,j) = P(0); });
                 for (int k = SI; k < N2+SI; ++k) {
                     auto a = lhs(i,k);
                     constexpr_for<SI,N3+SI>([&] (int j)

@@ -651,7 +651,8 @@ Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` a
 are supported.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
-``>``, ``==``, ``!=``, ``<=``, and ``>=``.  The Boolean results from
+``>``, ``==``, ``!=``, ``<=``, and ``>=``, and they can be chained.
+The Boolean results from
 comparison can be combined by ``and`` and ``or``, and they hold the value ``1``
 for true and ``0`` for false.  The precedence of the operators follows the
 convention of the C and C++ programming languages.  Here is an example of using
@@ -661,7 +662,7 @@ the parser.
 
 ::
 
-   Parser parser("if(x>a and x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
+   Parser parser("if(a<x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
    parser.setConstant("a", ...);
    parser.setConstant("b", ...);
    parser.setConstant("c", ...);

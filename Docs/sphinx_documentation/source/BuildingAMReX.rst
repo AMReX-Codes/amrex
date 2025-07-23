@@ -443,6 +443,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BUILD_SHARED_LIBS      |  Build as shared C++ library                    | NO (unless xSDK)        | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CPU), YES (CUDA)    | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE        |
@@ -452,6 +454,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_IPO                    |  Interprocedural optimization (IPO/LTO)         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SIMD                   |  Enable SIMD Primitives (using vir::stdx::simd) | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -680,6 +684,8 @@ A list of AMReX component names and related configure options are shown in the t
    | AMReX_PIC                    | PIC             |
    +------------------------------+-----------------+
    | AMReX_MPI                    | MPI             |
+   +------------------------------+-----------------+
+   | AMReX_SIMD                   | SIMD            |
    +------------------------------+-----------------+
    | AMReX_OMP                    | OMP             |
    +------------------------------+-----------------+

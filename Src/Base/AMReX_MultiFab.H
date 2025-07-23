@@ -65,7 +65,7 @@ public:
     * this time but can be defined later.
     *
     * \param bxs a valid region
-    * \param dm a DistribuionMapping
+    * \param dm a DistributionMapping
     * \param ncomp number of components
     * \param ngrow number of cells the region grows
     * \param info MFInfo

@@ -278,6 +278,34 @@ int main (int argc, char* argv[])
                         {-0.8, -0.8, -0.8}, {0.8, 0.8, 0.8}, 100,
                         1.e-12, 1.e-15);
 
+        nerror += test3("if ((-0.5 < x < 0.5) and (-0.5< (x+y) <0.5) and (-0.5<z<0.5), cos(m * pi / Lx * (x - Lx / 2)) * cos(n * pi / Ly * (y - Ly / 2)) * sin(p * pi / Lz * (z - Lz / 2))*mu_0, 0)",
+                        {{"m", 0.0}, {"n", 1.0}, {"pi", 3.14}, {"p", 1.0}, {"Lx", 1.}, {"Ly", 1.}, {"Lz", 1.}, {"mu_0", 1.27e-6}},
+                        {"x","y","z"},
+                        [=] (Real x, Real y, Real z) -> Real {
+                            Real m=0.0,n=1.0,pi=3.14,p=1.0,Lx=1.,Ly=1.,Lz=1.,mu_0=1.27e-6;
+                            if ((x>-0.5) && (x<0.5) && ((x+y)>-0.5) && ((x+y)<0.5) && (z>-0.5) &&(z<0.5)) {
+                                return std::cos(m * pi / Lx * (x - Lx / 2)) * std::cos(n * pi / Ly * (y - Ly / 2)) * std::sin(p * pi / Lz * (z - Lz / 2))*mu_0;
+                            } else {
+                                return 0.0;
+                            }
+                        },
+                        {-0.8, -0.8, -0.8}, {0.8, 0.8, 0.8}, 100,
+                        1.e-12, 1.e-15);
+
+        nerror += test3("cos(m * pi / Lx * (x - Lx / 2)) * cos(n * pi / Ly * (y - Ly / 2)) * sin(p * pi / Lz * (z - Lz / 2))*mu_0*(0.5>x>y>z>(x+z)>-0.5)",
+                        {{"m", 0.0}, {"n", 1.0}, {"pi", 3.14}, {"p", 1.0}, {"Lx", 1.}, {"Ly", 1.}, {"Lz", 1.}, {"mu_0", 1.27e-6}},
+                        {"x","y","z"},
+                        [=] (Real x, Real y, Real z) -> Real {
+                            Real m=0.0,n=1.0,pi=3.14,p=1.0,Lx=1.,Ly=1.,Lz=1.,mu_0=1.27e-6;
+                            if ((0.5>x) && (x>y) && (y>z) && (z>(x+z)) && ((x+z)>-0.5)) {
+                                return std::cos(m * pi / Lx * (x - Lx / 2)) * std::cos(n * pi / Ly * (y - Ly / 2)) * std::sin(p * pi / Lz * (z - Lz / 2))*mu_0;
+                            } else {
+                                return 0.0;
+                            }
+                        },
+                        {-0.8, -0.8, -0.8}, {0.8, 0.8, 0.8}, 100,
+                        1.e-12, 1.e-15);
+
         nerror += test3("2.*sqrt(2.)+sqrt(-log(x))*cos(2*pi*z)",
                         {{"pi", 3.14}},
                         {"x","y","z"},
