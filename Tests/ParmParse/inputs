@@ -1,3 +1,4 @@
+dAx_x/dx(x,y,t,zeval) = 12
 
 amrex.signal_handling = 0
 amrex.throw_exception = 1
@@ -62,6 +63,11 @@ n_cell = nx nx nx
 ny = nx
 
 do_this = 1
+
+# query bool with parser
+my_value = 10
+my_threshold = 3
+my_bool_flag = "(my_threshold < my_value) and (my_value < 100)"
 
 # queryline and getline
 my_string_line = a  b c
