@@ -100,10 +100,10 @@ is_floating_point (const std::string& str, T& val)
         val = std::numeric_limits<T>::quiet_NaN();
         return true;
     } else if (str == "inf") {
-        val = std::numeric_limits<T>::max();
+        val = std::numeric_limits<T>::infinity();
         return true;
     } else if (str == "-inf") {
-        val = -std::numeric_limits<T>::max();
+        val = -std::numeric_limits<T>::infinity();
         return true;
     } else {
         return isT(str, val);
