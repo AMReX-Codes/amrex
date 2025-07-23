@@ -2056,6 +2056,12 @@ AmrLevel::estimateWork ()
 }
 
 bool
+AmrLevel::checkPointNow ()
+{
+    return false;
+}
+
+bool
 AmrLevel::writePlotNow ()
 {
     return false;

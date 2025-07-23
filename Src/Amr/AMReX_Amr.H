@@ -379,6 +379,7 @@ protected:
     void ClearLevel (int /*lev*/) override
         { amrex::Abort("How did we get here!"); }
 
+    bool checkPointNow () noexcept;
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;
     bool writeSmallPlotNow () noexcept;
