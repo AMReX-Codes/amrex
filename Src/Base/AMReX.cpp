@@ -276,10 +276,10 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg,
 #else
     const int N = 512 + msg_size;
 
-    char buf[N];
+    std::vector<char> buf(N);
 
     if (msg) {
-        snprintf(buf,
+        snprintf(buf.data(),
                  N,
                  "Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
                  EX,
@@ -287,7 +287,7 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg,
                  line,
                  msg);
     } else {
-        snprintf(buf,
+        snprintf(buf.data(),
                  N,
                  "Assertion `%s' failed, file \"%s\", line %d",
                  EX,
@@ -296,11 +296,11 @@ amrex::Assert_host (const char* EX, const char* file, int line, const char* msg,
     }
 
     if (system::error_handler) {
-        system::error_handler(buf);
+        system::error_handler(buf.data());
     } else if (system::throw_exception) {
-        throw RuntimeError(buf);
+        throw RuntimeError(buf.data());
     } else {
-       write_to_stderr_without_buffering(buf);
+       write_to_stderr_without_buffering(buf.data());
 #ifdef AMREX_USE_OMP
 #pragma omp critical (amrex_abort_omp_critical)
 #endif
