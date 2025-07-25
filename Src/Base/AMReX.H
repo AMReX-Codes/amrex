@@ -204,7 +204,7 @@ namespace amrex
                 }
                 AMREX_DEVICE_ASSERT(0);
         ))
-        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,msg?std::strlen(msg):0u);))
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,msg?std::strlen(msg):0U);))
     }
 
     AMREX_FORCE_INLINE
