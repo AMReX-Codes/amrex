@@ -11,6 +11,7 @@
 #include <AMReX_Extension.H>
 
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -188,13 +189,11 @@ namespace amrex
     * in <AMReX_BLassert.H>.
     */
 
-    void Assert_host (const char* EX, const char* file, int line, const char* msg);
+    void Assert_host (const char* EX, const char* file, int line, const char* msg,
+                      const int msg_size=0);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
-#if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg);))
-#else
         AMREX_IF_ON_DEVICE((
                 if (msg) {
                 AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
@@ -205,8 +204,12 @@ namespace amrex
                 }
                 AMREX_DEVICE_ASSERT(0);
         ))
-#endif
-        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg);))
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,msg?std::strlen(msg):0);))
+    }
+
+    AMREX_FORCE_INLINE
+    void Assert (const char* EX, const char* file, int line, const std::string& msg) {
+        Assert_host(EX,file,line,msg.c_str(),msg.size());
     }
 
     /**

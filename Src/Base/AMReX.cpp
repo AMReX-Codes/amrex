@@ -269,12 +269,12 @@ amrex::Warning_host (const char * msg)
 }
 
 void
-amrex::Assert_host (const char* EX, const char* file, int line, const char* msg)
+amrex::Assert_host (const char* EX, const char* file, int line, const char* msg, const int msg_size)
 {
 #ifdef AMREX_USE_COVERITY
     amrex_coverity_abort();
 #else
-    const int N = 512;
+    const int N = 512 + msg_size;
 
     char buf[N];
 
