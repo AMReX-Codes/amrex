@@ -190,7 +190,7 @@ namespace amrex
     */
 
     void Assert_host (const char* EX, const char* file, int line, const char* msg,
-                      const int msg_size=0);
+                      std::size_t msg_size=0);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
@@ -204,7 +204,7 @@ namespace amrex
                 }
                 AMREX_DEVICE_ASSERT(0);
         ))
-        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,msg?std::strlen(msg):0);))
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,msg?std::strlen(msg):0u);))
     }
 
     AMREX_FORCE_INLINE
