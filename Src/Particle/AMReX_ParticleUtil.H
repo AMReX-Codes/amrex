@@ -948,7 +948,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
     }
 
     { // Create a scope for the temporary vector below
-        PTile::RealVector tmp_real(np_total);
+        typename PTile::RealVector tmp_real(np_total);
         for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
             auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
             ParticleReal* dst = tmp_real.data();
@@ -963,7 +963,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
     }
 
-    PTile::IntVector tmp_int(np_total);
+    typename PTile::IntVector tmp_int(np_total);
     for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
         auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
         int* dst = tmp_int.data();
@@ -999,7 +999,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
             });
     }
     {
-        amrex::Gpu::AsyncVector<typename ParticleType::RealType> tmp_real(np);
+        amrex::Gpu::AsyncVector<typename PTile::ParticleType::RealType> tmp_real(np);
 
         for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
             auto src = ptile.GetRealData(comp).data();
@@ -1015,7 +1015,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
     }
     {
-        amrex::Gpu::AsyncVector<typename ParticleType::IntType> tmp_int(np);
+        amrex::Gpu::AsyncVector<typename PTile::ParticleType::IntType> tmp_int(np);
 
         for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
             auto src = ptile.GetIntData(comp).data();

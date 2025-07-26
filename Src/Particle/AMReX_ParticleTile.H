@@ -775,7 +775,7 @@ struct ParticleTile
         m_runtime_r_cptrs.resize(a_num_runtime_real);
         m_runtime_i_cptrs.resize(a_num_runtime_int);
 
-        if constexpr (IsPolymorphicArenaAllocator<Allocator>::value) {
+        if constexpr (IsPolymorphicArenaAllocator<Allocator<RealType>>::value) {
             if (m_defined) {
                 if constexpr (ParticleType::is_soa_particle) {
                     AMREX_ALWAYS_ASSERT(a_arena == nullptr ||
