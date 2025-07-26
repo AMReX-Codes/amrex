@@ -1163,15 +1163,11 @@ public:
      */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
-        if constexpr (is_soa2_pc) {
-            AMREX_ALWAYS_ASSERT(arena() != nullptr);
-            m_particles[lev][std::make_pair(grid, tile)].define(arena(),
-                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
-        } else {
-            m_particles[lev][std::make_pair(grid, tile)].define(
-                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
-        }
-
+        m_particles[lev][std::make_pair(grid, tile)].define(
+            NumRuntimeRealComps(), NumRuntimeIntComps(),
+            &m_soa_rdata_names, &m_soa_idata_names,
+            arena()
+        );
         return ParticlesAt(lev, grid, tile);
     }
 
@@ -1200,14 +1196,11 @@ public:
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
     {
         auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
-        if constexpr (is_soa2_pc) {
-            AMREX_ALWAYS_ASSERT(arena() != nullptr);
-            m_particles[lev][index].define(arena(),
-                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
-        } else {
-            m_particles[lev][index].define(
-                NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
-        }
+        m_particles[lev][index].define(
+            NumRuntimeRealComps(), NumRuntimeIntComps(),
+            &m_soa_rdata_names, &m_soa_idata_names,
+            arena()
+        );
         return ParticlesAt(lev, iter);
     }
 

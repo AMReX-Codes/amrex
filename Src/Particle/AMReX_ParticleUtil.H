@@ -933,7 +933,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
         Gpu::streamSynchronize();
     } else {
-        typename SoA::IdCPU tmp_idcpu(np_total);
+        typename PTile::SoA::IdCPU tmp_idcpu(np_total);
 
         auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
         uint64_t* dst = tmp_idcpu.data();
@@ -948,7 +948,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
     }
 
     { // Create a scope for the temporary vector below
-        RealVector tmp_real(np_total);
+        PTile::RealVector tmp_real(np_total);
         for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
             auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
             ParticleReal* dst = tmp_real.data();
@@ -963,7 +963,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
     }
 
-    IntVector tmp_int(np_total);
+    PTile::IntVector tmp_int(np_total);
     for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
         auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
         int* dst = tmp_int.data();

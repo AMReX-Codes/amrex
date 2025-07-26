@@ -1234,7 +1234,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         ReorderParticles(ptile, permutations);
     } else {
         ParticleTileType ptile_tmp;
-        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
+        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int,
+            &m_soa_rdata_names, &m_soa_idata_names, arena());
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1574,13 +1575,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             ptile_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
-                if constexpr (is_soa2_pc) {
-                    ptile_local[lev][index][t].define(arena(), m_num_runtime_real, m_num_runtime_int,
-                        &m_soa_rdata_names, &m_soa_idata_names);
-                } else {
-                    ptile_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
-                        &m_soa_rdata_names, &m_soa_idata_names);
-                }
+                ptile_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
+                     &m_soa_rdata_names, &m_soa_idata_names, arena());
             }
         }
     }

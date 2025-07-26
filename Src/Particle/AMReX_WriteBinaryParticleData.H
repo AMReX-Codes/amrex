@@ -924,11 +924,8 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                 const auto runtime_real_comps = ptile.NumRuntimeRealComps();
                 const auto runtime_int_comps = ptile.NumRuntimeIntComps();
 
-                if constexpr (PC::is_soa2_pc) {
-                    new_ptile.define(The_Pinned_Arena(), runtime_real_comps, runtime_int_comps);
-                } else {
-                    new_ptile.define(runtime_real_comps, runtime_int_comps);
-                }
+                new_ptile.define(runtime_real_comps, runtime_int_comps,
+                    nullptr, nullptr, The_Pinned_Arena());
 
                 new_ptile.resize(np);
 

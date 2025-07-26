@@ -398,11 +398,12 @@ struct ParticleTile2
 #endif
 
     void define (
-        Arena* a_arena,
         int a_num_real_comps,
         int a_num_int_comps,
         std::vector<std::string>* a_rdata_names=nullptr,
-        std::vector<std::string>* a_idata_names=nullptr)
+        std::vector<std::string>* a_idata_names=nullptr,
+        Arena* a_arena=nullptr
+    )
     {
         if (m_defined) {
             AMREX_ALWAYS_ASSERT(a_arena == nullptr || a_arena == m_arena);
@@ -410,6 +411,7 @@ struct ParticleTile2
                 realloc_and_move(m_size, m_capacity, a_num_real_comps, a_num_int_comps);
             }
         } else {
+            AMREX_ALWAYS_ASSERT(a_arena != nullptr);
             m_defined = true;
             m_arena = a_arena;
             m_n_real = a_num_real_comps;
