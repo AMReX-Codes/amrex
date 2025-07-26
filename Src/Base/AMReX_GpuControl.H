@@ -69,6 +69,12 @@ namespace amrex {
     enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
 }
 
+#ifdef AMREX_USE_GPU
+#define AMREX_DEFAULT_RUNON // need explicit RunOn when compiling for Gpu
+#else
+#define AMREX_DEFAULT_RUNON =amrex::RunOn::Host // by default run on Host when compiling for Cpu
+#endif
+
 namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 
 #ifdef AMREX_USE_HIP

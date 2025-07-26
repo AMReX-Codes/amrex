@@ -272,11 +272,7 @@ public:
     FArrayBox& operator= (const FArrayBox&) = delete;
 
     //! Set the fab to the value r.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     FArrayBox& operator= (Real v) noexcept;
 
     /**
@@ -284,70 +280,38 @@ public:
     * This may return false, even if the FAB contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_nan () const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_nan (IntVect& where) const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
     /**
     * \brief Are there any Infs in the FAB?
     * This may return false, even if the FAB contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_inf () const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_inf (IntVect& where) const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
