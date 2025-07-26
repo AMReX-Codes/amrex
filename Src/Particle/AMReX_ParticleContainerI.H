@@ -1231,7 +1231,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
-        ::ReorderParticles(ptile, permutations);
+        amrex::ReorderParticles(ptile, permutations);
     } else {
         ParticleTileType ptile_tmp;
         ptile_tmp.define(m_num_runtime_real, m_num_runtime_int,
