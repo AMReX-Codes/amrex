@@ -9,6 +9,7 @@
 
 #include <AMReX_AmrCore.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_ErrorList.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FillPatcher.H>
 
@@ -214,6 +215,9 @@ private:
 
     //number of ghost cells on facevel
     int nghost = 2;
+
+    std::string error_fn;
+    amrex::Vector<amrex::AMRErrorTag> error_tag;
 
 #ifdef AMREX_PARTICLES
     void init_particles ();

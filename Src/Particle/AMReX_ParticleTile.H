@@ -36,6 +36,8 @@ struct ParticleTileData
     using ParticleType = T_ParticleType;
     using ParticleRefType = T_ParticleType&;
     using Self = ParticleTileData<ParticleType, NAR, NAI>;
+    using RealType = ParticleReal;
+    using IntType = int;
 
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
@@ -60,7 +62,7 @@ struct ParticleTileData
     int* AMREX_RESTRICT * AMREX_RESTRICT m_runtime_idata;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleReal& pos (const int dir, const int index) const &
+    decltype(auto) pos (const int dir, const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].pos(dir);
@@ -95,7 +97,7 @@ struct ParticleTileData
         if constexpr(ParticleType::is_soa_particle) {
             return this->m_idcpu[index];
         } else {
-            amrex::Abort("not implemented");
+            return this->m_aos[index].idcpu();
         }
     }
 
@@ -375,7 +377,7 @@ struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
 
     private :
 
-    static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
+    static_assert(std::is_trivially_copyable<ConstPTD>(), "ParticleTileData is not trivially copyable");
 
     ConstPTD m_constparticle_tile_data;
     int m_index;
@@ -410,7 +412,7 @@ struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
     ParticleCPUWrapper cpu () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper id () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
+    ParticleIDWrapper<> id () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     uint64_t& idcpu () & { return this->m_particle_tile_data.m_idcpu[m_index]; }
@@ -459,7 +461,7 @@ struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
 
 private :
 
-    static_assert(std::is_trivially_copyable<ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>>(), "ParticleTileData is not trivially copyable");
+    static_assert(std::is_trivially_copyable<PTD>(), "ParticleTileData is not trivially copyable");
 
     PTD m_particle_tile_data;
     int m_index;
@@ -514,6 +516,8 @@ struct ConstParticleTileData
     static constexpr int NAI = NArrayInt;
     using ParticleType = T_ParticleType;
     using ParticleRefType = T_ParticleType const&;
+    using RealType = ParticleReal;
+    using IntType = int;
 
     static constexpr int NStructReal = ParticleType::NReal;
     static constexpr int NStructInt = ParticleType::NInt;
@@ -533,7 +537,7 @@ struct ConstParticleTileData
     GpuArray<const int*, NArrayInt > m_idata;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const ParticleReal& pos (const int dir, const int index) const &
+    decltype(auto) pos (const int dir, const int index) const &
     {
         if constexpr(!ParticleType::is_soa_particle) {
             return this->m_aos[index].pos(dir);
@@ -568,7 +572,7 @@ struct ConstParticleTileData
         if constexpr(ParticleType::is_soa_particle) {
             return this->m_idcpu[index];
         } else {
-            amrex::Abort("not implemented");
+            return this->m_aos[index].idcpu();
         }
     }
 

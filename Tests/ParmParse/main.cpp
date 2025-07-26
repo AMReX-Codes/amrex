@@ -24,6 +24,12 @@ int main(int argc, char* argv[])
     }
     {
         ParmParse pp;
+        int val;
+        pp.query("dAx_x/dx(x,y,t,zeval)", val);
+        AMREX_ALWAYS_ASSERT(val == 12);
+    }
+    {
+        ParmParse pp;
 
         std::string name;
         pp.query("name", name);
@@ -142,6 +148,14 @@ int main(int argc, char* argv[])
         std::optional<int> o_do_that;
         pp.queryAsDouble("do_that", o_do_that);
         AMREX_ALWAYS_ASSERT(!o_do_that.has_value());
+    }
+    {
+        ParmParse pp;
+        bool my_bool_flag_1 = false;
+        bool my_bool_flag_2 = false;
+        pp.queryAddWithParser("my_bool_flag", my_bool_flag_1);
+        pp.query("my_bool_flag", my_bool_flag_2);
+        AMREX_ALWAYS_ASSERT(my_bool_flag_1 && my_bool_flag_2);
     }
     {
         ParmParse pp;

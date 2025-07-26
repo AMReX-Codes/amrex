@@ -4,6 +4,7 @@ AMREX_BASE=EXE
 C$(AMREX_BASE)_headers += AMReX_ccse-mpi.H AMReX_Algorithm.H AMReX_Any.H AMReX_Array.H
 C$(AMREX_BASE)_headers += AMReX_Enum.H
 C$(AMREX_BASE)_headers += AMReX_Vector.H AMReX_TableData.H AMReX_Tuple.H AMReX_Math.H
+C$(AMREX_BASE)_headers += AMReX_Order.H
 C$(AMREX_BASE)_headers += AMReX_SmallMatrix.H AMReX_ConstexprFor.H
 
 C$(AMREX_BASE)_headers += AMReX_TypeList.H
@@ -113,6 +114,8 @@ C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForG.H
+
+C$(AMREX_BASE)_headers += AMReX_SIMD.H
 
 C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_CTOParallelForImpl.H

@@ -192,6 +192,8 @@ public:
     //! A single level worth of particles is indexed (grid id, tile id)
     //! for both SoA and AoS data.
     using ParticleLevel = std::map<std::pair<int, int>, ParticleTileType>;
+    using PTDType = typename ParticleTileType::ParticleTileDataType;
+    using ConstPTDType = typename ParticleTileType::ConstParticleTileDataType;
     using AoS = typename ParticleTileType::AoS;
     using SoA = typename ParticleTileType::SoA;
 

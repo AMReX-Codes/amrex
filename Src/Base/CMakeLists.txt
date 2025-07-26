@@ -14,6 +14,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BlockMutex.cpp
        AMReX_Enum.H
        AMReX_GpuComplex.H
+       AMReX_Order.H
        AMReX_SmallMatrix.H
        AMReX_ConstexprFor.H
        AMReX_Vector.H
@@ -241,6 +242,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_MFParallelFor.H
        AMReX_MFParallelForC.H
        AMReX_MFParallelForG.H
+       AMReX_SIMD.H
        AMReX_TagParallelFor.H
        AMReX_CTOParallelForImpl.H
        AMReX_ParReduce.H

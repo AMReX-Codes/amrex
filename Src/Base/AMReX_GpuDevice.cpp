@@ -31,10 +31,7 @@
 #if defined(AMREX_USE_HIP)
 #include <hip/hip_runtime.h>
 #if defined(AMREX_USE_ROCTX)
-#include <roctracer/roctracer_ext.h>
-#if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#include <roctracer/roctx.h>
-#endif
+#include <rocprofiler-sdk-roctx/roctx.h>
 #endif
 #endif
 
@@ -1062,7 +1059,7 @@ Device::profilerStart ()
 #ifdef AMREX_USE_CUDA
     AMREX_GPU_SAFE_CALL(cudaProfilerStart());
 #elif (defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX))
-    roctracer_start();
+    roctxProfilerResume(0);
 #endif
 
 }
@@ -1073,7 +1070,7 @@ Device::profilerStop ()
 #ifdef AMREX_USE_CUDA
     AMREX_GPU_SAFE_CALL(cudaProfilerStop());
 #elif (defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX))
-    roctracer_stop();
+    roctxProfilerPause(0);
 #endif
 }
 

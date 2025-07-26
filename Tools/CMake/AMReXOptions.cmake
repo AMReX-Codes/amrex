@@ -254,6 +254,18 @@ unset(_GPU_RDC_default)
 print_option(AMReX_GPU_RDC)
 
 #
+# Fast Math    ================================================================
+#
+set(_FASTMATH_default OFF)
+if(AMReX_GPU_BACKEND STREQUAL CUDA)  # note: historic settings
+# if(NOT AMReX_GPU_BACKEND STREQUAL NONE)  # note: this would be more consistent for GPUs
+    set(_FASTMATH_default ON)
+endif()
+option(AMReX_FASTMATH  "Enable fast-math optimizations" ${_FASTMATH_default})
+print_option(AMReX_FASTMATH)
+unset(_FASTMATH_default)
+
+#
 # Parallel backends    ========================================================
 #
 option( AMReX_MPI  "Enable MPI"  ON )
@@ -263,6 +275,9 @@ cmake_dependent_option( AMReX_MPI_THREAD_MULTIPLE
    "whether to initialize MPI so that multiple threads can make MPI calls at the same time"  OFF
    "AMReX_MPI" OFF)
 print_option( AMReX_MPI_THREAD_MULTIPLE )
+
+option( AMReX_SIMD  "Enable SIMD Primitives" OFF)
+print_option( AMReX_SIMD )
 
 option( AMReX_OMP  "Enable OpenMP" OFF)
 print_option( AMReX_OMP )

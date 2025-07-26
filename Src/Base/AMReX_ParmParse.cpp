@@ -616,10 +616,6 @@ bldTable (const char*& str, ParmParse::Table& tab)
         }
         case pEQ_sign:
         {
-            if ( cur_name.empty() )
-            {
-                amrex::Abort("ParmParse::bldTable() EQ with no current defn");
-            }
             if ( !cur_list.empty() )
             {
                 //
@@ -658,12 +654,6 @@ bldTable (const char*& str, ParmParse::Table& tab)
         }
         case pValue:
         {
-            if ( cur_name.empty() )
-            {
-                std::string msg("ParmParse::bldTable(): value with no defn: ");
-                msg += tokname;
-                amrex::Abort(msg.c_str());
-            }
             cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);
             break;
@@ -718,7 +708,8 @@ squeryval (const ParmParse::Table& table,
     bool ok = is(valname, ref);
     if ( !ok )
     {
-        if constexpr (std::is_same_v<T,int> ||
+        if constexpr (std::is_same_v<T,bool> ||
+                      std::is_same_v<T,int> ||
                       std::is_same_v<T,long> ||
                       std::is_same_v<T,long long> ||
                       std::is_same_v<T,float> ||
@@ -1011,14 +1002,16 @@ bool squeryWithParser (const ParmParse::Table& table,
                        const std::string&      name,
                        T&                      ref);
 
-template <typename T, typename PARSER_t = std::conditional_t<std::is_integral_v<T>,
+template <typename T, typename PARSER_t = std::conditional_t<std::is_integral_v<T>
+                                                             && !std::is_same_v<bool,T>,
                                                              IParser, Parser>>
 PARSER_t
 pp_make_parser (std::string const& func, Vector<std::string> const& vars,
                 ParmParse::Table const& table, std::string const& parser_prefix,
                 bool use_querywithparser)
 {
-    using value_t =  std::conditional_t<std::is_integral_v<T>, long long, double>;
+    using value_t =  std::conditional_t<std::is_integral_v<T> && !std::is_same_v<bool,T>,
+                                        long long, double>;
 
     std::vector<std::string> prefixes;
     prefixes.reserve(3);
@@ -2049,6 +2042,12 @@ bool squeryarrWithParser (const ParmParse::Table& table,
 }
 
 int
+ParmParse::queryWithParser (const char* name, bool& ref) const
+{
+    return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
 ParmParse::queryWithParser (const char* name, int& ref) const
 {
     return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
@@ -2076,6 +2075,12 @@ int
 ParmParse::queryWithParser (const char* name, double& ref) const
 {
     return squeryWithParser(*m_table,m_parser_prefix,prefixedName(name),ref);
+}
+
+int
+ParmParse::queryarrWithParser (const char* name, int nvals, bool* ref) const
+{
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
 }
 
 int

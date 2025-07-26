@@ -81,18 +81,18 @@ auto call_f (F const& f,
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto sm = amrex::ReduceSum(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, F&& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceSum(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -129,18 +129,18 @@ ReduceSum (PC const& pc, F&& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto sm = amrex::ReduceSum(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev, F&& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceSum(pc, lev, lev, std::forward<F>(f));
 }
@@ -178,20 +178,20 @@ ReduceSum (PC const& pc, int lev, F&& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto sm = amrex::ReduceSum(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
-    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()));
     value_type sm = 0;
 
 #ifdef AMREX_USE_GPU
@@ -281,18 +281,18 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto mx = amrex::ReduceMax(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, F&& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMax(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -329,18 +329,18 @@ ReduceMax (PC const& pc, F&& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto mx = amrex::ReduceMax(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev, F&& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMax(pc, lev, lev, std::forward<F>(f));
 }
@@ -378,20 +378,20 @@ ReduceMax (PC const& pc, int lev, F&& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto mx = amrex::ReduceMax(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
-    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()));
     constexpr value_type value_lowest = std::numeric_limits<value_type>::lowest();
     value_type r = value_lowest;
 
@@ -482,18 +482,18 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto mn = amrex::ReduceMin(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, F&& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMin(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -530,18 +530,18 @@ ReduceMin (PC const& pc, F&& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto mn = amrex::ReduceMin(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, int lev, F&& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMin(pc, lev, lev, std::forward<F>(f));
 }
@@ -579,20 +579,20 @@ ReduceMin (PC const& pc, int lev, F&& f)
  *                      return p.idata(0);
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto mn = amrex::ReduceMin(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> ParticleReal
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> ParticleReal
  *                  {
- *                      return ptd.m_aos[i].rdata(0);
+ *                      return ptd.rdata(0)[i];
  *                  });
  *
  */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
-    -> decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()))
+    -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
-    using value_type = decltype(particle_detail::call_f(f, typename PC::ParticleTileType::ConstParticleTileDataType(), int()));
+    using value_type = decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()));
     constexpr value_type value_max = std::numeric_limits<value_type>::max();
     value_type r = value_max;
 
@@ -683,11 +683,11 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
  *                      return p.id() > 0;
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.m_aos[i].id() > 0;
+ *                      return ptd.id(i) > 0;
  *                  });
  *
  */
@@ -730,11 +730,11 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  *                      return p.id() > 0;
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.m_aos[i].id() > 0;
+ *                      return ptd.id(i) > 0;
  *                  });
  *
  */
@@ -778,11 +778,11 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  *                      return p.id() > 0;
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.m_aos[i].id() > 0;
+ *                      return ptd.id(i) > 0;
  *                  });
  *
  */
@@ -879,11 +879,11 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
  *                      return p.id() < 1;
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.m_aos[i].id() < 1;
+ *                      return ptd.id(i) < 1;
  *                  });
  *
  */
@@ -926,11 +926,11 @@ ReduceLogicalOr (PC const& pc, F&& f)
  *                      return p.id() < 1;
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.m_aos[i].id() < 1;
+ *                      return ptd.id(i) < 1;
  *                  });
  *
  */
@@ -974,11 +974,11 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  *                      return p.id() < 1;
  *                  });
  *
- *        using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
- *                  [=] AMREX_GPU_HOST_DEVICE (const PTDType& ptd, const int i) -> bool
+ *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.m_aos[i].id() < 1;
+ *                      return ptd.id(i) < 1;
  *                  });
  *
  */
@@ -1093,15 +1093,15 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
- *    using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *    using ConstPTDType = typename PC::ConstPTDType;
  *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
  *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
- *                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+ *                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
  *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
  *             {
- *                 const amrex::Real a = ptd.m_aos[i].rdata(1);
- *                 const amrex::Real b = ptd.m_aos[i].rdata(2);
- *                 const int c = ptd.m_aos[i].idata(1);
+ *                 const amrex::Real a = ptd.rdata(1)[i];
+ *                 const amrex::Real b = ptd.rdata(2)[i];
+ *                 const int c = ptd.idata(1)[i];
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
@@ -1163,15 +1163,15 @@ ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
- *    using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *    using ConstPTDType = typename PC::ConstPTDType;
  *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
  *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
- *                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+ *                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
  *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
  *             {
- *                 const amrex::Real a = ptd.m_aos[i].rdata(1);
- *                 const amrex::Real b = ptd.m_aos[i].rdata(2);
- *                 const int c = ptd.m_aos[i].idata(1);
+ *                 const amrex::Real a = ptd.rdata(1)[i];
+ *                 const amrex::Real b = ptd.rdata(2)[i];
+ *                 const int c = ptd.idata(1)[i];
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
@@ -1234,15 +1234,15 @@ ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
  *                 return {a, b, c};
  *             }, reduce_ops);
  *
- *    using PTDType = typename PC::ParticleTileType::ConstParticleTileDataType;
+ *    using ConstPTDType = typename PC::ConstPTDType;
  *    amrex::ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
  *    auto r = amrex::ParticleReduce<ReduceData<amrex::Real, amrex::Real,int>> (
- *                 pc, [=] AMREX_GPU_DEVICE (const PTDType& ptd, const int i) noexcept
+ *                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
  *                               -> amrex::GpuTuple<amrex::Real,amrex::Real,int>
  *             {
- *                 const amrex::Real a = ptd.m_aos[i].rdata(1);
- *                 const amrex::Real b = ptd.m_aos[i].rdata(2);
- *                 const int c = ptd.m_aos[i].idata(1);
+ *                 const amrex::Real a = ptd.rdata(1)[i];
+ *                 const amrex::Real b = ptd.rdata(2)[i];
+ *                 const int c = ptd.idata(1)[i];
  *                 return {a, b, c};
  *             }, reduce_ops);
  *

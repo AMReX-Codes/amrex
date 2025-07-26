@@ -1072,6 +1072,16 @@ MultiFab::norm2 (int comp) const
 }
 
 Real
+MultiFab::norm2 (int comp, int numcomp) const
+{
+    BL_ASSERT(ixType().cellCentered());
+
+    Real nm2 = MultiFab::Dot(*this, comp, numcomp, 0);
+    nm2 = std::sqrt(nm2);
+    return nm2;
+}
+
+Real
 MultiFab::norm2 (int comp, const Periodicity& period) const
 {
     BL_PROFILE("MultiFab::norm2(period)");
@@ -1519,8 +1529,8 @@ MultiFab::OverlapMask (const Periodicity& period) const
     amrex::ParallelFor(tags, 1,
     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, Array4BoxTag<Real> const& tag) noexcept
     {
-        Real* p = tag.dfab.ptr(i,j,k,n);
-        Gpu::Atomic::AddNoRet(p, Real(1.0));
+        Real* ptr = tag.dfab.ptr(i,j,k,n);
+        Gpu::Atomic::AddNoRet(ptr, Real(1.0));
     });
 #endif
 

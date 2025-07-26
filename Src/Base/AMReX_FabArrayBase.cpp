@@ -291,12 +291,14 @@ FabArrayBase::TileArray::bytes () const
 
 FabArrayBase::CPC::CPC (const FabArrayBase& dstfa, const IntVect& dstng,
                         const FabArrayBase& srcfa, const IntVect& srcng,
-                        const Periodicity& period, bool to_ghost_cells_only)
+                        const Periodicity& period, bool to_ghost_cells_only,
+                        const IntVect& offset)
     : m_id(comm_meta_data_id++),
       m_srcbdk(srcfa.getBDKey()),
       m_dstbdk(dstfa.getBDKey()),
       m_srcng(srcng),
       m_dstng(dstng),
+      m_offset(offset),
       m_period(period),
       m_tgco(to_ghost_cells_only),
       m_srcba(srcfa.boxArray()),
@@ -347,7 +349,8 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
         std::vector< std::pair<int,Box> > isects;
 
-        const std::vector<IntVect>& pshifts = m_period.shiftIntVect(ng_dst);
+        std::vector<IntVect> pshifts = m_period.shiftIntVect(ng_dst);
+        for (auto& pit : pshifts) { pit += m_offset; }
 
         auto& send_tags = *m_SndTags;
 
@@ -408,12 +411,12 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
 
             for (auto const& pit : pshifts)
             {
-                ba_src.intersections(bx_dst+pit, isects, false, ng_src);
+                ba_src.intersections(bx_dst-pit, isects, false, ng_src);
 
                 for (auto const& is : isects)
                 {
                     const int k_src     = is.first;
-                    const Box& bx       = is.second - pit;
+                    const Box& bx       = is.second + pit;
                     const int src_owner = dm_src[k_src];
 
                     BoxList const bl_dst = m_tgco ? boxDiff(bx,bx_dst_valid) : BoxList(bx);
@@ -421,13 +424,13 @@ FabArrayBase::CPC::define (const BoxArray& ba_dst, const DistributionMapping& dm
                         if (ParallelDescriptor::sameTeam(src_owner, MyProc)) { // local copy
                             const BoxList tilelist(b, FabArrayBase::comm_tile_size);
                             for (auto const& btile : tilelist) {
-                                m_LocTags->emplace_back(btile, btile+pit, k_dst, k_src);
+                                m_LocTags->emplace_back(btile, btile-pit, k_dst, k_src);
                             }
                             if (check_local) {
                                 bl_local.push_back(b);
                             }
                         } else if (MyProc == dm_dst[k_dst]) {
-                            recv_tags[src_owner].emplace_back(b, b+pit, k_dst, k_src);
+                            recv_tags[src_owner].emplace_back(b, b-pit, k_dst, k_src);
                             if (check_remote) {
                                 bl_remote.push_back(b);
                             }
@@ -574,7 +577,8 @@ FabArrayBase::flushCPCache ()
 
 const FabArrayBase::CPC&
 FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
-                      const Periodicity& period, bool to_ghost_cells_only) const
+                      const Periodicity& period, bool to_ghost_cells_only,
+                      const IntVect& offset) const
 {
     BL_PROFILE("FabArrayBase::getCPC()");
 
@@ -591,6 +595,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     {
         if (it->second->m_srcng  == srcng &&
             it->second->m_dstng  == dstng &&
+            it->second->m_offset == offset &&
             it->second->m_srcbdk == srckey &&
             it->second->m_dstbdk == dstkey &&
             it->second->m_period == period &&
@@ -605,7 +610,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
     }
 
     // Have to build a new one
-    CPC* new_cpc = new CPC(*this, dstng, src, srcng, period, to_ghost_cells_only);
+    CPC* new_cpc = new CPC(*this, dstng, src, srcng, period, to_ghost_cells_only, offset);
 
 #ifdef AMREX_MEM_PROFILING
     m_CPC_stats.bytes += new_cpc->bytes();

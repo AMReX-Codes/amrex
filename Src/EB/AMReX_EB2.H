@@ -44,7 +44,7 @@ public:
 
     static void pop () noexcept { m_instance.pop_back(); }
     static void clear () noexcept { m_instance.clear(); }
-    static const IndexSpace& top () {
+    static IndexSpace& top () {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_instance.empty(),
                                          "Have you forgot to call EB2::build? It's required even if the geometry is all regular.");
         return *(m_instance.back());
@@ -57,6 +57,10 @@ public:
     [[nodiscard]] virtual const Box& coarsestDomain () const = 0;
     virtual void addFineLevels (int num_new_fine_levels) = 0;
     virtual void addRegularCoarseLevels (int num_new_coarse_levels) = 0;
+
+    virtual void setShift (int, int) {
+        amrex::Abort("IndexSpace::setShift: not supported");
+    }
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -90,6 +94,8 @@ public:
     }
     void addFineLevels (int num_new_fine_levels) final;
     void addRegularCoarseLevels (int num_new_coarse_levels) final;
+
+    void setShift (int direction, int ncells) override;
 
     using F = typename G::FunctionType;
 

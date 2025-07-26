@@ -11,6 +11,42 @@ namespace detail {
 template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
                   Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc);
+
+inline Geometry shift_geom (Geometry const& geom)
+{
+    auto const& dom = geom.Domain();
+    auto const& dlo = dom.smallEnd();
+    if (dlo == 0) {
+        return geom;
+    } else {
+        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
+                        geom.isPeriodic());
+    }
+}
+
+template <typename MF>
+void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
+                MF& new_mf1, MF& new_mf2)
+{
+    AMREX_ALWAYS_ASSERT(mf1.boxArray() == mf2.boxArray() &&
+                        mf1.DistributionMap() == mf2.DistributionMap());
+    BoxArray ba = mf1.boxArray();
+    ba.shift(-domain_lo);
+    new_mf1.define(ba, mf1.DistributionMap(), 1, mf1.nGrowVect(),
+                   MFInfo().SetAlloc(false));
+    new_mf2.define(ba, mf2.DistributionMap(), 1, mf2.nGrowVect(),
+                   MFInfo().SetAlloc(false));
+    for (MFIter mfi(mf1); mfi.isValid(); ++mfi) {
+        typename MF::fab_type fab1(mf1[mfi], amrex::make_alias, 0, 1);
+        fab1.shift(-domain_lo);
+        new_mf1.setFab(mfi, std::move(fab1));
+
+        typename MF::fab_type fab2(mf2[mfi], amrex::make_alias, 0, 1);
+        fab2.shift(-domain_lo);
+        new_mf2.setFab(mfi, std::move(fab2));
+    }
+}
+
 }
 
 /**
@@ -25,7 +61,9 @@ public:
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
-        : m_geom(geom), m_bc(bc)
+        : m_domain_lo(geom.Domain().smallEnd()),
+          m_geom(detail::shift_geom(geom)),
+          m_bc(bc)
     {
         bool all_periodic = true;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -42,7 +80,8 @@ public:
 
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     explicit Poisson (Geometry const& geom)
-        : m_geom(geom),
+        : m_domain_lo(geom.Domain().smallEnd()),
+          m_geom(detail::shift_geom(geom)),
           m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
                             std::make_pair(Boundary::periodic,Boundary::periodic),
                             std::make_pair(Boundary::periodic,Boundary::periodic))}
@@ -61,9 +100,10 @@ public:
      * except for the corners of the physical domain where they are not used
      * in the cross stencil of the operator. The two MFs could be the same MF.
      */
-    void solve (MF& soln, MF const& rhs);
+    void solve (MF& a_soln, MF const& a_rhs);
 
 private:
+    IntVect m_domain_lo;
     Geometry m_geom;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
     std::unique_ptr<R2X<typename MF::value_type>> m_r2x;
@@ -98,8 +138,8 @@ private:
 
 /**
  * \brief 3D Poisson solver for periodic, Dirichlet & Neumann boundaries in
- * the first two dimensions, and Neumann in the last dimension. The last
- * dimension could have non-uniform mesh.
+ * the first two dimensions, and Dirichlet & Neumann in the last
+ * dimension. The last dimension could have non-uniform mesh.
  */
 template <typename MF = MultiFab>
 class PoissonHybrid
@@ -110,7 +150,9 @@ public:
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
-        : m_geom(geom), m_bc(bc)
+        : m_domain_lo(geom.Domain().smallEnd()),
+          m_geom(detail::shift_geom(geom)),
+          m_bc(bc)
     {
 #if (AMREX_SPACEDIM < 3)
         amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
@@ -126,6 +168,8 @@ public:
                                      bc[idim].second != Boundary::periodic));
             }
         }
+        AMREX_ALWAYS_ASSERT(bc[2].first != Boundary::periodic &&
+                            bc[2].second != Boundary::periodic);
         Info info{};
         info.setTwoDMode(true);
         if (periodic_xy) {
@@ -135,24 +179,6 @@ public:
             m_r2x = std::make_unique<R2X<typename MF::value_type>> (m_geom.Domain(),
                                                                     m_bc, info);
         }
-        build_spmf();
-    }
-
-    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
-    explicit PoissonHybrid (Geometry const& geom)
-        : m_geom(geom),
-          m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::even,Boundary::even))},
-          m_r2c(std::make_unique<R2C<typename MF::value_type>>
-                (geom.Domain(), Info().setTwoDMode(true)))
-    {
-#if (AMREX_SPACEDIM == 3)
-        AMREX_ALWAYS_ASSERT(geom.isPeriodic(0) && geom.isPeriodic(1));
-#else
-        amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
-        return;
-#endif
         build_spmf();
     }
 
@@ -168,7 +194,7 @@ public:
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
 
     template <typename TRIA, typename TRIC>
-    void solve (MF& soln, MF const& rhs, TRIA const& tria, TRIC const& tric);
+    void solve (MF& a_soln, MF const& a_rhs, TRIA const& tria, TRIC const& tric);
 
     // This is public for cuda
     template <typename FA, typename TRIA, typename TRIC>
@@ -180,6 +206,7 @@ private:
 
     void build_spmf ();
 
+    IntVect m_domain_lo;
     Geometry m_geom;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
     std::unique_ptr<R2X<typename MF::value_type>> m_r2x;
@@ -190,11 +217,20 @@ private:
 };
 
 template <typename MF>
-void Poisson<MF>::solve (MF& soln, MF const& rhs)
+void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
 {
     BL_PROFILE("FFT::Poisson::solve");
 
-    AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
+    MF* soln = &a_soln;
+    MF const* rhs = &a_rhs;
+    MF solntmp, rhstmp;
+    if (m_domain_lo != 0) {
+        detail::shift_mfs(m_domain_lo, a_soln, a_rhs, solntmp, rhstmp);
+        soln = &solntmp;
+        rhs = &rhstmp;
+    }
+
+    AMREX_ASSERT(soln->is_cell_centered() && rhs->is_cell_centered());
 
     using T = typename MF::value_type;
 
@@ -249,15 +285,15 @@ void Poisson<MF>::solve (MF& soln, MF const& rhs)
         spectral_data *= scale;
     };
 
-    IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
+    IntVect const& ng = amrex::elemwiseMin(soln->nGrowVect(), IntVect(1));
 
     if (m_r2x) {
-        m_r2x->forwardThenBackward_doit_0(rhs, soln, f, ng, m_geom.periodicity());
-        detail::fill_physbc(soln, m_geom, m_bc);
+        m_r2x->forwardThenBackward_doit_0(*rhs, *soln, f, ng, m_geom.periodicity());
+        detail::fill_physbc(*soln, m_geom, m_bc);
     } else {
-        m_r2c->forward(rhs);
+        m_r2c->forward(*rhs);
         m_r2c->post_forward_doit_0(f);
-        m_r2c->backward_doit(soln, ng, m_geom.periodicity());
+        m_r2c->backward_doit(*soln, ng, m_geom.periodicity());
     }
 }
 
@@ -329,7 +365,8 @@ namespace fft_poisson_detail {
         [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         T operator() (int, int, int k) const
         {
-            return T(2.0) /(m_dz[k]*(m_dz[k]+m_dz[k-1]));
+            return (k > 0) ? T(2.0) / (m_dz[k]*(m_dz[k]+m_dz[k-1]))
+                           : T(1.0) / (m_dz[k]* m_dz[k]);
         }
         T const* m_dz;
     };
@@ -339,9 +376,11 @@ namespace fft_poisson_detail {
         [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         T operator() (int, int, int k) const
         {
-            return T(2.0) /(m_dz[k]*(m_dz[k]+m_dz[k+1]));
+            return (k < m_size-1) ? T(2.0) / (m_dz[k]*(m_dz[k]+m_dz[k+1]))
+                                  : T(1.0) / (m_dz[k]* m_dz[k]);
         }
         T const* m_dz;
+        int m_size;
     };
 }
 
@@ -421,7 +460,7 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> con
     auto const* pdz = dz.dataPtr();
     solve(soln, rhs,
           fft_poisson_detail::TriA<T>{pdz},
-          fft_poisson_detail::TriC<T>{pdz});
+          fft_poisson_detail::TriC<T>{pdz,int(dz.size())});
 }
 
 template <typename MF>
@@ -438,44 +477,53 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 #endif
     solve(soln, rhs,
           fft_poisson_detail::TriA<T>{pdz},
-          fft_poisson_detail::TriC<T>{pdz});
+          fft_poisson_detail::TriC<T>{pdz,int(dz.size())});
 }
 
 template <typename MF>
 template <typename TRIA, typename TRIC>
-void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, TRIA const& tria,
+void PoissonHybrid<MF>::solve (MF& a_soln, MF const& a_rhs, TRIA const& tria,
                                TRIC const& tric)
 {
     BL_PROFILE("FFT::PoissonHybrid::solve");
 
-    AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
+    AMREX_ASSERT(a_soln.is_cell_centered() && a_rhs.is_cell_centered());
 
 #if (AMREX_SPACEDIM < 3)
-    amrex::ignore_unused(soln, rhs, tria, tric);
+    amrex::ignore_unused(a_soln, a_rhs, tria, tric);
 #else
 
-    IntVect const& ng = amrex::elemwiseMin(soln.nGrowVect(), IntVect(1));
+    MF* soln = &a_soln;
+    MF const* rhs = &a_rhs;
+    MF solntmp, rhstmp;
+    if (m_domain_lo != 0) {
+        detail::shift_mfs(m_domain_lo, a_soln, a_rhs, solntmp, rhstmp);
+        soln = &solntmp;
+        rhs = &rhstmp;
+    }
+
+    IntVect const& ng = amrex::elemwiseMin(soln->nGrowVect(), IntVect(1));
 
     if (m_r2c)
     {
-        m_r2c->forward(rhs, m_spmf_c);
+        m_r2c->forward(*rhs, m_spmf_c);
         solve_z(m_spmf_c, tria, tric);
-        m_r2c->backward_doit(m_spmf_c, soln, ng, m_geom.periodicity());
+        m_r2c->backward_doit(m_spmf_c, *soln, ng, m_geom.periodicity());
     }
     else
     {
         if (m_r2x->m_cy.empty()) { // spectral data is real
-            m_r2x->forward(rhs, m_spmf_r);
+            m_r2x->forward(*rhs, m_spmf_r);
             solve_z(m_spmf_r, tria, tric);
-            m_r2x->backward(m_spmf_r, soln, ng, m_geom.periodicity());
+            m_r2x->backward(m_spmf_r, *soln, ng, m_geom.periodicity());
         } else { // spectral data is complex.
-            m_r2x->forward(rhs, m_spmf_c);
+            m_r2x->forward(*rhs, m_spmf_c);
             solve_z(m_spmf_c, tria, tric);
-            m_r2x->backward(m_spmf_c, soln, ng, m_geom.periodicity());
+            m_r2x->backward(m_spmf_c, *soln, ng, m_geom.periodicity());
         }
     }
 
-    detail::fill_physbc(soln, m_geom, m_bc);
+    detail::fill_physbc(*soln, m_geom, m_bc);
 #endif
 }
 
@@ -517,7 +565,10 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
         }
     }
 
-    bool has_dirichlet = (offset[0] != T(0)) || (offset[1] != T(0));
+    bool zlo_neumann = m_bc[2].first == Boundary::even;
+    bool zhi_neumann = m_bc[2].second == Boundary::even;
+    bool is_singular = (offset[0] == T(0)) && (offset[1] == T(0))
+        && zlo_neumann && zhi_neumann;
 
     auto nz = m_geom.Domain().length(2);
 
@@ -545,18 +596,26 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
             T k2 = dxfac * (std::cos(a)-T(1))
                 +  dyfac * (std::cos(b)-T(1));
 
-            // Tridiagonal solve with homogeneous Neumann
+            // Tridiagonal solve
             for(int k=0; k < nz; k++) {
                 if(k==0) {
                     ald(i,j,k) = T(0.);
                     cud(i,j,k) = tric(i,j,k);
-                    bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
+                    if (zlo_neumann) {
+                        bd(i,j,k) = k2 - cud(i,j,k);
+                    } else {
+                        bd(i,j,k) = k2 - cud(i,j,k) - T(2.0)*tria(i,j,k);
+                    }
                 } else if (k == nz-1) {
                     ald(i,j,k) = tria(i,j,k);
                     cud(i,j,k) = T(0.);
-                    bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
-                    if (i == 0 && j == 0 && !has_dirichlet) {
-                        bd(i,j,k) *= T(2.0);
+                    if (zhi_neumann) {
+                        bd(i,j,k) = k2 - ald(i,j,k);
+                        if (i == 0 && j == 0 && is_singular) {
+                            bd(i,j,k) *= T(2.0);
+                        }
+                    } else {
+                        bd(i,j,k) = k2 - ald(i,j,k) - T(2.0)*tric(i,j,k);
                     }
                 } else {
                     ald(i,j,k) = tria(i,j,k);
@@ -600,18 +659,26 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
             T k2 = dxfac * (std::cos(a)-T(1))
                 +  dyfac * (std::cos(b)-T(1));
 
-            // Tridiagonal solve with homogeneous Neumann
+            // Tridiagonal solve
             for(int k=0; k < nz; k++) {
                 if(k==0) {
                     ald[k] = T(0.);
                     cud[k] = tric(i,j,k);
-                    bd[k] = k2 -ald[k]-cud[k];
+                    if (zlo_neumann) {
+                        bd[k] = k2 - cud[k];
+                    } else {
+                        bd[k] = k2 - cud[k] - T(2.0)*tria(i,j,k);
+                    }
                 } else if (k == nz-1) {
                     ald[k] = tria(i,j,k);
                     cud[k] = T(0.);
-                    bd[k] = k2 -ald[k]-cud[k];
-                    if (i == 0 && j == 0 && !has_dirichlet) {
-                        bd[k] *= T(2.0);
+                    if (zhi_neumann) {
+                        bd[k] = k2 - ald[k];
+                        if (i == 0 && j == 0 && is_singular) {
+                            bd[k] *= T(2.0);
+                        }
+                    } else {
+                        bd[k] = k2 - ald[k] - T(2.0)*tric(i,j,k);
                     }
                 } else {
                     ald[k] = tria(i,j,k);

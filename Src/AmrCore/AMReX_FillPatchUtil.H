@@ -96,8 +96,8 @@ namespace amrex
      * The destination MultiFab/FabArray is on the same AMR level as the
      * source MultiFab/FabArray. Usually this can only be used on AMR level
      * 0, because filling fine level MF usually requires coarse level
-     * data. If needed, interpolation in time is performed. Ghost cells of
-     * the destination MF are not filled.
+     * data. If needed, interpolation in time is performed. All ghost cells of
+     * the destination MF are filled.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
@@ -183,7 +183,7 @@ namespace amrex
      * level data as much as possible. This may include interpolation in
      * time. For the rest of the destination MF, we fill them with the
      * coarse level data using interpolation in space (and in time if
-     * needed). Ghost cells of the destination MF are not filled.
+     * needed). All ghost cells of the destination MF are filled.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
@@ -356,7 +356,7 @@ namespace amrex
      * level data as much as possible. This may include interpolation in
      * time. For the rest of the destination MFs, we fill them with the
      * coarse level data using interpolation in space (and in time if
-     * needed). Ghost cells of the destination MFs are not filled.
+     * needed). All ghost cells of the destination MFs are filled.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries
@@ -466,7 +466,7 @@ namespace amrex
      * level data as much as possible. This may include interpolation in
      * time. For the rest of the destination MF, we fill them with the
      * coarse level data using interpolation in space (and in time if
-     * needed). Ghost cells of the destination MF are not filled.
+     * needed). All ghost cells of the destination MF are filled.
      *
      * \tparam MF the MultiFab/FabArray type
      * \tparam BC functor for filling physical boundaries

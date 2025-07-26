@@ -535,7 +535,8 @@ public:
     {
         CPC (const FabArrayBase& dstfa, const IntVect& dstng,
              const FabArrayBase& srcfa, const IntVect& srcng,
-             const Periodicity& period, bool to_ghost_cells_only = false);
+             const Periodicity& period, bool to_ghost_cells_only = false,
+             const IntVect& offset = IntVect(0));
         CPC (const BoxArray& dstba, const DistributionMapping& dstdm,
              const Vector<int>& dstidx, const IntVect& dstng,
              const BoxArray& srcba, const DistributionMapping& srcdm,
@@ -551,6 +552,7 @@ public:
         BDKey       m_dstbdk;
         IntVect     m_srcng;
         IntVect     m_dstng;
+        IntVect     m_offset;
         Periodicity m_period;
         bool        m_tgco;
         BoxArray    m_srcba;
@@ -574,7 +576,8 @@ public:
     static CacheStats m_CPC_stats;
     //
     const CPC& getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVect& srcng,
-                       const Periodicity& period, bool to_ghost_cells_only = false) const;
+                       const Periodicity& period, bool to_ghost_cells_only = false,
+                       const IntVect& offset = IntVect(0)) const;
 
     //
     //! Rotate Boundary by 90
