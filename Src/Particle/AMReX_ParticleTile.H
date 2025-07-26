@@ -766,7 +766,7 @@ struct ParticleTile
         int a_num_runtime_int,
         std::vector<std::string>* soa_rdata_names=nullptr,
         std::vector<std::string>* soa_idata_names=nullptr,
-        Arnea* a_arena=nullptr
+        Arena* a_arena=nullptr
     )
     {
         GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
