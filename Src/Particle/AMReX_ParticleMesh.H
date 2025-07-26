@@ -30,10 +30,6 @@ auto call_f (F const& f,
         return f(p.getSuperParticle(i), fabarr, plo, dxi);
     } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i)), decltype(fabarr)>::value) {
         return f(p.getSuperParticle(i), fabarr);
-    } else if constexpr (IsCallable<F, decltype(p[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
-        return f(p[i], fabarr, plo, dxi);
-    } else if constexpr (IsCallable<F, decltype(p[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
-        return f(p[i], fabarr);
     } else if constexpr (IsCallable<F, decltype(p), int, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
         return f(p, i, fabarr, plo, dxi);
     } else {
@@ -49,11 +45,7 @@ auto call_f (F const& f,
              GpuArray<Real,AMREX_SPACEDIM> const& plo,
              GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
 {
-    if constexpr (IsCallable<F, decltype(p[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
-        return f(p[i], fabarr, plo, dxi);
-    } else if constexpr (IsCallable<F, decltype(p[i]), decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
-        return f(p[i], fabarr);
-    } else if constexpr (IsCallable<F, decltype(p), int, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+    if constexpr (IsCallable<F, decltype(p), int, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
         return f(p, i, fabarr, plo, dxi);
     } else {
         return f(p, i, fabarr);

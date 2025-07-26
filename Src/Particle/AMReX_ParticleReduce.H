@@ -29,8 +29,6 @@ auto call_f (F const& f,
         return f(p.m_aos[i]);
     } else if constexpr (IsCallable<F, decltype(p.getSuperParticle(i))>::value) {
         return f(p.getSuperParticle(i));
-    } else if constexpr (IsCallable<F, decltype(p[i])>::value) {
-        return f(p[i]);
     } else {
         return f(p, i);
     }
@@ -42,11 +40,7 @@ auto call_f (F const& f,
              const PTDType<RType, IType>& p,
              const int i) noexcept
 {
-    if constexpr (IsCallable<F, decltype(p[i])>::value) {
-        return f(p[i]);
-    } else {
-        return f(p, i);
-    }
+    return f(p, i);
 }
 }
 
