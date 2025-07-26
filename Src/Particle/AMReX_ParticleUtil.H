@@ -949,7 +949,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
 
     { // Create a scope for the temporary vector below
         PTile::RealVector tmp_real(np_total);
-        for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
+        for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
             auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
             ParticleReal* dst = tmp_real.data();
             AMREX_HOST_DEVICE_FOR_1D( np_total, i,
@@ -964,7 +964,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
     }
 
     PTile::IntVector tmp_int(np_total);
-    for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
+    for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
         auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
         int* dst = tmp_int.data();
         AMREX_HOST_DEVICE_FOR_1D( np_total , i,
