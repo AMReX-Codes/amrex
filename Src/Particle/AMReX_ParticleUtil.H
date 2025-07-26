@@ -1030,6 +1030,8 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
                 });
         }
     }
+    // stream sync for deallocation permutations in user code
+    Gpu::streamSynchronize();
 }
 
 #ifdef AMREX_USE_HDF5_ASYNC
