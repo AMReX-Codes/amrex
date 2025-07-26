@@ -1231,148 +1231,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
-#if defined(AMREX_USE_CUDA) && defined(_WIN32)
-        if           (!ParticleType::is_soa_particle) {
-#else
-        if constexpr (!ParticleType::is_soa_particle) {
-#endif
-            static_assert(sizeof(ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
-            using tmp_t = std::conditional_t<sizeof(ParticleType)%8 == 0,
-                                             uint64_t, uint32_t>;
-            constexpr std::size_t nchunks = sizeof(ParticleType) / sizeof(tmp_t);
-            Gpu::DeviceVector<tmp_t> tmp(np);
-            auto* ptmp = tmp.data();
-            auto* paos = (tmp_t*)(ptile.getParticleTileData().m_aos);
-            for (std::size_t ichunk = 0; ichunk < nchunks; ++ichunk) {
-                // Do not need to reorder neighbor particles
-                AMREX_HOST_DEVICE_FOR_1D(np, i,
-                {
-                    ptmp[i] = paos[permutations[i]*nchunks+ichunk];
-                });
-                AMREX_HOST_DEVICE_FOR_1D(np, i,
-                {
-                    paos[i*nchunks+ichunk] = ptmp[i];
-                });
-            }
-            Gpu::streamSynchronize();
-        } else {
-            typename SoA::IdCPU tmp_idcpu(np_total);
-
-            auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
-            uint64_t* dst = tmp_idcpu.data();
-            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-            {
-                dst[i] = i < np ? src[permutations[i]] : src[i];
-            });
-
-            Gpu::streamSynchronize();
-
-            ptile.GetStructOfArrays().GetIdCPUData().swap(tmp_idcpu);
-        }
-
-        { // Create a scope for the temporary vector below
-            RealVector tmp_real(np_total);
-            for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
-                auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
-                ParticleReal* dst = tmp_real.data();
-                AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-                {
-                    dst[i] = i < np ? src[permutations[i]] : src[i];
-                });
-
-                Gpu::streamSynchronize();
-
-                ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
-            }
-        }
-
-        IntVector tmp_int(np_total);
-        for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
-            auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
-            int* dst = tmp_int.data();
-            AMREX_HOST_DEVICE_FOR_1D( np_total , i,
-            {
-                dst[i] = i < np ? src[permutations[i]] : src[i];
-            });
-
-            Gpu::streamSynchronize();
-
-            ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
-        }
+        ReorderParticles(ptile, permutations);
     } else {
         ParticleTileType ptile_tmp;
         ptile_tmp.define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
-        ptile_tmp.resize(np_total);
-        // copy re-ordered particles
-        gatherParticles(ptile_tmp, ptile, np, permutations);
-        // copy neighbor particles
-        amrex::copyParticles(ptile_tmp, ptile, np, np, np_total-np);
-        ptile.swap(ptile_tmp);
-    }
-}
-
-template <typename ParticleType, int NArrayReal, int NArrayInt,
-          template<class> class Allocator, class CellAssignor>
-template <class index_type>
-void
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::ReorderParticles2 (int lev, const MFIter& mfi, const index_type* permutations)
-{
-    auto& ptile           = ParticlesAt(lev, mfi);
-    const size_t np       = ptile.numParticles();
-    const size_t np_total = np + ptile.numNeighborParticles();
-
-    if (memEfficientSort) {
-        {
-            amrex::Gpu::AsyncVector<uint64_t> tmp_idcpu(np);
-
-            auto src = ptile.GetIdCPUData().data();
-            uint64_t* dst = tmp_idcpu.data();
-            amrex::ParallelFor(np,
-                [=] AMREX_GPU_DEVICE (size_t i) {
-                    dst[i] = src[permutations[i]];
-                });
-            amrex::ParallelFor(np,
-                [=] AMREX_GPU_DEVICE (size_t i) {
-                    src[i] = dst[i];
-                });
-        }
-        {
-            amrex::Gpu::AsyncVector<typename ParticleType::RealType> tmp_real(np);
-
-            for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
-                auto src = ptile.GetRealData(comp).data();
-                auto dst = tmp_real.data();
-                amrex::ParallelFor(np,
-                    [=] AMREX_GPU_DEVICE (size_t i) {
-                        dst[i] = src[permutations[i]];
-                    });
-                amrex::ParallelFor(np,
-                    [=] AMREX_GPU_DEVICE (size_t i) {
-                        src[i] = dst[i];
-                    });
-            }
-        }
-        {
-            amrex::Gpu::AsyncVector<typename ParticleType::IntType> tmp_int(np);
-
-            for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
-                auto src = ptile.GetIntData(comp).data();
-                auto dst = tmp_int.data();
-                amrex::ParallelFor(np,
-                    [=] AMREX_GPU_DEVICE (size_t i) {
-                        dst[i] = src[permutations[i]];
-                    });
-                amrex::ParallelFor(np,
-                    [=] AMREX_GPU_DEVICE (size_t i) {
-                        src[i] = dst[i];
-                    });
-            }
-        }
-    } else {
-        ParticleTileType ptile_tmp;
-        ptile_tmp.define(arena(), m_num_runtime_real, m_num_runtime_int,
-            &m_soa_rdata_names, &m_soa_idata_names);
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1418,11 +1280,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             m_bins.build(np, ptile.getParticleTileData(), ntiles,
                          GetParticleBin{plo, dxi, domain, bin_size, box});
-            if constexpr (is_soa2_pc) {
-                ReorderParticles2(lev, mfi, m_bins.permutationPtr());
-            } else {
-                ReorderParticles(lev, mfi, m_bins.permutationPtr());
-            }
+            ReorderParticles(lev, mfi, m_bins.permutationPtr());
         }
     }
 }
@@ -1449,11 +1307,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             using index_type = typename decltype(m_bins)::index_type;
             Gpu::DeviceVector<index_type> perm;
             PermutationForDeposition<index_type>(perm, np, ptile, box, geom, idx_type);
-            if constexpr (is_soa2_pc) {
-                ReorderParticles2(lev, mfi, perm.dataPtr());
-            } else {
-                ReorderParticles(lev, mfi, perm.dataPtr());
-            }
+            ReorderParticles(lev, mfi, perm.dataPtr());
         }
     }
 }

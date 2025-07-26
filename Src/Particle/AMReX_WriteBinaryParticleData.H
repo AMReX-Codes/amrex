@@ -358,8 +358,8 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         const auto flag_ptr = pflags.data();
         const auto offset_ptr = offsets.data();
 
-        auto idata_d_ptr = idata_d.data();
-        auto rdata_d_ptr = rdata_d.data();
+        auto* idata_d_ptr = idata_d.data();
+        auto* rdata_d_ptr = rdata_d.data();
 
         const auto& ptd = ptile.getConstParticleTileData();
         amrex::ParallelFor(ptile.numParticles(),

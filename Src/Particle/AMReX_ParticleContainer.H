@@ -519,9 +519,6 @@ public:
     template <class index_type>
     void ReorderParticles (int lev, const MFIter& mfi, const index_type* permutations);
 
-    template <class index_type>
-    void ReorderParticles2 (int lev, const MFIter& mfi, const index_type* permutations);
-
     /**
      * \brief Sort particles on each tile such that particles adjacent in memory
      * are likely to map to adjacent cells. This ordering can be beneficial for performance
