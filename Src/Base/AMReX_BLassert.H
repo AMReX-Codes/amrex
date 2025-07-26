@@ -49,6 +49,11 @@
 #define AMREX_ALWAYS_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , # MSG)
 #define AMREX_ALWAYS_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 
+#define AMREX_STRINGIFY_DETAIL(x) #x
+#define AMREX_STRINGIFY(x) AMREX_STRINGIFY_DETAIL(x)
+
+#define AMREX_STATIC_ASSERT_WITH_MESSAGE(EX,MSG) static_assert(EX, "Assertion `" # EX "` failed, file: " __FILE__ ", line: " AMREX_STRINGIFY(__LINE__) ", Msg: " MSG)
+#define AMREX_STATIC_ASSERT(EX) static_assert(EX, "Assertion `" # EX "` failed, file: " __FILE__ ", line: " AMREX_STRINGIFY(__LINE__))
 
 #if !defined(AMREX_USE_GPU) || !defined(AMREX_DEBUG) && !defined(AMREX_USE_ASSERTION)
 #define AMREX_GPU_ASSERT(EX) ((void)0)
