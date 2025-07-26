@@ -23,7 +23,7 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
-#include <AMReX_ParticleTile2.H>
+#include <AMReX_ParticleTileRT.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParticleUtil.H>
@@ -179,12 +179,12 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
-    static constexpr bool is_soa2_pc = ParticleType::is_soa2_particle;
+    static constexpr bool is_rtsoa_pc = ParticleType::is_rtsoa_particle;
 
     using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParticleTileType = std::conditional_t<
-        is_soa2_pc,
-        ParticleTile2<typename ParticleType::RealType, typename ParticleType::IntType>,
+        is_rtsoa_pc,
+        ParticleTileRT<typename ParticleType::RealType, typename ParticleType::IntType>,
         ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>
     >;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
@@ -1555,7 +1555,7 @@ template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=Def
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
-using ParticleContainerPureSoA2 = ParticleContainer_impl<SoAParticle2<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
+using ParticleContainerRTSoA = ParticleContainer_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 
 }
 

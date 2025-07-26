@@ -902,7 +902,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
 
     // make tmp particle tiles in pinned memory to write
     using PinnedPTile = std::conditional_t<
-        PC::is_soa2_pc,
+        PC::is_rtsoa_pc,
         typename PC::ParticleTileType,
         ParticleTile<typename PC::ParticleType, NArrayReal, NArrayInt, PinnedArenaAllocator>
     >;

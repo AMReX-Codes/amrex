@@ -391,7 +391,7 @@ struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
     using StorageParticleType = SoAParticleBase;
     using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
-    static constexpr bool is_soa2_particle = false;
+    static constexpr bool is_rtsoa_particle = false;
     static constexpr bool is_constsoa_particle = false;
 
     using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt>;

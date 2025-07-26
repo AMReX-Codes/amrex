@@ -11,7 +11,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
-#include <AMReX_ParticleTile2.H>
+#include <AMReX_ParticleTileRT.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Scan.H>
@@ -900,7 +900,7 @@ std::string getDefaultCompNameInt (const int i) {
 }
 
 template <class PTile, class index_type,
-          std::enable_if_t<!PTile::ParticleType::is_soa2_particle, int> foo = 0>
+          std::enable_if_t<!PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {
@@ -979,7 +979,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
 }
 
 template <class PTile, class index_type,
-          std::enable_if_t<PTile::ParticleType::is_soa2_particle, int> foo = 0>
+          std::enable_if_t<PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {

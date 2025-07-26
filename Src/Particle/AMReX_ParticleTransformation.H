@@ -7,7 +7,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParticleTile.H>
-#include <AMReX_ParticleTile2.H>
+#include <AMReX_ParticleTileRT.H>
 #include <AMReX_ParticleUtil.H>
 
 namespace amrex
@@ -158,10 +158,10 @@ void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
  */
 template <class DRType, class DIType, class SRType, class SIType>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void copyParticle (const ParticleTileData2<DRType, DIType>& dst,
-                   const ParticleTileData2<SRType, SIType>& src,
-                   typename ParticleTileData2<SRType, SIType>::size_type src_i,
-                   typename ParticleTileData2<DRType, DIType>::size_type dst_i) noexcept
+void copyParticle (const ParticleTileDataRT<DRType, DIType>& dst,
+                   const ParticleTileDataRT<SRType, SIType>& src,
+                   typename ParticleTileDataRT<SRType, SIType>::size_type src_i,
+                   typename ParticleTileDataRT<DRType, DIType>::size_type dst_i) noexcept
 {
     dst.idcpu(dst_i) = src.idcpu(src_i);
 
@@ -185,10 +185,10 @@ void copyParticle (const ParticleTileData2<DRType, DIType>& dst,
  */
 template <class DRType, class DIType, class SRType, class SIType>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void swapParticle (const ParticleTileData2<DRType, DIType>& dst,
-                   const ParticleTileData2<SRType, SIType>& src,
-                   typename ParticleTileData2<SRType, SIType>::size_type src_i,
-                   typename ParticleTileData2<DRType, DIType>::size_type dst_i) noexcept
+void swapParticle (const ParticleTileDataRT<DRType, DIType>& dst,
+                   const ParticleTileDataRT<SRType, SIType>& src,
+                   typename ParticleTileDataRT<SRType, SIType>::size_type src_i,
+                   typename ParticleTileDataRT<DRType, DIType>::size_type dst_i) noexcept
 {
     amrex::Swap(dst.idcpu(dst_i), src.idcpu(src_i));
 

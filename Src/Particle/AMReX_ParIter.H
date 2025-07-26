@@ -19,7 +19,7 @@ template <int NArrayReal, int NArrayInt>
 struct SoAParticle;
 
 template <class RType, class IType>
-struct SoAParticle2;
+struct RTSoAParticle;
 
 struct DefaultAssignor;
 
@@ -228,7 +228,7 @@ template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=Def
 using ParConstIterSoA = ParConstIter_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
-using ParConstIterSoA2 = ParConstIter_impl<SoAParticle2<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
+using ParConstIterRTSoA = ParConstIter_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
@@ -238,7 +238,7 @@ template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=Def
 using ParIterSoA = ParIter_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
-using ParIterSoA2 = ParIter_impl<SoAParticle2<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
+using ParIterRTSoA = ParIter_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 
 }
 
