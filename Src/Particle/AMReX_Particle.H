@@ -387,6 +387,7 @@ struct SoAParticleBase
     static constexpr int NReal=0;
     static constexpr int NInt=0;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_rtsoa_particle = false;
 };
 
 /** \brief The struct used to store particles.
