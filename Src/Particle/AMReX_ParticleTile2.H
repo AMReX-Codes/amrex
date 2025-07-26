@@ -230,10 +230,10 @@ struct ParticleTileData2
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Particle<0, 0> getSuperParticle (size_type index) const noexcept
     {
-        return {
+        return {{
             { AMREX_D_DECL( pos(0, index), pos(1, index), pos(2, index) ) },
             idcpu(index)
-        };
+        }};
     }
 };
 
