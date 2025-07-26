@@ -70,6 +70,10 @@ struct ParticleTileDataRT
     using Self = ParticleTileDataRT<RType, IType>;
     using size_type = std::size_t;
 
+    using ParticleType = RTSoAParticle<RType, IType>;
+    using RealType = RType;
+    using IntType = IType;
+
     static constexpr bool is_particle_tile_data = true;
     static constexpr bool is_const = std::is_const_v<RType>;
 
@@ -373,6 +377,7 @@ struct ParticleTileRT
 {
     using ParticleType = RTSoAParticle<RType, IType>;
     using RealType = RType;
+    using IntType = IType;
 
     using ParticleTileDataType = ParticleTileDataRT<RType, IType>;
     using ConstParticleTileDataType = ParticleTileDataRT<const RType, const IType>;
