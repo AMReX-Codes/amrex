@@ -42,7 +42,7 @@ fillFlagsGpu (Container& pflags, const PTile& ptile, F const& f)
     amrex::ParallelForRNG(np,
         [=] AMREX_GPU_DEVICE (int k, amrex::RandomEngine const& engine) noexcept
         {
-            const auto p = ptd[k];
+            const auto p = ptd.getSuperParticle(k);
             amrex::ignore_unused(flag_ptr, f, engine);
             if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
                 flag_ptr[k] = f(p,engine);
@@ -67,7 +67,7 @@ fillFlagsCpu (Container& pflags, const PTile& ptile, F const& f)
     pflags.resize(np, 0);
     auto flag_ptr = pflags.data();
     for (int k = 0; k < np; ++k) {
-        const auto p = ptd[k];
+        const auto p = ptd.getSuperParticle(k);
         if constexpr (IsCallable<F,decltype(p),RandomEngine>::value) {
             flag_ptr[k] = f(p,getInvalidRandomEngine());
         } else if constexpr (IsCallable<F,decltype(p)>::value) {
@@ -358,8 +358,8 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         const auto flag_ptr = pflags.data();
         const auto offset_ptr = offsets.data();
 
-        auto* idata_d_ptr = idata_d.data();
-        auto* rdata_d_ptr = rdata_d.data();
+        auto idata_d_ptr = idata_d.data();
+        auto rdata_d_ptr = rdata_d.data();
 
         const auto& ptd = ptile.getConstParticleTileData();
         amrex::ParallelFor(ptile.numParticles(),
