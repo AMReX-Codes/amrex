@@ -913,10 +913,10 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
     if constexpr (!PTile::ParticleType::is_soa_particle)
 #endif
     {
-        static_assert(sizeof(PTile::ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
-        using tmp_t = std::conditional_t<sizeof(PTile::ParticleType)%8 == 0,
+        static_assert(sizeof(typename PTile::ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
+        using tmp_t = std::conditional_t<sizeof(typename PTile::ParticleType)%8 == 0,
                                             uint64_t, uint32_t>;
-        constexpr std::size_t nchunks = sizeof(PTile::ParticleType) / sizeof(tmp_t);
+        constexpr std::size_t nchunks = sizeof(typename PTile::ParticleType) / sizeof(tmp_t);
         Gpu::DeviceVector<tmp_t> tmp(np);
         auto* ptmp = tmp.data();
         auto* paos = (tmp_t*)(ptile.getParticleTileData().m_aos);
