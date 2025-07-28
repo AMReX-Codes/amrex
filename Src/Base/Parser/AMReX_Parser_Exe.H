@@ -558,7 +558,7 @@ double parser_exe_eval (const char* p, double const* x)
             break;
         }
         default:
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,"parser_exe_eval: unknown node type");
+            AMREX_ASSERT_WITH_MESSAGE(false,"parser_exe_eval: unknown node type");
         }
     }
     return pstack.top(); // NOLINT
