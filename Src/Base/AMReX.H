@@ -195,7 +195,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line) {
 #if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,where_is_the_gpu_assert);))
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line);))
 #else
         AMREX_IF_ON_DEVICE((
             AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
@@ -209,7 +209,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg) {
 #if defined(NDEBUG)
-        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg,where_is_the_gpu_assert_msg);))
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg);))
 #else
         AMREX_IF_ON_DEVICE((
             AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
