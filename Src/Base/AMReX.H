@@ -193,18 +193,23 @@ namespace amrex
                       std::size_t msg_size=0);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
+    void Assert (const char* EX, const char* file, int line) {
         AMREX_IF_ON_DEVICE((
-                if (msg) {
-                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                                        EX, file, line, msg);
-                } else {
-                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                                        EX, file, line);
-                }
-                AMREX_DEVICE_ASSERT(0);
+            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                                    EX, file, line);
+            AMREX_DEVICE_ASSERT(0);
         ))
-        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,msg?std::strlen(msg):0U);))
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,nullptr,0U);))
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Assert (const char* EX, const char* file, int line, const char* msg) {
+        AMREX_IF_ON_DEVICE((
+            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                                    EX, file, line, msg);
+            AMREX_DEVICE_ASSERT(0);
+        ))
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,std::strlen(msg));))
     }
 
     AMREX_FORCE_INLINE
