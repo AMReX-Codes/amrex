@@ -489,7 +489,7 @@ long long iparser_exe_eval (const char* p, long long const* x)
             break;
         }
         default:
-            AMREX_ASSERT_WITH_MESSAGE(false,"parser_exe_eval: unknown node type");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false,"parser_exe_eval: unknown node type");
         }
     }
     return pstack.top();

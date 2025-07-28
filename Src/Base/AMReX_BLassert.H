@@ -46,8 +46,8 @@
 
 #endif
 
-#define AMREX_ALWAYS_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , MSG); AMREX_IF_ON_DEVICE((1+=2))
-#define AMREX_ALWAYS_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__); AMREX_IF_ON_DEVICE((3+=4))
+#define AMREX_ALWAYS_ASSERT_WITH_MESSAGE(EX,MSG) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__ , MSG)
+#define AMREX_ALWAYS_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 
 
 #if !defined(AMREX_USE_GPU) || !defined(AMREX_DEBUG) && !defined(AMREX_USE_ASSERTION)
