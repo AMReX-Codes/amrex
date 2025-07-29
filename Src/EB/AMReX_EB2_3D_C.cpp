@@ -109,12 +109,12 @@ void set_eb_data (const int i, const int j, const int k,
     Real aay = 0.5_rt*(aym+ayp);
     Real aaz = 0.5_rt*(azm+azp);
     Real B0 = aax + aay + aaz;
-    Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0))
-                      + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0));
-    Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0))
-                      + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1));
-    Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1))
-                      + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1));
+    Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0)) * dx[0]/dx[1]
+                      + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0)) * dx[0]/dx[2];
+    Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0)) * dx[1]/dx[0]
+                      + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1)) * dx[1]/dx[2];
+    Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1)) * dx[2]/dx[0]
+                      + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) * dx[2]/dx[1];
 
     vfrac(i,j,k) = 0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz);
 
