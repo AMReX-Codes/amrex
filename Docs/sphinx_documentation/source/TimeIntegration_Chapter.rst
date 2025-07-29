@@ -55,7 +55,9 @@ a generic explicit Runge-Kutta method. If Runge-Kutta is selected, then the user
 can choose which of a set of predefined Butcher Tables to use, or can choose to
 use a custom table and supply it manually.
 
-The full set of integrator options are detailed as follows:
+An example of integrator options is given below. For a complete list of options
+see the section on :ref:`Time Integration Runtime Parameters
+<sec:inputs:timeintegration>`.
 
 ::
 
@@ -117,7 +119,7 @@ at runtime:
   integration.sundials.type = ERK
 
 One can select a different method type by changing the value of
-``integration.sundials.type`` to one of the following values:
+:py:data:`integration.sundials.type` to one of the following values:
 
 +------------------------+--------------------------------------------------+
 | Input Option           | SUNDIALS Method Type                             |
@@ -142,24 +144,27 @@ needs to supply slow and fast right-hand side functions using
 ``TimeIntegrator::set_rhs()`` to set the slow function and
 ``TimeIntegrator::set_fast_rhs()`` to set the fast function. With multirate
 methods, one also needs to select the fast time scale method type using the
-input option ``integration.sundials.fast_type`` which maybe set to ``ERK`` or
-``DIRK``.
+input option :py:data:`integration.sundials.fast_type` which maybe set to
+``ERK`` or ``DIRK``.
 
 To select a specific SUNDIALS method use the input option
-``integration.sundials.method`` for ERK and DIRK methods as well as the slow
-time scale method with an MRI integrator, use ``integration.sundials.method_i``
-and ``integration.sundials.method_e`` to set the implicit and explicit method in
-an ImEx method, and ``integration.sundials.fast_method`` to set the ERK or DIRK
-method used at the fast time scale with an MRI integrator. These options may be
-set to any valid SUNDIALS method name, see the following sections in the
-SUNDIALS documentation for more details:
+:py:data:`integration.sundials.method` for ERK and DIRK methods as well as the
+slow time scale method with an MRI integrator, use
+:py:data:`integration.sundials.method_i` and
+:py:data:`integration.sundials.method_e` to set the implicit and explicit method
+in an ImEx method, and :py:data:`integration.sundials.fast_method` to set the
+ERK or DIRK method used at the fast time scale with an MRI integrator. These
+options may be set to any valid SUNDIALS method name, see the following sections
+in the SUNDIALS documentation for more details:
 
-* `ERK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#explicit-butcher-tables>`_
-* `DIRK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#implicit-butcher-tables>`_
-* `ImEx methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#additive-butcher-tables>`_
-* `MRI methods <https://sundials.readthedocs.io/en/latest/arkode/Usage/MRIStep/MRIStepCoupling.html#mri-coupling-tables>`_
+* `ERK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#explicit-butcher-tables>`__
+* `DIRK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#implicit-butcher-tables>`__
+* `ImEx methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#additive-butcher-tables>`__
+* `MRI methods <https://sundials.readthedocs.io/en/latest/arkode/Usage/MRIStep/MRIStepCoupling.html#mri-coupling-tables>`__
 
-The full set of integrator options are detailed as follows:
+An example of integrator options is given below. For a complete list of options
+see the section on :ref:`Time Integration Runtime Parameters
+<sec:inputs:timeintegration>`.
 
 ::
 
