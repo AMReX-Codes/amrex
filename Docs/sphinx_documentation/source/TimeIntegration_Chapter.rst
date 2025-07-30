@@ -100,8 +100,26 @@ Using SUNDIALS
 The AMReX Time Integration interface also supports a SUNDIALS backend that
 provides explicit, implicit, and implicit-explicit (ImEx) Runge-Kutta methods
 as well a multirate (MRI) methods from the ARKODE package in SUNDIALS.
-To use SUNDIALS integrators, the user needs to compile AMReX with
-``USE_SUNDIALS=TRUE`` and use SUNDIALS v6.0 or later.
+Presently, SUNDIALS v6.0 or later is required, but v7.4.0 has been successfully tested.
+To install SUNDIALS, the full documentation is available at
+https://sundials.readthedocs.io/en/latest/sundials/Install_link.html
+
+Here is a summary of steps that you need to take using cmake.
+First obtain the source code from either
+https://computing.llnl.gov/projects/sundials/sundials-software or the github page at
+https://github.com/LLNL/sundials.
+Once you have unpacked or cloned the source code, run the following
+(altering the ENABLE_MPI and ENABLE_CUDA lines as appropriate):
+
+::
+
+   cmake -S /path_to_sundials_source_code -B /path_to_sundials_build_dir -D CMAKE_INSTALL_PREFIX=/path_to_sundials_install_dir -D ENABLE_MPI=ON -D ENABLE_CUDA=ON
+   cd /path_to_sundials_build_dir
+   make
+   make install
+
+To use SUNDIALS integrators, the user needs to compile their AMReX application with
+``USE_SUNDIALS=TRUE`` and ``SUNDIALS_HOME=/path_to_sundials_install_dir``
 
 The SUNDIALS interface supports ``MultiFab`` or ``Vector<MultiFab>`` data
 types. Using a ``Vector<MultiFab>`` permits integrating state data with
