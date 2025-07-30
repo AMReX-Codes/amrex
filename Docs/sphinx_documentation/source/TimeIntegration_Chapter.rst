@@ -100,7 +100,7 @@ Using SUNDIALS
 The AMReX Time Integration interface also supports a SUNDIALS backend that
 provides explicit, implicit, and implicit-explicit (ImEx) Runge-Kutta methods
 as well a multirate (MRI) methods from the ARKODE package in SUNDIALS.
-Presently, SUNDIALS v6.0 or later is required, but v7.4.0 has been succesfully tested.
+Presently, SUNDIALS v6.0 or later is required, but v7.4.0 has been successfully tested.
 To install SUNDIALS, the full documentation is available at
 https://sundials.readthedocs.io/en/latest/sundials/Install_link.html
 
