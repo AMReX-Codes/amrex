@@ -4,6 +4,7 @@
 #
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
+#   Flags_FASTMATH            --> Optional flags for fast-math (floating-point)
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
 #   Flags_INLINE              --> Optional flags for inlining
 #
@@ -21,15 +22,15 @@ include_guard(GLOBAL)
 #
 # for every combination of
 #
-#     <lang> = cxx,fortran
-#     <id>   = gnu,intel,pgi,cray,clang,appleclang,intelllvm,msvc
+#     <lang> = cxx,fortran,cuda
+#     <id>   = gnu,intel,pgi,cray,clang,appleclang,crayclang,ibmclang,intelllvm,msvc,nvidia,nvhpc,xlclang
 #
 if (CMAKE_VERSION VERSION_LESS 3.20)
-   foreach (_language CXX Fortran )
+   foreach (_language CXX Fortran CUDA )
       set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
       string(TOLOWER "${_language}" _lang)
 
-      foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
+      foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
          string(TOLOWER "${_comp}" _id)
          # Define variables
          set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
@@ -44,10 +45,10 @@ if (CMAKE_VERSION VERSION_LESS 3.20)
       unset(_lang)
    endforeach ()
 else ()
-   foreach (_language CXX Fortran )
+   foreach (_language CXX Fortran CUDA )
       string(TOLOWER "${_language}" _lang)
 
-      foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
+      foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
          string(TOLOWER "${_comp}" _id)
          # Define variables
          set(_${_lang}_${_id}      "$<COMPILE_LANG_AND_ID:${_language},${_comp}>")
@@ -125,6 +126,35 @@ target_compile_options( Flags_Fortran
    $<${_fortran_cray_dbg}:-O0 -e i>
    $<${_fortran_cray_rel}:>
    )
+
+
+#
+# Fast-Math (for floating point)
+#
+add_library(Flags_FASTMATH INTERFACE)
+add_library(AMReX::Flags_FASTMATH ALIAS Flags_FASTMATH)
+
+target_compile_options( Flags_FASTMATH
+   INTERFACE
+      $<${_cuda_nvidia}:--use_fast_math>
+      $<${_cuda_nvhpc}:-fast>
+      $<${_fortran_gnu}:-ffast-math>
+      $<${_cxx_gnu}:-ffast-math>
+      $<${_fortran_intel}:-ffast-math>
+      $<${_cxx_intel}:-ffast-math>
+      $<${_fortran_pgi}:-ffast-math>
+      $<${_cxx_pgi}:-ffast-math>
+      $<${_fortran_cray}:-ffast-math>
+      $<${_cxx_cray}:-ffast-math>
+      $<${_fortran_clang}:-ffast-math>
+      $<${_cxx_clang}:-ffast-math>
+      $<${_cxx_appleclang}:-ffast-math>
+      $<${_cxx_crayclang}:-ffast-math>
+      $<${_cxx_ibmclang}:-ffast-math>
+      $<${_cxx_intelllvm}:-ffast-math>
+      $<${_cxx_xlclang}:-ffast-math>
+      $<${_cxx_msvc}:/fp:fast>
+)
 
 
 #
