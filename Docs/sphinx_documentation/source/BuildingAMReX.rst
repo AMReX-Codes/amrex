@@ -443,7 +443,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BUILD_SHARED_LIBS      |  Build as shared C++ library                    | NO (unless xSDK)        | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CPU), YES (CUDA)    | YES, NO               |
+   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)          | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
