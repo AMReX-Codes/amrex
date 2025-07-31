@@ -86,7 +86,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (NOT AMReX_COMPILER_DEFULT_INLINE)
+    if (NOT AMReX_COMPILER_DEFAULT_INLINE)
        target_link_libraries(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:Flags_INLINE>
