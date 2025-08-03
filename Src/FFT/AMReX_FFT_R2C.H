@@ -1193,7 +1193,7 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
             auto* spectral_fab = detail::get_fab(m_cz);
             if (spectral_fab) {
                 auto const& a = spectral_fab->array(); // m_cz's ordering is z,x,y
-                ParallelFor(spectral_fab->box(),
+                ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int iz, int jx, int ky)
                 {
                     post_forward(jx,ky,iz,a(iz,jx,ky));
@@ -1203,7 +1203,7 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
             auto* spectral_fab = detail::get_fab(m_cy);
             if (spectral_fab) {
                 auto const& a = spectral_fab->array(); // m_cy's ordering is y,x,z
-                ParallelFor(spectral_fab->box(),
+                ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int iy, int jx, int k)
                 {
                     post_forward(jx,iy,k,a(iy,jx,k));
@@ -1213,7 +1213,7 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
             auto* spectral_fab = detail::get_fab(m_cx);
             if (spectral_fab) {
                 auto const& a = spectral_fab->array();
-                ParallelFor(spectral_fab->box(),
+                ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     post_forward(i,j,k,a(i,j,k));
