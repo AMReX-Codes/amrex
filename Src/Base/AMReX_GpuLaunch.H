@@ -245,7 +245,7 @@ namespace amrex {
 
 #if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelForOMP (T n, L const& f) noexcept
 {
     ParallelFor(n, f);
@@ -257,7 +257,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
     ParallelFor(box, f);
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {
     ParallelFor(box, ncomp, f);
@@ -265,7 +265,7 @@ void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 
 #else /* !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) */
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForOMP (T n, L const& f) noexcept
 {
@@ -307,7 +307,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
 #endif
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral<T>::value> >
+template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {
