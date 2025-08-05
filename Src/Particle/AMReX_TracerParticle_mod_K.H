@@ -307,7 +307,7 @@ void linear_interpolate_to_particle_z (const P& p,
 
            amrex::Real height_at_px = sx[0] * hlo_xlo + sx[1] * hlo_xhi;
 
-           if (amrex::Real(p.pos(1)) < height_at_px) j0 = j-1;
+           if (amrex::Real(p.pos(1)) < height_at_px) {j0 = j-1;}
 
         } // if not vertical direction
 
@@ -379,7 +379,7 @@ void linear_interpolate_to_particle_z (const P& p,
                 }
             }
 
-            if (amrex::Real(p.pos(2)) < height_at_pxy ) k0 = k-1;
+            if (amrex::Real(p.pos(2)) < height_at_pxy ) {k0 = k-1;}
 
         } // if not vertical direction
 
