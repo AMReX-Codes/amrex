@@ -860,7 +860,7 @@ namespace amrex
             Array4<Real> const& curl_y = curl_face[1]->array(mfi);
             Array4<Real> const& curl_z = curl_face[2]->array(mfi);
 
-            // edge_vec components: 
+            // edge_vec components:
             // edge_vec[0] is on x-edges (j,k are nodal, i is cell-centered)
             // edge_vec[1] is on y-edges (i,k are nodal, j is cell-centered)
             // edge_vec[2] is on z-edges (i,j are nodal, k is cell-centered)
@@ -874,10 +874,10 @@ namespace amrex
             {
                 // Ez values at (i,j,k) and (i,j+1,k) for dEz/dy
                 Real dEz_dy = dxinv[1] * (Ez(i,j+1,k) - Ez(i,j,k));
-                
+
                 // Ey values at (i,j,k) and (i,j,k+1) for dEy/dz
                 Real dEy_dz = dxinv[2] * (Ey(i,j,k+1) - Ey(i,j,k));
-                
+
                 curl_x(i,j,k) = dEz_dy - dEy_dz;
             });
 
@@ -887,10 +887,10 @@ namespace amrex
             {
                 // Ex values at (i,j,k) and (i,j,k+1) for dEx/dz
                 Real dEx_dz = dxinv[2] * (Ex(i,j,k+1) - Ex(i,j,k));
-                
+
                 // Ez values at (i,j,k) and (i+1,j,k) for dEz/dx
                 Real dEz_dx = dxinv[0] * (Ez(i+1,j,k) - Ez(i,j,k));
-                
+
                 curl_y(i,j,k) = dEx_dz - dEz_dx;
             });
 
@@ -900,10 +900,10 @@ namespace amrex
             {
                 // Ey values at (i,j,k) and (i+1,j,k) for dEy/dx
                 Real dEy_dx = dxinv[0] * (Ey(i+1,j,k) - Ey(i,j,k));
-                
+
                 // Ex values at (i,j,k) and (i,j+1,k) for dEx/dy
                 Real dEx_dy = dxinv[1] * (Ex(i,j+1,k) - Ex(i,j,k));
-                
+
                 curl_z(i,j,k) = dEy_dx - dEx_dy;
             });
         }
