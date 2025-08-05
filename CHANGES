@@ -1,3 +1,68 @@
+# 25.08
+
+ ## Highlights:
+
+  * EB anisotropic meshes - changes for cut_face_2d routine (#4554)
+    EB anisotropic - set_eb_data changes (#4577)
+    Correction to EB volume fraction for anisotropic grids (#4587)
+    Correction to EB volume centroid for anisotropic case (#4586)
+
+    These make the necessary changes for EB generation on 3D aniostropic
+    meshes.
+
+  * SUNDIALS interface updates (#4562)
+
+    Major updates have been made to the SUNDIALS interface.
+
+  * AMReX SIMD Helpers (#4520)
+
+    AMReX does not have a concept yet to help users write effective SIMD
+    code on CPU, besides relying on auto-vectorization and pragmas, which
+    are unreliable for any complex enough code. This PR adds initial support
+    for portable user-code by providing build system support and an
+    `AMReX_SIMD.H` header that handles includes & helper types and
+    functions.
+
+  * CMake: `AMReX_FASTMATH` (#4545)
+    CMake: `AMReX::Flags_FASTMATH` Interface Helper Target (#4591)
+
+    Add new general compiler flag for fast-math optimizations. This does not
+    change any defaults
+
+  * Parser: Support comparison chain (#4556)
+
+    Parser now supports comparison chain such as `a <= b <= c`.
+
+ ## Other major changes:
+
+  * CMake: Fix Typo `AMReX_COMPILER_DEFAULT_INLINE` (#4590)
+
+  * Clean #ifdef around default RunOn declaration (#4580)
+
+  * Account for metric term in fluxes due to inhomogeneous Neumann boundary conditions (#4579)
+
+  * Replace `std::numeric_limits<>::infinity()` with `max()` (#4547)
+
+  * Reorganize checkPoint logic into checkPointNow functions (#4567)
+
+  * ParmParse: Remove two Aborts (#4576)
+
+  * FFT Poisson Solver: Support domain not starting with 0 (#4573)
+
+  * Fix Assert in `ReduceToPlaneMF` (#4566)
+
+  * Retry a few times if directory creation fails (#4537)
+
+  * Added GNU compile flags to enable -fPIC for llvm (#4553)
+
+  * ParmParse: Add parser support for bool (#4552)
+
+  * Remove an assertion in AmrLevel::RK (#4551)
+
+  * Reduce use of SuperParticle (#4526)
+
+  * Tweak CArena Defragmentation Strategy (#4531)
+
 # 25.07
 
   ## Highlights:
