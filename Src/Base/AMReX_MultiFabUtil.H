@@ -228,6 +228,18 @@ namespace amrex
     void computeGradient (MultiFab& grad, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
                           const Geometry& geom);
 
+#if (AMREX_SPACEDIM == 3)
+    //! Computes curl of face-centered vector field and stores result at nodes
+    void computeCurlNodal (MultiFab& curl_nodal, 
+                          const Array<MultiFab const*,AMREX_SPACEDIM>& face_vec,
+                          const Geometry& geom);
+
+    //! Computes curl of edge-centered vector field and stores result at faces
+    void computeCurlFace (Array<MultiFab*,AMREX_SPACEDIM>& curl_face,
+                         const Array<MultiFab const*,AMREX_SPACEDIM>& edge_vec,
+                         const Geometry& geom);
+#endif
+
     //! Convert iMultiFab to MultiFab
     MultiFab ToMultiFab (const iMultiFab& imf);
     //! Convert iMultiFab to Long

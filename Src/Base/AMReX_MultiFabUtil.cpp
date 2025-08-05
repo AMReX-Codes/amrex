@@ -789,6 +789,127 @@ namespace amrex
         }
     }
 
+#if (AMREX_SPACEDIM == 3)
+    void computeCurlNodal (MultiFab& curl_nodal, 
+                           const Array<MultiFab const*,AMREX_SPACEDIM>& face_vec,
+                           const Geometry& geom)
+    {
+        AMREX_ASSERT(curl_nodal.nComp() >= AMREX_SPACEDIM);
+        AMREX_ASSERT(curl_nodal.is_nodal());
+        AMREX_ASSERT(face_vec[0]->nComp() == 1);
+        AMREX_ASSERT(face_vec[1]->nComp() == 1);
+        AMREX_ASSERT(face_vec[2]->nComp() == 1);
+
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(curl_nodal,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            const Box& nbx = mfi.tilebox();
+            Array4<Real> const& curlarr = curl_nodal.array(mfi);
+            Array4<Real const> const& uarr = face_vec[0]->const_array(mfi);
+            Array4<Real const> const& varr = face_vec[1]->const_array(mfi);
+            Array4<Real const> const& warr = face_vec[2]->const_array(mfi);
+
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(nbx, i, j, k,
+            {
+                // For node (i,j,k), compute curl using face values that touch this node
+                // curl_x = dw/dy - dv/dz
+                curlarr(i,j,k,0) = dxinv[1] * (warr(i-1,j,k-1) - warr(i-1,j-1,k-1))
+                                  - dxinv[2] * (varr(i-1,j-1,k) - varr(i-1,j-1,k-1));
+
+                // curl_y = du/dz - dw/dx
+                curlarr(i,j,k,1) = dxinv[2] * (uarr(i-1,j-1,k) - uarr(i-1,j-1,k-1))
+                                  - dxinv[0] * (warr(i,j-1,k-1) - warr(i-1,j-1,k-1));
+
+                // curl_z = dv/dx - du/dy
+                curlarr(i,j,k,2) = dxinv[0] * (varr(i,j-1,k-1) - varr(i-1,j-1,k-1))
+                                  - dxinv[1] * (uarr(i-1,j,k-1) - uarr(i-1,j-1,k-1));
+            });
+        }
+    }
+
+    void computeCurlFace (Array<MultiFab*,AMREX_SPACEDIM>& curl_face,
+                          const Array<MultiFab const*,AMREX_SPACEDIM>& edge_vec,
+                          const Geometry& geom)
+    {
+        // edge_vec contains edge-centered components
+        // curl_face will contain face-centered curl components
+        AMREX_ASSERT(edge_vec[0]->nComp() == 1); // x-edges
+        AMREX_ASSERT(edge_vec[1]->nComp() == 1); // y-edges
+        AMREX_ASSERT(edge_vec[2]->nComp() == 1); // z-edges
+        AMREX_ASSERT(curl_face[0]->nComp() == 1); // x-faces
+        AMREX_ASSERT(curl_face[1]->nComp() == 1); // y-faces
+        AMREX_ASSERT(curl_face[2]->nComp() == 1); // z-faces
+
+        const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+        for (MFIter mfi(*curl_face[0],TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            // Get face-centered boxes for each component of curl
+            const Box& xfbx = mfi.tilebox(IntVect(AMREX_D_DECL(1,0,0))); // x-face
+            const Box& yfbx = mfi.tilebox(IntVect(AMREX_D_DECL(0,1,0))); // y-face
+            const Box& zfbx = mfi.tilebox(IntVect(AMREX_D_DECL(0,0,1))); // z-face
+
+            Array4<Real> const& curl_x = curl_face[0]->array(mfi);
+            Array4<Real> const& curl_y = curl_face[1]->array(mfi);
+            Array4<Real> const& curl_z = curl_face[2]->array(mfi);
+
+            // edge_vec components: 
+            // edge_vec[0] is on x-edges (j,k are nodal, i is cell-centered)
+            // edge_vec[1] is on y-edges (i,k are nodal, j is cell-centered)
+            // edge_vec[2] is on z-edges (i,j are nodal, k is cell-centered)
+            Array4<Real const> const& Ex = edge_vec[0]->const_array(mfi);
+            Array4<Real const> const& Ey = edge_vec[1]->const_array(mfi);
+            Array4<Real const> const& Ez = edge_vec[2]->const_array(mfi);
+
+            // Compute x-component of curl on x-faces
+            // curl_x = dEz/dy - dEy/dz at x-faces
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(xfbx, i, j, k,
+            {
+                // Ez values at (i,j,k) and (i,j+1,k) for dEz/dy
+                Real dEz_dy = dxinv[1] * (Ez(i,j+1,k) - Ez(i,j,k));
+                
+                // Ey values at (i,j,k) and (i,j,k+1) for dEy/dz
+                Real dEy_dz = dxinv[2] * (Ey(i,j,k+1) - Ey(i,j,k));
+                
+                curl_x(i,j,k) = dEz_dy - dEy_dz;
+            });
+
+            // Compute y-component of curl on y-faces
+            // curl_y = dEx/dz - dEz/dx at y-faces
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(yfbx, i, j, k,
+            {
+                // Ex values at (i,j,k) and (i,j,k+1) for dEx/dz
+                Real dEx_dz = dxinv[2] * (Ex(i,j,k+1) - Ex(i,j,k));
+                
+                // Ez values at (i,j,k) and (i+1,j,k) for dEz/dx
+                Real dEz_dx = dxinv[0] * (Ez(i+1,j,k) - Ez(i,j,k));
+                
+                curl_y(i,j,k) = dEx_dz - dEz_dx;
+            });
+
+            // Compute z-component of curl on z-faces
+            // curl_z = dEy/dx - dEx/dy at z-faces
+            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(zfbx, i, j, k,
+            {
+                // Ey values at (i,j,k) and (i+1,j,k) for dEy/dx
+                Real dEy_dx = dxinv[0] * (Ey(i+1,j,k) - Ey(i,j,k));
+                
+                // Ex values at (i,j,k) and (i,j+1,k) for dEx/dy
+                Real dEx_dy = dxinv[1] * (Ex(i,j+1,k) - Ex(i,j,k));
+                
+                curl_z(i,j,k) = dEy_dx - dEx_dy;
+            });
+        }
+    }
+#endif
+
     MultiFab periodicShift (MultiFab const& mf, IntVect const& offset,
                             Periodicity const& period)
     {
