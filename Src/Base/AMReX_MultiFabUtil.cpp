@@ -790,7 +790,7 @@ namespace amrex
     }
 
 #if (AMREX_SPACEDIM == 3)
-    void computeCurlNodal (MultiFab& curl_nodal, 
+    void computeCurlNodal (MultiFab& curl_nodal,
                            const Array<MultiFab const*,AMREX_SPACEDIM>& face_vec,
                            const Geometry& geom)
     {
