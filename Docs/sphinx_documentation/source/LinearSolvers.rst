@@ -380,17 +380,21 @@ Available choices are
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
 - :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
-  continue to coarsen the multigrid by copying what would have been the
-  bottom solver to a new :cpp:`MultiFab` with a new :cpp:`BoxArray` with
-  fewer, larger grids, to allow for additional coarsening.
+  to copy the current level of multigrid data to fewer, larger
+  boxes. Two advantages of using this option is that the bottom solver will become
+  smaller, and communication overhead is reduced.
+
+- :cpp:`LPInfo::setAgglomerationGridSize(int)` (by default 8 in 1D, 16 in 2D, 32 in 3D)
+  if agglomeration is used, when the average box size becomes smaller than agg_grid_size^{DIM},
+  boxes will agglomerate until this is no longer the case.  Note that this action is
+  recursive and can happen at several different levels in the multigrid hierarchy.
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
   continue to transfer a multigrid problem to fewer MPI ranks.
   There are more setting such as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
-  process works.
-
+  process works.  If agglomeration is used, consolidation is ignored.
 
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
