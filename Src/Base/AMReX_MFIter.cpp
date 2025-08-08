@@ -279,7 +279,7 @@ MFIter::Initialize ()
     {
         ++depth;
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
-            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
+            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }
 
 #if defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
