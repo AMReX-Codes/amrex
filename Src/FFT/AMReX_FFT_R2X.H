@@ -1026,7 +1026,7 @@ void R2X<T>::post_forward_doit (FAB* fab, F const& f)
     }
     if (fab) {
         auto const& a = fab->array();
-        ParallelFor(fab->box(),
+        ParallelForOMP(fab->box(),
         [f=f,a=a] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             if constexpr (dim == 0) {
