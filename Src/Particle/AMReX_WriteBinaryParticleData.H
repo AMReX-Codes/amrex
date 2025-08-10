@@ -341,8 +341,8 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
     Gpu::copyAsync(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
                    write_real_comp_d.begin());
 
-    const auto write_int_comp_d_ptr = write_int_comp_d.data();
-    const auto write_real_comp_d_ptr = write_real_comp_d.data();
+    const auto* write_int_comp_d_ptr = write_int_comp_d.data();
+    const auto* write_real_comp_d_ptr = write_real_comp_d.data();
 
     std::size_t poffset = 0;
     for (int tile : tiles) {
@@ -355,8 +355,8 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         Gpu::DeviceVector<int> idata_d(num_copies*iChunkSize);
         Gpu::DeviceVector<ParticleReal> rdata_d(num_copies*rChunkSize);
 
-        const auto flag_ptr = pflags.data();
-        const auto offset_ptr = offsets.data();
+        const auto* flag_ptr = pflags.data();
+        const auto* offset_ptr = offsets.data();
 
         auto* idata_d_ptr = idata_d.data();
         auto* rdata_d_ptr = rdata_d.data();
@@ -376,9 +376,9 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         });
 
         Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(),
-                       idata.begin() + poffset);
+                       idata.begin() + static_cast<Long>(poffset));
         Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(),
-                       rdata.begin() + poffset);
+                       rdata.begin() + static_cast<Long>(poffset));
         Gpu::Device::streamSynchronize();
 
         poffset += num_copies;
