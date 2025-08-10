@@ -64,11 +64,11 @@ private:
 
     void set_default_functions ()
     {
-        // By default, do nothing in the RHS
-        set_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
-        set_imex_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){},
-                     [](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
-        set_fast_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */){});
+        // Abort if the RHS function is called but was not set
+        set_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("RHS function not set!"); });
+        set_imex_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("Implicit RHS function not set!"); },
+                     [](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("Explicit RHS function not set!"); } );
+        set_fast_rhs([](T& /* S_rhs */, T& /* S_data */, const amrex::Real /* time */) { amrex::Abort("Fast RHS function not set!"); } );
 
         // In general, the following functions can be used to fill BCs. Which
         // function to set will depend on the method type and intended use case

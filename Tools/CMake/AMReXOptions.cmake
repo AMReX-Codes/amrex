@@ -256,14 +256,8 @@ print_option(AMReX_GPU_RDC)
 #
 # Fast Math    ================================================================
 #
-set(_FASTMATH_default OFF)
-if(AMReX_GPU_BACKEND STREQUAL CUDA)  # note: historic settings
-# if(NOT AMReX_GPU_BACKEND STREQUAL NONE)  # note: this would be more consistent for GPUs
-    set(_FASTMATH_default ON)
-endif()
-option(AMReX_FASTMATH  "Enable fast-math optimizations" ${_FASTMATH_default})
+option(AMReX_FASTMATH  "Enable fast-math optimizations" OFF)
 print_option(AMReX_FASTMATH)
-unset(_FASTMATH_default)
 
 #
 # Parallel backends    ========================================================

@@ -89,11 +89,7 @@ public:
     void writeOn (std::ostream&) const;
     //
     //! in-place And operator
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& operator&= (const Mask& src) noexcept { return And<run_on>(src); }
 
     /**
@@ -101,11 +97,7 @@ public:
     *
     * \param src
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src) noexcept;
 
     /**
@@ -116,11 +108,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src,
                int         srccomp,
                int         destcomp,
@@ -134,11 +122,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src,
                const Box&  subbox,
                int         srccomp,
@@ -155,11 +139,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src,
                const Box&  srcbox,
                const Box&  destbox,
@@ -168,11 +148,7 @@ public:
                int         numcomp = 1) noexcept;
 
     //! in-place Or operator
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& operator|= (const Mask& src) noexcept { return Or<run_on>(src); }
 
     /**
@@ -180,11 +156,7 @@ public:
     *
     * \param src
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src) noexcept;
 
     /**
@@ -195,11 +167,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src,
               int         srccomp,
               int         destcomp,
@@ -213,11 +181,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src,
               const Box&  subbox,
               int         srccomp,
@@ -234,11 +198,7 @@ public:
     * \param destcomp
     * \param numcomp
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src,
               const Box&  srcbox,
               const Box&  destbox,

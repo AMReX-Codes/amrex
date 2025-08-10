@@ -222,15 +222,22 @@ endfunction ()
 function (convert_cuda_archs  _cuda_archs)
 
    foreach (_item IN LISTS ${_cuda_archs})
+      # remove -real suffixes
+      string(REGEX REPLACE "\\-real$" "" _item "${_item}")
+
       string(REGEX MATCH "\\." _has_decimal "${_item}")
       string(REGEX MATCH "[0-9]+" _is_number "${_item}")
 
       if (NOT _has_decimal AND _is_number)
          math(EXPR _int "${_item}/10" OUTPUT_FORMAT DECIMAL)
          math(EXPR _mod "${_item}%10" OUTPUT_FORMAT DECIMAL)
-         list(APPEND _tmp "${_int}.${_mod}")
+         if(_int LESS 10)  # CMake 3.30 does not support SM 10.0+ in cuda_select_nvcc_arch_flags
+             list(APPEND _tmp "${_int}.${_mod}")
+         endif()
       else ()
-         list(APPEND _tmp ${_item})
+         if(_item LESS 10)  # CMake 3.30 does not support SM 10.0+ in cuda_select_nvcc_arch_flags
+            list(APPEND _tmp ${_item})
+        endif()
       endif()
    endforeach ()
 

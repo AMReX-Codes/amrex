@@ -758,9 +758,6 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
 |                   | boundary in which no aggregation should be performed.                 |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
-Finally, the `amrex.use_gpu_aware_mpi` switch can also affect the behavior of the particle communication routines when
-running on GPU platforms like Summit. We recommend leaving it off.
-
 .. [1]
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 

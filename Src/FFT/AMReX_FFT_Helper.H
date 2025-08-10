@@ -751,7 +751,7 @@ struct Plan
             int norig = n;
             Long nelems = Long(nex)*howmany;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -766,7 +766,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -786,7 +786,7 @@ struct Plan
             int norig = n;
             Long nelems = Long(nex)*howmany;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -809,7 +809,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -837,7 +837,7 @@ struct Plan
             int norig = n;
             Long nelems = Long(nex)*howmany;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -860,7 +860,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -888,7 +888,7 @@ struct Plan
             int norig = n;
             Long nelems = Long(nex)*howmany;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -907,7 +907,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -931,7 +931,7 @@ struct Plan
             int norig = n;
             Long nelems = Long(nex)*howmany;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -950,7 +950,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(nex);
                     auto i = int(ielem - batch*nex);
@@ -982,7 +982,7 @@ struct Plan
         if (kind == Kind::r2r_oo_f) {
             int istride = n+1;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -993,7 +993,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1005,7 +1005,7 @@ struct Plan
         } else if (kind == Kind::r2r_oo_b) {
             int istride = 2*n+1;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1016,7 +1016,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1028,7 +1028,7 @@ struct Plan
         } else if (kind == Kind::r2r_ee_f) {
             int istride = n+1;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1039,7 +1039,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1051,7 +1051,7 @@ struct Plan
         } else if (kind == Kind::r2r_ee_b) {
             int istride = 2*n+1;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1061,7 +1061,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1072,7 +1072,7 @@ struct Plan
         } else if (kind == Kind::r2r_eo) {
             int istride = 2*n+1;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1083,7 +1083,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1095,7 +1095,7 @@ struct Plan
         } else if (kind == Kind::r2r_oe) {
             int istride = 2*n+1;
             if (r2r_data_is_complex) {
-                ParallelFor(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems/2, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
@@ -1106,7 +1106,7 @@ struct Plan
                     }
                 });
             } else {
-                ParallelFor(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
+                ParallelForOMP(nelems, [=] AMREX_GPU_DEVICE (Long ielem)
                 {
                     auto batch = ielem / Long(norig);
                     auto k = int(ielem - batch*norig);
