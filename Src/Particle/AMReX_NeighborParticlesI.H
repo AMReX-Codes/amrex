@@ -455,7 +455,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
             const int num_ghosts = map.size();
             neighbors[lev][dst_index].define(this->NumRuntimeRealComps(),
                                              this->NumRuntimeIntComps(),
-                                             nullptr, nullptr, arena());
+                                             nullptr, nullptr, this->arena());
             neighbors[lev][dst_index].resize(num_ghosts);
             local_neighbor_sizes[lev][dst_index] = neighbors[lev][dst_index].size();
         }
