@@ -27,6 +27,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <tuple>
 #include <typeinfo>
 #include <type_traits>
@@ -454,10 +455,18 @@ std::ostream& amrex::ToString(std::ostream& os, const T& t, const char* symbol_b
                               const char* symbol_str, int limit)
 {
     if constexpr (std::is_same_v<std::string, T> ||
+                  std::is_same_v<std::string_view, T> ||
                   std::is_same_v<char*, std::decay_t<T>> ||
                   std::is_same_v<const char*, T>) {
         // String-like types
         os << symbol_str << t << symbol_str;
+    } else if constexpr (std::is_same_v<signed char, T> ||
+                         std::is_same_v<unsigned char, T>) {
+        // Buffer-like types, don't print as char
+        os << static_cast<int>(t);
+    } else if constexpr (std::is_pointer_v<T>) {
+        // Pointer types, don't print char* as string
+        os << static_cast<const void*>(t);
     } else if constexpr (detail::HasBeginEnd<T>() || std::is_array_v<T>) {
         // Array-like types
         os << symbol_begin;
