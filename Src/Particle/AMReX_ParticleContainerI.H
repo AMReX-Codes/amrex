@@ -1655,11 +1655,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             tmp_local[lev][index].resize(num_threads);
             soa_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
-                if constexpr (has_polymorphic_allocator) {
-                    tmp_local[lev][index][t].setArena(arena());
-                }
                 soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
-                    &m_soa_rdata_names, &m_soa_idata_names, arena());
+                    &m_soa_rdata_names, &m_soa_idata_names);
+                if constexpr (has_polymorphic_allocator) {
+                    if constexpr (ParticleType::is_soa_particle) {
+                        soa_local[lev][index][t].GetIdCPUData().setArena(arena());
+                    } else {
+                        tmp_local[lev][index][t].setArena(arena());
+                    }
+                    for (int j = 0; j < soa_local[lev][index][t].NumRealComps(); ++j) {
+                        soa_local[lev][index][t].GetRealData(j).setArena(arena());
+                    }
+                    for (int j = 0; j < soa_local[lev][index][t].NumIntComps(); ++j) {
+                        soa_local[lev][index][t].GetIntData(j).setArena(arena());
+                    }
+                }
             }
         }
     }
