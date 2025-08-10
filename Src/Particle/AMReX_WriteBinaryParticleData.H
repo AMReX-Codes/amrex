@@ -376,9 +376,9 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         });
 
         Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(),
-                       idata.begin() + poffset;
+                       idata.begin() + poffset);
         Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(),
-                       rdata.begin() + poffset;
+                       rdata.begin() + poffset);
         Gpu::Device::streamSynchronize();
 
         poffset += num_copies;
