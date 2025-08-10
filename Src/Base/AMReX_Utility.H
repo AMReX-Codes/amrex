@@ -30,6 +30,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <type_traits>
+#include <utility>
 
 namespace amrex
 {
@@ -405,7 +406,7 @@ namespace amrex::detail {
 
     // Determine if type has .begin() and .end() member functions
     template <class T>
-    constexpr decltype((T{}.begin(), T{}.end(), true)) HasBeginEnd() {
+    constexpr decltype((std::declval<T>().begin(), std::declval<T>().end(), true)) HasBeginEnd() {
         return true;
     }
     template <class T, class... Args>
