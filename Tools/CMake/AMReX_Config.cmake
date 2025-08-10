@@ -13,6 +13,13 @@
 function (configure_amrex AMREX_TARGET)
 
    #
+   # Include the required modules
+   #
+   include( AMReX_ThirdPartyProfilers )
+   include( AMReXGenexHelpers )
+   include( AMReXFlagsTargets )
+
+   #
    # Check if target "amrex" has been defined before
    # calling this macro
    #
@@ -24,15 +31,10 @@ function (configure_amrex AMREX_TARGET)
    # Check that needed options have already been defined
    #
    if ( ( NOT ( DEFINED AMReX_MPI ) ) OR ( NOT (DEFINED AMReX_OMP) )
-	 OR ( NOT (DEFINED AMReX_PIC) ) OR (NOT (DEFINED AMReX_FPE)))
+	 OR ( NOT (DEFINED AMReX_PIC) ) OR (NOT (DEFINED AMReX_FASTMATH))
+     OR (NOT (DEFINED AMReX_FPE)))
       message ( AUTHOR_WARNING "Required options are not defined" )
    endif ()
-
-   #
-   # Include the required modules
-   #
-   include( AMReX_ThirdPartyProfilers )
-   include( AMReXGenexHelpers )
 
    #
    # Setup compilers
@@ -147,19 +149,7 @@ function (configure_amrex AMREX_TARGET)
 
    # fast math
    if (AMReX_FASTMATH)
-       # GPU specific backends set in AMReXParallelBackends.cmake
-       if (AMReX_GPU_BACKEND STREQUAL NONE)
-           # See https://cmake.org/cmake/help/v4.1/variable/CMAKE_LANG_COMPILER_ID.html#variable:CMAKE_%3CLANG%3E_COMPILER_ID
-           target_compile_options(${AMREX_TARGET} PUBLIC
-               $<$<CXX_COMPILER_ID:AppleClang,Clang,CrayClang,GNU,IBMClang,IntelLLVM,XLClang>:-ffast-math>
-               $<${_cxx_msvc}:"/fp:fast">  # MSVC
-           )
-           if (CMAKE_Fortran_COMPILER_LOADED)
-               target_compile_options(${AMREX_TARGET} PUBLIC
-                   $<$<Fortran_COMPILER_ID:AppleClang,Clang,CrayClang,GNU,IBMClang,IntelLLVM,XLClang>:-ffast-math>
-               )
-           endif ()
-       endif()
+       target_link_libraries(${AMREX_TARGET} PUBLIC AMReX::Flags_FASTMATH)
    endif()
 
    #

@@ -12,6 +12,7 @@
 #include <AMReX_Sundials.H>
 
 #include <nvector/nvector_manyvector.h>
+#include <sunnonlinsol/sunnonlinsol_fixedpoint.h>
 #include <sunlinsol/sunlinsol_spgmr.h>
 #include <arkode/arkode_arkstep.h>
 #include <arkode/arkode_mristep.h>
@@ -100,6 +101,20 @@ private:
     std::string fast_type   = "ERK";
     std::string fast_method = "DEFAULT";
 
+    // Nonlinear solver
+    std::string nonlinear_solver = "Newton";
+    int max_nonlinear_iters = 0;
+
+    std::string fast_nonlinear_solver = "Newton";
+    int fast_max_nonlinear_iters = 0;
+
+    // Linear solver
+    std::string linear_solver = "GMRES";
+    int max_linear_iters = 0;
+
+    std::string fast_linear_solver = "GMRES";
+    int fast_max_linear_iters = 0;
+
     // SUNDIALS package flags, set based on type
     bool use_ark = false;
     bool use_mri = false;
@@ -116,11 +131,20 @@ private:
     // Single rate or slow time scale
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
+    SUNNonlinearSolver NLS = nullptr;
 
     // Fast time scale
     void *arkode_fast_mem            = nullptr;
     MRIStepInnerStepper fast_stepper = nullptr;
     SUNLinearSolver fast_LS          = nullptr;
+    SUNNonlinearSolver fast_NLS      = nullptr;
+
+    // Integrator stop time
+    bool set_stop_time = false;
+    amrex::Real stop_time = 0.0;
+
+    // Max steps between returns
+    amrex::Long max_num_steps = 0;
 
     void initialize_parameters ()
     {
@@ -128,8 +152,8 @@ private:
 
         pp.query("type", type);
         pp.query("method", method);
-        pp.query("method_e", method);
-        pp.query("method_i", method);
+        pp.query("method_e", method_e);
+        pp.query("method_i", method_i);
 
         pp.query("fast_type", fast_type);
         pp.query("fast_method", fast_method);
@@ -145,135 +169,282 @@ private:
             msg += type;
             amrex::Error(msg.c_str());
         }
+
+        pp.query("nonlinear_solver", nonlinear_solver);
+        pp.query("max_nonlinear_iters", max_nonlinear_iters);
+
+        pp.query("fast_nonlinear_solver", fast_nonlinear_solver);
+        pp.query("fast_max_nonlinear_iters", fast_max_nonlinear_iters);
+
+        pp.query("linear_solver", linear_solver);
+        pp.query("max_linear_iters", max_linear_iters);
+
+        pp.query("fast_linear_solver", fast_linear_solver);
+        pp.query("fast_max_linear_iters", fast_max_linear_iters);
+
+        set_stop_time = pp.query("stop_time", stop_time);
+
+        pp.query("max_num_steps", max_num_steps);
     }
 
     void SetupRK (amrex::Real time, N_Vector y_data)
     {
+        if (amrex::Verbose()) { amrex::Print() << "Using SUNDIALS time integrator\n"; }
+        int flag = 0;
+
         // Create integrator and select method
         if (type == "ERK") {
-            amrex::Print() << "SUNDIALS ERK time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "ERK method: " << method << "\n"; }
             arkode_mem = ARKStepCreate(SundialsUserFun::f, nullptr, time, y_data, sunctx);
-
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
             if (method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS ERK method " << method << "\n";
-                ARKStepSetTableName(arkode_mem, "ARKODE_DIRK_NONE", method.c_str());
+                flag = ARKStepSetTableName(arkode_mem, "ARKODE_DIRK_NONE", method.c_str());
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
         else if (type == "DIRK") {
-            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "DIRK method: " << method << "\n"; }
             arkode_mem = ARKStepCreate(nullptr, SundialsUserFun::f, time, y_data, sunctx);
-
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
             if (method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
-                ARKStepSetTableName(arkode_mem, method.c_str(), "ARKODE_ERK_NONE");
+                flag = ARKStepSetTableName(arkode_mem, method.c_str(), "ARKODE_ERK_NONE");
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
         else if (type == "IMEX-RK") {
-            amrex::Print() << "SUNDIALS IMEX time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "IMEX-RK method: " << method_i << " and "
+                                    << method_e << "\n"; }
             arkode_mem = ARKStepCreate(SundialsUserFun::fe, SundialsUserFun::fi, time, y_data, sunctx);
-
+            AMREX_ALWAYS_ASSERT(arkode_mem != 0);
             if (method_e != "DEFAULT" && method_i != "DEFAULT")
             {
-                amrex::Print() << "SUNDIALS IMEX method " << method_i << " and "
-                               << method_e << "\n";
-                ARKStepSetTableName(arkode_mem, method_i.c_str(), method_e.c_str());
+                flag = ARKStepSetTableName(arkode_mem, method_i.c_str(), method_e.c_str());
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
 
         // Attach structure with user-supplied function wrappers
-        ARKStepSetUserData(arkode_mem, &udata);
+        flag = ARKStepSetUserData(arkode_mem, &udata);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
-        ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+        if (BaseT::use_adaptive_time_step || type == "DIRK" || type == "IMEX-RK") {
+            if (amrex::Verbose()) {
+                amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
+                amrex::Print() << "Absolute tolerance: " << BaseT::abs_tol << "\n";
+            }
+            flag = ARKStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+        }
 
         // Create and attach linear solver for implicit methods
         if (type == "DIRK" || type == "IMEX-RK") {
-            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+            if (amrex::Verbose()) {
+                amrex::Print() << "Nonlinear solver: " << nonlinear_solver << "\n";
+                amrex::Print() << "Max nonlinear iters: " << max_nonlinear_iters << "\n";
+            }
+            if (nonlinear_solver == "fixed-point") {
+                NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
+                AMREX_ALWAYS_ASSERT(NLS != nullptr);
+                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+            flag = ARKStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+
+            if (nonlinear_solver == "Newton") {
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Linear solver: " << linear_solver << "\n";
+                    amrex::Print() << "Max linear iters: " << max_linear_iters << "\n";
+                }
+                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
+                AMREX_ALWAYS_ASSERT(LS != nullptr);
+                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
         }
 
         // Set post stage and step function
-        ARKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
-        ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        flag = ARKStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        flag = ARKStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+
+        // Set a stop time
+        if (set_stop_time) {
+            if (amrex::Verbose()) { amrex::Print() << "Stop time: " << stop_time << "\n"; }
+          flag = ARKStepSetStopTime(arkode_mem, stop_time);
+          AMREX_ALWAYS_ASSERT(flag == 0);
+        }
+
+        // Set max number of steps between returns
+        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
     void SetupMRI (amrex::Real time, N_Vector y_data)
     {
+        if (amrex::Verbose()) { amrex::Print() << "Using SUNDIALS multirate time integrator\n"; }
+        int flag = 0;
+
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
-            amrex::Print() << "SUNDIALS ERK time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "Fast ERK method: " << method << "\n"; }
             arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
-
-            if (method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS ERK method " << method << "\n";
-                ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
+            AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
+            if (fast_method != "DEFAULT") {
+                flag = ARKStepSetTableName(arkode_fast_mem, "ARKODE_DIRK_NONE", fast_method.c_str());
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
         else if (fast_type == "DIRK") {
-            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "Fast DIRK method: " << method << "\n"; }
             arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
-
-            if (method != "DEFAULT") {
-                amrex::Print() << "SUNDIALS DIRK method " << method << "\n";
-                ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
+            AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
+            if (fast_method != "DEFAULT") {
+                flag = ARKStepSetTableName(arkode_fast_mem, fast_method.c_str(), "ARKODE_ERK_NONE");
+                AMREX_ALWAYS_ASSERT(flag == 0);
             }
 
-            fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
+            if (amrex::Verbose()) {
+                amrex::Print() << "Fast nonlinear solver: " << fast_nonlinear_solver << "\n";
+                amrex::Print() << "Fast max nonlinear iters: " << fast_max_nonlinear_iters << "\n";
+            }
+            if (fast_nonlinear_solver == "fixed-point") {
+                fast_NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
+                AMREX_ALWAYS_ASSERT(fast_NLS != nullptr);
+                flag = ARKStepSetNonlinearSolver(arkode_mem, fast_NLS);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+            flag = ARKStepSetMaxNonlinIters(arkode_mem, fast_max_nonlinear_iters);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+
+            if (fast_nonlinear_solver == "Newton") {
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Linear solver: " << fast_linear_solver << "\n";
+                    amrex::Print() << "Max linear iters: " << fast_max_linear_iters << "\n";
+                }
+                fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
+                AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
+                flag = ARKStepSetLinearSolver(arkode_mem, fast_LS, nullptr);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
         }
 
         // Attach structure with user-supplied function wrappers
-        ARKStepSetUserData(arkode_fast_mem, &udata);
+        flag = ARKStepSetUserData(arkode_fast_mem, &udata);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
-        ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+        if (BaseT::use_adaptive_fast_time_step || fast_type == "DIRK" || fast_type == "IMEX-RK") {
+            if (amrex::Verbose()) {
+                amrex::Print() << "Fast relative tolerance: " << BaseT::fast_rel_tol << "\n";
+                amrex::Print() << "Fast absolute tolerance: " << BaseT::fast_abs_tol << "\n";
+            }
+          flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+          AMREX_ALWAYS_ASSERT(flag == 0);
+        }
 
         // Set post stage and step function
-        ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
-        ARKStepSetPostprocessStepFn(arkode_fast_mem, SundialsUserFun::post_fast_step);
+        flag = ARKStepSetPostprocessStageFn(arkode_fast_mem, SundialsUserFun::post_fast_stage);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        flag = ARKStepSetPostprocessStepFn(arkode_fast_mem, SundialsUserFun::post_fast_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+
+        // Set max number of steps between returns
+        ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Wrap fast integrator as an inner stepper
-        ARKStepCreateMRIStepInnerStepper(arkode_fast_mem, &fast_stepper);
+        flag = ARKStepCreateMRIStepInnerStepper(arkode_fast_mem, &fast_stepper);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Create slow integrator
         if (type == "EX-MRI") {
-            amrex::Print() << "SUNDIALS ERK time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "EX-MRI method: " << method << "\n"; }
             arkode_mem = MRIStepCreate(SundialsUserFun::f, nullptr, time, y_data,
                                        fast_stepper, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
         }
         else if (type == "IM-MRI") {
-            amrex::Print() << "SUNDIALS DIRK time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "IM-MRI method: " << method << "\n"; }
             arkode_mem = MRIStepCreate(nullptr, SundialsUserFun::f, time, y_data,
                                        fast_stepper, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
         }
         else if (type == "IMEX-MRI") {
-            amrex::Print() << "SUNDIALS IMEX time integrator\n";
+            if (amrex::Verbose()) { amrex::Print() << "IMEX-MRI method: " << method << "\n"; }
             arkode_mem = MRIStepCreate(SundialsUserFun::fe, SundialsUserFun::fi,
                                        time, y_data, fast_stepper, sunctx);
+            AMREX_ALWAYS_ASSERT(arkode_mem != nullptr);
         }
 
         // Set method
         if (method != "DEFAULT") {
             MRIStepCoupling MRIC = MRIStepCoupling_LoadTableByName(method.c_str());
-            MRIStepSetCoupling(arkode_mem, MRIC);
+            AMREX_ALWAYS_ASSERT(MRIC != nullptr);
+            flag = MRIStepSetCoupling(arkode_mem, MRIC);
+            AMREX_ALWAYS_ASSERT(flag == 0);
             MRIStepCoupling_Free(MRIC);
         }
 
         // Attach structure with user-supplied function wrappers
-        MRIStepSetUserData(arkode_mem, &udata);
+        flag = MRIStepSetUserData(arkode_mem, &udata);
+        AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
-        MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+        if (BaseT::use_adaptive_time_step || fast_type == "IM-MRI" || fast_type == "IMEX-MRI") {
+            if (amrex::Verbose()) {
+                amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
+                amrex::Print() << "Absolute tolerance: " << BaseT::abs_tol << "\n";
+            }
+            flag = MRIStepSStolerances(arkode_mem, BaseT::rel_tol, BaseT::abs_tol);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+        }
 
         // Create and attach linear solver
         if (type == "IM-MRI" || type == "IMEX-MRI") {
-            LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, 0, sunctx);
-            MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
+            if (amrex::Verbose()) {
+                amrex::Print() << "Nonlinear solver: " << nonlinear_solver << "\n";
+                amrex::Print() << "Max nonlinear iters: " << max_nonlinear_iters << "\n";
+            }
+            if (nonlinear_solver == "fixed-point") {
+                NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
+                AMREX_ALWAYS_ASSERT(NLS != nullptr);
+                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+            flag = ARKStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+
+            if (nonlinear_solver == "Newton") {
+                if (amrex::Verbose()) {
+                    amrex::Print() << "Linear solver: " << linear_solver << "\n";
+                    amrex::Print() << "Max linear iters: " << max_linear_iters << "\n";
+                }
+                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
+                AMREX_ALWAYS_ASSERT(LS != nullptr);
+                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
         }
 
         // Set post stage and step function
-        MRIStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
-        MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        flag = MRIStepSetPostprocessStageFn(arkode_mem, SundialsUserFun::post_stage);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        flag = MRIStepSetPostprocessStepFn(arkode_mem, SundialsUserFun::post_step);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+
+        // Set a stop time
+        if (set_stop_time) {
+            if (amrex::Verbose()) { amrex::Print() << "Stop time: " << stop_time << "\n"; }
+          flag = ARKStepSetStopTime(arkode_mem, stop_time);
+          AMREX_ALWAYS_ASSERT(flag == 0);
+        }
+
+        // Set max number of steps between returns
+        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
     // -------------------------------------
@@ -533,9 +704,30 @@ public:
     }
 
     virtual ~SundialsIntegrator () {
+        // Print integrator statistics
+        if (amrex::Verbose()) {
+            if (type == "EX-MRI" || type == "IM-MRI" || type == "IMEX-MRI") {
+                amrex::Print() << "Slow Time Integrator Stats\n";
+                if (ParallelDescriptor::IOProcessor()) {
+                    MRIStepPrintAllStats(arkode_mem, stdout, SUN_OUTPUTFORMAT_TABLE);
+                }
+                amrex::Print() << "Fast Time Integrator Stats\n";
+                if (ParallelDescriptor::IOProcessor()) {
+                    ARKStepPrintAllStats(arkode_fast_mem, stdout, SUN_OUTPUTFORMAT_TABLE);
+                }
+            } else {
+                amrex::Print() << "Time Integrator Stats\n";
+                if (ParallelDescriptor::IOProcessor()) {
+                    ARKStepPrintAllStats(arkode_mem, stdout, SUN_OUTPUTFORMAT_TABLE);
+                }
+            }
+        }
+
         // Clean up allocated memory
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
+        SUNNonlinSolFree(NLS);
+        SUNNonlinSolFree(fast_NLS);
         MRIStepInnerStepper_Free(&fast_stepper);
         MRIStepFree(&arkode_fast_mem);
         ARKStepFree(&arkode_mem);

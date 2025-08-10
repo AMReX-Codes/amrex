@@ -79,6 +79,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
+    if (AMReX_FASTMATH)
+        target_link_libraries(amrex_${D}d PUBLIC AMReX::Flags_FASTMATH)
+    endif ()
+
     if (AMReX_FPE)
        target_link_libraries(amrex_${D}d
           PUBLIC
@@ -86,7 +90,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
-    if (NOT AMReX_COMPILER_DEFULT_INLINE)
+    if (NOT AMReX_COMPILER_DEFAULT_INLINE)
        target_link_libraries(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:Flags_INLINE>
