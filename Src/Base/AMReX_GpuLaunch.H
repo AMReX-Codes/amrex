@@ -316,7 +316,6 @@ void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 #if (AMREX_SPACEDIM == 1)
 #pragma omp parallel for collapse(2)
     for (T n = 0; n < ncomp; ++n) {
-        AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             f(i,0,0,n);
         }
