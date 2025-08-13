@@ -47,6 +47,12 @@ function (configure_amrex AMREX_TARGET)
    # minimum: C++17
    target_compile_features(${AMREX_TARGET} PUBLIC cxx_std_17)
 
+   # vir::cvt
+   # https://github.com/mattkretz/vir-simd/issues/45
+   if (AMReX_SIMD)
+       target_compile_features(${AMREX_TARGET} PUBLIC cxx_std_20)
+   endif()
+
    if (AMReX_CUDA)
       set_target_properties(${AMREX_TARGET} PROPERTIES CUDA_EXTENSIONS OFF)
       # minimum: C++17

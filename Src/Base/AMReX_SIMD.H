@@ -8,6 +8,9 @@
 #ifdef AMREX_USE_SIMD
 // TODO make SIMD provider configurable: VIR (C++17 TS2) or C++26 (later)
 #   include <vir/simd.h>  // includes SIMD TS2 header <experimental/simd>
+#   if __cplusplus >= 202002L
+#       include <vir/simd_cvt.h>
+#   endif
 #endif
 
 #include <cstdint>
@@ -21,6 +24,9 @@ namespace amrex::simd
     namespace stdx {
 #ifdef AMREX_USE_SIMD
         using namespace vir::stdx;
+#   if __cplusplus >= 202002L
+        using vir::cvt;
+#   endif
 #else
         // fallback implementations for functions that are commonly used in portable code paths
 
