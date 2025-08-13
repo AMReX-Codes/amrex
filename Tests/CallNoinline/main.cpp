@@ -32,6 +32,11 @@ struct P {
     }
 };
 
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ <= 9)
+// Other versions might have issues too.
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+
 int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
