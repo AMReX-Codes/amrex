@@ -16,6 +16,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
 #include <AMReX_String.H>
+#include <AMReX_TypeTraits.H>
 
 #include <cfloat>
 #include <chrono>
@@ -242,6 +243,17 @@ namespace amrex
                          int limit = 100,
                          std::ostringstream ss = {});
 
+    /**
+     * \brief Call given function without inline.
+     *
+     * This works on lambdas, functors, normal functions. But it does not
+     * work on overloaded functions like std::sin. If needed, one could
+     * however wrap functions like std::sin inside a lambda function.
+     */
+    template <typename F, typename... T>
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    auto callNoinline (F const& f, T&&... arg)
+        -> decltype(std::declval<F>()(std::declval<T>()...)); // needed for nvcc
 }
 
 template <typename T>
@@ -506,5 +518,17 @@ std::string amrex::ToString(const T& t, const char* symbol_begin, const char* sy
     return ss.str();
 }
 
+template <typename F, typename... T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+auto amrex::callNoinline (F const& f, T&&... arg)
+    -> decltype(std::declval<F>()(std::declval<T>()...)) // needed for nvcc
+{
+    AMREX_IF_ON_HOST((
+        if constexpr (!amrex::DefinitelyNotHostRunnable<F>::value) {
+            return f(std::forward<T>(arg)...);
+        }
+    ))
+    AMREX_IF_ON_DEVICE(( return f(std::forward<T>(arg)...); ))
+}
 
 #endif /*BL_UTILITY_H*/
