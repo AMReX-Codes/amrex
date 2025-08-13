@@ -97,7 +97,7 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         }
         AMREX_ASSERT(nimages[0] == 2);
         box.shift(-lo);
-        amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        amrex::ParallelForOMP(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
             T G;
             if (i == len[0] || j == len[1] || k == len[2]) {
@@ -191,7 +191,7 @@ void OpenBCSolver<T>::solve (MF& phi, MF const& rho)
                 AMREX_ASSERT(leng == rhobox.numPts());
             }
 #endif
-            amrex::ParallelFor(rhobox.numPts(), [=] AMREX_GPU_DEVICE (Long i)
+            amrex::ParallelForOMP(rhobox.numPts(), [=] AMREX_GPU_DEVICE (Long i)
             {
 #if (AMREX_SPACEDIM == 3)
                 Long isrc = i % leng;

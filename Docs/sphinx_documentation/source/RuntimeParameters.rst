@@ -17,8 +17,8 @@ to :cpp:`amrex::Initialize` and the function adds parameters to AMReX's
 .. important:: AMReX reserves the following prefixes in :cpp:`ParmParse`
                parameters: ``amr``, ``amrex``, ``blprofiler``, ``device``,
                ``DistributionMapping``, ``eb2``, ``fab``, ``fabarray``,
-               ``geometry``, ``particles``, ``tiny_profiler``, and
-               ``vismf``.
+               ``geometry``, ``integration``, ``particles``, ``tiny_profiler``,
+               and ``vismf``.
 
 AMR
 ---
@@ -268,7 +268,7 @@ Amr Class
 ^^^^^^^^^
 
 .. warning:: These parameters are specific to :cpp:`class Amr` based
-             applications. If your application use :cpp:`class AmrCore`
+             applications. If your application uses :cpp:`class AmrCore`
              directly, they do not apply unless you have provided
              implementations for them.
 
@@ -937,7 +937,7 @@ Geometry
 --------
 
 All these parameters are optional for constructing a :ref:`Geometry <sec:basics:geom>`
-object. There are only used if the information is not provided via function
+object. They are only used if the information is not provided via function
 arguments.
 
 .. py:data:: geometry.coord_sys
@@ -1200,6 +1200,350 @@ Tiling
    communication buffer . It is disabled by default for GPU runs, but
    enabled for CPU runs with a tile size of 8 in the y and z-directions (if
    they exist).
+
+.. _sec:inputs:timeintegration:
+
+Time Integration
+----------------
+
+All these parameters are optional for constructing or configuring a
+:ref:`TimeIntegrator <sec:basics:timeintegration>` object.
+
+.. py:data:: integration.type
+   :type: string
+   :value: [none]
+
+   This parameter sets the type of time integrator to use. The supported values
+   are:
+
+   * ForwardEuler
+   * RungeKutta
+   * SUNDIALS
+
+.. py:data:: integration.time_step
+   :type: amrex::Real
+   :value: [none]
+
+   This parameter sets the fixed time step size to use.
+
+   For SUNDIALS methods, this parameter sets a fixed step size for single rate
+   methods (e.g., ERK) or a fixed slow time scale step size for multirate
+   methods (e.g., EX-MRI).
+
+.. _sec:inputs:timeintegration:rungekutta:
+
+Runge--Kutta Methods
+^^^^^^^^^^^^^^^^^^^^
+
+These parameters are relevant only when :py:data:`integration.type` is
+"RungeKutta".
+
+.. py:data:: integration.rk.type
+   :type: string
+   :value: [none]
+
+   This parameter sets the Runge--Kutta method to use. The supported values are:
+
+   * User
+   * ForwardEuler
+   * Trapezoid
+   * SSPRK3
+   * RK4
+
+User-specificed Runge--Kutta Method
+"""""""""""""""""""""""""""""""""""
+
+When :py:data:`integration.rk.type` is "User", the following parameters can be
+used to set a user-specificed explicit Butcher tableau,
+
+.. math::
+
+   B \; \equiv \;
+   \begin{array}{r|c}
+     c & A \\
+     \hline
+       & b \\
+       & \tilde{b}
+   \end{array},
+
+where, for a method with :math:`s` stages, :math:`c`, and :math:`b`,
+:math:`\tilde{b}` are arrays of :math:`s` values and :math:`A` is a lower
+triangular :math:`s \times s` matrix.
+
+.. py:data:: integration.rk.nodes
+   :type: amrex::Real array
+   :value: [none]
+
+   The :math:`c` values of the Butcher tableau.
+
+.. py:data:: integration.rk.tableau
+   :type: amrex::Real array
+   :value: [none]
+
+   The :math:`A` values of the Butcher tableau.
+
+.. py:data:: integration.rk.weights
+   :type: amrex::Real array
+   :value: [none]
+
+   The :math:`b` values of the Butcher tableau.
+
+.. py:data:: integration.rk.extended_weights
+   :type: amrex::Real array
+   :value: [none]
+
+   The :math:`\tilde{b}` values of the Butcher tableau. These values are only
+   required if the method has an embedding.
+
+.. _sec:inputs:timeintegration:sundials:
+
+SUNDIALS
+^^^^^^^^
+
+These parameters are relevant only when support for SUNDIALS time integrators is
+enabled (see :ref:`sec:time_int:sundials`) and :py:data:`integration.type` is
+"SUNDIALS".
+
+.. _sec:inputs:timeintegration:sundials:methods:
+
+Methods
+"""""""
+
+.. py:data:: integration.sundials.type
+   :type: string
+   :value: ERK
+
+   This parameter sets type of SUNDIALS time integrator to use. See the table
+   below for supported values.
+
+   +-----------------+---------------------------------------------------------+
+   | Parameter Value | SUNDIALS Method Type                                    |
+   +=================+=========================================================+
+   | ERK             | Explicit Runge-Kutta method                             |
+   +-----------------+---------------------------------------------------------+
+   | DIRK            | Diagonally Implicit Runge-Kutta method                  |
+   +-----------------+---------------------------------------------------------+
+   | IMEX-RK         | Implicit-Explicit Additive Runge-Kutta method           |
+   +-----------------+---------------------------------------------------------+
+   | EX-MRI          | Explicit Multirate Infinitesimal method                 |
+   +-----------------+---------------------------------------------------------+
+   | IM-MRI          | Implicit Multirate Infinitesimal method                 |
+   +-----------------+---------------------------------------------------------+
+   | IMEX-MRI        | Implicit-Explicit Multirate Infinitesimal method        |
+   +-----------------+---------------------------------------------------------+
+
+.. py:data:: integration.sundials.fast_type
+   :type: string
+   :value: ERK
+
+   When using a multirate method, this parameter sets the type of time
+   integrator to use at the fast time scale. Currently, ERK and DIRK methods are
+   supported.
+
+.. py:data:: integration.sundials.method
+   :type: string
+   :value: [none]
+
+   This parameter sets the name of the specific time integration method to
+   use. See the sections listed below in the SUNDIALS documentation for valid
+   method names. Note, IMEX method must be specified using the
+   :py:data:`integration.sundials.method_i` and
+   :py:data:`integration.sundials.method_e` parameters. If a method name is not
+   provided, the SUNDIALS default method is used.
+
+   * `ERK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#explicit-butcher-tables>`__
+   * `DIRK methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#implicit-butcher-tables>`__
+   * `MRI methods <https://sundials.readthedocs.io/en/latest/arkode/Usage/MRIStep/MRIStepCoupling.html#mri-coupling-tables>`__
+
+.. py:data:: integration.sundials.method_i
+   :type: string
+   :value: [none]
+
+   When using an IMEX method, both the implicit and explicit methods must be
+   specified. This parameter can be used to select the *implicit* portion of the
+   IMEX method. See the `ImEx methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#additive-butcher-tables>`__
+   section in the SUNDIALS documentation for valid method names. If a method
+   name is not provided, the SUNDIALS default method is used.
+
+.. py:data:: integration.sundials.method_e
+   :type: string
+   :value: [none]
+
+   When using an IMEX method, both the implicit and explicit methods must be
+   specified. This parameter can be used to select the *explicit* portion of the
+   IMEX method. See the `ImEx methods <https://sundials.readthedocs.io/en/latest/arkode/Butcher_link.html#additive-butcher-tables>`__
+   section in the SUNDIALS documentation for valid method names. If a method
+   name is not provided, the SUNDIALS default method is used.
+
+.. py:data:: integration.sundials.fast_method
+   :type: string
+   :value: [none]
+
+   When using a multirate method, this parameter sets the method to use at the
+   fast time scale. If a method name is not provided, the SUNDIALS default
+   method is used.
+
+.. _sec:inputs:timeintegration:sundials:stepsizes:
+
+Step Sizes
+""""""""""
+
+.. note::
+
+   The parameter :py:data:`integration.time_step` is used to set a fixed step
+   size with single rate methods (e.g., ERK) or a fixed slow time scale step
+   size with multirate methods (e.g., EX-MRI).
+
+.. py:data:: integration.fast_time_step
+   :type: amrex::Real
+   :value: [none]
+
+   When using a multirate method, this parameter sets the fixed step size to use
+   at the fast time scale.
+
+.. py:data:: integration.use_adaptive_time_step
+   :type: bool
+   :value: false
+
+   This parameter enables adaptive time step sizes with single rate methods
+   (e.g., ERK) or adaptive time step sizes at the slow time scale with multirate
+   methods (e.g., EX-MRI).
+
+.. py:data:: integration.use_adaptive_fast_time_step
+   :type: bool
+   :value: false
+
+   This parameter enables adaptive time step sizes at the fast time scale with
+   multirate methods (e.g., EX-MRI).
+
+.. py:data:: integration.sundials.max_num_steps
+   :type: int
+   :value: 500
+
+   When using the ``evolve`` method, which allows the integrator to take
+   multiple time steps to reach the specified output time, this parameter sets
+   the maximum number of time steps allowed before reaching the output time. If
+   this limit is reached before the output time, SUNDIALS will return an error.
+
+.. py:data:: integration.sundials.stop_time
+   :type: amrex::Real
+   :value: [none]
+
+   When using the ``evolve`` method (especially with adaptive time step sizes),
+   the SUNDIALS integrator may step past the requested output time and return an
+   interpolated solution at the requested time. This parameter will force the
+   integrator to stop and return the solution at the requested time.
+
+.. _sec:inputs:timeintegration:sundials:tolerances:
+
+Tolerances
+""""""""""
+
+When using adaptive time step sizes or an implicit method (e.g., DIRK),
+selecting appropriate tolerances for the target application is a critical factor
+in method performance. For advice on selecting tolerances see the `SUNDIALS
+documentation
+<https://sundials.readthedocs.io/en/latest/arkode/Usage/User_callable.html#general-advice-on-the-choice-of-tolerances>`__.
+
+.. py:data:: integration.rel_tol
+   :type: amrex::Real
+   :value: 1.e-4
+
+   Relative tolerance for temporal error control.
+
+.. py:data:: integration.abs_tol
+   :type: amrex::Real
+   :value: 1.e-9
+
+   Absolute tolerance for temporal error control.
+
+.. py:data:: integration.fast_rel_tol
+   :type: amrex::Real
+   :value: 1.e-4
+
+   Relative tolerance for the temporal error at the fast time scale with
+   multrate methods.
+
+.. py:data:: integration.fast_abs_tol
+   :type: amrex::Real
+   :value: 1.e-9
+
+   Absolute tolerance for the temporal error at the fast time scale with
+   multrate methods.
+
+.. _sec:inputs:timeintegration:sundials:algebraicsolvers:
+
+Algebraic Solvers
+"""""""""""""""""
+
+The parameters provide control over the nonlinear and linear solvers utilized
+with implicit methods (e.g., DIRK).
+
+.. py:data:: integration.sundials.nonlinear_solver
+   :type: string
+   :value: Newton
+
+   The nonlinear solver used with single rate methods (e.g., DIRK) or at the
+   slow time scale with multirate methods (e.g., IM-MRI). The supported values
+   are:
+
+   * Newton
+   * fixed-point
+
+.. py:data:: integration.sundials.max_nonlinear_iters
+   :type: int
+   :value: 3
+
+   The maximum number of nonlinear iterations allowed per solve with single rate
+   methods (e.g., DIRK) or at the slow time scale with multirate methods (e.g.,
+   IM-MRI).
+
+.. py:data:: integration.sundials.linear_solver
+   :type: string
+   :value: GMRES
+
+   The linear solver used with Newton's method for single rate methods (e.g.,
+   DIRK) or at the slow time scale with multirate methods (e.g., IM-MRI).
+
+.. py:data:: integration.sundials.max_linear_iters
+   :type: int
+   :value: 5
+
+   The maximum number of linear iterations allowed per solve with single rate
+   methods (e.g., DIRK) or at the slow time scale with multirate methods (e.g.,
+   IM-MRI).
+
+.. py:data:: integration.sundials.fast_nonlinear_solver
+   :type: string
+   :value: Newton
+
+   The nonlinear solver used at the fast time scale with multirate methods
+   (e.g., when the fast method is DIRK). The supported values are:
+
+   * Newton
+   * fixed-point
+
+.. py:data:: integration.sundials.fast_max_nonlinear_iters
+   :type: int
+   :value: 3
+
+   The maximum number of nonlinear iterations allowed per solve at the fast time
+   scale (e.g., when the fast method is DIRK).
+
+.. py:data:: integration.sundials.fast_linear_solver
+   :type: string
+   :value: GMRES
+
+   The linear solver used with Newton's method at the fast time scale with
+   multirate methods (e.g., when the fast method is DIRK).
+
+.. py:data:: integration.sundials.fast_max_linear_iters
+   :type: int
+   :value: 5
+
+   The maximum number of linear iterations allowed at the fast time scale per
+   solve with multirate methods (e.g., when the fast method is DIRK).
+
 
 Tiny Profiler
 -------------

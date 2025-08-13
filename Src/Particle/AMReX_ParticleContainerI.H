@@ -1255,8 +1255,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
             Gpu::streamSynchronize();
         } else {
-            typename SoA::IdCPU tmp_idcpu(np_total);
-
+            typename SoA::IdCPU tmp_idcpu;
+            if constexpr (has_polymorphic_allocator) {
+                tmp_idcpu.setArena(arena());
+            }
+            tmp_idcpu.resize(np_total);
             auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
             uint64_t* dst = tmp_idcpu.data();
             AMREX_HOST_DEVICE_FOR_1D( np_total, i,
@@ -1270,7 +1273,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
 
         { // Create a scope for the temporary vector below
-            RealVector tmp_real(np_total);
+            RealVector tmp_real;
+            if constexpr (has_polymorphic_allocator) {
+                tmp_real.setArena(arena());
+            }
+            tmp_real.resize(np_total);
             for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
                 auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
                 ParticleReal* dst = tmp_real.data();
@@ -1285,7 +1292,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        IntVector tmp_int(np_total);
+        IntVector tmp_int;
+        if constexpr (has_polymorphic_allocator) {
+            tmp_int.setArena(arena());
+        }
+        tmp_int.resize(np_total);
         for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
             auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
             int* dst = tmp_int.data();
@@ -1300,7 +1311,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     } else {
         ParticleTileType ptile_tmp;
-        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
+        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int,
+            &m_soa_rdata_names, &m_soa_idata_names, arena());
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1641,7 +1653,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ptile_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
                 ptile_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
-                    &m_soa_rdata_names, &m_soa_idata_names);
+                    &m_soa_rdata_names, &m_soa_idata_names, arena());
             }
         }
     }
