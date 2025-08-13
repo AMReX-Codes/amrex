@@ -933,8 +933,11 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
         Gpu::streamSynchronize();
     } else {
-        typename PTile::SoA::IdCPU tmp_idcpu(np_total);
-
+        typename PTile::SoA::IdCPU tmp_idcpu;
+        if constexpr (PTile::has_polymorphic_allocator) {
+            tmp_idcpu.setArena(ptile.GetStructOfArrays().GetIdCPUData().arena());
+        }
+        tmp_idcpu.resize(np_total);
         auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
         uint64_t* dst = tmp_idcpu.data();
         AMREX_HOST_DEVICE_FOR_1D( np_total, i,
@@ -948,7 +951,13 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
     }
 
     { // Create a scope for the temporary vector below
-        typename PTile::RealVector tmp_real(np_total);
+        typename PTile::RealVector tmp_real;
+        if (ptile.NumRealComps() > 0) {
+            if constexpr (PTile::has_polymorphic_allocator) {
+                tmp_real.setArena(ptile.GetStructOfArrays().GetRealData(0).arena());
+            }
+            tmp_real.resize(np_total);
+        }
         for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
             auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
             ParticleReal* dst = tmp_real.data();
@@ -963,7 +972,14 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
     }
 
-    typename PTile::IntVector tmp_int(np_total);
+    typename PTile::IntVector tmp_int;
+    if (ptile.NumIntComps() > 0) {
+        if constexpr (PTile::has_polymorphic_allocator) {
+            tmp_int.setArena(ptile.GetStructOfArrays().GetIntData(0).arena());
+        }
+        tmp_int.resize(np_total);
+    }
+
     for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
         auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
         int* dst = tmp_int.data();
@@ -999,7 +1015,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
             });
     }
     {
-        amrex::Gpu::AsyncVector<typename PTile::ParticleType::RealType> tmp_real(np);
+        amrex::Gpu::AsyncVector<typename PTile::RealType> tmp_real(np);
 
         for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
             auto src = ptile.GetRealData(comp).data();
@@ -1015,7 +1031,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
         }
     }
     {
-        amrex::Gpu::AsyncVector<typename PTile::ParticleType::IntType> tmp_int(np);
+        amrex::Gpu::AsyncVector<typename PTile::IntType> tmp_int(np);
 
         for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
             auto src = ptile.GetIntData(comp).data();
@@ -1030,7 +1046,7 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
                 });
         }
     }
-    // stream sync for deallocation permutations in user code
+    // stream sync for deallocation of permutations variable in user code
     Gpu::streamSynchronize();
 }
 

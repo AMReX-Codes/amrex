@@ -1215,8 +1215,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto& pmap = m_particles[lev];
                 for (const auto& kv : pmap) {
                     ParticleTile<ParticleType, NArrayReal, NArrayInt,
-                                 amrex::PinnedArenaAllocator> pinned_ptile;
-                    pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                                 amrex::PolymorphicArenaAllocator> pinned_ptile;
+                    pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                                        nullptr, nullptr, The_Pinned_Arena());
                     pinned_ptile.resize(kv.second.numParticles());
                     amrex::copyParticles(pinned_ptile, kv.second);
                     const auto& host_aos = pinned_ptile.GetArrayOfStructs();

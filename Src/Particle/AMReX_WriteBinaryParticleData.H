@@ -352,29 +352,29 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
     const Long rChunkSize = AMREX_SPACEDIM + num_output_real;
     rdata.resize(np*rChunkSize);
 
-    typename PC::FlagsVector write_int_comp_d(write_int_comp.size());
-    typename PC::FlagsVector write_real_comp_d(write_real_comp.size());
+    Gpu::DeviceVector<int> write_int_comp_d(write_int_comp.size());
+    Gpu::DeviceVector<int> write_real_comp_d(write_real_comp.size());
     Gpu::copyAsync(Gpu::hostToDevice, write_int_comp.begin(), write_int_comp.end(),
                    write_int_comp_d.begin());
     Gpu::copyAsync(Gpu::hostToDevice, write_real_comp.begin(), write_real_comp.end(),
                    write_real_comp_d.begin());
 
-    const auto write_int_comp_d_ptr = write_int_comp_d.data();
-    const auto write_real_comp_d_ptr = write_real_comp_d.data();
+    const auto* write_int_comp_d_ptr = write_int_comp_d.data();
+    const auto* write_real_comp_d_ptr = write_real_comp_d.data();
 
     std::size_t poffset = 0;
     for (int tile : tiles) {
         const auto& ptile = pc.ParticlesAt(lev, grid, tile);
         const auto& pflags = particle_io_flags[lev].at(std::make_pair(grid, tile));
         int np_tile = ptile.numParticles();
-        typename PC::FlagsVector offsets(np_tile);
+        Gpu::DeviceVector<int> offsets(np_tile);
         int num_copies = Scan::ExclusiveSum(np_tile, pflags.begin(), offsets.begin(), Scan::retSum);
 
-        typename Gpu::DeviceVector<int> idata_d(num_copies*iChunkSize);
-        typename Gpu::DeviceVector<ParticleReal> rdata_d(num_copies*rChunkSize);
+        Gpu::DeviceVector<int> idata_d(num_copies*iChunkSize);
+        Gpu::DeviceVector<ParticleReal> rdata_d(num_copies*rChunkSize);
 
-        const auto flag_ptr = pflags.data();
-        const auto offset_ptr = offsets.data();
+        const auto* flag_ptr = pflags.data();
+        const auto* offset_ptr = offsets.data();
 
         auto* idata_d_ptr = idata_d.data();
         auto* rdata_d_ptr = rdata_d.data();
@@ -394,9 +394,9 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         });
 
         Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(),
-                       idata.begin() + static_cast<amrex::Long>(poffset));
+                       idata.begin() + static_cast<Long>(poffset));
         Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(),
-                       rdata.begin() + static_cast<amrex::Long>(poffset));
+                       rdata.begin() + static_cast<Long>(poffset));
         Gpu::Device::streamSynchronize();
 
         poffset += num_copies;
@@ -526,8 +526,6 @@ void WriteBinaryParticleDataSync (PC const& pc,
     // evaluate f for every particle to determine which ones to output
     Vector<std::map<std::pair<int, int>, typename PC::FlagsVector > >
         particle_io_flags(pc.GetParticles().size());
-    constexpr bool is_polymorphic_allocator =
-        IsPolymorphicArenaAllocator<typename PC::FlagsVector::allocator_type>::value;
 
     for (int lev = 0; lev < pc.GetParticles().size();  lev++)
     {
@@ -535,7 +533,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
         for (const auto& kv : pmap)
         {
             auto& flags = particle_io_flags[lev][kv.first];
-            if constexpr (is_polymorphic_allocator) {
+            if constexpr (PC::has_polymorphic_allocator) {
                 flags.setArena(pc.arena());
             }
             particle_detail::fillFlags(flags, kv.second, f);
