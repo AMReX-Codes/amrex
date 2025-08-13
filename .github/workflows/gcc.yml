@@ -126,7 +126,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_build_2D:
-    name: GNU@9.3 C++17 2D Debug Fortran [tests]
+    name: GNU@13 C++17 2D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -177,7 +177,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_build_1D:
-    name: GNU@9.3 C++17 1D Debug Fortran [tests]
+    name: GNU@13 C++17 1D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -416,7 +416,7 @@ jobs:
 
   # Build 1D libamrex with configure
   configure-1d:
-    name: GNU@9.3 Release [configure 1D]
+    name: GNU@13 Release [configure 1D]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -500,7 +500,7 @@ jobs:
 
   # Build 3D libamrex with single precision and tiny profiler
   configure-3d-single-tprof:
-    name: GNU@9.3 Release [configure 3D]
+    name: GNU@13 Release [configure 3D]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -543,7 +543,7 @@ jobs:
 
   # Build 3D libamrex debug omp build with configure
   configure-3d-omp-debug:
-    name: GNU@9.3 OMP Debug [configure 3D]
+    name: GNU@13 OMP Debug [configure 3D]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -678,7 +678,7 @@ jobs:
         ctest --output-on-failure
 
   test_hdf5:
-    name: GNU@9.3 HDF5 I/O Test [tests]
+    name: GNU@13 HDF5 I/O Test [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
