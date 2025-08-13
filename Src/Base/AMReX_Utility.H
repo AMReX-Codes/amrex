@@ -247,8 +247,10 @@ namespace amrex
      * \brief Call given function without inline.
      *
      * This works on lambdas, functors, normal functions. But it does not
-     * work on overloaded functions like std::sin. If needed, one could
-     * however wrap functions like std::sin inside a lambda function.
+     * work with overloaded functions like std::sin. If needed, one could
+     * however wrap functions like std::sin inside a lambda function. It
+     * also does not work with normal functions for SYCL and one would have
+     * to wrap it inside a lambda.
      */
     template <typename F, typename... T>
     AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE

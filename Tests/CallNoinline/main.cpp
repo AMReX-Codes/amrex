@@ -32,8 +32,7 @@ struct P {
     }
 };
 
-#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ <= 9)
-// Other versions might have issues too.
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
@@ -63,8 +62,13 @@ int main(int argc, char* argv[])
             p1[1] = callNoinline(g, pi, one, 0.5);
 
             auto half = one;
+#ifdef AMREX_USE_SYCL
+            callNoinline([] (double& x) { halve(x); }, half);
+            p0[0] = callNoinline([] (double a, double b) { return f(a,b); }, pi, half);
+#else
             callNoinline(halve, half);
             p0[0] = callNoinline(f, pi, half);
+#endif
             auto half2 = one;
             callNoinline([] (double& a) { a *= 0.5; }, half2);
             p0[1] = callNoinline(s, pi, one, half2);
