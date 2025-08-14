@@ -1,4 +1,6 @@
 
+coord = 0 # 0: cartesian, 1: cylindrical, 2: spherical
+
 n_cell = 128
 max_grid_size = 64
 

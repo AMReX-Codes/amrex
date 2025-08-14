@@ -19,6 +19,7 @@ private:
     void readParameters ();
     void initData ();
 
+    int coord = 0;
     int n_cell = 128;
     int max_grid_size = 64;
 
