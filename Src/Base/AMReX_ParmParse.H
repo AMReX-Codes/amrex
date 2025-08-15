@@ -1700,6 +1700,8 @@ public:
 
     static std::string ParserPrefix;
 
+    [[nodiscard]] std::string const& getPrefix () const;
+
     [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
 
 protected:

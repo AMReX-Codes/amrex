@@ -1091,6 +1091,12 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
 
 }  // End of unnamed namespace.
 
+std::string const&
+ParmParse::getPrefix () const
+{
+    return m_prefix;
+}
+
 std::string
 ParmParse::prefixedName (const std::string_view& str) const
 {
