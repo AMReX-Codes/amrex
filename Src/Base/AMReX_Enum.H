@@ -128,6 +128,17 @@ namespace amrex
     {
         return std::string(ET::class_name);
     }
+
+    /** Return the underlying (u)int of an enum value
+     *
+     * Useful when building bitmasks.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    constexpr auto getEnumUnderlyingValue (T v) noexcept
+    {
+        return static_cast<std::underlying_type_t<T>>(v);
+    }
 }
 
 #define AMREX_ENUM(CLASS, ...) \
