@@ -1166,12 +1166,12 @@ addParticles (const PCType& other, F const& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
-    for (int lev = 0; lev < other.numLevels(); ++lev)
-    {
-        const auto& plevel_other = other.GetParticles(lev);
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
+    for (int lev = 0; lev < other.numLevels(); ++lev)
+    {
+        const auto& plevel_other = other.GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
