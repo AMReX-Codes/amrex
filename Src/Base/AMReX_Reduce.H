@@ -1059,19 +1059,22 @@ public:
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
-            Box const& b = mfi.growntilebox(nghost);
-            const int li = mfi.LocalIndex();
-            auto& rr_ref = reduce_data.reference(OpenMP::get_thread_num());
-            auto rr = rr_ref;
-            const auto lo = amrex::lbound(b);
-            const auto hi = amrex::ubound(b);
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k));
-            }}}
-            rr_ref = rr;
+        {
+            ReduceTuple rr;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.growntilebox(nghost);
+                const int li = mfi.LocalIndex();
+                const auto lo = amrex::lbound(b);
+                const auto hi = amrex::ubound(b);
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k));
+                }}}
+            }
+            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
+                reduce_data.reference(OpenMP::get_thread_num()), rr);
         }
     }
 
@@ -1083,30 +1086,35 @@ public:
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
-        for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
-            Box const& b = mfi.growntilebox(nghost);
-            const int li = mfi.LocalIndex();
-            auto& rr_ref = reduce_data.reference(OpenMP::get_thread_num());
-            auto rr = rr_ref;
-            const auto lo = amrex::lbound(b);
-            const auto hi = amrex::ubound(b);
-            for (int n = 0; n < ncomp; ++n) {
-            for (int k = lo.z; k <= hi.z; ++k) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k,n));
-            }}}}
-            rr_ref = rr;
+        {
+            ReduceTuple rr;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
+            for (MFIter mfi(mf,true); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.growntilebox(nghost);
+                const int li = mfi.LocalIndex();
+                const auto lo = amrex::lbound(b);
+                const auto hi = amrex::ubound(b);
+                for (int n = 0; n < ncomp; ++n) {
+                for (int k = lo.z; k <= hi.z; ++k) {
+                for (int j = lo.y; j <= hi.y; ++j) {
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k,n));
+                }}}}
+            }
+            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
+                reduce_data.reference(OpenMP::get_thread_num()), rr);
         }
     }
 
     template <typename D, typename F>
     void eval (Box const& box, D & reduce_data, F&& f)
     {
-        auto& rr_ref = reduce_data.reference(OpenMP::get_thread_num());
-        auto rr = rr_ref;
+        using ReduceTuple = typename D::Type;
+        ReduceTuple rr;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
         call_f<D>(box, rr, std::forward<F>(f));
-        rr_ref = rr;
+        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
+             reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
 
     template <typename N, typename D, typename F,
@@ -1114,8 +1122,8 @@ public:
     void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
-        auto& rr_ref = reduce_data.reference(OpenMP::get_thread_num());
-        auto rr = rr_ref;
+        ReduceTuple rr;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
         const auto lo = amrex::lbound(box);
         const auto hi = amrex::ubound(box);
         for (N n = 0; n < ncomp; ++n) {
@@ -1124,7 +1132,8 @@ public:
         for (int i = lo.x; i <= hi.x; ++i) {
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(i,j,k,n));
         }}}}
-        rr_ref = rr;
+        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
+             reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
 
     template <typename N, typename D, typename F,
@@ -1132,12 +1141,13 @@ public:
     void eval (N n, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
-        auto& rr_ref = reduce_data.reference(OpenMP::get_thread_num());
-        auto rr = rr_ref;
+        ReduceTuple rr;
+        Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
         for (N i = 0; i < n; ++i) {
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(i));
         }
-        rr_ref = rr;
+        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
+             reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
 
     template <typename D>
