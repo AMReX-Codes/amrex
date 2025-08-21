@@ -94,7 +94,7 @@ ifeq ($(USE_CUDA),TRUE)
      cuda_device_query_result := $(shell $(CUDA_HOME)/extras/demo_suite/deviceQuery | grep "CUDA Capability")
   else
      # try nvidia-smi, as deviceQuery is no longer distributed with CUDA 12 and up
-     cuda_device_query_result := $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader)
+     cuda_device_query_result := $(shell nvidia-smi --query-gpu=compute_cap --format=csv,noheader || echo $(CUDA_ARCH))
   endif
   ifneq ($(cuda_device_query_result),)
      TEMP_CUDA_ARCH = $(lastword $(cuda_device_query_result))
