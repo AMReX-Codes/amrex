@@ -434,13 +434,11 @@ struct alignas(sizeof(double)) Particle
         ParticleIDWrapper wrapper(tmp);
         wrapper = id;
 #if defined(AMREX_USE_OMP)
-    #pragma omp critical
-    {
-        this->m_idcpu = wrapper.m_idata[0];
-    }
+    #pragma omp atomic write
+        this->m_idcpu = *(wrapper.m_idata);
 #else
         auto *old_ptr = reinterpret_cast<unsigned long long*>(&(this->m_idcpu));
-        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) wrapper.m_idata[0]);
+        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) (*wrapper.m_idata));
 #endif
     }
 
