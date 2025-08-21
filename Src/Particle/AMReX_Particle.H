@@ -434,7 +434,7 @@ struct alignas(sizeof(double)) Particle
         ParticleIDWrapper wrapper(tmp);
         wrapper = id;
 #if defined(AMREX_USE_OMP)
-    #pragma omp atomic write
+#pragma omp atomic write
         this->m_idcpu = *(wrapper.m_idata);
 #else
         auto *old_ptr = reinterpret_cast<unsigned long long*>(&(this->m_idcpu));
