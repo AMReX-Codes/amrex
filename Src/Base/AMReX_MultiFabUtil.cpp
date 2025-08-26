@@ -67,13 +67,13 @@ namespace amrex
     }
 
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
-         const MultiFab& nd, int scomp, int ncomp, IntVect& ngrow)
+         const MultiFab& nd, int scomp, int ncomp, IntVect const& ng_vect)
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
             auto const& ccma = cc.arrays();
             auto const& ndma = nd.const_arrays();
-            ParallelFor(cc, ngrow, ncomp,
+            ParallelFor(cc, ng_vect, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avg_nd_to_cc(i, j, k, n, ccma[box_no], ndma[box_no], dcomp, scomp);
@@ -89,7 +89,7 @@ namespace amrex
 #endif
             for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box bx = mfi.growntilebox(ngrow);
+                const Box bx = mfi.growntilebox(ng_vect);
                 Array4<Real> const& ccarr = cc.array(mfi);
                 Array4<Real const> const& ndarr = nd.const_array(mfi);
 
@@ -104,12 +104,12 @@ namespace amrex
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
         const Vector<const MultiFab*>& edge, int ngrow)
     {
-        IntVect ng_vect(ng);
+        IntVect ng_vect(ngrow);
         average_edge_to_cellcenter (cc, dcomp, edge, ng_vect);
     }
 
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
-        const Vector<const MultiFab*>& edge, IntVect& ngrow)
+        const Vector<const MultiFab*>& edge, IntVect const& ng_vect)
     {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
@@ -120,7 +120,7 @@ namespace amrex
             AMREX_D_TERM(auto const& exma = edge[0]->const_arrays();,
                          auto const& eyma = edge[1]->const_arrays();,
                          auto const& ezma = edge[2]->const_arrays(););
-            ParallelFor(cc, ngrow,
+            ParallelFor(cc, ng_vect,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
                 amrex_avg_eg_to_cc(i, j, k, ccma[box_no],
@@ -138,7 +138,7 @@ namespace amrex
 #endif
             for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                const Box bx = mfi.growntilebox(ngrow);
+                const Box bx = mfi.growntilebox(ng_vect);
                 Array4<Real> const& ccarr = cc.array(mfi);
                 AMREX_D_TERM(Array4<Real const> const& exarr = edge[0]->const_array(mfi);,
                              Array4<Real const> const& eyarr = edge[1]->const_array(mfi);,
@@ -153,11 +153,11 @@ namespace amrex
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
-        const Vector<const MultiFab*>& fc, IntVect& ngrow)
+        const Vector<const MultiFab*>& fc, IntVect const& ng_vect)
     {
         average_face_to_cellcenter(cc, dcomp,
             Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-            ngrow);
+            ng_vect);
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
