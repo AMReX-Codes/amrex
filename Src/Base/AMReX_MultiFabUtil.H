@@ -59,7 +59,7 @@ namespace amrex
               std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> = 0>
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
-                                     IntVect const& ngrow);
+                                     IntVect const& ng_vect);
 
     //! Average face-based MultiFab onto cell-centered MultiFab with geometric weighting.
     void average_face_to_cellcenter (MultiFab& cc,
