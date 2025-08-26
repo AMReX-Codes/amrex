@@ -62,11 +62,18 @@ namespace amrex
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {
+        IntVect ng_vect(ngrow);
+        average_node_to_cellcenter (cc, dcomp, nd, scomp, ncomp, ng_vect);
+    }
+
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp,
+         const MultiFab& nd, int scomp, int ncomp, IntVect& ngrow)
+    {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && cc.isFusingCandidate()) {
             auto const& ccma = cc.arrays();
             auto const& ndma = nd.const_arrays();
-            ParallelFor(cc, IntVect(ngrow), ncomp,
+            ParallelFor(cc, ngrow, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 amrex_avg_nd_to_cc(i, j, k, n, ccma[box_no], ndma[box_no], dcomp, scomp);
@@ -97,6 +104,13 @@ namespace amrex
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
         const Vector<const MultiFab*>& edge, int ngrow)
     {
+        IntVect ng_vect(ng);
+        average_edge_to_cellcenter (cc, dcomp, edge, ng_vect);
+    }
+
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
+        const Vector<const MultiFab*>& edge, IntVect& ngrow)
+    {
         AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
         AMREX_ASSERT(edge.size() == AMREX_SPACEDIM);
         AMREX_ASSERT(edge[0]->nComp() == 1);
@@ -106,7 +120,7 @@ namespace amrex
             AMREX_D_TERM(auto const& exma = edge[0]->const_arrays();,
                          auto const& eyma = edge[1]->const_arrays();,
                          auto const& ezma = edge[2]->const_arrays(););
-            ParallelFor(cc, IntVect(ngrow),
+            ParallelFor(cc, ngrow,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
             {
                 amrex_avg_eg_to_cc(i, j, k, ccma[box_no],
@@ -136,6 +150,14 @@ namespace amrex
                 });
             }
         }
+    }
+
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+        const Vector<const MultiFab*>& fc, IntVect& ngrow)
+    {
+        average_face_to_cellcenter(cc, dcomp,
+            Array<MultiFab const*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
+            ngrow);
     }
 
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,

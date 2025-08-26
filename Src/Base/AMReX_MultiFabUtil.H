@@ -32,12 +32,18 @@ namespace amrex
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
                                      const Vector<const MultiFab*>& fc,
                                      int ngrow = 0);
+    //! Average face-based MultiFab onto cell-centered MultiFab.
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const Vector<const MultiFab*>& fc,
+                                     IntVect ngrow = IntVect::TheZeroVector());
+
     //! Average face-based FabArray onto cell-centered FabArray.
     template <typename CMF, typename FMF,
               std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> = 0>
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                      int ngrow = 0);
+
     //! Average face-based MultiFab onto cell-centered MultiFab with geometric weighting.
     void average_face_to_cellcenter (MultiFab& cc,
                                      const Vector<const MultiFab*>& fc,
@@ -888,10 +894,20 @@ NormHelper (const MMF& mask,
 }
 
 template <typename CMF, typename FMF,
-          std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> FOO>
+          std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, IntVect> FOO>
 void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  int ngrow)
+{
+   IntVect ng_vect = IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow));
+   average_face_to_cellcenter(cc, dcomp, fc, ng_vect);
+}
+
+template <typename CMF, typename FMF,
+          std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> FOO>
+void average_face_to_cellcenter (CMF& cc, int dcomp,
+                                 const Array<const FMF*,AMREX_SPACEDIM>& fc,
+                                 IntVect ngrow)
 {
     AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
     AMREX_ASSERT(fc[0]->nComp() == 1);
@@ -902,7 +918,7 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
         AMREX_D_TERM(auto const& fxma = fc[0]->const_arrays();,
                      auto const& fyma = fc[1]->const_arrays();,
                      auto const& fzma = fc[2]->const_arrays(););
-        ParallelFor(cc, IntVect(ngrow),
+        ParallelFor(cc, ngrow,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
 #if (AMREX_SPACEDIM == 1)
