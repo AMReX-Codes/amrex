@@ -916,7 +916,7 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  int ngrow)
 {
-   IntVect ng_vect = IntVect(AMREX_D_DECL(ngrow,ngrow,ngrow));
+   IntVect ng_vect(ngrow);
    average_face_to_cellcenter(cc, dcomp, fc, ng_vect);
 }
 
