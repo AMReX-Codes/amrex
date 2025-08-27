@@ -59,6 +59,21 @@ namespace {
 
 namespace amrex
 {
+    // Return a LayoutData that contains the memory capacity (in bytes) of the Fabs
+    LayoutData<std::size_t> CapacityOfFabs (BoxArray const& ba,
+                 DistributionMapping const& dm,
+                 std::vector<MultiFab*> const& mfs)
+    {
+        LayoutData<std::size_t> mem(ba, dm);
+        for (auto const& mf : mfs) {
+            for (MFIter mfi(*mf, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
+                mem[mfi] += (*mf)[mfi].nBytesOwned();
+            }
+        }
+
+        return mem;
+    }
+
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
          const MultiFab& nd, int scomp, int ncomp, int ngrow)
     {

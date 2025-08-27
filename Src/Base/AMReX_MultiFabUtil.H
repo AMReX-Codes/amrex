@@ -1070,6 +1070,12 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
     crse.ParallelCopy(ctmp,0,0,crse.nComp(),0,0,crse_geom.periodicity());
 }
 
+// Compute the memory capacity (in bytes) used by a Box
+// We have tried to work with more templated version, but it didn't work. What is the most appropriate way to do it?
+LayoutData<std::size_t> CapacityOfFabs (BoxArray const& ba,
+                 DistributionMapping const& dm,
+                 std::vector<MultiFab*> const& mfs);
+
 template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> FOO>
 Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell)
 {
