@@ -87,6 +87,9 @@ namespace amrex
     struct IsParticleContainer : public std::is_base_of<ParticleContainerBase, T>::type {};
 #endif
 
+    template <class T, class Enable = void>
+    struct DefinitelyNotHostRunnable : std::false_type {};
+
 #ifdef AMREX_USE_GPU
 
     template <class T, class Enable = void>
@@ -94,9 +97,6 @@ namespace amrex
 
     template <class T, class Enable = void>
     struct MaybeHostDeviceRunnable : std::true_type {};
-
-    template <class T, class Enable = void>
-    struct DefinitelyNotHostRunnable : std::false_type {};
 
 #if defined(AMREX_USE_CUDA) && defined(__NVCC__)
 
