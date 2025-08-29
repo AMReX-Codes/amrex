@@ -324,6 +324,10 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
             hpp("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
             hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
+	    hpp("bamg_ilu_iterative_algorithm_type", HYPRE_BoomerAMGSetILUIterSetupType);
+	    hpp("bamg_ilu_iterative_setup_type", HYPRE_BoomerAMGSetILUIterSetupOption);
+	    hpp("bamg_ilu_iterative_max_iter", HYPRE_BoomerAMGSetILUIterSetupMaxIter);
+	    hpp("bamg_ilu_iterative_tolerance", HYPRE_BoomerAMGSetILUIterSetupTolerance);
             hpp("bamg_ilu_reordering_type", HYPRE_BoomerAMGSetILULocalReordering);
             hpp("bamg_ilu_tri_solve", HYPRE_BoomerAMGSetILUTriSolve);
             hpp("bamg_ilu_lower_jacobi_iters", HYPRE_BoomerAMGSetILULowerJacobiIters);
