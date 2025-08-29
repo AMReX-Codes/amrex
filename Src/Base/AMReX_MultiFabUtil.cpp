@@ -60,11 +60,9 @@ namespace {
 namespace amrex
 {
     // Return a LayoutData that contains the memory capacity (in bytes) of the Fabs
-    LayoutData<std::size_t> CapacityOfFabs (BoxArray const& ba,
-                 DistributionMapping const& dm,
-                 std::vector<MultiFab*> const& mfs)
+    LayoutData<std::size_t> CapacityOfFabs (const Vector<const MultiFab*>& mfs)
     {
-        LayoutData<std::size_t> mem(ba, dm);
+        LayoutData<std::size_t> mem(mfs[0]->boxArray(), mfs[0]->DistributionMap());
         for (auto const& mf : mfs) {
             for (MFIter mfi(*mf, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
                 mem[mfi] += (*mf)[mfi].nBytesOwned();
