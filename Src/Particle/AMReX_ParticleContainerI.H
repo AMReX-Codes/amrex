@@ -1169,7 +1169,7 @@ addParticles (const PCType& other, F const& f, bool local)
     // touch all tiles in serial
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
-        Gpu::NoSyncRegion no_sync{};
+        [[maybe_unused]] Gpu::NoSyncRegion no_sync{};
         const auto& plevel_other = other.GetParticles(lev);
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
