@@ -1169,8 +1169,9 @@ addParticles (const PCType& other, F const& f, bool local)
     // touch all tiles in serial
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
+        Gpu::NoSyncRegion no_sync{};
         const auto& plevel_other = other.GetParticles(lev);
-        for(MFIter mfi = other.MakeMFIter(lev, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
+        for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) { continue; }
@@ -1178,7 +1179,6 @@ addParticles (const PCType& other, F const& f, bool local)
             DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
         }
     }
-    Gpu::streamSynchronizeAll();
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1186,7 +1186,7 @@ addParticles (const PCType& other, F const& f, bool local)
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
         const auto& plevel_other = other.GetParticles(lev);
-        for(MFIter mfi = other.MakeMFIter(lev, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi)
+        for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) { continue; }
@@ -1205,7 +1205,6 @@ addParticles (const PCType& other, F const& f, bool local)
             ptile.resize(dst_index + count);
         }
     }
-    Gpu::streamSynchronizeAll();
 
     if (! local) { Redistribute(); }
 }
