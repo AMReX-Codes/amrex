@@ -313,3 +313,5 @@ ApplyInitialRedistribution ( Box const& bx, int ncomp,
 }
 
 }
+
+/** @} */

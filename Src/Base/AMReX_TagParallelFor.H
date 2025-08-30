@@ -139,6 +139,8 @@ namespace detail {
         return tag.size();
     }
 
+    //! \cond
+
     template <typename T>
     constexpr
     std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<T>().box())>, Box>, bool>
@@ -148,6 +150,8 @@ namespace detail {
     constexpr
     std::enable_if_t<std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >, bool>
     is_box_tag (T const&) { return false; }
+
+    //! \endcond
 
 }
 
@@ -305,6 +309,8 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
+//! \cond
+
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<T>().box())>, Box>, void>
@@ -346,6 +352,8 @@ tagparfor_call_f (
     f(      i, N, tag);
 #endif
 }
+
+//! \endcond
 
 template <class TagType, class F>
 void

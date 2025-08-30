@@ -647,7 +647,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect minIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return minimum value and location to allow
+    * \brief Compute minimum value and location to allow
     * efficient looping over multiple boxes.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -665,7 +665,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect maxIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return maximum value and location to allow
+    * \brief Compute maximum value and location to allow
     * efficient looping over multiple boxes.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>

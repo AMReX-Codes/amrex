@@ -25,7 +25,7 @@ namespace amrex {
  *
  * \tparam Iterator an AMReX ParticleIterator
  *
- * \param the iterator pointing to the current grid/tile to test
+ * \param pti the iterator pointing to the current grid/tile to test
  * \param nGrow the number of grow cells allowed.
  *
  */
@@ -43,7 +43,7 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  *
  * \tparam Iterator an AMReX ParticleIterator
  *
- * \param the iterator pointing to the current grid/tile to test
+ * \param pti the iterator pointing to the current grid/tile to test
  * \param nGrow the number of grow cells allowed.
  *
  */
