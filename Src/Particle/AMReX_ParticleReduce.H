@@ -664,21 +664,21 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
  *                  {
- *                      return p.id() > 0;
+ *                      return p.id().is_valid();
  *                  });
  *
  *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
- *                      return p.id() > 0;
+ *                      return p.id().is_valid();
  *                  });
  *
  *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.id(i) > 0;
+ *                      return ptd.id(i).is_valid();
  *                  });
  *
  */
@@ -711,21 +711,21 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
  *                  {
- *                      return p.id() > 0;
+ *                      return p.id().is_valid();
  *                  });
  *
  *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
- *                      return p.id() > 0;
+ *                      return p.id().is_valid();
  *                  });
  *
  *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.id(i) > 0;
+ *                      return ptd.id(i).is_valid();
  *                  });
  *
  */
@@ -759,21 +759,21 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
  *                  {
- *                      return p.id() > 0;
+ *                      return p.id().is_valid();
  *                  });
  *
  *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
- *                      return p.id() > 0;
+ *                      return p.id().is_valid();
  *                  });
  *
  *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalAnd(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.id(i) > 0;
+ *                      return ptd.id(i).is_valid();
  *                  });
  *
  */
@@ -862,21 +862,21 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
  *                  {
- *                      return p.id() < 1;
+ *                      return !p.id().is_valid();
  *                  });
  *
  *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
- *                      return p.id() < 1;
+ *                      return !p.id().is_valid();
  *                  });
  *
  *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.id(i) < 1;
+ *                      return !ptd.id(i).is_valid();
  *                  });
  *
  */
@@ -909,21 +909,21 @@ ReduceLogicalOr (PC const& pc, F&& f)
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
  *                  {
- *                      return p.id() < 1;
+ *                      return !p.id().is_valid();
  *                  });
  *
  *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
- *                      return p.id() < 1;
+ *                      return !p.id().is_valid();
  *                  });
  *
  *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.id(i) < 1;
+ *                      return !ptd.id(i).is_valid();
  *                  });
  *
  */
@@ -957,21 +957,21 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> bool
  *                  {
- *                      return p.id() < 1;
+ *                      return !p.id().is_valid();
  *                  });
  *
  *        using SPType  = typename PC::SuperParticleType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const SPType& p) -> bool
  *                  {
- *                      return p.id() < 1;
+ *                      return !p.id().is_valid();
  *                  });
  *
  *        using ConstPTDType = typename PC::ConstPTDType;
  *        auto rv = amrex::ReduceLogicalOr(pc,
  *                  [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> bool
  *                  {
- *                      return ptd.id(i) < 1;
+ *                      return !ptd.id(i).is_valid();
  *                  });
  *
  */
