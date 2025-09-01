@@ -1740,12 +1740,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     while (pindex <= last) {
                         ParticleType& p = aos[pindex];
 
-                        if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
+                        if ((remove_negative == false) && (!p.id().is_valid())) {
                             ++pindex;
                             continue;
                         }
 
-                        if (!ptd.id(pindex).is_valid())
+                        if (!p.id().is_valid())
                         {
                             aos[pindex] = aos[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
@@ -1763,7 +1763,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
                         particlePostLocate(p, pld, lev);
 
-                        if (!ptd.id(pindex).is_valid())
+                        if (!p.id().is_valid())
                         {
                             aos[pindex] = aos[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
@@ -1793,7 +1793,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     arr.push_back(soa.GetIntData(comp)[pindex]);
                                 }
 
-                                ptd.id(pindex).make_invlid(); // Invalidate the particle
+                                p.id().make_invlid(); // Invalidate the particle
                             }
                         }
                         else {
@@ -1821,10 +1821,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                 }
                             }
 
-                            ptd.id(pindex).make_invlid(); // Invalidate the particle
+                            p.id().make_invlid(); // Invalidate the particle
                         }
 
-                        if (!ptd.id(pindex).is_valid())
+                        if (!p.id().is_valid())
                         {
                             aos[pindex] = aos[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
