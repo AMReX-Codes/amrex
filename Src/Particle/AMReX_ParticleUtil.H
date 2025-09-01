@@ -51,8 +51,6 @@ template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, 
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
-    using ParticleType = typename Iterator::ContainerType::ParticleType;
-
     const auto& tile = pti.GetParticleTile();
     const auto np = tile.numParticles();
     const auto& ptd = tile.getConstParticleTileData();
@@ -830,7 +828,6 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
 
     auto ptd = ptile.getConstParticleTileData();
-    using ParticleType = typename PTile::ParticleType::ConstType;
     PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
