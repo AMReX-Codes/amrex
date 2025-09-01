@@ -1793,7 +1793,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     arr.push_back(soa.GetIntData(comp)[pindex]);
                                 }
 
-                                p.id().make_invlid(); // Invalidate the particle
+                                p.id().make_invalid(); // Invalidate the particle
                             }
                         }
                         else {
@@ -1821,7 +1821,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                 }
                             }
 
-                            p.id().make_invlid(); // Invalidate the particle
+                            p.id().make_invalid(); // Invalidate the particle
                         }
 
                         if (!p.id().is_valid())
@@ -1916,7 +1916,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     arr.push_back(soa.GetIntData(comp)[pindex]);
                                 }
 
-                                ptd.id(pindex).make_invlid(); // Invalidate the particle
+                                ptd.id(pindex).make_invalid(); // Invalidate the particle
                             }
                         }
                         else {
@@ -1947,7 +1947,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     dst += sizeof(int);
                                 }
                             }
-                            ptd.id(pindex).make_invlid(); // Invalidate the particle
+                            ptd.id(pindex).make_invalid(); // Invalidate the particle
                         }
 
                         if (!ptd.id(pindex).is_valid()){
