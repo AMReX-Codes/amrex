@@ -125,7 +125,7 @@ else()
    #
    # List of subdirectories to search for CMakeLists.
    #
-   set( AMREX_TESTS_SUBDIRS Amr AsyncOut CLZ CommType CTOParFor DeviceGlobal Enum
+   set( AMREX_TESTS_SUBDIRS Amr AsyncOut CallNoinline CLZ CommType CTOParFor DeviceGlobal Enum
                             MultiBlock MultiPeriod ParmParse Parser Parser2 ParserUserFn Reinit
                             RoundoffDomain SmallMatrix)
 

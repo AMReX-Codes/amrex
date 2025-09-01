@@ -217,6 +217,8 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
                 grid_tile_ids.push_back(kv.first);
                 ptile_ptrs.push_back(&(kv.second));
             }
+
+            // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(+:sm)
 #endif
@@ -418,6 +420,8 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
                 grid_tile_ids.push_back(kv.first);
                 ptile_ptrs.push_back(&(kv.second));
             }
+
+            // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(max:r)
 #endif
@@ -619,6 +623,8 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
                 grid_tile_ids.push_back(kv.first);
                 ptile_ptrs.push_back(&(kv.second));
             }
+
+            // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(min:r)
 #endif
@@ -815,6 +821,8 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
                 grid_tile_ids.push_back(kv.first);
                 ptile_ptrs.push_back(&(kv.second));
             }
+
+            // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(&&:r)
 #endif
@@ -1012,6 +1020,8 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
                 grid_tile_ids.push_back(kv.first);
                 ptile_ptrs.push_back(&(kv.second));
             }
+
+            // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(||:r)
 #endif
@@ -1247,6 +1257,8 @@ ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& r
             grid_tile_ids.push_back(kv.first);
             ptile_ptrs.push_back(&(kv.second));
         }
+
+        // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
 #if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
 #pragma omp parallel for
 #endif

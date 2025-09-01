@@ -16,7 +16,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh 6.3.2
@@ -67,12 +67,12 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests-hip-wrapper:
-    name: HIP ROCm GFortran@9.3 C++17 [tests-hipcc]
+    name: HIP ROCm GFortran C++17 [tests-hipcc]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh 6.3.2
@@ -127,7 +127,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh
@@ -162,7 +162,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_hip.sh

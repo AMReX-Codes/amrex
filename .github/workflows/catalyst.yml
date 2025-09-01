@@ -22,7 +22,7 @@ jobs:
     container:
       image: kitware/paraview:ci-catalyst-amrex-warpx-20240701
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Configure
       run: |
         cmake -S . -B build          \

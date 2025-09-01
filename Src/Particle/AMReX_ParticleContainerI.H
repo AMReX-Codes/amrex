@@ -1166,6 +1166,23 @@ addParticles (const PCType& other, F const& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
+    // touch all tiles in serial
+    for (int lev = 0; lev < other.numLevels(); ++lev)
+    {
+        [[maybe_unused]] Gpu::NoSyncRegion no_sync{};
+        const auto& plevel_other = other.GetParticles(lev);
+        for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+            if(plevel_other.find(index) == plevel_other.end()) { continue; }
+
+            DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
+        }
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
         const auto& plevel_other = other.GetParticles(lev);
@@ -1174,7 +1191,8 @@ addParticles (const PCType& other, F const& f, bool local)
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) { continue; }
 
-            auto& ptile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
+            // this has already had define() called above
+            auto& ptile = ParticlesAt(lev, mfi.index(), mfi.LocalTileIndex());
             const auto& ptile_other = plevel_other.at(index);
             auto np = ptile_other.numParticles();
             if (np == 0) { continue; }

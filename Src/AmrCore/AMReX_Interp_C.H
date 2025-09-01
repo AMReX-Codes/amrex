@@ -284,6 +284,60 @@ face_linear_interp_z (int i, int j, int k, int n, amrex::Array4<amrex::Real> con
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real face_linear_interp_safe_x (int i, int j, int k, int n,
+                                amrex::Array4<amrex::Real> const& fine,
+                                IntVect const& ratio) noexcept
+{
+    const int ci = amrex::coarsen(i,ratio[0]);
+
+    if (i-ci*ratio[0] != 0)
+    {
+        Real const w = static_cast<Real>(i-ci*ratio[0]) * (Real(1.)/Real(ratio[0]));
+        int i1 = ci*ratio[0];
+        int i2 = (ci+1)*ratio[0];
+        return (Real(1.)-w) * fine(i1,j,k,n) + w * fine(i2,j,k,n);
+    } else {
+        return fine(i,j,k,n);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real face_linear_interp_safe_y (int i, int j, int k, int n,
+                                amrex::Array4<amrex::Real> const& fine,
+                                IntVect const& ratio) noexcept
+{
+    const int cj = amrex::coarsen(j,ratio[1]);
+
+    if (j-cj*ratio[1] != 0)
+    {
+        Real const w = static_cast<Real>(j-cj*ratio[1]) * (Real(1.)/Real(ratio[1]));
+        int j1 = cj*ratio[1];
+        int j2 = (cj+1)*ratio[1];
+        return (Real(1.)-w) * fine(i,j1,k,n) + w * fine(i,j2,k,n);
+    } else {
+        return fine(i,j,k,n);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real face_linear_interp_safe_z (int i, int j, int k, int n,
+                                amrex::Array4<amrex::Real> const& fine,
+                                IntVect const& ratio) noexcept
+{
+    const int ck = amrex::coarsen(k,ratio[2]);
+
+    if (k-ck*ratio[2] != 0)
+    {
+        Real const w = static_cast<Real>(k-ck*ratio[2]) * (Real(1.)/Real(ratio[2]));
+        int k1 = ck*ratio[2];
+        int k2 = (ck+1)*ratio[2];
+        return (Real(1.)-w) * fine(i,j,k1,n) + w * fine(i,j,k2,n);
+    } else {
+        return fine(i,j,k,n);
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void cell_quartic_interp_x (int i, int j, int k, int n, Array4<Real> const& fine,
                             Array4<Real const> const& crse) noexcept
 {

@@ -16,7 +16,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -30,7 +30,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Check out Bittree
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         repository: Flash-X/Bittree
         path: bittree
@@ -70,7 +70,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -84,7 +84,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Check out Bittree
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         repository: Flash-X/Bittree
         path: bittree
