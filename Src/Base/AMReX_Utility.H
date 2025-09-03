@@ -241,7 +241,7 @@ namespace amrex
                          const char* symbol_end = "]",
                          const char* symbol_str = "\"",
                          int limit = 100,
-                         std::ostringstream ss = {});
+                         std::ostringstream ss = std::ostringstream{});
 
     /**
      * \brief Call given function without inline.
