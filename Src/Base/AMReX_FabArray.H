@@ -817,6 +817,10 @@ public:
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
 
+    // Get capacity of the FabArray
+    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    void capacityOfFabs (LayoutData<std::size_t>& mem);
+
     /**
     * \brief Returns the sum of component "comp"
     *
@@ -2503,6 +2507,16 @@ FabArray<FAB>::setDomainBndry (value_type val,
         {
             get(fai).template setComplement<RunOn::Device>(val, domain_box, strt_comp, ncomp);
         }
+    }
+}
+
+template <class FAB>
+template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+void
+FabArray<FAB>::capacityOfFabs(LayoutData<std::size_t>& mem) {
+    // Should we have assertions here? What should be asserted?
+    for (MFIter mfi(*this, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
+        mem[mfi] += (*this)[mfi].nBytesOwned();
     }
 }
 
