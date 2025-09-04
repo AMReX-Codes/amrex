@@ -2514,7 +2514,8 @@ template <class FAB>
 template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
 void
 FabArray<FAB>::capacityOfFabs(LayoutData<std::size_t>& mem) {
-    // Should we have assertions here? What should be asserted?
+    AMREX_ASSERT(*this.CellEqual(mem.boxArray()) &&
+                 *this->DistributionMap() == mem.DistributionMap());
     for (MFIter mfi(*this, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
         mem[mfi] += (*this)[mfi].nBytesOwned();
     }
