@@ -588,21 +588,19 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-LayoutData<std::size_t>
-ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (int lev) const
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<std::size_t>& mem, int lev) const
 {
     AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
-    LayoutData<std::size_t> mem_per_grid_local(ParticleBoxArray(lev),
-                                    ParticleDistributionMap(lev));
+    AMREX_ASSERT(mem.boxArray().CellEqual(ParticleBoxArray(lev)) &&
+                 mem.DistributionMap() == ParticleDistributionMap(lev));
 
     for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
     {
         int gid = pti.index();
-        mem_per_grid_local[gid] += (std::size_t)pti.capacity();
+        mem[gid] += (std::size_t)pti.capacity();
     }
-
-    return mem_per_grid_local;
 }
 
 //

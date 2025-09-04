@@ -578,9 +578,10 @@ public:
 
     /**
      * \brief Return capacity of memory for particles at specific grid
+     *  Level is defaulted to 0.
      */
 
-    LayoutData<std::size_t> CapacityOfParticlesInGrid  (int lev) const;
+    void CapacityOfParticlesInGrid  (LayoutData<std::size_t>& mem, int lev = 0) const;
 
     /**
     * \brief Returns # of particles at all levels
