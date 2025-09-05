@@ -108,7 +108,7 @@ void main_main ()
     // Ncomp = number of components for each array
     int Ncomp = 1;
 
-    // How Boxes are distrubuted among MPI processes
+    // How Boxes are distributed among MPI processes
     DistributionMapping dm(ba);
 
     // we allocate two phi multifabs; one will store the old state, the other the new.

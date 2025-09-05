@@ -130,7 +130,6 @@ void main_main ()
         amrex::Print() << "Box " << mfi.index() << " uses "
                      << mem[mfi] << " bytes and have " << particles_in_grid[mfi.LocalIndex()] << " particles\n";
     }
-    
 
     if (params.print_min_dist     ) amrex::Print() << "Min distance  is " << min_d << "\n";
     if (params.print_num_particles) amrex::Print() << "Num particles is " << pc.TotalNumberOfParticles() << "\n";
