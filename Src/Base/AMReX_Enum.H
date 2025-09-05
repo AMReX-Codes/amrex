@@ -52,7 +52,7 @@ namespace amrex
               std::enable_if_t<ET::value,int> = 0>
     T getEnum (std::string_view const& s)
     {
-        static auto const& kv = getEnumNameValuePairs<T>();
+        static auto const kv = getEnumNameValuePairs<T>();
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
                                    { return x.first == s; });
@@ -71,7 +71,7 @@ namespace amrex
               std::enable_if_t<ET::value,int> = 0>
     T getEnumCaseInsensitive (std::string_view const& s)
     {
-        static auto const& kv = getEnumNameValuePairs<T>();
+        static auto const kv = getEnumNameValuePairs<T>();
         std::string ls = amrex::toLower(std::string(s));
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
@@ -91,7 +91,7 @@ namespace amrex
               std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)
     {
-        static auto const& kv = getEnumNameValuePairs<T>();
+        static auto const kv = getEnumNameValuePairs<T>();
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
                                    { return x.second == v; });
