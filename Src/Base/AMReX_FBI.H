@@ -52,7 +52,9 @@ void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
         void const* dfab_ptr = tags[perm[i0]].dfab.dataPtr();
         std::size_t i1 = i0 + 1;
         while (i1 < static_cast<std::size_t>(perm.size()) &&
-               tags[perm[i1]].dfab.dataPtr() == dfab_ptr) ++i1;
+               tags[perm[i1]].dfab.dataPtr() == dfab_ptr) {
+            ++i1;
+        }
 
         Vector<Vector<Box>> colors; // per destination fab
         for (std::size_t p = i0; p < i1; ++p) {
@@ -64,12 +66,18 @@ void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
                 for (auto const& b : colors[c]) {
                     if (boxes_overlap(b, t.dbox)) { ok = false; break; }
                 }
-                if (ok) break;
+                if (ok) {
+                    break;
+                }
             }
-            if (c == (int)colors.size()) colors.emplace_back();
+            if (c == (int)colors.size()) {
+                colors.emplace_back();
+            }
             colors[c].push_back(t.dbox);
             color[idx] = c;
-            if (c > max_color) max_color = c;
+            if (c > max_color) {
+                max_color = c;
+            }
         }
         i0 = i1;
     }
