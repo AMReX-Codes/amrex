@@ -391,7 +391,7 @@ public:
 
     //
     //! parallel copy or add
-    enum CpOp { COPY = 0, ADD = 1 };
+    enum CpOp { COPY = 0, ADD = 1, ADD_DETERMINISTIC = 2 };
 
     const TileArray* getTileArray (const IntVect& tilesize) const;
 

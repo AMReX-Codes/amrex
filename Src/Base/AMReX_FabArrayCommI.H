@@ -375,7 +375,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         return;
     }
 
-    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD);
+    BL_ASSERT(op == FabArrayBase::COPY || op == FabArrayBase::ADD || op == FabArrayBase::ADD_DETERMINISTIC);
     BL_ASSERT(boxArray().ixType() == src.boxArray().ixType());
     BL_ASSERT(src.nGrowVect().allGE(snghost));
     BL_ASSERT(    nGrowVect().allGE(dnghost));
@@ -418,6 +418,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                     }}}}
                 }
             } else {
+                // Treat ADD_DETERMINISTIC like ADD for this simple single-box case.
 #ifdef AMREX_USE_GPU
                 if (Gpu::inLaunchRegion()) {
                     ParallelFor(box, ncomp,

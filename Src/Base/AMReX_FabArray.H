@@ -1237,6 +1237,20 @@ public:
                              const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_finish ();
 
+    // Deterministic variants: sum overlapped cells with a deterministic order on GPUs.
+    void SumBoundaryDeterministic (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic (int scomp, int ncomp, IntVect const& nghost,
+                                   const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic_nowait (int scomp, int ncomp, IntVect const& nghost,
+                                          const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
+                                   const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundaryDeterministic_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
+                                          const Periodicity& period = Periodicity::NonPeriodic());
+
     /** \brief Fill ghost cells with values from their corresponding cells across periodic
     * boundaries, regardless of whether the corresponding cells are valid. This differs from
     * FillBoundary, which only fills from valid cells, and does not fill from ghost cells.
@@ -3572,6 +3586,76 @@ FabArray<FAB>::SumBoundary_finish ()
     auto* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
     this->ParallelCopy_finish();
     delete tmp;
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic (const Periodicity& period)
+{
+    SumBoundaryDeterministic(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundaryDeterministic(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    SumBoundaryDeterministic(scomp, ncomp, this->nGrowVect(), nghost, period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundaryDeterministic()");
+    SumBoundaryDeterministic_nowait(scomp, ncomp, src_nghost, dst_nghost, period);
+    SumBoundary_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic_nowait (const Periodicity& period)
+{
+    SumBoundaryDeterministic_nowait(0, n_comp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic_nowait (int scomp, int ncomp, const Periodicity& period)
+{
+    SumBoundaryDeterministic_nowait(scomp, ncomp, IntVect(0), period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+{
+    SumBoundaryDeterministic_nowait(scomp, ncomp, this->nGrowVect(), nghost, period);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::SumBoundaryDeterministic_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
+{
+    BL_PROFILE("FabArray<FAB>::SumBoundaryDeterministic_nowait()");
+
+    if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
+
+    AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
+
+    auto* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
+    amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
+    this->setVal(typename FAB::value_type(0), scomp, ncomp, dst_nghost);
+    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,src_nghost,dst_nghost,period,FabArrayBase::ADD_DETERMINISTIC);
+
+    // All local. Operation complete.
+    if (!this->pcd) { delete tmp; }
 }
 
 template <class FAB>

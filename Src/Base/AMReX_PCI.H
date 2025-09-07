@@ -149,6 +149,24 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                 loc_copy_tags, scomp, dcomp, ncomp, masks);
         }
     }
+    else if (op == FabArrayBase::ADD_DETERMINISTIC)
+    {
+        // Deterministic multi-pass without atomics via coloring.
+        Vector<int> color;
+        int max_color = -1;
+        detail::color_tags_by_dfab(loc_copy_tags, color, max_color);
+        for (int c = 0; c <= max_color; ++c) {
+            Vector<TagType> batch;
+            batch.reserve(loc_copy_tags.size());
+            for (int i = 0; i < (int)loc_copy_tags.size(); ++i) {
+                if (color[i] == c) batch.push_back(loc_copy_tags[i]);
+            }
+            if (!batch.empty()) {
+                detail::fab_to_fab<value_type, value_type>(
+                    batch, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+            }
+        }
+    }
     else
     {
         if (is_thread_safe) {

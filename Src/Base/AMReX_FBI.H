@@ -1,6 +1,9 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
 
+#include <numeric>
+#include <tuple>
+
 template <class FAB>
 struct FabCopyTag {
     FAB const* sfab;
@@ -16,6 +19,60 @@ struct VoidCopyTag {
 namespace detail {
 
 #ifdef AMREX_USE_GPU
+
+AMREX_FORCE_INLINE static bool boxes_overlap (Box const& a, Box const& b) noexcept
+{
+    return a.intersects(b);
+}
+
+// Greedy color tags by destination fab so no two tags in the same color overlap on dst.
+// Deterministic order via stable sort by (dfab.ptr, dbox.smallEnd, dbox.bigEnd, sfab.ptr).
+template <class T0, class T1>
+void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
+                         Vector<int>& color, int& max_color)
+{
+    Vector<int> perm(tags.size());
+    std::iota(perm.begin(), perm.end(), 0);
+
+    auto key = [] (Array4CopyTag<T0,T1> const& t) {
+        return std::tuple<void const*, IntVect, IntVect, void const*>{
+            (void const*)t.dfab.dataPtr(), t.dbox.smallEnd(), t.dbox.bigEnd(),
+            (void const*)t.sfab.dataPtr()
+        };
+    };
+
+    std::stable_sort(perm.begin(), perm.end(),
+        [&] (int a, int b) { return key(tags[a]) < key(tags[b]); });
+
+    color.resize(tags.size());
+    max_color = -1;
+
+    std::size_t i0 = 0;
+    while (i0 < perm.size()) {
+        void const* dfab_ptr = tags[perm[i0]].dfab.dataPtr();
+        std::size_t i1 = i0 + 1;
+        while (i1 < perm.size() && tags[perm[i1]].dfab.dataPtr() == dfab_ptr) ++i1;
+
+        Vector<Vector<Box>> colors; // per destination fab
+        for (std::size_t p = i0; p < i1; ++p) {
+            int idx = perm[p];
+            auto const& t = tags[idx];
+            int c = 0;
+            for (; c < (int)colors.size(); ++c) {
+                bool ok = true;
+                for (auto const& b : colors[c]) {
+                    if (boxes_overlap(b, t.dbox)) { ok = false; break; }
+                }
+                if (ok) break;
+            }
+            if (c == (int)colors.size()) colors.emplace_back();
+            colors[c].push_back(t.dbox);
+            color[idx] = c;
+            if (c > max_color) max_color = c;
+        }
+        i0 = i1;
+    }
+}
 
 template <class T0, class T1>
 struct CellStore
@@ -963,7 +1020,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
     if (!is_thread_safe)
     {
         if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
-            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value) ||
+            (op == FabArrayBase::ADD_DETERMINISTIC))
         {
             use_mask = true;
         }
@@ -1047,10 +1105,14 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         Vector<TagType> recv_copy_tags;
         recv_copy_tags.reserve(N_rcvs);
 
-        Vector<BaseFab<int> > maskfabs(dst.local_size());
+        Vector<BaseFab<int> > maskfabs;
         Vector<Array4Tag<int> > masks_unique;
-        masks_unique.reserve(dst.local_size());
         Vector<Array4Tag<int> > masks;
+        if (op != FabArrayBase::ADD_DETERMINISTIC) {
+            maskfabs.resize(dst.local_size());
+            masks_unique.reserve(dst.local_size());
+            masks.reserve(N_rcvs);
+        }
 
         for (int k = 0; k < N_rcvs; ++k)
         {
@@ -1070,26 +1132,48 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                         });
                     dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
 
-                    if (!maskfabs[li].isAllocated()) {
-                        maskfabs[li].resize(dst.atLocalIdx(li).box());
-                        masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                    if (op != FabArrayBase::ADD_DETERMINISTIC) {
+                        if (!maskfabs[li].isAllocated()) {
+                            maskfabs[li].resize(dst.atLocalIdx(li).box());
+                            masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                        }
+                        masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
                     }
-                    masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
                 }
                 BL_ASSERT(dptr <= pbuffer + offset + recv_size[k]);
             }
         }
 
-        amrex::ParallelFor(masks_unique,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
-            {
-                msk.dfab(i,j,k) = 0;
-            });
+        if (op != FabArrayBase::ADD_DETERMINISTIC) {
+            amrex::ParallelFor(masks_unique,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
+                {
+                    msk.dfab(i,j,k) = 0;
+                });
+        }
 
         if (op == FabArrayBase::COPY)
         {
             detail::fab_to_fab_atomic_cpy<value_type, BUF>(
                 recv_copy_tags, 0, dcomp, ncomp, masks);
+        }
+        else if (op == FabArrayBase::ADD_DETERMINISTIC)
+        {
+            Vector<int> color;
+            int max_color = -1;
+            detail::color_tags_by_dfab(recv_copy_tags, color, max_color);
+            for (int c = 0; c <= max_color; ++c) {
+                Vector<TagType> batch;
+                batch.reserve(recv_copy_tags.size());
+                for (int i = 0; i < (int)recv_copy_tags.size(); ++i) {
+                    if (color[i] == c) batch.push_back(recv_copy_tags[i]);
+                }
+                if (!batch.empty()) {
+                    detail::fab_to_fab<value_type, BUF>(
+                        batch, 0, dcomp, ncomp, detail::CellAdd<value_type, BUF>());
+                }
+            }
+            // fab_to_fab has a stream sync at the end.
         }
         else
         {
