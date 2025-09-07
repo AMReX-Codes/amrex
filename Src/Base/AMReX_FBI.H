@@ -3,6 +3,7 @@
 
 #include <numeric>
 #include <tuple>
+#include <algorithm>
 
 template <class FAB>
 struct FabCopyTag {
@@ -18,8 +19,7 @@ struct VoidCopyTag {
 
 namespace detail {
 
-#ifdef AMREX_USE_GPU
-
+// These helpers are backend-agnostic and needed in CPU builds too.
 AMREX_FORCE_INLINE static bool boxes_overlap (Box const& a, Box const& b) noexcept
 {
     return a.intersects(b);
@@ -74,6 +74,9 @@ void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
     }
 }
 
+// GPU-only implementations follow
+#ifdef AMREX_USE_GPU
+
 template <class T0, class T1>
 struct CellStore
 {
@@ -104,7 +107,6 @@ struct CellAtomicAdd
         Gpu::Atomic::AddNoRet(d, static_cast<U0>(s));
     }
 };
-
 template <class T0, class T1, class F>
 void
 fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcomp, int ncomp,
