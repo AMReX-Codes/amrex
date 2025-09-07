@@ -48,10 +48,11 @@ void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
     max_color = -1;
 
     std::size_t i0 = 0;
-    while (i0 < perm.size()) {
+    while (i0 < static_cast<std::size_t>(perm.size())) {
         void const* dfab_ptr = tags[perm[i0]].dfab.dataPtr();
         std::size_t i1 = i0 + 1;
-        while (i1 < perm.size() && tags[perm[i1]].dfab.dataPtr() == dfab_ptr) ++i1;
+        while (i1 < static_cast<std::size_t>(perm.size()) &&
+               tags[perm[i1]].dfab.dataPtr() == dfab_ptr) ++i1;
 
         Vector<Vector<Box>> colors; // per destination fab
         for (std::size_t p = i0; p < i1; ++p) {
