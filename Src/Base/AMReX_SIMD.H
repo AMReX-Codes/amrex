@@ -11,6 +11,7 @@
 #   include <vir/simd.h>  // includes SIMD TS2 header <experimental/simd>
 #   if __cplusplus >= 202002L
 #       include <vir/simd_cvt.h>
+#       include <vir/simd_iota.h>
 #   endif
 #endif
 
@@ -27,6 +28,7 @@ namespace amrex::simd
         using namespace vir::stdx;
 #   if __cplusplus >= 202002L
         using vir::cvt;
+        using vir::iota_v;
 #   endif
 
         /** Vectorized ternary operator: select(mask, true_val, false_val)

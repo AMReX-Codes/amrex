@@ -176,17 +176,23 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         }
         AMREX_ASSERT(nimages[0] == 2);
         box.shift(-lo);
-        amrex::ParallelForOMP(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        amrex::ParallelForOMP(box, [=] AMREX_GPU_DEVICE (amrex::SIMDindex<> i, int j, int k)
         {
-            T G;
-            if (i == len[0] || j == len[1] || k == len[2]) {
-                G = 0;
-            } else {
-                auto ii = i;
+            using SIMD_T = simd::stdx::fixed_size_simd<T, i.width>;
+            using SIMD_int = simd::stdx::rebind_simd_t<int, SIMD_T>;
+
+            SIMD_T G = 0;
+            if (j != len[1] && k != len[2])
+            {
+                SIMD_int ii = simd::stdx::iota_v<SIMD_int> + i.index;
                 auto jj = (j > len[1]) ? 2*len[1]-j : j;
                 auto kk = (k > len[2]) ? 2*len[2]-k : k;
-                G = greens_function(ii+lo3.x,jj+lo3.y,kk+lo3.z);
+
+                auto const i_bound = ii == len[0];
+                simd::stdx::where(simd::stdx::cvt(i_bound), G) = 0.0;
+                simd::stdx::where(simd::stdx::cvt(!i_bound), G) = greens_function(ii+lo3.x,jj+lo3.y,kk+lo3.z);
             }
+
             for (int koff = 0; koff < nimages[2]; ++koff) {
                 int k2 = (koff == 0) ?  k : 2*len[2]-k;
                 if ((k2 == 2*len[2]) || (koff == 1 && k == len[2])) {
@@ -198,11 +204,14 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
                         continue;
                     }
                     for (int ioff = 0; ioff < nimages[0]; ++ioff) {
-                        int i2 = (ioff == 0) ?  i : 2*len[0]-i;
-                        if ((i2 == 2*len[0]) || (ioff == 1 && i == len[0])) {
-                            continue;
+                        for (int iw = i.index; iw < i.index+i.width; ++iw) {
+                            int i2 = (ioff == 0) ?  iw : 2*len[0]-iw;
+                            if ((i2 == 2*len[0]) || (ioff == 1 && iw == len[0])) {
+                                continue;
+                            }
+                            // TODO: SIMD-assign N values
+                            a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G[iw];
                         }
-                        a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G;
                     }
                 }
             }

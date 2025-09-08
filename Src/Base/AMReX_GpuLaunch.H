@@ -393,9 +393,14 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
 #pragma omp parallel for collapse(2)
     for         (int k = lo.z; k <= hi.z; ++k) {
         for     (int j = lo.y; j <= hi.y; ++j) {
-            AMREX_PRAGMA_SIMD
-            for (int i = lo.x; i <= hi.x; ++i) {
-                f(i,j,k);
+            constexpr int WIDTH = amrex::simd::native_simd_size_real;
+            int i = lo.x;
+            for (; i + WIDTH <= hi.x; i+=WIDTH) {
+                f(SIMDindex<WIDTH, int>{i}, j, k);
+            }
+            for (; i <= hi.x; ++i) {
+                // TODO: template, etc.
+                //f(SIMDindex<1, int>{i}, j, k);
             }
         }
     }
