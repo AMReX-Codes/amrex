@@ -828,7 +828,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         using BlockScan = cub::BlockScan<T, nthreads, cub::BLOCK_SCAN_WARP_SCANS>;
         using BlockExchange = cub::BlockExchange<T, nthreads, nelms_per_thread>;
 
-#ifdef AMREX_CUDA_CCCL_VER_3
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
         using Sum = cuda::std::plus<T>;
 #else
         using Sum = cub::Sum;
@@ -856,8 +856,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
 #ifdef AMREX_CUDA_CCCL_VER_GE_3
-        auto input_begin = thrust::make_transform_iterator
-            (cub::CountingInputIterator<N>(0), input_lambda);
+        thrust::transform_iterator<thrust::counting_iterator<N>,decltype(input_lambda)>
+            input_begin(thrust::counting_iterator<N>(0), input_lambda);
 #else
         cub::TransformInputIterator<T,decltype(input_lambda),cub::CountingInputIterator<N> >
             input_begin(cub::CountingInputIterator<N>(0), input_lambda);
