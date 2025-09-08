@@ -45,7 +45,7 @@ int main (int argc, char* argv[])
 
         Vector<int> color;
         int max_color = -1;
-	amrex::detail::color_tags_by_dfab(tags, color, max_color);
+        amrex::detail::color_tags_by_dfab(tags, color, max_color);
 
         int errors = 0;
 
