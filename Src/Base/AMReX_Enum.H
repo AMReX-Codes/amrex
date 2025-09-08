@@ -17,9 +17,11 @@ using amrex_enum_traits = decltype(amrex_get_enum_traits(std::declval<T>()));
 
 namespace amrex
 {
+namespace detail
+{
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    std::vector<std::pair<std::string,T>> getNewEnumNameValuePairs ()
     {
         auto tmp = amrex::split(std::string(ET::enum_names), ",");
         std::vector<std::pair<std::string,T>> r;
@@ -47,12 +49,22 @@ namespace amrex
         }
         return r;
     }
+}  // namespace detail
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    {
+        // cache enum value strings for the whole type T
+        static auto r = detail::getNewEnumNameValuePairs<T>();
+        return r;
+    }
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     T getEnum (std::string_view const& s)
     {
-        static auto const kv = getEnumNameValuePairs<T>();
+        auto const& kv = getEnumNameValuePairs<T>();
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
                                    { return x.first == s; });
@@ -71,7 +83,7 @@ namespace amrex
               std::enable_if_t<ET::value,int> = 0>
     T getEnumCaseInsensitive (std::string_view const& s)
     {
-        static auto const kv = getEnumNameValuePairs<T>();
+        auto const& kv = getEnumNameValuePairs<T>();
         std::string ls = amrex::toLower(std::string(s));
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
@@ -91,7 +103,7 @@ namespace amrex
               std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)
     {
-        static auto const kv = getEnumNameValuePairs<T>();
+        auto const& kv = getEnumNameValuePairs<T>();
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
                                    { return x.second == v; });
