@@ -64,16 +64,16 @@ jobs:
         du -hs ~/.cache/ccache
 
   # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.7
-  tests-cuda-clang:
-    name: Clang@18 CUDA@13 C++17 Release [tests]
-    runs-on: ubuntu-24.04
+  tests-cuda11-clang:
+    name: Clang@15 CUDA@11.7 C++17 Release [tests]
+    runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     env:
-      CC: clang-18
-      CXX: clang++-18
-      CUDACXX: clang++-18
-      CUDAHOSTCXX: clang++-18
+      CC: clang-15
+      CXX: clang++-15
+      CUDACXX: clang++-15
+      CUDAHOSTCXX: clang++-15
       CUDAFLAGS: "-stdlib=libc++"
       LDFLAGS: "-stdlib=libc++"
       CUDAARCHS: "70"
@@ -82,9 +82,7 @@ jobs:
     - uses: actions/checkout@v5
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_clang_libc++.sh 18
-        .github/workflows/dependencies/dependencies_nvcc.sh 13.0
-        .github/workflows/dependencies/dependencies_cmake.sh
+        .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4
@@ -187,7 +185,7 @@ jobs:
 
   # Build 3D libamrex cuda build with configure
   configure-3d-cuda:
-    name: CUDA@12.6 [configure 3D]
+    name: CUDA@13.0 [configure 3D]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -195,7 +193,7 @@ jobs:
     - uses: actions/checkout@v5
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc.sh 12.6
+        .github/workflows/dependencies/dependencies_nvcc_2404.sh 13.0
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4

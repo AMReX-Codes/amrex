@@ -25,7 +25,7 @@ sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
 
 sudo apt-get install kitware-archive-keyring
 
-sudo apt-get remove -y cmake cmake-data
 sudo apt-get install -y --no-install-recommends cmake
 
+sudo rm -f /usr/local/bin/cmake
 cmake --version
