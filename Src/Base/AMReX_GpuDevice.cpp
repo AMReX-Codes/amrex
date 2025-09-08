@@ -833,7 +833,7 @@ Device::mem_advise_set_preferred (void* p, std::size_t sz, int device)
         location.type = cudaMemLocationTypeDevice;
         location.id = device;
         AMREX_CUDA_SAFE_CALL(
-            cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, location)));
+            cudaMemAdvise(p, sz, cudaMemAdviseSetPreferredLocation, location));
 #else
         AMREX_HIP_OR_CUDA
             (AMREX_HIP_SAFE_CALL(
@@ -859,11 +859,19 @@ Device::mem_advise_set_readonly (void* p, std::size_t sz)
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     {
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+        cudaMemLocation location = {};
+        location.type = cudaMemLocationTypeDevice;
+        location.id = cudaCpuDeviceId;
+        AMREX_CUDA_SAFE_CALL(
+            cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, location));
+#else
         AMREX_HIP_OR_CUDA
             (AMREX_HIP_SAFE_CALL(
                  hipMemAdvise(p, sz, hipMemAdviseSetReadMostly, hipCpuDeviceId)),
              AMREX_CUDA_SAFE_CALL(
                  cudaMemAdvise(p, sz, cudaMemAdviseSetReadMostly, cudaCpuDeviceId)));
+#endif
     }
 #elif defined(AMREX_USE_SYCL)
     // xxxxx SYCL todo: mem_advise
