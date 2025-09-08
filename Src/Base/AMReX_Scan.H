@@ -859,7 +859,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
 #ifdef AMREX_CUDA_CCCL_VER_GE_3
-        thrust::transform_iterator<thrust::counting_iterator<N>,decltype(input_lambda)>
+        thrust::transform_iterator<decltype(input_lambda),thrust::counting_iterator<N> >
             input_begin(thrust::counting_iterator<N>(0), input_lambda);
 #else
         cub::TransformInputIterator<T,decltype(input_lambda),cub::CountingInputIterator<N> >
