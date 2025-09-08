@@ -8,6 +8,9 @@
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 #  include <cub/cub.cuh>
+#  ifdef AMREX_CUDA_CCCL_VER_GE_3
+#  include <thrust/iterator/transform_iterator.h>
+#  endif
 #elif defined(AMREX_USE_HIP)
 #  include <rocprim/rocprim.hpp>
 #elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
