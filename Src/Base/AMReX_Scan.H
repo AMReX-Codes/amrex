@@ -855,8 +855,13 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
+        auto input_begin = thrust::make_transform_iterator
+            (cub::CountingInputIterator<N>(0), input_lambda);
+#else
         cub::TransformInputIterator<T,decltype(input_lambda),cub::CountingInputIterator<N> >
             input_begin(cub::CountingInputIterator<N>(0), input_lambda);
+#endif
 
         T data[nelms_per_thread];
         if (static_cast<int>(iend-ibegin) == nelms_per_block) {
