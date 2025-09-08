@@ -25,8 +25,8 @@ sudo apt-get install -y \
     wget
 
 VERSION_DOTTED=${1-12.0} && VERSION_DASHED=$(sed 's/\./-/' <<< $VERSION_DOTTED)
-curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-keyring_1.0-1_all.deb
-sudo dpkg -i cuda-keyring_1.0-1_all.deb
+curl -O https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/cuda-keyring_1.1-1_all.deb
+sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get update
 sudo apt-get install -y \
     cuda-command-line-tools-$VERSION_DASHED \
