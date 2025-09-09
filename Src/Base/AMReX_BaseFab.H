@@ -1205,8 +1205,14 @@ BaseFab<T>::prefetchToHost () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                                      cudaCpuDeviceId,
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = cudaCpuDeviceId;
+#else
+            auto location = cudaCpuDeviceId;
+#endif
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location,
                                                       Gpu::gpuStream()));
         }
 #elif defined(AMREX_USE_HIP)
@@ -1229,8 +1235,14 @@ BaseFab<T>::prefetchToDevice () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
-                                                      Gpu::Device::deviceId(),
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = Gpu::Device::deviceId();
+#else
+            auto location = Gpu::Device::deviceId();
+#endif
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location,
                                                       Gpu::gpuStream()));
         }
 #elif defined(AMREX_USE_HIP)
