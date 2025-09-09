@@ -300,6 +300,8 @@ To open a plotfile (for example, you could run the
    In the later case, Paraview will load the plotfiles as a time series.
    ParaView will ask you about the file type -- choose "AMReX/BoxLib Grid Reader" or
    "AMReX/BoxLib Particles Reader".
+   Note that if your ploftile prefix is not ``plt`` or any other type supported by default,
+   then in ``Files of type`` you need to first select ``All files (*)``.
 
 #. Under the "Cell Arrays" field, select a variable (e.g., "phi") and click
    "Apply". Note that the default number of refinement levels loaded and visualized is 1.
@@ -367,6 +369,8 @@ save this script. Then run the bash script by executing the following command in
     bash write_series_file.sh
 
 This will generate a file ``plot_files.series`` which indexes the time variable based on the order of the plotfile numbers.
+Note that if your ploftile prefix is not ``plt``, you can manually edit
+``write_series_file.sh`` accordingly.
 
 To make a ``.series`` file which reads the time out of the plotfile header, use :download:`write_series_file_timestamp.sh </Visualization/write_series_file_timestamp.sh>`.
 
