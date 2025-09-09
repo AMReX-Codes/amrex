@@ -1654,7 +1654,7 @@ public:
     //! Write the contents of the table in ASCII to the ostream.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
-    //! Write all entried in the table in a pretty way to the ostream. If there are
+    //! Write all entries in the table in a pretty way to the ostream. If there are
     //! duplicates, only the last one is printed.
     static void prettyPrintTable (std::ostream& os);
 
