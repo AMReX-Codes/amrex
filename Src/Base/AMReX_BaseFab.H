@@ -1209,11 +1209,13 @@ BaseFab<T>::prefetchToHost () const noexcept
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = cudaCpuDeviceId;
-#else
-            auto location = cudaCpuDeviceId;
-#endif
-            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location,
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
                                                       Gpu::gpuStream()));
+#else
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                      cudaCpuDeviceId,
+                                                      Gpu::gpuStream()));
+#endif
         }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported
@@ -1239,11 +1241,13 @@ BaseFab<T>::prefetchToDevice () const noexcept
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = Gpu::Device::deviceId();
-#else
-            auto location = Gpu::Device::deviceId();
-#endif
-            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location,
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
                                                       Gpu::gpuStream()));
+#else
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
+                                                      Gpu::Device::deviceId(),
+                                                      Gpu::gpuStream()));
+#endif
         }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported

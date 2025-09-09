@@ -348,13 +348,16 @@ namespace amrex::Gpu {
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = cudaCpuDeviceId;
-#else
-            auto location = cudaCpuDeviceId;
-#endif
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
                                                       size*sizeof(value_type),
-                                                      location,
+                                                      location, 0,
                                                       Gpu::gpuStream()));
+#else
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
+                                                      size*sizeof(value_type),
+                                                      cudaCpuDeviceId,
+                                                      Gpu::gpuStream()));
+#endif
         }
 #endif
 #endif
@@ -386,13 +389,16 @@ namespace amrex::Gpu {
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = Gpu::Device::deviceId();
-#else
-            auto location = Gpu::Device::deviceId();
-#endif
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
                                                       size*sizeof(value_type),
-                                                      location,
+                                                      location, 0,
                                                       Gpu::gpuStream()));
+#else
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
+                                                      size*sizeof(value_type),
+                                                      Gpu::Device::deviceId(),
+                                                      Gpu::gpuStream()));
+#endif
         }
 #endif
 #endif
