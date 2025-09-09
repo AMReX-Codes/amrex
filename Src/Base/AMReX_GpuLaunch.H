@@ -400,7 +400,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
             }
             for (; i <= hi.x; ++i) {
                 // TODO: template, etc.
-                //f(SIMDindex<1, int>{i}, j, k);
+                f(SIMDindex<1, int>{i}, j, k);
             }
         }
     }

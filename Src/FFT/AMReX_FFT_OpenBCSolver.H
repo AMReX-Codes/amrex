@@ -176,10 +176,10 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         }
         AMREX_ASSERT(nimages[0] == 2);
         box.shift(-lo);
-        amrex::ParallelForOMP(box, [=] AMREX_GPU_DEVICE (amrex::SIMDindex<> i, int j, int k)
+        amrex::ParallelForOMP(box, [=]<int WIDTH> AMREX_GPU_DEVICE (amrex::SIMDindex<WIDTH> i, int j, int k)
         {
             using SIMD_T = simd::stdx::fixed_size_simd<T, i.width>;
-            using SIMD_int = simd::stdx::rebind_simd_t<int, SIMD_T>;
+            using SIMD_int = simd::stdx::fixed_size_simd<int, i.width>; // simd::stdx::rebind_simd_t<int, SIMD_T>;
 
             SIMD_T G = 0;
             if (j != len[1] && k != len[2])
@@ -190,7 +190,7 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
 
                 auto const i_bound = ii == len[0];
                 simd::stdx::where(simd::stdx::cvt(i_bound), G) = 0.0;
-                simd::stdx::where(simd::stdx::cvt(!i_bound), G) = greens_function(ii+lo3.x,jj+lo3.y,kk+lo3.z);
+                simd::stdx::where(simd::stdx::cvt(!i_bound), G) = greens_function.template operator()<WIDTH>(ii+lo3.x,jj+lo3.y,kk+lo3.z);
             }
 
             for (int koff = 0; koff < nimages[2]; ++koff) {
