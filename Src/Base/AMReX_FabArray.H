@@ -42,6 +42,8 @@
 #endif
 
 #include <algorithm>
+#include <tuple>
+#include <numeric>
 #include <cstring>
 #include <limits>
 #include <map>

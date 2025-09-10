@@ -1,9 +1,9 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
 
-#include <numeric>
-#include <tuple>
-#include <algorithm>
+// Note: standard headers previously included here (<numeric>, <tuple>, <algorithm>)
+// are now included at global scope in AMReX_FabArray.H to avoid pulling them in
+// inside the amrex namespace when this file is transitively included.
 
 template <class FAB>
 struct FabCopyTag {
@@ -31,34 +31,48 @@ template <class T0, class T1>
 void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
                          Vector<int>& color, int& max_color)
 {
-    Vector<int> perm(tags.size());
-    std::iota(perm.begin(), perm.end(), 0);
-
-    auto key = [] (Array4CopyTag<T0,T1> const& t) {
-        return std::tuple<void const*, IntVect, IntVect, void const*>{
-            (void const*)t.dfab.dataPtr(), t.dbox.smallEnd(), t.dbox.bigEnd(),
-            (void const*)t.sfab.dataPtr()
-        };
-    };
-
-    std::stable_sort(perm.begin(), perm.end(),
-        [&] (int a, int b) { return key(tags[a]) < key(tags[b]); });
-
-    color.resize(tags.size());
+    const int N = static_cast<int>(tags.size());
+    color.resize(N);
     max_color = -1;
 
-    std::size_t i0 = 0;
-    while (i0 < static_cast<std::size_t>(perm.size())) {
-        void const* dfab_ptr = tags[perm[i0]].dfab.dataPtr();
-        std::size_t i1 = i0 + 1;
-        while (i1 < static_cast<std::size_t>(perm.size()) &&
-               tags[perm[i1]].dfab.dataPtr() == dfab_ptr) {
-            ++i1;
-        }
+    // Build groups of indices by destination fab in first-seen order (stable).
+    Vector<void const*> dfab_keys;
+    Vector<Vector<int>> groups; // indices into tags per destination fab
+    dfab_keys.reserve(N);
+    groups.reserve(N);
 
-        Vector<Vector<Box>> colors; // per destination fab
-        for (std::size_t p = i0; p < i1; ++p) {
-            int idx = perm[p];
+    for (int i = 0; i < N; ++i) {
+        void const* key = tags[i].dfab.dataPtr();
+        int gid = -1;
+        for (int g = 0, ng = static_cast<int>(dfab_keys.size()); g < ng; ++g) {
+            if (dfab_keys[g] == key) { gid = g; break; }
+        }
+        if (gid < 0) {
+            gid = static_cast<int>(dfab_keys.size());
+            dfab_keys.push_back(key);
+            groups.emplace_back();
+        }
+        groups[gid].push_back(i);
+    }
+
+    // For each destination group, sort tags deterministically by box and insertion index,
+    // then greedily color to avoid overlaps on destination.
+    for (auto& g : groups) {
+        std::stable_sort(g.begin(), g.end(), [&](int a, int b) {
+            auto const& ta = tags[a];
+            auto const& tb = tags[b];
+            if (ta.dbox.smallEnd() != tb.dbox.smallEnd()) {
+                return ta.dbox.smallEnd() < tb.dbox.smallEnd();
+            }
+            if (ta.dbox.bigEnd() != tb.dbox.bigEnd()) {
+                return ta.dbox.bigEnd() < tb.dbox.bigEnd();
+            }
+            // Stable tie-breaker: original index
+            return a < b;
+        });
+
+        Vector<Vector<Box>> colors; // disjoint sets of dst boxes
+        for (int idx : g) {
             auto const& t = tags[idx];
             int c = 0;
             for (; c < (int)colors.size(); ++c) {
@@ -66,20 +80,15 @@ void color_tags_by_dfab (Vector<Array4CopyTag<T0,T1>>& tags,
                 for (auto const& b : colors[c]) {
                     if (boxes_overlap(b, t.dbox)) { ok = false; break; }
                 }
-                if (ok) {
-                    break;
-                }
+                if (ok) break;
             }
             if (c == (int)colors.size()) {
                 colors.emplace_back();
             }
             colors[c].push_back(t.dbox);
             color[idx] = c;
-            if (c > max_color) {
-                max_color = c;
-            }
+            if (c > max_color) max_color = c;
         }
-        i0 = i1;
     }
 }
 
