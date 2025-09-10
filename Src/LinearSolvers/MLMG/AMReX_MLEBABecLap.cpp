@@ -1258,7 +1258,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                         tag.comp);
                 }
 #if (AMREX_SPACEDIM == 3)
-                else if (tag.dir == 3) {
+                else if (tag.dir == 2) {
                     mllinop_apply_bc_z(tag.side, i, j, k, tag.blen, tag.fab,
                         tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dzi, flagbc,
                         tag.comp);
@@ -1273,7 +1273,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                         tag.bctype, tag.bcloc, tag.bcval, imaxorder, dyi, flagbc, tag.comp);
                 }
 #if (AMREX_SPACEDIM == 3)
-                else if (tag.dir == 3) {
+                else if (tag.dir == 2) {
                     mlebabeclap_apply_bc_z(tag.side, i, j, k, tag.blen, tag.fab, tag.mask, tag.area,
                         tag.bctype, tag.bcloc, tag.bcval, imaxorder, dzi, flagbc, tag.comp);
                 }
