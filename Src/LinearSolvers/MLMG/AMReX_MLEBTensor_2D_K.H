@@ -344,12 +344,12 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                 }
 
                 Real volinv = bscalar / kappa;
-                Ax(i,j,0,0) += volinv * (dxi*(apx(i,j,0)*fxm_0-apx(i+1,j,0)*fxp_0)
-                                        +dyi*(apy(i,j,0)*fym_0-apy(i,j+1,0)*fyp_0)
-                                        -dxi*                               feb_0);
-                Ax(i,j,0,1) += volinv * (dxi*(apx(i,j,0)*fxm_1-apx(i+1,j,0)*fxp_1)
-                                        +dyi*(apy(i,j,0)*fym_1-apy(i,j+1,0)*fyp_1)
-                                        -dxi*                               feb_1);
+                Ax(i,j,0,0) += volinv * (dxi*(apx(i+1,j,0)*fxp_0-apx(i,j,0)*fxm_0)
+                                        +dyi*(apy(i,j+1,0)*fyp_0-apy(i,j,0)*fym_0)
+                                        +dxi*                               feb_0);
+                Ax(i,j,0,1) += volinv * (dxi*(apx(i+1,j,0)*fxp_1-apx(i,j,0)*fxm_1)
+                                        +dyi*(apy(i,j+1,0)*fyp_1-apy(i,j,0)*fym_1)
+                                        +dxi*                               feb_1);
             }
         }
     }

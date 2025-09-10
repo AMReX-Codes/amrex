@@ -1294,13 +1294,24 @@ ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
     }
 }
 
-void
-ParmParse::prettyPrintTable (std::ostream& os)
+namespace {
+
+enum class PPFlag { all, unused, used };
+
+void pretty_print_table (std::ostream& os, PPFlag pp_flag)
 {
     std::vector<std::string> sorted_names;
     sorted_names.reserve(g_table.size());
     for (auto const& [name, entry] : g_table) {
-        sorted_names.push_back(name);
+        bool to_print;
+        if (pp_flag == PPFlag::used) {
+            to_print = (entry.m_count > 0);
+        } else if (pp_flag == PPFlag::unused) {
+            to_print = (entry.m_count == 0);
+        } else {
+            to_print = true;
+        }
+        if (to_print) { sorted_names.push_back(name); }
     }
     std::sort(sorted_names.begin(), sorted_names.end());
 
@@ -1318,6 +1329,26 @@ ParmParse::prettyPrintTable (std::ostream& os)
             }
         }
     }
+}
+
+}
+
+void
+ParmParse::prettyPrintTable (std::ostream& os)
+{
+    pretty_print_table(os, PPFlag::all);
+}
+
+void
+ParmParse::prettyPrintUnusedInputs (std::ostream& os)
+{
+    pretty_print_table(os, PPFlag::unused);
+}
+
+void
+ParmParse::prettyPrintUsedInputs (std::ostream& os)
+{
+    pretty_print_table(os, PPFlag::used);
 }
 
 int

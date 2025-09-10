@@ -516,6 +516,24 @@ FaceConservativeLinear::interp_face (const FArrayBox&       crse,
         }
     }
 
+    bool is_safe = true;
+    FArrayBox safe_fine;
+    Array4<Real> safe_fine_arr = fine_arr;
+    Box safe_fine_region = fine_region;
+    int facedir = 0;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (fine_region.type(idim) == IndexType::NODE) { facedir = idim; }
+    }
+    IntVect rrtmp(1);
+    rrtmp[facedir] = ratio[facedir];
+    if (! safe_fine_region.coarsenable(rrtmp)) {
+        is_safe = false;
+        safe_fine_region.coarsen(rrtmp);
+        safe_fine_region.refine(rrtmp);
+        safe_fine.resize(safe_fine_region, ncomp, The_Async_Arena());
+        safe_fine_arr = safe_fine.array();
+    }
+
     //
     // Fill fine ghost faces with interpolation of coarse data that is conservative linear
     //      in the tangential direction.
@@ -525,25 +543,25 @@ FaceConservativeLinear::interp_face (const FArrayBox&       crse,
     //
     if (fine_region.type(0) == IndexType::NODE)
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,safe_fine_region,ncomp,i,j,k,n,
         {
-            face_cons_linear_face_interp(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,0);
+            face_cons_linear_face_interp(i,j,k,n,safe_fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,0);
         });
     }
 #if (AMREX_SPACEDIM >= 2)
     else if (fine_region.type(1) == IndexType::NODE)
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,safe_fine_region,ncomp,i,j,k,n,
         {
-            face_cons_linear_face_interp(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,1);
+            face_cons_linear_face_interp(i,j,k,n,safe_fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,1);
         });
     }
 #if (AMREX_SPACEDIM == 3)
     else
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,safe_fine_region,ncomp,i,j,k,n,
         {
-            face_cons_linear_face_interp(i,j,k,n,fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,2);
+            face_cons_linear_face_interp(i,j,k,n,safe_fine_arr,crse_arr,mask_arr,ratio,per_grown_domain,2);
         });
     }
 #endif
@@ -556,26 +574,47 @@ FaceConservativeLinear::interp_face (const FArrayBox&       crse,
     //
     if (fine_region.type(0) == IndexType::NODE)
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
-        {
-            face_linear_interp_x(i,j,k,n,fine_arr,ratio);
-        });
+        if (is_safe) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+            {
+                face_linear_interp_x(i,j,k,n,fine_arr,ratio);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+            {
+                fine_arr(i,j,k,n) = face_linear_interp_safe_x(i,j,k,n,safe_fine_arr,ratio);
+            });
+        }
     }
 #if (AMREX_SPACEDIM >= 2)
     else if (fine_region.type(1) == IndexType::NODE)
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
-        {
-            face_linear_interp_y(i,j,k,n,fine_arr,ratio);
-        });
+        if (is_safe) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+            {
+                face_linear_interp_y(i,j,k,n,fine_arr,ratio);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+            {
+                fine_arr(i,j,k,n) = face_linear_interp_safe_y(i,j,k,n,safe_fine_arr,ratio);
+            });
+        }
     }
 #if (AMREX_SPACEDIM == 3)
     else
     {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
-        {
-            face_linear_interp_z(i,j,k,n,fine_arr,ratio);
-        });
+        if (is_safe) {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+            {
+                face_linear_interp_z(i,j,k,n,fine_arr,ratio);
+            });
+        } else {
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,fine_region,ncomp,i,j,k,n,
+            {
+                fine_arr(i,j,k,n) = face_linear_interp_safe_z(i,j,k,n,safe_fine_arr,ratio);
+            });
+        }
     }
 #endif
 #endif

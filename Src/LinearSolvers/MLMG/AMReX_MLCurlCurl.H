@@ -36,12 +36,14 @@ public:
     MLCurlCurl (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
-                const LPInfo& a_info = LPInfo());
+                const LPInfo& a_info = LPInfo(),
+                int a_coord = 0);
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
-                 const LPInfo& a_info = LPInfo());
+                 const LPInfo& a_info = LPInfo(),
+                 int a_coord = 0);
 
     void setScalars (RT a_alpha, RT a_beta) noexcept;
 
@@ -89,6 +91,8 @@ public:
 
     void prepareForSolve () override;
 
+    void preparePrecond () override;
+
     [[nodiscard]] bool isSingular (int /*amrlev*/) const override { return false; }
     [[nodiscard]] bool isBottomSingular () const override { return false; }
 
@@ -134,6 +138,10 @@ private:
     [[nodiscard]] CurlCurlSymmetryInfo getSymmetryInfo (int amrlev, int mglev) const;
 
     void update_lusolver ();
+
+    void set_curvilinear_domain_bc ();
+
+    int m_coord = 0;
 
     RT m_alpha = std::numeric_limits<RT>::lowest();
     RT m_beta  = std::numeric_limits<RT>::lowest();

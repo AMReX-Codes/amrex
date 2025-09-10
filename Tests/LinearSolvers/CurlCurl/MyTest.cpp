@@ -23,7 +23,7 @@ MyTest::solve ()
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    MLCurlCurl mlcc({geom}, {grids}, {dmap}, info);
+    MLCurlCurl mlcc({geom}, {grids}, {dmap}, info, coord);
 
     mlcc.setDomainBC({AMREX_D_DECL(LinOpBCType::symmetry,
                                    LinOpBCType::Dirichlet,
@@ -92,6 +92,13 @@ void
 MyTest::readParameters ()
 {
     ParmParse pp;
+    pp.query("coord", coord);
+#if (AMREX_SPACEDIM == 3)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(coord == 0, "Only Cartesian is supported in 3D");
+#elif (AMREX_SPACEDIM == 2)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(coord != 2, "Spherical coordinates not supported in 2D");
+#endif
+
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
 

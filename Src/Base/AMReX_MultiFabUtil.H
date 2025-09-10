@@ -18,26 +18,49 @@ namespace amrex
     void average_node_to_cellcenter (MultiFab& cc, int dcomp,
                                      const MultiFab& nd, int scomp,
                                      int ncomp, int ngrow = 0);
+    void average_node_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const MultiFab& nd, int scomp,
+                                     int ncomp, IntVect const& ng_vect);
 
     /**
      * \brief Average edge-based MultiFab onto cell-centered MultiFab.
      *
-     * This fills in \p ngrow ghost cells in the cell-centered MultiFab. Both cell centered and
-     * edge centered MultiFabs need to have \p ngrow ghost values.
+     * This fills in \p ngrow ghost cells in the cell-centered MultiFab. Both cell-centered and
+     * edge-centered MultiFabs need to have \p ngrow ghost values.
      */
     void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
                                      const Vector<const MultiFab*>& edge,
                                      int ngrow = 0);
-    //! Average face-based MultiFab onto cell-centered MultiFab.
+    void average_edge_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const Vector<const MultiFab*>& edge,
+                                     IntVect const& ng_vect);
+
+    /**
+     * \brief Average face-based MultiFab onto cell-centered MultiFab.
+     *
+     * This fills in \p ngrow ghost cells in the cell-centered MultiFab. Both cell-centered and
+     * face-centered MultiFabs need to have \p ngrow ghost values.
+     */
     void average_face_to_cellcenter (MultiFab& cc, int dcomp,
                                      const Vector<const MultiFab*>& fc,
                                      int ngrow = 0);
+    void average_face_to_cellcenter (MultiFab& cc, int dcomp,
+                                     const Vector<const MultiFab*>& fc,
+                                     IntVect const& ng_vect);
+
     //! Average face-based FabArray onto cell-centered FabArray.
     template <typename CMF, typename FMF,
               std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> = 0>
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                      int ngrow = 0);
+
+    template <typename CMF, typename FMF,
+              std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> = 0>
+    void average_face_to_cellcenter (CMF& cc, int dcomp,
+                                     const Array<const FMF*,AMREX_SPACEDIM>& fc,
+                                     IntVect const& ng_vect);
+
     //! Average face-based MultiFab onto cell-centered MultiFab with geometric weighting.
     void average_face_to_cellcenter (MultiFab& cc,
                                      const Vector<const MultiFab*>& fc,
@@ -893,6 +916,16 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  int ngrow)
 {
+   IntVect ng_vect(ngrow);
+   average_face_to_cellcenter(cc, dcomp, fc, ng_vect);
+}
+
+template <typename CMF, typename FMF,
+          std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> FOO>
+void average_face_to_cellcenter (CMF& cc, int dcomp,
+                                 const Array<const FMF*,AMREX_SPACEDIM>& fc,
+                                 IntVect const& ng_vect)
+{
     AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
     AMREX_ASSERT(fc[0]->nComp() == 1);
 
@@ -902,7 +935,7 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
         AMREX_D_TERM(auto const& fxma = fc[0]->const_arrays();,
                      auto const& fyma = fc[1]->const_arrays();,
                      auto const& fzma = fc[2]->const_arrays(););
-        ParallelFor(cc, IntVect(ngrow),
+        ParallelFor(cc, ng_vect,
         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
         {
 #if (AMREX_SPACEDIM == 1)
@@ -929,7 +962,7 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
 #endif
         for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
-            const Box bx = mfi.growntilebox(ngrow);
+            const Box bx = mfi.growntilebox(ng_vect);
             auto const& ccarr = cc.array(mfi);
             AMREX_D_TERM(auto const& fxarr = fc[0]->const_array(mfi);,
                          auto const& fyarr = fc[1]->const_array(mfi);,
