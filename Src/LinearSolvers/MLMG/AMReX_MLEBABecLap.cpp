@@ -1196,12 +1196,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
                                     iofab,bvlo, mask, ap,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 0, 1, 0
+                                    icomp, 1, 1, 0
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
                                     iofab,bvhi, mask, ap,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 0, 1, 1
+                                    icomp, 1, 1, 1
                                 });
                             } else
 #endif
@@ -1219,12 +1219,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
                                     iofab,bvlo, mask, ap,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 0, 1, 0
+                                    icomp, 2, 1, 0
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
                                     iofab,bvhi, mask, ap,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 0, 1, 1
+                                    icomp, 2, 1, 1
                                 });
                             } else
 #endif
