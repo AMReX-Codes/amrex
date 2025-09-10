@@ -1108,17 +1108,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                             } else
 #endif
                             {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_apply_bc_x(0, tboxlo, blen, iofab, mlo,
+                                mllinop_apply_bc_x(0, blo, blen, iofab, mlo,
                                                    bctlo, bcllo, bvlo,
                                                    imaxorder, dxi, flagbc, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_apply_bc_x(1, tboxhi, blen, iofab, mhi,
+                                mllinop_apply_bc_x(1, bhi, blen, iofab, mhi,
                                                    bcthi, bclhi, bvhi,
                                                    imaxorder, dxi, flagbc, icomp);
-                                });
                             }
                        } else if (idim == 1) {
 #ifdef AMREX_USE_GPU
@@ -1136,17 +1131,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                             } else
 #endif
                             {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_apply_bc_y(0, tboxlo, blen, iofab, mlo,
+                                mllinop_apply_bc_y(0, blo, blen, iofab, mlo,
                                                    bctlo, bcllo, bvlo,
                                                    imaxorder, dyi, flagbc, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_apply_bc_y(1, tboxhi, blen, iofab, mhi,
+                                mllinop_apply_bc_y(1, bhi, blen, iofab, mhi,
                                                    bcthi, bclhi, bvhi,
                                                    imaxorder, dyi, flagbc, icomp);
-                                });
                             }
                        } else {
 #ifdef AMREX_USE_GPU
@@ -1164,17 +1154,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                             } else
 #endif
                             {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mllinop_apply_bc_z(0, tboxlo, blen, iofab, mlo,
+                                mllinop_apply_bc_z(0, blo, blen, iofab, mlo,
                                                    bctlo, bcllo, bvlo,
                                                    imaxorder, dzi, flagbc, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mllinop_apply_bc_z(1, tboxhi, blen, iofab, mhi,
+                                mllinop_apply_bc_z(1, bhi, blen, iofab, mhi,
                                                    bcthi, bclhi, bvhi,
                                                    imaxorder, dzi, flagbc, icomp);
-                                });
                             }
                         }
                     }
@@ -1198,17 +1183,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                             } else
 #endif
                             {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mlebabeclap_apply_bc_x(0, tboxlo, blen, iofab, mask, ap,
+                                mlebabeclap_apply_bc_x(0, blo, blen, iofab, mask, ap,
                                                        bctlo, bcllo, bvlo,
                                                        imaxorder, dxi, flagbc, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mlebabeclap_apply_bc_x(1, tboxhi, blen, iofab, mask, ap,
+                                mlebabeclap_apply_bc_x(1, bhi, blen, iofab, mask, ap,
                                                        bcthi, bclhi, bvhi,
                                                        imaxorder, dxi, flagbc, icomp);
-                                });
                             }
                        } else if (idim == 1) {
 #ifdef AMREX_USE_GPU
@@ -1226,17 +1206,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                             } else
 #endif
                             {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mlebabeclap_apply_bc_y(0, tboxlo, blen, iofab, mask, ap,
+                                mlebabeclap_apply_bc_y(0, blo, blen, iofab, mask, ap,
                                                        bctlo, bcllo, bvlo,
                                                        imaxorder, dyi, flagbc, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mlebabeclap_apply_bc_y(1, tboxhi, blen, iofab, mask, ap,
+                                mlebabeclap_apply_bc_y(1, bhi, blen, iofab, mask, ap,
                                                        bcthi, bclhi, bvhi,
                                                        imaxorder, dyi, flagbc, icomp);
-                                });
                             }
                        } else {
 #ifdef AMREX_USE_GPU
@@ -1254,17 +1229,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
                             } else
 #endif
                             {
-                                AMREX_LAUNCH_HOST_DEVICE_LAMBDA (
-                                blo, tboxlo, {
-                                mlebabeclap_apply_bc_z(0, tboxlo, blen, iofab, mask, ap,
+                                mlebabeclap_apply_bc_z(0, blo, blen, iofab, mask, ap,
                                                        bctlo, bcllo, bvlo,
                                                        imaxorder, dzi, flagbc, icomp);
-                                },
-                                bhi, tboxhi, {
-                                mlebabeclap_apply_bc_z(1, tboxhi, blen, iofab, mask, ap,
+                                mlebabeclap_apply_bc_z(1, bhi, blen, iofab, mask, ap,
                                                        bcthi, bclhi, bvhi,
                                                        imaxorder, dzi, flagbc, icomp);
-                                });
                             }
                        }
                     }
