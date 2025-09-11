@@ -593,7 +593,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
 
-    AMREX_ASSERT(mem.boxArray().CellEqual(ParticleBoxArray(lev)) &&
+    AMREX_ASSERT(BoxArray::SameRefs(mem.boxArray(), ParticleBoxArray(lev)) &&
                  mem.DistributionMap() == ParticleDistributionMap(lev));
 
     for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
