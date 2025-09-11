@@ -581,7 +581,7 @@ public:
      *  Level is defaulted to 0.
      */
 
-    void CapacityOfParticlesInGrid  (LayoutData<std::size_t>& mem, int lev = 0) const;
+    void CapacityOfParticlesInGrid  (LayoutData<std::size_t>& mem, int lev) const;
 
     /**
     * \brief Returns # of particles at all levels
