@@ -2514,8 +2514,7 @@ template <class FAB>
 template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
 void
 FabArray<FAB>::capacityOfFabs (LayoutData<std::size_t>& mem) const {
-    AMREX_ASSERT(this->boxArray().CellEqual(mem.boxArray()) &&
-                 this->DistributionMap() == mem.DistributionMap());
+    AMREX_ASSERT(amrex::isMFIterSafe(*this, mem));
     for (MFIter mfi(*this, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
         mem[mfi] += (*this)[mfi].nBytesOwned();
     }
