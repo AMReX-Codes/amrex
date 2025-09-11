@@ -596,6 +596,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(BoxArray::SameRefs(mem.boxArray(), ParticleBoxArray(lev)) &&
                  mem.DistributionMap() == ParticleDistributionMap(lev));
 
+    [[maybe_unused]] Gpu::NoSyncRegion no_sync{};
     for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
     {
         int gid = pti.index();
