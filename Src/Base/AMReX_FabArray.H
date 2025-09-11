@@ -819,7 +819,7 @@ public:
 
     // Get capacity of the FabArray
     template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    void capacityOfFabs (LayoutData<std::size_t>& mem);
+    void capacityOfFabs (LayoutData<std::size_t>& mem) const;
 
     /**
     * \brief Returns the sum of component "comp"
