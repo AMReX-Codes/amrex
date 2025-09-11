@@ -53,7 +53,7 @@ namespace detail
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
     {
         // cache enum value strings for the whole type T
         static auto r = detail::getNewEnumNameValuePairs<T>();
