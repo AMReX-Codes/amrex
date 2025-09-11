@@ -5,11 +5,13 @@
 
 #include <algorithm>
 #include <array>
+#include <map>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <unordered_map>
 #include <vector>
 
 template <typename T>
@@ -49,11 +51,32 @@ namespace detail
         }
         return r;
     }
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::unordered_map<std::string,T> getNewEnumNameValueMap ()
+    {
+        auto tmp = getNewEnumNameValuePairs<T>();
+        return std::unordered_map<std::string,T>{tmp.begin(), tmp.end()};
+    }
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::unordered_map<T,std::string> getNewEnumValueNameMap ()
+    {
+        auto tmp = getNewEnumNameValuePairs<T>();
+        std::unordered_map<T,std::string> r;
+        for (auto const& [s, t] : tmp) {
+            r.emplace(t, s);
+        }
+        return r;
+    }
+
 }  // namespace detail
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
     {
         // cache enum value strings for the whole type T
         static auto r = detail::getNewEnumNameValuePairs<T>();
@@ -62,13 +85,26 @@ namespace detail
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    T getEnum (std::string_view const& s)
+    std::unordered_map<std::string,T> const& getEnumNameValueMap ()
     {
-        auto const& kv = getEnumNameValuePairs<T>();
-        auto it = std::find_if(kv.begin(), kv.end(),
-                               [&] (auto const& x) -> bool
-                                   { return x.first == s; });
-        if (it != kv.end()) {
+        static auto r = detail::getNewEnumNameValueMap<T>();
+        return r;
+    }
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::unordered_map<T,std::string> const& getEnumValueNameMap ()
+    {
+        static auto r = detail::getNewEnumValueNameMap<T>();
+        return r;
+    }
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    T getEnum (std::string const& s)
+    {
+        auto const& string_enum_map = getEnumNameValueMap<T>();
+        if (auto it = string_enum_map.find(s); it != string_enum_map.end()) {
             return it->second;
         } else {
             std::string error_msg("amrex::getEnum: Unknown enum: ");
@@ -103,12 +139,9 @@ namespace detail
               std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)
     {
-        auto const& kv = getEnumNameValuePairs<T>();
-        auto it = std::find_if(kv.begin(), kv.end(),
-                               [&] (auto const& x) -> bool
-                                   { return x.second == v; });
-        if (it != kv.end()) {
-            return it->first;
+        auto const& enum_string_map = getEnumValueNameMap<T>();
+        if (auto it = enum_string_map.find(v); it != enum_string_map.end()) {
+            return it->second;
         } else {
             std::string error_msg("amrex::getEnum: Unknown enum value: ");
             error_msg.append(std::to_string(static_cast<int>(v)))
