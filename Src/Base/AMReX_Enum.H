@@ -17,9 +17,11 @@ using amrex_enum_traits = decltype(amrex_get_enum_traits(std::declval<T>()));
 
 namespace amrex
 {
+namespace detail
+{
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    std::vector<std::pair<std::string,T>> getNewEnumNameValuePairs ()
     {
         auto tmp = amrex::split(std::string(ET::enum_names), ",");
         std::vector<std::pair<std::string,T>> r;
@@ -45,6 +47,16 @@ namespace amrex
                 throw std::runtime_error(error_msg);
             }
         }
+        return r;
+    }
+}  // namespace detail
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    {
+        // cache enum value strings for the whole type T
+        static auto r = detail::getNewEnumNameValuePairs<T>();
         return r;
     }
 
