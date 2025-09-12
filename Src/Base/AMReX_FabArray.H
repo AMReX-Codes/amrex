@@ -818,8 +818,8 @@ public:
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
 
     // Get capacity of the FabArray
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    void capacityOfFabs (LayoutData<std::size_t>& mem) const;
+    template <typename I, class F=FAB, std::enable_if_t<IsBaseFab<F>::value && std::is_integral_v<I> && sizeof(I) >= sizeof(Long), int> = 0>
+    void capacityOfFabs (LayoutData<I>& mem) const;
 
     /**
     * \brief Returns the sum of component "comp"
@@ -2510,13 +2510,15 @@ FabArray<FAB>::setDomainBndry (value_type val,
     }
 }
 
+
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <typename I, class F, std::enable_if_t<IsBaseFab<F>::value && std::is_integral_v<I> && sizeof(I) >= sizeof(Long), int> FOO>
+// typename I
 void
-FabArray<FAB>::capacityOfFabs (LayoutData<std::size_t>& mem) const {
+FabArray<FAB>::capacityOfFabs (LayoutData<I>& mem) const {
     AMREX_ASSERT(amrex::isMFIterSafe(*this, mem));
     for (MFIter mfi(*this, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
-        mem[mfi] += (*this)[mfi].nBytesOwned();
+        mem[mfi] += static_cast<I>((*this)[mfi].nBytesOwned());
     }
 }
 
