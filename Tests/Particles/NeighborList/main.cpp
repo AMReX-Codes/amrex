@@ -138,4 +138,13 @@ void testNeighborList ()
         auto& nlist2 = neighbors_type_2[0][std::make_pair(gid, tid)];
         nlist2.print();
     }
+
+    LayoutData<std::size_t> mem(ba, dm);
+    pc1.CapacityOfParticlesInGrid(mem, 0);
+
+    Vector<Long> particles_in_grid = pc1.NumberOfParticlesInGrid(0, false,true);
+    for (amrex::MFIter mfi(mem); mfi.isValid(); ++mfi) {
+        amrex::Print() << "Box " << mfi.index() << " uses "
+                     << mem[mfi] << " bytes and have " << particles_in_grid[mfi.LocalIndex()] << " particles\n";
+    }
 }
