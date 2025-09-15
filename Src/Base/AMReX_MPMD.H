@@ -178,7 +178,7 @@ void Copier::recv (FabArray<FAB>& mf, int icomp, int ncomp) const
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && (mf.arena()->isDevice() || mf.arena()->isManaged())) {
         mf.unpack_recv_buffer_gpu(mf, icomp, ncomp, recv_data, recv_size, recv_cctc,
-                                  FabArrayBase::COPY, m_is_thread_safe, m_recv_id);
+                                  FabArrayBase::COPY, m_is_thread_safe, m_recv_id, false);
     } else
 #endif
     {

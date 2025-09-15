@@ -205,6 +205,80 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellAdd<T0, T1>(), masks);
 }
 
+template <typename T0, typename T1, class F>
+void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>>& tags, int scomp,
+                               int dcomp, int ncomp, F const& f)
+{
+    if (tags.empty()) { return; }
+
+    using TagType = Array4CopyTag<T0,T1>;
+
+    std::sort(tags.begin(), tags.end(),
+              [] (TagType const& a, TagType const& b) -> bool {
+                  return std::less<>{}(a.dfab.p, b.dfab.p);
+              });
+
+    Vector<unsigned int> h_ntags(1,0);
+    for (unsigned int itag = 1; itag < tags.size(); ++itag) {
+        if (tags[itag].dfab.p != tags[itag-1].dfab.p) {
+            h_ntags.push_back(itag);
+        }
+    }
+    h_ntags.push_back((unsigned int)tags.size());
+
+    Gpu::DeviceVector<TagType> d_tags(tags.size());
+    Gpu::DeviceVector<unsigned int> d_ntags(h_ntags.size());
+    Gpu::copyAsync(Gpu::hostToDevice,tags.begin(),tags.end(),d_tags.begin());
+    Gpu::copyAsync(Gpu::hostToDevice,h_ntags.begin(),h_ntags.end(),d_ntags.begin());
+    auto const* ptag = d_tags.data();
+    auto const* pntags = d_ntags.data();
+    auto const nblocks = int(h_ntags.size()-1);
+    constexpr auto nthreads = 256;
+    amrex::launch<nthreads>(nblocks, Gpu::gpuStream(),
+#ifdef AMREX_USE_SYCL
+        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
+        [[sycl::reqd_work_group_size(nthreads)]]
+#else
+        [=] AMREX_GPU_DEVICE () noexcept
+#endif
+    {
+#ifdef AMREX_USE_SYCL
+        Dim1 blockIdx{item.get_group_linear_id()};
+        Dim1 threadIdx{item.get_local_linear_id()};
+#endif
+
+        for (unsigned int itag = pntags[blockIdx.x]; itag < pntags[blockIdx.x+1]; ++itag) {
+            auto const& tag = ptag[itag];
+            auto ncells = int(tag.dbox.numPts());
+            const auto len = amrex::length(tag.dbox);
+            const auto lo  = amrex::lbound(tag.dbox);
+            for (int icell = int(threadIdx.x); icell < ncells; icell += nthreads) {
+                int k =  icell /   (len.x*len.y);
+                int j = (icell - k*(len.x*len.y)) /   len.x;
+                int i = (icell - k*(len.x*len.y)) - j*len.x;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                for (int n = 0; n < ncomp; ++n) {
+                    f(tag.dfab.ptr(i,j,k,n+dcomp),
+                      tag.sfab(i + tag.offset.x,
+                               j + tag.offset.y,
+                               k + tag.offset.z, n+scomp));
+                }
+            }
+
+            if (itag+1 < pntags[blockIdx.x+1]) {
+#ifdef AMREX_USE_SYCL
+                sycl::group_barrier(item.get_group());
+#else
+                __syncthreads();
+#endif
+            }
+        }
+    });
+    Gpu::streamSynchronize();
+}
+
 #endif /* AMREX_USE_GPU */
 
 }
@@ -264,6 +338,53 @@ FabArray<FAB>::FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp)
                     dfab(i,j,k,n+scomp) = sfab(i+offset.x,j+offset.y,k+offset.z,n+scomp);
                 });
             }
+        }
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FB_local_add_cpu (const FB& TheFB, int scomp, int ncomp)
+{
+    auto const& LocTags = *(TheFB.m_LocTags);
+    auto N_locs = static_cast<int>(LocTags.size());
+    if (N_locs == 0) { return; }
+
+    LayoutData<Vector<FabCopyTag<FAB> > > loc_copy_tags(boxArray(),DistributionMap());
+    // We must make a temporary copy of the data first to avoid race condition.
+    std::vector<FAB> src_fabs(N_locs);
+    for (int itag = 0; itag < N_locs; ++itag) {
+        const CopyComTag& tag = LocTags[itag];
+        src_fabs[itag].resize(tag.sbox,ncomp);
+        loc_copy_tags[tag.dstIndex].push_back
+            (FabCopyTag<FAB>{&(src_fabs[itag]),
+                 tag.dbox, tag.sbox.smallEnd()-tag.dbox.smallEnd()});
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+    for (int itag = 0; itag < N_locs; ++itag) {
+        const CopyComTag& tag = LocTags[itag];
+        src_fabs[itag].template copy<RunOn::Host>(this->operator[](tag.srcIndex), scomp, 0, ncomp);
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+    for (MFIter mfi(*this); mfi.isValid(); ++mfi)
+    {
+        const auto& tags = loc_copy_tags[mfi];
+        auto dfab = this->array(mfi);
+        for (auto const & tag : tags)
+        {
+            auto const sfab = tag.sfab->array();
+            const auto offset = tag.offset.dim3();
+            amrex::LoopConcurrentOnCpu(tag.dbox, ncomp,
+            [=] (int i, int j, int k, int n) noexcept
+            {
+                dfab(i,j,k,n+scomp) += sfab(i+offset.x,j+offset.y,k+offset.z,n);
+            });
         }
     }
 }
@@ -380,6 +501,50 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
         detail::fab_to_fab_atomic_cpy<value_type, value_type>(
             loc_copy_tags, scomp, scomp, ncomp, masks);
     }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool deterministic)
+{
+    auto const& LocTags = *(TheFB.m_LocTags);
+    int N_locs = LocTags.size();
+    if (N_locs == 0) { return; }
+
+    using TagType = Array4CopyTag<value_type>;
+
+    Vector<TagType> loc_copy_tags_1, loc_copy_tags_2;
+    loc_copy_tags_1.reserve(N_locs);
+    loc_copy_tags_2.reserve(N_locs);
+
+    Vector<FAB> src_fabs(N_locs);
+    for (int itag = 0; itag < N_locs; ++itag) {
+        const CopyComTag& tag = LocTags[itag];
+        src_fabs[itag].resize(tag.sbox,ncomp);
+        loc_copy_tags_1.push_back(
+            TagType{src_fabs[itag].array(), this->const_array(tag.srcIndex,scomp),
+                    tag.sbox, Dim3{0,0,0}});
+        loc_copy_tags_2.push_back(
+            TagType{this->array(tag.dstIndex,scomp), src_fabs[itag].const_array(),
+                    tag.dbox, (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+    }
+
+    // TODO: We could try to cache the tags like in FillBoundary.
+
+    detail::fab_to_fab(loc_copy_tags_1, 0, 0, ncomp,
+                       detail::CellStore<value_type, value_type>{});
+    if (deterministic || ! amrex::HasAtomicAdd<value_type>::value) {
+        detail::deterministic_fab_to_fab(loc_copy_tags_2, 0, 0, ncomp,
+                                         detail::CellAdd<value_type,value_type>{});
+    } else {
+        if constexpr(amrex::HasAtomicAdd<value_type>::value) {
+            detail::fab_to_fab(loc_copy_tags_2, 0, 0, ncomp,
+                               detail::CellAtomicAdd<value_type, value_type>{});
+        }
+        ((void)0);
+    }
+
+    // Note that fab_to_fab is synchronous.
 }
 
 template <class FAB>
@@ -945,7 +1110,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<char*> const& recv_data,
                                        Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
-                                       CpOp op, bool is_thread_safe, std::uint64_t id)
+                                       CpOp op, bool is_thread_safe, std::uint64_t id,
+                                       bool deterministic)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) { return; }
@@ -960,7 +1126,35 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         }
     }
 
-    if (!use_mask)
+    if (deterministic)
+    {
+        AMREX_ALWAYS_ASSERT(op == FabArrayBase::ADD); // On ADD for now
+        using TagType = Array4CopyTag<value_type,BUF>;
+        Vector<TagType> tags;
+        tags.reserve(N_rcvs);
+        for (int k = 0; k < N_rcvs; ++k) {
+            if (recv_size[k] > 0) {
+                char const* dptr = recv_data[k];
+                auto const& cctc = *recv_cctc[k];
+                for (auto const& tag : cctc) {
+                    tags.emplace_back(
+                        TagType{dst.array(tag.dstIndex),
+                                Array4<BUF const>((BUF const*)dptr,
+                                                  amrex::begin(tag.dbox),
+                                                  amrex::end(tag.dbox), ncomp),
+                                tag.dbox, Dim3{0,0,0}});
+                    dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
+                }
+            }
+        }
+        if constexpr (amrex::IsAddAssignable<value_type>::value) {
+            detail::deterministic_fab_to_fab<value_type,BUF>
+                (tags, 0, dcomp, ncomp, detail::CellAdd<value_type,BUF>{});
+        } else {
+            amrex::Abort("SumBounary requires operator+=");
+        }
+    }
+    else if (!use_mask)
     {
         using TagType = CommRecvBufTag<value_type>;
         auto* tv = dst.template get_recv_copy_tag_vector<BUF>

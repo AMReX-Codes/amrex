@@ -8,7 +8,9 @@ void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
                             bool enforce_periodicity_only,
-                            bool override_sync)
+                            bool override_sync,
+                            IntVect const& sumboundary_src_nghost,
+                            bool deterministic) // so far the deterministic is for sumboundary only
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
@@ -16,17 +18,22 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
     AMREX_ASSERT(!enforce_periodicity_only || !override_sync);
 
+    bool sumboundary = sumboundary_src_nghost.allGE(0);
+    amrex::ignore_unused(deterministic);
+
     bool work_to_do;
     if (enforce_periodicity_only) {
         work_to_do = period.isAnyPeriodic();
     } else if (override_sync) {
         work_to_do = (nghost.max() > 0) || !is_cell_centered();
+    } else if (sumboundary) {
+        work_to_do = true;
     } else {
         work_to_do = nghost.max() > 0;
     }
     if (!work_to_do) { return; }
 
-    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, override_sync);
+    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, override_sync, sumboundary_src_nghost);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -39,23 +46,39 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion())
+            if (Gpu::inGraphRegion() && !sumboundary)
             {
                 FB_local_copy_cuda_graph_1(TheFB, scomp, ncomp);
             }
             else
 #endif
             {
-                FB_local_copy_gpu(TheFB, scomp, ncomp);
-                if (!Gpu::inNoSyncRegion()) {
-                    Gpu::streamSynchronize();
+                if (sumboundary) {
+                    if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
+                    } else {
+                        amrex::Abort("SumBounary requires operator+=");
+                    }
+                } else {
+                    FB_local_copy_gpu(TheFB, scomp, ncomp);
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
                 }
             }
         }
         else
 #endif
         {
-            FB_local_copy_cpu(TheFB, scomp, ncomp);
+            if (sumboundary) {
+                if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                    FB_local_add_cpu(TheFB, scomp, ncomp);
+                } else {
+                    amrex::Abort("SumBounary requires operator+=");
+                }
+            } else {
+                FB_local_copy_cpu(TheFB, scomp, ncomp);
+            }
         }
 
         return;
@@ -83,6 +106,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fbd->scomp = scomp;
     fbd->ncomp = ncomp;
     fbd->tag   = SeqNum;
+    fbd->deterministic = deterministic;
 
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
@@ -144,22 +168,38 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion()) {
+            if (Gpu::inGraphRegion() && !sumboundary) {
                 FB_local_copy_cuda_graph_n(TheFB, scomp, ncomp);
             }
             else
 #endif
             {
-                FB_local_copy_gpu(TheFB, scomp, ncomp);
-                if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
-                    Gpu::streamSynchronize();
+                if (sumboundary) {
+                    if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
+                    } else {
+                        amrex::Abort("SumBounary requires operator+=");
+                    }
+                } else {
+                    FB_local_copy_gpu(TheFB, scomp, ncomp);
+                    if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
+                        Gpu::streamSynchronize();
+                    }
                 }
             }
         }
         else
 #endif
         {
-            FB_local_copy_cpu(TheFB, scomp, ncomp);
+            if (sumboundary) {
+                if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                    FB_local_add_cpu(TheFB, scomp, ncomp);
+                } else {
+                    amrex::Abort("SumBounary requires operator+=");
+                }
+            } else {
+                FB_local_copy_cpu(TheFB, scomp, ncomp);
+            }
         }
 
         FillBoundary_test();
@@ -181,6 +221,7 @@ FabArray<FAB>::FillBoundary_finish ()
     if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
 
     const FB* TheFB = fbd->fb;
+    bool sumboundary = TheFB->m_sb_snghost.allGE(0);
     const auto N_rcvs = static_cast<int>(TheFB->m_RcvTags->size());
     if (N_rcvs > 0)
     {
@@ -207,12 +248,13 @@ FabArray<FAB>::FillBoundary_finish ()
         }
 
         bool is_thread_safe = TheFB->m_threadsafe_rcv;
+        auto op = sumboundary ? FabArrayBase::ADD : FabArrayBase::COPY;
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion())
+            if (Gpu::inGraphRegion() && !sumboundary)
             {
                 FB_unpack_recv_buffer_cuda_graph(*TheFB, fbd->scomp, fbd->ncomp,
                                                  fbd->recv_data, fbd->recv_size,
@@ -221,15 +263,16 @@ FabArray<FAB>::FillBoundary_finish ()
             else
 #endif
             {
+                bool deterministic = fbd->deterministic;
                 unpack_recv_buffer_gpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                            recv_cctc, FabArrayBase::COPY, is_thread_safe, TheFB->m_id);
+                                            recv_cctc, op, is_thread_safe, TheFB->m_id, deterministic);
             }
         }
         else
 #endif
         {
             unpack_recv_buffer_cpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                        recv_cctc, FabArrayBase::COPY, is_thread_safe);
+                                        recv_cctc, op, is_thread_safe);
         }
 
         if (fbd->the_recv_data)
@@ -653,7 +696,7 @@ FabArray<FAB>::ParallelCopy_finish ()
         if (Gpu::inLaunchRegion())
         {
             unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id);
+                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id, false);
         }
         else
 #endif

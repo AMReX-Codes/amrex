@@ -123,7 +123,8 @@ struct FBData {
     Vector<char*>       send_data;
     Vector<MPI_Request> send_reqs;
     int                 tag;
-
+    //
+    bool                deterministic = false;
 };
 
 // Data used in non-blocking parallel copy.
@@ -1212,29 +1213,46 @@ public:
     void OverrideSync_finish ();
 
     /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid cells.
+    * \brief Sum values in overlapped cells.
+    *
+    * The destination is limited to valid cells. Note that being
+    * deterministic is not the same as data consistency on shared nodes.
     */
-    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
-    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
-    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
-
-    /**
-    * \brief Sum values in overlapped cells.  The destination is limited to valid + ngrow cells.
-    */
-    void SumBoundary (int scomp, int ncomp, IntVect const& nghost,
-                      const Periodicity& period = Periodicity::NonPeriodic());
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost,
-                             const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic(),
+                      bool deterministic = false);
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
+                      bool deterministic = false);
+    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic(),
+                             bool deterministic = false);
+    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
+                             bool deterministic = false);
 
     /**
     * \brief Sum values in overlapped cells.
-    *        For computing the overlap, the dst is grown by dst_ngrow, while the src uses src_ngrow.
+    *
+    * The destination is limited to valid + ngrow cells. Note that being
+    * deterministic is not the same as data consistency on shared nodes.
+    */
+    void SumBoundary (int scomp, int ncomp, IntVect const& nghost,
+                      const Periodicity& period = Periodicity::NonPeriodic(),
+                      bool deterministic = false);
+    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost,
+                             const Periodicity& period = Periodicity::NonPeriodic(),
+                             bool deterministic = false);
+
+    /**
+    * \brief Sum values in overlapped cells.
+    *
+    * For computing the overlap, the dst is grown by dst_ngrow, while the
+    * src uses src_ngrow. Note that being deterministic is not the same as
+    * data consistency on shared nodes.
     */
     void SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
-                      const Periodicity& period = Periodicity::NonPeriodic());
+                      const Periodicity& period = Periodicity::NonPeriodic(),
+                      bool deterministic = false);
     void SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
-                             const Periodicity& period = Periodicity::NonPeriodic());
+                             const Periodicity& period = Periodicity::NonPeriodic(),
+                             bool deterministic = false);
     void SumBoundary_finish ();
 
     /** \brief Fill ghost cells with values from their corresponding cells across periodic
@@ -1265,9 +1283,12 @@ public:
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false,
-                      bool override_sync = false);
+                      bool override_sync = false,
+                      IntVect const& sumboundary_src_nghost = IntVect(-1),
+                      bool deterministic = false);
 
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
+    void FB_local_add_cpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
@@ -1283,6 +1304,7 @@ public:
     FB_get_local_copy_tag_vector (const FB& TheFB);
 
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
+    void FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool deterministic);
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
@@ -1328,7 +1350,7 @@ public:
                                         Vector<std::size_t> const& recv_size,
                                         Vector<const CopyComTagsContainer*> const& recv_cctc,
                                         CpOp op, bool is_thread_safe,
-                                        std::uint64_t id);
+                                        std::uint64_t id, bool deterministic);
 
     template <typename BUF>
     TagVector<CommRecvBufTag<value_type>> const*
@@ -3491,59 +3513,59 @@ FabArray<FAB>::OverrideSync_finish ()
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (const Periodicity& period)
+FabArray<FAB>::SumBoundary (const Periodicity& period, bool deterministic)
 {
-    SumBoundary(0, n_comp, IntVect(0), period);
+    SumBoundary(0, n_comp, IntVect(0), period, deterministic);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period)
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period, bool deterministic)
 {
-    SumBoundary(scomp, ncomp, IntVect(0), period);
+    SumBoundary(scomp, ncomp, IntVect(0), period, deterministic);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period, bool deterministic)
 {
-    SumBoundary(scomp, ncomp, this->nGrowVect(), nghost, period);
+    SumBoundary(scomp, ncomp, this->nGrowVect(), nghost, period, deterministic);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period, bool deterministic)
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary()");
 
-    SumBoundary_nowait(scomp, ncomp, src_nghost, dst_nghost, period);
+    SumBoundary_nowait(scomp, ncomp, src_nghost, dst_nghost, period, deterministic);
     SumBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (const Periodicity& period)
+FabArray<FAB>::SumBoundary_nowait (const Periodicity& period, bool deterministic)
 {
-    SumBoundary_nowait(0, n_comp, IntVect(0), period);
+    SumBoundary_nowait(0, n_comp, IntVect(0), period, deterministic);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool deterministic)
 {
-    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
+    SumBoundary_nowait(scomp, ncomp, IntVect(0), period, deterministic);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period, bool deterministic)
 {
-    SumBoundary_nowait(scomp, ncomp, this->nGrowVect(), nghost, period);
+    SumBoundary_nowait(scomp, ncomp, this->nGrowVect(), nghost, period, deterministic);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period, bool deterministic)
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
 
@@ -3551,13 +3573,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
 
-    auto* tmp = new FabArray<FAB>( boxArray(), DistributionMap(), ncomp, src_nghost, MFInfo(), Factory() );
-    amrex::Copy(*tmp, *this, scomp, 0, ncomp, src_nghost);
-    this->setVal(typename FAB::value_type(0), scomp, ncomp, dst_nghost);
-    this->ParallelCopy_nowait(*tmp,0,scomp,ncomp,src_nghost,dst_nghost,period,FabArrayBase::ADD);
-
-    // All local. Operation complete.
-    if (!this->pcd) { delete tmp; }
+    FBEP_nowait(scomp, ncomp, dst_nghost, period, false, false, false, src_nghost, deterministic);
 }
 
 template <class FAB>
@@ -3565,13 +3581,7 @@ void
 FabArray<FAB>::SumBoundary_finish ()
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary_finish()");
-
-    // If pcd doesn't exist, ParallelCopy was all local and operation was fully completed in "SumBoundary_nowait".
-    if ( (n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) || !(this->pcd) ) { return; }
-
-    auto* tmp = const_cast<FabArray<FAB>*> (this->pcd->src);
-    this->ParallelCopy_finish();
-    delete tmp;
+    FillBoundary_finish();
 }
 
 template <class FAB>
