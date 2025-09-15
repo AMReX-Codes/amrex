@@ -5,17 +5,29 @@ namespace amrex {
 MLCurlCurl::MLCurlCurl (const Vector<Geometry>& a_geom,
                         const Vector<BoxArray>& a_grids,
                         const Vector<DistributionMapping>& a_dmap,
-                        const LPInfo& a_info)
+                        const LPInfo& a_info, int a_coord)
 {
-    define(a_geom, a_grids, a_dmap, a_info);
+    define(a_geom, a_grids, a_dmap, a_info, a_coord);
 }
 
 void MLCurlCurl::define (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
-                         const LPInfo& a_info)
+                         const LPInfo& a_info, int a_coord)
 {
     MLLinOpT<MF>::define(a_geom, a_grids, a_dmap, a_info, {});
+
+    m_coord = a_coord;
+#if (AMREX_SPACEDIM == 2)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coord == 0,
+                                     "CurlCurl: In 2D, only Cartesian is supported.");
+#elif (AMREX_SPACEDIM == 3)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_coord == 0,
+                                     "CurlCurl: In 3D, only Cartesian is supported.");
+#endif
+    if (m_coord == 1 || m_coord == 2) {
+        AMREX_ALWAYS_ASSERT(a_geom[0].ProbLo(0) == 0);
+    }
 
     m_dotmask.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
@@ -120,8 +132,9 @@ void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
     mfi_info.DisableDeviceSync();
 #endif
 
-    for (auto& mf : a_mf)
+    for (int imf = 0; imf < 3; ++imf)
     {
+        auto& mf = a_mf[imf];
         auto const idxtype = mf.ixType();
         Box const domain = amrex::convert(m_geom[amrlev][mglev].Domain(), idxtype);
 
@@ -137,6 +150,11 @@ void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
                 bool is_dirichlet = face.isLow()
                     ? m_lobc[0][idim] == LinOpBCType::Dirichlet
                     : m_hibc[0][idim] == LinOpBCType::Dirichlet;
+#if (AMREX_SPACEDIM == 1)
+                if (m_coord == 1 && imf == 2 && face.isLow()) {
+                    is_dirichlet = false; // Ez in 1d cyl is not Dirichlet at r=0.
+                }
+#endif
                 if (is_dirichlet && domain[face] == vbx[face] &&
                     idxtype.nodeCentered(idim))
                 {
@@ -247,6 +265,8 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
     auto const b = m_beta;
 
     auto dinfo = getDirichletInfo(amrlev,mglev);
+    auto coord = m_coord;
+    amrex::ignore_unused(coord);
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -280,7 +300,11 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
                 if (dinfo.is_dirichlet_y_edge(i,j,k)) {
                     yout(i,j,k) = Real(0.0);
                 } else {
-                    mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,bcy(i,j,k),adxinv);
+                    mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,bcy(i,j,k),adxinv
+#if (AMREX_SPACEDIM < 3)
+                                       ,coord
+#endif
+                                      );
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -288,7 +312,11 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
                 if (dinfo.is_dirichlet_z_edge(i,j,k)) {
                     zout(i,j,k) = Real(0.0);
                 } else {
-                    mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,bcz(i,j,k),adxinv);
+                    mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,bcz(i,j,k),adxinv
+#if (AMREX_SPACEDIM < 3)
+                                       ,coord
+#endif
+                                      );
                 }
             });
         } else {
@@ -306,7 +334,11 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
                 if (dinfo.is_dirichlet_y_edge(i,j,k)) {
                     yout(i,j,k) = Real(0.0);
                 } else {
-                    mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,b,adxinv);
+                    mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,b,adxinv
+#if (AMREX_SPACEDIM < 3)
+                                       ,coord
+#endif
+                                      );
                 }
             },
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
@@ -314,7 +346,11 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
                 if (dinfo.is_dirichlet_z_edge(i,j,k)) {
                     zout(i,j,k) = Real(0.0);
                 } else {
-                    mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,b,adxinv);
+                    mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,b,adxinv
+#if (AMREX_SPACEDIM < 3)
+                                       ,coord
+#endif
+                                      );
                 }
             });
         }
@@ -369,6 +405,8 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
 
     int xhi = this->m_geom[amrlev][mglev].Domain().bigEnd(0);
 
+    auto coord = m_coord;
+
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
                  rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
 
@@ -379,18 +417,18 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
             bool valid_x = i <= xhi; // x is cell-centered, not nodal
-            mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
-                          rhsx[bno],rhsy[bno],rhsz[bno],
-                          bcx[bno],bcy[bno],bcz[bno],
-                          adxinv,color,dinfo,valid_x);
+            mlcurlcurl_smooth_1d(i,j,k,ex[bno],ey[bno],ez[bno],
+                                 rhsx[bno],rhsy[bno],rhsz[bno],
+                                 bcx[bno],bcy[bno],bcz[bno],
+                                 adxinv,color,dinfo,valid_x,coord);
         });
     } else {
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
             bool valid_x = i <= xhi; // x is cell-centered, not nodal
-            mlcurlcurl_1D(i,j,k,ex[bno],ey[bno],ez[bno],
-                          rhsx[bno],rhsy[bno],rhsz[bno],
-                          b,adxinv,color,dinfo,valid_x);
+            mlcurlcurl_smooth_1d(i,j,k,ex[bno],ey[bno],ez[bno],
+                                 rhsx[bno],rhsy[bno],rhsz[bno],
+                                 b,adxinv,color,dinfo,valid_x,coord);
         });
     }
     Gpu::streamSynchronize();
@@ -616,7 +654,24 @@ void MLCurlCurl::update_lusolver ()
 
 void MLCurlCurl::prepareForSolve ()
 {
+    set_curvilinear_domain_bc();
     update_lusolver();
+}
+
+void MLCurlCurl::preparePrecond ()
+{
+    set_curvilinear_domain_bc();
+}
+
+void MLCurlCurl::set_curvilinear_domain_bc ()
+{
+#if (AMREX_SPACEDIM == 1)
+    if (m_coord > 0) {
+        // Even though it's not exactly Dirichlet, setting this to Dirichlet
+        // will skip ghost cell filling at the axis.
+        m_lobc[0][0] = LinOpBCType::Dirichlet;
+    }
+#endif
 }
 
 Real MLCurlCurl::xdoty (int amrlev, int mglev, const MF& x, const MF& y,
@@ -876,7 +931,6 @@ iMultiFab const& MLCurlCurl::getDotMask (int amrlev, int mglev, int idim) const
 
 CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
 {
-
     auto helper = [&] (int idim, int face) -> int
     {
 #if (AMREX_SPACEDIM == 2)
@@ -888,6 +942,7 @@ CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
             return std::numeric_limits<int>::lowest();
         }
 #endif
+        // The code above is to avoid compiler warnings. It has no meanning.
 
         if (face == 0) {
             if (m_lobc[0][idim] == LinOpBCType::Dirichlet) {
@@ -909,12 +964,15 @@ CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
                                                       helper(2,0))),
                                  IntVect(AMREX_D_DECL(helper(0,1),
                                                       helper(1,1),
-                                                      helper(2,1)))};
+                                                      helper(2,1)))
+#if (AMREX_SPACEDIM < 3)
+                                 ,m_coord
+#endif
+                                };
 }
 
 CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
 {
-
     auto helper = [&] (int idim, int face) -> int
     {
 #if (AMREX_SPACEDIM == 2)
@@ -926,6 +984,7 @@ CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
             return std::numeric_limits<int>::lowest();
         }
 #endif
+        // The code above is to avoid compiler warnings. It has no meaning.
 
         if (face == 0) {
             if (m_lobc[0][idim] == LinOpBCType::symmetry) {
