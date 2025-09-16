@@ -744,6 +744,19 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #endif
 #endif
 
+        if (system::verbose > 0) {
+#if defined(HYPRE_DEVELOP_STRING) && defined(HYPRE_BRANCH_NAME)
+            amrex::Print() << "HYPRE (" << HYPRE_DEVELOP_STRING
+                           << " - " << HYPRE_BRANCH_NAME
+                           << " branch) initialized" << '\n';
+
+#elif defined(HYPRE_DEVELOP_STRING) && !defined(HYPRE_BRANCH_NAME)
+            amrex::Print() << "HYPRE (" << HYPRE_DEVELOP_STRING << ") initialized" << '\n';
+
+#elif defined(HYPRE_RELEASE_VERSION)
+            amrex::Print() << "HYPRE (" << HYPRE_RELEASE_VERSION << ") initialized" << '\n';
+#endif
+        }
     }
 #endif
 
