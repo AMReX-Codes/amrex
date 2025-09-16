@@ -3565,7 +3565,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
 
-    bool deterministic = true;
+    bool deterministic = false;
     FBEP_nowait(scomp, ncomp, dst_nghost, period, false, false, false, src_nghost, deterministic);
 }
 
