@@ -41,8 +41,8 @@ int main(int argc, char* argv[])
             });
         }
 
-        mf.SumBoundary(0, 1, period, false);
-        mf.SumBoundary(1, 1, period, true);
+        mf.SumBoundary(0, 1, period);
+        mf.SumBoundary(1, 1, period);
 
         auto c0_min = mf.min(0);
         auto c0_max = mf.max(0);

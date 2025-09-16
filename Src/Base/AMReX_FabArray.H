@@ -1218,14 +1218,10 @@ public:
     * The destination is limited to valid cells. Note that being
     * deterministic is not the same as data consistency on shared nodes.
     */
-    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
-    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
-    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
-    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
+    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic());
+    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic());
 
     /**
     * \brief Sum values in overlapped cells.
@@ -1234,11 +1230,9 @@ public:
     * deterministic is not the same as data consistency on shared nodes.
     */
     void SumBoundary (int scomp, int ncomp, IntVect const& nghost,
-                      const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
+                      const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost,
-                             const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
+                             const Periodicity& period = Periodicity::NonPeriodic());
 
     /**
     * \brief Sum values in overlapped cells.
@@ -1248,11 +1242,9 @@ public:
     * data consistency on shared nodes.
     */
     void SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
-                      const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
+                      const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
-                             const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
+                             const Periodicity& period = Periodicity::NonPeriodic());
     void SumBoundary_finish ();
 
     /** \brief Fill ghost cells with values from their corresponding cells across periodic
@@ -3513,59 +3505,59 @@ FabArray<FAB>::OverrideSync_finish ()
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary (const Periodicity& period)
 {
-    SumBoundary(0, n_comp, IntVect(0), period, deterministic);
+    SumBoundary(0, n_comp, IntVect(0), period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, const Periodicity& period)
 {
-    SumBoundary(scomp, ncomp, IntVect(0), period, deterministic);
+    SumBoundary(scomp, ncomp, IntVect(0), period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
-    SumBoundary(scomp, ncomp, this->nGrowVect(), nghost, period, deterministic);
+    SumBoundary(scomp, ncomp, this->nGrowVect(), nghost, period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary()");
 
-    SumBoundary_nowait(scomp, ncomp, src_nghost, dst_nghost, period, deterministic);
+    SumBoundary_nowait(scomp, ncomp, src_nghost, dst_nghost, period);
     SumBoundary_finish();
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary_nowait (const Periodicity& period)
 {
-    SumBoundary_nowait(0, n_comp, IntVect(0), period, deterministic);
+    SumBoundary_nowait(0, n_comp, IntVect(0), period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period)
 {
-    SumBoundary_nowait(scomp, ncomp, IntVect(0), period, deterministic);
+    SumBoundary_nowait(scomp, ncomp, IntVect(0), period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost, const Periodicity& period)
 {
-    SumBoundary_nowait(scomp, ncomp, this->nGrowVect(), nghost, period, deterministic);
+    SumBoundary_nowait(scomp, ncomp, this->nGrowVect(), nghost, period);
 }
 
 template <class FAB>
 void
-FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period, bool deterministic)
+FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost, const Periodicity& period)
 {
     BL_PROFILE("FabArray<FAB>::SumBoundary_nowait()");
 
@@ -3573,6 +3565,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
 
+    bool deterministic = true;
     FBEP_nowait(scomp, ncomp, dst_nghost, period, false, false, false, src_nghost, deterministic);
 }
 
