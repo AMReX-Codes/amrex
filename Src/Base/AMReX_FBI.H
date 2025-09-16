@@ -215,12 +215,12 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>>& tags, int scomp,
 
     std::sort(tags.begin(), tags.end(),
               [] (TagType const& a, TagType const& b) -> bool {
-                  return std::less<>{}(a.dfab.p, b.dfab.p);
+                  return a.dindex < b.dindex;
               });
 
     Vector<unsigned int> h_ntags(1,0);
     for (unsigned int itag = 1; itag < tags.size(); ++itag) {
-        if (tags[itag].dfab.p != tags[itag-1].dfab.p) {
+        if (tags[itag].dindex != tags[itag-1].dindex) {
             h_ntags.push_back(itag);
         }
     }
@@ -418,7 +418,7 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
 
             int li = this->localindex(tag.dstIndex);
             loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(),
+                ({this->atLocalIdx(li).array(), tag.dstIndex,
                   this->fabPtr(tag.srcIndex)->const_array(),
                   tag.dbox,
                   (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
@@ -480,7 +480,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
             int li = this->localindex(tag.dstIndex);
             loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(),
+                ({this->atLocalIdx(li).array(), tag.dstIndex,
                   this->fabPtr(tag.srcIndex)->const_array(),
                   tag.dbox,
                   (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
@@ -522,11 +522,13 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
         const CopyComTag& tag = LocTags[itag];
         src_fabs[itag].resize(tag.sbox,ncomp);
         loc_copy_tags_1.push_back(
-            TagType{src_fabs[itag].array(), this->const_array(tag.srcIndex,scomp),
-                    tag.sbox, Dim3{0,0,0}});
+            TagType{src_fabs[itag].array(), -1,
+                    this->const_array(tag.srcIndex,scomp), tag.sbox,
+                    Dim3{0,0,0}});
         loc_copy_tags_2.push_back(
-            TagType{this->array(tag.dstIndex,scomp), src_fabs[itag].const_array(),
-                    tag.dbox, (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+            TagType{this->array(tag.dstIndex,scomp), tag.dstIndex,
+                    src_fabs[itag].const_array(), tag.dbox,
+                    (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
     }
 
     // TODO: We could try to cache the tags like in FillBoundary.
@@ -1138,7 +1140,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 auto const& cctc = *recv_cctc[k];
                 for (auto const& tag : cctc) {
                     tags.emplace_back(
-                        TagType{dst.array(tag.dstIndex),
+                        TagType{dst.array(tag.dstIndex), tag.dstIndex,
                                 Array4<BUF const>((BUF const*)dptr,
                                                   amrex::begin(tag.dbox),
                                                   amrex::end(tag.dbox), ncomp),
@@ -1239,7 +1241,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 {
                     const int li = dst.localindex(tag.dstIndex);
                     recv_copy_tags.emplace_back(TagType{
-                            dst.atLocalIdx(li).array(),
+                            dst.atLocalIdx(li).array(), tag.dstIndex,
                             amrex::makeArray4((BUF const*)(dptr), tag.dbox, ncomp),
                             tag.dbox,
                             Dim3{0,0,0}

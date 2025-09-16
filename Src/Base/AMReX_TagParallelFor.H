@@ -25,6 +25,7 @@ struct Array4PairTag {
 template <class T0, class T1=T0>
 struct Array4CopyTag {
     Array4<T0      > dfab;
+    int              dindex;
     Array4<T1 const> sfab;
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
