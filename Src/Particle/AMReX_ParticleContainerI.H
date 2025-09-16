@@ -1719,7 +1719,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 while (pindex <= last) {
                     decltype(auto) p = ptd[pindex];
 
-                    if ((remove_negative == false) && (ptd.id(pindex) < 0)) {
+                    if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
                         ++pindex;
                         continue;
                     }
