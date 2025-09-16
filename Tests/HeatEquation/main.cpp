@@ -196,14 +196,6 @@ void main_main ()
     }
 
     // Testing capacity function
-    // amrex::Vector<const amrex::MultiFab*> multifabs_to_check;
-    // multifabs_to_check.push_back(&phi_old);
-    // multifabs_to_check.push_back(&phi_new);
-
-    // // 4. Call the function
-
-    // amrex::LayoutData<std::size_t> mem_usage = amrex::CapacityOfFabs(multifabs_to_check);
-
     amrex::LayoutData<std::size_t> mem(ba, dm);
     phi_old.capacityOfFabs(mem);
     phi_new.capacityOfFabs(mem);
