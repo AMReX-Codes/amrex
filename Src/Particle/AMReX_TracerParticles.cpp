@@ -73,7 +73,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = p_pbox[i];
-                if (p.id() <= 0) { return; }
+                if (!p.id().is_valid()) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
@@ -151,7 +151,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p  = p_pbox[i];
-                if (p.id() <= 0) { return; }
+                if (!p.id().is_valid()) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
 
                 cic_interpolate(p, plo, dxi, uccarr, v);
@@ -298,7 +298,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
                       const ParticleType& p = pbox[k];
 
-                      if (p.id() <= 0) { continue; }
+                      if (!p.id().is_valid()) { continue; }
 
                       const IntVect& iv = Index(p,lev);
 

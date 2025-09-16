@@ -68,7 +68,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i) -> int
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           }, true);
 }
 
@@ -104,7 +104,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i) -> int
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -140,7 +140,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -168,7 +168,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -202,7 +202,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -240,7 +240,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -263,7 +263,7 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                           compression,
                           [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return ptd.id(i) > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -461,7 +461,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             const auto& aos = kv.second.GetArrayOfStructs();
             for (int k = 0; k < aos.numParticles(); ++k) {
                 const ParticleType& p = aos[k];
-                if (p.id() > 0) {
+                if (p.id().is_valid()) {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -1465,7 +1465,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ++iptr;
         }
 
-        AMREX_ASSERT(p.id() > 0);
+        AMREX_ASSERT(p.id().is_valid());
 
         AMREX_D_TERM(p.pos(0) = ParticleReal(rptr[0]);,
                      p.pos(1) = ParticleReal(rptr[1]);,
