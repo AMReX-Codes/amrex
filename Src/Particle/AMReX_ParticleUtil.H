@@ -47,12 +47,10 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value && !Iterator::ContainerType::ParticleType::is_soa_particle, int> foo = 0>
+template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
-    using ParticleType = typename Iterator::ContainerType::ParticleType;
-
     const auto& tile = pti.GetParticleTile();
     const auto np = tile.numParticles();
     const auto& ptd = tile.getConstParticleTileData();
@@ -72,44 +70,8 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
     reduce_op.eval(np, reduce_data,
     [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
     {
-        auto p = make_particle<ParticleType>{}(ptd,i);
-        if ((p.id() < 0)) { return false; }
-        using AssignorType = typename Iterator::CellAssignor;
-        AssignorType assignor;
-        IntVect iv = assignor(p, plo, dxi, domain);
-        return !box.contains(iv);
-    });
-    int hv = amrex::get<0>(reduce_data.value(reduce_op));
-    return hv;
-}
-
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value && Iterator::ContainerType::ParticleType::is_soa_particle, int> foo = 0>
-int
-numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
-{
-    using ParticleType = typename Iterator::ContainerType::ConstParticleType;
-
-    const auto& tile = pti.GetParticleTile();
-    const auto tile_data = tile.getConstParticleTileData();
-    const auto np = tile.numParticles();
-    const auto& geom = pti.Geom(pti.GetLevel());
-
-    const auto domain = geom.Domain();
-    const auto plo = geom.ProbLoArray();
-    const auto dxi = geom.InvCellSizeArray();
-
-    Box box = pti.tilebox();
-    box.grow(nGrow);
-
-    ReduceOps<ReduceOpSum> reduce_op;
-    ReduceData<int> reduce_data(reduce_op);
-    using ReduceTuple = typename decltype(reduce_data)::Type;
-
-    reduce_op.eval(np, reduce_data,
-    [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
-    {
-        ParticleType p(tile_data,i);
-        if ((p.id() < 0)) { return false; }
+        auto p = ptd[i];
+        if (!p.id().is_valid()) { return false; }
         using AssignorType = typename Iterator::CellAssignor;
         AssignorType assignor;
         IntVect iv = assignor(p, plo, dxi, domain);
@@ -449,7 +411,7 @@ int getParticleGrid (P const& p, amrex::Array4<int> const& mask,
                      amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                      const Box& domain) noexcept
 {
-    if (p.id() < 0) { return -1; }
+    if (!p.id().is_valid()) { return -1; }
     IntVect iv = getParticleCell(p, plo, dxi, domain);
     return mask(iv);
 }
@@ -866,11 +828,10 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
     const IntVect ref_offset(AMREX_D_DECL(1, refine_vect[0], refine_vect[0] * refine_vect[1]));
 
     auto ptd = ptile.getConstParticleTileData();
-    using ParticleType = typename PTile::ParticleType::ConstType;
     PermutationForDeposition<index_type>(perm, nitems, bx.numPts() * ref_product,
         [=] AMREX_GPU_DEVICE (index_type idx) noexcept
             {
-                const auto p = make_particle<ParticleType>{}(ptd,idx);
+                const auto p = ptd[idx];
 
                 IntVect iv = ((p.pos() - pos_offset) * dxi).round();
 
