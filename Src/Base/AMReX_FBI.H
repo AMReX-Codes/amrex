@@ -218,7 +218,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>>& tags, int scomp,
                   return a.dindex < b.dindex;
               });
 
-    Vector<unsigned int> h_ntags(1,0);
+    Gpu::HostVector<unsigned int> h_ntags(1,0);
     for (unsigned int itag = 1; itag < tags.size(); ++itag) {
         if (tags[itag].dindex != tags[itag-1].dindex) {
             h_ntags.push_back(itag);
@@ -1130,7 +1130,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 
     if (deterministic)
     {
-        AMREX_ALWAYS_ASSERT(op == FabArrayBase::ADD); // On ADD for now
+        AMREX_ALWAYS_ASSERT(op == FabArrayBase::ADD); // Only ADD for now
         using TagType = Array4CopyTag<value_type,BUF>;
         Vector<TagType> tags;
         tags.reserve(N_rcvs);
@@ -1153,7 +1153,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
             detail::deterministic_fab_to_fab<value_type,BUF>
                 (tags, 0, dcomp, ncomp, detail::CellAdd<value_type,BUF>{});
         } else {
-            amrex::Abort("SumBounary requires operator+=");
+            amrex::Abort("SumBoundary requires operator+=");
         }
     }
     else if (!use_mask)
