@@ -59,7 +59,7 @@ namespace {
 }
 #endif
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR <= 6)
 namespace {
     __host__ __device__ void amrex_check_wavefront_size () {
 #ifdef __HIP_DEVICE_COMPILE__
@@ -363,7 +363,7 @@ Device::Initialize (bool minimal)
     nvtxRangePop();
 #endif
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_HIP) && defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR <= 6)
     if (num_devices_used < 0) {
         // This test is always false, but it makes the compiler no longer
         // complain about unused function, amrex_check_wavefront_size.
