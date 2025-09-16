@@ -63,7 +63,7 @@ public:
     * only search interior for initial tagged points where nwid
     * is given as the width of the bndry region.
     *
-    * \param nbuff
+    * \param a_nbuff
     * \param nwid
     */
     void buffer (const IntVect& a_nbuff, const IntVect& nwid) noexcept;
@@ -156,7 +156,7 @@ public:
     /**
     * \brief The constructor.
     *
-    * \param bs
+    * \param ba
     * \param dm
     * \param _ngrow
     */

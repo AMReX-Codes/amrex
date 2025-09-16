@@ -79,7 +79,7 @@ namespace amrex::simd
      * ParallelForSIMD.
      *
      * Example:
-     * ```c++
+     * ```cpp
      * struct Compute : public Vectorized<>
      * {
      *     template<typename T_Real>
@@ -118,7 +118,7 @@ namespace amrex::simd
      *
      * Use in conjunction with conditional write-back logic from vector registers, e.g.,
      *
-     * ```c++
+     * ```cpp
      * template<typename T_Real>
      * void compute (T_Real & AMREX_RESTRICT x,
      *               T_Real const & AMREX_RESTRICT y) { ... }
@@ -132,6 +132,7 @@ namespace amrex::simd
      *     part_x.copy_to(&m_part_x[i], stdx::element_aligned);
      * if constexpr (is_nth_arg_non_const(compute<double>, 1))
      *     part_y.copy_to(&m_part_y[i], stdx::element_aligned);
+     * ```
      */
     template<typename R, typename... Args>
     constexpr bool is_nth_arg_non_const (R(*)(Args...), int n)

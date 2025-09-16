@@ -16,10 +16,10 @@ namespace amrex {
  * \brief Demangle C++ name
  *
  * Demange C++ name if possible. For example
- \verbatim
-     amrex::Box box;
-     std::cout << amrex::demangle(typeid(box).name());
- \endverbatim
+ * \code{.cpp}
+ *     amrex::Box box;
+ *     std::cout << amrex::demangle(typeid(box).name());
+ * \endcode
  * Demangling turns "N5amrex3BoxE" into "amrex::Box".
  */
 inline std::string demangle (const char* name)

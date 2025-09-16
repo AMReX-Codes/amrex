@@ -108,14 +108,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param HostToDevice A tag indicating that the copy is from the host to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -145,14 +145,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToHost A tag indicating that the copy is from the device to the host
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
@@ -182,14 +182,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToDevice A tag indicating that the copy is from the device to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -220,14 +220,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param HostToDevice A tag indicating that the copy is from the host to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copyAsync(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -258,14 +258,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToHost A tag indicating that the copy is from the device to the host
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copyAsync(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
@@ -296,14 +296,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToDevice A tag indicating that the copy is from the device to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copyAsync(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept

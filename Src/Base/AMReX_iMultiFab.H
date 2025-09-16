@@ -117,7 +117,7 @@ public:
     * \brief Identical to the previous min() function, but confines its
     * search to intersection of Box b and the iMultiFab.
     *
-    * \param b
+    * \param region
     * \param comp
     * \param nghost
     * \param local
@@ -145,7 +145,7 @@ public:
     * \brief Identical to the previous max() function, but confines its
     * search to intersection of Box b and the iMultiFab.
     *
-    * \param b
+    * \param region
     * \param comp
     * \param nghost
     * \param local
