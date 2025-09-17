@@ -206,29 +206,80 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
 }
 
 template <typename T0, typename T1, class F>
-void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>>& tags, int scomp,
+void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int scomp,
                                int dcomp, int ncomp, F const& f)
 {
-    if (tags.empty()) { return; }
+    if (a_tags.empty()) { return; }
 
     using TagType = Array4CopyTag<T0,T1>;
 
-    std::sort(tags.begin(), tags.end(),
-              [] (TagType const& a, TagType const& b) -> bool {
-                  return a.dindex < b.dindex;
-              });
+    struct TiledTag {
+        int tag_index;
+        std::pair<int,Box> dindex_tilebox;
+        bool operator< (TiledTag const& rhs) const noexcept {
+            return this->dindex_tilebox < rhs.dindex_tilebox;
+        }
+        bool operator!= (TiledTag const& rhs) const noexcept {
+            return this->dindex_tilebox != rhs.dindex_tilebox;
+        }
+    };
+    Vector<TiledTag> tiled_tags;
 
-    Gpu::HostVector<unsigned int> h_ntags(1,0);
-    for (unsigned int itag = 1; itag < tags.size(); ++itag) {
-        if (tags[itag].dindex != tags[itag-1].dindex) {
-            h_ntags.push_back(itag);
+    auto const ixtype = a_tags[0].dbox.ixType();
+
+    constexpr int tile_size = 64;
+    for (int itag = 0; itag < a_tags.size(); ++itag) {
+        auto const& tag = a_tags[itag];
+        auto const& dlo = tag.dbox.smallEnd();
+        auto const& dhi = tag.dbox.bigEnd();
+        IntVect tlo(AMREX_D_DECL(amrex::coarsen<tile_size>(dlo[0]),
+                                 amrex::coarsen<tile_size>(dlo[1]),
+                                 amrex::coarsen<tile_size>(dlo[2])));
+        IntVect thi(AMREX_D_DECL(amrex::coarsen<tile_size>(dhi[0]),
+                                 amrex::coarsen<tile_size>(dhi[1]),
+                                 amrex::coarsen<tile_size>(dhi[2])));
+#if (AMREX_SPACEDIM == 3)
+        for (int kt = tlo[2]; kt <= thi[2]; ++kt)
+#endif
+        {
+#if (AMREX_SPACEDIM >= 2)
+            for (int jt = tlo[1]; jt <= thi[1]; ++jt)
+            {
+#endif
+                for (int it = tlo[0]; it <= thi[0]; ++it)
+                {
+                    IntVect lo(AMREX_D_DECL(it*tile_size,
+                                            jt*tile_size,
+                                            kt*tile_size));
+                    tiled_tags.push_back(TiledTag{itag, std::make_pair
+                            (tag.dindex, Box(lo, lo+(tile_size-1), ixtype))});
+                }
+            }
         }
     }
-    h_ntags.push_back((unsigned int)tags.size());
 
-    Gpu::DeviceVector<TagType> d_tags(tags.size());
+    std::sort(tiled_tags.begin(), tiled_tags.end());
+
+    Gpu::HostVector<unsigned int> h_ntags;
+    Gpu::HostVector<Array4CopyTag<T0,T1>> h_tags;
+    h_tags.reserve(tiled_tags.size());
+
+    for (unsigned int itag = 0; itag < tiled_tags.size(); ++itag) {
+        if (itag == 0) {
+            h_ntags.push_back(0);
+        } else if (tiled_tags[itag-1] != tiled_tags[itag]) {
+            h_ntags.push_back(itag);
+        }
+        auto const& ttag = tiled_tags[itag];
+        auto const& btag = a_tags[ttag.tag_index];
+        h_tags.push_back({btag.dfab, btag.dindex, btag.sfab,
+                          btag.dbox & ttag.dindex_tilebox.second, btag.offset});
+    }
+    h_ntags.push_back((unsigned int)tiled_tags.size());
+
+    Gpu::DeviceVector<TagType> d_tags(h_tags.size());
     Gpu::DeviceVector<unsigned int> d_ntags(h_ntags.size());
-    Gpu::copyAsync(Gpu::hostToDevice,tags.begin(),tags.end(),d_tags.begin());
+    Gpu::copyAsync(Gpu::hostToDevice,h_tags.begin(),h_tags.end(),d_tags.begin());
     Gpu::copyAsync(Gpu::hostToDevice,h_ntags.begin(),h_ntags.end(),d_ntags.begin());
     auto const* ptag = d_tags.data();
     auto const* pntags = d_ntags.data();
