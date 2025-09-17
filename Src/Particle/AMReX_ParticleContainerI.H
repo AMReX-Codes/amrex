@@ -586,6 +586,25 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
     return nparticles;
 }
 
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
+{
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+
+    AMREX_ASSERT(BoxArray::SameRefs(mem.boxArray(), ParticleBoxArray(lev)) &&
+                 mem.DistributionMap() == ParticleDistributionMap(lev));
+
+    [[maybe_unused]] Gpu::NoSyncRegion no_sync{};
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        int gid = pti.index();
+        mem[gid] += static_cast<I>(pti.capacity());
+    }
+}
+
 //
 // This includes both valid and invalid particles since invalid particles still take up space.
 //

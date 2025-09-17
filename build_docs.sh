@@ -7,6 +7,7 @@ cd Docs/Doxygen
 doxygen doxygen.conf &> doxygen.out
 if grep -q "warning:" doxygen.out; then
     echo "Doxygen warnings detected! Failing..."
+    cat doxygen.out
     exit 1
 fi
 cd ../..

@@ -579,6 +579,12 @@ public:
     Vector<Long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
 
     /**
+     * \brief Return capacity of memory for particles at specific grid
+     */
+    template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
+    void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
+
+    /**
     * \brief Returns # of particles at all levels
     *
     * If "only_valid" is true it only counts valid particles.
