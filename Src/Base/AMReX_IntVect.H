@@ -34,6 +34,13 @@ int coarsen (int i, int ratio) noexcept
     }
 }
 
+template <int ratio>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int coarsen (int i) noexcept
+{
+    return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
+}
+
 /**
 * An Integer Vector in dim-Dimensional Space
 *
