@@ -360,11 +360,11 @@ namespace amrex
      * the others. The example below disables FPE invalid and
      * divide-by-zero, and later restores the previous settings.
      *
-     \verbatim
+     \code{.cpp}
          auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
          // ....
          setFPExcept(prev_excepts); // restore previous settings
-     \endverbatim
+     \endcode
      */
     [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
 
@@ -375,11 +375,11 @@ namespace amrex
      * the others. The example below enables all FPE traps, and later
      * restores the previous settings.
      *
-     \verbatim
+     \code{.cpp}
          auto prev_excepts = disableFPExcept(FPExcept::all);
          // ....
          setFPExcept(prev_excepts); // restore previous settings
-     \endverbatim
+     \endcode
      */
     [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }

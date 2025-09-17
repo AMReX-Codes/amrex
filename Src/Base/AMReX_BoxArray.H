@@ -67,6 +67,7 @@ namespace amrex
      * \param nboxes the target number of Boxes
      * \param decomp controls whether domain decomposition should be done in
      *               that direction.
+     * \param no_overlap optional argument specifying whether nodal boxes can overlap
      */
     [[nodiscard]] BoxArray decompose (Box const& domain, int nboxes,
                                       Array<bool,AMREX_SPACEDIM> const& decomp

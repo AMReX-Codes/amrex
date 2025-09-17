@@ -184,6 +184,8 @@ public:
      *                     are indices in the spectral space, and the reference
      *                     to the complex number allows for the modification of
      *                     the spectral data at that location.
+     * \param incomp component index of input data
+     * \param outcomp component index of output data
      */
     template <typename F, Direction DIR=D,
               std::enable_if_t<DIR == Direction::both, int> = 0>
@@ -204,6 +206,7 @@ public:
      * backward-only transform.
      *
      * \param inmf input data in MultiFab or FabArray<BaseFab<float>>
+     * \param incomp component index of input data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
@@ -217,6 +220,8 @@ public:
      *
      * \param inmf input data in MultiFab or FabArray<BaseFab<float>>
      * \param outmf output data in FabArray<BaseFab<GpuComplex<T>>>
+     * \param incomp component index of input data
+     * \param outcomp component index of output data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
@@ -249,6 +254,7 @@ public:
      * instantiated for transforms in both directions.
      *
      * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
+     * \param outcomp component index of output data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::both, int> = 0>
     void backward (MF& outmf, int outcomp = 0);
@@ -261,6 +267,8 @@ public:
      *
      * \param inmf input data in FabArray<BaseFab<GpuComplex<T>>>
      * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
+     * \param incomp component index of input data
+     * \param outcomp component index of output data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::backward ||
                                                 DIR == Direction::both, int> = 0>

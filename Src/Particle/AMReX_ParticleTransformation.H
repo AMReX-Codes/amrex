@@ -155,7 +155,6 @@ void swapParticle (const ParticleTileData<T_ParticleType, NAR, NAI>& dst,
  *
  * \param dst the destination tile
  * \param src the source tile
- * \param f the function that will be applied to each particle
  *
  */
 template <typename DstTile, typename SrcTile>
@@ -232,6 +231,7 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
  * \param src the source tile
  * \param src_start the offset at which to start reading particles from src
  * \param dst_start the offset at which to start writing particles to dst
+ * \param n the number of particles
  * \param f the function that will be applied to each particle
  *
  */
@@ -291,6 +291,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&&
  * \param src_start the offset at which to start reading particles from src
  * \param dst1_start the offset at which to start writing particles to dst1
  * \param dst2_start the offset at which to start writing particles to dst2
+ * \param n the number of particles
  * \param f the function that will be applied to each particle
  *
  */
@@ -444,6 +445,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
  *
  * \param dst the destination tile
  * \param src the source tile
+ * \param src_start starting index of source
+ * \param dst_start starting index of destination
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  * \param f defines the transformation that will be applied to the particles on copy
  *
@@ -621,6 +624,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  * \param dst the destination tile
  * \param src the source tile
  * \param p predicate function - particles will be copied if p returns true
+ * \param f the function that will be applied to particles
  * \param src_start the offset at which to start reading particles from src
  * \param dst_start the offset at which to start writing particles to dst
  *

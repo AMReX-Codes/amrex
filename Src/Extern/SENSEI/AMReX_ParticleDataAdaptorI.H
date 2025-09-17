@@ -589,7 +589,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
         for (long long i = 0; i < numReal; ++i)
         {
           const auto &part = ptd[i];
-          if (part.id() > 0)
+          if (part.id().is_valid())
           {
 #if (AMREX_SPACEDIM == 1)
             bounds[0] = bounds[0] > part.pos(0) ? part.pos(0) : bounds[0];
@@ -690,8 +690,8 @@ svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::BuildPar
 
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto& part = make_particle<ParticleType>{}(ptd, i);
-        if (part.id() > 0)
+        const auto& part = ptd[i];
+        if (part.id().is_valid())
         {
           // add a vertex type cell
           vertex->InsertNextCell(1);
@@ -757,10 +757,9 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesIDArra
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = make_particle<ParticleType>{}(ptd, i);
-        if (part.id() > 0)
+        if (ptd.id(i).is_valid())
         {
-          partIds[i] = part.id();
+          partIds[i] = ptd.id(i);
         }
       }
       partIds += numReal;
@@ -801,10 +800,9 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesCPUArr
       auto numReal = pti.numParticles();
       for (long long i = 0; i < numReal; ++i)
       {
-        const auto &part = make_particle<ParticleType>{}(ptd, i);
-        if (part.id() > 0)
+        if (ptd.id(i).is_valid())
         {
-          partCpu[i] = part.cpu();
+          partCpu[i] = ptd.cpu(i);
         }
       }
       partCpu += numReal;
@@ -882,7 +880,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOARea
         for (long long i = 0; i < numReal; ++i)
         {
           const auto &part = ptd[i];
-          if (part.id() > 0)
+          if (part.id().is_valid())
           {
             pData[i*nComps + j] = realData[i];
           }
@@ -954,7 +952,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesSOAInt
       for (long long i = 0; i < numReal; ++i)
       {
         const auto &part = ptd[i];
-        if (part.id() > 0)
+        if (part.id().is_valid())
         {
           pData[i] = intData[i];
         }
@@ -1041,7 +1039,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSRea
         for (long long i = 0; i < numReal; ++i)
         {
           const auto &part = aos[i];
-          if (part.id() > 0)
+          if (part.id().is_valid())
           {
             pData[i*nComps + j] = part.rdata(indices[j]);
           }
@@ -1114,7 +1112,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddParticlesAOSInt
       for (long long i = 0; i < numReal; ++i)
       {
         const auto &part = aos[i];
-        if (part.id() > 0)
+        if (part.id().is_valid())
         {
           pData[i] = part.idata(index);
         }

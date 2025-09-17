@@ -15,7 +15,7 @@ struct KeepValidFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int i) const noexcept
     {
-        return (src.id(i) > 0);
+        return (src.id(i).is_valid());
     }
 };
 
@@ -804,7 +804,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
             reduce_op.eval(np, reduce_data,
             [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
             {
-                return (ptd.id(i) > 0) ? 1 : 0;
+                return (ptd.id(i).is_valid()) ? 1 : 0;
             });
 
             int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
@@ -1089,7 +1089,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     const auto& ptd = pbox.getConstParticleTileData();
                     for (int pindex = 0; pindex < pbox.numParticles(); ++pindex)
                     {
-                        if (ptd.id(pindex) <= 0) { continue; }
+                        if (!ptd.id(pindex).is_valid()) { continue; }
 
                         particle_detail::iPackParticleData(ptd, pindex, iptr,
                             write_int_comp.dataPtr(), is_checkpoint);
@@ -1116,7 +1116,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                     const auto& ptd = pbox.getConstParticleTileData();
                     for (int pindex = 0; pindex < pbox.numParticles(); ++pindex)
                     {
-                        if (ptd.id(pindex) <= 0) { continue; }
+                        if (!ptd.id(pindex).is_valid()) { continue; }
 
                         particle_detail::rPackParticleData(ptd, pindex, rptr,
                             write_real_comp.dataPtr());

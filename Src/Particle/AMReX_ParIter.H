@@ -93,6 +93,8 @@ public:
 
     [[nodiscard]] int numNeighborParticles () const { return GetParticleTile().numNeighborParticles(); }
 
+    [[nodiscard]] Long capacity () const { return GetParticleTile().capacity(); }
+
     [[nodiscard]] int GetLevel () const { return m_level; }
 
     [[nodiscard]] std::pair<int, int> GetPairIndex () const { return std::make_pair(this->index(), this->LocalTileIndex()); }
