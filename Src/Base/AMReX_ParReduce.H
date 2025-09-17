@@ -12,18 +12,18 @@ namespace amrex {
  * This performs reduction over a MultiFab's valid and specified ghost regions. For
  * example, the code below computes the minimum of the first MultiFab and the maximum of
  * the second MultiFab.
- \verbatim
-     auto const& ma1 = mf1.const_arrays();
-     auto const& ma2 = mf2.const_arrays();
-     GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
-                                        TypeList<Real,Real>{},
-                                        mf1, mf1.nGrowVect(),
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-         -> GpuTuple<Real,Real>
-     {
-         return { ma1[box_no](i,j,k), ma2[box_no](i,j,k) };
-     });
- \endverbatim
+ * \code{.cpp}
+ *     auto const& ma1 = mf1.const_arrays();
+ *     auto const& ma2 = mf2.const_arrays();
+ *     GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
+ *                                        TypeList<Real,Real>{},
+ *                                        mf1, mf1.nGrowVect(),
+ *     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+ *         -> GpuTuple<Real,Real>
+ *     {
+ *         return { ma1[box_no](i,j,k), ma2[box_no](i,j,k) };
+ *     });
+ * \endcode
  *
  * \tparam Ops... reduce operators (e.g., ReduceOpSum, ReduceOpMin, ReduceOpMax,
  *                ReduceOpLogicalAnd, and ReduceOpLogicalOr)
@@ -59,21 +59,21 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *
  * This performs reduction over a MultiFab's valid and specified ghost regions. For
  * example, the code below computes the sum of the processed data in a MultiFab.
- \verbatim
-     auto const& ma = mf.const_arrays();
-     Real ektot = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{},
-                            mf, IntVect(0),
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-         -> GpuTuple<Real>
-     {
-         auto rho = ma[box_no](i,j,k,0);
-         auto mx = ma[box_no](i,j,k,1);
-         auto my = ma[box_no](i,j,k,2);
-         auto mz = ma[box_no](i,j,k,3);
-         auto ek = (mx*mx+my*my+mz*mz)/(2.*rho);
-         return { ek };
-     });
- \endverbatim
+ * \code{.cpp}
+ *     auto const& ma = mf.const_arrays();
+ *     Real ektot = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{},
+ *                            mf, IntVect(0),
+ *     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+ *         -> GpuTuple<Real>
+ *     {
+ *         auto rho = ma[box_no](i,j,k,0);
+ *         auto mx = ma[box_no](i,j,k,1);
+ *         auto my = ma[box_no](i,j,k,2);
+ *         auto mz = ma[box_no](i,j,k,3);
+ *         auto ek = (mx*mx+my*my+mz*mz)/(2.*rho);
+ *         return { ek };
+ *     });
+ * \endcode
  *
  * \tparam Op  Reduce operator (e.g., ReduceOpSum, ReduceOpMin, ReduceOpMax,
  *             ReduceOpLogicalAnd, and ReduceOpLogicalOr)
@@ -111,18 +111,18 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  * This performs reduction over a MultiFab's valid and specified ghost regions and
  * components.  For example, the code below computes the minimum of the first MultiFab
  * and the maximum of the second MultiFab.
- \verbatim
-     auto const& ma1 = mf1.const_arrays();
-     auto const& ma2 = mf2.const_arrays();
-     GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
-                                        TypeList<Real,Real>{},
-                                        mf1, mf1.nGrowVect(), mf1.nComp(),
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-         -> GpuTuple<Real,Real>
-     {
-         return { ma1[box_no](i,j,k,n), ma2[box_no](i,j,k,n) };
-     });
- \endverbatim
+ * \code{.cpp}
+ *     auto const& ma1 = mf1.const_arrays();
+ *     auto const& ma2 = mf2.const_arrays();
+ *     GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
+ *                                        TypeList<Real,Real>{},
+ *                                        mf1, mf1.nGrowVect(), mf1.nComp(),
+ *     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+ *         -> GpuTuple<Real,Real>
+ *     {
+ *         return { ma1[box_no](i,j,k,n), ma2[box_no](i,j,k,n) };
+ *     });
+ * \endcode
  *
  * \tparam Ops... reduce operators (e.g., ReduceOpSum, ReduceOpMin, ReduceOpMax,
  *                ReduceOpLogicalAnd, and ReduceOpLogicalOr)
@@ -160,16 +160,16 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *
  * This performs reduction over a MultiFab's valid and specified ghost regions. For
  * example, the code below computes the sum of the data in a MultiFab.
- \verbatim
-     auto const& ma = mf.const_arrays();
-     Real ektot = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{},
-                            mf, mf.nGrowVect(), mf.nComp(),
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
-         -> GpuTuple<Real>
-     {
-         return { ma[box_no](i,j,k,n) };
-     });
- \endverbatim
+ * \code{.cpp}
+ *     auto const& ma = mf.const_arrays();
+ *     Real ektot = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{},
+ *                            mf, mf.nGrowVect(), mf.nComp(),
+ *     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+ *         -> GpuTuple<Real>
+ *     {
+ *         return { ma[box_no](i,j,k,n) };
+ *     });
+ * \endcode
  *
  * \tparam Op  Reduce operator (e.g., ReduceOpSum, ReduceOpMin, ReduceOpMax,
  *             ReduceOpLogicalAnd, and ReduceOpLogicalOr)
@@ -208,17 +208,17 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  * This performs reduction over a MultiFab's valid region. For
  * example, the code below computes the minimum of the first MultiFab and the maximum of
  * the second MultiFab.
- \verbatim
-     auto const& ma1 = mf1.const_arrays();
-     auto const& ma2 = mf2.const_arrays();
-     GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
-                                        TypeList<Real,Real>{}, mf1,
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-         -> GpuTuple<Real,Real>
-     {
-         return { ma1[box_no](i,j,k), ma2[box_no](i,j,k) };
-     });
- \endverbatim
+ * \code{.cpp}
+ *     auto const& ma1 = mf1.const_arrays();
+ *     auto const& ma2 = mf2.const_arrays();
+ *     GpuTuple<Real,Real> mm = ParReduce(TypeList<ReduceOpMin,ReduceOpMax>{},
+ *                                        TypeList<Real,Real>{}, mf1,
+ *     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+ *         -> GpuTuple<Real,Real>
+ *     {
+ *         return { ma1[box_no](i,j,k), ma2[box_no](i,j,k) };
+ *     });
+ * \endcode
  *
  * \tparam Ops... reduce operators (e.g., ReduceOpSum, ReduceOpMin, ReduceOpMax,
  *                ReduceOpLogicalAnd, and ReduceOpLogicalOr)
@@ -249,20 +249,20 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *
  * This performs reduction over a MultiFab's valid region. For
  * example, the code below computes the sum of the processed data in a MultiFab.
- \verbatim
-     auto const& ma = mf.const_arrays();
-     Real ektot = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, mf,
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-         -> GpuTuple<Real>
-     {
-         auto rho = ma[box_no](i,j,k,0);
-         auto mx = ma[box_no](i,j,k,1);
-         auto my = ma[box_no](i,j,k,2);
-         auto mz = ma[box_no](i,j,k,3);
-         auto ek = (mx*mx+my*my+mz*mz)/(2.*rho);
-         return { ek };
-     });
- \endverbatim
+ * \code{.cpp}
+ *     auto const& ma = mf.const_arrays();
+ *     Real ektot = ParReduce(TypeList<ReduceOpSum>{}, TypeList<Real>{}, mf,
+ *     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+ *         -> GpuTuple<Real>
+ *     {
+ *         auto rho = ma[box_no](i,j,k,0);
+ *         auto mx = ma[box_no](i,j,k,1);
+ *         auto my = ma[box_no](i,j,k,2);
+ *         auto mz = ma[box_no](i,j,k,3);
+ *         auto ek = (mx*mx+my*my+mz*mz)/(2.*rho);
+ *         return { ek };
+ *     });
+ * \endcode
  *
  * \tparam Op  Reduce operator (e.g., ReduceOpSum, ReduceOpMin, ReduceOpMax,
  *             ReduceOpLogicalAnd, and ReduceOpLogicalOr)

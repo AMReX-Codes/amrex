@@ -15,9 +15,7 @@ module amrex_abeclaplacian_module
      procedure :: set_acoeffs => amrex_abeclaplacian_set_acoeffs
      procedure :: set_bcoeffs => amrex_abeclaplacian_set_bcoeffs
      procedure, private :: amrex_abeclaplacian_assign
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_abeclaplacian_destroy
-#endif
   end type amrex_abeclaplacian
 
   interface

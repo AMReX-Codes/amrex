@@ -100,7 +100,7 @@ namespace Gpu {
      * Therefore it should not be used for comparing GPU to non-GPU performance
      * or behavior.
      *
-     * \code
+     * \code{.cpp}
      *  Gpu::setLaunchRegion(0);
      *
      *  //...

@@ -61,7 +61,7 @@ public:
 
     /**
      * Set scalar constants A and B in the equation:
-     * (A \alpha - B \nabla \cdot \beta \nabla ) \phi = f
+     * `(A \alpha - B \nabla \cdot \beta \nabla ) \phi = f`
      * for the Multi-Level AB Laplacian Solver.
      */
     template <typename T1, typename T2,
