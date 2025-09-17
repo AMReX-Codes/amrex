@@ -125,6 +125,11 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
     T alpha = T(1.0);
     T beta = T(0.0);
 
+#if (HIP_VERSION_MAJOR >= 7)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
     std::size_t buffer_size;
     rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
                    &beta, y_descr, data_type, rocsparse_spmv_alg_default,
@@ -147,6 +152,11 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
                    rocsparse_spmv_stage_compute,
 #endif
                    &buffer_size, pbuffer);
+
+#if (HIP_VERSION_MAJOR >= 7)
+// xxxxx HIP TODO: rocsparse_spmv has been deprecated.
+#pragma clang diagnostic pop
+#endif
 
     Gpu::streamSynchronize();
 

@@ -35,9 +35,7 @@ module amrex_flash_fluxregister_module
      procedure, private :: amrex_flash_fluxregister_store
      procedure, private :: amrex_flash_fluxregister_store_area
      procedure, private :: amrex_flash_fluxregister_store_area_ifd
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_flash_fluxregister_destroy
-#endif
   end type amrex_flash_fluxregister
 
   interface
