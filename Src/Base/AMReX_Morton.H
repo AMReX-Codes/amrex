@@ -150,7 +150,9 @@ std::uint32_t toUInt32 (amrex::Real x, amrex::Real xmin, amrex::Real xmax) noexc
  *
  * It is assumed that plo <= p < phi has already been enforced.
  *
- * \param x, y, z the coordinates to convert.
+ * \param x the coordinates to convert.
+ * \param y the coordinates to convert.
+ * \param z the coordinates to convert.
  * \param plo the low end of the domain.
  * \param phi the high end of the domain.
  */

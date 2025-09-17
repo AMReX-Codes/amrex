@@ -36,9 +36,7 @@ module amrex_particlecontainer_module
      procedure, private :: amrex_get_particles_i
      procedure, private :: amrex_num_particles_i
      procedure, private :: amrex_add_particle_i
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_particlecontainer_destroy
-#endif
   end type amrex_particlecontainer
 
   interface

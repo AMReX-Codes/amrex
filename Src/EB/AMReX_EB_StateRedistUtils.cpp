@@ -1,5 +1,5 @@
 /**
- * \file AMReX_StateRedistUtils.cpp
+ * \file AMReX_EB_StateRedistUtils.cpp
  */
 
 #include <AMReX_EB_Redistribution.H>
