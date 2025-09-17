@@ -581,7 +581,7 @@ public:
     /**
      * \brief Return capacity of memory for particles at specific grid
      */
-    template <typename I, std::enable_if_t<std::is_integral_v<I> && sizeof(I) >= sizeof(Long), int> = 0>
+    template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
     /**

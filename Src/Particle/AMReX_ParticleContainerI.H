@@ -588,7 +588,7 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <typename I, std::enable_if_t<std::is_integral_v<I> && sizeof(I) >= sizeof(Long), int> FOO>
+template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
 {
