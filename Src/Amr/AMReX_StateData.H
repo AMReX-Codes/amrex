@@ -163,7 +163,7 @@ public:
     /**
     * \brief Sets time of old and new data.
     *
-    * \param t_new
+    * \param time
     * \param dt_old
     * \param dt_new
     */
@@ -173,15 +173,11 @@ public:
 
     /**
     * \brief Sets time of old data.
-    *
-    * \param t_old
     */
     void setOldTimeLevel (Real time);
 
     /**
     * \brief Sets time of new data.
-    *
-    * \param t_new
     */
     void setNewTimeLevel (Real time);
 
@@ -261,9 +257,9 @@ public:
     * \param p_domain
     * \param grds
     * \param dm
-    * \param factroy
+    * \param factory
     * \param d
-    * \param restart_file
+    * \param chkfile
     */
     void restart (std::istream&          is,
                   const Box&             p_domain,

@@ -72,10 +72,10 @@ namespace amrex {
          * The initializer list is assumed to be in row-major order, even when
          * the ordering for the SmallMatrix object is colum-major. Below is
          * an example of constructing a matrix with 2 rows and 3 columns.
-         \verbatim
-             SmallMatrix<double,2,3> M{{11., 12., 13.},
-                                       {21., 22., 23.}};
-         \endverbatim
+         * \code{.cpp}
+         *     SmallMatrix<double,2,3> M{{11., 12., 13.},
+         *                               {21., 22., 23.}};
+         * \endcode
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         explicit SmallMatrix (std::initializer_list<std::initializer_list<T>> const& init)

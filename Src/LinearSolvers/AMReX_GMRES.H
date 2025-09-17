@@ -96,7 +96,7 @@ public:
      * \param a_rhs     RHS, i.e., b in A x = b.
      * \param a_tol_rel relative tolerance.
      * \param a_tol_abs absolute tolerance.
-     * \patam a_its     optional argument specifying the maximum number of iterations.
+     * \param a_its     optional argument specifying the maximum number of iterations.
      */
     void solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int a_its=-1);
 
