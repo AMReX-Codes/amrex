@@ -1,5 +1,5 @@
 /**
- * \file StateRedistItracer.cpp
+ * \file AMReX_EB_StateRedistItracker.cpp
  * @{
  *
  */
@@ -736,3 +736,5 @@ MakeITracker ( Box const& bx,
 #endif
 
 }
+
+/** @} */

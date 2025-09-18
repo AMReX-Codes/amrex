@@ -297,36 +297,36 @@ namespace amrex
      * In the example code below, the sum along each line at (i,j) in the
      * z-direction is computed and stored at (i,j,0) of the returned
      * BaseFab.
-     \verbatim
-         int dir = 2; // z-direction
-         auto const& domain_box = geom.Domain();
-         auto const& ma = mf.const_arrays();
-         auto rr = ReduceToPlane<ReduceOpSum,Real>(dir, domain_box, mf,
-             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
-             {
-                 return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
-             });
-     \endverbatim
+     * \code{.cpp}
+     *     int dir = 2; // z-direction
+     *     auto const& domain_box = geom.Domain();
+     *     auto const& ma = mf.const_arrays();
+     *     auto rr = ReduceToPlane<ReduceOpSum,Real>(dir, domain_box, mf,
+     *         [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
+     *         {
+     *             return ma[box_no](i,j,k); // data at (i,j,k) of Box box_no
+     *         });
+     * \endcode
      *
      * Below is another example.  This finds the maximum value in the
      * x-direction and stores the maximum value and the i-index.  An MPI
      * reduce is then called to further reduce the data to the root process
      * 0.
-     \verbatim
-         int dir = 0; // x-direction
-         auto const& domain_box = geom.Domain().surroundingNodes(); // nodal data
-         auto const& ma = mf.const_arrays();
-         auto rr = ReduceToPlane<ReduceOpMax,KeyValuePair<Real,int>>
-             (dir, domain_box, mf,
-              [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
-                  -> KeyValuePair<Real,int>
-             {
-                 return {ma[box_no](i,j,k), i};
-             });
-         ParallelReduce::Max(rr.dataPtr(), rr.size(), root,
-                             ParallelDescriptor::Communicator());
-         // Process root now has the final results.
-     \endverbatim
+     * \code{.cpp}
+     *     int dir = 0; // x-direction
+     *     auto const& domain_box = geom.Domain().surroundingNodes(); // nodal data
+     *     auto const& ma = mf.const_arrays();
+     *     auto rr = ReduceToPlane<ReduceOpMax,KeyValuePair<Real,int>>
+     *         (dir, domain_box, mf,
+     *          [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
+     *              -> KeyValuePair<Real,int>
+     *         {
+     *             return {ma[box_no](i,j,k), i};
+     *         });
+     *     ParallelReduce::Max(rr.dataPtr(), rr.size(), root,
+     *                         ParallelDescriptor::Communicator());
+     *     // Process root now has the final results.
+     * \endcode
      *
      * \tparam Op  reduce operator (e.g., ReduceOpSum, ReduceOpMin and ReduceOpMax)
      * \tparam T   data type of reduction result
@@ -365,22 +365,22 @@ namespace amrex
      * behavior is different from that of ReduceToPlane that returns local
      * reduction results.
      *
-     \verbatim
-        auto const& ma = mf.const_arrays();
-        auto mf2 = ReduceToPlaneMF<ReduceOpSum>
-            (2, domain, mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
-        {
-            return ma[b](i,j,k);
-        });
-        auto nz = domain.length(2); // number of cells in z-direction
-        auto const& ma2 = mf2.const_arrays();
-        ParallelFor(mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
-        {
-            ma[b](i,j,k) -= ma2[b](i,j,0) / nz; // (i,j,0) is used to access ma2
-        });
-        // If sync is needed, call Gpu::streamSynchronize()
-        // mf now contains data with z-direction line average subtracted
-     \endverbatim
+     * \code{.cpp}
+     *     auto const& ma = mf.const_arrays();
+     *     auto mf2 = ReduceToPlaneMF<ReduceOpSum>
+     *         (2, domain, mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+     *     {
+     *         return ma[b](i,j,k);
+     *     });
+     *     auto nz = domain.length(2); // number of cells in z-direction
+     *     auto const& ma2 = mf2.const_arrays();
+     *     ParallelFor(mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+     *     {
+     *         ma[b](i,j,k) -= ma2[b](i,j,0) / nz; // (i,j,0) is used to access ma2
+     *     });
+     *     // If sync is needed, call Gpu::streamSynchronize()
+     *     // mf now contains data with z-direction line average subtracted
+     * \endcode
      *
      * \tparam Op  reduce operator (Must be ReduceSum for now.)
      * \tparam FA  Type of FabArray
@@ -420,18 +420,18 @@ namespace amrex
      * stored in the first FA, whereas the global results (including MPI
      * communication) are in the second FA.  Below is and an example.
      *
-     \verbatim
-        auto const& ma = mf.const_arrays();
-        auto [mf2, mf2_unique] = ReduceToPlaneMF2<ReduceOpSum>
-            (2, domain, mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
-        {
-            return ma[b](i,j,k);
-        });
-        // mf2: box local reduction result
-        // mf2_unique: global reduction result
-        auto phi = poisson_solver(mf2_unique); // Perform 2D Poisson solve
-        mf2.ParallelCopy(phi); // Each Fab in mf2 has the 2D Poisson solver result
-     \endverbatim
+     * \code{.cpp}
+     *     auto const& ma = mf.const_arrays();
+     *     auto [mf2, mf2_unique] = ReduceToPlaneMF2<ReduceOpSum>
+     *         (2, domain, mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+     *     {
+     *         return ma[b](i,j,k);
+     *     });
+     *     // mf2: box local reduction result
+     *     // mf2_unique: global reduction result
+     *     auto phi = poisson_solver(mf2_unique); // Perform 2D Poisson solve
+     *     mf2.ParallelCopy(phi); // Each Fab in mf2 has the 2D Poisson solver result
+     * \endcode
      *
      * \tparam Op  reduce operator (Must be ReduceSum for now.)
      * \tparam FA  Type of FabArray

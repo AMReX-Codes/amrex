@@ -384,7 +384,7 @@ private:
  * that is initialized on CPU and is read-only by all GPU threads on the
  * device.
  *
- * \code
+ * \code{.cpp}
  *      Array<int,3> tlo{0,0,0}; // lower bounds
  *      Array<int,3> thi{100,100,100}; // upper bounds
  *      TableData<Real,3> table_data(tlo, thi);

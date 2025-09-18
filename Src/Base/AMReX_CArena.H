@@ -163,7 +163,7 @@ protected:
         MemStat* m_stat;
     };
 
-    //! The list of blocks allocated via ::operator new().
+    //! The list of blocks allocated.
     std::vector<std::pair<void*,std::size_t> > m_alloc;
 
     /**

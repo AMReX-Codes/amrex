@@ -17,9 +17,7 @@ module amrex_physbc_module
    contains
      generic :: assignment(=) => amrex_physbc_assign  ! shallow copy
      procedure, private :: amrex_physbc_assign
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_physbc_destroy
-#endif
   end type amrex_physbc
 
   interface

@@ -21,9 +21,7 @@ module amrex_distromap_module
      procedure :: get_pmap      => amrex_distromap_get_pmap ! fill caller-owned array of PEs
      procedure, private :: amrex_distromap_assign
      procedure, private :: amrex_distromap_install
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_distromap_destroy
-#endif
   end type amrex_distromap
 
   interface operator(==)
