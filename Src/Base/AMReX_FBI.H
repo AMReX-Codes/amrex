@@ -262,7 +262,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
 
     Gpu::HostVector<unsigned int> h_ntags;
     Gpu::HostVector<TagType> h_tags;
-    h_tags.reserve(tiled_tags.size());
+    h_tags.reserve(tiled_tags.size()+1);
 
     for (unsigned int itag = 0; itag < tiled_tags.size(); ++itag) {
         if (itag == 0) {
