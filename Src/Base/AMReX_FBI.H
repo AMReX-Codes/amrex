@@ -299,7 +299,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
 #endif
 
         for (unsigned int itag = pntags[blockIdx.x]; itag < pntags[blockIdx.x+1]; ++itag) {
-            auto const& tag = ptag[itag];
+            auto const tag = ptag[itag];
             auto ncells = int(tag.dbox.numPts());
             const auto len = amrex::length(tag.dbox);
             const auto lo  = amrex::lbound(tag.dbox);
