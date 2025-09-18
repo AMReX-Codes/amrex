@@ -426,13 +426,13 @@ FabArray<FAB>::FB_local_add_cpu (const FB& TheFB, int scomp, int ncomp)
     for (MFIter mfi(*this); mfi.isValid(); ++mfi)
     {
         const auto& tags = loc_copy_tags[mfi];
-        auto dfab = this->array(mfi);
+        const auto& dfab = this->array(mfi);
         for (auto const & tag : tags)
         {
             auto const sfab = tag.sfab->array();
             const auto offset = tag.offset.dim3();
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp,
-            [=] (int i, int j, int k, int n) noexcept
+            [&] (int i, int j, int k, int n) noexcept
             {
                 dfab(i,j,k,n+scomp) += sfab(i+offset.x,j+offset.y,k+offset.z,n);
             });
@@ -581,6 +581,8 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
                     src_fabs[itag].const_array(), tag.dbox,
                     (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
     }
+
+    // Note that we have shifted the starting component to zero in the code above.
 
     // TODO: We could try to cache the tags like in FillBoundary.
 
