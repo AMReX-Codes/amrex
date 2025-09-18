@@ -261,7 +261,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
     std::sort(tiled_tags.begin(), tiled_tags.end());
 
     Gpu::HostVector<unsigned int> h_ntags;
-    Gpu::HostVector<Array4CopyTag<T0,T1>> h_tags;
+    Gpu::HostVector<TagType> h_tags;
     h_tags.reserve(tiled_tags.size());
 
     for (unsigned int itag = 0; itag < tiled_tags.size(); ++itag) {
