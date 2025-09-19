@@ -527,7 +527,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
 #endif
     {
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for (IntVect iv : bx) {
+            for (IntVect iv : bx.iterator()) {
                 if (amrex::isnan(a(iv, n))) {
                     return true;
                 }
@@ -586,7 +586,7 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
 #endif
     {
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for (IntVect iv : bx) {
+            for (IntVect iv : bx.iterator()) {
                 if (amrex::isnan(a(iv, n))) {
                     where = iv;
                     return true;
@@ -659,7 +659,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
 #endif
     {
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for (IntVect iv : bx) {
+            for (IntVect iv : bx.iterator()) {
                 if (amrex::isinf(a(iv, n))) {
                     return true;
                 }
@@ -718,7 +718,7 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
 #endif
     {
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for (IntVect iv : bx) {
+            for (IntVect iv : bx.iterator()) {
                 if (amrex::isinf(a(iv, n))) {
                     where = iv;
                     return true;
