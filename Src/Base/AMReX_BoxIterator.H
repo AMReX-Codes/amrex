@@ -76,7 +76,7 @@ public:
     * a_bx (not modified) the Box to iterate over.
     */
     void define (const BoxND<dim>& a_bx) noexcept {
-        if (a_bx.ok() && a_bx.smallEnd().allLE(a_bx.bigEnd())) {
+        if (a_bx.ok()) {
             m_current = a_bx.smallEnd();
             m_boxLo   = a_bx.smallEnd();
             m_boxHi   = a_bx.bigEnd();
