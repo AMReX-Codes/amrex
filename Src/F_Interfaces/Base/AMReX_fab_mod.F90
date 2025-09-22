@@ -40,9 +40,11 @@ module amrex_fab_module
      module procedure amrex_fab_build_install
   end interface amrex_fab_build
 
+#ifdef __NVCOMPILER
   interface amrex_fab_destroy
      module procedure amrex_fab_destroy
   end interface amrex_fab_destroy
+#endif
 
 contains
 

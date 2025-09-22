@@ -37,9 +37,11 @@ module amrex_distromap_module
      module procedure amrex_distromap_print
   end interface amrex_print
 
+#ifdef __NVCOMPILER
   interface amrex_distromap_destroy
      module procedure amrex_distromap_destroy
   end interface amrex_distromap_destroy
+#endif
 
   ! interfaces to cpp functions
 

@@ -161,9 +161,11 @@ module amrex_particlecontainer_module
 
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_particlecontainer_destroy
      module procedure amrex_particlecontainer_destroy
   end interface amrex_particlecontainer_destroy
+#endif
 
 contains
 

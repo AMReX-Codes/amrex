@@ -48,9 +48,11 @@ module amrex_boxarray_module
      module procedure amrex_boxarray_print
   end interface amrex_print
 
+#ifdef __NVCOMPILER
   interface amrex_boxarray_destroy
      module procedure amrex_boxarray_destroy
   end interface amrex_boxarray_destroy
+#endif
 
   ! interfaces to cpp functions
 
