@@ -152,9 +152,11 @@ module amrex_multigrid_module
      end subroutine amrex_fi_multigrid_set_final_fill_bc
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_multigrid_destroy
      module procedure amrex_multigrid_destroy
   end interface amrex_multigrid_destroy
+#endif
 
 contains
 
