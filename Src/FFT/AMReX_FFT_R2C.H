@@ -491,11 +491,7 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 #if (AMREX_SPACEDIM == 3)
     if (m_info.domain_strategy == DomainStrategy::automatic) {
         if (m_info.twod_mode) {
-            if (m_real_domain.length(2) < nprocs) {
-                m_info.domain_strategy = DomainStrategy::pencil;
-            } else {
-                m_info.domain_strategy = DomainStrategy::slab;
-            }
+            m_info.domain_strategy = DomainStrategy::slab;
         } else {
             int shortside = m_real_domain.shortside();
             if (shortside < m_info.pencil_threshold*nprocs) {
@@ -505,19 +501,20 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
             }
         }
     }
-    if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
-        if (m_info.twod_mode && m_real_domain.length(2) == 1) {
-            m_slab_decomp = false;
-        } else {
-            m_slab_decomp = true;
-        }
+
+    if (m_info.twod_mode) {
+        m_slab_decomp = true;
+    } else if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
+        m_slab_decomp = true;
     }
+
 #endif
 
     auto const ncomp = m_info.batch_size;
 
     auto bax = amrex::decompose(m_real_domain, nprocs,
-                                {AMREX_D_DECL(false,!m_slab_decomp,true)}, true);
+                                {AMREX_D_DECL(false,!m_slab_decomp,m_real_domain.length(2)>1)}, true);
+
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
     m_rx.define(bax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
 
@@ -540,13 +537,8 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         //
 
 #if (AMREX_SPACEDIM >= 2)
-#if (AMREX_SPACEDIM == 2)
-        bool batch_on_y = false;
-#else
-        bool batch_on_y = m_info.twod_mode && (m_real_domain.length(2) == 1);
-#endif
         DistributionMapping cdmy;
-        if ((m_real_domain.length(1) > 1) && !m_slab_decomp && !batch_on_y)
+        if ((m_real_domain.length(1) > 1) && !m_slab_decomp)
         {
             auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
                                          {AMREX_D_DECL(false,true,true)}, true);
