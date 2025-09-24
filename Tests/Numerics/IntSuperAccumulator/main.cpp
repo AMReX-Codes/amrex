@@ -72,7 +72,7 @@ main (int argc, char* argv[])
                 auto ptr = d_values.data();
                 auto arr = digits;
 
-                amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int idx) {
+                amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) {
                     for (int n = 0; n < count; ++n) {
                         IntSuperAccumulatorFab::accumulate(arr, i, j, k, entry, ptr[n]);
                     }
