@@ -37,10 +37,10 @@ main (int argc, char* argv[])
         IntSuperAccumulatorFab accumulator(bx, 1);
 
         const std::array<Range, 4> ranges = {{
-            {1.0e-12f, 1.0e-3f,   32768, 11},
-            {1.0e-4f,  1.0f,      65536, 23},
-            {1.0f,     1.0e6f,    65536, 37},
-            {1.0e-2f,  1.0e8f,   131072, 41}
+            {1.0e-12F, 1.0e-3F,   32768, 11},
+            {1.0e-4F,  1.0F,      65536, 23},
+            {1.0F,     1.0e6F,    65536, 37},
+            {1.0e-2F,  1.0e8F,   131072, 41}
         }};
 
         auto compute_reference = [] (amrex::Gpu::HostVector<float> const& values) -> float {
@@ -69,7 +69,7 @@ main (int argc, char* argv[])
                 amrex::Gpu::DeviceVector<float> d_values(count);
                 amrex::Gpu::copy(amrex::Gpu::hostToDevice, values.begin(), values.end(), d_values.begin());
 
-                auto ptr = d_values.data();
+                auto *ptr = d_values.data();
                 auto arr = digits;
 
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (int n) {
@@ -79,7 +79,7 @@ main (int argc, char* argv[])
                 amrex::Gpu::streamSynchronize();
 
                 amrex::Gpu::DeviceScalar<float> d_result;
-                auto res_ptr = d_result.dataPtr();
+                auto *res_ptr = d_result.dataPtr();
                 amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) {
                     res_ptr[0] = IntSuperAccumulatorFab::finalize(arr, i, j, k, entry);
                 });
@@ -116,7 +116,7 @@ main (int argc, char* argv[])
         }
 
         if (status == 0) {
-            constexpr float value = 0.125f;
+            constexpr float value = 0.125F;
             constexpr int repeats = 200000;
 
             amrex::Gpu::HostVector<float> values(repeats);

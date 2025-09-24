@@ -92,8 +92,8 @@ public:
     accumulate (Array const& digits, int i, int j, int k, int entry, float value,
                 int entry_digits = digits_per_entry) noexcept
     {
-        if (value <= 0.0f) {
-            if (value < 0.0f) {
+        if (value <= 0.0F) {
+            if (value < 0.0F) {
 #ifndef AMREX_USE_GPU
                 amrex::Abort("IntSuperAccumulatorFab::accumulate: negative input not supported");
 #endif
@@ -259,7 +259,7 @@ private:
         {
             Decomposed bits{};
 
-            if (value <= 0.0f) {
+            if (value <= 0.0F) {
                 bits.is_zero = true;
                 return bits;
             }
@@ -271,21 +271,21 @@ private:
             pun.f = value;
             const std::uint32_t u = pun.u;
 
-            const std::uint32_t exponent_field = (u >> 23) & 0xffu;
-            const std::uint32_t fraction = u & ((1u << 23) - 1u);
+            const std::uint32_t exponent_field = (u >> 23) & 0xFFU;
+            const std::uint32_t fraction = u & ((1U << 23) - 1U);
 
-            if (exponent_field == 0xffu) {
+            if (exponent_field == 0xFFU) {
 #ifndef AMREX_USE_GPU
                 amrex::Abort("IntSuperAccumulatorFab::decompose: NaN or Inf not supported (float)");
 #else
                 Decomposed tmp{}; tmp.is_zero = true; return tmp;
 #endif
-            } else if (exponent_field == 0u) {
+            } else if (exponent_field == 0U) {
                 // Treat subnormals as zero; caller is expected to pre-round.
                 bits.is_zero = true;
                 return bits;
             } else {
-                bits.magnitude = (1u << 23) | fraction;
+                bits.magnitude = (1U << 23) | fraction;
                 bits.exponent = static_cast<int>(exponent_field) - 127 - significand_bits + 1;
             }
 
