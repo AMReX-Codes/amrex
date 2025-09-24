@@ -48,7 +48,7 @@ public:
     IntSuperAccumulatorFab (const Box& box, Arena* arena=nullptr)
         : m_storage(box, digits_per_entry, arena) {}
 
-    [[nodiscard]] int entries () const noexcept { return 1; }
+    [[nodiscard]] static constexpr int entries () noexcept { return 1; }
 
     void define (const Box& box, Arena* arena=nullptr)
     {
