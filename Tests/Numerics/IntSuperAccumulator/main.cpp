@@ -38,9 +38,9 @@ main (int argc, char* argv[])
         IntSuperAccumulatorFab accumulator(bx);
 
         const float lowest_exponent_min = std::numeric_limits<float>::min();
-        const float lowest_exponent_max = std::nextafter(std::ldexp(1.0f, -125), 0.0f);
-        const float highest_exponent_min = std::ldexp(1.0f, 125);
-        const float highest_exponent_max = std::ldexp(1.0f, 126); // OVERFLOWS TO INF: std::numeric_limits<float>::max();
+        const float lowest_exponent_max = std::nextafter(std::ldexp(1.0F, -125), 0.0F);
+        const float highest_exponent_min = std::ldexp(1.0F, 125);
+        const float highest_exponent_max = std::ldexp(1.0F, 126); // OVERFLOWS TO INF: std::numeric_limits<float>::max();
 
         const std::array<Range, 6> ranges = {{
             {lowest_exponent_min, lowest_exponent_max, 32768, 3},
