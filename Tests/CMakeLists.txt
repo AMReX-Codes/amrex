@@ -126,7 +126,7 @@ else()
    # List of subdirectories to search for CMakeLists.
    #
    set( AMREX_TESTS_SUBDIRS Amr AsyncOut CallNoinline CLZ CommType CTOParFor DeviceGlobal
-                            Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser
+                            Enum HeatEquation MultiBlock MultiPeriod Numerics ParmParse Parser
                             Parser2 ParserUserFn Reinit RoundoffDomain SmallMatrix)
 
    if (AMReX_PARTICLES)
