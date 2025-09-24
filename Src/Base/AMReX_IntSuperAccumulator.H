@@ -21,9 +21,8 @@ namespace amrex {
  * The accumulator stores the exact sum of single-precision floating-point
  * numbers by representing the scaled integer \f$\sum_i x_i 2^{-e_\text{min}}\f$
  * in a radix-\f$2^{30}\f$ positional system. Each digit is stored as a 32-bit int in
- * an `IArrayBox` component. A client that needs M independent sums must
- * allocate an accumulator with `M * digits_per_entry` components and index the
- * storage using `component = entry * digits_per_entry + digit`. Both
+ * an `IArrayBox` component. This simplified variant maintains a single logical
+ * entry whose digits occupy the `digits_per_entry` components. Both
  * `accumulate` and `finalize` operate in single precision; callers may cast to
  * wider types if needed. All summands are assumed non-negative; subnormal
  * inputs are treated as zero to reduce the number of required digits per entry.
@@ -46,15 +45,14 @@ public:
     explicit IntSuperAccumulatorFab (Arena* arena) noexcept
         : m_storage(arena) {}
 
-    IntSuperAccumulatorFab (const Box& box, int nentries, Arena* arena=nullptr)
-        : m_storage(box, nentries * digits_per_entry, arena), m_entries(nentries) {}
+    IntSuperAccumulatorFab (const Box& box, Arena* arena=nullptr)
+        : m_storage(box, digits_per_entry, arena) {}
 
-    [[nodiscard]] int entries () const noexcept { return m_entries; }
+    [[nodiscard]] int entries () const noexcept { return 1; }
 
-    void define (const Box& box, int nentries, Arena* arena=nullptr)
+    void define (const Box& box, Arena* arena=nullptr)
     {
-        m_entries = nentries;
-        m_storage.resize(box, nentries * digits_per_entry, arena);
+        m_storage.resize(box, digits_per_entry, arena);
     }
 
     [[nodiscard]] Array4<int> array () noexcept { return m_storage.array(); }
@@ -69,10 +67,9 @@ public:
         }
     }
 
-    void reset (Box const& bx, int nentries = -1)
+    void reset (Box const& bx)
     {
-        const int entries = (nentries < 0) ? m_entries : nentries;
-        const int ncomp = entries * digits_per_entry;
+        constexpr int ncomp = digits_per_entry;
         if (amrex::Gpu::inLaunchRegion()) {
             m_storage.template setVal<RunOn::Device>(0, bx, 0, ncomp);
         } else {
@@ -83,14 +80,13 @@ public:
     /**
      * \brief Accumulate a floating-point value into the superaccumulator.
      *
-     * The caller must provide the digit array and logical comp index for the
-     * entry being updated. All operations are carried out using integers; the
-     * routine does not allocate additional storage.
+     * The caller must provide the digit array for the single logical entry.
+     * All operations are carried out using integers; the routine does not
+     * allocate additional storage.
      */
     template <typename Array>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
-    accumulate (Array const& digits, int i, int j, int k, int entry, float value,
-                int entry_digits = digits_per_entry) noexcept
+    accumulate (Array const& digits, int i, int j, int k, float value) noexcept
     {
         if (value <= 0.0F) {
             if (value < 0.0F) {
@@ -112,8 +108,6 @@ public:
         const auto bits = detail::decompose(value);
         if (bits.is_zero) { return; }
 
-        const int component_base = entry * entry_digits;
-
         const int shift = bits.exponent - min_exponent;
         int digit_index = shift / digit_bits;
         const int bit_offset = shift % digit_bits;
@@ -121,7 +115,8 @@ public:
         const unsigned long long magnitude = bits.magnitude;
         unsigned long long chunk_value = magnitude << bit_offset;
 
-        const int component_limit = component_base + entry_digits;
+        constexpr int component_base = 0;
+        constexpr int component_limit = digits_per_entry;
 
         while (chunk_value != 0ULL) {
             const unsigned long long chunk = chunk_value & static_cast<unsigned long long>(digit_base - 1);
@@ -146,14 +141,11 @@ public:
      */
     template <typename Array>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static float
-    finalize (Array const& digits, int i, int j, int k, int entry,
-              int entry_digits = digits_per_entry) noexcept
+    finalize (Array const& digits, int i, int j, int k) noexcept
     {
-        const int component_base = entry * entry_digits;
-
         double result = 0.0;
-        for (int d = entry_digits - 1; d >= 0; --d) {
-            const int digit = digits(i,j,k, component_base + d);
+        for (int d = digits_per_entry - 1; d >= 0; --d) {
+            const int digit = digits(i,j,k, d);
             if (digit == 0) { continue; }
             const int exponent = min_exponent + d * digit_bits;
             result += std::ldexp(static_cast<double>(digit), exponent);
@@ -163,12 +155,10 @@ public:
 
     template <typename Array>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE static void
-    clear_entry (Array const& digits, int i, int j, int k, int entry,
-                 int entry_digits = digits_per_entry) noexcept
+    clear_entry (Array const& digits, int i, int j, int k) noexcept
     {
-        const int component_base = entry * entry_digits;
-        for (int d = 0; d < entry_digits; ++d) {
-            digits(i,j,k, component_base + d) = 0;
+        for (int d = 0; d < digits_per_entry; ++d) {
+            digits(i,j,k, d) = 0;
         }
     }
 
@@ -295,7 +285,6 @@ private:
     };
 
     IArrayBox m_storage;
-    int m_entries = 0;
 };
 
 } // namespace amrex

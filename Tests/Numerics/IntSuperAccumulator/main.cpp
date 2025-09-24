@@ -34,7 +34,7 @@ main (int argc, char* argv[])
         using amrex::IntSuperAccumulatorFab;
 
         const amrex::Box bx(amrex::IntVect::TheZeroVector(), amrex::IntVect::TheZeroVector());
-        IntSuperAccumulatorFab accumulator(bx, 1);
+        IntSuperAccumulatorFab accumulator(bx);
 
         const std::array<Range, 4> ranges = {{
             {1.0e-12F, 1.0e-3F,   32768, 11},
@@ -56,12 +56,11 @@ main (int argc, char* argv[])
         };
 
         auto accumulate_values = [&] (amrex::Gpu::HostVector<float> const& values) -> float {
-            accumulator.reset(bx, 1);
+            accumulator.reset(bx);
             auto digits = accumulator.array();
             constexpr int i = 0;
             constexpr int j = 0;
             constexpr int k = 0;
-            constexpr int entry = 0;
 
             const int count = static_cast<int>(values.size());
 
@@ -73,7 +72,7 @@ main (int argc, char* argv[])
                 auto arr = digits;
 
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (int n) {
-                    IntSuperAccumulatorFab::accumulate(arr, i, j, k, entry, ptr[n]);
+                    IntSuperAccumulatorFab::accumulate(arr, i, j, k, ptr[n]);
                 });
 
                 amrex::Gpu::streamSynchronize();
@@ -81,15 +80,15 @@ main (int argc, char* argv[])
                 amrex::Gpu::DeviceScalar<float> d_result;
                 auto *res_ptr = d_result.dataPtr();
                 amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int) {
-                    res_ptr[0] = IntSuperAccumulatorFab::finalize(arr, i, j, k, entry);
+                    res_ptr[0] = IntSuperAccumulatorFab::finalize(arr, i, j, k);
                 });
                 amrex::Gpu::streamSynchronize();
                 return d_result.dataValue();
             } else {
                 for (float v : values) {
-                    IntSuperAccumulatorFab::accumulate(digits, i, j, k, entry, v);
+                    IntSuperAccumulatorFab::accumulate(digits, i, j, k, v);
                 }
-                return IntSuperAccumulatorFab::finalize(digits, i, j, k, entry);
+                return IntSuperAccumulatorFab::finalize(digits, i, j, k);
             }
         };
 
@@ -104,6 +103,11 @@ main (int argc, char* argv[])
 
             const float reference = compute_reference(values);
             const float result = accumulate_values(values);
+
+            amrex::Print() << "Range [" << cfg.min_value << ", " << cfg.max_value
+                           << "] with count " << cfg.count
+                           << ": reference=" << reference
+                           << " accumulator=" << result << '\n';
 
             if (result != reference) {
                 amrex::Print() << "Mismatch for range [" << cfg.min_value << ", "
@@ -126,6 +130,9 @@ main (int argc, char* argv[])
 
             const float reference = compute_reference(values);
             const float result = accumulate_values(values);
+
+            amrex::Print() << "Constant accumulation: reference=" << reference
+                           << " accumulator=" << result << '\n';
 
             if (result != reference) {
                 amrex::Print() << "Mismatch for constant accumulation: reference="
