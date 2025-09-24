@@ -5,6 +5,7 @@
 
 #include <AMReX_Array4.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_Math.H>
@@ -199,12 +200,56 @@ private:
 #endif
                 }
 
+#if defined(AMREX_USE_GPU) && AMREX_DEVICE_COMPILE
+                // When we compile for the device we cannot rely on a carry-save digit layout, so
+                // each thread performs an immediate normalization using GPU atomics.
+                int* const digit_ptr = &(digits(i,j,k,current_component));
+
+                // Break the carry into the current radix chunk and the carry to forward.
+                const unsigned long long chunk = carry & (base - 1ULL);
+                carry >>= digit_bits;
+
+                // Atomically accumulate this chunk.  Multiple threads may land on the same digit,
+                // which is safe because atomicAdd enforces a total order.
+                if (chunk != 0ULL) {
+                    amrex::Gpu::Atomic::Add(digit_ptr, static_cast<int>(chunk));
+                }
+
+                // Track how many bases we successfully removed so they can be forwarded upward.
+                unsigned long long propagated = 0ULL;
+                while (true) {
+                    // Snapshot the digit atomically without changing it.  This avoids racing
+                    // against other threads that may be normalizing the same slot.
+                    const int current_value = amrex::Gpu::Atomic::Add(digit_ptr, 0);
+                    if (current_value < digit_base) {
+                        break;
+                    }
+
+                    // Attempt to drain one full base from the digit.  The return value is the
+                    // pre-subtraction contents, so we know whether we actually claimed the carry.
+                    const int before = amrex::Gpu::Atomic::Add(digit_ptr, -digit_base);
+                    if (before >= digit_base) {
+                        // We consumed one unit of overflow and should forward it to the next digit.
+                        ++propagated;
+                        continue;
+                    } else {
+                        // Another thread already normalized the digit between the peek and our
+                        // subtract; restore the value and exit.
+                        amrex::Gpu::Atomic::Add(digit_ptr, digit_base);
+                        break;
+                    }
+                }
+
+                // Fold any carries we successfully removed into the higher-order digits.
+                carry += propagated;
+#else
                 const unsigned long long sum = static_cast<unsigned long long>(digits(i,j,k,current_component)) + carry;
                 const unsigned long long remainder = sum & (base - 1ULL);
                 const unsigned long long quotient = sum >> digit_bits;
 
                 digits(i,j,k,current_component) = static_cast<int>(remainder);
                 carry = quotient;
+#endif
                 ++current_component;
             }
         }
