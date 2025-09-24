@@ -4,10 +4,10 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Array4.H>
+#include <AMReX_BaseFab.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuAtomic.H>
 #include <AMReX_GpuQualifiers.H>
-#include <AMReX_IArrayBox.H>
 #include <AMReX_Math.H>
 
 #include <cmath>
@@ -16,12 +16,12 @@
 namespace amrex {
 
 /**
- * \brief Integer superaccumulator backed by IArrayBox storage.
+ * \brief Integer superaccumulator backed by BaseFab<Long> storage.
  *
  * The accumulator stores the exact sum of single-precision floating-point
  * numbers by representing the scaled integer \f$\sum_i x_i 2^{-e_\text{min}}\f$
- * in a radix-\f$2^{30}\f$ positional system. Each digit is stored as a 32-bit int in
- * an `IArrayBox` component. This simplified variant maintains a single logical
+ * in a radix-\f$2^{30}\f$ positional system. Each digit is stored as a 64-bit signed
+ * integer in a `BaseFab<Long>` component. This simplified variant maintains a single logical
  * entry whose digits occupy the `digits_per_entry` components. Both
  * `accumulate` and `finalize` operate in single precision; callers may cast to
  * wider types if needed. All summands are assumed non-negative; subnormal
@@ -55,8 +55,8 @@ public:
         m_storage.resize(box, digits_per_entry, arena);
     }
 
-    [[nodiscard]] Array4<int> array () noexcept { return m_storage.array(); }
-    [[nodiscard]] Array4<int const> const_array () const noexcept { return m_storage.const_array(); }
+    [[nodiscard]] Array4<Long> array () noexcept { return m_storage.array(); }
+    [[nodiscard]] Array4<Long const> const_array () const noexcept { return m_storage.const_array(); }
 
     void reset ()
     {
@@ -145,7 +145,7 @@ public:
     {
         double result = 0.0;
         for (int d = digits_per_entry - 1; d >= 0; --d) {
-            const int digit = digits(i,j,k, d);
+            const Long digit = digits(i,j,k, d);
             if (digit == 0) { continue; }
             const int exponent = min_exponent + d * digit_bits;
             result += std::ldexp(static_cast<double>(digit), exponent);
@@ -193,7 +193,7 @@ private:
 #if defined(AMREX_USE_GPU) && AMREX_DEVICE_COMPILE
                 // When we compile for the device we cannot rely on a carry-save digit layout, so
                 // each thread performs an immediate normalization using GPU atomics.
-                int* const digit_ptr = &(digits(i,j,k,current_component));
+                Long* const digit_ptr = &(digits(i,j,k,current_component));
 
                 // Break the carry into the current radix chunk and the carry to forward.
                 const unsigned long long chunk = carry & (base - 1ULL);
@@ -202,7 +202,7 @@ private:
                 // Atomically accumulate this chunk.  Multiple threads may land on the same digit,
                 // which is safe because atomicAdd enforces a total order.
                 if (chunk != 0ULL) {
-                    amrex::Gpu::Atomic::Add(digit_ptr, static_cast<int>(chunk));
+                    amrex::Gpu::Atomic::Add(digit_ptr, static_cast<Long>(chunk));
                 }
 
                 // Track how many bases we successfully removed so they can be forwarded upward.
@@ -210,14 +210,14 @@ private:
                 while (true) {
                     // Snapshot the digit atomically without changing it.  This avoids racing
                     // against other threads that may be normalizing the same slot.
-                    const int current_value = amrex::Gpu::Atomic::Add(digit_ptr, 0);
+                    const Long current_value = amrex::Gpu::Atomic::Add(digit_ptr, static_cast<Long>(0));
                     if (current_value < digit_base) {
                         break;
                     }
 
                     // Attempt to drain one full base from the digit.  The return value is the
                     // pre-subtraction contents, so we know whether we actually claimed the carry.
-                    const int before = amrex::Gpu::Atomic::Add(digit_ptr, -digit_base);
+                    const Long before = amrex::Gpu::Atomic::Add(digit_ptr, static_cast<Long>(-digit_base));
                     if (before >= digit_base) {
                         // We consumed one unit of overflow and should forward it to the next digit.
                         ++propagated;
@@ -225,7 +225,7 @@ private:
                     } else {
                         // Another thread already normalized the digit between the peek and our
                         // subtract; restore the value and exit.
-                        amrex::Gpu::Atomic::Add(digit_ptr, digit_base);
+                        amrex::Gpu::Atomic::Add(digit_ptr, static_cast<Long>(digit_base));
                         break;
                     }
                 }
@@ -237,7 +237,7 @@ private:
                 const unsigned long long remainder = sum & (base - 1ULL);
                 const unsigned long long quotient = sum >> digit_bits;
 
-                digits(i,j,k,current_component) = static_cast<int>(remainder);
+                digits(i,j,k,current_component) = static_cast<Long>(remainder);
                 carry = quotient;
 #endif
                 ++current_component;
@@ -284,7 +284,7 @@ private:
         }
     };
 
-    IArrayBox m_storage;
+    BaseFab<Long> m_storage;
 };
 
 } // namespace amrex
