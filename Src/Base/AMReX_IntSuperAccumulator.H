@@ -189,7 +189,7 @@ private:
         {
             unsigned long long carry = value;
             int current_component = component;
-            constexpr unsigned long long base = static_cast<unsigned long long>(digit_base);
+            constexpr auto base = static_cast<unsigned long long>(digit_base);
 
             while (carry != 0ULL) {
                 if (current_component >= component_limit) {
