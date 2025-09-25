@@ -1,7 +1,6 @@
 // Do not include this header anywhere other than AMReX_GpuLaunchMacrosG.H.
 // The purpose of this file is to avoid clang-tidy.
 
-
 #ifdef AMREX_USE_SYCL
 #define AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE(TN,TI,block) \
     { auto const& amrex_i_tn = TN; \
@@ -53,6 +52,7 @@
                 block \
             } \
         }); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         for (auto const TI : amrex::Gpu::Range(amrex_i_tn)) { \
@@ -135,6 +135,7 @@
                     } \
             } \
         }); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
@@ -235,6 +236,7 @@
                     } \
             } \
         }); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         for (auto const TI1 : amrex::Gpu::Range(amrex_i_tn1)) { \
@@ -292,6 +294,7 @@
                 block \
             } \
         }); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE: cannot call device function from host"); \
@@ -361,6 +364,7 @@
                     } \
             } \
         }); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
@@ -440,6 +444,7 @@
                     } \
             } \
         }); \
+        AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
         amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
