@@ -255,9 +255,12 @@ htod_memcpy_async (void* p_d, const void* p_h, const std::size_t sz) noexcept
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d, p_h, sz); });
 #else
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d, p_h, sz, hipMemcpyHostToDevice, gpuStream()));,
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d, p_h, sz, cudaMemcpyHostToDevice, gpuStream())); )
+    if (guard_active) { Gpu::synchronize(); }
 #endif
 }
 
@@ -269,9 +272,12 @@ dtoh_memcpy_async (void* p_h, const void* p_d, const std::size_t sz) noexcept
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_h, p_d, sz); });
 #else
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_h, p_d, sz, hipMemcpyDeviceToHost, gpuStream()));,
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_h, p_d, sz, cudaMemcpyDeviceToHost, gpuStream())); )
+    if (guard_active) { Gpu::synchronize(); }
 #endif
 }
 
@@ -283,9 +289,12 @@ dtod_memcpy_async (void* p_d_dst, const void* p_d_src, const std::size_t sz) noe
     auto& q = Device::streamQueue();
     q.submit([&] (sycl::handler& h) { h.memcpy(p_d_dst, p_d_src, sz); });
 #else
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_HIP_OR_CUDA(
         AMREX_HIP_SAFE_CALL(hipMemcpyAsync(p_d_dst, p_d_src, sz, hipMemcpyDeviceToDevice, gpuStream()));,
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(p_d_dst, p_d_src, sz, cudaMemcpyDeviceToDevice, gpuStream())); )
+    if (guard_active) { Gpu::synchronize(); }
 #endif
 }
 
@@ -327,13 +336,19 @@ void memcpy_from_host_to_device_global_async (T& dg, const void* src,
                                               std::size_t offset = 0)
 {
 #if defined(AMREX_USE_CUDA)
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_CUDA_SAFE_CALL(cudaMemcpyToSymbolAsync(dg, src, nbytes, offset,
                                                  cudaMemcpyHostToDevice,
                                                  Device::gpuStream()));
+    if (guard_active) { Gpu::synchronize(); }
 #elif defined(AMREX_USE_HIP)
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_HIP_SAFE_CALL(hipMemcpyToSymbolAsync(dg, src, nbytes, offset,
                                                hipMemcpyHostToDevice,
                                                Device::gpuStream()));
+    if (guard_active) { Gpu::synchronize(); }
 #elif defined(AMREX_USE_SYCL)
     Device::streamQueue().memcpy(dg, src, nbytes, offset);
 #else
@@ -350,13 +365,19 @@ void memcpy_from_device_global_to_host_async (void* dst, T const& dg,
                                               std::size_t offset = 0)
 {
 #if defined(AMREX_USE_CUDA)
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_CUDA_SAFE_CALL(cudaMemcpyFromSymbolAsync(dst, dg, nbytes, offset,
                                                    cudaMemcpyDeviceToHost,
                                                    Device::gpuStream()));
+    if (guard_active) { Gpu::synchronize(); }
 #elif defined(AMREX_USE_HIP)
+    bool const guard_active = Gpu::syncLaunchGuardActive();
+    if (guard_active) { Gpu::synchronize(); }
     AMREX_HIP_SAFE_CALL(hipMemcpyFromSymbolAsync(dst, dg, nbytes, offset,
                                                   hipMemcpyDeviceToHost,
                                                   Device::gpuStream()));
+    if (guard_active) { Gpu::synchronize(); }
 #elif defined(AMREX_USE_SYCL)
     Device::streamQueue().memcpy(dst, dg, nbytes, offset);
 #else

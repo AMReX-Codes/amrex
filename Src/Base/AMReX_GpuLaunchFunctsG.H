@@ -763,8 +763,8 @@ void launch (T const& n, L const& f) noexcept
                 f(tid+start_idx);
             }
         });
+        AMREX_GPU_ERROR_CHECK();
     }
-    AMREX_GPU_ERROR_CHECK();
 }
 
 template<int MT, int dim, typename L>
@@ -784,8 +784,8 @@ void launch (BoxND<dim> const& box, L const& f) noexcept
                 f(BoxND<dim>(iv,iv,type));
             }
         });
+        AMREX_GPU_ERROR_CHECK();
     }
-    AMREX_GPU_ERROR_CHECK();
 }
 
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
@@ -798,7 +798,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
     for (auto const& ec : nec) {
         const T start_idx = T(ec.start_idx);
         const T nleft = n - start_idx;
-        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+            AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             // This will not overflow, even though nblocks*MT might.
             auto tid = T(MT)*T(blockIdx.x)+T(threadIdx.x);
@@ -808,7 +808,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
                     (std::uint64_t)MT)));
             }
         });
-    }
+        }
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -821,7 +821,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     for (auto const& ec : nec) {
         const auto start_idx = std::uint64_t(ec.start_idx);
-        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+            AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
             if (icell < indexer.numPts()) {
@@ -831,7 +831,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
                     (std::uint64_t)MT)));
             }
         });
-    }
+        }
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -844,7 +844,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
     const auto& nec = Gpu::makeNExecutionConfigs<MT>(box);
     for (auto const& ec : nec) {
         const auto start_idx = std::uint64_t(ec.start_idx);
-        AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
+            AMREX_LAUNCH_KERNEL(MT, ec.nblocks, MT, 0, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept {
             auto icell = std::uint64_t(MT)*blockIdx.x+threadIdx.x + start_idx;
             if (icell < indexer.numPts()) {
@@ -854,7 +854,7 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
                     (std::uint64_t)MT)));
             }
         });
-    }
+        }
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -875,7 +875,7 @@ ParallelForRNG (T n, L const& f) noexcept
             f(T(i),engine);
         }
     });
-    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
+    Gpu::synchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -898,7 +898,7 @@ ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
             detail::call_f_intvect_engine(f, iv, engine);
         }
     });
-    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
+    Gpu::synchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -921,7 +921,7 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
             detail::call_f_intvect_ncomp_engine(f, iv, ncomp, engine);
         }
     });
-    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
+    Gpu::synchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 

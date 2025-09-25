@@ -129,7 +129,12 @@ namespace {
 
             // ..................
             Gpu::Device::setStreamIndex(n%streams);
-            emptyKernel<<<1, 1, 0, Gpu::gpuStream()>>>();
+            {
+                bool const amrex_launch_guard_active = Gpu::syncLaunchGuardActive();
+                if (amrex_launch_guard_active) { Gpu::synchronize(); }
+                emptyKernel<<<1, 1, 0, Gpu::gpuStream()>>>();
+                if (amrex_launch_guard_active) { Gpu::synchronize(); }
+            }
             // ..................
 
             graphExec = Gpu::Device::stopGraphRecording((n == (graph_size-1)));
@@ -726,7 +731,10 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
 #endif
 
+        bool const guard_active = Gpu::syncLaunchGuardActive();
+        if (guard_active) { Gpu::synchronize(); }
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(d_ptr, h_ptr, sz, cudaMemcpyHostToDevice, graph_stream));
+        if (guard_active) { Gpu::synchronize(); }
         AMREX_CUDA_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
 
         // Note: Main graph stream fixed at 0, so i starts at 1.

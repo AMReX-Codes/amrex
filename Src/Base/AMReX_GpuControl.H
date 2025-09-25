@@ -192,6 +192,10 @@ namespace Gpu {
         bool m_prev_flag;
     };
 
+    void pushSyncLaunchGuard () noexcept;
+    void popSyncLaunchGuard () noexcept;
+    [[nodiscard]] bool syncLaunchGuardActive () noexcept;
+
 #else
 
     [[nodiscard]] inline constexpr bool inLaunchRegion () { return false; }
@@ -218,6 +222,9 @@ namespace Gpu {
     [[nodiscard]] inline constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
     struct [[nodiscard]] NoSyncRegion {};
+    inline void pushSyncLaunchGuard () noexcept {}
+    inline void popSyncLaunchGuard () noexcept {}
+    [[nodiscard]] inline constexpr bool syncLaunchGuardActive () noexcept { return false; }
 
 #endif
 

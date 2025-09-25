@@ -82,12 +82,11 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
-        amrex::launch_global<MT>
-            <<<nblocks, MT, 0, Gpu::gpuStream()>>>
-            ([=] AMREX_GPU_DEVICE () noexcept
-             {
-                 int ibox = int(blockIdx.x) / nblocks_per_box;
-                 auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
+        AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept
+        {
+                int ibox = int(blockIdx.x) / nblocks_per_box;
+                auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -99,12 +98,12 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
                  int ibox = int(blockIdxx) / nblocks_per_box;
                  auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
 #endif
-                 BoxIndexer const& indexer = dp_boxes[ibox];
-                 if (icell < indexer.numPts()) {
-                     auto [i, j, k] = indexer(icell);
-                     parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
-                 }
-             });
+                BoxIndexer const& indexer = dp_boxes[ibox];
+                if (icell < indexer.numPts()) {
+                    auto [i, j, k] = indexer(icell);
+                    parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
+                }
+        });
     }
     AMREX_GPU_ERROR_CHECK();
 }

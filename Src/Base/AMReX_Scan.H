@@ -683,7 +683,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
     T* totalsum_p = (a_ret_sum) ? (T*)(The_Pinned_Arena()->alloc(sizeof(T))) : nullptr;
 
-    amrex::launch_global<nthreads> <<<nblocks, nthreads, sm, stream>>> (
+    AMREX_LAUNCH_KERNEL(nthreads, nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE () noexcept
     {
         using BlockLoad = rocprim::block_load<T, nthreads, nelms_per_thread,
@@ -821,7 +821,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
     T* totalsum_p = (a_ret_sum) ? (T*)(The_Pinned_Arena()->alloc(sizeof(T))) : nullptr;
 
-    amrex::launch_global<nthreads> <<<nblocks, nthreads, sm, stream>>> (
+    AMREX_LAUNCH_KERNEL(nthreads, nblocks, nthreads, sm, stream,
     [=] AMREX_GPU_DEVICE () noexcept
     {
         using BlockLoad = cub::BlockLoad<T, nthreads, nelms_per_thread, cub::BLOCK_LOAD_WARP_TRANSPOSE>;
