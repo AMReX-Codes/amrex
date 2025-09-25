@@ -206,7 +206,7 @@ public:
     * \param bc
     * \param func
     * \param interp
-    * \param primary_or_secondary
+    * \param a_primary
     * \param groupsize
     */
     void setComponent (int                comp,

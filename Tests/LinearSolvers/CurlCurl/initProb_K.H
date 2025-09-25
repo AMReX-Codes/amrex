@@ -127,4 +127,135 @@ void actual_init_prob (int i, int j, int k,
     }
 }
 
+#if (AMREX_SPACEDIM == 1)
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void actual_init_prob_sph1d (int i, int j, int k,
+                             amrex::GpuArray<amrex::Array4<amrex::Real>,3> const& rhs,
+                             amrex::GpuArray<amrex::Array4<amrex::Real>,3> const& sol,
+                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& problo,
+                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+                             amrex::Real alpha, amrex::Real beta,
+                             amrex::IntVect const& ndhi)
+{
+    using namespace amrex;
+
+    constexpr Real pi = amrex::Math::pi<Real>();
+
+    Real xnd = problo[0] + Real(i)*dx[0];
+    Real xcc = xnd + Real(0.5)*dx[0];
+
+    if (sol[0].contains(i,j,k)) {
+        Real x = xcc;
+        Real Ex = std::sin(pi*x);
+        sol[0](i,j,k) = Ex;
+    }
+
+    if (sol[1].contains(i,j,k)) {
+        Real x = xnd;
+        Real Ey = std::sin(Real(2.0)*pi*x);
+        sol[1](i,j,k) = Ey;
+    }
+
+    if (sol[2].contains(i,j,k)) {
+        Real x = xnd;
+        Real Ez = std::sin(Real(3.0)*pi*x);
+        sol[2](i,j,k) = Ez;
+    }
+
+    if (rhs[0].contains(i,j,k)) {
+        rhs[0](i,j,k) = beta*sol[0](i,j,k);
+    }
+
+    if (rhs[1].contains(i,j,k)) {
+        Real x = xnd;
+        if ((x == 0) || (i == ndhi[0])) {
+            rhs[1](i,j,k) = 0;
+        } else {
+            auto s = Real(2.0)*pi;
+            Real cce = -Real(2.0)*s*std::cos(s*x)/x + s*s*std::sin(s*x);
+            rhs[1](i,j,k) = alpha*cce + beta*sol[1](i,j,k);
+        }
+    }
+
+    if (rhs[2].contains(i,j,k)) {
+        Real x = xnd;
+        if ((x == 0) || (i == ndhi[0])) {
+            rhs[2](i,j,k) = 0;
+        } else {
+            auto s = Real(3.0)*pi;
+            Real cce = -Real(2.0)*s*std::cos(s*x)/x + s*s*std::sin(s*x);
+            rhs[2](i,j,k) = alpha*cce + beta*sol[2](i,j,k);
+        }
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void actual_init_prob_cyl1d (int i, int j, int k,
+                             amrex::GpuArray<amrex::Array4<amrex::Real>,3> const& rhs,
+                             amrex::GpuArray<amrex::Array4<amrex::Real>,3> const& sol,
+                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& problo,
+                             amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx,
+                             amrex::Real alpha, amrex::Real beta,
+                             amrex::IntVect const& ndhi)
+{
+    using namespace amrex;
+
+    constexpr Real pi = amrex::Math::pi<Real>();
+
+    Real xnd = problo[0] + Real(i)*dx[0];
+    Real xcc = xnd + Real(0.5)*dx[0];
+
+    if (sol[0].contains(i,j,k)) {
+        Real x = xcc;
+        Real Ex = std::sin(pi*x);
+        sol[0](i,j,k) = Ex;
+    }
+
+    if (sol[1].contains(i,j,k)) {
+        Real x = xnd;
+        Real Ey = std::sin(Real(2.0)*pi*x);
+        sol[1](i,j,k) = Ey;
+    }
+
+    if (sol[2].contains(i,j,k)) {
+        Real x = xnd;
+        Real Ez = std::cos(Real(2.5)*pi*x);
+        sol[2](i,j,k) = Ez;
+    }
+
+    if (rhs[0].contains(i,j,k)) {
+        rhs[0](i,j,k) = beta*sol[0](i,j,k);
+    }
+
+    if (rhs[1].contains(i,j,k)) {
+        Real x = xnd;
+        if ((x == 0) || (i == ndhi[0])) {
+            rhs[1](i,j,k) = 0;
+        } else {
+            auto s = Real(2.0)*pi;
+            Real cce = std::sin(s*x)*(s*s+Real(1.0)/(x*x)) - std::cos(s*x)*s/x;
+            rhs[1](i,j,k) = alpha*cce + beta*sol[1](i,j,k);
+        }
+    }
+
+    if (rhs[2].contains(i,j,k)) {
+        if (i == ndhi[0]) {
+            rhs[2](i,j,k) = 0;
+        } else {
+            Real x = xnd;
+            Real s = Real(2.5)*pi;
+            Real cce;
+            if (x == 0) {
+                cce = 2*s*s;
+            } else {
+                cce = std::sin(s*x)*s/x + std::cos(s*x)*s*s;
+            }
+            rhs[2](i,j,k) = alpha*cce + beta*sol[2](i,j,k);
+        }
+    }
+}
+
+#endif
+
 #endif

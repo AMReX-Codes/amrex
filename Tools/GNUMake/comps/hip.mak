@@ -84,11 +84,15 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O1 -munsafe-fp-atomics
-    CFLAGS   += -g -O0
+    ifeq ($(DEBUG_OPT_LEVEL),0)
+      CXXFLAGS += -g -O1 -munsafe-fp-atomics
+    else
+      CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -munsafe-fp-atomics
+    endif
+    CFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
 
-    FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-    F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+    FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+    F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
   else  # DEBUG=FALSE flags
 

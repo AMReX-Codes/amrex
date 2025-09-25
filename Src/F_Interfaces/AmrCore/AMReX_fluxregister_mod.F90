@@ -26,9 +26,7 @@ module amrex_fluxregister_module
      procedure, private :: amrex_fluxregister_assign
      procedure, private :: amrex_fluxregister_fineadd
      procedure, private :: amrex_fluxregister_fineadd_1fab
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fluxregister_destroy
-#endif
   end type amrex_fluxregister
 
   interface
@@ -103,9 +101,11 @@ module amrex_fluxregister_module
      end subroutine amrex_fi_fluxregister_overwrite
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_fluxregister_destroy
      module procedure amrex_fluxregister_destroy
   end interface amrex_fluxregister_destroy
+#endif
 
 contains
 

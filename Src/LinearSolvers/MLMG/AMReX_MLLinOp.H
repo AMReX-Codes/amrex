@@ -372,7 +372,7 @@ public:
      * \param resid        residual
      * \param x            solution
      * \param b            RHS
-     * \param crse_bc_data optional argument providing BC at coarse/fine boundary.
+     * \param crse_bcdata  optional argument providing BC at coarse/fine boundary.
      */
     virtual void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) = 0;
@@ -388,7 +388,7 @@ public:
      * \param x            unknown in the residual-correction form
      * \param b            RHS in the residual-correction form
      * \param bc_mode      Is the BC homogeneous or inhomogeneous?
-     * \param crse_bc_data optional argument providing BC at coarse/fine boundary.
+     * \param crse_bcdata  optional argument providing BC at coarse/fine boundary.
      */
     virtual void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
                                      BCMode bc_mode, const MF* crse_bcdata=nullptr) = 0;
@@ -421,9 +421,10 @@ public:
      * \param sol    solution
      * \param loc    location of the fluxes
      */
-    virtual void compFlux (int /*amrlev*/, const Array<MF*,AMREX_SPACEDIM>& /*fluxes*/,
-                           MF& /*sol*/, Location /*loc*/) const
+    virtual void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
+                           MF& sol, Location loc) const
     {
+        amrex::ignore_unused(amrlev, fluxes, sol, loc);
         amrex::Abort("AMReX_MLLinOp::compFlux::How did we get here?");
     }
 
@@ -435,9 +436,10 @@ public:
      * \param sol    solution
      * \param loc    location of the gradients
      */
-    virtual void compGrad (int /*amrlev*/, const Array<MF*,AMREX_SPACEDIM>& /*grad*/,
-                           MF& /*sol*/, Location /*loc*/) const
+    virtual void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
+                           MF& sol, Location loc) const
     {
+        amrex::ignore_unused(amrlev, grad, sol, loc);
         amrex::Abort("AMReX_MLLinOp::compGrad::How did we get here?");
     }
 
