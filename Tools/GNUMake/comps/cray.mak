@@ -34,17 +34,17 @@ endif
 ifeq ($(DEBUG),TRUE)
 
   ifeq ($(CRAY_IS_CLANG_BASED),TRUE)
-    CXXFLAGS += -g -O0
-    CFLAGS   += -g -O0
-    FFLAGS   += -g -O0 -e i -K trap=fp
-    F90FLAGS += -g -O0 -e i -K trap=fp
+    CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL)
+    CFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
+    FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -e i -K trap=fp
+    F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -e i -K trap=fp
   else
     GENERIC_COMP_FLAGS += -K trap=fp
 
-    CXXFLAGS += -g -O0
-    CFLAGS   += -g -O0
-    FFLAGS   += -g -O0 -e i
-    F90FLAGS += -g -O0 -e i
+    CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL)
+    CFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
+    FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -e i
+    F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -e i
   endif
 
 else

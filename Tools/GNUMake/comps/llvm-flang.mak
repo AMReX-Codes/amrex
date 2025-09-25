@@ -23,11 +23,11 @@ COMP_VERSION = $(clang_version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
-  CFLAGS   += -g -O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable -ftrapv
 
-  FFLAGS   += -g -O0 -ggdb -Wuninitialized -Wunused -ftrapv
-  F90FLAGS += -g -O0 -ggdb -Wuninitialized -Wunused -ftrapv
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ggdb -Wuninitialized -Wunused -ftrapv
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ggdb -Wuninitialized -Wunused -ftrapv
 
 else
 

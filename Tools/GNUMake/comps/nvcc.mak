@@ -111,7 +111,11 @@ ifeq ($(GPU_ERROR_CROSS_EXECUTION_SPACE_CALL),TRUE)
 endif
 
 ifeq ($(DEBUG),TRUE)
+ifeq ($(DEBUG_OPT_LEVEL),0)
   NVCC_FLAGS += -g -G
+else
+  NVCC_FLAGS += -g -lineinfo --ptxas-options=-O$(DEBUG_OPT_LEVEL)
+endif
 else
   NVCC_FLAGS += -lineinfo --ptxas-options=-O3
 endif

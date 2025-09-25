@@ -112,6 +112,12 @@ else
   DEBUG := FALSE
 endif
 
+ifdef DEBUG_OPT_LEVEL
+  DEBUG_OPT_LEVEL := $(strip $(DEBUG_OPT_LEVEL))
+else
+  DEBUG_OPT_LEVEL := 0
+endif
+
 ifdef USE_FFT
   USE_FFT := $(strip $(USE_FFT))
 else

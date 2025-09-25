@@ -21,10 +21,10 @@ F90FLAGS =
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -ftrapv
-  CFLAGS   += -g -O0 -ftrapv
-  FFLAGS   += -g -O0 -ftrapv
-  F90FLAGS += -g -O0 -ftrapv
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -ftrapv
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ftrapv
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ftrapv
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ftrapv
 
 else
 
