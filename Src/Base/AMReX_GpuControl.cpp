@@ -33,12 +33,6 @@ bool syncLaunchGuardActive () noexcept
     return sync_launch_guard_counter.load(std::memory_order_relaxed) > 0;
 }
 
-#else
-
-void pushSyncLaunchGuard () noexcept {}
-void popSyncLaunchGuard () noexcept {}
-bool syncLaunchGuardActive () noexcept { return false; }
-
 #endif
 
 } // namespace amrex::Gpu
