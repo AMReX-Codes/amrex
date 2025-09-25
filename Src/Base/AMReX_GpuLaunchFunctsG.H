@@ -875,7 +875,7 @@ ParallelForRNG (T n, L const& f) noexcept
             f(T(i),engine);
         }
     });
-    Gpu::synchronize(); // To avoid multiple streams using RNG
+    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -898,7 +898,7 @@ ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
             detail::call_f_intvect_engine(f, iv, engine);
         }
     });
-    Gpu::synchronize(); // To avoid multiple streams using RNG
+    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -921,7 +921,7 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
             detail::call_f_intvect_ncomp_engine(f, iv, ncomp, engine);
         }
     });
-    Gpu::synchronize(); // To avoid multiple streams using RNG
+    Gpu::streamSynchronize(); // To avoid multiple streams using RNG
     AMREX_GPU_ERROR_CHECK();
 }
 
