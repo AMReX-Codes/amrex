@@ -87,6 +87,12 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
         {
                 int ibox = int(blockIdx.x) / nblocks_per_box;
                 auto icell = std::uint64_t(blockIdx.x-ibox*nblocks_per_box)*MT + threadIdx.x;
+                BoxIndexer const& indexer = dp_boxes[ibox];
+                if (icell < indexer.numPts()) {
+                    auto [i, j, k] = indexer(icell);
+                    parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
+                }
+        });
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -97,13 +103,18 @@ ParallelFor (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, boo
                  int threadIdxx = item.get_local_linear_id();
                  int ibox = int(blockIdxx) / nblocks_per_box;
                  auto icell = std::uint64_t(blockIdxx-ibox*nblocks_per_box)*MT + threadIdxx;
+                 BoxIndexer const& indexer = dp_boxes[ibox];
+                 if (icell < indexer.numPts()) {
+                     auto [i, j, k] = indexer(icell);
+                     parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
+                 }
+             });
+
+#else
+
+        amrex::Abort("ParallelFor: unsupported GPU backend");
+
 #endif
-                BoxIndexer const& indexer = dp_boxes[ibox];
-                if (icell < indexer.numPts()) {
-                    auto [i, j, k] = indexer(icell);
-                    parfor_mf_detail::call_f(f, ibox, i, j, k, ncomp);
-                }
-        });
     }
     AMREX_GPU_ERROR_CHECK();
 }
