@@ -385,18 +385,14 @@ public:
             reduce_data.updateMaxStreamIndex(stream);
 
 #ifdef AMREX_USE_SYCL
-            // device reduce needs local(i.e., shared) memory
+            // device reduce needs local (i.e., shared) memory
             constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
             amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
                           [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
             {
                 Dim1 blockIdx {gh.blockIdx()};
                 Dim1 threadIdx{gh.threadIdx()};
-#else
-            AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
-            [=] AMREX_GPU_DEVICE () noexcept
-            {
-#endif
+
                 ReduceTuple r;
                 Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
                 ReduceTuple& dst = pdst[blockIdx.x];
@@ -414,12 +410,32 @@ public:
                             (f, ibox, i, j, k, ncomp, r);
                     }
                 }
-#ifdef AMREX_USE_SYCL
                 Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-#else
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
-#endif
             });
+#else
+            AMREX_LAUNCH_KERNEL(AMREX_GPU_MAX_THREADS, nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream,
+            [=] AMREX_GPU_DEVICE () noexcept
+            {
+                ReduceTuple r;
+                Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
+                ReduceTuple& dst = pdst[blockIdx.x];
+                if (threadIdx.x == 0) {
+                    dst = r;
+                }
+                for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
+                    int ibox = iblock / nblocks_per_box;
+                    auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+
+                    BoxIndexer const& indexer = dp_boxes[ibox];
+                    if (icell < indexer.numPts()) {
+                        auto [i, j, k] = indexer(icell);
+                        Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>
+                            (f, ibox, i, j, k, ncomp, r);
+                    }
+                }
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+            });
+#endif
         }
     }
 
@@ -500,7 +516,7 @@ public:
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
-        // device reduce needs local(i.e., shared) memory
+        // device reduce needs local (i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
@@ -508,18 +524,15 @@ public:
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
             Dim1 gridDim  {gh.gridDim()};
-#else
-        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
-        [=] AMREX_GPU_DEVICE () noexcept
-        {
-#endif
+
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x,
+                     stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -530,12 +543,33 @@ public:
                 auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
             }
-#ifdef AMREX_USE_SYCL
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-#else
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
-#endif
         });
+#else
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
+        [=] AMREX_GPU_DEVICE () noexcept
+        {
+            ReduceTuple r;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
+            ReduceTuple& dst = *(dp+blockIdx.x);
+            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
+                dst = r;
+            }
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x,
+                     stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+                 icell < ncells; icell += stride) {
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+            }
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+        });
+#endif
         nblocks = std::max(nblocks, nblocks_ec);
     }
 
@@ -558,7 +592,7 @@ public:
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
-        // device reduce needs local(i.e., shared) memory
+        // device reduce needs local (i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
@@ -566,18 +600,15 @@ public:
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
             Dim1 gridDim  {gh.gridDim()};
-#else
-        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
-        [=] AMREX_GPU_DEVICE () noexcept
-        {
-#endif
+
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x,
+                     stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  icell < ncells; icell += stride) {
                 int k =  icell /   lenxy;
                 int j = (icell - k*lenxy) /   lenx;
@@ -590,12 +621,35 @@ public:
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 }
             }
-#ifdef AMREX_USE_SYCL
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-#else
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
-#endif
         });
+#else
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
+        [=] AMREX_GPU_DEVICE () noexcept
+        {
+            ReduceTuple r;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
+            ReduceTuple& dst = *(dp+blockIdx.x);
+            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
+                dst = r;
+            }
+            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x,
+                     stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+                 icell < ncells; icell += stride) {
+                int k =  icell /   lenxy;
+                int j = (icell - k*lenxy) /   lenx;
+                int i = (icell - k*lenxy) - j*lenx;
+                i += lo.x;
+                j += lo.y;
+                k += lo.z;
+                for (N n = 0; n < ncomp; ++n) {
+                    auto pr = f(i,j,k,n);
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+                }
+            }
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+        });
+#endif
         nblocks = std::max(nblocks, nblocks_ec);
     }
 
@@ -614,7 +668,7 @@ public:
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
-        // device reduce needs local(i.e., shared) memory
+        // device reduce needs local (i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
         amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
         [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
@@ -622,28 +676,40 @@ public:
             Dim1 blockIdx {gh.blockIdx()};
             Dim1 threadIdx{gh.threadIdx()};
             Dim1 gridDim  {gh.gridDim()};
-#else
-        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
-        [=] AMREX_GPU_DEVICE () noexcept
-        {
-#endif
+
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
             ReduceTuple& dst = *(dp+blockIdx.x);
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x,
+                     stride = AMREX_GPU_MAX_THREADS*gridDim.x;
                  i < n; i += stride) {
                 auto pr = f(i);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
-#ifdef AMREX_USE_SYCL
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
-#else
-            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
-#endif
         });
+#else
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
+        [=] AMREX_GPU_DEVICE () noexcept
+        {
+            ReduceTuple r;
+            Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
+            ReduceTuple& dst = *(dp+blockIdx.x);
+            if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
+                dst = r;
+            }
+            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x,
+                     stride = AMREX_GPU_MAX_THREADS*gridDim.x;
+                 i < n; i += stride) {
+                auto pr = f(i);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
+            }
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+        });
+#endif
         nblocks = amrex::max(nblocks, nblocks_ec);
     }
 
