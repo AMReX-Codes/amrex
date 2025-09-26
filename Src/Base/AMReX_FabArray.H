@@ -1220,7 +1220,10 @@ public:
     * \brief Sum values in overlapped cells.
     *
     * The destination is limited to valid cells. Note that being
-    * deterministic is not the same as data consistency on shared nodes.
+    * deterministic is not the same as data consistency on shared nodes. If
+    * you want data consitency on shared nodes, you can call OverrideSync
+    * after this. Sometimes, you can also wait till you need to do ghost
+    * cell exchanges, and you can then call FillBoundaryAndSync to do both.
     */
     void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic(),
                       bool deterministic = false);
@@ -1235,7 +1238,10 @@ public:
     * \brief Sum values in overlapped cells.
     *
     * The destination is limited to valid + ngrow cells. Note that being
-    * deterministic is not the same as data consistency on shared nodes.
+    * deterministic is not the same as data consistency on shared nodes. If
+    * you want data consitency on shared nodes, you can call OverrideSync
+    * after this. Sometimes, you can also wait till you need to do ghost
+    * cell exchanges, and you can then call FillBoundaryAndSync to do both.
     */
     void SumBoundary (int scomp, int ncomp, IntVect const& nghost,
                       const Periodicity& period = Periodicity::NonPeriodic(),
@@ -1249,7 +1255,10 @@ public:
     *
     * For computing the overlap, the dst is grown by dst_ngrow, while the
     * src uses src_ngrow. Note that being deterministic is not the same as
-    * data consistency on shared nodes.
+    * data consistency on shared nodes. If you want data consitency on
+    * shared nodes, you can call OverrideSync after this. Sometimes, you can
+    * also wait till you need to do ghost cell exchanges, and you can then
+    * call FillBoundaryAndSync to do both.
     */
     void SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
                       const Periodicity& period = Periodicity::NonPeriodic(),
