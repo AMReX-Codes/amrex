@@ -15,11 +15,11 @@ F90FLAGS =
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -fno-inline -ftrace -Wall -Wunused
-  CFLAGS   += -g -O0 -fno-inline -ftrace -Wall -Wunused
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -fno-inline -ftrace -Wall -Wunused
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -fno-inline -ftrace -Wall -Wunused
 
-  FFLAGS   += -g -O0 -fcheck=bounds -ftrace -Wuninitialized
-  F90FLAGS += -g -O0 -fcheck=bounds -ftrace -Wuninitialized
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -fcheck=bounds -ftrace -Wuninitialized
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -fcheck=bounds -ftrace -Wuninitialized
 
 else
 

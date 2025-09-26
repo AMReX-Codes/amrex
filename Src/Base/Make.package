@@ -132,7 +132,7 @@ C${AMREX_BASE}_headers += AMReX_IOFormat.H
 #
 # Index space.
 #
-C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_BoxIterator.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
+C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
 C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
 C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H AMReX_Loop.nolint.H
@@ -192,7 +192,7 @@ C$(AMREX_BASE)_sources += AMReX_MultiFabUtil.cpp
 C$(AMREX_BASE)_headers += AMReX_MultiFabUtilI.H
 
 #
-# Boundary-related 
+# Boundary-related
 #
 C$(AMREX_BASE)_sources += AMReX_BCRec.cpp
 C$(AMREX_BASE)_headers += AMReX_BCRec.H AMReX_BC_TYPES.H
@@ -307,7 +307,7 @@ INCLUDE_LOCATIONS += $(AMREX_HOME)/Src/Base
 
 CEXE_headers += amrex_parser.lex.h
 CEXE_headers += amrex_parser.lex.nolint.H
-CEXE_sources += amrex_parser.lex.cpp 
+CEXE_sources += amrex_parser.lex.cpp
 CEXE_headers += amrex_parser.tab.h
 CEXE_headers += amrex_parser.tab.nolint.H
 CEXE_sources += amrex_parser.tab.cpp
@@ -323,7 +323,7 @@ CEXE_sources += AMReX_Parser.cpp
 
 CEXE_headers += amrex_iparser.lex.h
 CEXE_headers += amrex_iparser.lex.nolint.H
-CEXE_sources += amrex_iparser.lex.cpp 
+CEXE_sources += amrex_iparser.lex.cpp
 CEXE_headers += amrex_iparser.tab.h
 CEXE_headers += amrex_iparser.tab.nolint.H
 CEXE_sources += amrex_iparser.tab.cpp
