@@ -32,6 +32,26 @@ Atomic accumulations in FAB-based operations
   :file:`Src/EB/AMReX_EB_StateRedistUtils.cpp`).  The choice of CUDA/HIP warp
   scheduling determines the summation order.
 
+AMR flux registers
+------------------
+
+* ``YAFluxRegister`` employs ``HostDevice::Atomic::Add`` while accumulating
+  fine fluxes back onto coarse faces (:file:`Src/Boundary/AMReX_YAFluxRegister_3D_K.H`).
+  The atomic updates allow multiple fine patches to update the same coarse cell
+  concurrently, so the final ordering depends on GPU thread/block scheduling or
+  OpenMP interleaving. ``EBFluxRegister`` inherits this implementation and
+  introduces additional atomic accumulations when redistributing embedded
+  boundary fluxes (:file:`Src/EB/AMReX_EBFluxRegister_3D_C.H`).
+* The legacy ``FluxRegister`` implementation coarsens fine fluxes inside a
+  single thread before writing to the coarse register, avoiding atomic
+  operations (:file:`Src/AmrCore/AMReX_FluxReg_3D_C.H`).  Likewise,
+  ``EdgeFluxRegister`` (used for constrained-transport electric fields) loops
+  over all fine contributions within the thread that owns the coarse edge, so
+  its updates are deterministic (:file:`Src/Boundary/AMReX_EdgeFluxRegister.cpp`).
+  The Fortran-facing ``FlashFluxRegister`` follows the same pattern and keeps
+  its reductions local to the thread that owns the coarse face
+  (:file:`Src/F_Interfaces/AmrCore/AMReX_FlashFluxRegister.H`).
+
 Particle to mesh deposition
 ---------------------------
 
