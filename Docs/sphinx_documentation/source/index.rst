@@ -58,6 +58,7 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    Visualization_Chapter
    Post_Processing_Chapter
    Debugging
+   Nondeterminism
    RuntimeParameters
    AMReX_Profiling_Tools_Chapter
    External_Profiling_Tools_Chapter
