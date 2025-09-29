@@ -106,7 +106,7 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
     constexpr int tile_dim = 32;
-    constexpr int block_rows = 8;
+    constexpr int block_rows = 16;
     constexpr int nthreads = tile_dim*block_rows;
 
     // Each block has tile_dim x block_rows threads. They work on a tile_dim
@@ -121,31 +121,29 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
     {
         __shared__ T tile[tile_dim][tile_dim+1]; // +1 to avoid bank conflicts
 
-        int tx = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
-        int ty = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
+        int k = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
+        int i = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
 
         int j = blockIdx.z; // for y-direction
 
-        if (tx < nz) {
-            for (int it = 0; it < tile_dim; it += block_rows) {
-                int i = it + ty;
+        if (k < nz) {
+            for (int it = 0; it < tile_dim; it += block_rows, i += block_rows) {
                 if (i < nx) {
                     //      x               z
-                    tile[threadIdx.y+it][threadIdx.x] = pi[tx + (j+i*std::size_t(ny))*nz];
+                    tile[threadIdx.y+it][threadIdx.x] = pi[k + (j+i*std::size_t(ny))*nz];
                 }
             }
         }
 
         __syncthreads();
 
-        tx = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
-        ty = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
+        i = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
+        k = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
 
-        if (tx < nx) {
-            for (int it = 0; it < tile_dim; it += block_rows) {
-                int k = it + ty;
+        if (i < nx) {
+            for (int it = 0; it < tile_dim; it += block_rows, k += block_rows) {
                 if (k < nz) {
-                    po[tx + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
+                    po[i + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
                 }
             }
         }
@@ -157,7 +155,6 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 
     constexpr int tile_dim = 32;
     constexpr int block_rows = 8;
-    constexpr int nthreads = tile_dim*block_rows;
 
     // Each block has tile_dim x block_rows threads. They work on a tile_dim
     // x tile_dim tile.
@@ -186,31 +183,29 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
                            unsigned(item.get_local_id(1)),
                            unsigned(item.get_local_id(0))};
 
-            int tx = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
-            int ty = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
+            int k = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
+            int i = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
 
             int j = blockIdx.z; // for y-direction
 
-            if (tx < nz) {
-                for (int it = 0; it < tile_dim; it += block_rows) {
-                    int i = it + ty;
+            if (k < nz) {
+                for (int it = 0; it < tile_dim; it += block_rows, i += block_rows) {
                     if (i < nx) {
                         //      x               z
-                        tile[threadIdx.y+it][threadIdx.x] = pi[tx + (j+i*std::size_t(ny))*nz];
+                        tile[threadIdx.y+it][threadIdx.x] = pi[k + (j+i*std::size_t(ny))*nz];
                     }
                 }
             }
 
             item.barrier(sycl::access::fence_space::local_space);
 
-            tx = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
-            ty = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
+            i = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
+            k = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
 
-            if (tx < nx) {
-                for (int it = 0; it < tile_dim; it += block_rows) {
-                    int k = it + ty;
+            if (i < nx) {
+                for (int it = 0; it < tile_dim; it += block_rows, k += block_rows) {
                     if (k < nz) {
-                        po[tx + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
+                        po[i + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
                     }
                 }
             }
