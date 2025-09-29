@@ -1,11 +1,6 @@
 add_amrex_define(AMREX_USE_HYPRE NO_LEGACY NO_1D IF AMReX_HYPRE)
 
 foreach(D IN LISTS AMReX_SPACEDIM)
-    if (D EQUAL 1)
-        message(WARNING "HYPRE interfaces are not supported for 1D builds (skipping)")
-        continue()
-    endif ()
-
     #
     # This file gets processed if either AMReX_PETSC or AMReX_HYPRE are ON
     # If only AMReX_PETSC is ON, we just need to include this directory
