@@ -63,7 +63,6 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
     : comm(comm_),
       geom(geom_)
 {
-    static_assert(AMREX_SPACEDIM > 1, "PETScABecLap: 1D not supported");
     static_assert(std::is_same_v<Real, PetscScalar>, "amrex::Real != PetscScalar");
 
     const int ncomp = 1;

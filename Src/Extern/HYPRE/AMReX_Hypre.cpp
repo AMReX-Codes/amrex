@@ -29,8 +29,6 @@ Hypre::Hypre (const BoxArray& grids, const DistributionMapping& dmap,
     : comm(comm_),
       geom(geom_)
 {
-    static_assert(AMREX_SPACEDIM > 1, "Hypre: 1D not supported");
-
     // This is not static_assert because HypreSolver class does not require this.
     if (!std::is_same_v<Real, HYPRE_Real>) {
         amrex::Abort("amrex::Real != HYPRE_Real");
