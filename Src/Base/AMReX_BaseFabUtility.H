@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BaseFab.H>
+#include <AMReX_TableData.H>
 #include <AMReX_TypeTraits.H>
 
 namespace amrex {
@@ -93,6 +94,87 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
             f(aos(i,j,k), i, j, k);
         });
     }
+}
+
+//! Transpose 3D array (nx,ny,nz) from row-major (i.e. C order) to
+//! column-major (Fortran order). The input's unit stride direction is z,
+//! whereas the output's unit stride direction is x.
+template <typename T>
+void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
+{
+    AMREX_ALWAYS_ASSERT(pi != po);
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    constexpr int tile_dim = 32;
+    constexpr int block_rows = 8;
+    constexpr int nthreads = tile_dim*block_rows;
+
+    // Each block has tile_dim x block_rows threads. They work on a tile_dim
+    // x tile_dim tile.
+
+    dim3 block{unsigned(tile_dim), unsigned(block_rows), 1};
+    dim3 grid{unsigned((nx+tile_dim-1)/tile_dim),
+              unsigned((nz+tile_dim-1)/tile_dim), unsigned(ny)};
+
+    AMREX_LAUNCH_KERNEL(nthreads, grid, block, 0, Gpu::gpuStream(),
+    [=] AMREX_GPU_DEVICE ()
+    {
+        __shared__ T tile[tile_dim][tile_dim+1]; // +1 to avoid bank conflicts
+
+        int tx = blockIdx.y * tile_dim + threadIdx.x; // for loading z-direction
+        int ty = blockIdx.x * tile_dim + threadIdx.y; // for loading x-direction
+
+        int j = blockIdx.z; // for y-direction
+
+        if (tx < nz) {
+            for (int it = 0; it < tile_dim; it += block_rows) {
+                int i = it + ty;
+                if (i < nx) {
+                    //      x               z
+                    tile[threadIdx.y+it][threadIdx.x] = pi[tx + (j+i*std::size_t(ny))*nz];
+                }
+            }
+        }
+
+        __syncthreads();
+
+        tx = blockIdx.x * tile_dim + threadIdx.x; // for storing x-direction
+        ty = blockIdx.y * tile_dim + threadIdx.y; // for storing z-direction
+
+        if (tx < nx) {
+            for (int it = 0; it < tile_dim; it += block_rows) {
+                int k = it + ty;
+                if (k < nz) {
+                    po[tx + (j+k*std::size_t(ny))*nx] = tile[threadIdx.x][threadIdx.y+it];
+                }
+            }
+        }
+    });
+    AMREX_GPU_ERROR_CHECK();
+
+#else
+
+    Table3D<T const, Order::C> ctab(pi, {0,0,0}, {nx, ny, nz});
+    Table3D<T      , Order::F> ftab(po, {0,0,0}, {nx, ny, nz});
+    BoxND<3> box(IntVectND<3>(0), IntVectND<3>(nx-1,ny-1,nz-1));
+    ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+    {
+        ftab(i,j,k) = ctab(i,j,k);
+    });
+
+#endif
+
+    Gpu::streamSynchronize();
+}
+
+//! Transpose 2D array (nx,ny) from row-major (i.e. C order) to column-major
+//! (Fortran order). The input's unit stride direction is y, whereas the
+//! output's unit stride direction is x.
+template <typename T>
+void transposeCtoF (T const* pi, T* po, int nx, int ny)
+{
+    transposeCtoF(pi, po, nx, 1, ny);
 }
 
 }
