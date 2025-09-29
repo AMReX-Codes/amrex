@@ -121,9 +121,16 @@ fab_to_fab_other (Vector<TagType> const& tags, int scomp, int dcomp, int ncomp, 
 #if defined(AMREX_USE_CUDA)
 
 #if defined(__CUDA_ARCH__) && (__CUDA_ARCH__ < 700)
+#if defined(_WIN32)
+                volatile int tmp; // prevent optimization
+                for (int c = 0; c < 2; ++c) {
+                    ++tmp;
+                }
+#else
                 for (int c = 0; c < 2; ++c) {
                     __asm__ volatile(""); // prevent optimization
                 }
+#endif
 #else
                 __nanosleep(1);
 #endif
