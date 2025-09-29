@@ -162,10 +162,12 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
     // Each block has tile_dim x block_rows threads. They work on a tile_dim
     // x tile_dim tile.
 
-    sycl::range<3> block{1, unsigned(block_rows), unsigned(tile_dim)};
-    sycl::range<3> grid{unsigned(ny),
-                        unsigned((nz+tile_dim-1)/tile_dim),
-                        unsigned((nx+tile_dim-1)/tile_dim)};
+    sycl::range<3> block{std::size_t(1), std::size_t(block_rows), std::size_t(tile_dim)};
+    sycl::range<3> grid{std::size_t(ny), std::size_t((nz+tile_dim-1)/tile_dim),
+                                         std::size_t((nx+tile_dim-1)/tile_dim)};
+    sycl::range<3> global_size{grid[0]*block[0],
+                               grid[1]*block[1],
+                               grid[2]*block[2]};
 
     auto& q = *(Gpu::gpuStream().queue);
     try {
@@ -173,7 +175,7 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
       {
         auto tile = sycl::local_accessor<T,2>(sycl::range<2>(tile_dim,tile_dim+1),h);
 
-        h.parallel_for(sycl::nd_range<3>(grid, block),
+        h.parallel_for(sycl::nd_range<3>(global_size, block),
         [=] (sycl::nd_item<3> item)
         {
             auto group = item.get_group();
