@@ -155,6 +155,9 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 
 #else
 
+#if defined(AMREX_USE_SYCL)
+
+    // We can implement a shared memory version for SYCL in the future
     Table3D<T const, Order::C> ctab(pi, {0,0,0}, {nx, ny, nz});
     Table3D<T      , Order::F> ftab(po, {0,0,0}, {nx, ny, nz});
     BoxND<3> box(IntVectND<3>(0), IntVectND<3>(nx-1,ny-1,nz-1));
@@ -162,6 +165,36 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
     {
         ftab(i,j,k) = ctab(i,j,k);
     });
+
+#else
+
+    constexpr int bx = 32;
+    constexpr int bz = 32;
+
+    std::size_t nxy = std::size_t(nx) * ny;
+    std::size_t nyz = std::size_t(ny) * nz;
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for collapse(3)
+#endif
+    for (int j = 0; j < ny; ++j) {
+        for (int k0 = 0; k0 < nz; k0 += bz) {
+            for (int i0 = 0; i0 < nx; i0 += bx) {
+                int imax = std::min(i0+bx, nx);
+                int kmax = std::min(k0+bz, nz);
+                auto      * AMREX_RESTRICT pdst = po + j*std::size_t(nx);
+                auto const* AMREX_RESTRICT psrc = pi + j*std::size_t(nz);
+                for (int i = i0; i < imax; ++i) {
+                    AMREX_PRAGMA_SIMD
+                    for (int k = k0; k < kmax; ++k) {
+                        pdst[i + k*nxy] = psrc[k + i*nyz];
+                    }
+                }
+            }
+        }
+    }
+
+#endif
 
 #endif
 
