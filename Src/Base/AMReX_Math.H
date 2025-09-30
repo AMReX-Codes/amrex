@@ -9,6 +9,7 @@
 #include <AMReX_REAL.H>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <type_traits>
 #include <utility>
 

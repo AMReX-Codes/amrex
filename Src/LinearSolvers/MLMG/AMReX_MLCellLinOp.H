@@ -144,7 +144,7 @@ public:
 
     Vector<std::unique_ptr<MF> > m_robin_bcval;
 
-    void setInterpBndryHalfWidth (int w) { m_interpbndry_halfwidth = w; }
+    void setInterpBndryHalfWidth (int w) { this->m_interpbndry_halfwidth = w; }
 
 protected:
 
@@ -441,17 +441,17 @@ MLCellLinOpT<MF>::defineBC ()
 
     const int ncomp = this->getNComp();
 
-    m_bndry_sol.resize(this->m_num_amr_levels);
-    m_crse_sol_br.resize(this->m_num_amr_levels);
+    this->m_bndry_sol.resize(this->m_num_amr_levels);
+    this->m_crse_sol_br.resize(this->m_num_amr_levels);
 
     m_bndry_cor.resize(this->m_num_amr_levels);
     m_crse_cor_br.resize(this->m_num_amr_levels);
 
-    m_robin_bcval.resize(this->m_num_amr_levels);
+    this->m_robin_bcval.resize(this->m_num_amr_levels);
 
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
-        m_bndry_sol[amrlev] = std::make_unique<MLMGBndryT<MF>>(this->m_grids[amrlev][0],
+        this->m_bndry_sol[amrlev] = std::make_unique<MLMGBndryT<MF>>(this->m_grids[amrlev][0],
                                                                this->m_dmap[amrlev][0],
                                                                ncomp,
                                                                this->m_geom[amrlev][0]);
@@ -465,7 +465,7 @@ MLCellLinOpT<MF>::defineBC ()
         const int crse_ratio = this->m_amr_ref_ratio[amrlev-1];
         BoxArray cba = this->m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
-        m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
+        this->m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
             (cba, this->m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
     }
 
@@ -502,13 +502,13 @@ MLCellLinOpT<MF>::defineBC ()
         m_bndry_cor[amrlev]->setLOBndryConds(bclohi, bclohi, this->m_amr_ref_ratio[amrlev-1], RealVect{});
     }
 
-    m_bcondloc.resize(this->m_num_amr_levels);
+    this->m_bcondloc.resize(this->m_num_amr_levels);
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
-        m_bcondloc[amrlev].resize(this->m_num_mg_levels[amrlev]);
+        this->m_bcondloc[amrlev].resize(this->m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
-            m_bcondloc[amrlev][mglev] = std::make_unique<BndryCondLoc>(this->m_grids[amrlev][mglev],
+            this->m_bcondloc[amrlev][mglev] = std::make_unique<BndryCondLoc>(this->m_grids[amrlev][mglev],
                                                                        this->m_dmap[amrlev][mglev],
                                                                        ncomp);
         }
@@ -549,7 +549,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio[hidden_dir] == 1);
             }
             br_ref_ratio = this->m_coarse_data_crse_ratio.allGT(0) ? this->m_coarse_data_crse_ratio : IntVect(2);
-            if (m_crse_sol_br[amrlev] == nullptr && br_ref_ratio.allGT(0))
+            if (this->m_crse_sol_br[amrlev] == nullptr && br_ref_ratio.allGT(0))
             {
                 const int in_rad = 0;
                 const int out_rad = 1;
@@ -557,43 +557,43 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 const IntVect crse_ratio = br_ref_ratio;
                 BoxArray cba = this->m_grids[amrlev][0];
                 cba.coarsen(crse_ratio);
-                m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
+                this->m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
                     (cba, this->m_dmap[amrlev][0], in_rad, out_rad, extent_rad, ncomp);
             }
             if (this->m_coarse_data_for_bc != nullptr) {
                 AMREX_ALWAYS_ASSERT(this->m_coarse_data_crse_ratio.allGT(0));
                 const Box& cbx = amrex::coarsen(this->m_geom[0][0].Domain(), this->m_coarse_data_crse_ratio);
-                m_crse_sol_br[amrlev]->copyFrom(*this->m_coarse_data_for_bc, 0, 0, 0, ncomp,
+                this->m_crse_sol_br[amrlev]->copyFrom(*(this->m_coarse_data_for_bc), 0, 0, 0, ncomp,
                                                 this->m_geom[0][0].periodicity(cbx));
             } else {
-                m_crse_sol_br[amrlev]->setVal(RT(0.0));
+                this->m_crse_sol_br[amrlev]->setVal(RT(0.0));
             }
-            m_bndry_sol[amrlev]->setBndryValues(*m_crse_sol_br[amrlev], 0,
+            this->m_bndry_sol[amrlev]->setBndryValues(*(this->m_crse_sol_br[amrlev]), 0,
                                                 bcdata, 0, 0, ncomp, br_ref_ratio,
                                                 InterpBndryDataT<MF>::IBD_max_order_DEF,
-                                                m_interpbndry_halfwidth);
+                                                this->m_interpbndry_halfwidth);
             br_ref_ratio = this->m_coarse_data_crse_ratio;
         }
         else
         {
-            m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
+            this->m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
             br_ref_ratio = IntVect(1);
         }
     }
     else
     {
-        m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
+        this->m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
         br_ref_ratio = IntVect(this->m_amr_ref_ratio[amrlev-1]);
     }
 
     auto crse_fine_bc_type = (amrlev == 0) ? this->m_coarse_fine_bc_type : LinOpBCType::Dirichlet;
-    m_bndry_sol[amrlev]->setLOBndryConds(this->m_lobc, this->m_hibc, br_ref_ratio,
+    this->m_bndry_sol[amrlev]->setLOBndryConds(this->m_lobc, this->m_hibc, br_ref_ratio,
                                          this->m_coarse_bc_loc, crse_fine_bc_type);
 
     const Real* dx = this->m_geom[amrlev][0].CellSize();
     for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
     {
-        m_bcondloc[amrlev][mglev]->setLOBndryConds(this->m_geom[amrlev][mglev], dx,
+        this->m_bcondloc[amrlev][mglev]->setLOBndryConds(this->m_geom[amrlev][mglev], dx,
                                                    this->m_lobc, this->m_hibc,
                                                    br_ref_ratio, this->m_coarse_bc_loc,
                                                    this->m_domain_bloc_lo, this->m_domain_bloc_hi,
@@ -602,7 +602,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
 
     if (this->hasRobinBC()) {
         AMREX_ASSERT(robinbc_a != nullptr && robinbc_b != nullptr && robinbc_f != nullptr);
-        m_robin_bcval[amrlev] = std::make_unique<MF>(this->m_grids[amrlev][0],
+        this->m_robin_bcval[amrlev] = std::make_unique<MF>(this->m_grids[amrlev][0],
                                                      this->m_dmap[amrlev][0],
                                                      ncomp*3, 1);
         const Box& domain = this->m_geom[amrlev][0].Domain();
@@ -611,7 +611,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(*m_robin_bcval[amrlev], mfi_info); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(*(this->m_robin_bcval[amrlev]), mfi_info); mfi.isValid(); ++mfi) {
             Box const& vbx = mfi.validbox();
             Array4<RT const> const& ra = robinbc_a->const_array(mfi);
             Array4<RT const> const& rb = robinbc_b->const_array(mfi);
@@ -623,7 +623,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
                 bool outside_domain_hi = !(domain.contains(bhi));
                 if ((!outside_domain_lo) && (!outside_domain_hi)) { continue; }
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
-                    Array4<RT> const& rbc = (*m_robin_bcval[amrlev])[mfi].array(icomp*3);
+                    Array4<RT> const& rbc = (*(this->m_robin_bcval[amrlev]))[mfi].array(icomp*3);
                     if (this->m_lobc_orig[icomp][idim] == LinOpBCType::Robin && outside_domain_lo)
                     {
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(blo, i, j, k,
@@ -663,12 +663,12 @@ MLCellLinOpT<MF>::updateSolBC (int amrlev, const MF& crse_bcdata) const
 
     AMREX_ALWAYS_ASSERT(amrlev > 0);
     const int ncomp = this->getNComp();
-    m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, ncomp,
+    this->m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, ncomp,
                                     this->m_geom[amrlev-1][0].periodicity());
-    m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, ncomp,
+    this->m_bndry_sol[amrlev]->updateBndryValues(*(this->m_crse_sol_br[amrlev]), 0, 0, ncomp,
                                            IntVect(this->m_amr_ref_ratio[amrlev-1]),
                                            InterpBndryDataT<MF>::IBD_max_order_DEF,
-                                           m_interpbndry_halfwidth);
+                                           this->m_interpbndry_halfwidth);
 }
 
 template <typename MF>
@@ -683,7 +683,7 @@ MLCellLinOpT<MF>::updateCorBC (int amrlev, const MF& crse_bcdata) const
     m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, ncomp,
                                            IntVect(this->m_amr_ref_ratio[amrlev-1]),
                                            InterpBndryDataT<MF>::IBD_max_order_DEF,
-                                           m_interpbndry_halfwidth);
+                                           this->m_interpbndry_halfwidth);
 }
 
 template <typename MF>
@@ -712,7 +712,7 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
     const RT dzi = (AMREX_SPACEDIM == 3) ? static_cast<RT>(dxinv[2]) : RT(1.0);
 
     const auto& maskvals = m_maskvals[amrlev][mglev];
-    const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+    const auto& bcondloc = *(this->m_bcondloc[amrlev][mglev]);
 
     FAB foofab(Box::TheUnitBox(),ncomp);
     const auto& foo = foofab.const_array();
@@ -1237,7 +1237,7 @@ MLCellLinOpT<MF>::solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
     }
     const int mglev = 0;
     apply(amrlev, mglev, resid, x, BCMode::Inhomogeneous, StateMode::Solution,
-          m_bndry_sol[amrlev].get());
+          this->m_bndry_sol[amrlev].get());
 
     AMREX_ASSERT(resid.nComp() == b.nComp());
     MF::Xpay(resid, RT(-1.0), b, 0, 0, ncomp, IntVect(0));
@@ -1298,7 +1298,7 @@ MLCellLinOpT<MF>::reflux (int crse_amrlev, MF& res, const MF& crse_sol, const MF
 
     const int mglev = 0;
     applyBC(fine_amrlev, mglev, fine_sol, BCMode::Inhomogeneous, StateMode::Solution,
-            m_bndry_sol[fine_amrlev].get());
+            this->m_bndry_sol[fine_amrlev].get());
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
@@ -1356,7 +1356,7 @@ MLCellLinOpT<MF>::compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
     const int mglev = 0;
     const int ncomp = this->getNComp();
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
-            m_bndry_sol[amrlev].get());
+            this->m_bndry_sol[amrlev].get());
 
     MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
@@ -1400,7 +1400,7 @@ MLCellLinOpT<MF>::compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
 
     const int mglev = 0;
     applyBC(amrlev, mglev, sol, BCMode::Inhomogeneous, StateMode::Solution,
-            m_bndry_sol[amrlev].get());
+            this->m_bndry_sol[amrlev].get());
 
     const int ncomp = this->getNComp();
 
@@ -1625,7 +1625,7 @@ MLCellLinOpT<MF>::prepareForSolve ()
     {
         for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
-            const auto& bcondloc = *m_bcondloc[amrlev][mglev];
+            const auto& bcondloc = *(this->m_bcondloc[amrlev][mglev]);
             const auto& maskvals = m_maskvals[amrlev][mglev];
 
             const RT dxi = static_cast<RT>(this->m_geom[amrlev][mglev].InvCellSize(0));
@@ -2185,7 +2185,7 @@ MLCellLinOpT<MF>::beginPrecondBC ()
     this->m_precond_mode = true;
 
     if (m_bndry_sol_zero.empty()) {
-        m_bndry_sol_zero.resize(m_bndry_sol.size());
+        m_bndry_sol_zero.resize(this->m_bndry_sol.size());
         const int ncomp = this->getNComp();
         for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
             m_bndry_sol_zero[amrlev] = std::make_unique<MLMGBndryT<MF>>
@@ -2194,7 +2194,7 @@ MLCellLinOpT<MF>::beginPrecondBC ()
                  ncomp,
                  this->m_geom[amrlev][0]);
         }
-        std::swap(m_bndry_sol, m_bndry_sol_zero);
+        std::swap(this->m_bndry_sol, m_bndry_sol_zero);
         MF const* coarse_data_for_bc_save = this->m_coarse_data_for_bc;
         this->m_coarse_data_for_bc = nullptr;
         for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
@@ -2202,7 +2202,7 @@ MLCellLinOpT<MF>::beginPrecondBC ()
         }
         this->m_coarse_data_for_bc = coarse_data_for_bc_save;
     } else {
-        std::swap(m_bndry_sol, m_bndry_sol_zero);
+        std::swap(this->m_bndry_sol, m_bndry_sol_zero);
     }
 }
 
@@ -2211,7 +2211,7 @@ void
 MLCellLinOpT<MF>::endPrecondBC ()
 {
     this->m_precond_mode = false;
-    std::swap(m_bndry_sol, m_bndry_sol_zero);
+    std::swap(this->m_bndry_sol, m_bndry_sol_zero);
 }
 
 extern template class MLCellLinOpT<MultiFab>;
