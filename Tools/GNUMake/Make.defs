@@ -1139,7 +1139,7 @@ ifeq ($(USE_SYCL),TRUE)
 else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
-    AMREX_LINKER = hipcc
+    AMREX_LINKER ?= hipcc
 
     ifdef AMREX_AMD_ARCH
       AMD_ARCH = $(AMREX_AMD_ARCH)

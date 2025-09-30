@@ -54,6 +54,11 @@ ifeq ($(findstring alcf.anl.gov, $(host_name)),alcf.anl.gov)
   endif
 endif
 
+ifeq ($(findstring tuolumne, $(host_name)), tuolumne)
+  which_site := llnl
+  which_computer := tuolumne
+endif
+
 ifeq ($(findstring sierra, $(host_name)), sierra)
   which_site := llnl
   which_computer := sierra
