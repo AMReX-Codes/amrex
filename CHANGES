@@ -1,3 +1,54 @@
+# 25.10
+
+ ## Highlights:
+
+  * Add range-based for and ND to BoxIterator (#4668)
+
+    The new capability allows a range-base for loop for iterating over
+    Box. For example
+    ```
+        for (auto iv : box.iterator()) {
+            // do operations involving iv
+        }
+    ```
+
+  * `AMREX_ENUM`: Cache String Map (#4643)
+
+    This provides significant performance improvement for AMREX_ENUM with a
+    large number of values (e.g., > 70).
+
+  * ParmParse: Add prettyPrintUsedInputs and prettyPrintUnusedInputs (#4652)
+
+    This adds two new functions to ParmParse that can be very useful.
+
+  * Fix for CUDA 13 (#4648)
+
+    This makes AMReX compatible wtih CUDA 13.
+
+ ## Other major changes:
+
+  * GNU Make: Add new option DEBUG_OPT_LEVEL (#4674)
+
+  * Add support for make flags to the build info script (#4672)
+
+  * OpenBC FFT Solver: Fix a 2d mode bug. (#4671)
+
+  * Remove no-op Fortran *_destroy blocks (#4666) (#4667)
+
+  * Adding support to memory collection of Particles and MultiFabs within a
+    grid (#4629)
+
+  * Use `p.id().is_valid()` consistently (#4635)
+
+  * Updated applyBC to use ParallelFor on Vector of tags for GPU builds
+    (#4619)
+
+  * AMReX Enum: Underlying Value (#4616)
+
+  * Print out hypre version (#4650)
+
+  * Curl Curl Solver: Support for 1D spherical and 1D cylindrical (#4611)
+
 # 25.09
 
  ## Highlights:
