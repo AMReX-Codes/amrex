@@ -137,6 +137,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BaseFab.H
        AMReX_BaseFab.cpp
        AMReX_Array4.H
+       AMReX_IntSuperAccumulator.H
        AMReX_MakeType.H
        AMReX_TypeTraits.H
        AMReX_FabDataType.H
