@@ -13,7 +13,7 @@
 #include <AMReX_HypreABecLap3.H>
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 #include <petscksp.h>
 #include <AMReX_PETSc.H>
 #endif
@@ -1421,7 +1421,7 @@ MLEBABecLap::makeHypre (Hypre::Interface hypre_interface) const
 }
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 std::unique_ptr<PETScABecLap>
 MLEBABecLap::makePETSc () const
 {

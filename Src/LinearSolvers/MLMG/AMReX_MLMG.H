@@ -1054,7 +1054,7 @@ MLMGT<MF>::prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const&
         hypre_node_solver.reset();
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
         petsc_solver.reset();
         petsc_bndry.reset();
 #endif
