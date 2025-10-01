@@ -77,7 +77,7 @@ public:
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
@@ -726,7 +726,7 @@ MLCellABecLapT<MF>::makeHypre (Hypre::Interface hypre_interface) const
 }
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
 std::unique_ptr<PETScABecLap>
 MLCellABecLapT<MF>::makePETSc () const
