@@ -821,6 +821,12 @@ namespace amrex
         AMREX_ASSERT(face_vec[0]->nComp() == 1);
         AMREX_ASSERT(face_vec[1]->nComp() == 1);
         AMREX_ASSERT(face_vec[2]->nComp() == 1);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(face_vec[0]->nGrowVect().allGE(1),
+                                         "computeCurlNodal requires x-face inputs with at least one ghost cell");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(face_vec[1]->nGrowVect().allGE(1),
+                                         "computeCurlNodal requires y-face inputs with at least one ghost cell");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(face_vec[2]->nGrowVect().allGE(1),
+                                         "computeCurlNodal requires z-face inputs with at least one ghost cell");
 
         const GpuArray<Real,AMREX_SPACEDIM> dxinv = geom.InvCellSizeArray();
 
