@@ -845,12 +845,12 @@ namespace amrex
             {
                 // For node (i,j,k), compute curl using face values that touch this node
                 // curl_x = dw/dy - dv/dz
-                curlarr(i,j,k,0) = dxinv[1] * (warr(i-1,j,k-1) - warr(i-1,j-1,k-1))
+                curlarr(i,j,k,0) = dxinv[1] * (warr(i-1,j,k) - warr(i-1,j-1,k))
                                   - dxinv[2] * (varr(i-1,j-1,k) - varr(i-1,j-1,k-1));
 
                 // curl_y = du/dz - dw/dx
                 curlarr(i,j,k,1) = dxinv[2] * (uarr(i-1,j-1,k) - uarr(i-1,j-1,k-1))
-                                  - dxinv[0] * (warr(i,j-1,k-1) - warr(i-1,j-1,k-1));
+                                  - dxinv[0] * (warr(i,j-1,k) - warr(i-1,j-1,k));
 
                 // curl_z = dv/dx - du/dy
                 curlarr(i,j,k,2) = dxinv[0] * (varr(i,j-1,k-1) - varr(i-1,j-1,k-1))
