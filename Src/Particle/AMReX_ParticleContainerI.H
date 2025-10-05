@@ -412,9 +412,9 @@ Reset (ParticleType& p,
             amrex::AllPrint()<< "Invalidating out-of-domain particle: " << p << '\n';
         }
 
-        AMREX_ASSERT(p.id() > 0);
+        AMREX_ASSERT(p.id().is_valid());
 
-        p.id() = -p.id();
+        p.id().make_invalid();
     }
 
     return pld;
@@ -454,7 +454,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         if (!success && lev_min == 0)
         {
             // The particle has left the domain; invalidate it.
-            p.id() = -p.id();
+            p.id().make_invalid();
             success = true;
         }
     }
@@ -516,7 +516,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             reduce_op.eval(np, reduce_data,
                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
                            {
-                               return (ptd.id(i) > 0) ? 1 : 0;
+                               return (ptd.id(i).is_valid()) ? 1 : 0;
                            });
 
             int np_valid = amrex::get<0>(reduce_data.value(reduce_op));
@@ -566,7 +566,7 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
             reduce_op.eval(ptile.numParticles(), reduce_data,
                            [=] AMREX_GPU_DEVICE (int i) -> ReduceTuple
                            {
-                               return (ptd.id(i) > 0) ? 1 : 0;
+                               return (ptd.id(i).is_valid()) ? 1 : 0;
                            });
         }
 
@@ -584,6 +584,25 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
     }
 
     return nparticles;
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
+{
+    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+
+    AMREX_ASSERT(BoxArray::SameRefs(mem.boxArray(), ParticleBoxArray(lev)) &&
+                 mem.DistributionMap() == ParticleDistributionMap(lev));
+
+    [[maybe_unused]] Gpu::NoSyncRegion no_sync{};
+    for (ParConstIterType pti(*this, lev); pti.isValid(); ++pti)
+    {
+        int gid = pti.index();
+        mem[gid] += static_cast<I>(pti.capacity());
+    }
 }
 
 //
@@ -715,7 +734,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         [=] AMREX_GPU_DEVICE (const typename ParticleTileType::ConstParticleTileDataType& ptd, int ip,
                               amrex::Array4<amrex::Real> const& count)
         {
-            const auto p = make_particle<ConstParticleType>{}(ptd, ip);
+            const auto p = ptd[ip];
             CellAssignor assignor;
             IntVect iv = assignor(p, plo, dxi, domain);
             amrex::Gpu::Atomic::AddNoRet(&count(iv), 1.0_rt);
@@ -792,7 +811,7 @@ struct FilterVirt
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int src_i) const noexcept
     {
-        auto iv = getParticleCell(src.m_aos[src_i], m_plo, m_dxi, m_domain);
+        auto iv = getParticleCell(src, src_i, m_plo, m_dxi, m_domain);
         return (m_assign_buffer_grid(iv)!=-1);
     }
 };
@@ -806,8 +825,8 @@ struct TransformerVirt
     {
         copyParticle(dst, src, src_i, dst_i);
 
-        (dst.m_aos[dst_i]).id() = LongParticleIds::VirtualParticleID;
-        (dst.m_aos[dst_i]).cpu() = 0;
+        dst.id(dst_i) = LongParticleIds::VirtualParticleID;
+        dst.cpu(dst_i) = 0;
     }
 };
 
@@ -1035,8 +1054,8 @@ struct AssignGridFilter
     AMREX_GPU_HOST_DEVICE
     int operator() (const SrcData& src, int src_i) const noexcept
     {
-        const auto tup_min = (m_assign_grid)(src.m_aos[src_i], m_lev_min, m_lev_max, m_nGrow, DefaultAssignor{});
-        const auto tup_max = (m_assign_grid)(src.m_aos[src_i], m_lev_max, m_lev_max, m_nGrow, DefaultAssignor{});
+        const auto tup_min = (m_assign_grid)(src[src_i], m_lev_min, m_lev_max, m_nGrow, DefaultAssignor{});
+        const auto tup_max = (m_assign_grid)(src[src_i], m_lev_max, m_lev_max, m_nGrow, DefaultAssignor{});
         const auto p_boxes = amrex::get<0>(tup_min);
         const auto p_boxes_max = amrex::get<0>(tup_max);
         const auto p_levs_max  = amrex::get<1>(tup_max);
@@ -1054,8 +1073,8 @@ struct TransformerGhost
     {
         copyParticle(dst, src, src_i, dst_i);
 
-        (dst.m_aos[dst_i]).id() = LongParticleIds::GhostParticleID;
-        (dst.m_aos[dst_i]).cpu() = 0;
+        dst.id(dst_i) = LongParticleIds::GhostParticleID;
+        dst.cpu(dst_i) = 0;
     }
 };
 
@@ -1166,6 +1185,23 @@ addParticles (const PCType& other, F const& f, bool local)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
+    // touch all tiles in serial
+    for (int lev = 0; lev < other.numLevels(); ++lev)
+    {
+        [[maybe_unused]] Gpu::NoSyncRegion no_sync{};
+        const auto& plevel_other = other.GetParticles(lev);
+        for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+            if(plevel_other.find(index) == plevel_other.end()) { continue; }
+
+            DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
+        }
+    }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
     for (int lev = 0; lev < other.numLevels(); ++lev)
     {
         const auto& plevel_other = other.GetParticles(lev);
@@ -1174,7 +1210,8 @@ addParticles (const PCType& other, F const& f, bool local)
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
             if(plevel_other.find(index) == plevel_other.end()) { continue; }
 
-            auto& ptile = DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
+            // this has already had define() called above
+            auto& ptile = ParticlesAt(lev, mfi.index(), mfi.LocalTileIndex());
             const auto& ptile_other = plevel_other.at(index);
             auto np = ptile_other.numParticles();
             if (np == 0) { continue; }
@@ -1255,8 +1292,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
             Gpu::streamSynchronize();
         } else {
-            typename SoA::IdCPU tmp_idcpu(np_total);
-
+            typename SoA::IdCPU tmp_idcpu;
+            if constexpr (has_polymorphic_allocator) {
+                tmp_idcpu.setArena(arena());
+            }
+            tmp_idcpu.resize(np_total);
             auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
             uint64_t* dst = tmp_idcpu.data();
             AMREX_HOST_DEVICE_FOR_1D( np_total, i,
@@ -1270,7 +1310,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
 
         { // Create a scope for the temporary vector below
-            RealVector tmp_real(np_total);
+            RealVector tmp_real;
+            if constexpr (has_polymorphic_allocator) {
+                tmp_real.setArena(arena());
+            }
+            tmp_real.resize(np_total);
             for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
                 auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
                 ParticleReal* dst = tmp_real.data();
@@ -1285,7 +1329,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        IntVector tmp_int(np_total);
+        IntVector tmp_int;
+        if constexpr (has_polymorphic_allocator) {
+            tmp_int.setArena(arena());
+        }
+        tmp_int.resize(np_total);
         for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
             auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
             int* dst = tmp_int.data();
@@ -1300,7 +1348,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     } else {
         ParticleTileType ptile_tmp;
-        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
+        ptile_tmp.define(m_num_runtime_real, m_num_runtime_int,
+            &m_soa_rdata_names, &m_soa_idata_names, arena());
         ptile_tmp.resize(np_total);
         // copy re-ordered particles
         gatherParticles(ptile_tmp, ptile, np, permutations);
@@ -1467,9 +1516,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             AMREX_FOR_1D ( num_move, i,
             {
-                const auto p = make_particle<ParticleType>{}(ptd,i + num_stay);
+                const auto p = ptd[i + num_stay];
 
-                if (p.id() < 0)
+                if (!p.id().is_valid())
                 {
                     p_boxes[i] = -1;
                     p_levs[i]  = -1;
@@ -1643,7 +1692,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             tmp_local[lev][index].resize(num_threads);
             soa_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
-                soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int, &m_soa_rdata_names, &m_soa_idata_names);
+                soa_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
+                    &m_soa_rdata_names, &m_soa_idata_names);
+                if constexpr (has_polymorphic_allocator) {
+                    if constexpr (ParticleType::is_soa_particle) {
+                        soa_local[lev][index][t].GetIdCPUData().setArena(arena());
+                    } else {
+                        tmp_local[lev][index][t].setArena(arena());
+                    }
+                    for (int j = 0; j < soa_local[lev][index][t].NumRealComps(); ++j) {
+                        soa_local[lev][index][t].GetRealData(j).setArena(arena());
+                    }
+                    for (int j = 0; j < soa_local[lev][index][t].NumIntComps(); ++j) {
+                        soa_local[lev][index][t].GetIntData(j).setArena(arena());
+                    }
+                }
             }
         }
     }
@@ -1696,12 +1759,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     while (pindex <= last) {
                         ParticleType& p = aos[pindex];
 
-                        if ((remove_negative == false) && (p.id() < 0)) {
+                        if ((remove_negative == false) && (!p.id().is_valid())) {
                             ++pindex;
                             continue;
                         }
 
-                        if (p.id() < 0)
+                        if (!p.id().is_valid())
                         {
                             aos[pindex] = aos[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
@@ -1719,7 +1782,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
                         particlePostLocate(p, pld, lev);
 
-                        if (p.id() < 0)
+                        if (!p.id().is_valid())
                         {
                             aos[pindex] = aos[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
@@ -1749,7 +1812,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     arr.push_back(soa.GetIntData(comp)[pindex]);
                                 }
 
-                                p.id() = -p.id(); // Invalidate the particle
+                                p.id().make_invalid(); // Invalidate the particle
                             }
                         }
                         else {
@@ -1777,10 +1840,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                 }
                             }
 
-                            p.id() = -p.id(); // Invalidate the particle
+                            p.id().make_invalid(); // Invalidate the particle
                         }
 
-                        if (p.id() < 0)
+                        if (!p.id().is_valid())
                         {
                             aos[pindex] = aos[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
@@ -1816,14 +1879,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     Long pindex = 0;
                     auto ptd = particle_tile->getParticleTileData();
                     while (pindex <= last) {
-                        ParticleType p(ptd,pindex);
+                        ParticleType p = ptd[pindex];
 
-                        if ((remove_negative == false) && (p.id() < 0)) {
+                        if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
                             ++pindex;
                             continue;
                         }
 
-                        if (p.id() < 0){
+                        if (!ptd.id(pindex).is_valid()){
                             soa.GetIdCPUData()[pindex] = soa.GetIdCPUData()[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
@@ -1840,7 +1903,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
                         particlePostLocate(p, pld, lev);
 
-                        if (p.id() < 0) {
+                        if (!ptd.id(pindex).is_valid()) {
                             soa.GetIdCPUData()[pindex] = soa.GetIdCPUData()[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
@@ -1872,7 +1935,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     arr.push_back(soa.GetIntData(comp)[pindex]);
                                 }
 
-                                p.id() = -p.id(); // Invalidate the particle
+                                ptd.id(pindex).make_invalid(); // Invalidate the particle
                             }
                         }
                         else {
@@ -1903,10 +1966,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                     dst += sizeof(int);
                                 }
                             }
-                            p.id() = -p.id(); // Invalidate the particle
+                            ptd.id(pindex).make_invalid(); // Invalidate the particle
                         }
 
-                        if (p.id() < 0){
+                        if (!ptd.id(pindex).is_valid()){
                             soa.GetIdCPUData()[pindex] = soa.GetIdCPUData()[last];
                             for (int comp = 0; comp < NumRealComps(); comp++) {
                                 soa.GetRealData(comp)[pindex] = soa.GetRealData(comp)[last];
@@ -2460,7 +2523,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (lev_max == -1) {
         lev_max = finestLevel();
-}
+    }
 
     return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
@@ -2588,7 +2651,7 @@ AssignCellDensitySingleLevel (int rho_index,
             {
                 AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
-                    auto p = make_particle<ParticleType>{}(ptd,i);
+                    auto p = ptd[i];
                     amrex_deposit_cic(p, ncomp, rhoarr, plo, dxi);
                 });
             }
@@ -2596,7 +2659,7 @@ AssignCellDensitySingleLevel (int rho_index,
             {
                 AMREX_HOST_DEVICE_FOR_1D( np, i,
                 {
-                    auto p = make_particle<ParticleType>{}(ptd,i);
+                    auto p = ptd[i];
                     amrex_deposit_particle_dx_cic(p, ncomp, rhoarr, plo, dxi, pdxi);
                 });
             }

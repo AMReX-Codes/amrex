@@ -109,8 +109,9 @@ struct ParticleLocData
 * are specified, it is a compile-time error.
 *
 * Example usage:
-*
+* \code{.cpp}
 *     ParticleInitType<0, 2, 4, 1> pdata = {{}, {7, 9}, {1.5, 2.5, 3.5, 4.5}, {11}};
+* \endcode
 */
 template<int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 struct ParticleInitType
@@ -197,6 +198,9 @@ public:
     using ParIterType      = ParIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
     using ParConstIterType = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
 
+    static constexpr bool has_polymorphic_allocator =
+        IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
+
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.
     ParticleContainer_impl ()
@@ -225,9 +229,9 @@ public:
     //! \brief Construct a particle container using a given Geometry, DistributionMapping,
     //! and BoxArray. Single level version.
     //!
-    //! \param the Geometry object, which describes the problem domain
-    //! \param A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
-    //! \param A BoxArray, which gives the set of grid boxes
+    //! \param geom the Geometry object, which describes the problem domain
+    //! \param dmap A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
+    //! \param ba   A BoxArray, which gives the set of grid boxes
     //!
     ParticleContainer_impl (const Geometry            & geom,
                             const DistributionMapping & dmap,
@@ -307,9 +311,9 @@ public:
     //! \brief Define a default-constructed ParticleContainer using a ParGDB object.
     //! Single-level version.
     //!
-    //! \param the Geometry object, which describes the problem domain
-    //! \param A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
-    //! \param A BoxArray, which gives the set of grid boxes
+    //! \param geom the Geometry object, which describes the problem domain
+    //! \param dmap A DistributionMapping, which describes how the boxes are distributed onto MPI tasks
+    //! \param ba   A BoxArray, which gives the set of grid boxes
     //!
     void Define (const Geometry            & geom,
                  const DistributionMapping & dmap,
@@ -396,7 +400,7 @@ public:
     *
     * \param icount
     * \param iseed
-    * \param mass
+    * \param pdata
     * \param serialize
     * \param bx
     */
@@ -493,6 +497,7 @@ public:
     *              go to any other box in the simulation. If > 0, this is the maximum number of cells
     *              a particle can have moved since the last Redistribute() call. Knowing this number
     *              allows an optimized MPI communication pattern to be used.
+    * \param remove_negative If true, remove particles with a negative ID. Default: true.
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                        bool remove_negative=true);
@@ -572,6 +577,12 @@ public:
     Long NumberOfParticlesAtLevel (int level, bool only_valid = true, bool only_local = false) const;
 
     Vector<Long> NumberOfParticlesInGrid  (int level, bool only_valid = true, bool only_local = false) const;
+
+    /**
+     * \brief Return capacity of memory for particles at specific grid
+     */
+    template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
+    void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
     /**
     * \brief Returns # of particles at all levels
@@ -732,8 +743,7 @@ public:
     *
     * \param data A pointer to the start of the buffer into which to read
     * \param size The number of elements to read
-    * \param os The istream from which to read the data
-    * \param rd A RealDescriptor describing the type of the floating point data
+    * \param is The istream from which to read the data
     */
     void ReadParticleRealData (void* data, size_t size, std::istream& is);
 
@@ -849,7 +859,7 @@ public:
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
      */
@@ -865,7 +875,7 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
@@ -880,7 +890,7 @@ public:
      * the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      */
     void WritePlotFile (const std::string& dir, const std::string& name,
@@ -895,7 +905,7 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
@@ -908,7 +918,7 @@ public:
      * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
      */
@@ -926,7 +936,7 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
      * \param f callable that returns whether or not to write each particle
@@ -944,7 +954,7 @@ public:
      * they are written or not.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
      * \param real_comp_names for each real component, a name to label the data with
@@ -968,7 +978,7 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
      * \param real_comp_names for each real component, a name to label the data with
@@ -1156,8 +1166,11 @@ public:
      */
     ParticleTileType& DefineAndReturnParticleTile (int lev, int grid, int tile)
     {
-        m_particles[lev][std::make_pair(grid, tile)].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
-
+        m_particles[lev][std::make_pair(grid, tile)].define(
+            NumRuntimeRealComps(), NumRuntimeIntComps(),
+            &m_soa_rdata_names, &m_soa_idata_names,
+            arena()
+        );
         return ParticlesAt(lev, grid, tile);
     }
 
@@ -1186,7 +1199,11 @@ public:
     ParticleTileType& DefineAndReturnParticleTile (int lev, const Iterator& iter)
     {
         auto index = std::make_pair(iter.index(), iter.LocalTileIndex());
-        m_particles[lev][index].define(NumRuntimeRealComps(), NumRuntimeIntComps(), &m_soa_rdata_names, &m_soa_idata_names);
+        m_particles[lev][index].define(
+            NumRuntimeRealComps(), NumRuntimeIntComps(),
+            &m_soa_rdata_names, &m_soa_idata_names,
+            arena()
+        );
         return ParticlesAt(lev, iter);
     }
 
@@ -1225,7 +1242,7 @@ public:
     /**
     * \brief Returns true if the particle was shifted.
     *
-    * \param prt
+    * \param p
     */
     template <typename P>
     bool PeriodicShift (P& p) const;

@@ -16,6 +16,7 @@
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
 #include <AMReX_String.H>
+#include <AMReX_TypeTraits.H>
 
 #include <cfloat>
 #include <chrono>
@@ -24,10 +25,14 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <typeinfo>
 #include <type_traits>
+#include <utility>
 
 namespace amrex
 {
@@ -220,6 +225,37 @@ namespace amrex
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
     template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF) noexcept;
 
+    template <class T>
+    std::ostream& ToString(std::ostream& os,
+                           const T& t,
+                           const char* symbol_begin = "[",
+                           const char* symbol_delim = ", ",
+                           const char* symbol_end = "]",
+                           const char* symbol_str = "\"",
+                           int limit = 100);
+
+    template <class T>
+    std::string ToString(const T& t,
+                         const char* symbol_begin = "[",
+                         const char* symbol_delim = ", ",
+                         const char* symbol_end = "]",
+                         const char* symbol_str = "\"",
+                         int limit = 100,
+                         std::ostringstream ss = std::ostringstream{});
+
+    /**
+     * \brief Call given function without inline.
+     *
+     * This works on lambdas, functors, normal functions. But it does not
+     * work with overloaded functions like std::sin. If needed, one could
+     * however wrap functions like std::sin inside a lambda function. It
+     * also does not work with normal functions for SYCL and one would have
+     * to wrap it inside a lambda.
+     */
+    template <typename F, typename... T>
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    auto callNoinline (F const& f, T&&... arg)
+        -> decltype(std::declval<F>()(std::declval<T>()...)); // needed for nvcc
 }
 
 template <typename T>
@@ -378,6 +414,123 @@ amrex::hash_vector (const Vector<T> & vec, uint64_t seed) noexcept
         hash_combine(seed, x);
     }
     return seed;
+}
+
+
+namespace amrex::detail {
+
+    // Determine if type has .begin() and .end() member functions
+    template <class T>
+    constexpr decltype((std::declval<T>().begin(), std::declval<T>().end(), true)) HasBeginEnd() {
+        return true;
+    }
+    template <class T, class... Args>
+    constexpr bool HasBeginEnd(Args...) {
+        return false;
+    }
+
+    // Determine if type has a specialization for std::tuple_size
+    template <class T>
+    constexpr decltype((std::tuple_size<T>::value, true)) HasTupleSize() {
+        return true;
+    }
+    template <class T, class... Args>
+    constexpr bool HasTupleSize(Args...) {
+        return false;
+    }
+
+    // Helper for tuple unpacking
+    template <class T, std::size_t... idx>
+    void ToStringTupleImp(std::index_sequence<idx...>, std::ostream& os, const T& t,
+                          const char* symbol_begin, const char* symbol_delim,
+                          const char* symbol_end, const char* symbol_str, int limit) {
+        os << symbol_begin;
+        Long count = 0;
+        auto op = [&](auto& value) {
+            if (count > 0 && (count <= limit || limit < 0)) {
+                os << symbol_delim;
+            }
+            if (count < limit || limit < 0) {
+                ToString(os, value, symbol_begin, symbol_delim, symbol_end,
+                        symbol_str, limit);
+            } else if (count == limit) {
+                os << "...";
+            }
+            ++count;
+        };
+        (op(std::get<idx>(t)), ...);
+        os << symbol_end;
+    }
+}
+
+template <class T>
+std::ostream& amrex::ToString(std::ostream& os, const T& t, const char* symbol_begin,
+                              const char* symbol_delim, const char* symbol_end,
+                              const char* symbol_str, int limit)
+{
+    if constexpr (std::is_same_v<std::string, T> ||
+                  std::is_same_v<std::string_view, T> ||
+                  std::is_same_v<char*, std::decay_t<T>> ||
+                  std::is_same_v<const char*, T>) {
+        // String-like types
+        os << symbol_str << t << symbol_str;
+    } else if constexpr (std::is_same_v<signed char, T> ||
+                         std::is_same_v<unsigned char, T>) {
+        // Buffer-like types, don't print as char
+        os << static_cast<int>(t);
+    } else if constexpr (std::is_pointer_v<T>) {
+        // Pointer types, don't print char* as string
+        os << static_cast<const void*>(t);
+    } else if constexpr (detail::HasBeginEnd<T>() || std::is_array_v<T>) {
+        // Array-like types
+        os << symbol_begin;
+        Long count = 0;
+        for (auto& value : t) {
+            if (count > 0) {
+                os << symbol_delim;
+            }
+            if (count < limit || limit < 0) {
+                ToString(os, value, symbol_begin, symbol_delim, symbol_end,
+                         symbol_str, limit);
+            } else if (count == limit) {
+                os << "...";
+                break;
+            }
+            ++count;
+        }
+        os << symbol_end;
+    } else if constexpr (detail::HasTupleSize<T>()) {
+        // Tuple-like types
+        detail::ToStringTupleImp(std::make_index_sequence<std::tuple_size_v<T>>{},
+                                 os, t, symbol_begin, symbol_delim, symbol_end,
+                                 symbol_str, limit);
+    } else {
+        // Scalar types
+        os << t;
+    }
+    return os;
+}
+
+template <class T>
+std::string amrex::ToString(const T& t, const char* symbol_begin, const char* symbol_delim,
+                            const char* symbol_end, const char* symbol_str,
+                            int limit, std::ostringstream ss)
+{
+    ToString(ss, t, symbol_begin, symbol_delim, symbol_end, symbol_str, limit);
+    return ss.str();
+}
+
+template <typename F, typename... T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+auto amrex::callNoinline (F const& f, T&&... arg)
+    -> decltype(std::declval<F>()(std::declval<T>()...)) // needed for nvcc
+{
+    AMREX_IF_ON_HOST((
+        if constexpr (!amrex::DefinitelyNotHostRunnable<F>::value) {
+            return f(std::forward<T>(arg)...);
+        }
+    ))
+    AMREX_IF_ON_DEVICE(( return f(std::forward<T>(arg)...); ))
 }
 
 #endif /*BL_UTILITY_H*/

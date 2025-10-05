@@ -106,7 +106,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Box.H
        AMReX_Box.cpp
        AMReX_BoxIterator.H
-       AMReX_BoxIterator.cpp
        AMReX_Dim3.H
        AMReX_IntVect.H
        AMReX_IntVect.cpp

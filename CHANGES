@@ -1,3 +1,128 @@
+# 25.09
+
+ ## Highlights:
+
+  * amrex::callNoinline: Call given function without inline (#4606)
+
+    This new function can be used to force noinlining functions. It can be
+    useful when it's necessary to reduce GPU kernel sizes.
+
+  * Incorrect cross term sum for 2D EB terms in MLEBTensor (#4626)
+
+    This fixes a very old bug in the computation of the cross terms of the
+    Navier-Stokes stress tensor in the 2D EB case. The bug affected AMReX
+    based codes that use the MLEBTensor operator in linear solvers.
+
+  * Add ParallelForOMP (#4595)
+    Fix ParallelForOMP introduced in #4595 (#4604)
+
+    amrex::ParallelFor in CPU builds does not spawn OpenMP threads, because
+    it is usually used inside coarse-grained OpenMP regions launched at the
+    MFIter level. However, in some cases, the users may need to start OpenMP
+    parallel regions in the loops over cells. This new function has been
+    added for this purpose.
+
+  * Add ToString function for array and tuple (#4584)
+
+    This adds a `ToString` function that can be used with scalars, arrays
+    and tuples to write error messages or when debugging.
+
+ ## Other major changes:
+
+  * Delay some synchronize calls in addParticles (#4623)
+    Fix a bug in #4623 (#4631)
+
+  * Fix Bug in FaceConservativeLinear (#4630)
+
+  * Generalize the average_*_to_cellcenter routines to take IntVect (#4627)
+
+  * Fix atomicSetID wrapper access (#4625)
+
+  * Fallback to default `CUDA_ARCH` if `nvidia-smi` fails (#4624)
+
+  * Enable OpenMP in addParticles (#4615)
+
+  * Fix potential false sharing in ReduceOps.eval with OMP (#4618)
+
+  * Enable zero-sized Type in TypeMultiplier (#4617)
+
+  * Add ParamParse::getPrefix (#4612)
+
+  * SIMD: Portable Masks, C++20 (#4607)
+
+  * Improve support for Particles with PolymorphicArenaAllocator (#4603)
+
+  * Improvements to AMREX_ASSERT (#4581)
+
+  * SIMD: Remove Unnecessary Namespaces (#4600)
+
+  * Modify how we interpolate velocity from faces to particle position (#4598)
+
+# 25.08
+
+ ## Highlights:
+
+  * EB anisotropic meshes - changes for cut_face_2d routine (#4554)
+    EB anisotropic - set_eb_data changes (#4577)
+    Correction to EB volume fraction for anisotropic grids (#4587)
+    Correction to EB volume centroid for anisotropic case (#4586)
+
+    These make the necessary changes for EB generation on 3D aniostropic
+    meshes.
+
+  * SUNDIALS interface updates (#4562)
+
+    Major updates have been made to the SUNDIALS interface.
+
+  * AMReX SIMD Helpers (#4520)
+
+    AMReX does not have a concept yet to help users write effective SIMD
+    code on CPU, besides relying on auto-vectorization and pragmas, which
+    are unreliable for any complex enough code. This PR adds initial support
+    for portable user-code by providing build system support and an
+    `AMReX_SIMD.H` header that handles includes & helper types and
+    functions.
+
+  * CMake: `AMReX_FASTMATH` (#4545)
+    CMake: `AMReX::Flags_FASTMATH` Interface Helper Target (#4591)
+
+    Add new general compiler flag for fast-math optimizations. This does not
+    change any defaults
+
+  * Parser: Support comparison chain (#4556)
+
+    Parser now supports comparison chain such as `a <= b <= c`.
+
+ ## Other major changes:
+
+  * CMake: Fix Typo `AMReX_COMPILER_DEFAULT_INLINE` (#4590)
+
+  * Clean #ifdef around default RunOn declaration (#4580)
+
+  * Account for metric term in fluxes due to inhomogeneous Neumann boundary conditions (#4579)
+
+  * Replace `std::numeric_limits<>::infinity()` with `max()` (#4547)
+
+  * Reorganize checkPoint logic into checkPointNow functions (#4567)
+
+  * ParmParse: Remove two Aborts (#4576)
+
+  * FFT Poisson Solver: Support domain not starting with 0 (#4573)
+
+  * Fix Assert in `ReduceToPlaneMF` (#4566)
+
+  * Retry a few times if directory creation fails (#4537)
+
+  * Added GNU compile flags to enable -fPIC for llvm (#4553)
+
+  * ParmParse: Add parser support for bool (#4552)
+
+  * Remove an assertion in AmrLevel::RK (#4551)
+
+  * Reduce use of SuperParticle (#4526)
+
+  * Tweak CArena Defragmentation Strategy (#4531)
+
 # 25.07
 
   ## Highlights:

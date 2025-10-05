@@ -11,6 +11,7 @@
 #include <AMReX_Extension.H>
 
 #include <cstdint>
+#include <cstring>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -188,25 +189,40 @@ namespace amrex
     * in <AMReX_BLassert.H>.
     */
 
-    void Assert_host (const char* EX, const char* file, int line, const char* msg);
+    void Assert_host (const char* EX, const char* file, int line, const char* msg,
+                      std::size_t msg_size=0);
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void Assert (const char* EX, const char* file, int line, const char* msg = nullptr) {
-#if defined(NDEBUG)
+    void Assert (const char* EX, const char* file, int line) {
+#if defined(NDEBUG) && !defined(AMREX_USE_ASSERTION)
+        AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line);))
+#else
+        AMREX_IF_ON_DEVICE((
+            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
+                                    EX, file, line);
+            AMREX_DEVICE_ASSERT(0);
+        ))
+#endif
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,nullptr,0U);))
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void Assert (const char* EX, const char* file, int line, const char* msg) {
+#if defined(NDEBUG) && !defined(AMREX_USE_ASSERTION)
         AMREX_IF_ON_DEVICE((amrex::ignore_unused(EX,file,line,msg);))
 #else
         AMREX_IF_ON_DEVICE((
-                if (msg) {
-                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
-                                        EX, file, line, msg);
-                } else {
-                AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d",
-                                        EX, file, line);
-                }
-                AMREX_DEVICE_ASSERT(0);
+            AMREX_DEVICE_PRINTF("Assertion `%s' failed, file \"%s\", line %d, Msg: %s",
+                                    EX, file, line, msg);
+            AMREX_DEVICE_ASSERT(0);
         ))
 #endif
-        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg);))
+        AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,std::strlen(msg));))
+    }
+
+    AMREX_FORCE_INLINE
+    void Assert (const char* EX, const char* file, int line, const std::string& msg) {
+        Assert_host(EX,file,line,msg.c_str(),msg.size());
     }
 
     /**
@@ -344,11 +360,11 @@ namespace amrex
      * the others. The example below disables FPE invalid and
      * divide-by-zero, and later restores the previous settings.
      *
-     \verbatim
+     \code{.cpp}
          auto prev_excepts = disableFPExcept(FPExcept::invalid | FPExcept::zero);
          // ....
          setFPExcept(prev_excepts); // restore previous settings
-     \endverbatim
+     \endcode
      */
     [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
 
@@ -359,11 +375,11 @@ namespace amrex
      * the others. The example below enables all FPE traps, and later
      * restores the previous settings.
      *
-     \verbatim
+     \code{.cpp}
          auto prev_excepts = disableFPExcept(FPExcept::all);
          // ....
          setFPExcept(prev_excepts); // restore previous settings
-     \endverbatim
+     \endcode
      */
     [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }

@@ -2,6 +2,8 @@
 #define AMREX_FLUXREG_2D_C_H_
 #include <AMReX_Config.H>
 
+#if (AMREX_SPACEDIM == 2)
+
 #include <AMReX_FArrayBox.H>
 
 namespace amrex {
@@ -169,5 +171,7 @@ fluxreg_reflux (Box const& bx, Array4<Real> const& s, const int scomp,
 }
 
 }
+
+#endif
 
 #endif

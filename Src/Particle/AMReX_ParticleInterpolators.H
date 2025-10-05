@@ -97,7 +97,7 @@ struct Base
      * \param dst_comp the mesh component to start at
      * \param num_comps the number of components to interpolate
      * \param f function for computing the particle quantity to interpolate
-     * \tparam g function that updates the particle given the mesh value
+     * \param g function that updates the particle given the mesh value
      *
      * Usage:
      *

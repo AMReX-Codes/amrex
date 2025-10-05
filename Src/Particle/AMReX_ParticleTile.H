@@ -748,6 +748,9 @@ struct ParticleTile
     using ParticleTileDataType = ParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
     using ConstParticleTileDataType = ConstParticleTileData<StorageParticleType, NArrayReal, NArrayInt>;
 
+    static constexpr bool has_polymorphic_allocator =
+        IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
+
     ParticleTile () = default;
 
 #ifndef _WIN32  // workaround windows compiler bug
@@ -764,15 +767,51 @@ struct ParticleTile
         int a_num_runtime_real,
         int a_num_runtime_int,
         std::vector<std::string>* soa_rdata_names=nullptr,
-        std::vector<std::string>* soa_idata_names=nullptr
+        std::vector<std::string>* soa_idata_names=nullptr,
+        Arena* a_arena=nullptr
     )
     {
-        m_defined = true;
         GetStructOfArrays().define(a_num_runtime_real, a_num_runtime_int, soa_rdata_names, soa_idata_names);
         m_runtime_r_ptrs.resize(a_num_runtime_real);
         m_runtime_i_ptrs.resize(a_num_runtime_int);
         m_runtime_r_cptrs.resize(a_num_runtime_real);
         m_runtime_i_cptrs.resize(a_num_runtime_int);
+
+        if constexpr (has_polymorphic_allocator) {
+            if (m_defined) {
+                // it is not allowed to change the arena after the tile has been defined
+                if constexpr (ParticleType::is_soa_particle) {
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                        a_arena == GetStructOfArrays().GetIdCPUData().arena(),
+                        "ParticleTile with PolymorphicArenaAllocator redefined with "
+                        "different memory arena");
+                } else {
+                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                        a_arena == m_aos_tile().arena(),
+                        "ParticleTile with PolymorphicArenaAllocator redefined with "
+                        "different memory arena");
+                }
+            }
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_arena != nullptr,
+                "ParticleTile with PolymorphicArenaAllocator defined with no memory arena! "
+                "Make sure to call setArena() on the ParticleContainer before initialization or "
+                "to pass an Arena to ParticleTile::define()");
+
+            if constexpr (ParticleType::is_soa_particle) {
+                GetStructOfArrays().GetIdCPUData().setArena(a_arena);
+            } else {
+                m_aos_tile().setArena(a_arena);
+            }
+            for (int j = 0; j < NumRealComps(); ++j) {
+                GetStructOfArrays().GetRealData(j).setArena(a_arena);
+            }
+            for (int j = 0; j < NumIntComps(); ++j) {
+                GetStructOfArrays().GetIntData(j).setArena(a_arena);
+            }
+        }
+
+        m_defined = true;
     }
 
     // Get id data

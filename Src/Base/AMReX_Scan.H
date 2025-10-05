@@ -8,6 +8,9 @@
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 #  include <cub/cub.cuh>
+#  ifdef AMREX_CUDA_CCCL_VER_GE_3
+#  include <thrust/iterator/transform_iterator.h>
+#  endif
 #elif defined(AMREX_USE_HIP)
 #  include <rocprim/rocprim.hpp>
 #elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
@@ -385,7 +388,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 #endif
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral<N>::value &&
+          typename M=std::enable_if_t<std::is_integral_v<N> &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
@@ -624,7 +627,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 #elif defined(AMREX_USE_HIP)
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral<N>::value &&
+          typename M=std::enable_if_t<std::is_integral_v<N> &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
@@ -787,7 +790,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 #elif defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral<N>::value &&
+          typename M=std::enable_if_t<std::is_integral_v<N> &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
@@ -828,7 +831,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         using BlockScan = cub::BlockScan<T, nthreads, cub::BLOCK_SCAN_WARP_SCANS>;
         using BlockExchange = cub::BlockExchange<T, nthreads, nelms_per_thread>;
 
-#ifdef AMREX_CUDA_CCCL_VER_3
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
         using Sum = cuda::std::plus<T>;
 #else
         using Sum = cub::Sum;
@@ -855,8 +858,13 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
+        thrust::transform_iterator<decltype(input_lambda),thrust::counting_iterator<N> >
+            input_begin(thrust::counting_iterator<N>(0), input_lambda);
+#else
         cub::TransformInputIterator<T,decltype(input_lambda),cub::CountingInputIterator<N> >
             input_begin(cub::CountingInputIterator<N>(0), input_lambda);
+#endif
 
         T data[nelms_per_thread];
         if (static_cast<int>(iend-ibegin) == nelms_per_block) {
@@ -926,7 +934,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 #else
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral<N>::value &&
+          typename M=std::enable_if_t<std::is_integral_v<N> &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
                                        std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
@@ -1170,7 +1178,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 #endif
 
 // The return value is the total sum if a_ret_sum is true.
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
@@ -1231,7 +1239,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 }
 
 // The return value is the total sum if a_ret_sum is true.
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral<N>::value> >
+template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }

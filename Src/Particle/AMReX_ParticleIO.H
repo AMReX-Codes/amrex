@@ -39,7 +39,7 @@ struct FilterPositiveID {
     template <typename P>
     AMREX_GPU_HOST_DEVICE
     int operator() (const P& p) const {
-        return p.id() > 0;
+        return p.id().is_valid();
     }
 };
 
@@ -456,7 +456,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             const auto& aos = kv.second.GetArrayOfStructs();
             for (int k = 0; k < aos.numParticles(); ++k) {
                 const ParticleType& p = aos[k];
-                if (p.id() > 0) {
+                if (p.id().is_valid()) {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -1009,7 +1009,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ++iptr;
         }
 
-        AMREX_ASSERT(ptemp.id() > 0);
+        AMREX_ASSERT(ptemp.id().is_valid());
 
         AMREX_D_TERM(ptemp.pos(0) = ParticleReal(rptr[0]);,
                      ptemp.pos(1) = ParticleReal(rptr[1]);,
@@ -1143,7 +1143,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             Gpu::copy(Gpu::deviceToHost, aos.begin(), aos.begin() + np, host_aos.begin());
             for (int k = 0; k < np; ++k) {
                 const ParticleType& p = host_aos[k];
-                if (p.id() > 0) {
+                if (p.id().is_valid()) {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -1215,8 +1215,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 auto& pmap = m_particles[lev];
                 for (const auto& kv : pmap) {
                     ParticleTile<ParticleType, NArrayReal, NArrayInt,
-                                 amrex::PinnedArenaAllocator> pinned_ptile;
-                    pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps());
+                                 amrex::PolymorphicArenaAllocator> pinned_ptile;
+                    pinned_ptile.define(NumRuntimeRealComps(), NumRuntimeIntComps(),
+                                        nullptr, nullptr, The_Pinned_Arena());
                     pinned_ptile.resize(kv.second.numParticles());
                     amrex::copyParticles(pinned_ptile, kv.second);
                     const auto& host_aos = pinned_ptile.GetArrayOfStructs();
@@ -1225,7 +1226,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     auto np = host_aos.numParticles();
                     for (int index = 0; index < np; ++index) {
                         const ParticleType* it = &host_aos[index];
-                        if (it->id() > 0) {
+                        if (it->id().is_valid()) {
 
                             // write out the particle struct first...
                             AMREX_D_TERM(File << it->pos(0) << ' ',

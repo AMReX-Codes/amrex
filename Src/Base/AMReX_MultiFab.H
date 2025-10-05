@@ -69,6 +69,7 @@ public:
     * \param ncomp number of components
     * \param ngrow number of cells the region grows
     * \param info MFInfo
+    * \param factory Fab factory
     */
     MultiFab (const BoxArray&            bxs,
               const DistributionMapping& dm,

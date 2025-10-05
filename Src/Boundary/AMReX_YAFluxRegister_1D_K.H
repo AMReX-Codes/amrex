@@ -33,34 +33,23 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const& f,
-                        T dtdx, int nc, int dirside, Dim3 const& rr) noexcept
+T yafluxreg_fineadd_delta (int i, int n,
+                           Array4<T const> const& f, T scale,
+                           int dirside, Dim3 const& rr) noexcept
 {
-    const auto lo = amrex::lbound(bx);
+    const int side = dirside % 2;
+    const int ii   = (side == 0) ? (i+1) * rr.x : i * rr.x;
+    const T sign   = (side == 0) ? T(-1.0) : T(1.0);
+    return sign * scale * f(ii, 0, 0, n);
+}
 
-    switch (dirside) {
-    case 0 :
-    {
-        for (int n = 0; n < nc; ++n) {
-            const int i = lo.x;
-            const int ii = (i+1)*rr.x;
-            T* AMREX_RESTRICT dp = &(d(i,0,0,n));
-            T tmp = -dtdx*f(ii,0,0,n);
-            HostDevice::Atomic::Add(dp, tmp);
-        }
-        break;
-    }
-    default:
-    {
-        for (int n = 0; n < nc; ++n) {
-            const int i = lo.x;
-            const int ii = i*rr.x;
-            T* AMREX_RESTRICT dp = &(d(i,0,0,n));
-            T tmp = dtdx*f(ii,0,0,n);
-            HostDevice::Atomic::Add(dp, tmp);
-        }
-    }
-    }
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void yafluxreg_fineadd (int i, int n,
+                        Array4<T> const& d, Array4<T const> const& f,
+                        T scale, int dirside, Dim3 const& rr) noexcept
+{
+    d(i,0,0,n) += yafluxreg_fineadd_delta(i,n,f,scale,dirside,rr);
 }
 
 }

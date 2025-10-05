@@ -242,7 +242,9 @@ namespace ppdetail {
 *  code" and dx is a definition with the two floating point values 0.5
 *  and 0.75 and iv is an IntVect(5,4)
 *
-*  prog niter = 10 name = "big code" dx = 0.5 0.75 iv=(5,4)
+*  ```
+*  executable niter = 10 name = "big code" dx = 0.5 0.75 iv=(5,4)
+*  ```
 *
 *  The ParmParse class has two constructors.  The first is responsible for
 *  building the table and is usually called by the main routine of an
@@ -276,6 +278,7 @@ namespace ppdetail {
 *  Comments in an input file include all text from a # character to the
 *  end of the line.  Here is a sample input file:
 *
+* ```
 *     niter = 100
 *
 *     title = "Double Wammy"
@@ -297,12 +300,14 @@ namespace ppdetail {
 *     test = apple "boy blue" 10 20 30 40
 *
 *     FILE = prob_file
+* ```
 *
-*  Preprocessing of AMREX_SPACEDIM is supported. It supports #if, #elif,
-*  #else, and #endif.  The condition must be `AMREX_SPACEDIM op D`, where op
+*  Preprocessing of AMREX_SPACEDIM is supported. It supports `#if`, `#elif`,
+*  `#else`, and `#endif`.  The condition must be `AMREX_SPACEDIM op D`, where op
 *  is >, <, >=, <=, or ==, and D is 1, 2, or 3. The parentheses around the
 *  condition are optional. Some examples are shown below.
 *
+* \code
 *    #if (AMREX_SPACEDIM == 1)
 *    n_cell = 256
 *    #elif (AMREX_SPACEDIM == 2)
@@ -316,16 +321,21 @@ namespace ppdetail {
 *    #else
 *    t = 1.5
 *    #endif
+* \endcode
 *
 *  Math expression is supported for integers and reals. For example
 *
+* ```
 *    n_cell = 128
 *    amrex.n_cell = n_cell*2 8 16**2
+* ```
 *
 *  becomes
 *
+* ```
 *    n_cell = 128
 *    amrex.n_cell = 256 8 256
+* ```
 *
 *  More details can be found at https://amrex-codes.github.io/amrex/docs_html/Basics.html#parmparse
 */
@@ -1654,9 +1664,17 @@ public:
     //! Write the contents of the table in ASCII to the ostream.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
-    //! Write the table in a pretty way to the ostream. If there are
+    //! Write all entries in the table in a pretty way to the ostream. If there are
     //! duplicates, only the last one is printed.
     static void prettyPrintTable (std::ostream& os);
+
+    //! Write unused inputs in a pretty way to the ostream. If there are
+    //! duplicates, only the last one is printed.
+    static void prettyPrintUnusedInputs (std::ostream& os);
+
+    //! Write used inputs in a pretty way to the ostream. If there are
+    //! duplicates, only the last one is printed.
+    static void prettyPrintUsedInputs (std::ostream& os);
 
     //! Add keys and values from a file to the end of the PP table.
     static void addfile (std::string const& filename);
@@ -1699,6 +1717,8 @@ public:
     static std::string const FileKeyword;
 
     static std::string ParserPrefix;
+
+    [[nodiscard]] std::string const& getPrefix () const;
 
     [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
 

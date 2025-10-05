@@ -446,7 +446,6 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
     int fluxcomp = srccomp;
     std::array<FAB const*,AMREX_SPACEDIM> flux{{AMREX_D_DECL(a_flux[0],a_flux[1],a_flux[2])}};
     bool use_gpu = (runon == RunOn::Gpu) && Gpu::inLaunchRegion();
-    amrex::ignore_unused(use_gpu);
     std::array<FAB,AMREX_SPACEDIM> ftmp;
     if (fbx != tbx) {
         AMREX_ASSERT(!use_gpu);
@@ -478,10 +477,51 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                     auto dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     Array4<T const> farr = f->const_array(fluxcomp);
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, lobx_is, tmpbox,
-                    {
-                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, numcomp, dirside, rr);
-                    });
+                    if (use_gpu) {
+#if (AMREX_SPACEDIM == 3)
+                        amrex::ParallelFor(lobx_is, numcomp,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                        {
+                            yafluxreg_fineadd(i,j,k,n,d,farr,dtdxs,dirside,rr);
+                        });
+#elif (AMREX_SPACEDIM == 2)
+                        amrex::ParallelFor(lobx_is, numcomp,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int n) noexcept
+                        {
+                            yafluxreg_fineadd(i,j,n,d,farr,dtdxs,dirside,rr);
+                        });
+#else
+                        amrex::ParallelFor(lobx_is, numcomp,
+                        [=] AMREX_GPU_DEVICE (int i, int n) noexcept
+                        {
+                            yafluxreg_fineadd(i,n,d,farr,dtdxs,dirside,rr);
+                        });
+#endif
+                    } else {
+                        const auto lo = amrex::lbound(lobx_is);
+                        const auto hi = amrex::ubound(lobx_is);
+                        for (int n = 0; n < numcomp; ++n) {
+#if (AMREX_SPACEDIM == 3)
+                            for (int k = lo.z; k <= hi.z; ++k) {
+                                for (int j = lo.y; j <= hi.y; ++j) {
+                                    for (int i = lo.x; i <= hi.x; ++i) {
+                                        yafluxreg_fineadd(i,j,k,n,d,farr,dtdxs,dirside,rr);
+                                    }
+                                }
+                            }
+#elif (AMREX_SPACEDIM == 2)
+                            for (int j = lo.y; j <= hi.y; ++j) {
+                                for (int i = lo.x; i <= hi.x; ++i) {
+                                    yafluxreg_fineadd(i,j,n,d,farr,dtdxs,dirside,rr);
+                                }
+                            }
+#else
+                            for (int i = lo.x; i <= hi.x; ++i) {
+                                yafluxreg_fineadd(i,n,d,farr,dtdxs,dirside,rr);
+                            }
+#endif
+                        }
+                    }
                 }
             }
             {
@@ -493,10 +533,51 @@ YAFluxRegisterT<MF>::FineAdd (const MFIter& mfi,
                     auto dtdxs = dtdx[idim];
                     int dirside = idim*2+side;
                     Array4<T const> farr = f->const_array(fluxcomp);
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(runon, hibx_is, tmpbox,
-                    {
-                        yafluxreg_fineadd(tmpbox, d, farr, dtdxs, numcomp, dirside, rr);
-                    });
+                    if (use_gpu) {
+#if (AMREX_SPACEDIM == 3)
+                        amrex::ParallelFor(hibx_is, numcomp,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
+                        {
+                            yafluxreg_fineadd(i,j,k,n,d,farr,dtdxs,dirside,rr);
+                        });
+#elif (AMREX_SPACEDIM == 2)
+                        amrex::ParallelFor(hibx_is, numcomp,
+                        [=] AMREX_GPU_DEVICE (int i, int j, int n) noexcept
+                        {
+                            yafluxreg_fineadd(i,j,n,d,farr,dtdxs,dirside,rr);
+                        });
+#else
+                        amrex::ParallelFor(hibx_is, numcomp,
+                        [=] AMREX_GPU_DEVICE (int i, int n) noexcept
+                        {
+                            yafluxreg_fineadd(i,n,d,farr,dtdxs,dirside,rr);
+                        });
+#endif
+                    } else {
+                        const auto lo = amrex::lbound(hibx_is);
+                        const auto hi = amrex::ubound(hibx_is);
+                        for (int n = 0; n < numcomp; ++n) {
+#if (AMREX_SPACEDIM == 3)
+                            for (int k = lo.z; k <= hi.z; ++k) {
+                                for (int j = lo.y; j <= hi.y; ++j) {
+                                    for (int i = lo.x; i <= hi.x; ++i) {
+                                        yafluxreg_fineadd(i,j,k,n,d,farr,dtdxs,dirside,rr);
+                                    }
+                                }
+                            }
+#elif (AMREX_SPACEDIM == 2)
+                            for (int j = lo.y; j <= hi.y; ++j) {
+                                for (int i = lo.x; i <= hi.x; ++i) {
+                                    yafluxreg_fineadd(i,j,n,d,farr,dtdxs,dirside,rr);
+                                }
+                            }
+#else
+                            for (int i = lo.x; i <= hi.x; ++i) {
+                                yafluxreg_fineadd(i,n,d,farr,dtdxs,dirside,rr);
+                            }
+#endif
+                        }
+                    }
                 }
             }
         }

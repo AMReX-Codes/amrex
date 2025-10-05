@@ -46,77 +46,45 @@ void yafluxreg_crseadd (Box const& bx, Array4<T> const& d, Array4<int const> con
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void yafluxreg_fineadd (Box const& bx, Array4<T> const& d, Array4<T const> const& f,
-                        T dtdx, int nc, int dirside, Dim3 const& rr) noexcept
+T yafluxreg_fineadd_delta (int i, int j, int n,
+                           Array4<T const> const& f, T scale,
+                           int dirside, Dim3 const& rr) noexcept
 {
-    const auto lo = amrex::lbound(bx);
-    const auto hi = amrex::ubound(bx);
+    const int dir  = dirside / 2;
+    const int side = dirside % 2;
 
-    switch (dirside) {
-    case 0 :
-    {
-        for (int n = 0; n < nc; ++n) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-                const int i = lo.x;
-                const int ii = (i+1)*rr.x;
-                T* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int joff = 0; joff < rr.y; ++joff) {
-                    const int jj =      j*rr.y  + joff;
-                    T tmp = -dtdx*f(ii,jj,0,n);
-                    HostDevice::Atomic::Add(dp, tmp);
-                }
-            }
+    T sum = T(0.0);
+
+    if (dir == 0) {
+        const int ii    = (side == 0) ? (i+1) * rr.x : i * rr.x;
+        const T sign    = (side == 0) ? T(-1.0) : T(1.0);
+        const int jbase = j * rr.y;
+#pragma unroll
+        for (int jj = 0; jj < rr.y; ++jj) {
+            const int fj = jbase + jj;
+            sum += sign * scale * f(ii, fj, 0, n);
         }
-        break;
-    }
-    case 1 :
-    {
-        for (int n = 0; n < nc; ++n) {
-            for (int j = lo.y; j <= hi.y; ++j) {
-                const int i = lo.x;
-                const int ii = i*rr.x;
-                T* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int joff = 0; joff < rr.y; ++joff) {
-                    const int jj =      j*rr.y  + joff;
-                    T tmp = dtdx*f(ii,jj,0,n);
-                    HostDevice::Atomic::Add(dp, tmp);
-                }
-            }
-        }
-        break;
-    }
-    case 2 :
-    {
-        for (int n = 0; n < nc; ++n) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                const int j = lo.y;
-                const int jj = (j+1)*rr.y;
-                T* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int ioff = 0; ioff < rr.x; ++ioff) {
-                    const int ii =      i*rr.x  + ioff;
-                    T tmp = -dtdx*f(ii,jj,0,n);
-                    HostDevice::Atomic::Add(dp, tmp);
-                }
-            }
-        }
-        break;
-    }
-    default:
-    {
-        for (int n = 0; n < nc; ++n) {
-            for (int i = lo.x; i <= hi.x; ++i) {
-                const int j = lo.y;
-                const int jj = j*rr.y;
-                T* AMREX_RESTRICT dp = &(d(i,j,0,n));
-                for (int ioff = 0; ioff < rr.x; ++ioff) {
-                    const int ii =      i*rr.x  + ioff;
-                    T tmp = dtdx*f(ii,jj,0,n);
-                    HostDevice::Atomic::Add(dp, tmp);
-                }
-            }
+    } else {
+        const int jj    = (side == 0) ? (j+1) * rr.y : j * rr.y;
+        const T sign    = (side == 0) ? T(-1.0) : T(1.0);
+        const int ibase = i * rr.x;
+#pragma unroll
+        for (int ii = 0; ii < rr.x; ++ii) {
+            const int fi = ibase + ii;
+            sum += sign * scale * f(fi, jj, 0, n);
         }
     }
-    }
+
+    return sum;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void yafluxreg_fineadd (int i, int j, int n,
+                        Array4<T> const& d, Array4<T const> const& f,
+                        T scale, int dirside, Dim3 const& rr) noexcept
+{
+    d(i,j,0,n) += yafluxreg_fineadd_delta(i,j,n,f,scale,dirside,rr);
 }
 
 }

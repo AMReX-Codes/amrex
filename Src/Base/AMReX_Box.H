@@ -5,6 +5,7 @@
 
 #include <AMReX_Algorithm.H>
 #include <AMReX_ArrayLim.H>
+#include <AMReX_BoxIterator.H>
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
@@ -25,6 +26,8 @@ template<int dim>
 class BoxND;
 using Box = BoxND<AMREX_SPACEDIM>;
 class BoxCommHelper;
+template<int dim>
+class BoxIteratorND;
 
 /**
 * \brief A Rectangular Domain on an Integer Lattice
@@ -781,6 +784,21 @@ public:
         smallend[direction] = slab_index;
         bigend[direction] = slab_index;
         return *this;
+    }
+
+    /**
+    * \brief Returns a BoxIteratorND that can be used to loop over the IntVects
+    * contained by the BoxND.
+    * \code{.cpp}
+    *   Box b;
+    *   ...
+    *   for (IntVect iv : b.iterator()) {
+    *       // do operations involving iv
+    *   }
+    * \endcode
+    */
+    [[nodiscard]] BoxIteratorND<dim> iterator () const noexcept {
+        return BoxIteratorND<dim>{*this};
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

@@ -25,12 +25,12 @@ namespace amrex {
  * AMReX_MultiFabUtil.H to synchronize the coarse level data with the fine
  * level.
  *
- * \vertbatim
-    template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
-    void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
-                             const Array<MF*,AMREX_SPACEDIM>& crse,
-                             const IntVect& ratio, const Geometry& crse_geom)
- * \endverbatim
+ * \code{.cpp}
+ *     template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+ *     void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
+ *                              const Array<MF*,AMREX_SPACEDIM>& crse,
+ *                              const IntVect& ratio, const Geometry& crse_geom)
+ * \endcode
  *
  * Note that both CrseAdd and FineAdd are async for GPU builds. That means
  * it's the user's responsibility to keep the FArrayBox arguments alive or

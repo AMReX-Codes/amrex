@@ -184,6 +184,8 @@ public:
      *                     are indices in the spectral space, and the reference
      *                     to the complex number allows for the modification of
      *                     the spectral data at that location.
+     * \param incomp component index of input data
+     * \param outcomp component index of output data
      */
     template <typename F, Direction DIR=D,
               std::enable_if_t<DIR == Direction::both, int> = 0>
@@ -204,6 +206,7 @@ public:
      * backward-only transform.
      *
      * \param inmf input data in MultiFab or FabArray<BaseFab<float>>
+     * \param incomp component index of input data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
@@ -217,6 +220,8 @@ public:
      *
      * \param inmf input data in MultiFab or FabArray<BaseFab<float>>
      * \param outmf output data in FabArray<BaseFab<GpuComplex<T>>>
+     * \param incomp component index of input data
+     * \param outcomp component index of output data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
@@ -249,6 +254,7 @@ public:
      * instantiated for transforms in both directions.
      *
      * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
+     * \param outcomp component index of output data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::both, int> = 0>
     void backward (MF& outmf, int outcomp = 0);
@@ -261,6 +267,8 @@ public:
      *
      * \param inmf input data in FabArray<BaseFab<GpuComplex<T>>>
      * \param outmf output data in MultiFab or FabArray<BaseFab<float>>
+     * \param incomp component index of input data
+     * \param outcomp component index of output data
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::backward ||
                                                 DIR == Direction::both, int> = 0>
@@ -483,11 +491,7 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 #if (AMREX_SPACEDIM == 3)
     if (m_info.domain_strategy == DomainStrategy::automatic) {
         if (m_info.twod_mode) {
-            if (m_real_domain.length(2) < nprocs) {
-                m_info.domain_strategy = DomainStrategy::pencil;
-            } else {
-                m_info.domain_strategy = DomainStrategy::slab;
-            }
+            m_info.domain_strategy = DomainStrategy::slab;
         } else {
             int shortside = m_real_domain.shortside();
             if (shortside < m_info.pencil_threshold*nprocs) {
@@ -497,19 +501,20 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
             }
         }
     }
-    if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
-        if (m_info.twod_mode && m_real_domain.length(2) == 1) {
-            m_slab_decomp = false;
-        } else {
-            m_slab_decomp = true;
-        }
+
+    if (m_info.twod_mode) {
+        m_slab_decomp = true;
+    } else if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
+        m_slab_decomp = true;
     }
+
 #endif
 
     auto const ncomp = m_info.batch_size;
 
     auto bax = amrex::decompose(m_real_domain, nprocs,
-                                {AMREX_D_DECL(false,!m_slab_decomp,true)}, true);
+                                {AMREX_D_DECL(false,!m_slab_decomp,m_real_domain.length(2)>1)}, true);
+
     DistributionMapping dmx = detail::make_iota_distromap(bax.size());
     m_rx.define(bax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
 
@@ -532,13 +537,8 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         //
 
 #if (AMREX_SPACEDIM >= 2)
-#if (AMREX_SPACEDIM == 2)
-        bool batch_on_y = false;
-#else
-        bool batch_on_y = m_info.twod_mode && (m_real_domain.length(2) == 1);
-#endif
         DistributionMapping cdmy;
-        if ((m_real_domain.length(1) > 1) && !m_slab_decomp && !batch_on_y)
+        if ((m_real_domain.length(1) > 1) && !m_slab_decomp)
         {
             auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
                                          {AMREX_D_DECL(false,true,true)}, true);
@@ -1193,7 +1193,7 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
             auto* spectral_fab = detail::get_fab(m_cz);
             if (spectral_fab) {
                 auto const& a = spectral_fab->array(); // m_cz's ordering is z,x,y
-                ParallelFor(spectral_fab->box(),
+                ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int iz, int jx, int ky)
                 {
                     post_forward(jx,ky,iz,a(iz,jx,ky));
@@ -1203,7 +1203,7 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
             auto* spectral_fab = detail::get_fab(m_cy);
             if (spectral_fab) {
                 auto const& a = spectral_fab->array(); // m_cy's ordering is y,x,z
-                ParallelFor(spectral_fab->box(),
+                ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int iy, int jx, int k)
                 {
                     post_forward(jx,iy,k,a(iy,jx,k));
@@ -1213,7 +1213,7 @@ void R2C<T,D,C>::post_forward_doit_1 (F const& post_forward)
             auto* spectral_fab = detail::get_fab(m_cx);
             if (spectral_fab) {
                 auto const& a = spectral_fab->array();
-                ParallelFor(spectral_fab->box(),
+                ParallelForOMP(spectral_fab->box(),
                 [=] AMREX_GPU_DEVICE (int i, int j, int k)
                 {
                     post_forward(i,j,k,a(i,j,k));
