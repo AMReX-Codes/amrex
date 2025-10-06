@@ -504,17 +504,21 @@ namespace amrex {
          *
          * This can be used, for instance, to calculate the sum over the \a y
          * dimension of an Array2D object that was instantiated as
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
+         * \code{.cpp}
+         *     Array2D<amrex::Real, 1, M, 1, N> array;
+         * \endcode
          *
          * One could instantiate an Array1D object to hold the results,
-         * \verbatim Array1D<amrex::Real, 1, M> vec; \endverbatim
+         * \code{.cpp}
+         *     Array1D<amrex::Real, 1, M> vec;
+         * \endcode
          * and then perform the summation for each element of the resulting
          * vector.
-         * \verbatim
-         for (int i = 1; i <= M; ++i) {
-             vec(i) = array.sum(1,i)
-         }
-         \endverbatim
+         * \code{.cpp}
+         *     for (int i = 1; i <= M; ++i) {
+         *         vec(i) = array.sum(1,i)
+         *     }
+         * \endcode
          * In this example, the axis is 1 and the location index is \c i.
          *
          */
@@ -560,18 +564,22 @@ namespace amrex {
          *
          * This can be used, for instance, to calculate the product over the \a x
          * dimension of an Array2D object that was instantiated as
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N> array; \endverbatim
+         * \code{.cpp}
+         *     Array2D<amrex::Real, 1, M, 1, N> array;
+         * \endcode
          *
          * One could instantiate an Array1D object to hold the results with,
-         * \verbatim Array1D<amrex::Real, 1, N> vec; \endverbatim
+         * \code{.cpp}
+         *     Array1D<amrex::Real, 1, N> vec;
+         * \endcode
          * and then perform the product for each element of the resulting
          * vector.
          *
-         * \verbatim
-         for (int j = 1; j <= N; ++j) {
-             vec(j) = array.sum(0,j)
-         }
-         \endverbatim
+         * \code{.cpp}
+         *     for (int j = 1; j <= N; ++j) {
+         *         vec(j) = array.sum(0,j)
+         *     }
+         * \endcode
          * In this example, the axis is 0 and the location index is \c j.
          *
          */
@@ -830,19 +838,23 @@ namespace amrex {
          *
          * This can be used, for instance, to calculate the sum over the \a x
          * dimension of an Array3D object that was instantiated as
-         * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
+         * \code{.cpp}
+         *     Array3D<amrex::Real, 1, M, 1, N, 1, K> array;
+         * \endcode
          *
          * One could instantiate an Array2D object to hold the results,
-         * \verbatim Array2D<amrex::Real, 1, N, 1, K> mat; \endverbatim
+         * \code{.cpp}
+         *     Array2D<amrex::Real, 1, N, 1, K> mat;
+         * \endcode
          * and then perform the summation for each element of the resulting
          * matrix.
-         * \verbatim
-         for     (int j = 1; j <= N; ++j) {
-             for (int k = 1; k <= K; ++k) {
-                 mat(j,k) = array.sum(0,j,k)
-             }
-         }
-         \endverbatim
+         * \code{.cpp}
+         *     for     (int j = 1; j <= N; ++j) {
+         *         for (int k = 1; k <= K; ++k) {
+         *             mat(j,k) = array.sum(0,j,k)
+         *         }
+         *     }
+         * \endcode
          * In this example, the axis is 0 and the location indices are \c loc0 = \c j
          * and \c loc1 = \c k. For axis = 1, the location indices are treated as
          * \c loc0 = \c i and \c loc1 = \c k; for axis = 2, \c loc0 = \c j and \c loc1 = \c k.
@@ -901,19 +913,23 @@ namespace amrex {
          *
          * This can be used, for instance, to calculate the sum over the \a z
          * dimension of an Array3D object that was instantiated as
-         * \verbatim Array3D<amrex::Real, 1, M, 1, N, 1, K> array; \endverbatim
+         * \code{.cpp}
+         *     Array3D<amrex::Real, 1, M, 1, N, 1, K> array;
+         * \endcode
          *
          * One could instantiate an Array2D object to hold the results,
-         * \verbatim Array2D<amrex::Real, 1, M, 1, N> mat; \endverbatim
+         * \code{.cpp}
+         *     Array2D<amrex::Real, 1, M, 1, N> mat;
+         * \endcode
          * and then perform the summation for each element of the resulting
          * matrix.
-         * \verbatim
-         for     (int j = 1; j <= N; ++j) {
-             for (int i = 1; i <= M; ++i) {
-                 mat(i,j) = array.sum(2,i,j)
-             }
-         }
-         \endverbatim
+         * \code{.cpp}
+         *     for     (int j = 1; j <= N; ++j) {
+         *         for (int i = 1; i <= M; ++i) {
+         *             mat(i,j) = array.sum(2,i,j)
+         *         }
+         *     }
+         * \endcode
          * In this example, the axis is 2 and the location indices are \c loc0 = \c i
          * and \c loc1 = \c j. For axis = 0, the location indices are treated as
          * \c loc0 = \c j and \c loc1 = \c k; for axis = 1, \c loc0 = \c i and \c loc1 = \c k.

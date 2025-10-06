@@ -17,9 +17,11 @@ using amrex_enum_traits = decltype(amrex_get_enum_traits(std::declval<T>()));
 
 namespace amrex
 {
+namespace detail
+{
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    std::vector<std::pair<std::string,T>> getEnumNameValuePairs ()
+    std::vector<std::pair<std::string,T>> getNewEnumNameValuePairs ()
     {
         auto tmp = amrex::split(std::string(ET::enum_names), ",");
         std::vector<std::pair<std::string,T>> r;
@@ -45,6 +47,16 @@ namespace amrex
                 throw std::runtime_error(error_msg);
             }
         }
+        return r;
+    }
+}  // namespace detail
+
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
+    {
+        // cache enum value strings for the whole type T
+        static auto r = detail::getNewEnumNameValuePairs<T>();
         return r;
     }
 
@@ -127,6 +139,17 @@ namespace amrex
     std::string getEnumClassName ()
     {
         return std::string(ET::class_name);
+    }
+
+    /** Return the underlying (u)int of an enum value
+     *
+     * Useful when building bitmasks.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    constexpr auto toUnderlying (T v) noexcept
+    {
+        return static_cast<std::underlying_type_t<T>>(v);
     }
 }
 

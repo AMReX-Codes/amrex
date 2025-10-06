@@ -1,3 +1,114 @@
+# 25.10
+
+ ## Highlights:
+
+  * Add range-based for and ND to BoxIterator (#4668)
+
+    The new capability allows a range-base for loop for iterating over
+    Box. For example
+    ```
+        for (auto iv : box.iterator()) {
+            // do operations involving iv
+        }
+    ```
+
+  * `AMREX_ENUM`: Cache String Map (#4643)
+
+    This provides significant performance improvement for AMREX_ENUM with a
+    large number of values (e.g., > 70).
+
+  * ParmParse: Add prettyPrintUsedInputs and prettyPrintUnusedInputs (#4652)
+
+    This adds two new functions to ParmParse that can be very useful.
+
+  * Fix for CUDA 13 (#4648)
+
+    This makes AMReX compatible wtih CUDA 13.
+
+ ## Other major changes:
+
+  * GNU Make: Add new option DEBUG_OPT_LEVEL (#4674)
+
+  * Add support for make flags to the build info script (#4672)
+
+  * OpenBC FFT Solver: Fix a 2d mode bug. (#4671)
+
+  * Remove no-op Fortran *_destroy blocks (#4666) (#4667)
+
+  * Adding support to memory collection of Particles and MultiFabs within a
+    grid (#4629)
+
+  * Use `p.id().is_valid()` consistently (#4635)
+
+  * Updated applyBC to use ParallelFor on Vector of tags for GPU builds
+    (#4619)
+
+  * AMReX Enum: Underlying Value (#4616)
+
+  * Print out hypre version (#4650)
+
+  * Curl Curl Solver: Support for 1D spherical and 1D cylindrical (#4611)
+
+# 25.09
+
+ ## Highlights:
+
+  * amrex::callNoinline: Call given function without inline (#4606)
+
+    This new function can be used to force noinlining functions. It can be
+    useful when it's necessary to reduce GPU kernel sizes.
+
+  * Incorrect cross term sum for 2D EB terms in MLEBTensor (#4626)
+
+    This fixes a very old bug in the computation of the cross terms of the
+    Navier-Stokes stress tensor in the 2D EB case. The bug affected AMReX
+    based codes that use the MLEBTensor operator in linear solvers.
+
+  * Add ParallelForOMP (#4595)
+    Fix ParallelForOMP introduced in #4595 (#4604)
+
+    amrex::ParallelFor in CPU builds does not spawn OpenMP threads, because
+    it is usually used inside coarse-grained OpenMP regions launched at the
+    MFIter level. However, in some cases, the users may need to start OpenMP
+    parallel regions in the loops over cells. This new function has been
+    added for this purpose.
+
+  * Add ToString function for array and tuple (#4584)
+
+    This adds a `ToString` function that can be used with scalars, arrays
+    and tuples to write error messages or when debugging.
+
+ ## Other major changes:
+
+  * Delay some synchronize calls in addParticles (#4623)
+    Fix a bug in #4623 (#4631)
+
+  * Fix Bug in FaceConservativeLinear (#4630)
+
+  * Generalize the average_*_to_cellcenter routines to take IntVect (#4627)
+
+  * Fix atomicSetID wrapper access (#4625)
+
+  * Fallback to default `CUDA_ARCH` if `nvidia-smi` fails (#4624)
+
+  * Enable OpenMP in addParticles (#4615)
+
+  * Fix potential false sharing in ReduceOps.eval with OMP (#4618)
+
+  * Enable zero-sized Type in TypeMultiplier (#4617)
+
+  * Add ParamParse::getPrefix (#4612)
+
+  * SIMD: Portable Masks, C++20 (#4607)
+
+  * Improve support for Particles with PolymorphicArenaAllocator (#4603)
+
+  * Improvements to AMREX_ASSERT (#4581)
+
+  * SIMD: Remove Unnecessary Namespaces (#4600)
+
+  * Modify how we interpolate velocity from faces to particle position (#4598)
+
 # 25.08
 
  ## Highlights:

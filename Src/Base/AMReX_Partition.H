@@ -100,7 +100,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \tparam F type of the predicate function.
  *
  * \param data pointer to the data to be partitioned
- * \param N the number of elements in the array
+ * \param n the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
@@ -186,7 +186,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \tparam F type of the predicate function.
  *
  * \param data pointer to the data to be partitioned
- * \param N the number of elements in the array
+ * \param n the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
@@ -269,7 +269,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \tparam F type of the predicate function.
  *
  * \param data pointer to the data to be partitioned
- * \param N the number of elements in the array
+ * \param n the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.
@@ -350,7 +350,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \tparam F type of the predicate function.
  *
  * \param data pointer to the data to be partitioned
- * \param N the number of elements in the array
+ * \param n the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
  * Returns the index of the first element for which f is 0.

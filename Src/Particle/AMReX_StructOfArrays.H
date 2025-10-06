@@ -179,7 +179,7 @@ struct StructOfArrays {
 
     /** Get access to a particle Int component Array (compile-time and runtime component)
      *
-     * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+     * @param name component names with 0...NInt-1 compile-time and NInt... runtime arguments
      * @return
      */
     [[nodiscard]] IntVector& GetIntData (std::string const & name) {
@@ -193,7 +193,7 @@ struct StructOfArrays {
 
     /** Get access to a particle Int component Array (compile-time and runtime component)
      *
-     * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+     * @param name component names with 0...NInt-1 compile-time and NInt... runtime arguments
      * @return
      */
     [[nodiscard]] const IntVector& GetIntData (std::string const & name) const {

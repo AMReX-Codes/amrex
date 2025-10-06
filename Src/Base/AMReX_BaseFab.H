@@ -647,7 +647,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect minIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return minimum value and location to allow
+    * \brief Compute minimum value and location to allow
     * efficient looping over multiple boxes.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -665,7 +665,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect maxIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return maximum value and location to allow
+    * \brief Compute maximum value and location to allow
     * efficient looping over multiple boxes.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -1205,9 +1205,17 @@ BaseFab<T>::prefetchToHost () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = cudaCpuDeviceId;
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
+                                                      Gpu::gpuStream()));
+#else
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                                       cudaCpuDeviceId,
                                                       Gpu::gpuStream()));
+#endif
         }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported
@@ -1229,9 +1237,17 @@ BaseFab<T>::prefetchToDevice () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = Gpu::Device::deviceId();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
+                                                      Gpu::gpuStream()));
+#else
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                                       Gpu::Device::deviceId(),
                                                       Gpu::gpuStream()));
+#endif
         }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported

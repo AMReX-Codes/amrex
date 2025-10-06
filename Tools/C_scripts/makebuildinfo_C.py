@@ -96,6 +96,12 @@ const char* buildInfoGetLibraries() {
   return libraries;
 }
 
+const char* buildInfoGetMakeFlags() {
+
+  static const char make_flags[] = "@@make_flags@@";
+  return make_flags;
+}
+
 const char* buildInfoGetAux(int i) {
 
   //static const char AUX1[] = "${AUX[1]}";
@@ -237,6 +243,10 @@ if __name__ == "__main__":
     parser.add_argument("--link_flags", help="linker flags", type=str, default="")
 
     parser.add_argument("--libraries", help="libraries linked", type=str, default="")
+
+    parser.add_argument("--make_flags",
+                        help="the options provided to the make command",
+                        type=str, default="")
 
     parser.add_argument("--AUX",
                         help="auxiliary information (EOS, network path) (deprecated)",

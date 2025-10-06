@@ -32,9 +32,7 @@ module amrex_boxarray_module
      procedure, private :: amrex_boxarray_maxsize_int3
      procedure, private :: amrex_boxarray_maxsize_iv
      procedure, private :: amrex_boxarray_intersects_box
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_boxarray_destroy
-#endif
   end type amrex_boxarray
 
   interface operator(==)
@@ -50,9 +48,11 @@ module amrex_boxarray_module
      module procedure amrex_boxarray_print
   end interface amrex_print
 
+#ifdef __NVCOMPILER
   interface amrex_boxarray_destroy
      module procedure amrex_boxarray_destroy
   end interface amrex_boxarray_destroy
+#endif
 
   ! interfaces to cpp functions
 

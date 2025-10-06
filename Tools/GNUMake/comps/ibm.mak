@@ -49,8 +49,8 @@ CFLAGS   =
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0
-  CFLAGS   += -g -O0
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL)
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
 
 else
 
@@ -104,8 +104,8 @@ F90FLAGS =
 
 ifeq ($(DEBUG),TRUE)
 
-  FFLAGS   += -g -O0
-  F90FLAGS += -g -O0
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL)
 
 else
 

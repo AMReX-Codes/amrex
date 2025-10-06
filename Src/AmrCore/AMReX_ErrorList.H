@@ -22,25 +22,6 @@ extern "C"
 
     /**
     * \brief Type of extern "C" function called by ErrorRec to do tagging of cells for refinement.
-    *
-    * \param tag
-    * \param tlo
-    * \param thi
-    * \param tagval
-    * \param clearval
-    * \param data
-    * \param data_lo
-    * \param data_hi
-    * \param lo
-    * \param hi
-    * \param nvar
-    * \param domain_lo
-    * \param domain_hi
-    * \param dx
-    * \param xlo
-    * \param prob_lo
-    * \param time
-    * \param level
     */
     using ErrorFuncDefault = void (*)(int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
                                       const int* tagval, const int* clearval,
@@ -156,25 +137,6 @@ public:
 
         /**
         * \brief Tag cells using "regular" function.
-        *
-        * \param tag
-        * \param tlo
-        * \param thi
-        * \param tagval
-        * \param clearval
-        * \param data
-        * \param data_lo
-        * \param data_hi
-        * \param lo
-        * \param hi
-        * \param nvar
-        * \param domain_lo
-        * \param domain_hi
-        * \param dx
-        * \param xlo
-        * \param prob_lo
-        * \param time
-        * \param level
         */
         virtual void operator () (int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
                                   const int* tagval, const int* clearval,
@@ -194,8 +156,8 @@ public:
         * \param tagval
         * \param clearval
         * \param data
-        * \param data_lo
-        * \param data_hi
+        * \param dlo
+        * \param dhi
         * \param lo
         * \param hi
         * \param nvar
@@ -255,23 +217,6 @@ public:
 
         /**
         * \brief Tag cells cells using "v2" interface
-        *
-        * \param tag
-        * \param tlo
-        * \param thi
-        * \param tagval
-        * \param clearval
-        * \param data
-        * \param data_lo
-        * \param data_hi
-        * \param lo
-        * \param hi
-        * \param nvar
-        * \param domain_lo
-        * \param domain_hi
-        * \param dx
-        * \param level
-        * \param avg
         */
         virtual void operator () (int* tag, AMREX_ARLIM_P(tlo), AMREX_ARLIM_P(thi),
                                   const int* tagval, const int* clearval,

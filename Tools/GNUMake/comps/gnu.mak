@@ -83,8 +83,8 @@ CXXFLAGS += -Werror=return-type
 CFLAGS   += -Werror=return-type
 
 ifeq ($(DEBUG),TRUE)
-  CXXFLAGS += -g -O0 -ggdb -ftrapv
-  CFLAGS   += -g -O0 -ggdb -ftrapv
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -ggdb -ftrapv
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ggdb -ftrapv
 else
   CXXFLAGS += -g1 -O3
   CFLAGS   += -g1 -O3
@@ -176,8 +176,8 @@ F90FLAGS =
 
 ifeq ($(DEBUG),TRUE)
 
-  FFLAGS   += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-  F90FLAGS += -g -O0 -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fcheck=bounds -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
 else
 

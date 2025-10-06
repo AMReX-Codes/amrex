@@ -1,8 +1,7 @@
-add_amrex_define(AMREX_USE_HYPRE NO_LEGACY NO_1D IF AMReX_HYPRE)
+add_amrex_define(AMREX_USE_HYPRE NO_LEGACY IF AMReX_HYPRE)
 
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 1)
-        message(WARNING "HYPRE interfaces are not supported for 1D builds (skipping)")
         continue()
     endif ()
 

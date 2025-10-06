@@ -185,6 +185,9 @@ struct CurlCurlDirichletInfo
 {
     IntVect dirichlet_lo;
     IntVect dirichlet_hi;
+#if (AMREX_SPACEDIM < 3)
+    int coord = 0;
+#endif
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool is_dirichlet_node (int i, int j, int k) const
@@ -235,7 +238,11 @@ struct CurlCurlDirichletInfo
     {
 #if (AMREX_SPACEDIM == 1)
         amrex::ignore_unused(j);
-        return (i == dirichlet_lo[0]) || (i == dirichlet_hi[0]);
+        if ((i == 0) && (coord == 1)) {
+            return false; // Ez in 1d cyl is not dirichlet
+        } else {
+            return (i == dirichlet_lo[0]) || (i == dirichlet_hi[0]);
+        }
 #else
         return (i == dirichlet_lo[0]) || (i == dirichlet_hi[0])
             || (j == dirichlet_lo[1]) || (j == dirichlet_hi[1]);
@@ -373,16 +380,33 @@ void mlcurlcurl_adotx_y (int i, int j, int k, Array4<Real> const& Ay,
                          Array4<Real const> const& ex,
                          Array4<Real const> const& ey,
                          Array4<Real const> const& ez,
-                         Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv)
+                         Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv
+#if (AMREX_SPACEDIM < 3)
+                         , int coord
+#endif
+                        )
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(ex,ez);
-    Real dxx = adxinv[0] * adxinv[0];
-    Real ccey =  ey(i  ,j  ,k  ) * dxx * Real(2.0)
-        - dxx * (ey(i-1,j  ,k  ) +
-                 ey(i+1,j  ,k  ));
+    Real ccey;
+    if (coord == 0) {
+        ccey =  ey(i  ,j,k) * Real(2.0)
+            -   ey(i-1,j,k)
+            -   ey(i+1,j,k);
+    } else if (coord == 1) {
+        // i=0 won't get here
+        ccey =  ey(i  ,j,k) * (Real( 1.0)/(Real(i)*Real(i)) + Real(2.0))
+            +   ey(i-1,j,k) * (Real( 0.5)/Real(i) - Real(1.0))
+            +   ey(i+1,j,k) * (Real(-0.5)/Real(i) - Real(1.0));
+    } else {
+        // i=0 won't get here
+        ccey =  ey(i  ,j,k) * Real(2.0)
+            +   ey(i-1,j,k) * (Real( 1.0)/Real(i) - Real(1.0))
+            +   ey(i+1,j,k) * (Real(-1.0)/Real(i) - Real(1.0));
+    }
+    ccey *= adxinv[0] * adxinv[0];
 #elif (AMREX_SPACEDIM == 2)
-    amrex::ignore_unused(ez);
+    amrex::ignore_unused(ez,coord);
     Real dxx = adxinv[0] * adxinv[0];
     Real dxy = adxinv[0] * adxinv[1];
     Real ccey =  ey(i  ,j  ,k  ) * dxx * Real(2.0)
@@ -419,16 +443,35 @@ void mlcurlcurl_adotx_z (int i, int j, int k, Array4<Real> const& Az,
                          Array4<Real const> const& ex,
                          Array4<Real const> const& ey,
                          Array4<Real const> const& ez,
-                         Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv)
+                         Real beta, GpuArray<Real,AMREX_SPACEDIM> const& adxinv
+#if (AMREX_SPACEDIM < 3)
+                         , int coord
+#endif
+                        )
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(ex,ey);
-    Real dxx = adxinv[0] * adxinv[0];
-    Real ccez =  ez(i  ,j  ,k  ) * dxx*Real(2.0)
-        - dxx * (ez(i-1,j  ,k  ) +
-                 ez(i+1,j  ,k  ));
+    Real ccez;
+    if (coord == 0) {
+        ccez =  ez(i  ,j,k) * Real(2.0)
+            -   ez(i-1,j,k)
+            -   ez(i+1,j,k);
+    } else if (coord == 1) {
+        if (i == 0) {
+            ccez = Real(4.0) * (ez(0,0,0) - ez(1,0,0));
+        } else {
+            ccez =  ez(i  ,j,k) * Real(2.0)
+                +   ez(i-1,j,k) * (Real( 0.5)/Real(i) - Real(1.0))
+                +   ez(i+1,j,k) * (Real(-0.5)/Real(i) - Real(1.0));
+        }
+    } else {
+        ccez =  ez(i  ,j,k) * Real(2.0)
+            +   ez(i-1,j,k) * (Real( 1.0)/Real(i) - Real(1.0))
+            +   ez(i+1,j,k) * (Real(-1.0)/Real(i) - Real(1.0));
+    }
+    ccez *= adxinv[0] * adxinv[0];
 #elif (AMREX_SPACEDIM == 2)
-    amrex::ignore_unused(ex,ey);
+    amrex::ignore_unused(ex,ey,coord);
     Real dxx = adxinv[0] * adxinv[0];
     Real dyy = adxinv[1] * adxinv[1];
     Real ccez =  ez(i  ,j  ,k  ) * (dxx+dyy)*Real(2.0)
@@ -460,20 +503,19 @@ void mlcurlcurl_adotx_z (int i, int j, int k, Array4<Real> const& Az,
 
 #if (AMREX_SPACEDIM == 1)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlcurlcurl_1D (int i, int j, int k,
-                    Array4<Real> const& ex,
-                    Array4<Real> const& ey,
-                    Array4<Real> const& ez,
-                    Array4<Real const> const& rhsx,
-                    Array4<Real const> const& rhsy,
-                    Array4<Real const> const& rhsz,
-                    Real beta,
-                    GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
-                    int color,
-                    CurlCurlDirichletInfo const& dinfo, bool valid_x)
+void mlcurlcurl_smooth_1d (int i, int j, int k,
+                           Array4<Real> const& ex,
+                           Array4<Real> const& ey,
+                           Array4<Real> const& ez,
+                           Array4<Real const> const& rhsx,
+                           Array4<Real const> const& rhsy,
+                           Array4<Real const> const& rhsz,
+                           Real beta,
+                           GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
+                           int color,
+                           CurlCurlDirichletInfo const& dinfo, bool valid_x,
+                           int coord)
 {
-    if (dinfo.is_dirichlet_node(i,j,k)) {return; }
-
     Real dxx = adxinv[0] * adxinv[0];
 
     int my_color = i%2;
@@ -484,37 +526,83 @@ void mlcurlcurl_1D (int i, int j, int k,
             ex(i,j,k) = rhsx(i,j,k) / beta;
         }
 
-        Real gamma_y = dxx * Real(2.0) + beta;
-        Real ccey = - dxx * (ey(i-1,j  ,k  ) +
-                             ey(i+1,j  ,k  ) );
-        Real res_y = rhsy(i,j,k) - ( gamma_y * ey(i,j,k) + ccey );
-        ey(i,j,k) += res_y/gamma_y;
+        if (coord == 0)
+        {
+            if (dinfo.is_dirichlet_node(i,j,k)) { return; }
 
-        Real gamma_z = dxx * Real(2.0) + beta;
-        Real ccez = -dxx * (ez(i-1,j  ,k  ) +
-                            ez(i+1,j  ,k  ) );
-        Real res_z = rhsz(i,j,k) - ( gamma_z * ez(i,j,k) + ccez );
-        ez(i,j,k) += res_z/gamma_z;
+            Real cm = -dxx;
+            Real cp = -dxx;
+
+            Real gamma = dxx * Real(2.0) + beta;
+
+            Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
+            Real res_y = rhsy(i,j,k) - ( gamma * ey(i,j,k) + ccey );
+            ey(i,j,k) += res_y/gamma;
+
+            Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
+            Real res_z = rhsz(i,j,k) - ( gamma * ez(i,j,k) + ccez );
+            ez(i,j,k) += res_z/gamma;
+        }
+        else if (coord == 1)
+        {
+            if ((i > 0) && ! dinfo.is_dirichlet_node(i,j,k)) {
+                Real cm = dxx * (Real( 0.5)/Real(i) - Real(1.0));
+                Real cp = dxx * (Real(-0.5)/Real(i) - Real(1.0));
+
+                Real gamma = dxx * (Real(1.0)/(Real(i)*Real(i)) + Real(2.0)) + beta;
+
+                Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
+                Real res_y = rhsy(i,j,k) - ( gamma * ey(i,j,k) + ccey );
+                ey(i,j,k) += res_y/gamma;
+
+                gamma = dxx * Real(2.0) + beta;
+
+                Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
+                Real res_z = rhsz(i,j,k) - ( gamma * ez(i,j,k) + ccez );
+                ez(i,j,k) += res_z/gamma;
+            }
+            if ((i == 0) || (i == 1)) {
+                ez(0,0,0) = (rhsz(0,0,0) + Real(4.0)*dxx*ez(1,0,0))
+                    / (beta + Real(4.0)*dxx);
+            }
+        }
+        else
+        {
+            if (i == 0 || dinfo.is_dirichlet_node(i,j,k)) { return; }
+
+            Real cm = dxx * (Real( 1.0)/Real(i) - Real(1.0));
+            Real cp = dxx * (Real(-1.0)/Real(i) - Real(1.0));
+
+            Real gamma = dxx * Real(2.0) + beta;
+
+            Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
+            Real res_y = rhsy(i,j,k) - ( gamma * ey(i,j,k) + ccey );
+            ey(i,j,k) += res_y/gamma;
+
+            Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
+            Real res_z = rhsz(i,j,k) - ( gamma * ez(i,j,k) + ccez );
+            ez(i,j,k) += res_z/gamma;
+        }
     }
 }
 
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mlcurlcurl_1D (int i, int j, int k,
-                    Array4<Real> const& ex,
-                    Array4<Real> const& ey,
-                    Array4<Real> const& ez,
-                    Array4<Real const> const& rhsx,
-                    Array4<Real const> const& rhsy,
-                    Array4<Real const> const& rhsz,
-                    Array4<Real const> const& betax,
-                    Array4<Real const> const& betay,
-                    Array4<Real const> const& betaz,
-                    GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
-                    int color,
-                    CurlCurlDirichletInfo const& dinfo, bool valid_x)
+void mlcurlcurl_smooth_1d (int i, int j, int k,
+                           Array4<Real> const& ex,
+                           Array4<Real> const& ey,
+                           Array4<Real> const& ez,
+                           Array4<Real const> const& rhsx,
+                           Array4<Real const> const& rhsy,
+                           Array4<Real const> const& rhsz,
+                           Array4<Real const> const& betax,
+                           Array4<Real const> const& betay,
+                           Array4<Real const> const& betaz,
+                           GpuArray<Real,AMREX_SPACEDIM> const& adxinv,
+                           int color,
+                           CurlCurlDirichletInfo const& dinfo, bool valid_x,
+                           int coord)
 {
-    if (dinfo.is_dirichlet_node(i,j,k)) {return; }
     Real dxx = adxinv[0] * adxinv[0];
 
     int my_color = i%2;
@@ -525,17 +613,66 @@ void mlcurlcurl_1D (int i, int j, int k,
             ex(i,j,k) = rhsx(i,j,k) / betax(i,j,k);
         }
 
-        Real gamma_y = dxx * Real(2.0) + betay(i,j,k);
-        Real ccey = - dxx * (ey(i-1,j  ,k  ) +
-                             ey(i+1,j  ,k  ) );
-        Real res_y = rhsy(i,j,k) - ( gamma_y * ey(i,j,k) + ccey );
-        ey(i,j,k) += res_y/gamma_y;
+        if (coord == 0)
+        {
+            if (dinfo.is_dirichlet_node(i,j,k)) { return; }
 
-        Real gamma_z = dxx * Real(2.0) + betaz(i,j,k);
-        Real ccez = -dxx * (ez(i-1,j  ,k  ) +
-                            ez(i+1,j  ,k  ) );
-        Real res_z = rhsz(i,j,k) - ( gamma_z * ez(i,j,k) + ccez );
-        ez(i,j,k) += res_z/gamma_z;
+            Real cm = -dxx;
+            Real cp = -dxx;
+
+            Real gamma_y = dxx * Real(2.0) + betay(i,j,k);
+            Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
+            Real res_y = rhsy(i,j,k) - ( gamma_y * ey(i,j,k) + ccey );
+            ey(i,j,k) += res_y/gamma_y;
+
+            Real gamma_z = dxx * Real(2.0) + betaz(i,j,k);
+            Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
+            Real res_z = rhsz(i,j,k) - ( gamma_z * ez(i,j,k) + ccez );
+            ez(i,j,k) += res_z/gamma_z;
+        }
+        else if (coord == 1)
+        {
+            if ((i > 0) && ! dinfo.is_dirichlet_node(i,j,k)) {
+                Real cm = dxx * (Real( 0.5)/Real(i) - Real(1.0));
+                Real cp = dxx * (Real(-0.5)/Real(i) - Real(1.0));
+
+                Real gamma = dxx * (Real(1.0)/(Real(i)*Real(i)) + Real(2.0)) + betay(i,j,k);
+
+                Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
+                Real res_y = rhsy(i,j,k) - ( gamma * ey(i,j,k) + ccey );
+                ey(i,j,k) += res_y/gamma;
+            }
+
+            if (i == 0) {
+                ez(0,0,0) = (rhsz(0,0,0) + Real(4.0)*dxx*ez(1,0,0)) / (betaz(0,0,0) + Real(4.0)*dxx);
+            } else if (! dinfo.is_dirichlet_node(i,j,k)) {
+                Real cm = dxx * (Real( 0.5)/Real(i) - Real(1.0));
+                Real cp = dxx * (Real(-0.5)/Real(i) - Real(1.0));
+
+                Real gamma = dxx * Real(2.0) + betaz(i,j,k);
+
+                Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
+                Real res_z = rhsz(i,j,k) - ( gamma * ez(i,j,k) + ccez );
+                ez(i,j,k) += res_z/gamma;
+            }
+        }
+        else
+        {
+            if (dinfo.is_dirichlet_node(i,j,k)) { return; }
+
+            Real cm = dxx * (Real( 1.0)/Real(i) - Real(1.0));
+            Real cp = dxx * (Real(-1.0)/Real(i) - Real(1.0));
+
+            Real gamma_y = dxx * Real(2.0) + betay(i,j,k);
+            Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
+            Real res_y = rhsy(i,j,k) - ( gamma_y * ey(i,j,k) + ccey );
+            ey(i,j,k) += res_y/gamma_y;
+
+            Real gamma_z = dxx * Real(2.0) + betaz(i,j,k);
+            Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
+            Real res_z = rhsz(i,j,k) - ( gamma_z * ez(i,j,k) + ccez );
+            ez(i,j,k) += res_z/gamma_z;
+        }
     }
 }
 
@@ -1195,6 +1332,8 @@ void mlcurlcurl_restriction (int dir, int i, int j, int k,
 #elif (AMREX_SPACEDIM == 1)
         if (dir == 0) {
             crse(i,0,0) = Real(0.5) * (fine(ii,0,0) + fine(ii+1,0,0));
+        } else if (i == 0 && dir == 2 && dinfo.coord == 1) {
+            crse(0,0,0) = Real(0.5) * (fine(0,0,0) + fine(1,0,0));
         } else {
             crse(i,0,0) = Real(0.25) * (fine(ii-1,0,0)             +
                                         fine(ii  ,0,0) * Real(2.0) +

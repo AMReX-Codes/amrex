@@ -526,16 +526,10 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isnan(a(i,j,k,n))) {
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isnan(a(iv, n))) {
+                    return true;
                 }
             }
         }
@@ -591,17 +585,11 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isnan(a(i,j,k,n))) {
-                            where = IntVect(AMREX_D_DECL(i,j,k));
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isnan(a(iv, n))) {
+                    where = iv;
+                    return true;
                 }
             }
         }
@@ -670,16 +658,10 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isinf(a(i,j,k,n))) {
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isinf(a(iv, n))) {
+                    return true;
                 }
             }
         }
@@ -735,17 +717,11 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isinf(a(i,j,k,n))) {
-                            where = IntVect(AMREX_D_DECL(i,j,k));
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isinf(a(iv, n))) {
+                    where = iv;
+                    return true;
                 }
             }
         }
