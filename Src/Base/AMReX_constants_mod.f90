@@ -27,7 +27,7 @@ module amrex_constants_module
   real(kind = amrex_real), parameter :: SIXTH   = ONE/SIX
   real(kind = amrex_real), parameter :: SEVENTH = ONE/SEVEN
   real(kind = amrex_real), parameter :: EIGHTH  = 0.125_amrex_real
-  real(kind = amrex_real), parameter :: NINETH  = ONE/NINE
+  real(kind = amrex_real), parameter :: NINTH  = ONE/NINE
   real(kind = amrex_real), parameter :: TENTH   = 0.10_amrex_real
   real(kind = amrex_real), parameter :: TWELFTH = ONE/TWELVE
 
