@@ -251,8 +251,8 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
         {
 #if (AMREX_SPACEDIM >= 2)
             for (int jt = tlo[1]; jt <= thi[1]; ++jt)
-            {
 #endif
+            {
                 for (int it = tlo[0]; it <= thi[0]; ++it)
                 {
                     IntVect lo(AMREX_D_DECL(it*tile_size,
