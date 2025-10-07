@@ -21,7 +21,7 @@ public:
     Buffer (std::initializer_list<T> init) {
         resize(init.size());
 
-        if (init.size() > 0 && init.begin() != nullptr) {
+        if (!init.empty() && init.begin() != nullptr) {
             std::memcpy(h_vect.data(), init.begin(), init.size()*sizeof(T));
             copyToDeviceAsync();
         }
@@ -43,15 +43,34 @@ public:
     Buffer () = default;
 
     [[nodiscard]] T const* data () const noexcept {
-        return (useDVect() && d_vect.size() > 0) ? d_vect.data() : h_vect.data();
+        return (useDVect() && !d_vect.empty()) ? d_vect.data() : h_vect.data();
     }
     [[nodiscard]] T* data () noexcept {
-        return (useDVect() && d_vect.size() > 0) ? d_vect.data() : h_vect.data();
+        return (useDVect() && !d_vect.empty()) ? d_vect.data() : h_vect.data();
     }
 
     [[nodiscard]] T const* hostData () const noexcept { return h_vect.data(); }
     [[nodiscard]] T* hostData () noexcept { return h_vect.data(); }
 
+    /**
+    * \brief Changes the value of an element of the host (CPU) vector.
+    * Does not update the device (GPU) vector, so copyToDeviceAsync()
+    * needs to be called before accessing the data on the GPU.
+    * \code{.cpp}
+    *   amrex::Gpu::Buffer<int> buf;
+    *   buf.resize(n);
+    *   for (int i=0; i<n; ++i) {
+    *       buf[i] = i*i;
+    *   }
+    *   buf.copyToDeviceAsync();
+    *   int * ptr = buf.data();
+    *   // Use ptr inside ParallelFor
+    *   // optional:
+    *   // Change values of ptr inside ParallelFor
+    *   buf.copyToHost();
+    *   // Use buf.hostData() or buf[] on the CPU
+    * \endcode
+    */
     [[nodiscard]] T& operator[] (const std::size_t i) noexcept {
         return h_vect[i];
     }
@@ -88,13 +107,32 @@ public:
         }
     }
 
+    /**
+    * \brief Adds an element to the back of the host (CPU) vector.
+    * Does not update the device (GPU) vector, so copyToDeviceAsync()
+    * needs to be called before accessing the data on the GPU.
+    * \code{.cpp}
+    *   amrex::Gpu::Buffer<int> buf;
+    *   buf.reserve(n);
+    *   for (int i=0; i<n; ++i) {
+    *       buf.push_back(i*i);
+    *   }
+    *   buf.copyToDeviceAsync();
+    *   int * ptr = buf.data();
+    *   // Use ptr inside ParallelFor
+    *   // optional:
+    *   // Change values of ptr inside ParallelFor
+    *   buf.copyToHost();
+    *   // Use buf.hostData() or buf[] on the CPU
+    * \endcode
+    */
     void push_back (const T& value) noexcept {
         h_vect.push_back(value);
     }
 
     T* copyToDeviceAsync () noexcept {
 #ifdef AMREX_USE_GPU
-        if (useDVect() && h_vect.size() > 0)
+        if (useDVect() && !h_vect.empty())
         {
             d_vect.resize(h_vect.size());
             Gpu::htod_memcpy_async(d_vect.data(), h_vect.data(), h_vect.size()*sizeof(T));
@@ -106,7 +144,7 @@ public:
 
     T* copyToHost () noexcept {
 #ifdef AMREX_USE_GPU
-        if (useDVect() && d_vect.size() > 0)
+        if (useDVect() && !d_vect.empty())
         {
             h_vect.resize(d_vect.size());
             Gpu::dtoh_memcpy_async(h_vect.data(), d_vect.data(), d_vect.size()*sizeof(T));
