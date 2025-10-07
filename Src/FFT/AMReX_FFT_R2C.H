@@ -1228,12 +1228,8 @@ T R2C<T,D,C>::scalingFactor () const
 {
 #if (AMREX_SPACEDIM == 3)
     if (m_info.twod_mode) {
-        if (m_real_domain.length(2) > 1) {
-            return T(1)/T(Long(m_real_domain.length(0)) *
-                          Long(m_real_domain.length(1)));
-        } else {
-            return T(1)/T(m_real_domain.length(0));
-        }
+        return T(1)/T(Long(m_real_domain.length(0)) *
+                      Long(m_real_domain.length(1)));
     } else
 #endif
     {
