@@ -5,6 +5,7 @@
 #include <AMReX_Arena.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_GpuContainers.H>
 #include <cstring>
 #include <cstdlib>
 #include <initializer_list>
@@ -18,111 +19,111 @@ class Buffer
 public:
 
     Buffer (std::initializer_list<T> init) {
-        if (init.size() == 0) { return; }
+        resize(init.size());
 
-        define(init.size());
-        std::memcpy(h_data, init.begin(), m_size*sizeof(T));
-        copyToDeviceAsync();
+        if (init.size() > 0 && init.begin() != nullptr) {
+            std::memcpy(h_vect.data(), init.begin(), init.size()*sizeof(T));
+            copyToDeviceAsync();
+        }
     }
 
     Buffer (T const* h_p, const std::size_t n) {
-        if (n == 0) { return; }
+        resize(n);
 
-        define(n);
-        std::memcpy(h_data, h_p, m_size*sizeof(T));
-        copyToDeviceAsync();
+        if (n > 0 && h_p != nullptr) {
+            std::memcpy(h_vect.data(), h_p, n*sizeof(T));
+            copyToDeviceAsync();
+        }
     }
 
     Buffer (const std::size_t n) {
-        define(n);
+        resize(n);
     }
 
     Buffer () = default;
 
-    ~Buffer () { clear(); }
+    [[nodiscard]] T const* data () const noexcept {
+        return (useDVect() && d_vect.size() > 0) ? d_vect.data() : h_vect.data();
+    }
+    [[nodiscard]] T* data () noexcept {
+        return (useDVect() && d_vect.size() > 0) ? d_vect.data() : h_vect.data();
+    }
 
-    Buffer (Buffer const&) = default; // FIX
-    Buffer (Buffer &&) = default; // FIX
-    Buffer& operator= (Buffer const&) = default; // FIX
-    Buffer& operator= (Buffer &&) = default; // FIX
-
-    [[nodiscard]] T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
-    [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
-
-    [[nodiscard]] T const* hostData () const noexcept { return h_data; }
-    [[nodiscard]] T* hostData () noexcept { return h_data; }
+    [[nodiscard]] T const* hostData () const noexcept { return h_vect.data(); }
+    [[nodiscard]] T* hostData () noexcept { return h_vect.data(); }
 
     [[nodiscard]] T& operator[] (const std::size_t i) noexcept {
-        AMREX_ASSERT(i < m_size);
-        return h_data[i];
+        return h_vect[i];
     }
 
     [[nodiscard]] const T& operator[] (const std::size_t i) const noexcept {
-        AMREX_ASSERT(i < m_size);
-        return h_data[i];
+        return h_vect[i];
     }
 
-    [[nodiscard]] std::size_t size () const noexcept { return m_size; }
+    [[nodiscard]] std::size_t size () const noexcept { return h_vect.size(); }
 
-    void define (const std::size_t n) noexcept {
-        if (m_size != 0) {
-            clear();
+    [[nodiscard]] bool empty () const noexcept { return h_vect.size() == 0; }
+
+    void resize (const std::size_t n) noexcept {
+        h_vect.resize(n);
+        if (useDVect()) {
+            d_vect.resize(n);
         }
-        m_size = n;
-        if (n == 0) {
-            return;
-        }
-#ifdef AMREX_USE_GPU
-        h_data = static_cast<T*>(The_Pinned_Arena()->alloc(m_size*sizeof(T)));
-#else
-        h_data = static_cast<T*>(std::malloc(m_size*sizeof(T)));
-#endif
-#ifdef AMREX_USE_GPU
-        if (Gpu::inLaunchRegion())
-        {
-            d_data = static_cast<T*>(The_Arena()->alloc(m_size*sizeof(T)));
-        }
-#endif
     }
 
-    void clear ()
-    {
-#ifdef AMREX_USE_GPU
-        if (d_data) { The_Arena()->free(d_data); }
-        if (h_data) { The_Pinned_Arena()->free(h_data); }
-#else
-        std::free(h_data);
-#endif
-        d_data = nullptr;
-        h_data = nullptr;
+    void clear () noexcept {
+        h_vect.clear();
+        d_vect.clear();
+    }
+
+    void shrink_to_fit () noexcept {
+        h_vect.shrink_to_fit();
+        d_vect.shrink_to_fit();
+    }
+
+    void reserve (const std::size_t n) noexcept {
+        h_vect.reserve(n);
+        if (useDVect()) {
+            d_vect.reserve(n);
+        }
+    }
+
+    void push_back (const T& value) noexcept {
+        h_vect.push_back(value);
     }
 
     T* copyToDeviceAsync () noexcept {
 #ifdef AMREX_USE_GPU
-        if (d_data && Gpu::inLaunchRegion())
+        if (useDVect() && h_vect.size() > 0)
         {
-            Gpu::htod_memcpy_async(d_data, h_data, m_size*sizeof(T));
-            return d_data;
+            d_vect.resize(h_vect.size());
+            Gpu::htod_memcpy_async(d_vect.data(), h_vect.data(), h_vect.size()*sizeof(T));
+            return d_vect.data();
         }
 #endif
-        return h_data;
+        return h_vect.data();
     }
 
     T* copyToHost () noexcept {
 #ifdef AMREX_USE_GPU
-        if (d_data)
+        if (useDVect() && d_vect.size() > 0)
         {
-            Gpu::dtoh_memcpy_async(h_data, d_data, m_size*sizeof(T));
+            h_vect.resize(d_vect.size());
+            Gpu::dtoh_memcpy_async(h_vect.data(), d_vect.data(), d_vect.size()*sizeof(T));
             Gpu::streamSynchronize();
         }
 #endif
-        return h_data;
+        return h_vect.data();
     }
 
 private:
-    std::size_t m_size = 0;
-    T* d_data = nullptr;
-    T* h_data = nullptr;
+
+    [[nodiscard]] bool useDVect () const noexcept {
+        return Gpu::inLaunchRegion() /* && !use_unified_gpu_memory */;
+    }
+
+    DeviceVector<T> d_vect;
+    PinnedVector<T> h_vect;
 };
 
 }
