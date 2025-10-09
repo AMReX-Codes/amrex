@@ -21,7 +21,7 @@ public:
     Buffer (std::initializer_list<T> init) {
         resize(init.size());
 
-        if (init.size() > 0 && init.begin() != nullptr) {
+        if (init.size() > 0) {
             std::memcpy(h_vect.data(), init.begin(), init.size()*sizeof(T));
             copyToDeviceAsync();
         }
