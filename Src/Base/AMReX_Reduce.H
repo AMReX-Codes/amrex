@@ -1235,7 +1235,7 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 
 template <typename T, typename N, typename F,
           typename M=std::enable_if_t<std::is_integral_v<N>> >
-std::pair<T,T> Min (N n, F const& f)
+std::pair<T,T> MinMax (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
