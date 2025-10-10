@@ -7,7 +7,8 @@
 namespace amrex {
 
 /**
- * \brief Parallel reduce for MultiFab/FabArray.
+ * \brief Parallel reduce for MultiFab/FabArray. The reduce result is local
+ * and it's the user's responsibility if MPI communication is needed.
  *
  * This performs reduction over a MultiFab's valid and specified ghost regions. For
  * example, the code below computes the minimum of the first MultiFab and the maximum of
@@ -55,7 +56,8 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
 }
 
 /**
- * \brief Parallel reduce for MultiFab/FabArray.
+ * \brief Parallel reduce for MultiFab/FabArray. The reduce result is local
+ * and it's the user's responsibility if MPI communication is needed.
  *
  * This performs reduction over a MultiFab's valid and specified ghost regions. For
  * example, the code below computes the sum of the processed data in a MultiFab.
@@ -106,7 +108,8 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
 }
 
 /**
- * \brief Parallel reduce for MultiFab/FabArray.
+ * \brief Parallel reduce for MultiFab/FabArray. The reduce result is local
+ * and it's the user's responsibility if MPI communication is needed.
  *
  * This performs reduction over a MultiFab's valid and specified ghost regions and
  * components.  For example, the code below computes the minimum of the first MultiFab
@@ -156,7 +159,8 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
 }
 
 /**
- * \brief Parallel reduce for MultiFab/FabArray.
+ * \brief Parallel reduce for MultiFab/FabArray. The reduce result is local
+ * and it's the user's responsibility if MPI communication is needed.
  *
  * This performs reduction over a MultiFab's valid and specified ghost regions. For
  * example, the code below computes the sum of the data in a MultiFab.
@@ -203,7 +207,8 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
 }
 
 /**
- * \brief Parallel reduce for MultiFab/FabArray.
+ * \brief Parallel reduce for MultiFab/FabArray. The reduce result is local
+ * and it's the user's responsibility if MPI communication is needed.
  *
  * This performs reduction over a MultiFab's valid region. For
  * example, the code below computes the minimum of the first MultiFab and the maximum of
@@ -245,7 +250,8 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
 }
 
 /**
- * \brief Parallel reduce for MultiFab/FabArray.
+ * \brief Parallel reduce for MultiFab/FabArray. The reduce result is local
+ * and it's the user's responsibility if MPI communication is needed.
  *
  * This performs reduction over a MultiFab's valid region. For
  * example, the code below computes the sum of the processed data in a MultiFab.
