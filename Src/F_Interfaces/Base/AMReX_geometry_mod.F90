@@ -74,9 +74,11 @@ module amrex_geometry_module
      end subroutine amrex_fi_geometry_get_intdomain
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_geometry_destroy
      module procedure amrex_geometry_destroy
   end interface amrex_geometry_destroy
+#endif
 
 contains
 

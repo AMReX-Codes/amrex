@@ -19,7 +19,6 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
       comm(comm_), linop(linop_), verbose(verbose_),
       options_namespace(std::move(options_namespace_))
 {
-    static_assert(AMREX_SPACEDIM > 1, "HypreNodeLap: 1D not supported");
     static_assert(std::is_same_v<Real, HYPRE_Real>, "amrex::Real != HYPRE_Real");
 
     int num_procs, myid;

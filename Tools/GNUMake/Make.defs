@@ -112,6 +112,12 @@ else
   DEBUG := FALSE
 endif
 
+ifdef DEBUG_OPT_LEVEL
+  DEBUG_OPT_LEVEL := $(strip $(DEBUG_OPT_LEVEL))
+else
+  DEBUG_OPT_LEVEL := 0
+endif
+
 ifdef USE_FFT
   USE_FFT := $(strip $(USE_FFT))
 else
@@ -1133,7 +1139,7 @@ ifeq ($(USE_SYCL),TRUE)
 else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
-    AMREX_LINKER = hipcc
+    AMREX_LINKER ?= hipcc
 
     ifdef AMREX_AMD_ARCH
       AMD_ARCH = $(AMREX_AMD_ARCH)

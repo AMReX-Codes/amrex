@@ -56,7 +56,9 @@ namespace amrex::detail {
     }
 }
 
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+#include <AMReX_Habec_1D_K.H>
+#elif (AMREX_SPACEDIM == 2)
 #include <AMReX_Habec_2D_K.H>
 #elif (AMREX_SPACEDIM == 3)
 #include <AMReX_Habec_3D_K.H>

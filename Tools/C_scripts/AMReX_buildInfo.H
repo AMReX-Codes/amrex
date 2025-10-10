@@ -21,6 +21,7 @@ const char* buildInfoGetCXXFlags();
 const char* buildInfoGetFFlags();
 const char* buildInfoGetLinkFlags();
 const char* buildInfoGetLibraries();
+const char* buildInfoGetMakeFlags();
 const char* buildInfoGetAux(int i);
 int buildInfoGetNumModules();
 const char* buildInfoGetModuleName(int i);

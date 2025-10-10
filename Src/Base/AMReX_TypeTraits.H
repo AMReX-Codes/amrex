@@ -61,6 +61,14 @@ namespace amrex
     template <> struct HasAtomicAdd<float> : std::true_type {};
     template <> struct HasAtomicAdd<double> : std::true_type {};
 
+    // support +=?
+    template <class T, class Enable = void>
+    struct IsAddAssignable : std::false_type {};
+    //
+    template <class T>
+    struct IsAddAssignable<T, std::void_t<decltype(std::declval<T&>() += std::declval<T>())>>
+        : std::true_type {};
+
     class MFIter;
     template <typename T>
     struct IsMultiFabIterator : public std::is_base_of<MFIter, T>::type {};

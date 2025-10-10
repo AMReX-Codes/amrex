@@ -24,11 +24,11 @@ endif
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 #-ftrapv
-  CFLAGS   += -g -O0 #-ftrapv
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) #-ftrapv
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) #-ftrapv
 
-  FFLAGS   += -g -O0 -traceback -check bounds,uninit,pointers
-  F90FLAGS += -g -O0 -traceback -check bounds,uninit,pointers
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -traceback -check bounds,uninit,pointers
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -traceback -check bounds,uninit,pointers
 
 else
 
