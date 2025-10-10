@@ -2035,9 +2035,15 @@ FabArrayBase::FPinfo::FPinfo (const FabArrayBase& srcfa,
                                            dm_patch,
                                            {0,0,0}, EBSupport::basic);
         int ng = 1; // to avoid dengerate box
+        BoxArray eb_ba_fine_patch = ba_fine_patch;
+        IntVect ratio = fdomain.length() / cdomain.length();
+        if ( ! ratio.allLE(2)) {
+            // This is needed for make_mf_refined_patch in FillPatch
+            eb_ba_fine_patch.coarsen(ratio).refine(ratio);
+        }
         fact_fine_patch = makeEBFabFactory(index_space,
                                            index_space->getGeometry(fdomain),
-                                           ba_fine_patch,
+                                           eb_ba_fine_patch,
                                            dm_patch,
                                            {ng,ng,ng}, EBSupport::basic);
     }
