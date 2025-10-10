@@ -93,6 +93,8 @@ public:
 
     void resize (size_t count) { m_data.resize(count); }
 
+    void reserve (size_t capacity) { m_data.reserve(capacity); }
+
     Iterator erase ( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
 
     template< class InputIt >
