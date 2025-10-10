@@ -282,6 +282,21 @@ struct StructOfArrays {
         for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
     }
 
+    void reserve (size_t capacity)
+    {
+        if constexpr (use64BitIdCpu == true) {
+            m_idcpu.reserve(capacity);
+        }
+        if constexpr (NReal > 0) {
+            for (int i = 0; i < NReal; ++i) { m_rdata[i].reserve(capacity); }
+        }
+        if constexpr (NInt > 0) {
+            for (int i = 0; i < NInt;  ++i) { m_idata[i].reserve(capacity); }
+        }
+        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].reserve(capacity); }
+        for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].reserve(capacity); }
+    }
+
     [[nodiscard]] uint64_t* idcpuarray () {
         if constexpr (use64BitIdCpu == true) {
             return m_idcpu.dataPtr();
