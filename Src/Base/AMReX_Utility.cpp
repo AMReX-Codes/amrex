@@ -237,7 +237,7 @@ amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 void
 amrex::OutOfMemory ()
 {
-    amrex::Error("Terminating due to insufficient memory.");
+    amrex::Error("Terminating due to insufficient CPU memory.");
 }
 
 // -------------------------------------------------------------------
