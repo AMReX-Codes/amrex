@@ -130,7 +130,6 @@ Build (const G& gshop, const Geometry& geom,
        int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
-    Print()<<"EB2 H Build line 129"<<std::endl;
     IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
                                           required_coarsening_level,
                                           max_coarsening_level,
@@ -147,7 +146,6 @@ Build (const G& gshop, const Vector<Geometry>& geom,
        int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
-    Print()<<"EB2 H Build line 146"<<std::endl;
     IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
                                           ngrow,
                                           extend_domain_face,
