@@ -73,19 +73,17 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
       m_extend_domain_face(extend_domain_face),
       m_num_coarsen_opt(num_coarsen_opt)
 {
-    Print()<<"IndexSpaceI line 76"<<std::endl;
+    Print()<<"IndexSpaceI line 76 using same ngrow all levels"<<std::endl;
 
-    m_geom.push_back(geom);
-    m_domain.push_back(geom.Domain());
-    m_ngrow.push_back(ngrow_finest);
-    m_gslevel.reserve(max_coarsening_level+1);
-    m_gslevel.emplace_back(this, gshop, geom, EB2::max_grid_size, ngrow_finest, extend_domain_face,
-                           num_coarsen_opt);
+    int nlevels = geom.size();
+    int ngrow_finest = ngrow;
+    m_gslevel.reserve(nlevels);
 
-    for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
+    for (int ilev = 0; ilev < nlevels; ++ilev)
     {
-        Box cdomain = amrex::coarsen(m_geom.back().Domain(),2);
-        Geometry cgeom = amrex::coarsen(m_geom.back(),2);
+        int ng = ngrow;
+        Geometry cgeom = geom[ilev];
+        Box cdomain = cgeom.Domain();
         m_gslevel.emplace_back(this, gshop, cgeom, EB2::max_grid_size, ng, extend_domain_face,
                                            num_coarsen_opt-ilev);
         m_geom.push_back(cgeom);
