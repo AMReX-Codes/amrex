@@ -141,7 +141,7 @@ Given an implicit function object, say :cpp:`f`, we can make a
 :cpp:`EB2::IndexSpace`
 ----------------------
 
-We build :cpp:`EB2::IndexSpace` with one of several template functions depending
+We build :cpp:`EB2::IndexSpace` with one of several functions depending
 on the application needs.
 
 **Standard Build with Automatic Coarsening**
@@ -200,22 +200,6 @@ directly from the provided geometries rather than through automatic coarsening.
 This is useful when coarse level domains are not simple coarsenings of the fine
 level, or when you need precise control over the domain and mesh spacing at each
 level.
-
-Example usage:
-
-.. highlight:: c++
-
-::
-
-    EB2::SphereIF sphere(0.5, {0., 0., 0.}, false);
-    auto shop = EB2::makeShop(sphere);
-
-    Vector<Geometry> geom_vec(3);  // 3 AMR levels
-    geom_vec[0] = Geometry(...);   // finest level
-    geom_vec[1] = Geometry(...);   // middle level
-    geom_vec[2] = Geometry(...);   // coarsest level
-
-    EB2::Build(shop, geom_vec);
 
 **Build from STL File**
 
