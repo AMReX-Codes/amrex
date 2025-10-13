@@ -73,7 +73,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
       m_num_coarsen_opt(num_coarsen_opt)
 {
 
-    int nlevels = geom.size();
+    auto nlevels = int(geom.size());
     m_gslevel.reserve(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
