@@ -19,7 +19,6 @@ jobs:
           filters: |
             non_docs:
               - '!Docs/**'
-              - '!CHANGES'
               - '!**.md'
               - '!**.rst'
           predicate-quantifier: 'every'
