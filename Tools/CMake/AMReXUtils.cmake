@@ -24,9 +24,9 @@ function (get_amrex_version)
       endif ()
    endif()
 
-   # Grep first line from file CHANGES if cannot find version from Git
+   # Grep first line from file CHANGES.md if cannot find version from Git
    if (NOT _tmp)
-      file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES ALL_VERSIONS REGEX "#")
+      file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES.md ALL_VERSIONS REGEX "#")
       list(GET ALL_VERSIONS 0 _tmp)
       string(REPLACE "#" "" _tmp "${_tmp}")
       string(STRIP "${_tmp}" _tmp )
