@@ -80,6 +80,10 @@ public:
                    int ngrow, bool build_coarse_level_by_coarsening,
                    bool extend_domain_face, int num_coarsen_opt);
 
+    IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
+                   int ngrow,
+                   bool extend_domain_face, int num_coarsen_opt);
+
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
     void operator= (IndexSpaceImp<G> const&) = delete;

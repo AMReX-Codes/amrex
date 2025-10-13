@@ -75,6 +75,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
 {
   Print()<<"IndexSpaceI line 76"<<std::endl;
 }
+
 template <typename G>
 const Level&
 IndexSpaceImp<G>::getLevel (const Geometry& geom) const
