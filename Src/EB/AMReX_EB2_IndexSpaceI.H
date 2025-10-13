@@ -74,18 +74,12 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
 {
 
     int nlevels = geom.size();
-    int ngrow_finest = std::max(ngrow,0);
-    // Base ngrow_finest on the levels passed in with the Vector
-    for (int i = 1; i <= nlevels; ++i) {
-        ngrow_finest *= 2;
-    }
+    int ngrow_finest = ngrow;
     m_gslevel.reserve(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
-        int ng = ngrow_finest;
-        if (ilev > 0)
-          ng = m_ngrow.back()/2; // Don't check required levels here
+        int ng = ngrow;
         Geometry cgeom = geom[ilev];
         Box cdomain = cgeom.Domain();
         m_gslevel.emplace_back(this, gshop, cgeom, EB2::max_grid_size, ng, extend_domain_face,
