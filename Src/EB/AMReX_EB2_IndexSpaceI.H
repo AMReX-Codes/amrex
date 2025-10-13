@@ -12,6 +12,7 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
 {
     // build finest level (i.e., level 0) first
     AMREX_ALWAYS_ASSERT(required_coarsening_level >= 0 && required_coarsening_level <= 30);
+    Print()<<"IndexSpaceImp line 15"<<std::endl;
     max_coarsening_level = std::max(required_coarsening_level,max_coarsening_level);
     max_coarsening_level = std::min(30,max_coarsening_level);
 
@@ -63,6 +64,17 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
 }
 
 
+template <typename G>
+IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
+                                 int ngrow,
+                                 bool extend_domain_face, int num_coarsen_opt)
+    : m_gshop(gshop),
+      m_build_coarse_level_by_coarsening(false),
+      m_extend_domain_face(extend_domain_face),
+      m_num_coarsen_opt(num_coarsen_opt)
+{
+  Print()<<"IndexSpaceI line 76"<<std::endl;
+}
 template <typename G>
 const Level&
 IndexSpaceImp<G>::getLevel (const Geometry& geom) const

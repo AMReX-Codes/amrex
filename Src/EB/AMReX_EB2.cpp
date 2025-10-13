@@ -85,6 +85,7 @@ Build (const Geometry& geom, int required_coarsening_level,
        int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
        bool a_extend_domain_face, int a_num_coarsen_opt)
 {
+    Print()<<"EB2 build line 88"<<std::endl;
     ParmParse pp("eb2");
     std::string geom_type;
     pp.get("geom_type", geom_type);

@@ -126,10 +126,26 @@ Build (const G& gshop, const Geometry& geom,
        int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
+    Print()<<"EB2 H Build line 129"<<std::endl;
     IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
                                           required_coarsening_level,
                                           max_coarsening_level,
                                           ngrow, build_coarse_level_by_coarsening,
+                                          extend_domain_face,
+                                          num_coarsen_opt));
+} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+
+template <typename G>
+void
+Build (const G& gshop, const Vector<Geometry>& geom,
+       int ngrow = 4,
+       bool extend_domain_face = ExtendDomainFace(),
+       int num_coarsen_opt = NumCoarsenOpt())
+{
+    BL_PROFILE("EB2::Initialize()");
+    Print()<<"EB2 H Build line 146"<<std::endl;
+    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
+                                          ngrow,
                                           extend_domain_face,
                                           num_coarsen_opt));
 } // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
