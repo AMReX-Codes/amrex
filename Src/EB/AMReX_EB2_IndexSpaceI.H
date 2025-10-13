@@ -74,7 +74,6 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
 {
 
     int nlevels = geom.size();
-    int ngrow_finest = ngrow;
     m_gslevel.reserve(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
