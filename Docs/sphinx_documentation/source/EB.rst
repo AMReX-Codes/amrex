@@ -188,13 +188,14 @@ For applications requiring explicit control over the geometry at each AMR level:
 ::
 
     template <typename G>
-    void EB2::Build (const G& gshop, const Vector<Geometry>& geom,
+    void EB2::Build (const G& gshop, Vector<Geometry> geom,
                      int ngrow = 4,
                      bool extend_domain_face = ExtendDomainFace(),
                      int num_coarsen_opt = NumCoarsenOpt());
 
 This version takes a :cpp:`Vector<Geometry>` where each element corresponds to
-the geometry of a specific AMR level, ordered from finest (index 0) to coarsest.
+the geometry of a specific AMR level. The Vector can be unordered, as it will be
+sorted based on :cpp:`numPts`.
 Unlike the standard :cpp:`Build` function, coarse level EB data is generated
 directly from the provided geometries rather than through automatic coarsening.
 This is useful when coarse level domains are not simple coarsenings of the fine

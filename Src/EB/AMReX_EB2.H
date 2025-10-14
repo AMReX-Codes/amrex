@@ -140,12 +140,13 @@ Build (const G& gshop, const Geometry& geom,
 
 template <typename G>
 void
-Build (const G& gshop, const Vector<Geometry>& geom,
+Build (const G& gshop, Vector<Geometry> geom,
        int ngrow = 4,
        bool extend_domain_face = ExtendDomainFace(),
        int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
+    std::sort(geom.begin(), geom.end(), [] (Geometry const& a, Geometry const& b) { return a.Domain().numPts() > b.Domain().numPts(); });
     IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
                                           ngrow,
                                           extend_domain_face,
