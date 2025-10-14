@@ -1098,7 +1098,7 @@ ParmParse::getPrefix () const
 }
 
 std::string
-ParmParse::prefixedName (const std::string_view& str) const
+ParmParse::prefixedName (std::string_view str) const
 {
     AMREX_ASSERT( ! str.empty() );
 

@@ -1723,7 +1723,7 @@ public:
 
     [[nodiscard]] std::string const& getPrefix () const;
 
-    [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
+    [[nodiscard]] std::string prefixedName (std::string_view str) const;
 
 protected:
 
