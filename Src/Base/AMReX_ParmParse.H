@@ -1131,12 +1131,12 @@ public:
      * symbols. If the number of elements in the input does not equal to
      * `nvals`, it's a runtime error.
      */
-    int queryarrWithParser (std::string_view name, int nvals, bool* ref) const;
-    int queryarrWithParser (std::string_view name, int nvals, int* ref) const;
-    int queryarrWithParser (std::string_view name, int nvals, long* ref) const;
-    int queryarrWithParser (std::string_view name, int nvals, long long* ref) const;
-    int queryarrWithParser (std::string_view name, int nvals, float* ref) const;
-    int queryarrWithParser (std::string_view name, int nvals, double* ref) const;
+    int queryarrWithParser (std::string_view name, int nvals, bool* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, int* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, long* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, long long* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, float* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, double* ptr) const;
     template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
                                            std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
@@ -1204,9 +1204,9 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    void getarrWithParser (std::string_view name, int nvals, T* ref) const
+    void getarrWithParser (std::string_view name, int nvals, T* ptr) const
     {
-        int exist = this->queryarrWithParser(name, nvals, ref);
+        int exist = this->queryarrWithParser(name, nvals, ptr);
         if (!exist) {
             amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+std::string(name));
         }
@@ -1545,7 +1545,7 @@ public:
      * std::optional of arithmetic type.
      */
     template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
-    int queryarrAsDouble (std::string_view name, int nvals, T* ref) const
+    int queryarrAsDouble (std::string_view name, int nvals, T* ptr) const
     {
         using value_type = ppdetail::underlying_type_t<T>;
         std::vector<double> dref(nvals);
@@ -1561,7 +1561,7 @@ public:
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
                     }
                 }
-                ref[i] = vref;
+                ptr[i] = vref;
             }
         }
         return exist;
@@ -1593,9 +1593,9 @@ public:
      * std::optional of arithmetic type.
      */
     template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
-    void getarrAsDouble (std::string_view name, int nvals, T* ref) const
+    void getarrAsDouble (std::string_view name, int nvals, T* ptr) const
     {
-        int exist = this->queryarrAsDouble(name, nvals, ref);
+        int exist = this->queryarrAsDouble(name, nvals, ptr);
         if (!exist) {
             amrex::Error(std::string("ParmParse::getarrAsDouble: failed to get ")+std::string(name));
         }

@@ -2237,7 +2237,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
                           const std::string&      parser_prefix,
                           const std::string&      name,
                           int                     nvals,
-                          T*                      ref)
+                          T*                      ptr)
 {
     std::vector<std::string> vals;
     bool exist = squeryarr(table, parser_prefix, name, vals,
@@ -2246,7 +2246,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
 
     AMREX_ALWAYS_ASSERT(int(vals.size()) == nvals);
     for (int ival = 0; ival < nvals; ++ival) {
-        bool r = pp_parser(table, parser_prefix, name, vals[ival], ref[ival], true);
+        bool r = pp_parser(table, parser_prefix, name, vals[ival], ptr[ival], true);
         if (!r) { return false; }
     }
     return true;
@@ -2290,39 +2290,39 @@ ParmParse::queryWithParser (std::string_view name, double& ref) const
 }
 
 int
-ParmParse::queryarrWithParser (std::string_view name, int nvals, bool* ref) const
+ParmParse::queryarrWithParser (std::string_view name, int nvals, bool* ptr) const
 {
-    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ptr);
 }
 
 int
-ParmParse::queryarrWithParser (std::string_view name, int nvals, int* ref) const
+ParmParse::queryarrWithParser (std::string_view name, int nvals, int* ptr) const
 {
-    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ptr);
 }
 
 int
-ParmParse::queryarrWithParser (std::string_view name, int nvals, long* ref) const
+ParmParse::queryarrWithParser (std::string_view name, int nvals, long* ptr) const
 {
-    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ptr);
 }
 
 int
-ParmParse::queryarrWithParser (std::string_view name, int nvals, long long* ref) const
+ParmParse::queryarrWithParser (std::string_view name, int nvals, long long* ptr) const
 {
-    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ptr);
 }
 
 int
-ParmParse::queryarrWithParser (std::string_view name, int nvals, float* ref) const
+ParmParse::queryarrWithParser (std::string_view name, int nvals, float* ptr) const
 {
-    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ptr);
 }
 
 int
-ParmParse::queryarrWithParser (std::string_view name, int nvals, double* ref) const
+ParmParse::queryarrWithParser (std::string_view name, int nvals, double* ptr) const
 {
-    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ref);
+    return squeryarrWithParser(*m_table,m_parser_prefix,prefixedName(name),nvals,ptr);
 }
 
 Parser
