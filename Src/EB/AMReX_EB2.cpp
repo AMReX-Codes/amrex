@@ -12,6 +12,7 @@
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IndexSpace_STL.H>
 #include <AMReX_EB2_IndexSpace_chkpt_file.H>
+#include <AMReX_MarchingCubes.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 #include <algorithm>
@@ -31,12 +32,15 @@ void Initialize ()
     pp.queryAdd("extend_domain_face", extend_domain_face);
     pp.queryAdd("num_coarsen_opt", num_coarsen_opt);
 
+    amrex::MC::Initialize();
+
     amrex::ExecOnFinalize(Finalize);
 }
 
 void Finalize ()
 {
     IndexSpace::clear();
+    amrex::MC::Finalize();
 }
 
 bool ExtendDomainFace ()
@@ -83,7 +87,7 @@ const IndexSpace* TopIndexSpaceIfPresent() noexcept {
 void
 Build (const Geometry& geom, int required_coarsening_level,
        int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
-       bool a_extend_domain_face, int a_num_coarsen_opt)
+       bool a_extend_domain_face, int a_num_coarsen_opt, bool support_mvmc)
 {
     ParmParse pp("eb2");
     std::string geom_type;
@@ -226,7 +230,7 @@ Build (const Geometry& geom, int required_coarsening_level,
                                            build_coarse_level_by_coarsening,
                                            a_extend_domain_face,
                                            a_num_coarsen_opt,
-                                           stl_use_bvh));
+                                           stl_use_bvh, support_mvmc));
     }
     else
     {
@@ -292,6 +296,17 @@ maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom)
     const Box& domain = amrex::enclosedCells(geom.Domain());
     const Box& cdomain = ebis->coarsestDomain();
     return comp_max_crse_level(cdomain,domain);
+}
+
+void
+BuildMultiValuedMultiCut (const Geometry& geom, int required_coarsening_level,
+                          int max_coarsening_level, int ngrow,
+                          bool build_coarse_level_by_coarsening,
+                          bool a_extend_domain_face, int a_num_coarsen_opt)
+{
+    EB2::Build(geom, required_coarsening_level, max_coarsening_level, ngrow,
+               build_coarse_level_by_coarsening, a_extend_domain_face,
+               a_num_coarsen_opt, true);
 }
 
 }
