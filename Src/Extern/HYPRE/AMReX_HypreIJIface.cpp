@@ -24,9 +24,9 @@ struct HypreOptParse
     template <typename F>
     void operator() (const std::string& key, F&& func)
     {
-        if (pp.contains(key.c_str())) {
+        if (pp.contains(key)) {
             int val;
-            pp.query(key.c_str(), val);
+            pp.query(key, val);
             std::forward<F>(func)(solver, val);
         }
     }
@@ -35,7 +35,7 @@ struct HypreOptParse
     void operator() (const std::string& key, F&& func, T default_val)
     {
         T val = default_val;
-        pp.queryAdd(key.c_str(), val);
+        pp.queryAdd(key, val);
         std::forward<F>(func)(solver, val);
     }
 
@@ -43,16 +43,16 @@ struct HypreOptParse
     void operator() (const std::string& key, F&& func, T default_val, int index)
     {
         T val = default_val;
-        pp.queryAdd(key.c_str(), val);
+        pp.queryAdd(key, val);
         std::forward<F>(func)(solver, val, index);
     }
 
     template <typename T, typename F>
     void set (const std::string& key, F&& func)
     {
-        if (pp.contains(key.c_str())) {
+        if (pp.contains(key)) {
             T val;
-            pp.query(key.c_str(), val);
+            pp.query(key, val);
             std::forward<F>(func)(solver, val);
         }
     }

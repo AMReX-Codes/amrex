@@ -354,18 +354,18 @@ public:
                         std::string parser_prefix = std::string());
 
     //! Returns true if name is in table.
-    [[nodiscard]] bool contains (const char* name) const;
+    [[nodiscard]] bool contains (std::string_view name) const;
     /**
     * \brief Returns the number of values associated with nth occurrence of
     * name (prepended with the prefix) in the table.  n == -1 implies
     * the last occurrence.
     */
-    [[nodiscard]] int countval (const char* name, int n = LAST) const;
+    [[nodiscard]] int countval (std::string_view name, int n = LAST) const;
     /**
     * \brief Returns the number of times the given name (prepended with
     * prefix) appears in the table.
     */
-    [[nodiscard]] int countname (const std::string& name) const;
+    [[nodiscard]] int countname (std::string_view name) const;
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a bool and stored
@@ -373,18 +373,18 @@ public:
     * ival'th value does not exist, or if the printed representation
     * of the value cannot be converted to an bool, an error message is
     * output and the program halts.   Note that ival == 0 is the first
-    * value in the list.  ParmParse converte the value 'true', and non-zero
+    * value in the list.  ParmParse converts the value 'true', and non-zero
     * integers or floats to bool(true), and bool(false) for 'false'
     * or zero integer or float values.
     */
-    void getkth (const char* name,
-                 int         k,
-                 bool&       ref,
-                 int         ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 bool&            ref,
+                 int              ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              bool&       ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              bool&            ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -392,34 +392,34 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  bool&       ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  bool&            ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               bool&       ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, bool val);
+    int query (std::string_view name,
+               bool&            ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, bool val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
     * in reference ref.  If the kth occurrence does not exist or
     * ival'th value does not exist, or if the printed representation
     * of the value cannot be converted to an int, an error message is
-    * output and the program halts.   Note that ival == 0 is the first
+    * output and the program halts.  Note that ival == 0 is the first
     * value in the list.
     */
-    void getkth (const char* name,
-                 int         k,
-                 int&        ref,
-                 int         ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 int&             ref,
+                 int              ival = FIRST) const;
 
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              int&        ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              int&             ref,
+              int              ival = FIRST) const;
     /**
     * Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -427,16 +427,50 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  int&        ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  int&             ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               int&        ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, int  val);
+    int query (std::string_view name,
+               int&             ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, int val);
+    /**
+    * \brief Get the ival'th value of kth occurrence of the requested name.
+    * If successful, the value is converted to an int and stored
+    * in reference ref.  If the kth occurrence does not exist or
+    * ival'th value does not exist, or if the printed representation
+    * of the value cannot be converted to an int, an error message is
+    * output and the program halts.  Note that ival == 0 is the first
+    * value in the list.
+    */
+    void getkth (std::string_view name,
+                 int              k,
+                 long&            ref,
+                 int              ival = FIRST) const;
+    //! Same as getkth() but searches for the last occurrence of name.
+    void get (std::string_view name,
+              long&            ref,
+              int              ival = FIRST) const;
+    /**
+    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
+    * of name.  If successful, it returns 1 and stores the value in
+    * ref.  If the kth occurrence exists, but ival'th value of that
+    * occurrence does not, or if there is a type mismatch, then the
+    * program signals an error and halts.
+    */
+    int querykth (std::string_view name,
+                  int              k,
+                  long&            ref,
+                  int              ival = FIRST) const;
+    //! Same as querykth() but searches for the last occurrence of name.
+    int query (std::string_view name,
+               long&            ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, long val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to an int and stored
@@ -446,14 +480,14 @@ public:
     * output and the program halts.   Note that ival == 0 is the first
     * value in the list.
     */
-    void getkth (const char* name,
-                 int         k,
-                 long&       ref,
-                 int         ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 long long&       ref,
+                 int              ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              long&       ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              long long&       ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -461,50 +495,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  long&       ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  long long&       ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               long&        ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, long  val);
-    /**
-    * \brief Get the ival'th value of kth occurrence of the requested name.
-    * If successful, the value is converted to an int and stored
-    * in reference ref.  If the kth occurrence does not exist or
-    * ival'th value does not exist, or if the printed representation
-    * of the value cannot be converted to an int, an error message is
-    * output and the program halts.   Note that ival == 0 is the first
-    * value in the list.
-    */
-    void getkth (const char* name,
-                 int         k,
-                 long long&  ref,
-                 int         ival = FIRST) const;
-    //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              long long&  ref,
-              int         ival = FIRST) const;
-    /**
-    * \brief Similar to getkth() but returns 0 if there is no kth occurrence
-    * of name.  If successful, it returns 1 and stores the value in
-    * ref.  If the kth occurrence exists, but ival'th value of that
-    * occurrence does not, or if there is a type mismatch, then the
-    * program signals an error and halts.
-    */
-    int querykth (const char* name,
-                  int         k,
-                  long long&  ref,
-                  int         ival = FIRST) const;
-    //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               long long&  ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, long long  val);
+    int query (std::string_view name,
+               long long&       ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, long long  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a float and stored
@@ -514,14 +514,14 @@ public:
     * is output and the program halts.   Note that ival == 0 is the
     * first value in the list.
     */
-    void getkth (const char* name,
-                 int         k,
-                 float&      ref,
-                 int         ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 float&           ref,
+                 int              ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              float&      ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              float&           ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -529,16 +529,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  float&      ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  float&           ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               float&      ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, float  val);
+    int query (std::string_view name,
+               float&           ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, float  val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a double and stored
@@ -548,14 +548,14 @@ public:
     * is output and the program halts.   Note that ival = 0 is the
     * first value in the list.
     */
-    void getkth (const char* name,
+    void getkth (std::string_view name,
                  int         k,
                  double&     ref,
                  int         ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              double&     ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              double&          ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -563,16 +563,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  double&     ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  double&          ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               double&     ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, double val);
+    int query (std::string_view name,
+               double&          ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, double val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a std::string and stored
@@ -582,15 +582,15 @@ public:
     * is output and the program halts.   Note that ival = 0 is the
     * first value in the list.
     */
-    void getkth (const char*  name,
-                 int          k,
-                 std::string& ref,
-                 int          ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 std::string&     ref,
+                 int              ival = FIRST) const;
 
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char*  name,
-              std::string& ref,
-              int          ival = FIRST) const;
+    void get (std::string_view name,
+              std::string&     ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -598,16 +598,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char*  name,
-                  int          k,
-                  std::string& ref,
-                  int          ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  std::string&     ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char*  name,
-               std::string& ref,
-               int          ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, const std::string& val);
+    int query (std::string_view name,
+               std::string&     ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, const std::string& val);
 
 
     //! Similar to get() but store the whole line including empty spaces in
@@ -618,7 +618,7 @@ public:
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
-    void getline (const char* name, std::string& ref) const;
+    void getline (std::string_view name, std::string& ref) const;
 
     //! Similar to query() but store the whole line including empty spaces
     //! in the middle if present as a single string. For example, `foo = a b
@@ -628,7 +628,7 @@ public:
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
-    int queryline (const char* name, std::string& ref) const;
+    int queryline (std::string_view name, std::string& ref) const;
 
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
@@ -639,14 +639,14 @@ public:
     * is output and the program halts.   Note that ival = 0 is the
     * first value in the list.
     */
-    void getkth (const char* name,
-                 int         k,
-                 IntVect&    ref,
-                 int         ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 IntVect&         ref,
+                 int              ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              IntVect&    ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              IntVect&         ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -654,16 +654,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  IntVect&    ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  IntVect&         ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               IntVect&    ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, const IntVect& val);
+    int query (std::string_view name,
+               IntVect&         ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, const IntVect& val);
     /**
     * \brief Get the ival'th value of kth occurrence of the requested name.
     * If successful, the value is converted to a Box and stored
@@ -673,14 +673,14 @@ public:
     * is output and the program halts.   Note that ival = 0 is the
     * first value in the list.
     */
-    void getkth (const char* name,
-                 int         k,
-                 Box&        ref,
-                 int         ival = FIRST) const;
+    void getkth (std::string_view name,
+                 int              k,
+                 Box&             ref,
+                 int              ival = FIRST) const;
     //! Same as getkth() but searches for the last occurrence of name.
-    void get (const char* name,
-              Box&        ref,
-              int         ival = FIRST) const;
+    void get (std::string_view name,
+              Box&             ref,
+              int              ival = FIRST) const;
     /**
     * \brief Similar to getkth() but returns 0 if there is no kth occurrence
     * of name.  If successful, it returns 1 and stores the value in
@@ -688,16 +688,16 @@ public:
     * occurrence does not, or if there is a type mismatch, then the
     * program signals an error and halts.
     */
-    int querykth (const char* name,
-                  int         k,
-                  Box&        ref,
-                  int         ival = FIRST) const;
+    int querykth (std::string_view name,
+                  int              k,
+                  Box&             ref,
+                  int              ival = FIRST) const;
     //! Same as querykth() but searches for the last occurrence of name.
-    int query (const char* name,
-               Box&        ref,
-               int         ival = FIRST) const;
-    //! Add a key 'name'with value 'ref' to the end of the PP table.
-    void add (const char* name, const Box& val);
+    int query (std::string_view name,
+               Box&             ref,
+               int              ival = FIRST) const;
+    //! Add a key 'name' with value 'val' to the end of the PP table.
+    void add (std::string_view name, const Box& val);
     /**
     * \brief Gets an std::vector\<int\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an int
@@ -710,29 +710,29 @@ public:
     * converted to an int, an error message is reported and the
     * program halts.
     */
-    void getktharr (const char*       name,
+    void getktharr (std::string_view  name,
                     int               k,
                     std::vector<int>& ref,
                     int               start_ix = FIRST,
                     int               num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*       name,
+    void getarr (std::string_view  name,
                  std::vector<int>& ref,
                  int               start_ix = FIRST,
                  int               num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*       name,
+    int queryktharr (std::string_view  name,
                      int               k,
                      std::vector<int>& ref,
                      int               start_ix = FIRST,
                      int               num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*       name,
+    int queryarr (std::string_view  name,
                   std::vector<int>& ref,
                   int               start_ix = FIRST,
                   int               num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<int>& ref);
+    void addarr (std::string_view name, const std::vector<int>& ref);
 
     /**
     * \brief Gets an std::vector\<long\> of num_val values from kth occurrence of
@@ -746,29 +746,29 @@ public:
     * converted to a long, an error message is reported and the
     * program halts.
     */
-    void getktharr (const char*        name,
+    void getktharr (std::string_view   name,
                     int                k,
                     std::vector<long>& ref,
                     int                start_ix = FIRST,
                     int                num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*        name,
+    void getarr (std::string_view   name,
                  std::vector<long>& ref,
                  int                start_ix = FIRST,
                  int                num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*        name,
+    int queryktharr (std::string_view   name,
                      int                k,
                      std::vector<long>& ref,
                      int                start_ix = FIRST,
                      int                num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*        name,
+    int queryarr (std::string_view   name,
                   std::vector<long>& ref,
                   int                start_ix = FIRST,
                   int                num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<long>& ref);
+    void addarr (std::string_view name, const std::vector<long>& ref);
 
     /**
     * \brief Gets an std::vector\<long long\> of num_val values from kth occurrence of
@@ -782,29 +782,29 @@ public:
     * converted to a long long, an error message is reported and the
     * program halts.
     */
-    void getktharr (const char*             name,
+    void getktharr (std::string_view        name,
                     int                     k,
                     std::vector<long long>& ref,
                     int                     start_ix = FIRST,
                     int                     num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*             name,
+    void getarr (std::string_view        name,
                  std::vector<long long>& ref,
                  int                     start_ix = FIRST,
                  int                     num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*             name,
+    int queryktharr (std::string_view        name,
                      int                     k,
                      std::vector<long long>& ref,
                      int                     start_ix = FIRST,
                      int                     num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*             name,
+    int queryarr (std::string_view        name,
                   std::vector<long long>& ref,
                   int                     start_ix = FIRST,
                   int                     num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<long long>& ref);
+    void addarr (std::string_view name, const std::vector<long long>& ref);
 
     /**
     * \brief Gets an std::vector\<float\> of num_val values from kth occurrence of
@@ -818,29 +818,29 @@ public:
     * values cannot be converted to a float, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*         name,
+    void getktharr (std::string_view    name,
                     int                 k,
                     std::vector<float>& ref,
                     int                 start_ix = FIRST,
                     int                 num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*         name,
+    void getarr (std::string_view    name,
                  std::vector<float>& ref,
                  int                 start_ix = FIRST,
                  int                 num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*         name,
+    int queryktharr (std::string_view    name,
                      int                 k,
                      std::vector<float>& ref,
                      int                 start_ix = FIRST,
                      int                 num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*         name,
+    int queryarr (std::string_view    name,
                   std::vector<float>& ref,
                   int                 start_ix = FIRST,
                   int                 num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<float>& ref);
+    void addarr (std::string_view name, const std::vector<float>& ref);
     /**
     * \brief Gets an std::vector\<double\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to a double
@@ -853,29 +853,29 @@ public:
     * values cannot be converted to a double, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*          name,
+    void getktharr (std::string_view     name,
                     int                  k,
                     std::vector<double>& ref,
                     int                  start_ix = FIRST,
                     int                  num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*          name,
+    void getarr (std::string_view     name,
                  std::vector<double>& ref,
                  int                  start_ix = FIRST,
                  int                  num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*          name,
+    int queryktharr (std::string_view     name,
                      int                  k,
                      std::vector<double>& ref,
                      int                  start_ix = FIRST,
                      int                  num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.
-    int queryarr (const char*          name,
+    int queryarr (std::string_view     name,
                   std::vector<double>& ref,
                   int                  start_ix = FIRST,
                   int                  num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<double>& ref);
+    void addarr (std::string_view name, const std::vector<double>& ref);
     /**
     * \brief Gets an std::vector<std::string> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -888,29 +888,29 @@ public:
     * values cannot be converted to an std::string, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*               name,
+    void getktharr (std::string_view          name,
                     int                       k,
                     std::vector<std::string>& ref,
                     int                       start_ix = FIRST,
                     int                       num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*               name,
+    void getarr (std::string_view          name,
                  std::vector<std::string>& ref,
                  int                       start_ix = FIRST,
                  int                       num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*               name,
+    int queryktharr (std::string_view          name,
                      int                       k,
                      std::vector<std::string>& ref,
                      int                       start_ix = FIRST,
                      int                       num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.2
-    int queryarr (const char*               name,
+    int queryarr (std::string_view          name,
                   std::vector<std::string>& ref,
                   int                       start_ix = FIRST,
                   int                       num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<std::string>& ref);
+    void addarr (std::string_view name, const std::vector<std::string>& ref);
     /**
     * \brief Gets an std::vector\<IntVect\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -923,29 +923,29 @@ public:
     * values cannot be converted to an IntVect, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*           name,
+    void getktharr (std::string_view      name,
                     int                   k,
                     std::vector<IntVect>& ref,
                     int                   start_ix = FIRST,
                     int                   num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*           name,
+    void getarr (std::string_view      name,
                  std::vector<IntVect>& ref,
                  int                   start_ix = FIRST,
                  int                   num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*           name,
+    int queryktharr (std::string_view      name,
                      int                   k,
                      std::vector<IntVect>& ref,
                      int                   start_ix = FIRST,
                      int                   num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.2
-    int queryarr (const char*           name,
+    int queryarr (std::string_view      name,
                   std::vector<IntVect>& ref,
                   int                   start_ix = FIRST,
                   int                   num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<IntVect>& ref);
+    void addarr (std::string_view name, const std::vector<IntVect>& ref);
     /**
     * \brief Gets an std::vector\<Box\> of num_val values from kth occurrence of
     * given name.  If successful, the values are converted to an
@@ -958,29 +958,29 @@ public:
     * values cannot be converted to an Box, an error message is
     * reported and the program halts.
     */
-    void getktharr (const char*       name,
+    void getktharr (std::string_view  name,
                     int               k,
                     std::vector<Box>& ref,
                     int               start_ix = FIRST,
                     int               num_val = ALL) const;
     //! Same as getktharr() but searches for last occurrence of name.
-    void getarr (const char*       name,
+    void getarr (std::string_view  name,
                  std::vector<Box>& ref,
                  int               start_ix = FIRST,
                  int               num_val = ALL) const;
     //! queryktharr() is to querykth() as getktharr() is to getkth().
-    int queryktharr (const char*       name,
+    int queryktharr (std::string_view  name,
                      int               k,
                      std::vector<Box>& ref,
                      int               start_ix = FIRST,
                      int               num_val = ALL) const;
     //! Same as queryktharr() but searches for last occurrence of name.2
-    int queryarr (const char*       name,
+    int queryarr (std::string_view  name,
                   std::vector<Box>& ref,
                   int               start_ix = FIRST,
                   int               num_val = ALL) const;
     //! Add a key 'name' with vector of values 'ref' to the end of the PP table.
-    void addarr (const char* name, const std::vector<Box>& refd);
+    void addarr (std::string_view name, const std::vector<Box>& ref);
 
     /*
      * \brief Query IntVect from array
@@ -988,7 +988,7 @@ public:
      * This reads IntVect from an array (e.g., `8 16 8`), not the format
      * using parentheses (e.g., `(8,16,8)`).
      */
-    int queryarr (const char* name, IntVect& ref) const;
+    int queryarr (std::string_view name, IntVect& ref) const;
 
     /*
      * \brief Get IntVect from array
@@ -996,16 +996,16 @@ public:
      * This reads IntVect from an array (e.g., `8 16 8`), not the format
      * using parentheses (e.g., `(8,16,8)`).
      */
-    void getarr (const char* name, IntVect& ref) const;
+    void getarr (std::string_view name, IntVect& ref) const;
 
     //! Query RealVect from array
-    int queryarr (const char* name, RealVect& ref) const;
+    int queryarr (std::string_view name, RealVect& ref) const;
 
     //! Get RealVect from array
-    void getarr (const char* name, RealVect& ref) const;
+    void getarr (std::string_view name, RealVect& ref) const;
 
     template <typename T, std::size_t N>
-    void get (const char* name, std::array<T,N>& ref) const {
+    void get (std::string_view name, std::array<T,N>& ref) const {
         std::vector<T> v;
         this->getarr(name, v);
         AMREX_ALWAYS_ASSERT(v.size() >= N);
@@ -1015,7 +1015,7 @@ public:
     }
 
     template <typename T, std::size_t N>
-    int query (const char* name, std::array<T,N>& ref) const {
+    int query (std::string_view name, std::array<T,N>& ref) const {
         std::vector<T> v;
         int exist = this->queryarr(name, v);
         if (exist) {
@@ -1034,7 +1034,7 @@ public:
      * existed previously.
      */
     template <typename T, std::enable_if_t<!IsStdVector<T>::value, int> = 0>
-    int queryAdd (const char* name, T& ref) {
+    int queryAdd (std::string_view name, T& ref) {
         int exist = this->query(name, ref);
         if (!exist) {
             this->add(name, ref);
@@ -1042,7 +1042,7 @@ public:
         return exist;
     }
 
-    int queryAdd (const char* name, std::string& ref) {
+    int queryAdd (std::string_view name, std::string& ref) {
         int exist = this->query(name, ref);
         if (!exist && !ref.empty()) {
             this->add(name, ref);
@@ -1060,7 +1060,7 @@ public:
      * (and resized) according to the number of values in the inputs.
      */
     template <typename T>
-    int queryAdd (const char* name, std::vector<T>& ref) {
+    int queryAdd (std::string_view name, std::vector<T>& ref) {
         std::vector<T> empty;
         int exist = this->queryarr(name, empty);
         if (exist) {
@@ -1079,7 +1079,7 @@ public:
      * existed previously.
      */
     template <typename T>
-    int queryAdd (const char* name, std::vector<T>& ref, int num_val) {
+    int queryAdd (std::string_view name, std::vector<T>& ref, int num_val) {
         int exist = this->queryarr(name, ref, 0, num_val);
         if (!exist) {
             this->addarr(name, ref);
@@ -1094,7 +1094,7 @@ public:
      * existed previously.
      */
     template <typename T, std::size_t N>
-    int queryAdd (const char* name, std::array<T,N>& ref) {
+    int queryAdd (std::string_view name, std::array<T,N>& ref) {
         std::vector<T> v;
         int exist = this->queryarr(name, v);
         if (exist) {
@@ -1118,12 +1118,12 @@ public:
      * scalar. The return value indicates whether it's found. Note that
      * queryWithParser will be used recursively for unresolved symbols.
      */
-    int queryWithParser (const char* name, bool& ref) const;
-    int queryWithParser (const char* name, int& ref) const;
-    int queryWithParser (const char* name, long& ref) const;
-    int queryWithParser (const char* name, long long& ref) const;
-    int queryWithParser (const char* name, float& ref) const;
-    int queryWithParser (const char* name, double& ref) const;
+    int queryWithParser (std::string_view name, bool& ref) const;
+    int queryWithParser (std::string_view name, int& ref) const;
+    int queryWithParser (std::string_view name, long& ref) const;
+    int queryWithParser (std::string_view name, long long& ref) const;
+    int queryWithParser (std::string_view name, float& ref) const;
+    int queryWithParser (std::string_view name, double& ref) const;
 
     /**
      * \brief Query with Parser. The return value indicates whether it's
@@ -1131,19 +1131,19 @@ public:
      * symbols. If the number of elements in the input does not equal to
      * `nvals`, it's a runtime error.
      */
-    int queryarrWithParser (const char* name, int nvals, bool* ref) const;
-    int queryarrWithParser (const char* name, int nvals, int* ref) const;
-    int queryarrWithParser (const char* name, int nvals, long* ref) const;
-    int queryarrWithParser (const char* name, int nvals, long long* ref) const;
-    int queryarrWithParser (const char* name, int nvals, float* ref) const;
-    int queryarrWithParser (const char* name, int nvals, double* ref) const;
+    int queryarrWithParser (std::string_view name, int nvals, bool* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, int* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, long* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, long long* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, float* ptr) const;
+    int queryarrWithParser (std::string_view name, int nvals, double* ptr) const;
     template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
                                            std::is_same_v<T,int> ||
                                            std::is_same_v<T,long> ||
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    int queryarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    int queryarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         if (this->contains(name)) {
             if (int(ref.size()) < nvals) { ref.resize(nvals); }
@@ -1165,7 +1165,7 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    int queryAddWithParser (const char* name, T& ref)
+    int queryAddWithParser (std::string_view name, T& ref)
     {
         int exist = this->queryWithParser(name, ref);
         if (!exist) {
@@ -1185,11 +1185,11 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    void getWithParser (const char* name, T& ref) const
+    void getWithParser (std::string_view name, T& ref) const
     {
         int exist = this->queryWithParser(name, ref);
         if (!exist) {
-            amrex::Error(std::string("ParmParse::getWithParser: failed to get ")+name);
+            amrex::Error(std::string("ParmParse::getWithParser: failed to get ")+std::string(name));
         }
     }
 
@@ -1204,11 +1204,11 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    void getarrWithParser (const char* name, int nvals, T* ref) const
+    void getarrWithParser (std::string_view name, int nvals, T* ptr) const
     {
-        int exist = this->queryarrWithParser(name, nvals, ref);
+        int exist = this->queryarrWithParser(name, nvals, ptr);
         if (!exist) {
-            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+std::string(name));
         }
     }
 
@@ -1223,11 +1223,11 @@ public:
                                            std::is_same_v<T,long long> ||
                                            std::is_same_v<T,float> ||
                                            std::is_same_v<T,double>,int> = 0>
-    void getarrWithParser (const char* name, int nvals, std::vector<T>& ref) const
+    void getarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         int exist = this->queryarrWithParser(name, nvals, ref);
         if (!exist) {
-            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+name);
+            amrex::Error(std::string("ParmParse::getarrWithParser: failed to get ")+std::string(name));
         }
     }
 
@@ -1297,7 +1297,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query (const char* name, T& ref, int ival = FIRST) const
+    int query (std::string_view name, T& ref, int ival = FIRST) const
     {
         std::string s;
         int exist = this->query(name, s, ival);
@@ -1325,7 +1325,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get (const char* name, T& ref, int ival = FIRST) const
+    void get (std::string_view name, T& ref, int ival = FIRST) const
     {
         std::string s;
         this->get(name, s, ival);
@@ -1343,7 +1343,7 @@ public:
     //! Query an array of enum values using given name.
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int queryarr (const char* name,
+    int queryarr (std::string_view name,
                   std::vector<T>& ref,
                   int start_ix = FIRST,
                   int num_val = ALL) const
@@ -1370,7 +1370,7 @@ public:
     //! Get an array of enum values using given name.
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void getarr (const char* name,
+    void getarr (std::string_view name,
                  std::vector<T>& ref,
                  int start_ix = FIRST,
                  int num_val = ALL) const
@@ -1403,7 +1403,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
+    int query_enum_case_insensitive (std::string_view name, T& ref, int ival = FIRST) const
     {
         std::string s;
         int exist = this->query(name, s, ival);
@@ -1433,7 +1433,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get_enum_case_insensitive (const char* name, T& ref, int ival = FIRST) const
+    void get_enum_case_insensitive (std::string_view name, T& ref, int ival = FIRST) const
     {
         int exist = this->query_enum_case_insensitive(name, ref, ival);
         if (!exist) {
@@ -1458,7 +1458,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    int query_enum_sloppy (const char* name, T& ref, std::string_view const& ignores,
+    int query_enum_sloppy (std::string_view name, T& ref, std::string_view const& ignores,
                            int ival = FIRST) const
     {
         std::string s;
@@ -1495,7 +1495,7 @@ public:
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
-    void get_enum_sloppy (const char* name, T& ref, std::string_view const& ignores,
+    void get_enum_sloppy (std::string_view name, T& ref, std::string_view const& ignores,
                           int ival = FIRST) const
     {
         int exist = this->query_enum_sloppy(name, ref, ignores, ival);
@@ -1516,7 +1516,7 @@ public:
      * std::optional of arithmetic type.
      */
     template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
-    int queryAsDouble (const char* name, T& ref) const
+    int queryAsDouble (std::string_view name, T& ref) const
     {
         using value_type = ppdetail::underlying_type_t<T>;
         double dref;
@@ -1545,7 +1545,7 @@ public:
      * std::optional of arithmetic type.
      */
     template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
-    int queryarrAsDouble (const char* name, int nvals, T* ref) const
+    int queryarrAsDouble (std::string_view name, int nvals, T* ptr) const
     {
         using value_type = ppdetail::underlying_type_t<T>;
         std::vector<double> dref(nvals);
@@ -1561,7 +1561,7 @@ public:
                         amrex::Abort("ParmParse:: queryarrAsDouble is not safe");
                     }
                 }
-                ref[i] = vref;
+                ptr[i] = vref;
             }
         }
         return exist;
@@ -1576,11 +1576,11 @@ public:
      * std::optional of arithmetic type.
      */
     template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
-    void getAsDouble (const char* name, T& ref) const
+    void getAsDouble (std::string_view name, T& ref) const
     {
         int exist = this->queryAsDouble(name, ref);
         if (!exist) {
-            amrex::Error(std::string("ParmParse::getAsDouble: failed to get ")+name);
+            amrex::Error(std::string("ParmParse::getAsDouble: failed to get ")+std::string(name));
         }
     }
 
@@ -1593,16 +1593,16 @@ public:
      * std::optional of arithmetic type.
      */
     template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
-    void getarrAsDouble (const char* name, int nvals, T* ref) const
+    void getarrAsDouble (std::string_view name, int nvals, T* ptr) const
     {
-        int exist = this->queryarrAsDouble(name, nvals, ref);
+        int exist = this->queryarrAsDouble(name, nvals, ptr);
         if (!exist) {
-            amrex::Error(std::string("ParmParse::getarrAsDouble: failed to get ")+name);
+            amrex::Error(std::string("ParmParse::getarrAsDouble: failed to get ")+std::string(name));
         }
     }
 
     //! Remove given name from the table.
-    int remove (const char* name);
+    int remove (std::string_view name);
 
     //! Make Parser using given string `func` as function body and `vars` as
     //! variable names. Constants known to ParmParse will be set. It's a
@@ -1621,9 +1621,9 @@ public:
      * it's found. The table (i.e., vector of vector) is in the format of
      * `{{a00, a01, a02...} {a10, a11, a12...} ...}`.
      */
-    int querytable (const char* name, std::vector<std::vector<double>>& ref) const;
-    int querytable (const char* name, std::vector<std::vector<float>>& ref) const;
-    int querytable (const char* name, std::vector<std::vector<int>>& ref) const;
+    int querytable (std::string_view name, std::vector<std::vector<double>>& ref) const;
+    int querytable (std::string_view name, std::vector<std::vector<float>>& ref) const;
+    int querytable (std::string_view name, std::vector<std::vector<int>>& ref) const;
 
     /**
      * \brief Get vector of vector. It's an error if it is not found.  The
@@ -1631,7 +1631,7 @@ public:
      * `{{a00, a01, * a02...} {a10, a11, a12...} ...}`.
      */
     template <typename T>
-    void gettable (const char* name, std::vector<std::vector<T>>& ref) const
+    void gettable (std::string_view name, std::vector<std::vector<T>>& ref) const
     {
         if (this->querytable(name, ref) == 0) {
             amrex::ErrorStream() << "ParmParse::gettable: " << name
@@ -1649,6 +1649,9 @@ public:
     * those derived from argv to the table.
     */
     static void Initialize (int argc, char** argv, const char* parfile);
+    static void Initialize (int argc, char** argv, const std::string& parfile) {
+        return Initialize(argc, argv, parfile.c_str());
+    }
     /**
     * \brief The destructor.  The internal static table will only be deleted
     * if there are no other ParmParse objects in existence.
@@ -1720,7 +1723,7 @@ public:
 
     [[nodiscard]] std::string const& getPrefix () const;
 
-    [[nodiscard]] std::string prefixedName (const std::string_view& str) const;
+    [[nodiscard]] std::string prefixedName (std::string_view str) const;
 
 protected:
 
