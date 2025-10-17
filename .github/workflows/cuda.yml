@@ -17,7 +17,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 12.6
@@ -79,7 +79,7 @@ jobs:
       CUDAARCHS: "70"
       AMReX_CUDA_ARCH: "7.0"
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
@@ -125,7 +125,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -185,15 +185,15 @@ jobs:
 
   # Build 3D libamrex cuda build with configure
   configure-3d-cuda:
-    name: CUDA@12.6 [configure 3D]
+    name: CUDA@13.0 [configure 3D]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_nvcc.sh 12.6
+        .github/workflows/dependencies/dependencies_nvcc_2404.sh 13.0
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v4
@@ -215,7 +215,7 @@ jobs:
         # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
         #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
         #
-        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter" CCACHE=ccache CUDA_ARCH="7.0 7.2"
+        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter -Werror=deprecated-declarations" CCACHE=ccache CUDA_ARCH="8.0 9.0"
         make install
 
         ccache -s

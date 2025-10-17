@@ -396,7 +396,7 @@ public:
     * \param result_type
     * \param nvar_derive
     * \param der_func
-    * \param box_map
+    * \param bx_map
     * \param interp
     */
     void add (const std::string&      name,
@@ -444,11 +444,11 @@ public:
     * \brief Adds another entry to the registry.
     *
     * \param name
-    * \param result_type
+    * \param res_typ
     * \param nvar_derive
-    * \param var_names
+    * \param vars
     * \param der_func
-    * \param box_map
+    * \param bx_map
     * \param interp
     */
     void add (const std::string&      name,
@@ -489,8 +489,8 @@ public:
     * \param name
     * \param d_list
     * \param state_indx
-    * \param start_comp
-    * \param ncomp
+    * \param s_comp
+    * \param n_comp
     */
     void addComponent (const std::string&    name,
                        const DescriptorList& d_list,

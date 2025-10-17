@@ -1,9 +1,8 @@
-add_amrex_define(AMREX_USE_PETSC NO_LEGACY NO_1D IF AMReX_PETSC)
+add_amrex_define(AMREX_USE_PETSC NO_LEGACY IF AMReX_PETSC)
 
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 1)
-       message(STATUS "PETSc interfaces are not supported for 1D builds (skipping)")
-       continue()
+        continue()
     endif ()
 
     target_include_directories(amrex_${D}d

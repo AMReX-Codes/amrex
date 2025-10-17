@@ -32,9 +32,7 @@ module amrex_fab_module
      procedure, private :: amrex_fab_resize
      procedure, private :: amrex_fab_norminf
      procedure, private :: amrex_fab_reset_omp_private
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_fab_destroy
-#endif
   end type amrex_fab
 
   interface amrex_fab_build
@@ -42,9 +40,11 @@ module amrex_fab_module
      module procedure amrex_fab_build_install
   end interface amrex_fab_build
 
+#ifdef __NVCOMPILER
   interface amrex_fab_destroy
      module procedure amrex_fab_destroy
   end interface amrex_fab_destroy
+#endif
 
 contains
 

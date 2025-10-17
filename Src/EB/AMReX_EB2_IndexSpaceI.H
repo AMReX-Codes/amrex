@@ -64,6 +64,32 @@ IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
 
 
 template <typename G>
+IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
+                                 int ngrow,
+                                 bool extend_domain_face, int num_coarsen_opt)
+    : m_gshop(gshop),
+      m_build_coarse_level_by_coarsening(false),
+      m_extend_domain_face(extend_domain_face),
+      m_num_coarsen_opt(num_coarsen_opt)
+{
+
+    auto nlevels = int(geom.size());
+    m_gslevel.reserve(nlevels);
+
+    for (int ilev = 0; ilev < nlevels; ++ilev)
+    {
+        int ng = ngrow;
+        Geometry cgeom = geom[ilev];
+        Box cdomain = cgeom.Domain();
+        m_gslevel.emplace_back(this, gshop, cgeom, EB2::max_grid_size, ng, extend_domain_face,
+                                           num_coarsen_opt-ilev);
+        m_geom.push_back(cgeom);
+        m_domain.push_back(cdomain);
+        m_ngrow.push_back(ng);
+    }
+}
+
+template <typename G>
 const Level&
 IndexSpaceImp<G>::getLevel (const Geometry& geom) const
 {

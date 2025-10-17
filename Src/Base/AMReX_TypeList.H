@@ -50,28 +50,28 @@ namespace detail
  * \brief For each type t in TypeList, call f(t)
  *
  * For example, instead of
- \verbatim
-     int order = ...;
-     if (order == 1) {
-         interp<1>(...);
-     } else if (order == 2) {
-         interp<2>(...);
-     } else if (order == 4) {
-         interp<4>(...);
-     }
- \endverbatim
+ * \code{.cpp}
+ *     int order = ...;
+ *     if (order == 1) {
+ *         interp<1>(...);
+ *     } else if (order == 2) {
+ *         interp<2>(...);
+ *     } else if (order == 4) {
+ *         interp<4>(...);
+ *     }
+ * \endcode
  * we could have
- \verbatim
-     int order = ...;
-     ForEach(TypeList<std::integral_constant<int,1>,
-                      std::integral_constant<int,2>,
-                      std::integral_constant<int,4>>{},
-             [&] (auto order_const) {
-                 if (order_const() == order) {
-                     interp<order_const()>(...);
-                 }
-             });
- \endverbatim
+ * \code{.cpp}
+ *     int order = ...;
+ *     ForEach(TypeList<std::integral_constant<int,1>,
+ *                      std::integral_constant<int,2>,
+ *                      std::integral_constant<int,4>>{},
+ *             [&] (auto order_const) {
+ *                 if (order_const() == order) {
+ *                     interp<order_const()>(...);
+ *                 }
+ *             });
+ * \endcode
  */
 template <typename... Ts, typename F>
 constexpr void
@@ -88,27 +88,27 @@ ForEach (TypeList<Ts...>, F&& f)
  * shor-circuting occurs for the || operators.
  *
  * An example,
- \verbatim
-     void AnyF (Any& dst, Any const& src) {
-         // dst and src are either MultiFab or fMultiFab
-         auto tt = CartesianProduct(TypeList<MultiFab,fMultiFab>{},
-                                    TypeList<MultiFab,fMultiFab>{});
-         bool r = ForEachUntil(tt, [&] (auto t) -> bool
-         {
-             using MF0 = TypeAt<0,decltype(t)>;
-             using MF1 = TypeAt<1,decltype(t)>;
-             if (dst.is<MF0>() && src.is<MF1>()) {
-                 MF0      & dmf = dst.get<MF0>();
-                 MF1 const& smf = src.get<MF1>();
-                 f(dmf, smf);
-                 return true;
-             } else {
-                 return false;
-             }
-         });
-         if (!r) { amrex::Abort("Unsupported types"); }
-     }
- \endverbatim
+ * \code{.cpp}
+ *     void AnyF (Any& dst, Any const& src) {
+ *         // dst and src are either MultiFab or fMultiFab
+ *         auto tt = CartesianProduct(TypeList<MultiFab,fMultiFab>{},
+ *                                    TypeList<MultiFab,fMultiFab>{});
+ *         bool r = ForEachUntil(tt, [&] (auto t) -> bool
+ *         {
+ *             using MF0 = TypeAt<0,decltype(t)>;
+ *             using MF1 = TypeAt<1,decltype(t)>;
+ *             if (dst.is<MF0>() && src.is<MF1>()) {
+ *                 MF0      & dmf = dst.get<MF0>();
+ *                 MF1 const& smf = src.get<MF1>();
+ *                 f(dmf, smf);
+ *                 return true;
+ *             } else {
+ *                 return false;
+ *             }
+ *         });
+ *         if (!r) { amrex::Abort("Unsupported types"); }
+ *     }
+ * \endcode
  */
 template <typename... Ts, typename F>
 constexpr bool
@@ -138,18 +138,24 @@ constexpr auto operator* (LLs, TypeList<As...>) {
  * \brief Cartesian Product of TypeLists.
  *
  * For example,
- \verbatim
-     CartesianProduct(TypeList<std::integral_constant<int,0>,
-                               std::integral_constant<int,1>>{},
-                      TypeList<std::integral_constant<int,2>,
-                               std::integral_constant<int,3>>{});
- \endverbatim
+ * \code{.cpp}
+ *     CartesianProduct(TypeList<std::integral_constant<int,0>,
+ *                               std::integral_constant<int,1>>{},
+ *                      TypeList<std::integral_constant<int,2>,
+ *                               std::integral_constant<int,3>>{});
+ * \endcode
  * returns TypeList of TypeList of integral_constants {{0,2},{1,2},{0,3},{1,3}}.
  */
 template <typename... Ls>
 constexpr auto CartesianProduct (Ls...) {
     return (TypeList<TypeList<>>{} * ... * Ls{});
 }
+
+template <class T, std::size_t N>
+struct TypeArray {
+    using Type = T;
+    static constexpr std::size_t size () noexcept { return N; }
+};
 
 namespace detail {
     // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
@@ -173,6 +179,14 @@ namespace detail {
         return SingleTypeMultiplier_impl<T, N>();
     }
 
+    // overload of SingleTypeMultiplier for multiple types:
+    // convert TypeArray<T,N> to  T, T, T, T, ... (N times with N >= 0)
+    // Note that only this overload works with N = 0
+    template <class T, std::size_t N>
+    constexpr auto SingleTypeMultiplier (TypeArray<T, N>) {
+        return SingleTypeMultiplier_impl<T, N>();
+    }
+
     // overload of SingleTypeMultiplier for one regular type
     template <class T>
     constexpr auto SingleTypeMultiplier (T) {
@@ -189,13 +203,14 @@ namespace detail {
 /**
  * \brief Return the first template argument with the later arguments applied to it.
  * Types of the form T[N] are expanded to T, T, T, T, ... (N times with N >= 1).
+ * Types of the form TypeArray<T,N> are expanded to T, T, T, T, ... (N times with N >= 0).
  *
  * For example, TypeMultiplier<ReduceData, Real[4], int[2], Long>
  * is an alias to the type ReduceData<Real, Real, Real, Real, int, int, Long>.
  */
 template <template <class...> class TParam, class... Types>
 using TypeMultiplier = TypeAt<0, decltype(detail::TApply<TParam>(
-    (TypeList<>{} + ... + detail::SingleTypeMultiplier(Types{}))
+    (TypeList<>{} + ... + detail::SingleTypeMultiplier(std::declval<Types>()))
 ))>;
 
 }

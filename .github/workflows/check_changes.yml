@@ -12,14 +12,13 @@ jobs:
     outputs:
       has_non_docs_changes: ${{ steps.set-output.outputs.has_non_docs_changes }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: dorny/paths-filter@v3
         id: changes
         with:
           filters: |
             non_docs:
               - '!Docs/**'
-              - '!CHANGES'
               - '!**.md'
               - '!**.rst'
           predicate-quantifier: 'every'

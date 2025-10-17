@@ -120,7 +120,7 @@ public:
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
@@ -162,6 +162,26 @@ protected:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+};
+
+// Tag for applyBC EB version
+template <typename T>
+struct MLMGABCEBTag {
+    amrex::Array4<T> fab;
+    amrex::Array4<T const> bcval;
+    amrex::Array4<int const> mask;
+    amrex::Array4<T const> area;
+    T bcloc;
+    amrex::Box bx;
+    amrex::BoundCond bctype;
+    int blen;
+    int comp;
+    int dir;
+    int is_eb;
+    int side;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    amrex::Box const& box() const noexcept { return bx; }
 };
 
 }

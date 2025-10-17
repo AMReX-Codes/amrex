@@ -12,9 +12,7 @@ module amrex_poisson_module
    contains
      generic :: assignment(=) => amrex_poisson_assign   ! shallow copy
      procedure, private :: amrex_poisson_assign
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_poisson_destroy
-#endif
   end type amrex_poisson
 
   ! interfaces to C++ functions
@@ -35,9 +33,11 @@ module amrex_poisson_module
      end subroutine amrex_fi_delete_linop
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_poisson_destroy
      module procedure amrex_poisson_destroy
   end interface amrex_poisson_destroy
+#endif
 
 contains
 

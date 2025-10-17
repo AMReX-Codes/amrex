@@ -116,7 +116,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
         if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
             int li = this->localindex(tag.dstIndex);
             loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(),
+                ({this->atLocalIdx(li).array(), tag.dstIndex,
                   src.fabPtr(tag.srcIndex)->const_array(),
                   tag.dbox,
                   (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});

@@ -179,7 +179,7 @@ struct StructOfArrays {
 
     /** Get access to a particle Int component Array (compile-time and runtime component)
      *
-     * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+     * @param name component names with 0...NInt-1 compile-time and NInt... runtime arguments
      * @return
      */
     [[nodiscard]] IntVector& GetIntData (std::string const & name) {
@@ -193,7 +193,7 @@ struct StructOfArrays {
 
     /** Get access to a particle Int component Array (compile-time and runtime component)
      *
-     * @param index component with 0...NInt-1 compile-time and NInt... runtime arguments
+     * @param name component names with 0...NInt-1 compile-time and NInt... runtime arguments
      * @return
      */
     [[nodiscard]] const IntVector& GetIntData (std::string const & name) const {
@@ -280,6 +280,21 @@ struct StructOfArrays {
         }
         for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].resize(count); }
         for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
+    }
+
+    void reserve (size_t capacity)
+    {
+        if constexpr (use64BitIdCpu == true) {
+            m_idcpu.reserve(capacity);
+        }
+        if constexpr (NReal > 0) {
+            for (int i = 0; i < NReal; ++i) { m_rdata[i].reserve(capacity); }
+        }
+        if constexpr (NInt > 0) {
+            for (int i = 0; i < NInt;  ++i) { m_idata[i].reserve(capacity); }
+        }
+        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].reserve(capacity); }
+        for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].reserve(capacity); }
     }
 
     [[nodiscard]] uint64_t* idcpuarray () {

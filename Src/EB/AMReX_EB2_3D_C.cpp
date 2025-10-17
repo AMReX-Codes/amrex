@@ -109,12 +109,12 @@ void set_eb_data (const int i, const int j, const int k,
     Real aay = 0.5_rt*(aym+ayp);
     Real aaz = 0.5_rt*(azm+azp);
     Real B0 = aax + aay + aaz;
-    Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0)) * dx[0]/dx[1]
-                      + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0)) * dx[0]/dx[2];
-    Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0)) * dx[1]/dx[0]
-                      + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1)) * dx[1]/dx[2];
-    Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1)) * dx[2]/dx[0]
-                      + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) * dx[2]/dx[1];
+    Real Bx = -nx*aax + ny*(aym*fcy(i,j,k,0)-ayp*fcy(i,j+1,k,0)) * (dx[0]/dx[1])
+                      + nz*(azm*fcz(i,j,k,0)-azp*fcz(i,j,k+1,0)) * (dx[0]/dx[2]);
+    Real By = -ny*aay + nx*(axm*fcx(i,j,k,0)-axp*fcx(i+1,j,k,0)) * (dx[1]/dx[0])
+                      + nz*(azm*fcz(i,j,k,1)-azp*fcz(i,j,k+1,1)) * (dx[1]/dx[2]);
+    Real Bz = -nz*aaz + nx*(axm*fcx(i,j,k,1)-axp*fcx(i+1,j,k,1)) * (dx[2]/dx[0])
+                      + ny*(aym*fcy(i,j,k,1)-ayp*fcy(i,j+1,k,1)) * (dx[2]/dx[1]);
 
     vfrac(i,j,k) = 0.5_rt*(B0 + nx*Bx + ny*By + nz*Bz);
 
@@ -388,8 +388,10 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
 
 #ifdef AMREX_USE_FLOAT
     constexpr Real sml = 1.e-5_rt;
+    constexpr Real almostone = 1.0_rt - 1.e-5_rt;
 #else
     constexpr Real sml = 1.e-14;
+    constexpr Real almostone = 1.0 - 1.e-13;
 #endif
     const Real dxinv = 1.0_rt/dx[0];
     const Real dyinv = 1.0_rt/dx[1];
@@ -498,7 +500,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
 
             if (apx(i,j,k) == 0.0_rt) {
                 fx(i,j,k) = Type::covered;
-            } else if (apx(i,j,k) == 1.0_rt) {
+            } else if (apx(i,j,k) >= almostone) {
                 fx(i,j,k) = Type::regular;
             }
         }
@@ -606,7 +608,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
 
             if (apy(i,j,k) == 0.0_rt) {
                 fy(i,j,k) = Type::covered;
-            } else if (apy(i,j,k) == 1.0_rt) {
+            } else if (apy(i,j,k) >= almostone) {
                 fy(i,j,k) = Type::regular;
             }
         }
@@ -714,7 +716,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
 
             if (apz(i,j,k) == 0.0_rt) {
                 fz(i,j,k) = Type::covered;
-            } else if (apz(i,j,k) == 1.0_rt) {
+            } else if (apz(i,j,k) >= almostone) {
                 fz(i,j,k) = Type::regular;
             }
         }

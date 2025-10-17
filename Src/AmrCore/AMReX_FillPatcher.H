@@ -105,10 +105,10 @@ public:
      * \param nghost      number of ghost cells to fill. This must be <= what's
      *                    provided to the constructor
      * \param time        time associated with the destination
-     * \param crse_data   coarse level data
-     * \param crse_time   time associated with the coarse data
-     * \param fine_data   fine level data
-     * \param fine_time   time associated with the fine data
+     * \param cmf         coarse level data
+     * \param ct          time associated with the coarse data
+     * \param fmf         fine level data
+     * \param ft          time associated with the fine data
      * \param scomp       starting component of the source
      * \param dcomp       starting component of the destination
      * \param ncomp       the number of components to fill
@@ -140,8 +140,8 @@ public:
      * \param nghost      number of ghost cells to fill. This must be <= what's
      *                    provided to the constructor
      * \param time        time associated with the destination
-     * \param crse_data   coarse level data
-     * \param crse_time   time associated with the coarse data
+     * \param cmf         coarse level data
+     * \param ct          time associated with the coarse data
      * \param scomp       starting component of the source
      * \param dcomp       starting component of the destination
      * \param ncomp       the number of components to fill
@@ -187,6 +187,8 @@ public:
      *                  denoting the first and second substep, respectively.
      * \param ncycle    number of subcyling steps.  It's usually 2 or 4.
      *                  Without subcycling, this will be 1.
+     * \param mf        destination MF
+     * \param time      time associated with the coarse data
      * \param cbc       filling physical boundary on coarse level
      * \param fbc       filling physical boundary on fine level
      * \param bcs       physical BC types

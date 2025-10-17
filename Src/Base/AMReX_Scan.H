@@ -8,6 +8,9 @@
 
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
 #  include <cub/cub.cuh>
+#  ifdef AMREX_CUDA_CCCL_VER_GE_3
+#  include <thrust/iterator/transform_iterator.h>
+#  endif
 #elif defined(AMREX_USE_HIP)
 #  include <rocprim/rocprim.hpp>
 #elif defined(AMREX_USE_SYCL) && defined(AMREX_USE_ONEDPL)
@@ -828,7 +831,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         using BlockScan = cub::BlockScan<T, nthreads, cub::BLOCK_SCAN_WARP_SCANS>;
         using BlockExchange = cub::BlockExchange<T, nthreads, nelms_per_thread>;
 
-#ifdef AMREX_CUDA_CCCL_VER_3
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
         using Sum = cuda::std::plus<T>;
 #else
         using Sum = cub::Sum;
@@ -855,8 +858,13 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
+        thrust::transform_iterator<decltype(input_lambda),thrust::counting_iterator<N> >
+            input_begin(thrust::counting_iterator<N>(0), input_lambda);
+#else
         cub::TransformInputIterator<T,decltype(input_lambda),cub::CountingInputIterator<N> >
             input_begin(cub::CountingInputIterator<N>(0), input_lambda);
+#endif
 
         T data[nelms_per_thread];
         if (static_cast<int>(iend-ibegin) == nelms_per_block) {

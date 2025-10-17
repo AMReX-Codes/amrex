@@ -112,6 +112,12 @@ else
   DEBUG := FALSE
 endif
 
+ifdef DEBUG_OPT_LEVEL
+  DEBUG_OPT_LEVEL := $(strip $(DEBUG_OPT_LEVEL))
+else
+  DEBUG_OPT_LEVEL := 0
+endif
+
 ifdef USE_FFT
   USE_FFT := $(strip $(USE_FFT))
 else
@@ -404,7 +410,7 @@ USE_COMPILE_PIC ?= FALSE
 
 AMREX_GIT_VERSION := $(shell cd $(AMREX_HOME); git describe --abbrev=12 --dirty --always --tags)
 ifndef AMREX_GIT_VERSION
-  AMREX_GIT_VERSION := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+  AMREX_GIT_VERSION := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES.md)
 endif
 VERSION_DEFINES += -DAMREX_GIT_VERSION=\"$(AMREX_GIT_VERSION)\"
 
@@ -412,7 +418,7 @@ ifeq ($(findstring ., $(AMREX_GIT_VERSION)), .)
   amrex_release_string := $(AMREX_GIT_VERSION)
 else
   # AMREX_GIT_VERSION obtained from a shallow clone does not have the release version
-  amrex_release_string := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES)
+  amrex_release_string := $(shell grep -o -m 1 -E "[0-9]{2}\.[0-9]{2}(\.[0-9]+)?" $(AMREX_HOME)/CHANGES.md)
 endif
 amrex_release_words := $(subst ., ,$(firstword $(subst -, ,$(amrex_release_string))))
 amrex_release_numwords := $(words $(amrex_release_words))
@@ -1133,7 +1139,7 @@ ifeq ($(USE_SYCL),TRUE)
 else ifeq ($(USE_HIP),TRUE)
 
     LINKFLAGS = $(HIPCC_FLAGS)
-    AMREX_LINKER = hipcc
+    AMREX_LINKER ?= hipcc
 
     ifdef AMREX_AMD_ARCH
       AMD_ARCH = $(AMREX_AMD_ARCH)

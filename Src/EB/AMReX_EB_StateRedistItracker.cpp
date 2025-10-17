@@ -1,5 +1,5 @@
 /**
- * \file StateRedistItracer.cpp
+ * \file AMReX_EB_StateRedistItracker.cpp
  * @{
  *
  */
@@ -213,10 +213,10 @@ MakeITracker ( Box const& bx,
            if (sum_vol < target_volfrac)
            {
 #if 0
-             amrex::Print() << "Couldnt merge with enough cells to raise volume at " <<
+             amrex::Print() << "Couldn't merge with enough cells to raise volume at " <<
                                IntVect(i,j) << " so stuck with sum_vol " << sum_vol << '\n';
 #endif
-             amrex::Abort("Couldnt merge with enough cells to raise volume greater than target_volfrac");
+             amrex::Abort("Couldn't merge with enough cells to raise volume greater than target_volfrac");
            }
        }
     });
@@ -724,10 +724,10 @@ MakeITracker ( Box const& bx,
            if (sum_vol < target_volfrac)
            {
 #if 0
-             amrex::Print() << "Couldnt merge with enough cells to raise volume at " <<
+             amrex::Print() << "Couldn't merge with enough cells to raise volume at " <<
                                IntVect(i,j,k) << " so stuck with sum_vol " << sum_vol << '\n';
 #endif
-             amrex::Abort("Couldnt merge with enough cells to raise volume greater than target_volfrac");
+             amrex::Abort("Couldn't merge with enough cells to raise volume greater than target_volfrac");
            }
        }
     });
@@ -736,3 +736,5 @@ MakeITracker ( Box const& bx,
 #endif
 
 }
+
+/** @} */

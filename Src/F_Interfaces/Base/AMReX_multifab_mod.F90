@@ -91,9 +91,7 @@ module amrex_multifab_module
      procedure, private :: amrex_multifab_sum_boundary
      procedure, private :: amrex_multifab_sum_boundary_c
      procedure, private :: amrex_multifab_average_sync
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_multifab_destroy
-#endif
   end type amrex_multifab
 
   interface amrex_multifab_build
@@ -101,9 +99,11 @@ module amrex_multifab_module
      module procedure amrex_multifab_build_a
   end interface amrex_multifab_build
 
+#ifdef __NVCOMPILER
   interface amrex_multifab_destroy
     module procedure amrex_multifab_destroy
   end interface amrex_multifab_destroy
+#endif
 
   type, public   :: amrex_imultifab
      logical               :: owner = .false.
@@ -123,9 +123,7 @@ module amrex_multifab_module
      procedure, private :: amrex_imultifab_assign
      procedure, private :: amrex_imultifab_setval_gv
      procedure, private :: amrex_imultifab_setval
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_imultifab_destroy
-#endif
   end type amrex_imultifab
 
   interface amrex_imultifab_build
@@ -133,9 +131,11 @@ module amrex_multifab_module
      module procedure amrex_imultifab_build_a
   end interface amrex_imultifab_build
 
+#ifdef __NVCOMPILER
   interface amrex_imultifab_destroy
     module procedure amrex_imultifab_destroy
   end interface amrex_imultifab_destroy
+#endif
 
   type, public :: amrex_mfiter
      type(c_ptr)      :: p       = c_null_ptr
@@ -153,9 +153,7 @@ module amrex_multifab_module
      procedure :: validbox         => amrex_mfiter_validbox
      procedure :: fabbox           => amrex_mfiter_fabbox
      procedure, private :: amrex_mfiter_assign
-#if !defined(__GFORTRAN__) || (__GNUC__ > 4)
      final :: amrex_mfiter_destroy
-#endif
   end type amrex_mfiter
 
   interface amrex_mfiter_build
@@ -167,9 +165,11 @@ module amrex_multifab_module
      module procedure amrex_mfiter_build_badm_s
   end interface amrex_mfiter_build
 
+#ifdef __NVCOMPILER
   interface amrex_mfiter_destroy
     module procedure amrex_mfiter_destroy
   end interface amrex_mfiter_destroy
+#endif
 
   ! interfaces to c++ functions
 

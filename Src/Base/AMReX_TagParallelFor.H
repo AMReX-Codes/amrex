@@ -25,6 +25,7 @@ struct Array4PairTag {
 template <class T0, class T1=T0>
 struct Array4CopyTag {
     Array4<T0      > dfab;
+    int              dindex;
     Array4<T1 const> sfab;
     Box dbox;
     Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
@@ -139,6 +140,8 @@ namespace detail {
         return tag.size();
     }
 
+    //! \cond
+
     template <typename T>
     constexpr
     std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<T>().box())>, Box>, bool>
@@ -148,6 +151,8 @@ namespace detail {
     constexpr
     std::enable_if_t<std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >, bool>
     is_box_tag (T const&) { return false; }
+
+    //! \endcond
 
 }
 
@@ -305,14 +310,12 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
+//! \cond
+
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<T>().box())>, Box>, void>
-tagparfor_call_f (
-#ifdef AMREX_USE_SYCL
-    sycl::nd_item<1> const& item,
-#endif
-    int icell, T const& tag, F&& f) noexcept
+tagparfor_call_f (int icell, T const& tag, F&& f) noexcept
 {
     int ncells = tag.box().numPts();
     const auto len = amrex::length(tag.box());
@@ -323,29 +326,19 @@ tagparfor_call_f (
     i += lo.x;
     j += lo.y;
     k += lo.z;
-#ifdef AMREX_USE_SYCL
-    f(item, icell, ncells, i, j, k, tag);
-#else
-    f(      icell, ncells, i, j, k, tag);
-#endif
+    f(icell, ncells, i, j, k, tag);
 }
 
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::enable_if_t<std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >, void>
-tagparfor_call_f (
-#ifdef AMREX_USE_SYCL
-    sycl::nd_item<1> const& item,
-#endif
-    int i, T const& tag, F&& f) noexcept
+tagparfor_call_f (int i, T const& tag, F&& f) noexcept
 {
     int N = tag.size();
-#ifdef AMREX_USE_SYCL
-    f(item, i, N, tag);
-#else
-    f(      i, N, tag);
-#endif
+    f(i, N, tag);
 }
+
+//! \endcond
 
 template <class TagType, class F>
 void
@@ -388,11 +381,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 #endif
         int icell = b_wid*Gpu::Device::warp_size + lane;
 
-#ifdef AMREX_USE_SYCL
-        tagparfor_call_f(item, icell, d_tags[tag_id], f);
-#else
-        tagparfor_call_f(      icell, d_tags[tag_id], f);
-#endif
+        tagparfor_call_f(icell, d_tags[tag_id], f);
     });
 }
 
@@ -454,9 +443,6 @@ ParallelFor (TagVector<TagType> const& tv, int ncomp, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_SYCL
-            sycl::nd_item<1> const& /*item*/,
-#endif
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
         {
             if (icell < ncells) {
@@ -473,9 +459,6 @@ ParallelFor (TagVector<TagType> const& tv, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_SYCL
-            sycl::nd_item<1> const& /*item*/,
-#endif
             int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
         {
             if (icell < ncells) {
@@ -490,9 +473,6 @@ ParallelFor (TagVector<TagType> const& tv, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
-#ifdef AMREX_USE_SYCL
-            sycl::nd_item<1> const& /*item*/,
-#endif
             int icell, int ncells, TagType const& tag) noexcept
         {
             if (icell < ncells) {

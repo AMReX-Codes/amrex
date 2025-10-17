@@ -106,8 +106,9 @@ namespace amrex {
 #ifdef AMREX_USE_SIMD
             // SIMD
             static_assert(!std::is_same_v<T_SIMD, uint64_t>, "make_invalid: forgot template on wrapper?");
-            // .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41
-            simd::stdx::where(mask.__cvt(), idcpu) &= ~(T_SIMD{1} << 63);
+            // cvt / .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41#issuecomment-3185164952
+            // see also https://github.com/mattkretz/vir-simd/issues/45
+            simd::stdx::where(simd::stdx::cvt(mask), idcpu) &= ~(T_SIMD{1} << 63);
 #else
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
 #endif
@@ -132,8 +133,9 @@ namespace amrex {
 #ifdef AMREX_USE_SIMD
             // SIMD
             static_assert(!std::is_same_v<T_SIMD, uint64_t>, "make_valid: forgot template on wrapper?");
-            // .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41
-            simd::stdx::where(mask.__cvt(), idcpu) |= T_SIMD{1} << 63;
+            // cvt / .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41#issuecomment-3185164952
+            // see also https://github.com/mattkretz/vir-simd/issues/45
+            simd::stdx::where(simd::stdx::cvt(mask), idcpu) |= T_SIMD{1} << 63;
 #else
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
 #endif
@@ -435,10 +437,10 @@ struct alignas(sizeof(double)) Particle
         wrapper = id;
 #if defined(AMREX_USE_OMP)
 #pragma omp atomic write
-        this->m_idcpu = wrapper.m_idata;
+        this->m_idcpu = *(wrapper.m_idata);
 #else
         auto *old_ptr = reinterpret_cast<unsigned long long*>(&(this->m_idcpu));
-        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) wrapper.m_idata);
+        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) (*wrapper.m_idata));
 #endif
     }
 

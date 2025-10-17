@@ -76,8 +76,8 @@ NVHPC_GOPT ?= TRUE
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -Mbounds
-  CFLAGS   += -g -O0 -Mbounds
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -Mbounds
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -Mbounds
 
 else
 
@@ -142,8 +142,8 @@ F90FLAGS =
 
 ifeq ($(DEBUG),TRUE)
 
-  FFLAGS   += -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr
-  F90FLAGS += -g -O0 -Mbounds -Ktrap=divz,inv -Mchkptr
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -Mbounds -Ktrap=divz,inv -Mchkptr
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -Mbounds -Ktrap=divz,inv -Mchkptr
 
 else
 
