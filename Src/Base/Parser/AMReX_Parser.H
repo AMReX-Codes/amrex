@@ -143,7 +143,7 @@ ParserExecutor<N>
 Parser::compileHost () const
 {
     if (m_data && m_data->m_parser) {
-        AMREX_ASSERT(N == m_data->m_nvars);
+        AMREX_ALWAYS_ASSERT(N == m_data->m_nvars);
 
         // Make sure all user functions have been registered.
         for (auto const& [ufname, nargs] : m_ufs) {
