@@ -669,8 +669,9 @@ the parser.
    parser.registerVariables({"x","y","z"});
    auto f = parser.compile<3>();  // 3 because there are three variables.
 
-   // f can be used in both host and device code.  It takes 3 arguments in
-   // this example.  The parser object must be alive for f to be valid.
+   // ParserExecutor<3> f is thread-safe, and can be used in both host and
+   // device code. It takes 3 arguments in this example. The parser object
+   // must be alive for f to be valid.
    for (int k = 0; ...) {
      for (int j = 0; ...) {
        for (int i = 0; ...) {
@@ -685,7 +686,7 @@ Local automatic variables can be defined in the expression.  For example,
 
 ::
 
-   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)"
+   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)");
    parser.setConstant("a", ...);
    parser.registerVariables({"x","y"});
    auto f = parser.compile<2>();  // 2 because there are two variables.
