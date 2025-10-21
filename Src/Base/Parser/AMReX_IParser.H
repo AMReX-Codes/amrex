@@ -111,7 +111,7 @@ IParserExecutor<N>
 IParser::compileHost () const
 {
     if (m_data && m_data->m_iparser) {
-        AMREX_ASSERT(N == m_data->m_nvars);
+        AMREX_ALWAYS_ASSERT(N == m_data->m_nvars);
 
         if (!(m_data->m_host_executor)) {
             int stack_size;
