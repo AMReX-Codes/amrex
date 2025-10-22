@@ -1511,30 +1511,66 @@ VisMF::readFAB (FabArray<FArrayBox> &mf,
     std::ifstream *infs = VisMF::OpenStream(FullName);
     infs->seekg(hdr.m_fod[idx].m_head, std::ios::beg);
 
+    Box box = fab.box();
+    if (hdr.m_ngrow != mf.nGrowVect()) {
+        box.grow(hdr.m_ngrow - mf.nGrowVect());
+    }
+    std::unique_ptr<FArrayBox> hostfab;
+
     if(NoFabHeader(hdr)) {
       Real* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
-      std::unique_ptr<FArrayBox> hostfab;
-      if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
-          hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(), The_Pinned_Arena());
+      if (fab.arena()->isManaged() || fab.arena()->isDevice() || box != fab.box()) {
+          hostfab = std::make_unique<FArrayBox>(box, fab.nComp(), The_Pinned_Arena());
+          fabdata = hostfab->dataPtr();
+      }
+#else
+      if (box != fab.box()) {
+          hostfab = std::make_unique<FArrayBox>(box, fab.nComp());
           fabdata = hostfab->dataPtr();
       }
 #endif
+
       if(hdr.m_writtenRD == FPC::NativeRealDescriptor()) {
-        infs->read((char *) fabdata, static_cast<std::streamsize>(fab.nBytes()));
+          auto nbytes = hostfab ? hostfab->nBytes() : fab.nBytes();
+          infs->read((char *) fabdata, static_cast<std::streamsize>(nbytes));
       } else {
-        Long readDataItems(fab.box().numPts() * fab.nComp());
-        RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
-                                              *infs, hdr.m_writtenRD);
+          auto readDataItems = hostfab ? hostfab->size() : fab.size();
+          RealDescriptor::convertToNativeFormat(fabdata, readDataItems,
+                                                *infs, hdr.m_writtenRD);
       }
 #ifdef AMREX_USE_GPU
       if (hostfab) {
-          Gpu::htod_memcpy_async(fab.dataPtr(), hostfab->dataPtr(), fab.size()*sizeof(Real));
-          Gpu::streamSynchronize();
+          if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+              fab.template copy<RunOn::Device>(*hostfab);
+              Gpu::streamSynchronize();
+          } else {
+              fab.template copy<RunOn::Host>(*hostfab);
+          }
+      }
+#else
+      if (hostfab) {
+          fab.copy(*hostfab);
       }
 #endif
     } else {
-      fab.readFrom(*infs);
+        if (box == fab.box()) {
+            fab.readFrom(*infs);
+        } else {
+#ifdef AMREX_USE_GPU
+            if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+                hostfab = std::make_unique<FArrayBox>(box, fab.nComp(), The_Pinned_Arena());
+                hostfab->readFrom(*infs);
+                fab.template copy<RunOn::Device>(*hostfab);
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
+                hostfab = std::make_unique<FArrayBox>(box, fab.nComp());
+                hostfab->readFrom(*infs);
+                fab.template copy<RunOn::Host>(*hostfab);
+            }
+        }
     }
 
     if (!(infs->good())) { amrex::Error("VisMF::readFAB failed"); }
@@ -1598,7 +1634,8 @@ VisMF::Read (FabArray<FArrayBox> &mf,
         DistributionMapping dm = vismf_make_dm(hdr.m_ba);
         mf.define(hdr.m_ba, dm, hdr.m_ncomp, hdr.m_ngrow, MFInfo(), FArrayBoxFactory());
     } else {
-        BL_ASSERT(amrex::match(hdr.m_ba,mf.boxArray()));
+        AMREX_ALWAYS_ASSERT(amrex::match(hdr.m_ba,mf.boxArray()) &&
+                            hdr.m_ncomp == mf.nComp());
     }
 
 #ifdef BL_USE_MPI
@@ -1608,7 +1645,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
   int nProcs(ParallelDescriptor::NProcs());
   bool noFabHeader(NoFabHeader(hdr));
 
-  if(noFabHeader && useSynchronousReads) {
+  if(noFabHeader && useSynchronousReads && mf.nGrowVect() == 0 && hdr.m_ngrow == 0) {
 
     // ---- This code is only for reading in file order
     bool doConvert(hdr.m_writtenRD != FPC::NativeRealDescriptor());
