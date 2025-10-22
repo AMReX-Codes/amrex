@@ -176,7 +176,9 @@ int main_main()
                                       || dx_a[1] != dx_b[1],
                                       || dx_a[2] != dx_b[2] );
         if (not_match) {
-            amrex::Abort("ERROR: grid dx does not match");
+            amrex::Print() << "\n ERROR: grid dx does not match at level "
+                           << ilev << '\n';
+            return EXIT_FAILURE;
         }
     }
 
@@ -207,12 +209,16 @@ int main_main()
         }
         bool grids_match = pf_a.boxArray(ilev) == pf_b.boxArray(ilev);
         if (!grids_match && !allow_diff_grids) {
-            amrex::Abort("ERROR: grids do not match");
+            amrex::Print() << "\n ERROR: grids do not match at level "
+                           << ilev << '\n';
+            return EXIT_FAILURE;
         } else if (!grids_match) {
             // do they cover the same domain?
             if (!pf_a.boxArray(ilev).contains(pf_b.boxArray(ilev)) ||
-                !pf_a.boxArray(ilev).contains(pf_b.boxArray(ilev))) {
-                amrex::Abort("ERROR: grids do not cover same domain");
+                !pf_b.boxArray(ilev).contains(pf_a.boxArray(ilev))) {
+                amrex::Print() << "\n ERROR: grids do not cover same domain at level "
+                               << ilev << '\n';
+                return EXIT_FAILURE;
             }
         }
 
