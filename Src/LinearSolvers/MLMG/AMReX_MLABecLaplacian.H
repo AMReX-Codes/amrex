@@ -154,14 +154,14 @@ public:
     void prepareForSolve () override;
     [[nodiscard]] bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
     [[nodiscard]] bool isBottomSingular () const override { return m_is_singular[0]; }
-    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
-    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
+    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const override;
+    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const override;
     void FFlux (int amrlev, const MFIter& mfi,
                 const Array<FAB*,AMREX_SPACEDIM>& flux,
                 const FAB& sol, Location /* loc */,
-                int face_only=0) const final;
+                int face_only=0) const override;
 
-    void normalize (int amrlev, int mglev, MF& mf) const final;
+    void normalize (int amrlev, int mglev, MF& mf) const override;
 
     [[nodiscard]] RT getAScalar () const final { return m_a_scalar; }
     [[nodiscard]] RT getBScalar () const final { return m_b_scalar; }
@@ -172,7 +172,7 @@ public:
 
     [[nodiscard]] std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const final;
 
-    [[nodiscard]] bool supportNSolve () const final;
+    [[nodiscard]] bool supportNSolve () const override;
 
     void copyNSolveSolution (MF& dst, MF const& src) const final;
 
