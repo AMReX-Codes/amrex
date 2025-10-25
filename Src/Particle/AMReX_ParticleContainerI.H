@@ -1653,7 +1653,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
-            int tid = 0; // xxxxx why is tid 0?
+            int tid = 0; // It's always 0 because this function is for RedistributeGPU only and the tiling is off.
             auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
             addsizes[&tile] += copy_size;
         }
