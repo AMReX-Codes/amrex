@@ -325,8 +325,9 @@ struct StructOfArrays {
         return arr;
     }
 
-    void collectVectors (Vector<RealVector*>& rv, Vector<IntVector*>& iv,
-                         Vector<IdCPU*>& idcpuv)
+    void collectVectors (Vector<IdCPU*>& idcpuv, Vector<RealVector*>& rv,
+                         Vector<IntVector*>& iv)
+
     {
         if constexpr (use64BitIdCpu == true) {
             idcpuv.push_back(&m_idcpu);

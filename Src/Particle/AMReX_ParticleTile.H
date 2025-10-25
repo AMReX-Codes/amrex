@@ -1351,55 +1351,135 @@ struct ParticleTile
         return ptd;
     }
 
-    void collectVectors (Vector<ParticleVector*>& pv, Vector<RealVector*>& rv,
-                         Vector<IntVector*>& iv, Vector<typename SoA::IdCPU*>& idcpuv)
+    void collectVectors (Vector<ParticleVector*>& pv,
+                         Vector<typename SoA::IdCPU*>& idcpuv,
+                         Vector<RealVector*>& rv, Vector<IntVector*>& iv)
     {
         if constexpr (!ParticleType::is_soa_particle) {
             m_aos_tile.collectVectors(pv);
         } else {
             amrex::ignore_unused(pv);
         }
-        m_soa_tile.collectVectors(rv, iv, idcpuv);
+        m_soa_tile.collectVectors(idcpuv, rv, iv);
     }
 
     static void reserve (std::map<ParticleTile<T_ParticleType,NArrayReal,NArrayInt,Allocator>*, int> const& addsizes)
     {
-        Vector<std::pair<ParticleVector*,int>> pvs;
-        Vector<std::pair<RealVector*,int>> rvs;
-        Vector<std::pair<IntVector*,int>> ivs;
-        Vector<std::pair<typename SoA::IdCPU*,int>> idcpuvs;
-        for (auto [p,s] : addsizes) {
-            Vector<ParticleVector*> pv;
-            Vector<RealVector*> rv;
-            Vector<IntVector*> iv;
-            Vector<typename SoA::IdCPU*> idcpuv;
-            p->collectVectors(pv, rv, iv, idcpuv);
-            for (auto* v : pv) {
-                pvs.emplace_back(v, s);
+        if constexpr (!IsArenaAllocator<Allocator<int>>::value) {
+            for (auto [p,s] : addsizes) {
+                p->reserve(p->size()+s);
             }
-            for (auto* v : rv) {
-                rvs.emplace_back(v, s);
+        } else {
+            using PV = std::conditional_t<ParticleType::is_soa_particle,
+                                          IntVector, ParticleVector>;
+            Vector<std::pair<PV*,int>> pvs;
+            Vector<std::pair<typename SoA::IdCPU*,int>> ids;
+            Vector<std::pair<RealVector*,int>> rvs;
+            Vector<std::pair<IntVector*,int>> ivs;
+            for (auto [p,s] : addsizes) {
+                if (s > 0) {
+                    Vector<ParticleVector*> pv;
+                    Vector<typename SoA::IdCPU*> idcpuv;
+                    Vector<RealVector*> rv;
+                    Vector<IntVector*> iv;
+                    p->collectVectors(pv, idcpuv, rv, iv);
+                    if constexpr (!ParticleType::is_soa_particle) {
+                        for (auto* v : pv) {
+                            pvs.emplace_back(v, s);
+                        }
+                    }
+                    for (auto* v : idcpuv) {
+                        ids.emplace_back(v, s);
+                    }
+                    for (auto* v : rv) {
+                        rvs.emplace_back(v, s);
+                    }
+                    for (auto* v : iv) {
+                        ivs.emplace_back(v, s);
+                    }
+                }
             }
-            for (auto* v : iv) {
-                ivs.emplace_back(v, s);
-            }
-            for (auto* v : idcpuv) {
-                idcpuvs.emplace_back(v, s);
-            }
-        }
 
-        // xxxxx TODO: Can we come up a better strategy?
-        for (auto [p,s] : pvs) {
-            p->reserve(p->size() + s);
-        }
-        for (auto [p,s] : rvs) {
-            p->reserve(p->size() + s);
-        }
-        for (auto [p,s] : ivs) {
-            p->reserve(p->size() + s);
-        }
-        for (auto [p,s] : idcpuvs) {
-            p->reserve(p->size() + s);
+            // xxxxx TODO: Can we come up a better strategy?
+
+            std::sort(pvs.begin(), pvs.end(), [] (auto const& a, auto const& b) {
+                return (a.first->size() + a.second) >
+                       (b.first->size() + b.second);
+            });
+            std::sort(ids.begin(), ids.end(), [] (auto const& a, auto const& b) {
+                return (a.first->size() + a.second) >
+                       (b.first->size() + b.second);
+            });
+            std::sort(rvs.begin(), rvs.end(), [] (auto const& a, auto const& b) {
+                return (a.first->size() + a.second) >
+                       (b.first->size() + b.second);
+            });
+            std::sort(ivs.begin(), ivs.end(), [] (auto const& a, auto const& b) {
+                return (a.first->size() + a.second) >
+                       (b.first->size() + b.second);
+            });
+
+            // Handle big vectcors first
+            {
+                int i_pvs = 0, i_ids = 0, i_rvs = 0, i_ivs = 0;
+                auto n_pvs = int(pvs.size());
+                auto n_ids = int(ids.size());
+                auto n_rvs = int(rvs.size());
+                auto n_ivs = int(ivs.size());
+                while ((i_pvs < n_pvs) || (i_ids < n_ids) || (i_rvs < n_rvs) ||
+                       (i_ivs < n_ivs)) {
+                    std::size_t nbytes = 0;
+                    int ii = -1;
+                    if (i_pvs < n_pvs) {
+                        std::size_t my_bytes = (pvs[i_pvs].first->size()
+                                              + pvs[i_pvs].second) * sizeof(typename PV::value_type);
+                        if (my_bytes > nbytes) {
+                            nbytes = my_bytes;
+                            ii = 0;
+                        }
+                    }
+                    if (i_ids < n_ids) {
+                        std::size_t my_bytes = (ids[i_ids].first->size()
+                                              + ids[i_ids].second) * sizeof(typename SoA::IdCPU::value_type);
+                        if (my_bytes > nbytes) {
+                            nbytes = my_bytes;
+                            ii = 1;
+                        }
+                    }
+                    if (i_rvs < n_rvs) {
+                        std::size_t my_bytes = (rvs[i_rvs].first->size()
+                                              + rvs[i_rvs].second) * sizeof(typename RealVector::value_type);
+                        if (my_bytes > nbytes) {
+                            nbytes = my_bytes;
+                            ii = 2;
+                        }
+                    }
+                    if (i_ivs < n_ivs) {
+                        std::size_t my_bytes = (ivs[i_ivs].first->size()
+                                              + ivs[i_ivs].second) * sizeof(typename IntVector::value_type);
+                        if (my_bytes > nbytes) {
+                            nbytes = my_bytes;
+                            ii = 3;
+                        }
+                    }
+                    if (ii == 0) {
+                        auto [p,s] = pvs[i_pvs++];
+                        p->reserve(p->size() + s);
+                    } else if (ii == 1) {
+                        auto [p,s] = ids[i_ids++];
+                        p->reserve(p->size() + s);
+                    } else if (ii == 2) {
+                        auto [p,s] = rvs[i_rvs++];
+                        p->reserve(p->size() + s);
+                    } else {
+                        auto [p,s] = ivs[i_ivs++];
+                        p->reserve(p->size() + s);
+                    }
+                }
+            }
+
+            // If we fail, we should try to free up some space and try again
+
         }
     }
 
