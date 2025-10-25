@@ -735,7 +735,7 @@ struct ParticleTile
         ParticleType::is_soa_particle,
         ThisParticleTileHasNoAoS,
         ArrayOfStructs<ParticleType, Allocator>>;
-    //using ParticleVector = typename AoS::ParticleVector;
+    using ParticleVector = typename AoS::ParticleVector;
 
     using SoA = std::conditional_t<
         ParticleType::is_soa_particle,
@@ -1349,6 +1349,58 @@ struct ParticleTile
 #endif
 
         return ptd;
+    }
+
+    void collectVectors (Vector<ParticleVector*>& pv, Vector<RealVector*>& rv,
+                         Vector<IntVector*>& iv, Vector<typename SoA::IdCPU*>& idcpuv)
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            m_aos_tile.collectVectors(pv);
+        } else {
+            amrex::ignore_unused(pv);
+        }
+        m_soa_tile.collectVectors(rv, iv, idcpuv);
+    }
+
+    static void reserve (std::map<ParticleTile<T_ParticleType,NArrayReal,NArrayInt,Allocator>*, int> const& addsizes)
+    {
+        Vector<std::pair<ParticleVector*,int>> pvs;
+        Vector<std::pair<RealVector*,int>> rvs;
+        Vector<std::pair<IntVector*,int>> ivs;
+        Vector<std::pair<typename SoA::IdCPU*,int>> idcpuvs;
+        for (auto [p,s] : addsizes) {
+            Vector<ParticleVector*> pv;
+            Vector<RealVector*> rv;
+            Vector<IntVector*> iv;
+            Vector<typename SoA::IdCPU*> idcpuv;
+            p->collectVectors(pv, rv, iv, idcpuv);
+            for (auto* v : pv) {
+                pvs.emplace_back(v, s);
+            }
+            for (auto* v : rv) {
+                rvs.emplace_back(v, s);
+            }
+            for (auto* v : iv) {
+                ivs.emplace_back(v, s);
+            }
+            for (auto* v : idcpuv) {
+                idcpuvs.emplace_back(v, s);
+            }
+        }
+
+        // xxxxx TODO: Can we come up a better strategy?
+        for (auto [p,s] : pvs) {
+            p->reserve(p->size() + s);
+        }
+        for (auto [p,s] : rvs) {
+            p->reserve(p->size() + s);
+        }
+        for (auto [p,s] : ivs) {
+            p->reserve(p->size() + s);
+        }
+        for (auto [p,s] : idcpuvs) {
+            p->reserve(p->size() + s);
+        }
     }
 
 private:

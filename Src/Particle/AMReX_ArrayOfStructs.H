@@ -108,6 +108,11 @@ public:
     [[nodiscard]] typename ParticleVector::const_iterator end () const { return m_data.end(); }
     [[nodiscard]] typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
 
+    void collectVectors (Vector<ParticleVector*>& pvs)
+    {
+        pvs.push_back(&m_data);
+    }
+
     int m_num_neighbor_particles{0};
 
 private:

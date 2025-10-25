@@ -1275,6 +1275,8 @@ public:
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                           bool remove_negative=true);
 
+    void ReserveForRedistribute (ParticleCopyPlan const& plan);
+
     Long superParticleSize() const { return superparticle_size; }
 
     void AddRealComp (std::string const & name, int communicate=1)
