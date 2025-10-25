@@ -581,8 +581,13 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
         }
     }
 
-    if constexpr (std::is_same_v<TRIA,fft_poisson_detail::Tri_Zero<T>> &&
-                  std::is_same_v<TRIC,fft_poisson_detail::Tri_Zero<T>>) {
+    if
+#ifndef _WIN32
+    constexpr
+#endif
+        (std::is_same_v<TRIA,fft_poisson_detail::Tri_Zero<T>> &&
+         std::is_same_v<TRIC,fft_poisson_detail::Tri_Zero<T>>) {
+        amrex::ignore_unused(tria,tric);
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
 #pragma omp parallel
 #endif
