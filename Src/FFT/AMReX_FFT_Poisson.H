@@ -354,7 +354,7 @@ void PoissonOpenBC<MF>::solve (MF& soln, MF const& rhs)
 namespace fft_poisson_detail {
     template <typename T>
     struct Tri_Zero {
-        static constexpr T operator() (int, int, int)
+        [[nodiscard]] constexpr T operator() (int, int, int) const
         {
             return 0;
         }
@@ -749,8 +749,8 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
             });
 #endif
         }
-#endif
     }
+#endif
 }
 
 namespace detail {
