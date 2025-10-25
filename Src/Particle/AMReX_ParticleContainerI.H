@@ -1649,6 +1649,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (plan.m_nrcvs > 0) {
+        AMREX_ALWAYS_ASSERT(do_tiling == false);
         for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i) {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
