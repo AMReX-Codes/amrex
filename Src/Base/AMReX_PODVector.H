@@ -309,9 +309,9 @@ namespace amrex
         {
             if (m_capacity != 0) {
                 m_data = allocate(m_capacity);
-            }
-            if (a_size != 0) {
-                detail::maybe_init_snan(m_data, m_size, (Allocator const&)(*this));
+                if (a_size != 0) {
+                    detail::maybe_init_snan(m_data, m_size, (Allocator const&)(*this));
+                }
             }
         }
 
@@ -322,10 +322,10 @@ namespace amrex
         {
             if (m_capacity != 0) {
                 m_data = allocate(m_capacity);
-            }
-            if (a_size != 0) {
-                detail::uninitializedFillNImpl(m_data, a_size, a_value,
-                                               (Allocator const&)(*this));
+                if (a_size != 0) {
+                    detail::uninitializedFillNImpl(m_data, a_size, a_value,
+                                                   (Allocator const&)(*this));
+                }
             }
         }
 
@@ -337,10 +337,10 @@ namespace amrex
         {
             if (m_capacity != 0) {
                 m_data = allocate(m_capacity);
-            }
-            if (a_initializer_list.size() != 0) {
-                detail::initFromListImpl(m_data, a_initializer_list,
-                                         (Allocator const&)(*this));
+                if (a_initializer_list.size() != 0) {
+                    detail::initFromListImpl(m_data, a_initializer_list,
+                                             (Allocator const&)(*this));
+                }
             }
         }
 
@@ -351,11 +351,11 @@ namespace amrex
         {
             if (m_capacity != 0) {
                 m_data = allocate(m_capacity);
-            }
-            if (a_vector.size() != 0) {
-                detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
-                                    (Allocator const&)(*this),
-                                    (Allocator const&)a_vector);
+                if (a_vector.size() != 0) {
+                    detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
+                                        (Allocator const&)(*this),
+                                        (Allocator const&)a_vector);
+                }
             }
         }
 
