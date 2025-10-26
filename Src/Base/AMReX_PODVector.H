@@ -10,6 +10,7 @@
 #include <AMReX_MemPool.H>
 #include <AMReX_TypeTraits.H>
 
+#include <cmath>
 #include <iterator>
 #include <type_traits>
 #include <utility>
@@ -257,6 +258,15 @@ namespace amrex
         void Initialize ();
     }
 
+    inline std::size_t grow_podvector_capacity (std::size_t s)
+    {
+        if (s <= 900) {
+            return s + s/10;
+        } else {
+            return s + std::size_t(3*std::sqrt(s));
+        }
+    }
+
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {
@@ -295,20 +305,25 @@ namespace amrex
         {}
 
         explicit PODVector (size_type a_size)
-            : m_size(a_size), m_capacity(a_size)
+            : m_size(a_size), m_capacity(grow_podvector_capacity(a_size))
         {
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+            }
             if (a_size != 0) {
-                m_data = allocate(m_size);
                 detail::maybe_init_snan(m_data, m_size, (Allocator const&)(*this));
             }
         }
 
         PODVector (size_type a_size, const value_type& a_value,
                    const allocator_type& a_allocator = Allocator())
-            : Allocator(a_allocator), m_size(a_size), m_capacity(a_size)
+            : Allocator(a_allocator), m_size(a_size),
+              m_capacity(grow_podvector_capacity(a_size))
         {
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+            }
             if (a_size != 0) {
-                m_data = allocate(m_size);
                 detail::uninitializedFillNImpl(m_data, a_size, a_value,
                                                (Allocator const&)(*this));
             }
@@ -318,10 +333,12 @@ namespace amrex
                    const allocator_type& a_allocator = Allocator())
             : Allocator(a_allocator),
               m_size    (a_initializer_list.size()),
-              m_capacity(a_initializer_list.size())
+              m_capacity(grow_podvector_capacity(a_initializer_list.size()))
         {
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+            }
             if (a_initializer_list.size() != 0) {
-                m_data = allocate(m_size);
                 detail::initFromListImpl(m_data, a_initializer_list,
                                          (Allocator const&)(*this));
             }
@@ -330,10 +347,12 @@ namespace amrex
         PODVector (const PODVector<T, Allocator>& a_vector)
             : Allocator(a_vector),
               m_size    (a_vector.size()),
-              m_capacity(a_vector.size())
+              m_capacity(a_vector.capacity())
         {
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+            }
             if (a_vector.size() != 0) {
-                m_data = allocate(m_size);
                 detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
                                     (Allocator const&)(*this),
                                     (Allocator const&)a_vector);
@@ -378,7 +397,7 @@ namespace amrex
             const auto other_size = a_vector.size();
             if ( other_size > m_capacity ) {
                 clear();
-                reserve(other_size);
+                reserve_doit(other_size);
             }
 
             m_size = other_size;
@@ -663,9 +682,7 @@ namespace amrex
         void reserve (size_type a_capacity)
         {
             if (m_capacity < a_capacity) {
-                auto fp = detail::allocate_in_place(m_data, a_capacity, a_capacity,
-                                                    (Allocator&)(*this));
-                UpdateDataPtr(fp);
+                reserve_doit(grow_podvector_capacity(a_capacity));
             }
         }
 
@@ -699,6 +716,14 @@ namespace amrex
         }
 
     private:
+
+        void reserve_doit (size_type a_capacity) {
+            if (m_capacity < a_capacity) {
+                auto fp = detail::allocate_in_place(m_data, a_capacity, a_capacity,
+                                                    (Allocator&)(*this));
+                UpdateDataPtr(fp);
+            }
+        }
 
         [[nodiscard]] size_type nBytes () const noexcept
         {
