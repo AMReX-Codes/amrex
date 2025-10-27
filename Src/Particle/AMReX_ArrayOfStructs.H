@@ -91,9 +91,13 @@ public:
         m_data.swap(other.m_data);
     }
 
-    void resize (size_t count) { m_data.resize(count); }
+    void resize (size_t count, GrowthStrategy growth_strategy = GrowthStrategy::Default) {
+        m_data.resize(count, growth_strategy);
+    }
 
-    void reserve (size_t capacity) { m_data.reserve(capacity); }
+    void reserve (size_t capacity, GrowthStrategy growth_strategy = GrowthStrategy::Default) {
+        m_data.reserve(capacity, growth_strategy);
+    }
 
     Iterator erase ( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
 

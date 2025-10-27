@@ -965,20 +965,20 @@ struct ParticleTile
         }
     }
 
-    void resize (std::size_t count)
+    void resize (std::size_t count, GrowthStrategy growth_strategy = GrowthStrategy::Default)
     {
         if constexpr (!ParticleType::is_soa_particle) {
-            m_aos_tile.resize(count);
+            m_aos_tile.resize(count, growth_strategy);
         }
-        m_soa_tile.resize(count);
+        m_soa_tile.resize(count, growth_strategy);
     }
 
-    void reserve (std::size_t capacity)
+    void reserve (std::size_t capacity, GrowthStrategy growth_strategy = GrowthStrategy::Default)
     {
         if constexpr (!ParticleType::is_soa_particle) {
-            m_aos_tile.reserve(capacity);
+            m_aos_tile.reserve(capacity, growth_strategy);
         }
-        m_soa_tile.reserve(capacity);
+        m_soa_tile.reserve(capacity, growth_strategy);
     }
 
     ///
@@ -997,7 +997,7 @@ struct ParticleTile
         auto np = numParticles();
 
         if constexpr (!ParticleType::is_soa_particle) {
-            m_aos_tile.resize(np+1);
+            m_aos_tile.resize(np+1, GrowthStrategy::Geometric);
             for (int i = 0; i < AMREX_SPACEDIM; ++i) {
                 m_aos_tile[np].pos(i) = sp.pos(i);
             }
@@ -1011,7 +1011,7 @@ struct ParticleTile
             }
         }
 
-        m_soa_tile.resize(np+1);
+        m_soa_tile.resize(np+1, GrowthStrategy::Geometric);
         if constexpr (ParticleType::is_soa_particle) {
             m_soa_tile.GetIdCPUData()[np] = sp.m_idcpu;
         }

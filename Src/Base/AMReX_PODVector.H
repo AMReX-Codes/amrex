@@ -4,6 +4,7 @@
 
 #include <AMReX.H>
 #include <AMReX_Arena.H>
+#include <AMReX_Enum.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_GpuDevice.H>
@@ -243,6 +244,8 @@ namespace amrex
         }
     }
 
+    AMREX_ENUM(GrowthStrategy, Default, Exact, Geometric, Poisson);
+
     namespace VectorGrowthStrategy
     {
         extern AMREX_EXPORT Real growth_factor;
@@ -255,6 +258,10 @@ namespace amrex
         }
 
         void Initialize ();
+
+        std::size_t GetNewCapacity (std::size_t old_size, std::size_t old_capacity,
+                                    std::size_t new_size, GrowthStrategy strategy,
+                                    std::size_t sizeof_T);
     }
 
     template <class T, class Allocator = std::allocator<T> >
@@ -294,46 +301,57 @@ namespace amrex
             : Allocator(a_allocator)
         {}
 
-        explicit PODVector (size_type a_size)
-            : m_size(a_size), m_capacity(a_size)
+        explicit PODVector (size_type a_size,
+                            GrowthStrategy growth_strategy = GrowthStrategy::Default)
+            : m_size(a_size),
+              m_capacity(VectorGrowthStrategy::GetNewCapacity(
+                0, 0, a_size, growth_strategy, sizeof(T)))
         {
-            if (a_size != 0) {
-                m_data = allocate(m_size);
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
                 detail::maybe_init_snan(m_data, m_size, (Allocator const&)(*this));
             }
         }
 
         PODVector (size_type a_size, const value_type& a_value,
-                   const allocator_type& a_allocator = Allocator())
-            : Allocator(a_allocator), m_size(a_size), m_capacity(a_size)
+                   const allocator_type& a_allocator = Allocator(),
+                   GrowthStrategy growth_strategy = GrowthStrategy::Default)
+            : Allocator(a_allocator),
+              m_size(a_size),
+              m_capacity(VectorGrowthStrategy::GetNewCapacity(
+                0, 0, a_size, growth_strategy, sizeof(T)))
         {
-            if (a_size != 0) {
-                m_data = allocate(m_size);
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
                 detail::uninitializedFillNImpl(m_data, a_size, a_value,
                                                (Allocator const&)(*this));
             }
         }
 
         PODVector (std::initializer_list<T> a_initializer_list,
-                   const allocator_type& a_allocator = Allocator())
+                   const allocator_type& a_allocator = Allocator(),
+                   GrowthStrategy growth_strategy = GrowthStrategy::Default)
             : Allocator(a_allocator),
               m_size    (a_initializer_list.size()),
-              m_capacity(a_initializer_list.size())
+              m_capacity(VectorGrowthStrategy::GetNewCapacity(
+                0, 0, a_initializer_list.size(), growth_strategy, sizeof(T)))
         {
-            if (a_initializer_list.size() != 0) {
-                m_data = allocate(m_size);
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
                 detail::initFromListImpl(m_data, a_initializer_list,
                                          (Allocator const&)(*this));
             }
         }
 
-        PODVector (const PODVector<T, Allocator>& a_vector)
+        PODVector (const PODVector<T, Allocator>& a_vector,
+                   GrowthStrategy growth_strategy = GrowthStrategy::Default)
             : Allocator(a_vector),
               m_size    (a_vector.size()),
-              m_capacity(a_vector.size())
+              m_capacity(VectorGrowthStrategy::GetNewCapacity(
+                0, 0, a_vector.size(), growth_strategy, sizeof(T)))
         {
-            if (a_vector.size() != 0) {
-                m_data = allocate(m_size);
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
                 detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
                                     (Allocator const&)(*this),
                                     (Allocator const&)a_vector);
@@ -569,14 +587,14 @@ namespace amrex
 
         [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }
 
-        void push_back (const T& a_value)
+        void push_back (const T& a_value,
+                        GrowthStrategy growth_strategy = GrowthStrategy::Geometric)
         {
-            if (m_size == m_capacity) {
-                auto new_capacity = GetNewCapacityForPush();
-                AllocateBufferForPush(new_capacity);
-            }
-            detail::uninitializedFillNImpl(m_data+m_size, 1, a_value,
-                                           (Allocator const&)(*this));
+            auto new_capacity = VectorGrowthStrategy::GetNewCapacity(
+                m_size, m_capacity, m_size + 1, growth_strategy, sizeof(T));
+            ReallocNewCapacity(new_capacity);
+            detail::uninitializedFillNImpl(m_data + m_size, 1, a_value,
+                                          (Allocator const&)(*this));
             ++m_size;
         }
 
@@ -638,20 +656,28 @@ namespace amrex
 
         [[nodiscard]] const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
 
-        void resize (size_type a_new_size)
+        void resize (size_type a_new_size,
+                     GrowthStrategy growth_strategy = GrowthStrategy::Default)
         {
             auto old_size = m_size;
-            resize_without_init_snan(a_new_size);
+            auto new_capacity = VectorGrowthStrategy::GetNewCapacity(
+                old_size, m_capacity, a_new_size, growth_strategy, sizeof(T));
+            ReallocNewCapacity(new_capacity);
+            m_size = a_new_size;
             if (old_size < a_new_size) {
                 detail::maybe_init_snan(m_data + old_size,
                                         m_size - old_size, (Allocator const&)(*this));
             }
         }
 
-        void resize (size_type a_new_size, const T& a_val)
+        void resize (size_type a_new_size, const T& a_val,
+                     GrowthStrategy growth_strategy = GrowthStrategy::Default)
         {
-            size_type old_size = m_size;
-            resize_without_init_snan(a_new_size);
+            auto old_size = m_size;
+            auto new_capacity = VectorGrowthStrategy::GetNewCapacity(
+                old_size, m_capacity, a_new_size, growth_strategy, sizeof(T));
+            ReallocNewCapacity(new_capacity);
+            m_size = a_new_size;
             if (old_size < a_new_size)
             {
                 detail::uninitializedFillNImpl(m_data + old_size,
@@ -660,34 +686,19 @@ namespace amrex
             }
         }
 
-        void reserve (size_type a_capacity)
+        void reserve (size_type a_capacity,
+                      GrowthStrategy growth_strategy = GrowthStrategy::Default)
         {
             if (m_capacity < a_capacity) {
-                auto fp = detail::allocate_in_place(m_data, a_capacity, a_capacity,
-                                                    (Allocator&)(*this));
-                UpdateDataPtr(fp);
+                auto new_capacity = VectorGrowthStrategy::GetNewCapacity(
+                    m_size, m_capacity, a_capacity, growth_strategy, sizeof(T));
+                ReallocNewCapacity(new_capacity);
             }
         }
 
         void shrink_to_fit ()
         {
-            if (m_data != nullptr) {
-                if (m_size == 0) {
-                    deallocate(m_data, m_capacity);
-                    m_data = nullptr;
-                    m_capacity = 0;
-                } else if (m_size < m_capacity) {
-                    auto* new_data = detail::shrink_in_place(m_data, m_size,
-                                                             (Allocator&)(*this));
-                    if (new_data != m_data) {
-                        detail::memCopyImpl(new_data, m_data, nBytes(),
-                                            (Allocator const&)(*this),
-                                            (Allocator const&)(*this));
-                        deallocate(m_data, m_capacity);
-                    }
-                    m_capacity = m_size;
-                }
-            }
+            ReallocNewCapacity(m_size);
         }
 
         void swap (PODVector<T, Allocator>& a_vector) noexcept
@@ -705,53 +716,14 @@ namespace amrex
             return m_size*sizeof(T);
         }
 
-        // this is where we would change the growth strategy for push_back
-        [[nodiscard]] size_type GetNewCapacityForPush () const noexcept
-        {
-            if (m_capacity == 0) {
-                return std::max(64/sizeof(T), size_type(1));
-            } else {
-                Real const gf = VectorGrowthStrategy::GetGrowthFactor();
-                if (amrex::almostEqual(gf, Real(1.5))) {
-                    return (m_capacity*3+1)/2;
-                } else {
-                    return size_type(gf*Real(m_capacity+1));
-                }
-            }
-        }
-
-        void UpdateDataPtr (FatPtr<T> const& fp)
-        {
-            auto* new_data = fp.ptr();
-            auto new_capacity = fp.size();
-            if (m_data != nullptr && m_data != new_data) {
-                if (m_size > 0) {
-                    detail::memCopyImpl(new_data, m_data, nBytes(),
-                                        (Allocator const&)(*this),
-                                        (Allocator const&)(*this));
-                }
-                deallocate(m_data, capacity());
-            }
-            m_data = new_data;
-            m_capacity = new_capacity;
-        }
-
-        // This is where we play games with the allocator. This function
-        // updates m_data and m_capacity, but not m_size.
-        void AllocateBufferForPush (size_type target_capacity)
-        {
-            auto fp = detail::allocate_in_place(m_data, m_size+1, target_capacity,
-                                                (Allocator&)(*this));
-            UpdateDataPtr(fp);
-        }
-
         // This is where we play games with the allocator and the growth
         // strategy for insert. This function updates m_data, m_size and
         // m_capacity.
         void AllocateBufferForInsert (size_type a_index, size_type a_count)
         {
             size_type new_size = m_size + a_count;
-            size_type new_capacity = std::max(new_size, GetNewCapacityForPush());
+            size_type new_capacity = VectorGrowthStrategy::GetNewCapacity(
+                m_size, m_capacity, new_size, GrowthStrategy::Geometric, sizeof(T));
             auto fp = detail::allocate_in_place(m_data, new_size, new_capacity,
                                                 (Allocator&)(*this));
             auto* new_data = fp.ptr();
@@ -787,12 +759,42 @@ namespace amrex
             m_capacity = new_capacity;
         }
 
-        void resize_without_init_snan (size_type a_new_size)
+        // This function updates m_data and m_capacity
+        void ReallocNewCapacity (size_type new_capacity)
         {
-            if (m_capacity < a_new_size) {
-                reserve(a_new_size);
+            if (new_capacity > m_capacity) {
+                auto fp = detail::allocate_in_place(m_data, new_capacity, new_capacity,
+                                                   (Allocator&)(*this));
+                auto* new_data = fp.ptr();
+                auto fp_new_capacity = fp.size();
+                if (m_data != nullptr && m_data != new_data) {
+                    if (m_size > 0) {
+                        detail::memCopyImpl(new_data, m_data, nBytes(),
+                                            (Allocator const&)(*this),
+                                            (Allocator const&)(*this));
+                    }
+                    deallocate(m_data, capacity());
+                }
+                m_data = new_data;
+                m_capacity = fp_new_capacity;
+            } else if (new_capacity < m_capacity) {
+                auto* new_data = detail::shrink_in_place(m_data, new_capacity,
+                                                        (Allocator&)(*this));
+                if (new_data != m_data) {
+                    if (m_size > 0) {
+                        detail::memCopyImpl(new_data, m_data, nBytes(),
+                                            (Allocator const&)(*this),
+                                            (Allocator const&)(*this));
+                    }
+                    deallocate(m_data, m_capacity);
+                }
+                m_data = new_data;
+                m_capacity = new_capacity;
+            } else if (new_capacity == 0 && m_capacity != 0) {
+                deallocate(m_data, m_capacity);
+                m_data = nullptr;
+                m_capacity = 0;
             }
-            m_size = a_new_size;
         }
     };
 }
