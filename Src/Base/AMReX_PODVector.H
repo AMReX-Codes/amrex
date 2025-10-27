@@ -777,6 +777,10 @@ namespace amrex
                 }
                 m_data = new_data;
                 m_capacity = fp_new_capacity;
+            } else if (new_capacity == 0 && m_capacity != 0) {
+                deallocate(m_data, m_capacity);
+                m_data = nullptr;
+                m_capacity = 0;
             } else if (new_capacity < m_capacity) {
                 auto* new_data = detail::shrink_in_place(m_data, new_capacity,
                                                         (Allocator&)(*this));
@@ -790,11 +794,8 @@ namespace amrex
                 }
                 m_data = new_data;
                 m_capacity = new_capacity;
-            } else if (new_capacity == 0 && m_capacity != 0) {
-                deallocate(m_data, m_capacity);
-                m_data = nullptr;
-                m_capacity = 0;
             }
+            AMREX_ALWAYS_ASSERT((m_capacity == 0) == (m_data == nullptr));
         }
     };
 }
