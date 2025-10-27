@@ -88,5 +88,7 @@ namespace amrex::VectorGrowthStrategy
                     return old_capacity;
                 }
         }
+
+        return new_size;
     }
 }
