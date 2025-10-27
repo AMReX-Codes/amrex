@@ -259,9 +259,18 @@ namespace amrex
 
         void Initialize ();
 
-        std::size_t GetNewCapacity (std::size_t old_size, std::size_t old_capacity,
-                                    std::size_t new_size, GrowthStrategy strategy,
-                                    std::size_t sizeof_T);
+        std::size_t GetNewCapacityImp (std::size_t old_size, std::size_t old_capacity,
+                                       std::size_t new_size, GrowthStrategy strategy,
+                                       std::size_t sizeof_T);
+
+        inline std::size_t GetNewCapacity (std::size_t old_size, std::size_t old_capacity,
+                                           std::size_t new_size, GrowthStrategy strategy,
+                                           std::size_t sizeof_T) {
+            std::size_t new_capacity =
+                GetNewCapacityImp(old_size, old_capacity, new_size, strategy, sizeof_T);
+            AMREX_ALWAYS_ASSERT(new_capacity >= new_size);
+            return new_capacity;
+        }
     }
 
     template <class T, class Allocator = std::allocator<T> >
