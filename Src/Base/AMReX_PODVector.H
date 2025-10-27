@@ -611,7 +611,7 @@ namespace amrex
 
         [[nodiscard]] size_type capacity () const noexcept { return m_capacity; }
 
-        [[nodiscard]] bool empty () const noexcept { return m_size == 0; }
+        [[nodiscard]] bool empty () const noexcept { return m_size == 0 || m_data == nullptr; } // test m_data to avoid compiler warning
 
         [[nodiscard]] T& operator[] (size_type a_index) noexcept { return m_data[a_index]; }
 
