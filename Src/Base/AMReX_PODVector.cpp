@@ -70,6 +70,7 @@ namespace amrex::VectorGrowthStrategy
                 } else {
                     new_capacity = old_capacity;
                 }
+                break;
             case GrowthStrategy::Geometric:
                 if (new_size > old_capacity) {
                     const std::size_t min_capacity = std::max(64/sizeof_T, new_size);
@@ -82,12 +83,14 @@ namespace amrex::VectorGrowthStrategy
                 } else {
                     new_capacity = old_capacity;
                 }
+                break;
             case GrowthStrategy::Poisson:
                 if (new_size > old_capacity) {
                     new_capacity = new_size + static_cast<std::size_t>(3 * std::sqrt(new_size));
                 } else {
                     new_capacity = old_capacity;
                 }
+                break;
         }
 
         AMREX_ALWAYS_ASSERT(new_capacity >= new_size);
