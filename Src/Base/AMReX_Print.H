@@ -48,8 +48,8 @@ namespace amrex
             { ss.precision(os.precision()); }
 
     /**
-    * \brief Print on all processors of the default communicator
-    * Example: Print(Print::AllProcs) << " x = " << x << '\n';
+    * \brief Print on given rank of the default communicator
+    * Example: Print(2) << " x = " << x << '\n'; // Print on rank 2
     */
         Print (int rank_, std::ostream& os_ = amrex::OutStream())
             : rank(rank_)
