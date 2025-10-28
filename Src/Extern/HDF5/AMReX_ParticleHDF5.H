@@ -577,7 +577,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteParticlesHDF5 (int lev, hid_t grp,
-                      Vector<int>& which, Vector<int>& count, Vector<Long>& where,
+                      Vector<int>& /*which*/, Vector<int>& count, Vector<Long>& /*where*/,
                       const Vector<int>& write_real_comp,
                       const Vector<int>& write_int_comp,
                       const std::string& compression,
