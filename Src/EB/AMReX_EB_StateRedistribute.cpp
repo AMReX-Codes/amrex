@@ -170,7 +170,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
         {
             if (vfrac(i,j,k) > 0.0)
             {
-                // NO NEIGBHORS EXCEPT SELF
+                // NO NEIGHBORS EXCEPT SELF
                 if (itracker(i,j,k,0) == 0)
                 {
                     Real fac = alpha(i,j,k,0) * nrs(i,j,k);
@@ -183,7 +183,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
 
                 } else {
 
-                // MULTIPLE NEIGBHORS
+                // MULTIPLE NEIGHBORS
                 for (int i_nbor = 0; i_nbor <= itracker(i,j,k,0); i_nbor++)
                 {
                     int r = i; int s = j; int t = k;
