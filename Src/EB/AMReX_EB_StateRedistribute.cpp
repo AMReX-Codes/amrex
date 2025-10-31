@@ -165,7 +165,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
        // ****************************************************************************************
        //
 
-        amrex::ParallelFor(bx,
+        amrex::ParallelFor(bxg1,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (vfrac(i,j,k) > 0.0)
