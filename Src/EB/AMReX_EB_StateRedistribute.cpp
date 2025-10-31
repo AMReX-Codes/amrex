@@ -165,7 +165,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
        // ****************************************************************************************
        //
 
-        amrex::ParallelFor(bxg1,
+        amrex::ParallelFor(bx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             if (vfrac(i,j,k) > 0.0)
@@ -173,16 +173,13 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 // NO NEIGBHORS EXCEPT SELF
                 if (itracker(i,j,k,0) == 0)
                 {
-                    if (domain_per_grown.contains(IntVect(AMREX_D_DECL(i,j,k))) )
-                    {
-                        Real fac = alpha(i,j,k,0) * nrs(i,j,k);
+                    Real fac = alpha(i,j,k,0) * nrs(i,j,k);
 
-                        //
-                        // Update U_out(i,j,k) with qt(i,j,k,0)
-                        //
-                        U_out(i,j,k,n) += fac * qt(i,j,k,0) / nrs(i,j,k);
+                    //
+                    // Update U_out(i,j,k) with qt(i,j,k,0)
+                    //
+                    U_out(i,j,k,n) += fac * qt(i,j,k,0) / nrs(i,j,k);
 
-                    } // contains
 
                 } else {
 
