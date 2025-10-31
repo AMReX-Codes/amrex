@@ -261,6 +261,10 @@ namespace amrex
     inline std::size_t grow_podvector_capacity (std::size_t s)
     {
         if (s <= 900) {
+            // 3*sqrt(900) = 900/10. Note that we don't need to be precise
+            // here. Even if later we change the else block to
+            // 4*std::sqrt(s), it's not really an issue to still use 900
+            // here.
             return s + s/10;
         } else {
             return s + std::size_t(3*std::sqrt(s));
