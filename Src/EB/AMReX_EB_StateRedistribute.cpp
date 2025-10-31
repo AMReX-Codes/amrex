@@ -173,13 +173,12 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                 // NO NEIGHBORS EXCEPT SELF
                 if (itracker(i,j,k,0) == 0)
                 {
-                    Real fac = alpha(i,j,k,0) * nrs(i,j,k);
-
-                    //
-                    // Update U_out(i,j,k) with qt(i,j,k,0)
-                    //
-                    U_out(i,j,k,n) += fac * qt(i,j,k,0) / nrs(i,j,k);
-
+                    if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        //
+                        // Update U_out(i,j,k) with qt(i,j,k,0)
+                        //
+                        U_out(i,j,k,n) += alpha(i,j,k,0) * qt(i,j,k,0);
+                    }
 
                 } else {
 
