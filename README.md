@@ -11,6 +11,9 @@
   <a href="https://scan.coverity.com/projects/amrex-codes-amrex">
   <img alt="Coverity Scan Build Status" src="https://scan.coverity.com/projects/28563/badge.svg">
   </a>
+  <a href="https://www.bestpractices.dev/projects/11299">
+  <img alt="OpenSSF Beset Practices Status" src="https://www.bestpractices.dev/projects/11299/badge">
+  </a>
   <a href="https://opensource.org/licenses/BSD-3-Clause">
   <img alt="License" src="https://img.shields.io/badge/License-BSD_3--Clause-blue.svg">
   </a>

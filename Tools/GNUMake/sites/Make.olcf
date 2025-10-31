@@ -43,7 +43,11 @@ ifeq ($(which_computer),frontier)
     endif
     # for gpu aware mpi
     ifeq ($(USE_HIP),TRUE)
-      LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
+      ROCM_MAJOR_VERSION = $(shell hipconfig --version | cut -d. -f1)
+      MPICH_ROCM_VERSION = $(shell ldd ${CRAY_MPICH_ROOTDIR}/gtl/lib/libmpi_gtl_hsa.so | grep libamdhip64.so | cut -d" " -f1 | cut -d. -f3 )
+      ifeq ($(ROCM_MAJOR_VERSION),$(MPICH_ROCM_VERSION))
+        LIBRARIES += $(PE_MPICH_GTL_DIR_amd_gfx90a) -lmpi_gtl_hsa
+      endif
     endif
   endif
 endif

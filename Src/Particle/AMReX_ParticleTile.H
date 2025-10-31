@@ -993,6 +993,14 @@ struct ParticleTile
         }
     }
 
+    void reserve (std::size_t capacity)
+    {
+        if constexpr (!ParticleType::is_soa_particle) {
+            m_aos_tile.reserve(capacity);
+        }
+        m_soa_tile.reserve(capacity);
+    }
+
     ///
     /// Add one particle to this tile.
     ///

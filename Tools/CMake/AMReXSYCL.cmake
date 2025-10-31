@@ -53,7 +53,13 @@ endif()
 #
 target_link_options( SYCL
    INTERFACE
-   $<${_cxx_sycl}:-qmkl=sequential -fsycl -fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+   $<${_cxx_sycl}:-qmkl=sequential -fsycl> )
+
+if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS 2025.3)
+    target_link_options( SYCL
+        INTERFACE
+        $<${_cxx_sycl}:-fsycl-device-lib=libc,libm-fp32,libm-fp64> )
+endif()
 
 
 # TODO: use $<LINK_LANG_AND_ID:> genex for CMake >=3.17

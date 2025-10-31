@@ -11,6 +11,7 @@
 #elif defined(AMREX_USE_HIP)
 #  include <rocsparse/rocsparse.h>
 #elif defined(AMREX_USE_SYCL)
+#  include <mkl_version.h>
 #  include <oneapi/mkl/spblas.hpp>
 #endif
 
@@ -170,8 +171,14 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 
     amrex::ignore_unused(nnz);
     mkl::sparse::matrix_handle_t handle{};
-    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols, mkl::index_base::zero,
-                              (Long*)row, (Long*)col, (T*)mat);
+
+#if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
+    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols,
+                              mkl::index_base::zero, (Long*)row, (Long*)col, (T*)mat);
+#else
+    mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols, nnz,
+                              mkl::index_base::zero, (Long*)row, (Long*)col, (T*)mat);
+#endif
     mkl::sparse::gemv(Gpu::Device::streamQueue(), mkl::transpose::nontrans,
                       T(1), handle, px, T(0), py);
 

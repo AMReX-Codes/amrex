@@ -9,6 +9,9 @@ F90 = ifx
 amrex_oneapi_version = $(shell $(CXX) --version | head -1)
 $(info oneAPI version: $(amrex_oneapi_version))
 
+amrex_oneapi_version_major = $(shell $(CXX) --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 | cut -d. -f1)
+amrex_oneapi_version_minor = $(shell $(CXX) --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)
+
 CXXFLAGS =
 CFLAGS   =
 FFLAGS   =
@@ -131,7 +134,24 @@ ifneq ($(BL_NO_FORT),TRUE)
   endif
 endif
 
-LDFLAGS += -qmkl=sequential -fsycl-device-lib=libc,libm-fp32,libm-fp64
+LDFLAGS += -qmkl=sequential
+
+amrex_oneapi_major_lt_2025 = $(shell expr $(amrex_oneapi_version_major) \< 2025)
+amrex_oneapi_minor_le_2    = $(shell expr $(amrex_oneapi_version_minor) \<= 2)
+
+ifeq ($(amrex_oneapi_major_lt_2025),1)
+  amrex_add_sycl_device_lib = 1
+endif
+
+ifeq ($(amrex_oneapi_version_major),2025)
+ifeq ($(amrex_oneapi_minor_le_2),1)
+  amrex_add_sycl_device_lib = 1
+endif
+endif
+
+ifeq ($(amrex_add_sycl_device_lib),1)
+  LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+endif
 
 ifdef SYCL_PARALLEL_LINK_JOBS
 LDFLAGS += -fsycl-max-parallel-link-jobs=$(SYCL_PARALLEL_LINK_JOBS)
