@@ -411,7 +411,7 @@ namespace amrex
         ~PODVector ()
         {
             // let's not worry about other allocators
-            static_assert(std::is_same<Allocator,std::allocator<T>>::value ||
+            static_assert(std::is_same_v<Allocator,std::allocator<T>> ||
                           IsArenaAllocator<Allocator>::value);
             if (m_data != nullptr) {
                 deallocate(m_data, capacity());

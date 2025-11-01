@@ -265,7 +265,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
     // without instantiating this function.  The following is to work around
     // the issue.  Now the compiler is not allowed to reject the code unless
     // GpuBndryFuncFab::operator() is instantiated.
-    static_assert(std::is_same<F,int>::value,
+    static_assert(std::is_same_v<F,int>,
                   "CUDA 11.6 bug: https://github.com/AMReX-Codes/amrex/issues/2607");
 #endif
     if (bx.ixType().cellCentered()) {
