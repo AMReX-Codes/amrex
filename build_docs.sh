@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e # Exit with nonzero exit code if anything fails
 
-# Doxygen
+# Build Doxygen
 echo "Build the Doxygen documentation"
 cd Docs/Doxygen
 doxygen doxygen.conf &> doxygen.out
@@ -12,8 +12,20 @@ if grep -q "warning:" doxygen.out; then
 fi
 cd ../..
 
-# sphinx
-cd Docs/sphinx_documentation
+mkdir build
+cd build
+mkdir docs_html docs_xml
+
+# copy doxygen to target location
+mkdir -p docs_html/doxygen
+cp -rp ../Docs/Doxygen/html/* docs_html/doxygen/
+mkdir -p docs_xml/doxygen
+cp -rp ../Docs/Doxygen/xml/* docs_xml/doxygen/
+# add tagfile to allow other docs to interlink with amrex
+cp ../Docs/Doxygen/amrex-doxygen-web.tag.xml docs_xml/doxygen/.
+
+# Build sphinx
+cd ../Docs/sphinx_documentation
 
 echo "Build the Sphinx documentation for Amrex."
 make PYTHON="python3" latexpdf
@@ -22,17 +34,7 @@ make clean
 make SPHINXOPTS='-v -W --keep-going' PYTHON="python3" html
 cd ../../
 
-mkdir build
 cd build
-mkdir docs_html docs_xml
 
-# add doxygen
-mkdir -p docs_html/doxygen
-cp -rp ../Docs/Doxygen/html/* docs_html/doxygen/
-mkdir -p docs_xml/doxygen
-cp -rp ../Docs/Doxygen/xml/* docs_xml/doxygen/
-# add tagfile to allow other docs to interlink with amrex
-cp ../Docs/Doxygen/amrex-doxygen-web.tag.xml docs_xml/doxygen/.
-
-# add sphinx
+# copy sphinx to target location
 cp -rp ../Docs/sphinx_documentation/build/html/* docs_html/
