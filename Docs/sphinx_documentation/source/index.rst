@@ -75,4 +75,6 @@ as README.txt.
 Your use of this software is under the 3-clause BSD license -- the license agreement is included in the
 AMReX home directory as license.txt.
 
-For a pdf version of this documentation, click :download:`here <amrex.pdf>`.
+.. only:: html
+
+   For a pdf version of this documentation, click :download:`here <amrex.pdf>`.
