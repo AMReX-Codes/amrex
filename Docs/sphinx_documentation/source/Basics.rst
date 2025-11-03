@@ -771,7 +771,7 @@ second and third versions, the user may also pass a function that adds
 parameters to the ParmParse database instead of reading from command line or
 input file.
 
-The last optional parameter, :cpp:`int a_device_id = -1`, applies only to
+The last optional parameter, :cpp:`int a_device_id = -1`, applies to
 GPU builds only. By default, when multiple GPU devices are visible, AMReX
 automatically selects one for you. In most cases, you should rely on this
 default behavior and omit the optional argument. However, if another library
