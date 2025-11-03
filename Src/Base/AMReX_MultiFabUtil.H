@@ -1384,12 +1384,22 @@ ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
 
     auto tmpmf = detail::reduce_to_plane<Op>(direction, domain, mf, f);
 
-    Box domain2d = amrex::convert(domain, mf.ixType());
-    domain2d.setRange(direction, 0);
+    BoxList bl2d(mf.ixType());
+    Vector<int> procmap2d;
+    auto const& ba3d = mf.boxArray();
+    auto const& dm3d = mf.DistributionMap();
+    int dlo = domain.smallEnd(direction);
+    for (int i = 0, N = mf.size(); i < N; ++i) {
+        Box b = ba3d[i];
+        if (b.smallEnd(direction) <= dlo && dlo <= b.bigEnd(direction)) {
+            b.setRange(direction, 0);
+            bl2d.push_back(b);
+            procmap2d.push_back(dm3d[i]);
+        }
+    }
 
-    BoxArray ba2d(domain2d);
-    ba2d.maxSize(mf.boxArray()[0].length());
-    DistributionMapping dm2d(ba2d);
+    BoxArray ba2d(std::move(bl2d));
+    DistributionMapping dm2d(std::move(procmap2d));
 
     FA mf2d(ba2d, dm2d, 1, 0);
     mf2d.setVal(initval);
