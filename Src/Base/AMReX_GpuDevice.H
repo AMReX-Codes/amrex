@@ -53,7 +53,7 @@ class Device
 
 public:
 
-    static void Initialize (bool minimal);
+    static void Initialize (bool minimal, int a_device_id);
     static void Finalize ();
 
 #if defined(AMREX_USE_GPU)

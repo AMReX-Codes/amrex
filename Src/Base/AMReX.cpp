@@ -331,28 +331,29 @@ amrex::ExecOnInitialize (std::function<void()> f)
 amrex::AMReX*
 amrex::Initialize (MPI_Comm mpi_comm,
                    std::ostream& a_osout, std::ostream& a_oserr,
-                   ErrorHandler a_errhandler)
+                   ErrorHandler a_errhandler, int a_device_id)
 {
     int argc = 0;
     char** argv = nullptr;
-    return Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr, a_errhandler);
+    return Initialize(argc, argv, false, mpi_comm, {}, a_osout, a_oserr,
+                      a_errhandler, a_device_id);
 }
 
 amrex::AMReX*
 amrex::Initialize (int& argc, char**& argv,
                    const std::function<void()>& func_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,
-                   ErrorHandler a_errhandler)
+                   ErrorHandler a_errhandler, int a_device_id)
 {
     return Initialize(argc, argv, true, MPI_COMM_WORLD, func_parm_parse,
-                      a_osout, a_oserr, a_errhandler);
+                      a_osout, a_oserr, a_errhandler, a_device_id);
 }
 
 amrex::AMReX*
 amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
                    MPI_Comm mpi_comm, const std::function<void()>& func_parm_parse,
                    std::ostream& a_osout, std::ostream& a_oserr,
-                   ErrorHandler a_errhandler)
+                   ErrorHandler a_errhandler, int a_device_id)
 {
     system::exename.clear();
     if (initialization_by_init_minimal) {
@@ -541,9 +542,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     Machine::Initialize();
 
+    amrex::ignore_unused(a_device_id);
 #ifdef AMREX_USE_GPU
     // Initialize after ParmParse so that we can read inputs.
-    Gpu::Device::Initialize(initialization_by_init_minimal);
+    Gpu::Device::Initialize(initialization_by_init_minimal, a_device_id);
 #ifdef AMREX_USE_CUPTI
     CuptiInitialize();
 #endif
