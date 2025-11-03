@@ -16,9 +16,9 @@ cd ../..
 cd Docs/sphinx_documentation
 
 echo "Build the Sphinx documentation for Amrex."
-make PYTHON="python3" latexpdf
+make SPHINXOPTS='-v -W --keep-going' PYTHON="python3" latexpdf
 mv build/latex/amrex.pdf source/
-make PYTHON="python3" html &> make_source_html.out
+make SPHINXOPTS='-v -W --keep-going' PYTHON="python3" html &> make_source_html.out
 cd ../../
 
 mkdir build
