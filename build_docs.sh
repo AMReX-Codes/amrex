@@ -18,7 +18,8 @@ cd Docs/sphinx_documentation
 echo "Build the Sphinx documentation for Amrex."
 make PYTHON="python3" latexpdf
 mv build/latex/amrex.pdf source/
-make SPHINXOPTS='-v -W --keep-going' PYTHON="python3" html &> make_source_html.out
+make clean
+make SPHINXOPTS='-v -W --keep-going' PYTHON="python3" html
 cd ../../
 
 mkdir build
