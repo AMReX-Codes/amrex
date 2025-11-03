@@ -685,6 +685,7 @@ namespace amrex
                                             (Allocator const&)(*this));
                         deallocate(m_data, m_capacity);
                     }
+                    m_data = new_data;
                     m_capacity = m_size;
                 }
             }
