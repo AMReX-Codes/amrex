@@ -177,7 +177,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                         //
                         // Update U_out(i,j,k) with qt(i,j,k,0)
                         //
-                        U_out(i,j,k,n) += alpha(i,j,k,0) * qt(i,j,k,0);
+                        amrex::HostDevice::Atomic::Add(&U_out(i,j,k,n), alpha(i,j,k,0) * qt(i,j,k,0));
                     }
 
                 } else {
@@ -317,7 +317,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                             // Update U_out(r,s,t) with qt(i,j,k,r_nbor)
                             //
                             if (bx.contains(IntVect(AMREX_D_DECL(r,s,t)))) {
-                                amrex::Gpu::Atomic::Add(&U_out(r,s,t,n),fac*update/nrs(r,s,t));
+                                amrex::HostDevice::Atomic::Add(&U_out(r,s,t,n),fac*update/nrs(r,s,t));
                             }
 
                             if (as_crse) {
