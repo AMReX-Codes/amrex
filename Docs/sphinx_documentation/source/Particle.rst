@@ -47,7 +47,7 @@ The combination of these numbers is unique across processes. This is done to fac
 the creation of particle initial conditions in parallel. In storing these
 identifying numbers, 40 bits are devoted to the `id`, allowing approximately 550 billion
 possible `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
-unique possibilites.
+unique possibilities.
 
 To pack and unpack these numbers, one uses the following syntax:
 
