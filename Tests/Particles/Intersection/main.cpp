@@ -27,12 +27,6 @@ void testIntersection()
     TestParams params;
     get_test_params(params, "intersect");
 
-    Particle<0, 0> p;
-    p.id() = 1;
-    p.cpu() = 0;
-    amrex::Print() << p.m_idcpu << "\n"; // 9223372036871553024
-    amrex::Print() << p.id() << " " << p.cpu() << "\n"; // 1 0
-    
     int is_per[] = {AMREX_D_DECL(params.is_periodic,
                                  params.is_periodic,
                                  params.is_periodic)};
