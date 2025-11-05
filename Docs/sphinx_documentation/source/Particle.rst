@@ -317,8 +317,9 @@ outside their parent grid).
    to the device, or generate the particles directly on the GPU. For the first
    approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`_.
    For an example of generating a variable number of particles in each cell
-   directly on the GPU, please see the Electromagnetic Particle-in-Cell tutorial
-   `here <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`_.
+   directly on the GPU, please see
+   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`_
+   Electromagnetic Particle-in-Cell tutorial
 
 .. _sec:Particles:Runtime:
 
