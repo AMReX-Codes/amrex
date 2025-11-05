@@ -136,8 +136,8 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
    \end{center}
 
 The ability to store particle data in AoS form is provided for backward
-compatability and convenience; however, for performance reasons, whether
-targetting CPU or GPU execution, we recommend storing extra particle variables in SoA form.
+compatibility and convenience; however, for performance reasons, whether
+targeting CPU or GPU execution, we recommend storing extra particle variables in SoA form.
 Additionally, starting in AMReX version 23.05, the ability to store *all* particle
 data, including the particle positions and `idcpu` numbers, is provided via the
 :cpp:`amrex::ParticleContainerPureSoA` class. Details on using pure SoA particles
