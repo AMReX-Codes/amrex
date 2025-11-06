@@ -289,6 +289,7 @@ namespace amrex
                     }
                 }
         }
+        return 0; // unreachable
     }
 
     template <class T, class Allocator = std::allocator<T> >
@@ -767,7 +768,7 @@ namespace amrex
             }
         }
 
-        /** Sets the capacity of the PODVector to at least a_capacity without chaning the size.
+        /** Sets the capacity of the PODVector to at least a_capacity without changing the size.
          * To minimize reallocations, the capacity of the vector may be increased to a value larger
          * than the requested one. This behavior can be controlled using the strategy parameter.
          * Available strategies are:
