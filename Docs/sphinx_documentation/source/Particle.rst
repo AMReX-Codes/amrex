@@ -315,10 +315,10 @@ outside their parent grid).
    vectors, assumes you have compiled AMReX for CPU execution.
    For GPU codes, one can either generate particles on the host and copy them
    to the device, or generate the particles directly on the GPU. For the first
-   approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`_.
+   approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`__.
    For an example of generating a variable number of particles in each cell
    directly on the GPU, please see
-   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`_
+   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`__
    Electromagnetic Particle-in-Cell tutorial
 
 .. _sec:Particles:Runtime:
