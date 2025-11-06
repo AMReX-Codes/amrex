@@ -267,34 +267,42 @@ struct StructOfArrays {
 
     [[nodiscard]] int getNumNeighbors () const { return m_num_neighbor_particles; }
 
-    void resize (size_t count)
+    void resize (size_t count, GrowthStrategy strategy = GrowthStrategy::Poisson)
     {
         if constexpr (use64BitIdCpu == true) {
-            m_idcpu.resize(count);
+            m_idcpu.resize(count, strategy);
         }
         if constexpr (NReal > 0) {
-            for (int i = 0; i < NReal; ++i) { m_rdata[i].resize(count); }
+            for (int i = 0; i < NReal; ++i) { m_rdata[i].resize(count, strategy); }
         }
         if constexpr (NInt > 0) {
-            for (int i = 0; i < NInt;  ++i) { m_idata[i].resize(count); }
+            for (int i = 0; i < NInt;  ++i) { m_idata[i].resize(count, strategy); }
         }
-        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].resize(count); }
-        for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].resize(count); }
+        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) {
+            m_runtime_rdata[i].resize(count, strategy);
+        }
+        for (int i = 0; i < int(m_runtime_idata.size()); ++i) {
+            m_runtime_idata[i].resize(count, strategy);
+        }
     }
 
-    void reserve (size_t capacity)
+    void reserve (size_t capacity, GrowthStrategy strategy = GrowthStrategy::Poisson)
     {
         if constexpr (use64BitIdCpu == true) {
-            m_idcpu.reserve(capacity);
+            m_idcpu.reserve(capacity, strategy);
         }
         if constexpr (NReal > 0) {
-            for (int i = 0; i < NReal; ++i) { m_rdata[i].reserve(capacity); }
+            for (int i = 0; i < NReal; ++i) { m_rdata[i].reserve(capacity, strategy); }
         }
         if constexpr (NInt > 0) {
-            for (int i = 0; i < NInt;  ++i) { m_idata[i].reserve(capacity); }
+            for (int i = 0; i < NInt;  ++i) { m_idata[i].reserve(capacity, strategy); }
         }
-        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) { m_runtime_rdata[i].reserve(capacity); }
-        for (int i = 0; i < int(m_runtime_idata.size()); ++i) { m_runtime_idata[i].reserve(capacity); }
+        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) {
+            m_runtime_rdata[i].reserve(capacity, strategy);
+        }
+        for (int i = 0; i < int(m_runtime_idata.size()); ++i) {
+            m_runtime_idata[i].reserve(capacity, strategy);
+        }
     }
 
     [[nodiscard]] uint64_t* idcpuarray () {
