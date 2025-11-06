@@ -45,9 +45,10 @@ The `idcpu` variable stores a combination of the MPI process a particle was gene
 (the `cpu`) and an identification number that is specific to that process (the `id`).
 The combination of these numbers is unique across processes. This is done to facilitate
 the creation of particle initial conditions in parallel. In storing these
-identifying numbers, 40 bits are devoted to the `id`, allowing approximately 550 billion
-possible `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
-unique possibilities.
+identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550 billion
+possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
+unique (MPI) processes.
+One bit is devoted to mark a particle valid or invalid.
 
 To pack and unpack these numbers, one uses the following syntax:
 
