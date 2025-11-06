@@ -298,6 +298,18 @@ particles, if the processes generate particles they don't own (for example, if
 the particle positions are perturbed from the cell centers and thus end up
 outside their parent grid).
 
+.. note::
+
+   The above code snippet, which successively calls :cpp:`push_back` on the particle
+   vectors, assumes you have compiled AMReX for CPU execution.
+   For GPU codes, one can either generate particles on the host and copy them
+   to the device, or generate the particles directly on the GPU. For the first
+   approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`__.
+   For an example of generating a variable number of particles in each cell
+   directly on the GPU, please see
+   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`__
+   Electromagnetic Particle-in-Cell tutorial
+
 .. _sec:Particles:Runtime:
 
 Adding particle components at runtime
