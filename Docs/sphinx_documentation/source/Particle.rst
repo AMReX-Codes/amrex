@@ -444,7 +444,7 @@ also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to
 the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
 particlularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
 allows the same code to work with both AoS and pure SoA particles. For example, within
-a `ParIter` loop, one can do:
+a ``ParIter`` loop, one can do:
 
 .. highlight:: c++
 
