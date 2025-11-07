@@ -69,6 +69,19 @@ namespace detail
         return r;
     }
 
+    /** Convert a string to an enum value
+     *
+     * Example:
+     * ```C++
+     * AMREX_ENUM(Model,
+     *     linear,
+     *     nonlinear
+     * );
+     * std::string const model_str = "nonlinear";
+     * Model const model = amrex::getEnum<Model>(model_str);
+     * assert(model == Model::nonlinear);
+     * ```
+     */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     T getEnum (std::string_view const& s)
@@ -88,6 +101,21 @@ namespace detail
         }
     }
 
+    /** Convert a string case insensitive to an enum value
+     *
+     * Same as getEnum<T>, but case insensitive match to enum value.
+     *
+     * Example:
+     * ```C++
+     * AMREX_ENUM(Model,
+     *     linear,
+     *     nonlinear
+     * );
+     * std::string const model_str = "NonLinear";
+     * Model const model = amrex::getEnumCaseInsensitive<Model>(model_str);
+     * assert(model == Model::nonlinear);
+     * ```
+     */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     T getEnumCaseInsensitive (std::string_view const& s)
@@ -108,6 +136,19 @@ namespace detail
         }
     }
 
+    /** Get a string from an enum value
+     *
+     * Example:
+     * ```C++
+     * AMREX_ENUM(Model,
+     *     linear,
+     *     nonlinear
+     * );
+     * Model model = Model::linear;
+     * std::string model_str = amrex::getEnumNameString(model);
+     * assert(model_str == "linear");
+     * ```
+     */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)
