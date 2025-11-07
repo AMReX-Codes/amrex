@@ -965,40 +965,20 @@ struct ParticleTile
         }
     }
 
-    void resize (std::size_t count)
+    void resize (std::size_t count, GrowthStrategy strategy = GrowthStrategy::Poisson)
     {
         if constexpr (!ParticleType::is_soa_particle) {
-            m_aos_tile.resize(count);
+            m_aos_tile.resize(count, strategy);
         }
-        m_soa_tile.resize(count);
+        m_soa_tile.resize(count, strategy);
     }
 
-    void resize_geometric_grow (std::size_t count)
-    {
-        if constexpr (ParticleType::is_soa_particle) {
-            GetStructOfArrays().GetIdCPUData().resize_geometric_grow(count);
-        } else {
-            m_aos_tile().resize_geometric_grow(count);
-        }
-        for (int j = 0; j < NumRealComps(); ++j)
-        {
-            auto& rdata = GetStructOfArrays().GetRealData(j);
-            rdata.resize_geometric_grow(count);
-        }
-
-        for (int j = 0; j < NumIntComps(); ++j)
-        {
-            auto& idata = GetStructOfArrays().GetIntData(j);
-            idata.resize_geometric_grow(count);
-        }
-    }
-
-    void reserve (std::size_t capacity)
+    void reserve (std::size_t capacity, GrowthStrategy strategy = GrowthStrategy::Poisson)
     {
         if constexpr (!ParticleType::is_soa_particle) {
-            m_aos_tile.reserve(capacity);
+            m_aos_tile.reserve(capacity, strategy);
         }
-        m_soa_tile.reserve(capacity);
+        m_soa_tile.reserve(capacity, strategy);
     }
 
     ///
