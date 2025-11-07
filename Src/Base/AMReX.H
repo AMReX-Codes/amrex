@@ -379,7 +379,7 @@ namespace amrex
      * restores the previous settings.
      *
      \code{.cpp}
-         auto prev_excepts = disableFPExcept(FPExcept::all);
+         auto prev_excepts = enableFPExcept(FPExcept::all);
          // ....
          setFPExcept(prev_excepts); // restore previous settings
      \endcode
