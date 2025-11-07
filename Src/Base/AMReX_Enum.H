@@ -71,6 +71,7 @@ namespace detail
      * std::string const model_str = "nonlinear";
      * Model const model = amrex::getEnum<Model>(model_str);
      * assert(model == Model::nonlinear);
+     * ```
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
