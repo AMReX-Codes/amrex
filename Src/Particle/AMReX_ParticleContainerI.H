@@ -1771,7 +1771,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             auto& dst = ptile_local[pld.m_lev][index][thread_num];
                             auto old_size = dst.size();
                             auto new_size = old_size + 1;
-                            dst.resize_geometric_grow(new_size);
+                            dst.resize(new_size, GrowthStrategy::Geometric);
                             auto dst_ptd = dst.getParticleTileData();
 
                             copyParticle(dst_ptd, ptd, pindex, old_size);
@@ -2109,7 +2109,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                           rcv_tile[ipart])];
                 auto old_size = ptile.numTotalParticles();
                 auto new_size = old_size + 1;
-                ptile.resize_geometric_grow(new_size);
+                ptile.resize(new_size, GrowthStrategy::Geometric);
 
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
