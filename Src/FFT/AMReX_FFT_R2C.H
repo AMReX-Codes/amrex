@@ -976,23 +976,15 @@ void R2C<T,D,C>::forward (RT const* in, CT* out)
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, out);
 
     if (rsz > 0) {
-#ifdef AMREX_USE_GPU
         Gpu::dtod_memcpy_async(rdata.get(),in,rsz);
         Gpu::streamSynchronize();
-#else
-        std::memcpy(rdata.get(),in,rsz);
-#endif
     }
 
     forward(m_raw_mf, m_raw_cmf);
 
     if (csz) {
-#ifdef AMREX_USE_GPU
         Gpu::dtod_memcpy_async(out,cdata.get(),csz);
         Gpu::streamSynchronize();
-#else
-        std::memcpy(out,cdata.get(),csz);
-#endif
     }
 }
 
@@ -1075,23 +1067,15 @@ void R2C<T,D,C>::backward (CT const* in, RT* out)
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, in);
 
     if (csz) {
-#ifdef AMREX_USE_GPU
         Gpu::dtod_memcpy_async(cdata.get(),in,csz);
         Gpu::streamSynchronize();
-#else
-        std::memcpy(cdata.get(),in,csz);
-#endif
     }
 
     backward(m_raw_cmf, m_raw_mf);
 
     if (rsz > 0) {
-#ifdef AMREX_USE_GPU
         Gpu::dtod_memcpy_async(out,rdata.get(),rsz);
         Gpu::streamSynchronize();
-#else
-        std::memcpy(out,rdata.get(),rsz);
-#endif
     }
 }
 
