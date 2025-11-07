@@ -153,6 +153,9 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(static_cast<int>(Location::entry) == 1);
         AMREX_ALWAYS_ASSERT(static_cast<int>(Location::exit) == -1);
         AMREX_ALWAYS_ASSERT(static_cast<int>(Location::after_exit) == 0);
+        AMREX_ALWAYS_ASSERT(amrex::toUnderlying(Location::entry) == 1);
+        AMREX_ALWAYS_ASSERT(amrex::toUnderlying(Location::exit) == -1);
+        AMREX_ALWAYS_ASSERT(amrex::toUnderlying(Location::after_exit) == 0);
         AMREX_ALWAYS_ASSERT(amrex::getEnum<Location>("entry") == Location::entry);
         AMREX_ALWAYS_ASSERT(amrex::getEnum<Location>("exit") == Location::exit);
         AMREX_ALWAYS_ASSERT(amrex::getEnum<Location>("after_exit") == Location::after_exit);
