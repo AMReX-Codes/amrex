@@ -1399,7 +1399,7 @@ ParmParse::query (std::string_view name,
 
 void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
-                const bool       val)
+                bool       val)
 {
     saddval(prefixedName(name),val);
 }
@@ -1441,7 +1441,7 @@ ParmParse::query (std::string_view name,
 
 void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
-                const int        val)
+                int        val)
 {
     saddval(prefixedName(name),val);
 }
@@ -1529,7 +1529,7 @@ ParmParse::query (std::string_view name,
 
 void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
-                const long       val)
+                long       val)
 {
     saddval(prefixedName(name),val);
 }
@@ -1615,7 +1615,7 @@ ParmParse::query (std::string_view name,
 
 void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
-                const long long  val)
+                long long  val)
 {
     saddval(prefixedName(name),val);
 }
@@ -1702,7 +1702,7 @@ ParmParse::query (std::string_view name,
 
 void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
-                const float      val)
+                float      val)
 {
     saddval(prefixedName(name),val);
 }
@@ -1791,7 +1791,7 @@ ParmParse::query (std::string_view name,
 
 void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
-                const double     val)
+                double     val)
 {
     saddval(prefixedName(name),val);
 }

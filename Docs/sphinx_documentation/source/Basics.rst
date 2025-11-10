@@ -669,8 +669,9 @@ the parser.
    parser.registerVariables({"x","y","z"});
    auto f = parser.compile<3>();  // 3 because there are three variables.
 
-   // f can be used in both host and device code.  It takes 3 arguments in
-   // this example.  The parser object must be alive for f to be valid.
+   // ParserExecutor<3> f is thread-safe, and can be used in both host and
+   // device code. It takes 3 arguments in this example. The parser object
+   // must be alive for f to be valid.
    for (int k = 0; ...) {
      for (int j = 0; ...) {
        for (int i = 0; ...) {
@@ -685,7 +686,7 @@ Local automatic variables can be defined in the expression.  For example,
 
 ::
 
-   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)"
+   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)");
    parser.setConstant("a", ...);
    parser.registerVariables({"x","y"});
    auto f = parser.compile<2>();  // 2 because there are two variables.
@@ -717,7 +718,7 @@ Initialize and Finalize
 As we have mentioned, :cpp:`Initialize` must be called to initialize
 the execution environment for AMReX and :cpp:`Finalize` must be paired
 with :cpp:`Initialize` to release the resources used by AMReX.  There
-are two versions of :cpp:`Initialize`.
+are three versions of :cpp:`Initialize`.
 
 .. highlight:: c++
 
@@ -726,20 +727,23 @@ are two versions of :cpp:`Initialize`.
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,
                      std::ostream& a_oserr = std::cerr,
-                     ErrorHandler a_errhandler = nullptr);
+                     ErrorHandler a_errhandler = nullptr,
+                     int a_device_id = -1);
 
     AMReX* Initialize (int& argc, char**& argv,
                        const std::function<void()>& func_parm_parse,
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
-                       ErrorHandler a_errhandler = nullptr);
+                       ErrorHandler a_errhandler = nullptr,
+                       int a_device_id = -1);
 
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
                      const std::function<void()>& func_parm_parse = {},
                      std::ostream& a_osout = std::cout,
                      std::ostream& a_oserr = std::cerr,
-                     ErrorHandler a_errhandler = nullptr);
+                     ErrorHandler a_errhandler = nullptr,
+                     int a_device_id = -1);
 
 :cpp:`Initialize` checks if MPI has been initialized.  If it has, AMReX will
 duplicate the ``MPI_Comm`` argument provided by the users in the first and
@@ -766,6 +770,16 @@ the ``build_parm_parse`` parameter is set to :cpp:`false`. In both the
 second and third versions, the user may also pass a function that adds
 parameters to the ParmParse database instead of reading from command line or
 input file.
+
+The last optional parameter, :cpp:`int a_device_id = -1`, applies to
+GPU builds only. By default, when multiple GPU devices are visible, AMReX
+automatically selects one for you. In most cases, you should rely on this
+default behavior and omit the optional argument. However, if another library
+has already been initialized and assigned processes to specific devices, you
+may need AMReX to use a particular GPU. In that case, you can pass the
+desired device ID to :cpp:`amrex::Initialize`. Conversely, if you want
+another library to use the device selected by AMReX, you can obtain the
+device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after

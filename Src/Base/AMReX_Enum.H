@@ -34,10 +34,19 @@ namespace detail
                 ++next_value;
             } else if (kv.size() == 2) {
                 auto const& value_string = amrex::trim(kv[1]);
+                // For k = v, find if v exists as a key. If not, v must be an int.
                 auto it = std::find_if(r.begin(), r.end(),
                                        [&] (auto const& x) -> bool
                                            { return x.first == value_string; });
-                auto this_value = it->second;
+                T this_value;
+                if (it != r.end()) {
+                    this_value = it->second;
+                } else { // v is an int
+                    // Note that if value_string is not a valid string for int,
+                    // it will fail at compile time, because the compiler
+                    // will not allow something like `enum FOO : int { x = 3% }`.
+                    this_value =  static_cast<T>(std::stoi(value_string));
+                }
                 r.emplace_back(amrex::trim(kv[0]), this_value);
                 next_value = static_cast<int>(this_value) + 1;
             } else {
@@ -60,6 +69,19 @@ namespace detail
         return r;
     }
 
+    /** Convert a string to an enum value
+     *
+     * Example:
+     * ```C++
+     * AMREX_ENUM(Model,
+     *     linear,
+     *     nonlinear
+     * );
+     * std::string const model_str = "nonlinear";
+     * Model const model = amrex::getEnum<Model>(model_str);
+     * assert(model == Model::nonlinear);
+     * ```
+     */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     T getEnum (std::string_view const& s)
@@ -79,6 +101,21 @@ namespace detail
         }
     }
 
+    /** Convert a string case insensitive to an enum value
+     *
+     * Same as getEnum<T>, but case insensitive match to enum value.
+     *
+     * Example:
+     * ```C++
+     * AMREX_ENUM(Model,
+     *     linear,
+     *     nonlinear
+     * );
+     * std::string const model_str = "NonLinear";
+     * Model const model = amrex::getEnumCaseInsensitive<Model>(model_str);
+     * assert(model == Model::nonlinear);
+     * ```
+     */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     T getEnumCaseInsensitive (std::string_view const& s)
@@ -99,6 +136,19 @@ namespace detail
         }
     }
 
+    /** Get a string from an enum value
+     *
+     * Example:
+     * ```C++
+     * AMREX_ENUM(Model,
+     *     linear,
+     *     nonlinear
+     * );
+     * Model model = Model::linear;
+     * std::string model_str = amrex::getEnumNameString(model);
+     * assert(model_str == "linear");
+     * ```
+     */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
     std::string getEnumNameString (T const& v)

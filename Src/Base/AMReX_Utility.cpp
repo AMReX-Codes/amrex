@@ -166,12 +166,16 @@ amrex::UniqueString()
 void
 amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 {
+  BL_PROFILE("UtilCreateCleanDirectory()")
   if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::system::verbose > 1) {
           amrex::Print() << "amrex::UtilCreateCleanDirectory():  " << path
                          << " exists.  Renaming to:  " << newoldname << '\n';
+      }
+      if (amrex::FileExists(newoldname)) {
+          FileSystem::RemoveAll(newoldname);
       }
       if (std::rename(path.c_str(), newoldname.c_str())) {
           amrex::Abort("UtilCreateCleanDirectory:: std::rename failed");
@@ -191,6 +195,7 @@ amrex::UtilCreateCleanDirectory (const std::string &path, bool callbarrier)
 void
 amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 {
+  BL_PROFILE("UtilCreateDirectoryDestructive()")
   if(ParallelContext::IOProcessorSub())
   {
     if(amrex::FileExists(path))
@@ -216,12 +221,16 @@ amrex::UtilCreateDirectoryDestructive(const std::string &path, bool callbarrier)
 void
 amrex::UtilRenameDirectoryToOld (const std::string &path, bool callbarrier)
 {
+  BL_PROFILE("UtilRenameDirectoryToOld()")
   if(ParallelContext::IOProcessorSub()) {
     if(amrex::FileExists(path)) {
       std::string newoldname(path + ".old." + amrex::UniqueString());
       if (amrex::Verbose() > 1) {
           amrex::Print() << "amrex::UtilRenameDirectoryToOld():  " << path
                          << " exists.  Renaming to:  " << newoldname << '\n';
+      }
+      if (amrex::FileExists(newoldname)) {
+          FileSystem::RemoveAll(newoldname);
       }
       if (std::rename(path.c_str(), newoldname.c_str())) {
           amrex::Abort("UtilRenameDirectoryToOld: std::rename failed");
@@ -655,6 +664,9 @@ bool amrex::StreamRetry::TryFileOutput()
           if (amrex::Verbose() > 1) {
               amrex::Print() << nWriteErrors << " STREAMERRORS : Renaming file from "
                              << fileName << "  to  " << badFileName << '\n';
+          }
+          if (amrex::FileExists(badFileName)) {
+              FileSystem::RemoveAll(badFileName);
           }
           if (std::rename(fileName.c_str(), badFileName.c_str())) {
               amrex::Abort("StreamRetry::TryFileOutput: std::rename failed");

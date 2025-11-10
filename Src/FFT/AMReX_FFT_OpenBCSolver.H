@@ -143,12 +143,7 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         if (srcfab) {
             auto* dstfab = detail::get_fab(m_G_fft);
             if (dstfab) {
-#if defined(AMREX_USE_GPU)
-                Gpu::dtod_memcpy_async
-#else
-                std::memcpy
-#endif
-                    (dstfab->dataPtr(), srcfab->dataPtr(), dstfab->nBytes());
+                Gpu::dtod_memcpy_async(dstfab->dataPtr(), srcfab->dataPtr(), dstfab->nBytes());
             } else {
                 amrex::Abort("FFT::OpenBCSolver: how did this happen");
             }

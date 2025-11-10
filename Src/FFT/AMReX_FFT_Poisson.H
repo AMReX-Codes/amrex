@@ -193,6 +193,8 @@ public:
     void solve (MF& soln, MF const& rhs, Vector<T> const& dz);
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
 
+    void solve_2d (MF& a_soln, MF const& a_rhs);
+
     template <typename TRIA, typename TRIC>
     void solve (MF& a_soln, MF const& a_rhs, TRIA const& tria, TRIC const& tric);
 
@@ -351,6 +353,14 @@ void PoissonOpenBC<MF>::solve (MF& soln, MF const& rhs)
 
 namespace fft_poisson_detail {
     template <typename T>
+    struct Tri_Zero {
+        [[nodiscard]] constexpr T operator() (int, int, int) const
+        {
+            return 0;
+        }
+    };
+
+    template <typename T>
     struct Tri_Uniform {
         [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
         T operator() (int, int, int) const
@@ -481,6 +491,12 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 }
 
 template <typename MF>
+void PoissonHybrid<MF>::solve_2d (MF& soln, MF const& rhs)
+{
+    solve(soln, rhs, fft_poisson_detail::Tri_Zero<T>{}, fft_poisson_detail::Tri_Zero<T>{});
+}
+
+template <typename MF>
 template <typename TRIA, typename TRIC>
 void PoissonHybrid<MF>::solve (MF& a_soln, MF const& a_rhs, TRIA const& tria,
                                TRIC const& tric)
@@ -565,148 +581,179 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
         }
     }
 
-    bool zlo_neumann = m_bc[2].first == Boundary::even;
-    bool zhi_neumann = m_bc[2].second == Boundary::even;
-    bool is_singular = (offset[0] == T(0)) && (offset[1] == T(0))
-        && zlo_neumann && zhi_neumann;
+    if
+#ifndef _WIN32
+    constexpr
+#endif
+        (std::is_same_v<TRIA,fft_poisson_detail::Tri_Zero<T>> &&
+         std::is_same_v<TRIC,fft_poisson_detail::Tri_Zero<T>>) {
+        amrex::ignore_unused(tria,tric);
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+#pragma omp parallel
+#endif
+        for (MFIter mfi(spmf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
+        {
+            auto const& spectral = spmf.array(mfi);
+            auto const& box = mfi.validbox();
+            amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                T a = facx*(i+offset[0]);
+                T b = facy*(j+offset[1]);
+                T k2 = dxfac * (std::cos(a)-T(1))
+                    +  dyfac * (std::cos(b)-T(1));
+                if (k2 != T(0)) {
+                    spectral(i,j,k) /= k2;
+                }
+                spectral(i,j,k) *= scale;
+            });
+        }
+    } else {
+        bool zlo_neumann = m_bc[2].first == Boundary::even;
+        bool zhi_neumann = m_bc[2].second == Boundary::even;
+        bool is_singular = (offset[0] == T(0)) && (offset[1] == T(0))
+            && zlo_neumann && zhi_neumann;
 
-    auto nz = m_geom.Domain().length(2);
+        auto nz = m_geom.Domain().length(2);
 
-    for (MFIter mfi(spmf); mfi.isValid(); ++mfi)
-    {
-        auto const& spectral = spmf.array(mfi);
-        auto const& box = mfi.validbox();
-        auto const& xybox = amrex::makeSlab(box, 2, 0);
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+#pragma omp parallel
+#endif
+        for (MFIter mfi(spmf); mfi.isValid(); ++mfi)
+        {
+            auto const& spectral = spmf.array(mfi);
+            auto const& box = mfi.validbox();
+            auto const& xybox = amrex::makeSlab(box, 2, 0);
 
 #ifdef AMREX_USE_GPU
-        // xxxxx TODO: We need to explore how to optimize this
-        // function. Maybe we can use cusparse. Maybe we should make
-        // z-direction to be the unit stride direction.
+            // xxxxx TODO: We need to explore how to optimize this
+            // function. Maybe we can use cusparse. Maybe we should make
+            // z-direction to be the unit stride direction.
 
-        FArrayBox tridiag_workspace(box,4);
-        auto const& ald = tridiag_workspace.array(0);
-        auto const& bd = tridiag_workspace.array(1);
-        auto const& cud = tridiag_workspace.array(2);
-        auto const& scratch = tridiag_workspace.array(3);
+            FArrayBox tridiag_workspace(box,4);
+            auto const& ald = tridiag_workspace.array(0);
+            auto const& bd = tridiag_workspace.array(1);
+            auto const& cud = tridiag_workspace.array(2);
+            auto const& scratch = tridiag_workspace.array(3);
 
-        amrex::ParallelFor(xybox, [=] AMREX_GPU_DEVICE (int i, int j, int)
-        {
-            T a = facx*(i+offset[0]);
-            T b = facy*(j+offset[1]);
-            T k2 = dxfac * (std::cos(a)-T(1))
-                +  dyfac * (std::cos(b)-T(1));
+            amrex::ParallelFor(xybox, [=] AMREX_GPU_DEVICE (int i, int j, int)
+            {
+                T a = facx*(i+offset[0]);
+                T b = facy*(j+offset[1]);
+                T k2 = dxfac * (std::cos(a)-T(1))
+                    +  dyfac * (std::cos(b)-T(1));
 
-            // Tridiagonal solve
-            for(int k=0; k < nz; k++) {
-                if(k==0) {
-                    ald(i,j,k) = T(0.);
-                    cud(i,j,k) = tric(i,j,k);
-                    if (zlo_neumann) {
-                        bd(i,j,k) = k2 - cud(i,j,k);
-                    } else {
-                        bd(i,j,k) = k2 - cud(i,j,k) - T(2.0)*tria(i,j,k);
-                    }
-                } else if (k == nz-1) {
-                    ald(i,j,k) = tria(i,j,k);
-                    cud(i,j,k) = T(0.);
-                    if (zhi_neumann) {
-                        bd(i,j,k) = k2 - ald(i,j,k);
-                        if (i == 0 && j == 0 && is_singular) {
-                            bd(i,j,k) *= T(2.0);
+                // Tridiagonal solve
+                for(int k=0; k < nz; k++) {
+                    if(k==0) {
+                        ald(i,j,k) = T(0.);
+                        cud(i,j,k) = tric(i,j,k);
+                        if (zlo_neumann) {
+                            bd(i,j,k) = k2 - cud(i,j,k);
+                        } else {
+                            bd(i,j,k) = k2 - cud(i,j,k) - T(2.0)*tria(i,j,k);
+                        }
+                    } else if (k == nz-1) {
+                        ald(i,j,k) = tria(i,j,k);
+                        cud(i,j,k) = T(0.);
+                        if (zhi_neumann) {
+                            bd(i,j,k) = k2 - ald(i,j,k);
+                            if (i == 0 && j == 0 && is_singular) {
+                                bd(i,j,k) *= T(2.0);
+                            }
+                        } else {
+                            bd(i,j,k) = k2 - ald(i,j,k) - T(2.0)*tric(i,j,k);
                         }
                     } else {
-                        bd(i,j,k) = k2 - ald(i,j,k) - T(2.0)*tric(i,j,k);
+                        ald(i,j,k) = tria(i,j,k);
+                        cud(i,j,k) = tric(i,j,k);
+                        bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
                     }
-                } else {
-                    ald(i,j,k) = tria(i,j,k);
-                    cud(i,j,k) = tric(i,j,k);
-                    bd(i,j,k) = k2 -ald(i,j,k)-cud(i,j,k);
                 }
-            }
 
-            scratch(i,j,0) = cud(i,j,0)/bd(i,j,0);
-            spectral(i,j,0) = spectral(i,j,0)/bd(i,j,0);
+                scratch(i,j,0) = cud(i,j,0)/bd(i,j,0);
+                spectral(i,j,0) = spectral(i,j,0)/bd(i,j,0);
 
-            for (int k = 1; k < nz; k++) {
-                if (k < nz-1) {
-                    scratch(i,j,k) = cud(i,j,k) / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
+                for (int k = 1; k < nz; k++) {
+                    if (k < nz-1) {
+                        scratch(i,j,k) = cud(i,j,k) / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
+                    }
+                    spectral(i,j,k) = (spectral(i,j,k) - ald(i,j,k) * spectral(i,j,k - 1))
+                        / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
                 }
-                spectral(i,j,k) = (spectral(i,j,k) - ald(i,j,k) * spectral(i,j,k - 1))
-                    / (bd(i,j,k) - ald(i,j,k) * scratch(i,j,k-1));
-            }
 
-            for (int k = nz - 2; k >= 0; k--) {
-                spectral(i,j,k) -= scratch(i,j,k) * spectral(i,j,k + 1);
-            }
+                for (int k = nz - 2; k >= 0; k--) {
+                    spectral(i,j,k) -= scratch(i,j,k) * spectral(i,j,k + 1);
+                }
 
-            for (int k = 0; k < nz; ++k) {
-                spectral(i,j,k) *= scale;
-            }
-        });
-        Gpu::streamSynchronize();
+                for (int k = 0; k < nz; ++k) {
+                    spectral(i,j,k) *= scale;
+                }
+            });
+            Gpu::streamSynchronize();
 
 #else
 
-        Gpu::DeviceVector<T> ald(nz);
-        Gpu::DeviceVector<T> bd(nz);
-        Gpu::DeviceVector<T> cud(nz);
-        Gpu::DeviceVector<T> scratch(nz);
+            Gpu::DeviceVector<T> ald(nz);
+            Gpu::DeviceVector<T> bd(nz);
+            Gpu::DeviceVector<T> cud(nz);
+            Gpu::DeviceVector<T> scratch(nz);
 
-        amrex::LoopOnCpu(xybox, [&] (int i, int j, int)
-        {
-            T a = facx*(i+offset[0]);
-            T b = facy*(j+offset[1]);
-            T k2 = dxfac * (std::cos(a)-T(1))
-                +  dyfac * (std::cos(b)-T(1));
+            amrex::LoopOnCpu(xybox, [&] (int i, int j, int)
+            {
+                T a = facx*(i+offset[0]);
+                T b = facy*(j+offset[1]);
+                T k2 = dxfac * (std::cos(a)-T(1))
+                    +  dyfac * (std::cos(b)-T(1));
 
-            // Tridiagonal solve
-            for(int k=0; k < nz; k++) {
-                if(k==0) {
-                    ald[k] = T(0.);
-                    cud[k] = tric(i,j,k);
-                    if (zlo_neumann) {
-                        bd[k] = k2 - cud[k];
-                    } else {
-                        bd[k] = k2 - cud[k] - T(2.0)*tria(i,j,k);
-                    }
-                } else if (k == nz-1) {
-                    ald[k] = tria(i,j,k);
-                    cud[k] = T(0.);
-                    if (zhi_neumann) {
-                        bd[k] = k2 - ald[k];
-                        if (i == 0 && j == 0 && is_singular) {
-                            bd[k] *= T(2.0);
+                // Tridiagonal solve
+                for(int k=0; k < nz; k++) {
+                    if(k==0) {
+                        ald[k] = T(0.);
+                        cud[k] = tric(i,j,k);
+                        if (zlo_neumann) {
+                            bd[k] = k2 - cud[k];
+                        } else {
+                            bd[k] = k2 - cud[k] - T(2.0)*tria(i,j,k);
+                        }
+                    } else if (k == nz-1) {
+                        ald[k] = tria(i,j,k);
+                        cud[k] = T(0.);
+                        if (zhi_neumann) {
+                            bd[k] = k2 - ald[k];
+                            if (i == 0 && j == 0 && is_singular) {
+                                bd[k] *= T(2.0);
+                            }
+                        } else {
+                            bd[k] = k2 - ald[k] - T(2.0)*tric(i,j,k);
                         }
                     } else {
-                        bd[k] = k2 - ald[k] - T(2.0)*tric(i,j,k);
+                        ald[k] = tria(i,j,k);
+                        cud[k] = tric(i,j,k);
+                        bd[k] = k2 -ald[k]-cud[k];
                     }
-                } else {
-                    ald[k] = tria(i,j,k);
-                    cud[k] = tric(i,j,k);
-                    bd[k] = k2 -ald[k]-cud[k];
                 }
-            }
 
-            scratch[0] = cud[0]/bd[0];
-            spectral(i,j,0) = spectral(i,j,0)/bd[0];
+                scratch[0] = cud[0]/bd[0];
+                spectral(i,j,0) = spectral(i,j,0)/bd[0];
 
-            for (int k = 1; k < nz; k++) {
-                if (k < nz-1) {
-                    scratch[k] = cud[k] / (bd[k] - ald[k] * scratch[k-1]);
+                for (int k = 1; k < nz; k++) {
+                    if (k < nz-1) {
+                        scratch[k] = cud[k] / (bd[k] - ald[k] * scratch[k-1]);
+                    }
+                    spectral(i,j,k) = (spectral(i,j,k) - ald[k] * spectral(i,j,k - 1))
+                        / (bd[k] - ald[k] * scratch[k-1]);
                 }
-                spectral(i,j,k) = (spectral(i,j,k) - ald[k] * spectral(i,j,k - 1))
-                    / (bd[k] - ald[k] * scratch[k-1]);
-            }
 
-            for (int k = nz - 2; k >= 0; k--) {
-                spectral(i,j,k) -= scratch[k] * spectral(i,j,k + 1);
-            }
+                for (int k = nz - 2; k >= 0; k--) {
+                    spectral(i,j,k) -= scratch[k] * spectral(i,j,k + 1);
+                }
 
-            for (int k = 0; k < nz; ++k) {
-                spectral(i,j,k) *= scale;
-            }
-        });
+                for (int k = 0; k < nz; ++k) {
+                    spectral(i,j,k) *= scale;
+                }
+            });
 #endif
+        }
     }
 #endif
 }

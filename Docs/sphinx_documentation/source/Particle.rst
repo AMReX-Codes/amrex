@@ -309,6 +309,18 @@ particles, if the processes generate particles they don't own (for example, if
 the particle positions are perturbed from the cell centers and thus end up
 outside their parent grid).
 
+.. note::
+
+   The above code snippet, which successively calls :cpp:`push_back` on the particle
+   vectors, assumes you have compiled AMReX for CPU execution.
+   For GPU codes, one can either generate particles on the host and copy them
+   to the device, or generate the particles directly on the GPU. For the first
+   approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`__.
+   For an example of generating a variable number of particles in each cell
+   directly on the GPU, please see
+   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`__
+   Electromagnetic Particle-in-Cell tutorial
+
 .. _sec:Particles:Runtime:
 
 Adding particle components at runtime
@@ -447,47 +459,43 @@ Interacting with Mesh Data
 It is common to want to have the mesh communicate information to the particles
 and vice versa. For example, in Particle-in-Cell calculations, the particles
 deposit their charges onto the mesh, and later, the electric fields computed on
-the mesh are interpolated back to the particles. Below, we show examples of
-both these sorts of operations.
+the mesh are interpolated back to the particles.
+
+To help perform these sorts of operations, we provide the :cpp:`ParticleToMesh`
+and :cpp:`MeshToParticles` functions. These functions operate on an entire
+:cpp:`ParticleContainer` at once, interpolating data back and forth between
+an input :cpp:`MultiFab`. A user-provided lambda function is passed in that
+specifies the kind of interpolation to perform. Any needed parallel communication
+(from particles that contribute some of their weight to guard cells, for example)
+is performed internally. Additionally, these methods support both a single-grid
+(the particles and the mesh use the same boxes and distribution mappings) and dual-grid
+(the particles and mesh have different layouts) formalism. In the latter case,
+the needed parallel communication is also performed internally.
+
+We show examples of these types of operations below. The first snippet shows
+how to deposit a particle quantiy from the first real component of the particle
+data to the first component of a :cpp:`MultiFab` using linear interpolation.
 
 .. highlight:: c++
 
 ::
 
 
-    Ex.FillBoundary(gm.periodicity());
-    Ey.FillBoundary(gm.periodicity());
-    Ez.FillBoundary(gm.periodicity());
-    for (MyParIter pti(MyPC, lev); pti.isValid(); ++pti) {
-        const Box& box = pti.validbox();
+  const auto plo = geom.ProbLoArray();
+  const auto dxi = geom.InvCellSizeArray();
+  amrex::ParticleToMesh(myPC, partMF, 0,
+                        [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleTileType::ConstParticleTileDataType& ptd, int i,
+                                              amrex::Array4<amrex::Real> const& rho)
+      {
+          auto p = ptd[i];
+          ParticleInterpolator::Linear interp(p, plo, dxi);
 
-        const auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;
-        const long np  = pti.numParticles();
-
-        const FArrayBox& exfab = Ex[pti];
-        const FArrayBox& eyfab = Ey[pti];
-        const FArrayBox& ezfab = Ex[pti];
-
-        interpolate_cic(particles.data(), nstride, np,
-                        exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                        box.loVect(), box.hiVect(), plo, dx, &ng);
-        }
-
-Here, :fortran:`interpolate_cic` is a Fortran subroutine that actually performs
-the interpolation on a single box. :cpp:`Ex`, :cpp:`Ey`, and :cpp:`Ez` are
-MultiFabs that contain the electric field data. These MultiFabs must be defined
-with the correct number of ghost cells to perform the desired type of
-interpolation, and we call :cpp:`FillBoundary` prior to the Fortran call so
-that those ghost cells will be up-to-date.
-
-In this example, we have assumed that the :cpp:`ParticleContainer MyPC` has
-been defined on the same grids as the electric field MultiFabs, so that we use
-the :cpp:`ParIter` to index into the MultiFabs to get the data associated with
-current tile. If this is not the case, then an additional copy will need to be
-performed. However, if the particles are distributed in an extremely uneven
-fashion, it is possible that the load balancing improvements associated with
-the two-grid approach are worth the cost of the extra copy.
+          interp.ParticleToMesh(p, rho, 0, 0, 1,
+                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
+                      {
+                          return part.rdata(comp);
+                      });
+      });
 
 The inverse operation, in which the particles communicate data *to* the mesh,
 is quite similar:
@@ -497,33 +505,56 @@ is quite similar:
 ::
 
 
-    rho.setVal(0.0, ng);
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const Box& box = pti.validbox();
+  amrex::MeshToParticle(myPC, acceleration, 0,
+      [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                            amrex::Array4<const amrex::Real> const& acc)
+      {
+          ParticleInterpolator::Linear interp(p, plo, dxi);
 
-        const auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;
-        const long np  = pti.numParticles();
+          interp.MeshToParticle(p, acc, 0, 1+AMREX_SPACEDIM, AMREX_SPACEDIM,
+                  [=] AMREX_GPU_DEVICE (amrex::Array4<const amrex::Real> const& arr,
+                                        int i, int j, int k, int comp)
+                  {
+                      return arr(i, j, k, comp);  // no weighting
+                  },
+                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
+                                        int comp, amrex::Real val)
+                  {
+                      part.rdata(comp) += ParticleReal(val);
+                  });
+      });
 
-        FArrayBox& rhofab = (*rho[lev])[pti];
+In this case, we linearly interpolate `AMREX_SPACEDIM` values starting from the 0th
+component of the input :cpp:`MultiFab` to the particles, writing them starting at
+particle component 1. Note that :cpp:`ParticleInterpolator::MeshToParticle` takes *two*
+lambda functions, one that generates the particle quantity to interpolate and another
+that shows how to update the mesh value.
 
-        deposit_cic(particles.data(), nstride, np, rhofab.dataPtr(),
-                    box.loVect(), box.hiVect(), plo, dx);
-        }
+Finally, the snippet below shows how to use this function to simply count the number
+of particles in each cell (i.e. to deposit using "nearest neighbor" interpolation)
 
-    rho.SumBoundary(gm.periodicity());
+.. highlight:: c++
 
-As before, we loop over all our particles, calling a Fortran routine that
-deposits them on to the appropriate :cpp:`FArrayBox rhofab`. The :cpp:`rhofab`
-must have enough ghost cells to cover the support of all the particles
-associated with them. Note that we call :cpp:`SumBoundary` instead of
-:cpp:`FillBoundary` after performing the deposition, to add up the charge in
-the ghost cells surrounding each Fab into the corresponding valid cells.
+::
 
-For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see the `Electrostatic PIC tutorial`.
+     amrex::ParticleToMesh(myPC, partiMF, 0,
+      [=] AMREX_GPU_DEVICE (const MyParticleContainer::SuperParticleType& p,
+                            amrex::Array4<int> const& count)
+      {
+          ParticleInterpolator::Nearest interp(p, plo, dxi);
 
-.. _`Electrostatic PIC tutorial`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electrostaticpic
+          interp.ParticleToMesh(p, count, 0, 0, 1,
+              [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& /*p*/, int /*comp*/) -> int
+              {
+                  return 1;  // just count the particles per cell
+              });
+      });
+
+For more complex examples of interacting with mesh data, we refer readers to
+our `Electromagnetic PIC tutorial <https://github.com/AMReX-Codes/amrex-tutorials/tree/main/ExampleCodes/Particles/ElectromagneticPIC>`_
+
+Or, for a complete example of an electrostatic PIC calculation that includes static
+mesh refinement, please see the `Electrostatic PIC tutorial <https://github.com/AMReX-Codes/amrex-tutorials/tree/main/ExampleCodes/Particles/ElectrostaticPIC>`_.
 
 .. _sec:Particles:ShortRange:
 

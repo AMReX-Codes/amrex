@@ -21,12 +21,8 @@ extern "C" {
         pp.query("interior_T" , CNS::h_prob_parm->interior_T);
         pp.query("interior_P" , CNS::h_prob_parm->interior_p);
 
-#ifdef AMREX_USE_GPU
         // Cannot use Gpu::copy because ProbParm is not trivailly copyable.
         Gpu::htod_memcpy_async(CNS::d_prob_parm, CNS::h_prob_parm, sizeof(ProbParm));
-#else
-        std::memcpy(CNS::d_prob_parm, CNS::h_prob_parm, sizeof(ProbParm));
-#endif
 
         Gpu::HostVector<Real> inflow_state(CNS::numState());
 
