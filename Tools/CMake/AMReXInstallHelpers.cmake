@@ -72,10 +72,14 @@ function (install_amrex_targets)
        # legacy symlink for: libamrex.[so|a] / amrex.[dll.lib]
        #   escape spaces for generated cmake_install.cmake file
        file(TO_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/lib" ABS_INSTALL_LIB_DIR)
-       install(CODE "file(CREATE_LINK
-           $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
-           \"${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\"
-           COPY_ON_ERROR SYMBOLIC)"
+       install(CODE "
+           set(symlink_name \"${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\")
+           file(CREATE_LINK
+               $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
+               \"\${symlink_name}\"
+               COPY_ON_ERROR SYMBOLIC)
+           list(APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${symlink_name}\")
+           "
        )
 
        # Install fortran modules if Fortran is enabled
@@ -177,4 +181,23 @@ macro( add_test_install_target _dir _amrex_root )
       COMMAND ${CMAKE_COMMAND} -E remove_directory ${_builddir} # So we can run it again from scratch
       )
 
+endmacro()
+
+#
+# Add uninstall target
+#
+# _amrex_root: Root directory of AMReX (contains Tools/CMake/)
+#
+macro(add_uninstall_target _amrex_root)
+    if(NOT TARGET uninstall)
+        configure_file(
+            "${_amrex_root}/Tools/CMake/AMReX_cmake_uninstall.in"
+            "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
+            IMMEDIATE @ONLY)
+
+        add_custom_target(uninstall
+            COMMAND ${CMAKE_COMMAND} -P ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
+            COMMENT "Uninstalling files listed in install_manifest.txt"
+        )
+    endif()
 endmacro()
