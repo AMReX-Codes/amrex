@@ -24,24 +24,41 @@ type of components that the particles carry. The first template parameter is the
 number of extra :cpp:`Real` variables this particle will have (either single or
 double precision [1]_), while the second is the number of extra integer
 variables.  It is important to note that this is the number of *extra* real and
-integer variables; a particle will always have at least :cpp:`BL_SPACEDIM` real
-components that store the particle's position and 2 integer components that
-store the particle's :cpp:`id` and :cpp:`cpu` numbers. [2]_
+integer variables; a particle will always have at least :cpp:`AMREX_SPACEDIM` real
+components that store the particle's position and one 64-bit integer component that
+stores a combination of the particle's unique `id` and `cpu` numbers.
 
-The particle struct is designed to store these variables in a way that
-minimizes padding, which in practice means that the :cpp:`Real` components
-always come first, and the integer components second. Additionally, the
-required particle variables are stored before the optional ones, for both the
-real and the integer components. For example, say we want to define a particle
-type that stores a mass, three velocity components, and two extra integer
-flags. Our particle struct would be set up like:
+The particle struct is stored such that the :cpp:`Real` components come first
+and the integer component second. Additionally, the required particle variables
+are stored before the optional ones, for both the real and the integer components.
+For example, say we want to define a particle type that stores a mass, three velocity
+components, and two extra integer flags. Our particle struct would be declared like:
 
 ::
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3):
-:cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
+and the order of the particle components in would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
+:cpp:`x y z m vx vy vz idcpu flag1 flag2`.  [2]_
+
+The `idcpu` variable stores a combination of the MPI process a particle was generated on
+(the `cpu`) and an identification number that is specific to that process (the `id`).
+The combination of these numbers is unique across processes. This is done to facilitate
+the creation of particle initial conditions in parallel. In storing these
+identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550 billion
+possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
+unique (MPI) processes.
+One bit is devoted to mark a particle valid or invalid.
+
+To pack and unpack these numbers, one uses the following syntax:
+
+::
+
+       Particle <0, 0> p;
+       p.id() = 1;
+       p.cpu() = 0;
+       amrex::Print() << p.m_idcpu << "\n"; // 9223372036871553024
+       amrex::Print() << p.id() << " " << p.cpu() << "\n"; // 1 0
 
 Setting Particle data
 ---------------------
@@ -440,8 +457,7 @@ example:
            real(amrex_particle_real) :: pos(3)
            real(amrex_particle_real) :: vel(3)
            real(amrex_particle_real) :: acc(3)
-           integer(c_int)   :: id
-           integer(c_int)   :: cpu
+           integer(c_int64_t) :: idcpu
         end type particle_t
 
 is equivalent to a particle struct you get with :cpp:`Particle<6, 0>`. Here,
@@ -793,9 +809,6 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
 .. [2]
-   Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one it's currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
-
-.. [3]
    Note that for the extra particle components, which component refers to which
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
