@@ -152,24 +152,15 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
 
    \end{center}
 
-To see why the distinction between AoS and SoA data is important, consider the
-following extreme case. Say you have particles that carry 100 different
-components, but that most of the time, you only need to do calculations
-involving 3 of them (say, the particle positions) at once. In this case,
-storing all 100 particle variables in the particle struct is clearly
-inefficient, since most of the time you are reading 97 extra variables into
-cache that you will never use. By splitting up the particle variables into
-stuff that gets used all the time (stored in the AoS) and stuff that only gets
-used infrequently (stored in the SoA), you can in principle achieve much better
-cache reuse. Of course, the usage pattern of your application likely won't be
-so clear-cut. Flexibility in how the particle data is stored also makes it
-easier to interface between AMReX and already-existing Fortran subroutines.
+.. attention::
 
-Note that while "extra" particle data can be stored in either the SoA or AoS
-style, the particle positions and id numbers are **always** stored in the
-particle structs. This is because these particle variables are special and used
-internally by AMReX to assign the particles to grids and to mark particles as
-valid or invalid, respectively.
+   The ability to store particle data in AoS form is provided for backward
+   compatibility and convenience; however, for performance reasons, whether
+   targeting CPU or GPU execution, we recommend storing extra particle variables in SoA form.
+   Additionally, starting in AMReX version 23.05, the ability to store *all* particle
+   data, including the particle positions and `idcpu` numbers, is provided via the
+   :cpp:`amrex::ParticleContainerPureSoA` class. Details on using pure SoA particles
+   are provided in the Section on :ref:`sec:Particles:PureSoA`.
 
 Constructing ParticleContainers
 -------------------------------
@@ -466,6 +457,41 @@ on whether ``USE_SINGLE_PRECISION_PARTICLES`` is ``TRUE`` or not. We recommend
 always using this type in Fortran routines that work on particle data to avoid
 hard-to-debug incompatibilities between floating point types.
 
+.. _sec:Particles:PureSoA:
+
+Pure Struct-of-Array Particles
+------------------------------
+
+Beginning with AMReX version 24.05, the requirement that the particle positions
+and ids be stored in AoS form has been lifted. Users can now use the class
+:cpp:`amrex::ParticleContainerPureSoA`, which stores all components in SoA form.
+When using data layout, it is assumed that the first :cpp:`AMREX_SPACEDIM` :cpp:`Real`
+components store the particle position variables, which are used internally to map
+particle coordinates to grids and cells.
+
+For the most part, functions that work on the standard :cpp:`ParticleContainer` will
+also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to access
+the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
+particlularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
+allows the same code to work with both AoS and pure SoA particles. For example, within
+a ``ParIter`` loop, one can do:
+
+.. highlight:: c++
+
+::
+
+    // Iterating over SoA Particles
+    ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData();
+
+    ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
+    {
+        ParticleType p = ptd[ip];  // p will be a different type for AoS and pure SoA
+        // use p.pos(0), p.id(), etc.
+    }
+
+In this way, code can be written that is agnostic as to the data layout. For more examples
+of pure SoA particles, please see the SOA tests in :cpp:`amrex/Tests/Particles/`, or refer
+to `WarpX <https://github.com/BLAST-WarpX/warpx>`_, `Hipace++ <https://github.com/Hi-PACE/hipace>`_, or `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_, which use this type of particle container.
 
 .. _sec:Particles:Interacting:
 
