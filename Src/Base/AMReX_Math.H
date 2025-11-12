@@ -330,7 +330,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double rsqrt (double x)
 {
     double r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#else
     AMREX_IF_ON_DEVICE(( r = ::rsqrt(x); ))
+#endif
     AMREX_IF_ON_HOST(( r = 1. / std::sqrt(x); ))
     return r;
 }
@@ -340,7 +344,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float rsqrt (float x)
 {
     float r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#else
     AMREX_IF_ON_DEVICE(( r = ::rsqrtf(x); ))
+#endif
     AMREX_IF_ON_HOST(( r = 1.F / std::sqrt(x); ))
     return r;
 }
