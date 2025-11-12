@@ -325,6 +325,26 @@ T comp_ellint_2 (T k)
     return Kcomp*sum_val;
 }
 
+//! Return inverse square root of x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double rsqrt (double x)
+{
+    double r;
+    AMREX_IF_ON_DEVICE(( r = rsqrt(x); ))
+    AMREX_IF_ON_HOST(( r = 1. / std::sqrt(x); ))
+    return r;
+}
+
+//! Return inverse square root of x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+float rsqrt (float x)
+{
+    float r;
+    AMREX_IF_ON_DEVICE(( r = rsqrtf(x); ))
+    AMREX_IF_ON_HOST(( r = 1.f / std::sqrt(x); ))
+    return r;
+}
+
 /***************************************************************************************************
  * Copyright (c) 2017 - 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause
