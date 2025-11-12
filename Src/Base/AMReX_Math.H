@@ -341,7 +341,7 @@ float rsqrt (float x)
 {
     float r;
     AMREX_IF_ON_DEVICE(( r = rsqrtf(x); ))
-    AMREX_IF_ON_HOST(( r = 1.f / std::sqrt(x); ))
+    AMREX_IF_ON_HOST(( r = 1.F / std::sqrt(x); ))
     return r;
 }
 
