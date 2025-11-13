@@ -106,7 +106,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         if( std::abs( A*C - B*D ) < std::numeric_limits<Real>::epsilon() ) {
             return face >= 0 ;
         } else {
-            return face * A * ( A*C - B*D ) >= 0  ;  // face and A invert signs
+            return Real(face) * A * ( A*C - B*D ) >= 0  ;  // face and A invert signs
         }
     };
 
