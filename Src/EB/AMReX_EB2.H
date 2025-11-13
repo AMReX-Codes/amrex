@@ -39,6 +39,8 @@ public:
     // moved to the top.
     static void push (IndexSpace* ispace);
 
+    static void push (std::unique_ptr<IndexSpace> ispace);
+
     // This erases `ispace` from the stack.
     static void erase (IndexSpace* ispace);
 
@@ -130,13 +132,11 @@ Build (const G& gshop, const Geometry& geom,
        int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
-    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
-                                          required_coarsening_level,
-                                          max_coarsening_level,
-                                          ngrow, build_coarse_level_by_coarsening,
-                                          extend_domain_face,
-                                          num_coarsen_opt));
-} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+    IndexSpace::push(std::make_unique<IndexSpaceImp<G>>
+                     (gshop, geom, required_coarsening_level, max_coarsening_level,
+                      ngrow, build_coarse_level_by_coarsening,extend_domain_face,
+                      num_coarsen_opt));
+}
 
 template <typename G>
 void
@@ -147,11 +147,9 @@ Build (const G& gshop, Vector<Geometry> geom,
 {
     BL_PROFILE("EB2::Initialize()");
     std::sort(geom.begin(), geom.end(), [] (Geometry const& a, Geometry const& b) { return a.Domain().numPts() > b.Domain().numPts(); });
-    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
-                                          ngrow,
-                                          extend_domain_face,
-                                          num_coarsen_opt));
-} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+    IndexSpace::push(std::make_unique<IndexSpaceImp<G>>
+                     (gshop, geom, ngrow, extend_domain_face, num_coarsen_opt));
+}
 
 void Build (const Geometry& geom,
             int required_coarsening_level,

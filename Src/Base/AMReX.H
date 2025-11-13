@@ -315,6 +315,8 @@ namespace amrex
         // be moved to the top.
         static void push (AMReX* pamrex);
 
+        static void push (std::unique_ptr<AMReX> pamrex);
+
         // This erases `pamrex` from the stack.
         static void erase (AMReX* pamrex);
 

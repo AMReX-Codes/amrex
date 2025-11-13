@@ -772,7 +772,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_TINY_PROFILE_INITIALIZE();
 
-    AMReX::push(new AMReX()); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+    AMReX::push(std::make_unique<AMReX>());
     return AMReX::top(); // NOLINT
 }
 
@@ -979,6 +979,12 @@ AMReX::push (AMReX* pamrex)
     } else if (r+1 != m_instance.end()) {
         std::rotate(r, r+1, m_instance.end());
     }
+}
+
+void
+AMReX::push (std::unique_ptr<AMReX> pamrex)
+{
+    m_instance.push_back(std::move(pamrex));
 }
 
 void
