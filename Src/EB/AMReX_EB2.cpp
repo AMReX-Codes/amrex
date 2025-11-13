@@ -235,7 +235,8 @@ Build (const Geometry& geom, int required_coarsening_level,
         bool stl_use_bvh = true;
         pp.queryAdd("stl_use_bvh", stl_use_bvh);
         IndexSpace::push(std::make_unique<IndexSpaceSTL>
-                         (stl_file, stl_scale, {stl_center[0], stl_center[1], stl_center[2]},
+                         (stl_file, stl_scale,
+                          Array<Real,3>{stl_center[0], stl_center[1], stl_center[2]},
                           int(stl_reverse_normal), geom, required_coarsening_level,
                           max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
                           a_extend_domain_face, a_num_coarsen_opt, stl_use_bvh, support_mvmc));
