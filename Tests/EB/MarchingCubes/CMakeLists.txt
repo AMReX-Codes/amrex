@@ -6,7 +6,7 @@ set(_sources  main.cpp)
 
 set(_input_files  inputs cube.stl)
 
-setup_test(${D} _sources _input_files)
+setup_test(3 _sources _input_files)
 
 unset(_sources)
 unset(_input_files)
