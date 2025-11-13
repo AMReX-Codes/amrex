@@ -32,8 +32,6 @@ void Initialize ()
     pp.queryAdd("extend_domain_face", extend_domain_face);
     pp.queryAdd("num_coarsen_opt", num_coarsen_opt);
 
-    amrex::MC::Initialize();
-
     amrex::ExecOnFinalize(Finalize);
 }
 
@@ -92,6 +90,10 @@ Build (const Geometry& geom, int required_coarsening_level,
     ParmParse pp("eb2");
     std::string geom_type;
     pp.get("geom_type", geom_type);
+
+    if (amrex::Verbose() && support_mvmc && geom_type != "stl") {
+        amrex::Warning("EB2:Build: support_mvmc = true is ignored if eb2.geom_type is not stl.");
+    }
 
     if (geom_type == "all_regular")
     {

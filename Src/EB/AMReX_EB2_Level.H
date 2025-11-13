@@ -585,6 +585,8 @@ GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
 
     if (m_allregular) { return; }
 
+    MC::Initialize();
+
     m_sdf.define(amrex::convert(m_grids,IntVect(1)), m_dmap, 1, IntVect(1));
     gshop.fillSignedDistance(m_sdf, m_sdf.nGrowVect(), geom);
 

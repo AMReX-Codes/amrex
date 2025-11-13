@@ -136,7 +136,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         case  7 :
         case 12 :
         case 13 :
-            switch( _case )
+            switch( _case ) // NOLINT(bugprone-switch-missing-default-case)
             {
             case  6 : edge = lut->test6 [_config][2] ; break ;
             case  7 : edge = lut->test7 [_config][4] ; break ;
@@ -240,7 +240,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         if( Bt >= 0 ) { test += 2 ; }
         if( Ct >= 0 ) { test += 4 ; }
         if( Dt >= 0 ) { test += 8 ; }
-        switch( test )
+        switch( test ) // NOLINT(bugprone-switch-missing-default-case)
         {
         case  0 : return s>0 ;
         case  1 : return s>0 ;
@@ -338,7 +338,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
     std::int8_t _subconfig = 0;
     int nt = 0;
 
-    switch( _case )
+    switch( _case )// NOLINT(bugprone-switch-missing-default-case)
     {
     case  0 :
         break ;
@@ -388,7 +388,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         if( test_face( lut->test7[_config][0] ) ) { _subconfig +=  1 ; }
         if( test_face( lut->test7[_config][1] ) ) { _subconfig +=  2 ; }
         if( test_face( lut->test7[_config][2] ) ) { _subconfig +=  4 ; }
-        switch( _subconfig )
+        switch( _subconfig ) // NOLINT(bugprone-switch-missing-default-case)
         {
         case 0 :
             nt = add_triangle( lut->tiling7_1[_config], 3 ) ; break ;
@@ -480,7 +480,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         if( test_face( lut->test13[_config][3] ) ) { _subconfig +=  8 ; }
         if( test_face( lut->test13[_config][4] ) ) { _subconfig += 16 ; }
         if( test_face( lut->test13[_config][5] ) ) { _subconfig += 32 ; }
-        switch( lut->subconfig13[_subconfig] )
+        switch( lut->subconfig13[_subconfig] ) // NOLINT(bugprone-switch-missing-default-case)
         {
         case 0 :/* 13.1 */
             nt = add_triangle( lut->tiling13_1[_config], 4 ) ; break ;
