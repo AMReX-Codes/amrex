@@ -12,7 +12,9 @@
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IndexSpace_STL.H>
 #include <AMReX_EB2_IndexSpace_chkpt_file.H>
-#include <AMReX_MarchingCubes.H>
+#if (AMREX_SPACEDIM == 3)
+#  include <AMReX_MarchingCubes.H>
+#endif
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 #include <algorithm>
@@ -38,7 +40,9 @@ void Initialize ()
 void Finalize ()
 {
     IndexSpace::clear();
+#if (AMREX_SPACEDIM == 3)
     amrex::MC::Finalize();
+#endif
 }
 
 bool ExtendDomainFace ()
