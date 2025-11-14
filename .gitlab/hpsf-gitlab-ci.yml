@@ -19,4 +19,6 @@ Nvidia:
           -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
           -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
     - cmake --build build -j 8
-    - ctest -j 1 --test-dir build --output-on-failure
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - ctest -j 2 --test-dir build --output-on-failure
