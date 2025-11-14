@@ -222,6 +222,16 @@ public:
                                       Real           time,
                                       int            lev,
                                       int            ngrow);
+    //! Compute derived data on all levels and store in the dcompth component of
+    //! each Multifab in mf
+    void derive (const std::string&       name,
+                 Real                     time,
+                 const Vector<MultiFab*>& mf,
+                 int                      dcomp);
+    //! Compute derived data on all levels and return as a vector of MultiFab pointers
+    Vector<std::unique_ptr<MultiFab>> derive (const std::string& name,
+                                              amrex::Real        time,
+                                              int                ngrow);
     //! Name of the restart chkpoint file.
     const std::string& theRestartFile () const noexcept { return restart_chkfile; }
     //! Name of the restart plotfile.
