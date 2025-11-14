@@ -1,0 +1,25 @@
+Nvidia:
+  stage: test
+  tags: [hpsf-gpu]
+  image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
+  script:
+    - apt-get update && apt-get install -y cmake git python3
+    - ls
+    - which g++
+    - nvidia-smi
+    - which nvcc
+    - cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=CUDA                     \
+          -DCMAKE_C_COMPILER=$(which gcc)              \
+          -DCMAKE_CXX_COMPILER=$(which g++)            \
+          -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
+          -DAMReX_CUDA_ARCH="7.0"                      \
+          -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+          -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+    - cmake --build build -j 4
+    - ctest --test-dir build --output-on-failure
