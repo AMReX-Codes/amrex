@@ -3,7 +3,7 @@ Nvidia:
   tags: [nvidia-h100]
   image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
   script:
-    - apt-get update && apt-get install -y cmake git python3
+    - apt-get update && apt-get install -y cmake git python3 libopenmpi-dev openmpi-bin
     - ls
     - which g++
     - which nvcc
@@ -20,5 +20,5 @@ Nvidia:
           -DAMReX_CUDA_ARCH="9.0"                      \
           -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
           -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
-    - cmake --build build -j 4
-    - ctest --test-dir build --output-on-failure
+    - cmake --build build -j 8
+    - ctest -j 1 --test-dir build --output-on-failure
