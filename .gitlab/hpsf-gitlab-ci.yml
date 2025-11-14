@@ -4,10 +4,8 @@ Nvidia:
   image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
   script:
     - apt-get update && apt-get install -y cmake git python3 libopenmpi-dev openmpi-bin
-    - ls
-    - which g++
-    - which nvcc
-    - cmake -S . -B build                              \
+    - |
+      cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
