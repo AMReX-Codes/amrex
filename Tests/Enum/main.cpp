@@ -17,6 +17,8 @@ AMREX_ENUM(MyColor2,
            blue,      // 2
            Default = green); // 1
 
+AMREX_ENUM(Location, entry = 1, exit = -1, after_exit);
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -138,6 +140,28 @@ int main (int argc, char* argv[])
         auto my_green = MyColor2::red;
         pp.query_enum_sloppy("color6", my_green, "-.");
         AMREX_ALWAYS_ASSERT(my_green == MyColor2::green);
+    }
+
+
+    {
+        auto const& kv = amrex::getEnumNameValuePairs<Location>();
+        amrex::Print() << "Name : Value\n";
+        for (auto const& item : kv) {
+            amrex::Print() << "  " << item.first << ": "
+                           << static_cast<int>(item.second) << "\n";
+        }
+        AMREX_ALWAYS_ASSERT(static_cast<int>(Location::entry) == 1);
+        AMREX_ALWAYS_ASSERT(static_cast<int>(Location::exit) == -1);
+        AMREX_ALWAYS_ASSERT(static_cast<int>(Location::after_exit) == 0);
+        AMREX_ALWAYS_ASSERT(amrex::toUnderlying(Location::entry) == 1);
+        AMREX_ALWAYS_ASSERT(amrex::toUnderlying(Location::exit) == -1);
+        AMREX_ALWAYS_ASSERT(amrex::toUnderlying(Location::after_exit) == 0);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<Location>("entry") == Location::entry);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<Location>("exit") == Location::exit);
+        AMREX_ALWAYS_ASSERT(amrex::getEnum<Location>("after_exit") == Location::after_exit);
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::entry) == "entry");
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::exit) == "exit");
+        AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::after_exit) == "after_exit");
     }
 
     amrex::Finalize();

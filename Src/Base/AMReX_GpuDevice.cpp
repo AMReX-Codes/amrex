@@ -20,7 +20,9 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#if __has_include(<nvtx3/nvToolsExt.h>)
+#if __has_include(<nvtx3/nvtx3.hpp>)
+#  include <nvtx3/nvtx3.hpp>
+#elif __has_include(<nvtx3/nvToolsExt.h>)
 #  include <nvtx3/nvToolsExt.h>
 #else
 #  include <nvToolsExt.h>
@@ -142,9 +144,9 @@ namespace {
 #endif
 
 void
-Device::Initialize (bool minimal)
+Device::Initialize (bool minimal, int a_device_id)
 {
-    amrex::ignore_unused(minimal);
+    amrex::ignore_unused(minimal, a_device_id);
 #ifdef AMREX_USE_GPU
 
 #if defined(AMREX_USE_CUDA) && (defined(AMREX_PROFILING) || defined(AMREX_TINY_PROFILING))
@@ -203,6 +205,8 @@ Device::Initialize (bool minimal)
         device_id = 0;
         AMREX_HIP_OR_CUDA(AMREX_HIP_SAFE_CALL (hipGetDevice(&device_id));,
                           AMREX_CUDA_SAFE_CALL(cudaGetDevice(&device_id)); );
+    } else if (a_device_id >= 0) {
+        device_id = a_device_id;
     } else if (ParallelDescriptor::NProcs() == 1) {
         device_id = 0;
     }
@@ -219,7 +223,7 @@ Device::Initialize (bool minimal)
         }
     }
 
-    if (gpu_device_count > 1 && ! minimal) {
+    if (gpu_device_count > 1 && ! minimal && a_device_id < 0) {
         if (Machine::name() == "nersc.perlmutter") {
             // The CPU/GPU mapping on perlmutter has the reverse order.
             device_id = gpu_device_count - device_id - 1;

@@ -78,14 +78,16 @@ namespace amrex
     AMReX* Initialize (MPI_Comm mpi_comm,
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
-                       ErrorHandler a_errhandler = nullptr);
+                       ErrorHandler a_errhandler = nullptr,
+                       int a_device_id = -1);
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
     AMReX* Initialize (int& argc, char**& argv,
                        const std::function<void()>& func_parm_parse,
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
-                       ErrorHandler a_errhandler = nullptr);
+                       ErrorHandler a_errhandler = nullptr,
+                       int a_device_id = -1);
 
     // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
     AMReX* Initialize (int& argc, char**& argv, bool build_parm_parse=true,
@@ -93,7 +95,8 @@ namespace amrex
                        const std::function<void()>& func_parm_parse = {},
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
-                       ErrorHandler a_errhandler = nullptr);
+                       ErrorHandler a_errhandler = nullptr,
+                       int a_device_id = -1);
 
     // \brief Minimal version of initialization.
     //
@@ -376,7 +379,7 @@ namespace amrex
      * restores the previous settings.
      *
      \code{.cpp}
-         auto prev_excepts = disableFPExcept(FPExcept::all);
+         auto prev_excepts = enableFPExcept(FPExcept::all);
          // ....
          setFPExcept(prev_excepts); // restore previous settings
      \endcode

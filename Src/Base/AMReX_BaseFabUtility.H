@@ -97,7 +97,10 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
 
 //! Transpose 3D array (nx,ny,nz) from row-major (i.e. C order) to
 //! column-major (Fortran order). The input's unit stride direction is z,
-//! whereas the output's unit stride direction is x.
+//! whereas the output's unit stride direction is x. Note that for GPU
+//! builds, the kernel runs on the current GPU stream asynchronously with
+//! respect to the host. If synchronization is needed, it's up to the user
+//! to call `amrex::Gpu::streamSynchronize()`.
 template <typename T>
 void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 {
@@ -148,8 +151,6 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
             }
         }
     });
-    AMREX_GPU_ERROR_CHECK();
-    Gpu::streamSynchronize();
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -214,7 +215,6 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("transposeCtoF: ")+ex.what()+"!!!!!");
     }
-    Gpu::streamSynchronize();
 
 #else
 
@@ -249,7 +249,10 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 
 //! Transpose 2D array (nx,ny) from row-major (i.e. C order) to column-major
 //! (Fortran order). The input's unit stride direction is y, whereas the
-//! output's unit stride direction is x.
+//! output's unit stride direction is x. Note that for GPU builds, the
+//! kernel runs on the current GPU stream asynchronously with respect to the
+//! host. If synchronization is needed, it's up to the user to call
+//! `amrex::Gpu::streamSynchronize()`.
 template <typename T>
 void transposeCtoF (T const* pi, T* po, int nx, int ny)
 {
