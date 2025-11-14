@@ -1,4 +1,4 @@
-Nvidia-H100:
+Nvidia-H100-double:
   stage: test
   tags: [nvidia-h100]
   image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
@@ -7,7 +7,8 @@ Nvidia-H100:
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-          -DAMReX_DIMS="1;2;3"                         \
+          -DAMReX_PRECISION=SINGLE                     \
+          -DAMReX_SPACEDIMS="1;2;3"                    \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
           -DAMReX_ENABLE_TESTS=ON                      \
@@ -19,8 +20,56 @@ Nvidia-H100:
           -DAMReX_CUDA_ARCH="9.0"                      \
           -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
           -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
-    - cmake --build build -j 8
+    - cmake --build build -j 32
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
     - ctest -j 2 --test-dir build --output-on-failure
+
+AMD-MI300A-single:
+  stage: test
+  tags: [amd-mi300]
+  image: rocm/dev-ubuntu-24.04:6.4.3-complete
+  script:
+    - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_SPACEDIMS="1;2;3"                    \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=HIP                      \
+          -DAMReX_AMD_ARCH=gfx942                      \
+          -DCMAKE_CXX_STANDARD=17
+    - cmake --build build -j 32
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
+    - ctest -j 2 --test-dir build --output-on-failure
+
+Intel-PVC:
+  stage: test
+  tags: [intel-data-center-max-1100]
+  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+  script:
+    - apt-get update && apt-get install -y git
+    - sycl-ls
+    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_MPI=OFF                              \
+          -DAMReX_SPACEDIMS="1;2;3"                    \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=SYCL                     \
+          -DCMAKE_C_COMPILER=$(which icx)              \
+          -DCMAKE_CXX_COMPILER=$(which icpx)           \
+          -DAMReX_PARALLEL_LINK_JOBS=8
+    - cmake --build build -j 32
+    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
+    - ctest -j 1 --test-dir build --output-on-failure
