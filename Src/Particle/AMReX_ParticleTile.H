@@ -1400,8 +1400,6 @@ struct ParticleTile
                 }
             }
 
-            // xxxxx TODO: Can we come up a better strategy?
-
             std::sort(pvs.begin(), pvs.end(), [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
@@ -1477,9 +1475,6 @@ struct ParticleTile
                     }
                 }
             }
-
-            // If we fail, we should try to free up some space and try again
-
         }
     }
 
