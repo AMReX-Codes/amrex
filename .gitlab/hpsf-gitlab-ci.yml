@@ -1,4 +1,4 @@
-Nvidia:
+Nvidia-H100:
   stage: test
   tags: [nvidia-h100]
   image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
@@ -7,6 +7,7 @@ Nvidia:
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_DIMS="1;2;3"                         \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
           -DAMReX_ENABLE_TESTS=ON                      \
@@ -21,4 +22,5 @@ Nvidia:
     - cmake --build build -j 8
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
     - ctest -j 2 --test-dir build --output-on-failure

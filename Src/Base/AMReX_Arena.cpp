@@ -352,8 +352,6 @@ Arena::Initialize (bool minimal)
     } else {
 #ifdef AMREX_USE_GPU
         the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
-        amrex::AllPrint() << "Proc. " << ParallelDescriptor::MyProc() << ": "
-                          << Gpu::Device::totalGlobalMem() << " " << Gpu::Device::numDevicePartners() << std::endl;
 #ifdef AMREX_USE_SYCL
         the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
@@ -363,6 +361,11 @@ Arena::Initialize (bool minimal)
 #ifdef AMREX_USE_GPU
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 2L;
 #endif
+
+    // Overwrite the initial size with environment variables
+    if (char const* init_size_p = std::getenv("AMREX_THE_ARENA_INIT_SIZE")) {
+        the_arena_init_size = std::stoi(init_size_p);
+    }
 
     ParmParse pp("amrex");
     pp.queryAdd(        "the_arena_init_size",         the_arena_init_size);
