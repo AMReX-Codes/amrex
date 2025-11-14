@@ -353,7 +353,7 @@ Arena::Initialize (bool minimal)
 #ifdef AMREX_USE_GPU
         the_arena_init_size = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 4L * 3L;
         amrex::AllPrint() << "Proc. " << ParallelDescriptor::MyProc() << ": "
-                          << Gpu::Device:totalGlobalMem() << " " << Gpu::Device::numDevicePartners() << std::endl;
+                          << Gpu::Device::totalGlobalMem() << " " << Gpu::Device::numDevicePartners() << std::endl;
 #ifdef AMREX_USE_SYCL
         the_arena_init_size = std::min(the_arena_init_size, Gpu::Device::maxMemAllocSize());
 #endif
