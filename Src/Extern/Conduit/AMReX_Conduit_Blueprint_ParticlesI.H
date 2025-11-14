@@ -244,11 +244,12 @@ ParticleTileToBlueprint(const ParticleTile<ParticleType,
 //---------------------------------------------------------------------------//
 // Converts a AMReX Particle Container into a Conduit Mesh Blueprint Hierarchy.
 //---------------------------------------------------------------------------//
-template <typename ParticleType, int NArrayReal, int NArrayInt>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
 void
 ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
                                                      NArrayReal,
-                                                     NArrayInt> &pc,
+                                                     NArrayInt,
+                                                     Allocator> &pc,
                              const Vector<std::string> &real_comp_names,
                              const Vector<std::string> &int_comp_names,
                              conduit::Node &res,
