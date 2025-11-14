@@ -8,19 +8,20 @@ Nvidia-H100-double:
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_PRECISION=SINGLE                     \
-          -DAMReX_SPACEDIMS="1;2;3"                    \
+          -DAMReX_SPACEDIM="1;2;3"                     \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
           -DAMReX_ENABLE_TESTS=ON                      \
           -DAMReX_FORTRAN=OFF                          \
           -DAMReX_GPU_BACKEND=CUDA                     \
+          -DAMReX_CUDA_FASTMATH=OFF                    \
           -DCMAKE_C_COMPILER=$(which gcc)              \
           -DCMAKE_CXX_COMPILER=$(which g++)            \
           -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
           -DAMReX_CUDA_ARCH="9.0"                      \
           -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
           -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
-    - cmake --build build -j 32
+    - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
@@ -35,15 +36,17 @@ AMD-MI300A-single:
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-          -DAMReX_SPACEDIMS="1;2;3"                    \
+          -DAMReX_SPACEDIM="1;2;3"                     \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
           -DAMReX_ENABLE_TESTS=ON                      \
           -DAMReX_FORTRAN=OFF                          \
           -DAMReX_GPU_BACKEND=HIP                      \
           -DAMReX_AMD_ARCH=gfx942                      \
+          -DCMAKE_C_COMPILER=$(which clang)            \
+          -DCMAKE_CXX_COMPILER=$(which clang++)        \
           -DCMAKE_CXX_STANDARD=17
-    - cmake --build build -j 32
+    - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
@@ -61,7 +64,7 @@ Intel-PVC:
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_MPI=OFF                              \
-          -DAMReX_SPACEDIMS="1;2;3"                    \
+          -DAMReX_SPACEDIM="1;2;3"                     \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
           -DAMReX_ENABLE_TESTS=ON                      \
@@ -70,6 +73,6 @@ Intel-PVC:
           -DCMAKE_C_COMPILER=$(which icx)              \
           -DCMAKE_CXX_COMPILER=$(which icpx)           \
           -DAMReX_PARALLEL_LINK_JOBS=8
-    - cmake --build build -j 32
+    - cmake --build build -j 16
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
     - ctest -j 1 --test-dir build --output-on-failure
