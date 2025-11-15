@@ -30,7 +30,7 @@ jobs:
           RESPONSE=$(curl -s -X POST \
             -F token=${{ secrets.HPSF_GITLAB_TRIGGER_TOKEN }} \
             -F ref=development \
-            -F "variables[PR_NUMBER]=$PR_NUMBER" \
+            -F "variables[GITHUB_PR_NUMBER]=$PR_NUMBER" \
             "https://gitlab.spack.io/api/v4/projects/${{ secrets.HPSF_GITLAB_PROJECT_ID }}/trigger/pipeline")
 
           echo "GitLab response: $RESPONSE"
