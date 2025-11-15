@@ -249,12 +249,11 @@ int main (int argc, char* argv[])
         //    nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
 
         // Define the relative tolerance
-        Real reltol;
-        if constexpr (std::is_same_v<Real,double>) {
-            reltol = 1.e-8;
-        } else {
-            reltol = 2.e-4;
-        }
+#ifdef AMREX_USE_FLOAT
+        Real reltol = 2.e-4;
+#else
+        Real reltol = 1.e-8;
+#endif
 
         // Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
