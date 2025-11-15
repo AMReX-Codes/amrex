@@ -1,3 +1,6 @@
+# This can be triggered by a comment `/run-hpsf-gitlab-ci` from authorized
+# developers on a GitHub PR. It is also run nightly as a scheduled job.
+
 stages:
   - prepare
   - test
