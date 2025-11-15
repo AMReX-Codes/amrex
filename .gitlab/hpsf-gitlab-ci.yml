@@ -39,7 +39,6 @@ AMD-MI300A:
     - export HIP_PATH=$ROCM_PATH
     - export HIP_CLANG_PATH=$ROCM_PATH/llvm/bin
     - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
-    - which hipcc || echo "which hipcc"
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
