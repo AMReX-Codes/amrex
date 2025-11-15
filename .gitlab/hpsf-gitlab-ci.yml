@@ -1,4 +1,4 @@
-Nvidia-H100-double:
+Nvidia-H100-single-precision:
   stage: test
   tags: [nvidia-h100]
   image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
@@ -26,17 +26,17 @@ Nvidia-H100-double:
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
     - ctest -j 2 --test-dir build --output-on-failure
 
-AMD-MI300A-single:
+AMD-MI300A:
   stage: test
   tags: [amd-mi300]
   image: rocm/dev-ubuntu-24.04:6.4.3-complete
   script:
     - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
-    - source /etc/profile.d/rocm.sh
-    - hipcc --version
-    - hipconfig --full
-    - which clang
-    - which clang++
+    - export ROCM_PATH=/opt/rocm
+    - export PATH=$ROCM_PATH/bin:$PATH
+    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
+    - export HIP_PATH=$ROCM_PATH/hip
+    - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
