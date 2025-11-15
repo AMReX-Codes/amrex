@@ -364,7 +364,7 @@ Arena::Initialize (bool minimal)
 
     // Overwrite the initial size with environment variables
     if (char const* init_size_p = std::getenv("AMREX_THE_ARENA_INIT_SIZE")) {
-        the_arena_init_size = std::stoi(init_size_p);
+        the_arena_init_size = std::stoll(init_size_p);
     }
 
     ParmParse pp("amrex");
