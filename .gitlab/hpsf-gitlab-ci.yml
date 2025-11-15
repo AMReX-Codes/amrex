@@ -14,7 +14,6 @@ Nvidia-H100-double:
           -DAMReX_ENABLE_TESTS=ON                      \
           -DAMReX_FORTRAN=OFF                          \
           -DAMReX_GPU_BACKEND=CUDA                     \
-          -DAMReX_CUDA_FASTMATH=OFF                    \
           -DCMAKE_C_COMPILER=$(which gcc)              \
           -DCMAKE_CXX_COMPILER=$(which g++)            \
           -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \

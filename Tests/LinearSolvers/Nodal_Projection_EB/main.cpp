@@ -249,7 +249,12 @@ int main (int argc, char* argv[])
         //    nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
 
         // Define the relative tolerance
-        Real reltol = 1.e-8;
+        Real reltol;
+        if constexpr (std::is_same_v<Real,double>) {
+            reltol = 1.e-8;
+        } else {
+            reltol = 2.e-4;
+        }
 
         // Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;
