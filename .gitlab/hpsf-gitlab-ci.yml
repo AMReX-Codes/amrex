@@ -8,6 +8,7 @@ Nvidia-H100-single-precision:
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_PRECISION=SINGLE                     \
+          -DAMReX_PARTICLES_PRECISION=SINGLE           \
           -DAMReX_SPACEDIM="1;2;3"                     \
           -DAMReX_FFT=ON                               \
           -DAMReX_EB=ON                                \
@@ -33,10 +34,18 @@ AMD-MI300A:
   script:
     - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
     - export ROCM_PATH=/opt/rocm
-    - export PATH=$ROCM_PATH/llvm/bin:$ROCM_PATH/bin:$PATH
-    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
     - export HIP_PATH=$ROCM_PATH/hip
+    - export PATH=$ROCM_PATH/llvm/bin:$ROCM_PATH/bin:$PATH
+    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$HIP_PATH/lib:$LD_LIBRARY_PATH
+    - export HIP_CLANG_PATH=$ROCM_PATH/llvm/bin
+    - export HSA_PATH=$ROCM_PATH
     - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
+    # Verify HIP installation
+    - ls -la $ROCM_PATH/hip/include/hip/hip_runtime.h || echo "HIP runtime header not found"
+    - ls -la $ROCM_PATH/hip/lib || echo "HIP lib directory not found"
+    - hipconfig --full || echo "hipconfig --full failed"
+    - hipcc --version || echo "hipcc --version failed"
+    - find /opt/rocm -name "hip_runtime.h" || echo "find hip_runtime.h failed"
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
