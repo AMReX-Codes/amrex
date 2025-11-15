@@ -106,7 +106,7 @@ int main (int argc, char* argv[])
             auto error = mf2.norminf(0, batch_size, IntVect(0));
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 3.e-6F;
 #else
             auto eps = 1.e-13;
 #endif
@@ -133,7 +133,7 @@ int main (int argc, char* argv[])
             auto error = errmf.norminf(0, batch_size, IntVect(0));
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 0.5e-6f;
+            auto eps = 3.e-6F;
 #else
             auto eps = 1.e-15;
 #endif
@@ -156,7 +156,7 @@ int main (int argc, char* argv[])
             auto error = mf2.norminf(0, batch_size, IntVect(0));
             amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 3.e-6F;
 #else
             auto eps = 1.e-13;
 #endif

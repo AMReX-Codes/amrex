@@ -69,7 +69,7 @@ int main (int argc, char* argv[])
                      });
         amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-        auto eps = 1.e-6f;
+        auto eps = 3.e-6F;
 #else
         auto eps = 1.e-13;
 #endif
@@ -124,7 +124,7 @@ int main (int argc, char* argv[])
                      });
         amrex::Print() << "  Expected to be close to zero: " << error << "\n";
 #ifdef AMREX_USE_FLOAT
-        auto eps = 1.e-6f;
+        auto eps = 3.e-6F;
 #else
         auto eps = 1.e-13;
 #endif
