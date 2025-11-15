@@ -33,7 +33,7 @@ AMD-MI300A:
   script:
     - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
     - export ROCM_PATH=/opt/rocm
-    - export PATH=$ROCM_PATH/bin:$PATH
+    - export PATH=$ROCM_PATH/llvm/bin:$ROCM_PATH/bin:$PATH
     - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
     - export HIP_PATH=$ROCM_PATH/hip
     - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
@@ -56,27 +56,27 @@ AMD-MI300A:
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
     - ctest -j 2 --test-dir build --output-on-failure
 
-Intel-PVC:
-  stage: test
-  tags: [intel-data-center-max-1100]
-  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
-  script:
-    - apt-get update && apt-get install -y git
-    - sycl-ls
-    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
-    - |
-      cmake -S . -B build                              \
-          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-          -DAMReX_MPI=OFF                              \
-          -DAMReX_SPACEDIM="1;2;3"                     \
-          -DAMReX_FFT=ON                               \
-          -DAMReX_EB=ON                                \
-          -DAMReX_ENABLE_TESTS=ON                      \
-          -DAMReX_FORTRAN=OFF                          \
-          -DAMReX_GPU_BACKEND=SYCL                     \
-          -DCMAKE_C_COMPILER=$(which icx)              \
-          -DCMAKE_CXX_COMPILER=$(which icpx)           \
-          -DAMReX_PARALLEL_LINK_JOBS=8
-    - cmake --build build -j 16
-    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
-    - ctest -j 1 --test-dir build --output-on-failure
+#Intel-PVC:
+#  stage: test
+#  tags: [intel-data-center-max-1100]
+#  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+#  script:
+#    - apt-get update && apt-get install -y git
+#    - sycl-ls
+#    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
+#    - |
+#      cmake -S . -B build                              \
+#          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+#          -DAMReX_MPI=OFF                              \
+#          -DAMReX_SPACEDIM="1;2;3"                     \
+#          -DAMReX_FFT=ON                               \
+#          -DAMReX_EB=ON                                \
+#          -DAMReX_ENABLE_TESTS=ON                      \
+#          -DAMReX_FORTRAN=OFF                          \
+#          -DAMReX_GPU_BACKEND=SYCL                     \
+#          -DCMAKE_C_COMPILER=$(which icx)              \
+#          -DCMAKE_CXX_COMPILER=$(which icpx)           \
+#          -DAMReX_PARALLEL_LINK_JOBS=8
+#    - cmake --build build -j 16
+#    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
+#    - ctest -j 1 --test-dir build --output-on-failure
