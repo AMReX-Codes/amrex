@@ -6,6 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_IParser.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -364,7 +365,9 @@ Arena::Initialize (bool minimal)
 
     // Overwrite the initial size with environment variables
     if (char const* init_size_p = std::getenv("AMREX_THE_ARENA_INIT_SIZE")) {
-        the_arena_init_size = std::stoll(init_size_p);
+        IParser iparser(init_size_p);
+        auto exe = iparser.compileHost<0>();
+        the_arena_init_size = exe();
     }
 
     ParmParse pp("amrex");
