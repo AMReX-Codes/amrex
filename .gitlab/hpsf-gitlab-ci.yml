@@ -33,21 +33,13 @@ AMD-MI300A:
   image: rocm/dev-ubuntu-24.04:6.4.3-complete
   script:
     - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
-    - ls -la /opt/rocm* || echo "ls -la /opt/rocm*"
-    - find /opt/rocm-* -name "hip_runtime.h" 2>/dev/null
-    - export ROCM_PATH=/opt/rocm
-    - export HIP_PATH=$ROCM_PATH/hip
-    - export PATH=$ROCM_PATH/llvm/bin:$ROCM_PATH/bin:$PATH
-    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$HIP_PATH/lib:$LD_LIBRARY_PATH
+    - export ROCM_PATH=/opt/rocm-6.4.3
+    - export PATH=$ROCM_PATH/bin:$ROCM_PATH/llvm/bin:$PATH
+    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
+    - export HIP_PATH=$ROCM_PATH
     - export HIP_CLANG_PATH=$ROCM_PATH/llvm/bin
-    - export HSA_PATH=$ROCM_PATH
     - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
-    # Verify HIP installation
-    - ls -la $ROCM_PATH/hip/include/hip/hip_runtime.h || echo "HIP runtime header not found"
-    - ls -la $ROCM_PATH/hip/lib || echo "HIP lib directory not found"
-    - hipconfig --full || echo "hipconfig --full failed"
-    - hipcc --version || echo "hipcc --version failed"
-    - find /opt/rocm -name "hip_runtime.h" || echo "find hip_runtime.h failed"
+    - which hipcc || echo "which hipcc"
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
@@ -60,8 +52,6 @@ AMD-MI300A:
           -DAMReX_AMD_ARCH=gfx942                      \
           -DCMAKE_C_COMPILER=$(which clang)            \
           -DCMAKE_CXX_COMPILER=$(which clang++)        \
-          -DCMAKE_CXX_FLAGS="--rocm-path=/opt/rocm"    \
-          -DCMAKE_HIP_FLAGS="--rocm-path=/opt/rocm"    \
           -DCMAKE_CXX_STANDARD=17
     - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
