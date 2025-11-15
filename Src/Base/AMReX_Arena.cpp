@@ -6,6 +6,7 @@
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
+#include <AMReX_IParser.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>
@@ -361,6 +362,13 @@ Arena::Initialize (bool minimal)
 #ifdef AMREX_USE_GPU
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 2L;
 #endif
+
+    // Overwrite the initial size with environment variables
+    if (char const* init_size_p = std::getenv("AMREX_THE_ARENA_INIT_SIZE")) {
+        IParser iparser(init_size_p);
+        auto exe = iparser.compileHost<0>();
+        the_arena_init_size = exe();
+    }
 
     ParmParse pp("amrex");
     pp.queryAdd(        "the_arena_init_size",         the_arena_init_size);
