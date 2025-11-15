@@ -224,6 +224,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                     (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
                      AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
                      p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+            } else {
+                amrex::Print() << "xxxxx failed to allocate managed memory: " << nbytes << std::endl;;
             }
 #ifdef AMREX_USE_HIP
             // Otherwise atomiAdd won't work because we instruct the compiler to do unsafe atomics
@@ -257,6 +259,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                     (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
                      AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
                      p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+            } else {
+                amrex::Print() << "xxxxx failed to allocate device memory: " << nbytes << std::endl;
             }
         }
     }
