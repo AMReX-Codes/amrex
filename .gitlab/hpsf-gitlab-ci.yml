@@ -33,6 +33,8 @@ AMD-MI300A:
   image: rocm/dev-ubuntu-24.04:6.4.3-complete
   script:
     - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
+    - ls -la /opt/rocm* | echo "ls -la /opt/rocm*"
+    - find /opt/rocm-* -name "hip_runtime.h" 2>/dev/null
     - export ROCM_PATH=/opt/rocm
     - export HIP_PATH=$ROCM_PATH/hip
     - export PATH=$ROCM_PATH/llvm/bin:$ROCM_PATH/bin:$PATH
