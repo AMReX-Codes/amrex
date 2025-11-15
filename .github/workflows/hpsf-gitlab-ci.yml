@@ -9,7 +9,7 @@ jobs:
     if: |
       github.event.issue.pull_request &&
       contains(fromJson('["atmyers","asalmgren","ax3l","WeiqunZhang"]'), github.actor) &&
-      github.event.comment.body == '/run-hpsf-gitlab-ci'
+      contains(github.event.comment.body, '/run-hpsf-gitlab-ci')
     runs-on: ubuntu-latest
 
     steps:
