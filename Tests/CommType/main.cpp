@@ -12,9 +12,9 @@ int main(int argc, char* argv[])
     int ret_code = EXIT_SUCCESS;
 
     {
-        int ncells = 128;
+        int ncells = 64;
         BoxArray ba(Box(IntVect(0), IntVect(ncells-1)));
-        ba.maxSize(32);
+        ba.maxSize(16);
         ba.convert(IntVect(1));
         DistributionMapping dm(ba);
 
