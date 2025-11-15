@@ -33,6 +33,11 @@ AMD-MI300A-single:
   image: rocm/dev-ubuntu-24.04:6.4.3-complete
   script:
     - apt-get update && apt-get install -y cmake git libopenmpi-dev openmpi-bin
+    - source /etc/profile.d/rocm.sh
+    - hipcc --version
+    - hipconfig --full
+    - which clang
+    - which clang++
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
