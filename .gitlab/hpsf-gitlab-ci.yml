@@ -65,7 +65,7 @@ Intel-GPU:
   script:
     - apt-get update && apt-get install -y git
     - sycl-ls
-    - export ONEAPI_DEVICE_SELECTOR=opencl:gpu
+    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
