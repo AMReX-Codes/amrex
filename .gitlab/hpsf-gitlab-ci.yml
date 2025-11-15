@@ -24,7 +24,7 @@ Nvidia-H100-single-precision:
     - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
     - ctest -j 2 --test-dir build --output-on-failure
 
 AMD-MI300A:
@@ -55,7 +55,7 @@ AMD-MI300A:
     - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
-    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
     - ctest -j 2 --test-dir build --output-on-failure
 
 Intel-PVC:
@@ -80,5 +80,5 @@ Intel-PVC:
           -DCMAKE_CXX_COMPILER=$(which icpx)           \
           -DAMReX_PARALLEL_LINK_JOBS=8
     - cmake --build build -j 16
-    - export AMREX_THE_ARENA_INIT_SIZE=1000000000
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
     - ctest -j 4 --test-dir build --output-on-failure
