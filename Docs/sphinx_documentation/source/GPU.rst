@@ -566,8 +566,8 @@ can also be changed with an environment variable
 both the :cpp:`ParmParse` parameter and the environment variable are
 present, the former will override the latter. In both cases, the number
 string could have optional single quotes ``'`` as separators (e.g.,
-``10'1000'100'``). It may also use floating-point notation (``2.5e10``), as
-long as converting it does not introduce any loss of precision.
+``10'000'000'000``). It may also use floating-point notation (``2.5e10``),
+as long as converting it does not introduce any loss of precision.
 
 The default initial size for other arenas is 8388608 (i.e., 8 MB).  For
 :cpp:`The_Managed_Arena()` and :cpp:`The_Device_Arena()`, it can be changed
