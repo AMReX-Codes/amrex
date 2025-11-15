@@ -362,6 +362,11 @@ Arena::Initialize (bool minimal)
     the_pinned_arena_release_threshold = Gpu::Device::totalGlobalMem() / Gpu::Device::numDevicePartners() / 2L;
 #endif
 
+    // Overwrite the initial size with environment variables
+    if (char const* init_size_p = std::getenv("AMREX_THE_ARENA_INIT_SIZE")) {
+        the_arena_init_size = std::stoi(init_size_p);
+    }
+
     ParmParse pp("amrex");
     pp.queryAdd(        "the_arena_init_size",         the_arena_init_size);
     pp.queryAdd( "the_device_arena_init_size",  the_device_arena_init_size);
