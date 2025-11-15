@@ -84,7 +84,7 @@ namespace amrex::Gpu {
 int Device::device_id = 0;
 int Device::num_devices_used = 0;
 int Device::num_device_partners = 1;
-int Device::verbose = 1;
+int Device::verbose = 0;
 #ifdef AMREX_USE_GPU
 int Device::max_gpu_streams = 4;
 #else
