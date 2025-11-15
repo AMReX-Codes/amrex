@@ -4,6 +4,10 @@ on:
   issue_comment:
     types: [created]
 
+env:
+  GITLAB_PROJECT_PATH: "amrex/amrex"
+  GITLAB_PROJECT_ID: "70"
+
 jobs:
   run-hpsf-gitlab-ci:
     if: |
@@ -15,6 +19,7 @@ jobs:
     steps:
       - name: Determine PR merge ref
         id: setref
+        shell: bash
         run: |
           PR_NUMBER=${{ github.event.issue.number }}
           MERGE_REF="refs/pull/$PR_NUMBER/merge"
@@ -23,6 +28,7 @@ jobs:
 
       - name: Trigger GitLab pipeline
         id: trigger
+        shell: bash
         run: |
           MERGE_REF="${{ steps.setref.outputs.merge_ref }}"
           echo "Triggering GitLab pipeline for ref: $MERGE_REF"
@@ -30,8 +36,10 @@ jobs:
           RESPONSE=$(curl -s -X POST \
             -F token=${{ secrets.HPSF_GITLAB_TRIGGER_TOKEN }} \
             -F ref=development \
-            -F "variables[GITHUB_PR_NUMBER]=$PR_NUMBER" \
-            "https://gitlab.spack.io/api/v4/projects/${{ secrets.HPSF_GITLAB_PROJECT_ID }}/trigger/pipeline")
+            -F "variables[GITHUB_PR_NUMBER]=${{ github.event.issue.number }}" \
+            -F "variables[GITHUB_MERGE_REF]=refs/pull/${{ github.event.issue.number }}/merge" \
+            -F "variables[GITHUB_TRIGGER_ACTOR]=${{ github.actor }}" \
+            "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/trigger/pipeline")
 
           echo "GitLab response: $RESPONSE"
 
@@ -42,12 +50,13 @@ jobs:
             exit 1
           fi
 
+          echo "Pipeline URL: https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
           echo "pipeline_id=$PIPELINE_ID" >> $GITHUB_OUTPUT
 
       - name: Wait for GitLab pipeline to finish
         id: wait
+        shell: bash
         run: |
-          PROJECT_ID=${{ secrets.HPSF_GITLAB_PROJECT_ID }}
           PIPELINE_ID=${{ steps.trigger.outputs.pipeline_id }}
 
           echo "Waiting on GitLab pipeline $PIPELINE_ID..."
@@ -56,7 +65,7 @@ jobs:
           while [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; do
             sleep 300
             STATUS=$(curl -s \
-              "https://gitlab.spack.io/api/v4/projects/$PROJECT_ID/pipelines/$PIPELINE_ID" \
+              "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/$PIPELINE_ID" \
               | jq -r '.status')
             echo "Status: $STATUS"
           done
@@ -64,12 +73,15 @@ jobs:
           echo "final_status=$STATUS" >> $GITHUB_OUTPUT
 
       - name: Post result back to GitHub PR
+        shell: bash
         run: |
           STATUS=${{ steps.wait.outputs.final_status }}
-          COMMENT="GitLab CI finished with status: **$STATUS**"
+          PIPELINE_ID=${{ steps.trigger.outputs.pipeline_id }}
+          PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          COMMENT="GitLab CI finished with status: **$STATUS**. See details at ${PIPELINE_URL}."
 
           gh api \
             repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
-            -f body="$COMMENT"
+            -f body="$COMMENT" || echo "Failed to post comment to GitHub"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
