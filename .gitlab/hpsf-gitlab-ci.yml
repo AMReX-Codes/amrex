@@ -58,9 +58,9 @@ AMD-MI300A:
     - export AMREX_THE_ARENA_INIT_SIZE=1000000000
     - ctest -j 2 --test-dir build --output-on-failure
 
-Intel-GPU:
+Intel-PVC:
   stage: test
-  tags: [intel-a770] # [intel-data-center-max-1100]
+  tags: [intel-data-center-max-1100]
   image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
   script:
     - apt-get update && apt-get install -y git
