@@ -47,7 +47,8 @@ AMD-MI300A:
           -DAMReX_FORTRAN=OFF                          \
           -DAMReX_GPU_BACKEND=HIP                      \
           -DAMReX_AMD_ARCH=gfx942                      \
-          -DCMAKE_CXX_COMPILER=hipcc                   \
+          -DCMAKE_C_COMPILER=$(which clang)            \
+          -DCMAKE_CXX_COMPILER=$(which clang++)        \
           -DCMAKE_CXX_STANDARD=17
     - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
