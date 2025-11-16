@@ -39,14 +39,3 @@ work, we store a pipeline trigger (obtained from GitLab's `Settings -> CI/CD
 and variables -> Actions -> Repository secrets`. The GitHub workflow waits
 for the result of the GitLab pipeline result and posts the final status and
 a link to the result as a comment.
-
-There is one complication with this approach. The GitHub PR triggered
-pipeline appears on GitLab under the title of the latest commit of the
-default branch (i.e., development), which can be confusing. To address this,
-we add a step in the GitHub workflow to change the GitLab pipeline's name to
-the PR's title. This step requires an API token, which diffs from the
-pipeline trigger token. A project API token can be created from the
-project's `Settings -> Access tokens`. It needs `api` scopes and the
-`Maintainer` role. The token will expire in one year. After creating a key,
-you must copy and store it on GitHub before leaving the page, as it will
-become invisible afterward.
