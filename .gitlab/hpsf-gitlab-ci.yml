@@ -1,5 +1,5 @@
 workflow:
-  name: '$GITHUB_PR_TITLE' # Use the name provided by GitHub if available
+  name: '$GITHUB_PR_TITLE'
 
 .dependency-n-fetch-pr:
   stage: test
