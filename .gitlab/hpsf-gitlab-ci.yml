@@ -1,3 +1,6 @@
+workflow:
+  name: '${GITHUB_PR_TITLE}' # Use the name provided by GitHub if available
+
 .dependency-n-fetch-pr:
   stage: test
   before_script:
