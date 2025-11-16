@@ -50,8 +50,23 @@ jobs:
             exit 1
           fi
 
-          echo "Pipeline URL: https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          echo "Pipeline URL: $PIPELINE_URL"
+          echo "pipeline_url=$PIPELINE_URL" >> $GITHUB_OUTPUT
           echo "pipeline_id=$PIPELINE_ID" >> $GITHUB_OUTPUT
+
+      - name: Post status to GitHub PR
+        shell: bash
+        run: |
+          PIPELINE_URL=${{ steps.trigger.outputs.pipeline_url }}
+          COMMENT="GitLab CI has started at ${PIPELINE_URL}."
+
+          gh api \
+            repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+            -f body="$COMMENT" || echo "Failed to post comment to GitHub"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
       - name: Wait for GitLab pipeline to finish
         id: wait
@@ -94,8 +109,7 @@ jobs:
         shell: bash
         run: |
           STATUS=${{ steps.wait.outputs.final_status }}
-          PIPELINE_ID=${{ steps.trigger.outputs.pipeline_id }}
-          PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          PIPELINE_URL=${{ steps.trigger.outputs.pipeline_url }}
           COMMENT="GitLab CI finished with status: **$STATUS**. See details at ${PIPELINE_URL}."
 
           gh api \
