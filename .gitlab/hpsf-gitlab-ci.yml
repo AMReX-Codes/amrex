@@ -1,5 +1,5 @@
 workflow:
-  name: '$GITHUB_PR_TITLE'
+  name: '$GITHUB_PIPELINE_NAME'
 
 .dependency-n-fetch-pr:
   stage: test
