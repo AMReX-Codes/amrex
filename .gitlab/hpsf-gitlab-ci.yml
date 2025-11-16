@@ -70,27 +70,28 @@ AMD-MI300A:
     - export AMREX_THE_ARENA_INIT_SIZE=1e9
     - ctest -j 2 --test-dir build --output-on-failure
 
-#Intel-PVC:
-#  extends: .dependency-n-fetch-pr
-#  tags: [intel-data-center-max-1100]
-#  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
-#  script:
-#    - sycl-ls
-#    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
-#    - |
-#      cmake -S . -B build                              \
-#          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-#          -DAMReX_MPI=OFF                              \
-#          -DAMReX_SPACEDIM="1;2;3"                     \
-#          -DAMReX_FFT=ON                               \
-#          -DAMReX_EB=ON                                \
-#          -DAMReX_ENABLE_TESTS=ON                      \
-#          -DAMReX_FORTRAN=OFF                          \
-#          -DAMReX_GPU_BACKEND=SYCL                     \
-#          -DCMAKE_C_COMPILER=$(which icx)              \
-#          -DCMAKE_CXX_COMPILER=$(which icpx)           \
-#          -DAMReX_PARALLEL_LINK_JOBS=8
-#    - cmake --build build -j 16
-#    - export AMREX_THE_ARENA_INIT_SIZE=1e9
-#    - ctest -j 4 --test-dir build --output-on-failure
+Intel-PVC:
+  extends: .dependency-n-fetch-pr
+  tags: [intel-data-center-max-1100]
+  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+  script:
+    - sycl-ls
+    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo            \
+          -DAMReX_MPI=OFF                              \
+          -DAMReX_SPACEDIM="1;2;3"                     \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=SYCL                     \
+          -DCMAKE_C_COMPILER=$(which icx)              \
+          -DCMAKE_CXX_COMPILER=$(which icpx)           \
+          -DAMReX_PARALLEL_LINK_JOBS=8
+    - cmake --build build -j 16
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+    - ctest -j 4 --test-dir build --output-on-failure
 

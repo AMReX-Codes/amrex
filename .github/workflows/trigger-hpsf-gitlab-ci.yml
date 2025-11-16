@@ -62,11 +62,29 @@ jobs:
           echo "Waiting on GitLab pipeline $PIPELINE_ID..."
 
           STATUS="running"
+          MAX_WAIT=14400  # 4 hours
+          ELAPSED=0
+
           while [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; do
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "Timeout waiting for pipeline after $MAX_WAIT seconds"
+              echo "final_status=timeout" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
             sleep 300
+            LAPSED=$((ELAPSED + 300))
+
             STATUS=$(curl -s \
               "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/$PIPELINE_ID" \
               | jq -r '.status')
+
+            if [ "$STATUS" == "null" ] || [ -z "$STATUS" ]; then
+              echo "Failed to get pipeline status. Response: $RESPONSE"
+              echo "final_status=error" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
             echo "Status: $STATUS"
           done
 
