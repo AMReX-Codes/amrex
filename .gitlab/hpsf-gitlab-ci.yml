@@ -1,3 +1,6 @@
+workflow:
+  name: '$GITHUB_PIPELINE_NAME'
+
 .dependency-n-fetch-pr:
   stage: test
   before_script:
@@ -10,7 +13,7 @@
         echo "GITHUB_PR_TITLE=$GITHUB_PR_TITLE"
         git remote add github https://github.com/amrex-codes/amrex.git
         git fetch --depth=1 github "${GITHUB_MERGE_REF}"
-        git checkout FETCH_HEAD -b pr-${GITHUB_PR_NUMBER}
+        git checkout FETCH_HEAD
       fi
 
 Nvidia-H100-single-precision:
@@ -81,7 +84,6 @@ Intel-PVC:
     - |
       cmake -S . -B build                              \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo            \
           -DAMReX_MPI=OFF                              \
           -DAMReX_SPACEDIM="1;2;3"                     \
           -DAMReX_FFT=ON                               \
@@ -91,6 +93,7 @@ Intel-PVC:
           -DAMReX_GPU_BACKEND=SYCL                     \
           -DCMAKE_C_COMPILER=$(which icx)              \
           -DCMAKE_CXX_COMPILER=$(which icpx)           \
+          -DCMAKE_CXX_FLAGS="-fp-model=precise"        \
           -DAMReX_PARALLEL_LINK_JOBS=8
     - cmake --build build -j 16
     - export AMREX_THE_ARENA_INIT_SIZE=1e9

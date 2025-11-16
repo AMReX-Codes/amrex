@@ -37,6 +37,8 @@ jobs:
           MERGE_REF="${{ steps.setref.outputs.merge_ref }}"
           echo "Triggering GitLab pipeline for ref: $MERGE_REF"
 
+          GITHUB_PIPELINE_NAME="GitHub #${{ github.event.issue.number }}: ${{ steps.setref.outputs.pr_title }}"
+
           RESPONSE=$(curl -s -X POST \
             -F token=${{ secrets.HPSF_GITLAB_TRIGGER_TOKEN }} \
             -F ref=development \
@@ -44,6 +46,7 @@ jobs:
             -F "variables[GITHUB_MERGE_REF]=refs/pull/${{ github.event.issue.number }}/merge" \
             -F "variables[GITHUB_TRIGGER_ACTOR]=${{ github.actor }}" \
             -F "variables[GITHUB_PR_TITLE]=${{ steps.setref.outputs.pr_title }}" \
+            -F "variables[GITHUB_PIPELINE_NAME]=${GITHUB_PIPELINE_NAME}" \
             "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/trigger/pipeline")
 
           echo "GitLab response: $RESPONSE"
@@ -59,15 +62,6 @@ jobs:
           echo "Pipeline URL: $PIPELINE_URL"
           echo "pipeline_url=$PIPELINE_URL" >> $GITHUB_OUTPUT
           echo "pipeline_id=$PIPELINE_ID" >> $GITHUB_OUTPUT
-
-          # Update pipeline name
-          PIPELINE_NAME="GitHub #${{ github.event.issue.number }}: ${{ steps.setref.outputs.pr_title }}"
-          curl --request PUT \
-            --header "PRIVATE-TOKEN: ${{ secrets.HPSF_GITLAB_API_TOKEN }}" \
-            --data-urlencode "name=${PIPELINE_NAME}" \
-            "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/${PIPELINE_ID}/metadata"
-            || echo "Warning: Failed to update pipline name (possibly expired token)"
-          echo "Updated pipeline name to: $PIPELINE_NAME"
 
       - name: Post status to GitHub PR
         shell: bash
@@ -90,7 +84,7 @@ jobs:
           echo "Waiting on GitLab pipeline $PIPELINE_ID..."
 
           STATUS="running"
-          MAX_WAIT=14400  # 4 hours
+          MAX_WAIT=86400  # 24 hours
           ELAPSED=0
 
           while [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; do
@@ -100,8 +94,13 @@ jobs:
               exit 1
             fi
 
-            sleep 300
-            ELAPSED=$((ELAPSED + 300))
+            if [ $ELAPSED -lt 7200 ]; then
+              SLEEP_TIME=600   # 10 minutes
+            else
+              SLEEP_TIME=3600  # 1 hour
+            fi
+            sleep $SLEEP_TIME
+            ELAPSED=$((ELAPSED + SLEEP_TIME))
 
             STATUS=$(curl -s \
               "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/$PIPELINE_ID" \
