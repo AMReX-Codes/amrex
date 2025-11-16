@@ -11,6 +11,7 @@ workflow:
         echo "GITHUB_MERGE_REF=$GITHUB_MERGE_REF"
         echo "GITHUB_TRIGGER_ACTOR=$GITHUB_TRIGGER_ACTOR"
         echo "GITHUB_PR_TITLE=$GITHUB_PR_TITLE"
+        git remote remove github
         git remote add github https://github.com/amrex-codes/amrex.git
         git fetch --depth=1 github "${GITHUB_MERGE_REF}"
         git checkout FETCH_HEAD
