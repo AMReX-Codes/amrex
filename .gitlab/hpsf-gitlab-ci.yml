@@ -10,7 +10,7 @@
         echo "GITHUB_PR_TITLE=$GITHUB_PR_TITLE"
         git remote add github https://github.com/amrex-codes/amrex.git
         git fetch --depth=1 github "${GITHUB_MERGE_REF}"
-        git checkout FETCH_HEAD -b pr-${GITHUB_PR_NUMBER}
+        git checkout FETCH_HEAD
       fi
 
 Nvidia-H100-single-precision:

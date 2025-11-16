@@ -65,7 +65,7 @@ jobs:
           curl --request PUT \
             --header "PRIVATE-TOKEN: ${{ secrets.HPSF_GITLAB_API_TOKEN }}" \
             --data-urlencode "name=${PIPELINE_NAME}" \
-            "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/${PIPELINE_ID}/metadata"
+            "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/${PIPELINE_ID}/metadata" \
             || echo "Warning: Failed to update pipline name (possibly expired token)"
           echo "Updated pipeline name to: $PIPELINE_NAME"
 
