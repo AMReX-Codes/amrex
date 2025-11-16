@@ -121,8 +121,9 @@ jobs:
         shell: bash
         run: |
           STATUS=${{ steps.wait.outputs.final_status }}
+          PIPELINE_ID=${{ steps.trigger.outputs.pipeline_id }}
           PIPELINE_URL=${{ steps.trigger.outputs.pipeline_url }}
-          COMMENT="GitLab CI finished with status: **$STATUS**. See details at ${PIPELINE_URL}."
+          COMMENT="GitLab CI ${PIPELINE_ID} finished with status: **$STATUS**. See details at ${PIPELINE_URL}."
 
           gh api \
             repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \

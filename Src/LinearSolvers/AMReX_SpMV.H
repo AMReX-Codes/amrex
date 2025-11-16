@@ -183,10 +183,10 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
     mkl::sparse::gemv(Gpu::Device::streamQueue(), mkl::transpose::nontrans,
                       T(1), handle, px, T(0), py);
 
-#endif
-
     auto ev = mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle);
     ev.wait();
+
+#endif
 
     AMREX_GPU_ERROR_CHECK();
 
