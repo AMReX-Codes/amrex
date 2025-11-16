@@ -171,6 +171,7 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 
     amrex::ignore_unused(nnz);
     mkl::sparse::matrix_handle_t handle{};
+    mkl::sparse::init_matrix_handle(&handle);
 
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols,
@@ -183,6 +184,9 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
                       T(1), handle, px, T(0), py);
 
 #endif
+
+    auto ev = mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle);
+    ev.wait();
 
     AMREX_GPU_ERROR_CHECK();
 
