@@ -20,10 +20,14 @@ jobs:
       - name: Determine PR merge ref
         id: setref
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_NUMBER=${{ github.event.issue.number }}
           MERGE_REF="refs/pull/$PR_NUMBER/merge"
+          PR_TITLE=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.title')
           echo "merge_ref=$MERGE_REF" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
           echo "Using merge ref: $MERGE_REF"
 
       - name: Trigger GitLab pipeline
@@ -39,6 +43,7 @@ jobs:
             -F "variables[GITHUB_PR_NUMBER]=${{ github.event.issue.number }}" \
             -F "variables[GITHUB_MERGE_REF]=refs/pull/${{ github.event.issue.number }}/merge" \
             -F "variables[GITHUB_TRIGGER_ACTOR]=${{ github.actor }}" \
+            -F "variables[GITHUB_PR_TITLE]=${{ steps.setref.outputs.pr_title }}" \
             "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/trigger/pipeline")
 
           echo "GitLab response: $RESPONSE"
@@ -50,8 +55,31 @@ jobs:
             exit 1
           fi
 
-          echo "Pipeline URL: https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          echo "Pipeline URL: $PIPELINE_URL"
+          echo "pipeline_url=$PIPELINE_URL" >> $GITHUB_OUTPUT
           echo "pipeline_id=$PIPELINE_ID" >> $GITHUB_OUTPUT
+
+          # Update pipeline name
+          PIPELINE_NAME="GitHub #${{ github.event.issue.number }}: ${{ steps.setref.outputs.pr_title }}"
+          curl --request PUT \
+            --header "PRIVATE-TOKEN: ${{ secrets.HPSF_GITLAB_API_TOKEN }}" \
+            --data-urlencode "name=${PIPELINE_NAME}" \
+            "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/${PIPELINE_ID}/metadata"
+            || echo "Warning: Failed to update pipline name (possibly expired token)"
+          echo "Updated pipeline name to: $PIPELINE_NAME"
+
+      - name: Post status to GitHub PR
+        shell: bash
+        run: |
+          PIPELINE_URL=${{ steps.trigger.outputs.pipeline_url }}
+          COMMENT="GitLab CI has started at ${PIPELINE_URL}."
+
+          gh api \
+            repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+            -f body="$COMMENT" || echo "Failed to post comment to GitHub"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Wait for GitLab pipeline to finish
         id: wait
@@ -62,11 +90,29 @@ jobs:
           echo "Waiting on GitLab pipeline $PIPELINE_ID..."
 
           STATUS="running"
+          MAX_WAIT=14400  # 4 hours
+          ELAPSED=0
+
           while [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; do
+            if [ $ELAPSED -ge $MAX_WAIT ]; then
+              echo "Timeout waiting for pipeline after $MAX_WAIT seconds"
+              echo "final_status=timeout" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
             sleep 300
+            ELAPSED=$((ELAPSED + 300))
+
             STATUS=$(curl -s \
               "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/$PIPELINE_ID" \
               | jq -r '.status')
+
+            if [ "$STATUS" == "null" ] || [ -z "$STATUS" ]; then
+              echo "Failed to get pipeline status. Response: $RESPONSE"
+              echo "final_status=error" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+
             echo "Status: $STATUS"
           done
 
@@ -76,8 +122,7 @@ jobs:
         shell: bash
         run: |
           STATUS=${{ steps.wait.outputs.final_status }}
-          PIPELINE_ID=${{ steps.trigger.outputs.pipeline_id }}
-          PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          PIPELINE_URL=${{ steps.trigger.outputs.pipeline_url }}
           COMMENT="GitLab CI finished with status: **$STATUS**. See details at ${PIPELINE_URL}."
 
           gh api \
