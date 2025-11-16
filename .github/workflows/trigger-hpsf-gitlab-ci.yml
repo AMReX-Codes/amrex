@@ -90,7 +90,7 @@ jobs:
           echo "Waiting on GitLab pipeline $PIPELINE_ID..."
 
           STATUS="running"
-          MAX_WAIT=14400  # 4 hours
+          MAX_WAIT=86400  # 24 hours
           ELAPSED=0
 
           while [[ "$STATUS" == "running" || "$STATUS" == "pending" ]]; do
@@ -100,8 +100,13 @@ jobs:
               exit 1
             fi
 
-            sleep 300
-            ELAPSED=$((ELAPSED + 300))
+            if [ $ELAPSED -lt 7200 ]; then
+              SLEEP_TIME=600   # 10 minutes
+            else
+              SLEEP_TIME=3600  # 1 hour
+            fi
+            sleep $SLEEP_TIME
+            ELAPSED=$((ELAPSED + SLEEP_TIME))
 
             STATUS=$(curl -s \
               "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/pipelines/$PIPELINE_ID" \
