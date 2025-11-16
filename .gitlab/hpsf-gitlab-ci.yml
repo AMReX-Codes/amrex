@@ -1,0 +1,96 @@
+.dependency-n-fetch-pr:
+  stage: test
+  before_script:
+    - apt-get update && apt-get install -y git cmake python3 libopenmpi-dev openmpi-bin
+    - |
+      if [ -n "$GITHUB_PR_NUMBER" ]; then
+        echo "GITHUB_PR_NUMBER=$GITHUB_PR_NUMBER"
+        echo "GITHUB_MERGE_REF=$GITHUB_MERGE_REF"
+        echo "GITHUB_TRIGGER_ACTOR=$GITHUB_TRIGGER_ACTOR"
+        git remote add github https://github.com/amrex-codes/amrex.git
+        git fetch --depth=1 github "${GITHUB_MERGE_REF}"
+        git checkout FETCH_HEAD -b pr-${GITHUB_PR_NUMBER}
+      fi
+
+Nvidia-H100-single-precision:
+  extends: .dependency-n-fetch-pr
+  tags: [nvidia-h100]
+  image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
+  script:
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_PRECISION=SINGLE                     \
+          -DAMReX_PARTICLES_PRECISION=SINGLE           \
+          -DAMReX_SPACEDIM="1;2;3"                     \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=CUDA                     \
+          -DCMAKE_C_COMPILER=$(which gcc)              \
+          -DCMAKE_CXX_COMPILER=$(which g++)            \
+          -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
+          -DAMReX_CUDA_ARCH="9.0"                      \
+          -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+          -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+    - cmake --build build -j 16
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+    - ctest -j 2 --test-dir build --output-on-failure
+
+AMD-MI300A:
+  extends: .dependency-n-fetch-pr
+  tags: [amd-mi300]
+  image: rocm/dev-ubuntu-24.04:6.4.3-complete
+  script:
+    - export ROCM_PATH=/opt/rocm-6.4.3
+    - export PATH=$ROCM_PATH/bin:$ROCM_PATH/llvm/bin:$PATH
+    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
+    - export HIP_PATH=$ROCM_PATH
+    - export HIP_CLANG_PATH=$ROCM_PATH/llvm/bin
+    - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_SPACEDIM="1;2;3"                     \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=HIP                      \
+          -DAMReX_AMD_ARCH=gfx942                      \
+          -DCMAKE_C_COMPILER=$(which clang)            \
+          -DCMAKE_CXX_COMPILER=$(which clang++)        \
+          -DCMAKE_CXX_STANDARD=17
+    - cmake --build build -j 16
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+    - ctest -j 2 --test-dir build --output-on-failure
+
+#Intel-PVC:
+#  extends: .dependency-n-fetch-pr
+#  tags: [intel-data-center-max-1100]
+#  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+#  script:
+#    - sycl-ls
+#    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
+#    - |
+#      cmake -S . -B build                              \
+#          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+#          -DAMReX_MPI=OFF                              \
+#          -DAMReX_SPACEDIM="1;2;3"                     \
+#          -DAMReX_FFT=ON                               \
+#          -DAMReX_EB=ON                                \
+#          -DAMReX_ENABLE_TESTS=ON                      \
+#          -DAMReX_FORTRAN=OFF                          \
+#          -DAMReX_GPU_BACKEND=SYCL                     \
+#          -DCMAKE_C_COMPILER=$(which icx)              \
+#          -DCMAKE_CXX_COMPILER=$(which icpx)           \
+#          -DAMReX_PARALLEL_LINK_JOBS=8
+#    - cmake --build build -j 16
+#    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+#    - ctest -j 4 --test-dir build --output-on-failure
+
