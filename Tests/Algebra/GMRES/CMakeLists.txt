@@ -1,7 +1,3 @@
-if (AMReX_SYCL)
-    return()
-endif()
-
 foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources main.cpp)
     set(_input_files )
