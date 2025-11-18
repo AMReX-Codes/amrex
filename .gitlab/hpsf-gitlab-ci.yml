@@ -114,6 +114,37 @@ post_github_comment:
       import sys
       import base64
 
+      # --- START: Get effective Pipeline Status from GitLab API ---
+      gitlab_api_url = os.environ['CI_API_V4_URL']
+      project_id = os.environ['CI_PROJECT_ID']
+      pipeline_id = os.environ['CI_PIPELINE_ID']
+      job_token = os.environ['CI_JOB_TOKEN']
+      current_job_name = os.environ['CI_JOB_NAME']
+
+      final_status = 'success' # Assume success until a failure is found
+      try:
+          # Get all jobs for the pipeline
+          api_endpoint = f"{gitlab_api_url}/projects/{project_id}/pipelines/{pipeline_id}/jobs"
+          headers = {'JOB-TOKEN': job_token}
+          params = {'scope[]': ['success', 'failed', 'canceled'], 'per_page': 100}
+          response = requests.get(api_endpoint, headers=headers, params=params)
+          response.raise_for_status()
+
+          jobs = response.json()
+          for job in jobs:
+              # We only care about the result of test/build jobs, not this notification job itself
+              if job['name'] == current_job_name:
+                  continue
+
+              if job['status'] in ['failed', 'canceld']:
+                  final_status = 'failed'
+                  break # Found a failure, no need to check further
+
+      except requests.exceptions.RequestException as e:
+          print(f"Error fetching job statuses from GitLab API: {e}", file=sys.stderr)
+          final_status = 'unknown' # If API fails, report unknown status
+      # --- END: Get effective Pipeline Status ---
+
       # Generate JWT for GitHub App authentication
       app_id = os.environ['GITHUB_APP_ID']
       payload = {
@@ -144,9 +175,8 @@ post_github_comment:
       # Post comment to PR
       pr_number = os.environ.get('GITHUB_PR_NUMBER')
       pipeline_url = os.environ['CI_PIPELINE_URL']
-      pipeline_status = os.environ['CI_PIPELINE_STATUS']
 
-      comment_body = f"GitLab pipeline [{pipeline_status}]({pipeline_url})"
+      comment_body = f"GitLab CI {pipeline_id} finished with status: **{final_status}**. See details at {pipeline_url}."
 
       comment_response = requests.post(
           f'https://api.github.com/repos/AMReX-Codes/amrex/issues/{pr_number}/comments',
