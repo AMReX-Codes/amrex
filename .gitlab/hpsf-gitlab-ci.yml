@@ -160,13 +160,12 @@ post_github_comment:
 
       # Get installation access token
       installation_id = os.environ['GITHUB_APP_INSTALLATION_ID']
-      headers = {
-          'Authorization': f'Bearer {token}',
-          'Accept': 'application/vnd.github+json'
-      }
       token_response = requests.post(
           f'https://api.github.com/app/installations/{installation_id}/access_tokens',
-          headers=headers
+          headers = {
+              'Authorization': f'Bearer {token}',
+              'Accept': 'application/vnd.github+json'
+          }
       )
       if token_response.status_code != 201:
          print(f"Failed to get access token: HTTP {token_response.status_code}")
@@ -186,11 +185,9 @@ post_github_comment:
           },
           json={'body': comment_body}
       )
-      del token_response
       if comment_response.status_code != 201:
           print(f"Failed to post comment: HTTP {comment_response.status_code}")
           sys.exit(1)
-      del comment_response
       print("Successfully posted comment to GitHub PR")
       EOF
   when: always
