@@ -61,7 +61,6 @@ jobs:
           PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
           echo "Pipeline URL: $PIPELINE_URL"
           echo "pipeline_url=$PIPELINE_URL" >> $GITHUB_OUTPUT
-          echo "pipeline_id=$PIPELINE_ID" >> $GITHUB_OUTPUT
 
       - name: Post status to GitHub PR
         shell: bash
