@@ -100,3 +100,69 @@ Intel-PVC:
     - export AMREX_THE_ARENA_INIT_SIZE=1e9
     - ctest -j 4 --test-dir build --output-on-failure
 
+post_github_comment:
+  stage: .post
+  image: python:3.11-slim
+  script:
+    - pip install PyJWT requests cryptography
+    - |
+      python3 << 'EOF'
+      import jwt
+      import time
+      import requests
+      import os
+      import sys
+      import base64
+
+      # Generate JWT for GitHub App authentication
+      app_id = os.environ['GITHUB_APP_ID']
+      payload = {
+          'iat': int(time.time()),
+          'exp': int(time.time()) + 600,
+          'iss': app_id
+      }
+      token = jwt.encode(
+            payload,
+            base64.b64decode(os.environ['GITHUB_APP_PRIVATE_KEY']).decode('utf-8'),
+            algorithm='RS256'
+      )
+
+      # Get installation access token
+      installation_id = os.environ['GITHUB_APP_INSTALLATION_ID']
+      headers = {
+          'Authorization': f'Bearer {token}',
+          'Accept': 'application/vnd.github+json'
+      }
+      token_response = requests.post(
+          f'https://api.github.com/app/installations/{installation_id}/access_tokens',
+          headers=headers
+      )
+      if token_response.status_code != 201:
+         print(f"Failed to get access token: HTTP {token_response.status_code}")
+         sys.exit(1)
+
+      # Post comment to PR
+      pr_number = os.environ.get('GITHUB_PR_NUMBER')
+      pipeline_url = os.environ['CI_PIPELINE_URL']
+      pipeline_status = os.environ['CI_PIPELINE_STATUS']
+
+      comment_body = f"GitLab pipeline [{pipeline_status}]({pipeline_url})"
+
+      comment_response = requests.post(
+          f'https://api.github.com/repos/AMReX-Codes/amrex/issues/{pr_number}/comments',
+          headers = {
+              'Authorization': f'Bearer {token_response.json()["token"]}',
+              'Accept': 'application/vnd.github+json'
+          },
+          json={'body': comment_body}
+      )
+      del token_response
+      if comment_response.status_code != 201:
+          print(f"Failed to post comment: HTTP {comment_response.status_code}")
+          sys.exit(1)
+      del comment_response
+      print("Successfully posted comment to GitHub PR")
+      EOF
+  when: always
+  rules:
+    - if: $GITHUB_PR_NUMBER
