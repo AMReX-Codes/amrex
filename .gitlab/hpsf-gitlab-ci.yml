@@ -176,7 +176,7 @@ post_github_comment:
       pr_number = os.environ.get('GITHUB_PR_NUMBER')
       pipeline_url = os.environ['CI_PIPELINE_URL']
 
-      comment_body = f"GitLab pipeline [{final_status}]({pipeline_url})"
+      comment_body = f"GitLab CI {pipeline_id} finished with status: **{final_status}**. See details at {pipeline_url}."
 
       comment_response = requests.post(
           f'https://api.github.com/repos/AMReX-Codes/amrex/issues/{pr_number}/comments',
