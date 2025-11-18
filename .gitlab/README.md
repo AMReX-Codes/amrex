@@ -36,6 +36,24 @@ pipeline: `.gitlab/hpsf-gitlab-ci.yml`. The PR comment triggered job pulls
 the PR branch from GitHub first before running tests. For this approach to
 work, we store a pipeline trigger (obtained from GitLab's `Settings -> CI/CD
 -> Pipeline trigger tokens`) as a secret at GitHub's `Settings -> Secrets
-and variables -> Actions -> Repository secrets`. The GitHub workflow waits
-for the result of the GitLab pipeline result and posts the final status and
-a link to the result as a comment.
+and variables -> Actions -> Repository secrets`.
+
+After the GitLab pipeline finishes, its `.post` stage will post the final
+status and a link to the results back to the GitHub PR as a comment. This is
+done through a GitHub App that we built and installed in the AMReX
+repository. The App was created via
+https://github.com/organizations/AMReX-Codes/settings/apps. It does not need
+"Webhook" access. For repository permissions, it only needs read & write to
+pull requests so it can create PR comments. The app requires a private key,
+which you generate during the setup. After the app was installed in the
+amrex repository, we got an installation ID. We then stored the app ID,
+installation ID and the private key in GitLab's `Settings -> CI/CD ->
+Variables`. The app ID isn't a secret. So you can store it as clear text. In
+fact, GitLab does not allow 7-digit masked variables anyway. The
+installation ID is also not senstive, but nevertheless we stored it as
+protected and masked. The private key is a secret that must be protected and
+masked. We also diabled "Expand" for all of these variables because the CI
+script doesn't need variable expansion. GitLab seems to have a bug that
+prevents saving the private key as a multi-line value, and saving it as a
+file didn't work either. So we encoded it with `base64 -w0` to turn it into
+a single line. That's why in the GitLab CI script we have to decode it.
