@@ -926,10 +926,14 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         }
     });
 
-    Gpu::streamSynchronize();
-    AMREX_GPU_ERROR_CHECK();
+    if (totalsum_p) {
+        Gpu::streamSynchronize();
+        AMREX_GPU_ERROR_CHECK();
 
-    The_Arena()->free(tile_state_p);
+        The_Arena()->free(tile_state_p);
+    } else {
+        Gpu::streamFree(The_Arena(), tile_state_p);
+    }
 
     T ret = (a_ret_sum) ? *totalsum_p : T(0);
     if (totalsum_p) { The_Pinned_Arena()->free(totalsum_p); }

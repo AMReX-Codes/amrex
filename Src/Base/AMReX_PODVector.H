@@ -834,6 +834,18 @@ namespace amrex
             std::swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
         }
 
+        void stream_free () noexcept
+        {
+            if (m_data != nullptr) {
+                if constexpr (IsArenaAllocator<Allocator>::value) {
+                    Gpu::streamFree(Allocator::arena(), m_data);
+                } else {
+                    deallocate(m_data, capacity());
+                }
+                m_data = nullptr;
+            }
+        }
+
     private:
 
         void reserve_doit (size_type a_capacity) {
