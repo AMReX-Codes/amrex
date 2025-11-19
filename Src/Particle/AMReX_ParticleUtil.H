@@ -580,6 +580,7 @@ partitionParticles (PTile& ptile, ParFunc const& is_left)
  * It must return the same result if evaluated multiple times for the same particle.
  *
  * \param ptile the ParticleTile to partition
+ * \param num_left number of particles in the left partition
  * \param is_left functor to map particles to a partition
  */
 template <typename PTile, typename ParFunc>
