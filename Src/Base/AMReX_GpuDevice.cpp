@@ -733,7 +733,7 @@ void
 Device::synchronize () noexcept
 {
 #ifdef AMREX_USE_SYCL
-    for (auto const& s : gpu_stream_pool) {
+    for (auto& s : gpu_stream_pool) {
         try {
             s.get().queue->wait_and_throw();
         } catch (sycl::exception const& ex) {
