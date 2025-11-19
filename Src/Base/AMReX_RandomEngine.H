@@ -4,6 +4,10 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
+#ifdef AMREX_USE_OMP
+#  include <AMReX_BLassert.H>
+#  include <omp.h>
+#endif
 
 #if defined(AMREX_USE_HIP)
 #pragma clang diagnostic push
@@ -32,8 +36,13 @@ namespace amrex
 
     extern sycl_rng_descr* rand_engine_descr;
 
-    AMREX_FORCE_INLINE
-    sycl_rng_descr* getRandEngineDescriptor () { return rand_engine_descr; }
+    inline
+    sycl_rng_descr* getRandEngineDescriptor () {
+#ifdef AMREX_USE_OMP
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(! omp_in_parallel(), "RNG on GPU is not OpenMP thread safe");
+#endif
+        return rand_engine_descr;
+    }
 
     struct RandomEngine {
         sycl_rng_engine* engine;
@@ -52,8 +61,13 @@ namespace amrex
 
     extern randState_t* gpu_rand_state;
 
-    AMREX_FORCE_INLINE
-    randState_t* getRandState () { return gpu_rand_state; }
+    inline
+    randState_t* getRandState () {
+#ifdef AMREX_USE_OMP
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(! omp_in_parallel(), "RNG on GPU is not OpenMP thread safe");
+#endif
+        return gpu_rand_state;
+    }
 
     struct RandomEngine {
         randState_t* rand_state;
