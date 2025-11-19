@@ -1315,6 +1315,16 @@ public:
         return exist;
     }
 
+
+    //! Add a key 'name' with value 'val' to the end of the ParmParse
+    //! database. Here T is an AMREX_ENUM type.
+    template <typename T, typename ET = amrex_enum_traits<T>,
+              std::enable_if_t<ET::value,int> = 0>
+    void add (std::string_view name, T const& val)
+    {
+        this->add(name, amrex::getEnumNameString(val));
+    }
+
     /**
      * \brief. Get enum value using given name.
      *

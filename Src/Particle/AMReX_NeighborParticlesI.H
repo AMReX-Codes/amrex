@@ -936,19 +936,11 @@ buildNeighborList (CheckPair const& check_pair, int type_ind, int* ref_ratio,
                 auto dxInv = lgeom.InvCellSizeArray();
                 auto ploa  = lgeom.ProbLoArray();
 
-#ifdef AMREX_USE_GPU
                 Gpu::htod_memcpy_async( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
                 Gpu::htod_memcpy_async( plo_v.data()   + type, ploa.data() , sizeof(ploa) );
                 Gpu::htod_memcpy_async( lo_v.data()    + type, &lo         , sizeof(lo)    );
                 Gpu::htod_memcpy_async( hi_v.data()    + type, &hi         , sizeof(hi)    );
                 Gpu::htod_memcpy_async( nbins_v.data() + type, &nbins      , sizeof(nbins) );
-#else
-                std::memcpy( dxi_v.data()   + type, dxInv.data(), sizeof(dxInv) );
-                std::memcpy( plo_v.data()   + type, ploa.data() , sizeof(ploa)  );
-                std::memcpy( lo_v.data()    + type, &lo         , sizeof(lo)    );
-                std::memcpy( hi_v.data()    + type, &hi         , sizeof(hi)    );
-                std::memcpy( nbins_v.data() + type, &nbins      , sizeof(nbins) );
-#endif
             }
 
             Gpu::exclusive_scan(nbins_v.begin(), nbins_v.end(), off_bins_v.begin());

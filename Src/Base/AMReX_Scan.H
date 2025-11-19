@@ -197,7 +197,8 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
-    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
+                        std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block);
     auto stream = Gpu::gpuStream();
@@ -228,7 +229,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
         T* shared2 = shared + Gpu::Device::warp_size;
 
         // Each block processes [ibegin,iend).
-        N ibegin = nelms_per_block * blockIdxx;
+        N ibegin = static_cast<N>(nelms_per_block) * blockIdxx;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
         // Each block is responsible for nchunks chunks of data,
@@ -366,7 +367,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
         int blockDimx = gh.item->get_local_range(0);
 
         // Each block processes [ibegin,iend).
-        N ibegin = nelms_per_block * blockIdxx;
+        N ibegin = static_cast<N>(nelms_per_block) * blockIdxx;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
         T prev_sum = (blockIdxx == 0) ? 0 : blocksum_p[blockIdxx-1];
         for (N offset = ibegin + threadIdxx; offset < iend; offset += blockDimx) {
@@ -398,7 +399,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
-    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
+                        std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
 
 #ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
@@ -462,7 +464,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
         }
 
         // Each block processes [ibegin,iend).
-        N ibegin = nelms_per_block * virtual_block_id;
+        N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
         BlockStatusT& block_status = block_status_p[virtual_block_id];
 
@@ -637,6 +639,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size; // # of threads per block
     constexpr int nelms_per_thread = sizeof(T) >= 8 ? 8 : 16;
     constexpr int nelms_per_block = nthreads * nelms_per_thread;
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
+                        std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = 0;
     auto stream = Gpu::gpuStream();
@@ -713,7 +717,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         auto const virtual_block_id = scan_bid.get(threadIdx.x, temp_storage.ordered_bid);
 
         // Each block processes [ibegin,iend).
-        N ibegin = nelms_per_block * virtual_block_id;
+        N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
         auto input_begin = rocprim::make_transform_iterator(
@@ -800,6 +804,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size; // # of threads per block
     constexpr int nelms_per_thread = sizeof(T) >= 8 ? 4 : 8;
     constexpr int nelms_per_block = nthreads * nelms_per_thread;
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
+                        std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (n + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = 0;
     auto stream = Gpu::gpuStream();
@@ -854,7 +860,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         int virtual_block_id = blockIdx.x;
 
         // Each block processes [ibegin,iend).
-        N ibegin = nelms_per_block * virtual_block_id;
+        N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
 
         auto input_lambda = [&] (N i) -> T { return fin(i+ibegin); };
@@ -944,7 +950,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
     constexpr int nthreads = nwarps_per_block*Gpu::Device::warp_size;
     constexpr int nchunks = 12;
     constexpr int nelms_per_block = nthreads * nchunks;
-    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(std::numeric_limits<int>::max())*nelms_per_block);
+    AMREX_ALWAYS_ASSERT(static_cast<Long>(n) < static_cast<Long>(
+                        std::numeric_limits<int>::max())*nelms_per_block);
     int nblocks = (static_cast<Long>(n) + nelms_per_block - 1) / nelms_per_block;
     std::size_t sm = sizeof(T) * (Gpu::Device::warp_size + nwarps_per_block) + sizeof(int);
     auto stream = Gpu::gpuStream();
@@ -997,7 +1004,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         }
 
         // Each block processes [ibegin,iend).
-        N ibegin = nelms_per_block * virtual_block_id;
+        N ibegin = static_cast<N>(nelms_per_block) * virtual_block_id;
         N iend = amrex::min(static_cast<N>(ibegin+nelms_per_block), n);
         BlockStatusT& block_status = block_status_p[virtual_block_id];
 

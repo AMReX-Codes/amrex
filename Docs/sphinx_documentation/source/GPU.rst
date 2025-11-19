@@ -560,8 +560,16 @@ to :cpp:`The_Arena()` to reduce memory fragmentation.
 In :cpp:`amrex::Initialize`, a large amount of GPU device memory is
 allocated and is kept in :cpp:`The_Arena()`.  The default is 3/4 of the
 total device memory, and it can be changed with a :cpp:`ParmParse`
-parameter, ``amrex.the_arena_init_size``, in the unit of bytes.  The default
-initial size for other arenas is 8388608 (i.e., 8 MB).  For
+parameter, ``amrex.the_arena_init_size``, in the unit of bytes. The default
+can also be changed with an environment variable
+``AMREX_THE_ARENA_INIT_SIZE=X``, where ``X`` is the number of bytes. When
+both the :cpp:`ParmParse` parameter and the environment variable are
+present, the former will override the latter. In both cases, the number
+string could have optional single quotes ``'`` as separators (e.g.,
+``10'000'000'000``). It may also use floating-point notation (``2.5e10``),
+as long as converting it does not introduce any loss of precision.
+
+The default initial size for other arenas is 8388608 (i.e., 8 MB).  For
 :cpp:`The_Managed_Arena()` and :cpp:`The_Device_Arena()`, it can be changed
 with ``amrex.the_managed_arena_init_size`` and
 ``amrex.the_device_arena_init_size``, respectively, if they are not an alias

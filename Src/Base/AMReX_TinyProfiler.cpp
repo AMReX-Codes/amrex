@@ -17,7 +17,9 @@
 #endif
 
 #ifdef AMREX_USE_CUDA
-#if __has_include(<nvtx3/nvToolsExt.h>)
+#if __has_include(<nvtx3/nvtx3.hpp>)
+#  include <nvtx3/nvtx3.hpp>
+#elif __has_include(<nvtx3/nvToolsExt.h>)
 #  include <nvtx3/nvToolsExt.h>
 #else
 #  include <nvToolsExt.h>

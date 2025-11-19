@@ -322,11 +322,7 @@ public:
 
         // Get tot bin count on host
         int tot_bins;
-#ifdef AMREX_USE_GPU
         Gpu::dtoh_memcpy( &tot_bins, off_bins_p + num_bin_types, sizeof(int) );
-#else
-        std::memcpy( &tot_bins, off_bins_p + num_bin_types, sizeof(int) );
-#endif
 
         m_bins.build(np_total, pstruct_ptr, tot_bins, bm);
 
@@ -397,11 +393,7 @@ public:
 
         // Now we can allocate and build our neighbor list
         unsigned int total_nbors;
-#ifdef AMREX_USE_GPU
         Gpu::dtoh_memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
-#else
-        std::memcpy(&total_nbors,m_nbor_offsets.dataPtr()+np_size,sizeof(unsigned int));
-#endif
 
         m_nbor_list.resize(total_nbors);
         auto* pm_nbor_list = m_nbor_list.dataPtr();

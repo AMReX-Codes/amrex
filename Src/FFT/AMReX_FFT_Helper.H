@@ -402,7 +402,7 @@ struct Plan
         strides[0] = 0;
         strides[ndims] = 1;
         for (int i = ndims-1; i >= 1; --i) {
-            strides[i] = strides[i+1] * len[ndims-1-i];
+            strides[i] = strides[i+1] * len[i];
         }
 #ifndef AMREX_USE_MKL_DFTI_2024
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
