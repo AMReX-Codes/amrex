@@ -48,7 +48,13 @@ the creation of particle initial conditions in parallel. In storing these
 identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550 billion
 possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
 unique (MPI) processes.
-One bit is devoted to mark a particle valid or invalid.
+
+One bit is devoted to mark a particle valid or invalid. This is often used to remove particles from a
+simulation. During :cpp:`Redistribute()`, particles with
+invalid ids are removed from the simulation by default, although this behavior is customizable. Particles
+with invalid ids are also not written out during plotfile writes or checkpoint / restart operations.
+The allowed values for :cpp:`p.id()` are `0` to `2**39 - 1`, and the allowed values for :cpp:`p.cpu()` are
+`0` to `2**24 - 1`.
 
 To pack and unpack these numbers, one uses the following syntax:
 
