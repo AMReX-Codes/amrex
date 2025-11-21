@@ -570,6 +570,71 @@ partitionParticles (PTile& ptile, ParFunc const& is_left)
     return num_left;
 }
 
+/**
+ * \brief Reorders the ParticleTile into two partitions
+ * left [0, num_left-1] and right [num_left, ptile.numParticles()-1].
+ * This version of the function requires the correct amount for num_left to be passed as an input,
+ * which allows it to skip a reduction. 
+ *
+ * The functor is_left [(ParticleTileData ptd, int index) -> bool] maps each particle to
+ * either the left [return true] or the right [return false] partition.
+ * It must return the same result if evaluated multiple times for the same particle.
+ *
+ * \param ptile the ParticleTile to partition
+ * \param num_left number of particles in the left partition
+ * \param is_left functor to map particles to a partition
+ */
+template <typename PTile, typename ParFunc>
+void
+partitionParticles (PTile& ptile, int num_left, ParFunc const& is_left)
+{
+    const int np = ptile.numParticles();
+    if (np == 0) { return; }
+
+    auto ptd = ptile.getParticleTileData();
+
+    const int max_num_swaps = std::min(num_left, np - num_left);
+    if (max_num_swaps == 0) { return; }
+
+    Gpu::DeviceVector<int> index_left(max_num_swaps);
+    Gpu::DeviceVector<int> index_right(max_num_swaps);
+    int * const p_index_left = index_left.dataPtr();
+    int * const p_index_right = index_right.dataPtr();
+
+    Scan::PrefixSum<int>(np,
+        [=] AMREX_GPU_DEVICE (int i) -> int
+        {
+            return int(!is_left(ptd, i));
+        },
+        [=] AMREX_GPU_DEVICE (int i, int const& s)
+        {
+            if (!is_left(ptd, i)) {
+                int dst = s;
+                if (dst < max_num_swaps) {
+                    p_index_right[dst] = i;
+                }
+            } else {
+                int dst = num_left-1-(i-s); // avoid integer overflow
+                if (dst < max_num_swaps) {
+                    p_index_left[dst] = i;
+                }
+            }
+        },
+        Scan::Type::exclusive, Scan::noRetSum);
+
+    ParallelFor(max_num_swaps,
+        [=] AMREX_GPU_DEVICE (int i)
+        {
+            int left_i = p_index_left[i];
+            int right_i = p_index_right[i];
+            if (right_i < left_i) {
+                swapParticle(ptd, ptd, left_i, right_i);
+            }
+        });
+
+    Gpu::streamSynchronize(); // for index_left and index_right deallocation
+}
+
 template <typename PTile>
 void
 removeInvalidParticles (PTile& ptile)
