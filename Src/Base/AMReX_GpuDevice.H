@@ -268,6 +268,15 @@ streamSynchronizeAll () noexcept
     Device::streamSynchronizeAll();
 }
 
+/** Deallocate memory belonging to an arena asynchronously.
+ * Memory deallocated in this way is held in a pool and will not be reused until
+ * the next amrex::Gpu::streamSynchronize(). GPU kernels that were already launched on the
+ * currently active stream can still continue to use the memory after this function is called.
+ * There is no need to use this function for CPU-only memory or with The_Async_Arena.
+ *
+ * \param[in] arena the arena the memory belongs to
+ * \param[in] mem pointer to the memory to be freed
+ */
 inline void
 streamFree (Arena* arena, void* mem) noexcept
 {

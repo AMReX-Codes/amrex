@@ -834,6 +834,11 @@ namespace amrex
             std::swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
         }
 
+        /** Deallocate the memory of the PODVector using amrex::Gpu::streamFree.
+         * Memory deallocated in this way is held in a pool and will not be reused until the next
+         * amrex::Gpu::streamSynchronize(). GPU kernels that were already launched on the currently
+         * active stream can still continue to use the memory after this function is called.
+         */
         void stream_free () noexcept
         {
             if (m_data != nullptr) {
@@ -843,6 +848,8 @@ namespace amrex
                     deallocate(m_data, capacity());
                 }
                 m_data = nullptr;
+                m_size = 0;
+                m_capacity = 0;
             }
         }
 
