@@ -181,7 +181,7 @@ StreamManager::sync () {
 }
 
 void
-StreamManager::stream_free (Arena* arena, void* mem) {
+StreamManager::free_async (Arena* arena, void* mem) {
     if (arena->isDeviceAccessible()) {
         std::size_t free_wait_list_size = 0;
         {
@@ -765,10 +765,10 @@ Device::streamSynchronizeAll () noexcept
 }
 
 void
-Device::streamFree (Arena* arena, void* mem) noexcept
+Device::freeAsync (Arena* arena, void* mem) noexcept
 {
 #ifdef AMREX_USE_GPU
-    gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].stream_free(arena, mem);
+    gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].free_async(arena, mem);
 #else
     arena->free(mem);
 #endif

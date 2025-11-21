@@ -932,7 +932,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         The_Arena()->free(tile_state_p);
     } else {
-        Gpu::streamFree(The_Arena(), tile_state_p);
+        Gpu::freeAsync(The_Arena(), tile_state_p);
     }
 
     T ret = (a_ret_sum) ? *totalsum_p : T(0);

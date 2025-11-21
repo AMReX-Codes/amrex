@@ -61,7 +61,7 @@ class StreamManager {
 public:
     [[nodiscard]] gpuStream_t& get ();
     void sync ();
-    void stream_free (Arena* arena, void* mem);
+    void free_async (Arena* arena, void* mem);
 };
 #endif
 
@@ -123,7 +123,7 @@ public:
      */
     static void streamSynchronizeAll () noexcept;
 
-    static void streamFree (Arena* arena, void* mem) noexcept;
+    static void freeAsync (Arena* arena, void* mem) noexcept;
 
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
@@ -278,9 +278,9 @@ streamSynchronizeAll () noexcept
  * \param[in] mem pointer to the memory to be freed
  */
 inline void
-streamFree (Arena* arena, void* mem) noexcept
+freeAsync (Arena* arena, void* mem) noexcept
 {
-    Device::streamFree(arena, mem);
+    Device::freeAsync(arena, mem);
 }
 
 #ifdef AMREX_USE_GPU

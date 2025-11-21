@@ -564,8 +564,8 @@ partitionParticles (PTile& ptile, ParFunc const& is_left)
             }
         });
 
-    index_left.stream_free();
-    index_right.stream_free();
+    index_left.free_async();
+    index_right.free_async();
 
     return num_left;
 }
@@ -632,8 +632,8 @@ partitionParticles (PTile& ptile, int num_left, ParFunc const& is_left)
             }
         });
 
-    index_left.stream_free();
-    index_right.stream_free();
+    index_left.free_async();
+    index_right.free_async();
 }
 
 template <typename PTile>
