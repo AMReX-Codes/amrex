@@ -359,7 +359,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
     void setBottomSolver (BottomSolver s);
 
-Available choices are
+Available choices the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
@@ -379,15 +379,23 @@ Available choices are
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
+The :cpp:`LPInfo` class can be used control the agglomeration and
+consolidation strategy for multigrid coarsening.
+
 - :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
   to copy the current level of multigrid data to fewer, larger
   boxes. Two advantages of using this option is that the bottom solver will become
   smaller, and communication overhead is reduced.
 
-- :cpp:`LPInfo::setAgglomerationGridSize(int)` (by default 8 in 1D, 16 in 2D, 32 in 3D)
-  if agglomeration is used, when the average box size becomes smaller than agg_grid_size^{DIM},
-  boxes will agglomerate until this is no longer the case.  Note that this action is
-  recursive and can happen at several different levels in the multigrid hierarchy.
+- :cpp:`LPInfo::setAgglomerationGridSize(int)` controls the grid-length
+  threshold used for agglomeration. By default, the threshold length is set
+  to 32 for GPU builds, and 8, 16 and 32 for CPU builds in 1D, 2D and 3D,
+  respectively. The corresponding volume threshold is :math:`L^D`, where
+  :math:`L` is the length threshold and :math:`D` is
+  :cpp:`AMREX_SPACEDIM`. When the average box volume falls below this volume
+  threshold, boxes are agglomerated until this is no longer the case. Note
+  that this action is recursive and can happen at several different levels
+  in the multigrid hierarchy.
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
   continue to transfer a multigrid problem to fewer MPI ranks.
