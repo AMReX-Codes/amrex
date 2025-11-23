@@ -42,8 +42,8 @@ For the nodal solver, :math:`A` and :math:`\alpha` are assumed to be zero,
 :math:`\phi` and :math:`f` are nodal,
 and :math:`\beta` (which we later refer to as :math:`\sigma`) is cell-centered.
 
-In addition to these solvers, AMReX has support for tensor solves used to
-calculate the viscous terms that appear in the compressible Navier-Stokes
+In addition to these solvers, AMReX has support for tensor solves used
+to calculate the viscous terms that appear in the compressible Navier-Stokes
 equations.  In these solves, all components of the velocity field are solved
 for simultaneously.  The tensor solve functionality is only available for
 cell-centered velocity. AMReX also supports the curl-curl operator, with
