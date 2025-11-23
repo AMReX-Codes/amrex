@@ -856,19 +856,19 @@ Curl-Curl
 The curl-curl solver supports solving the linear system arising from the
 discretized form of
 
-.. math:: \nabla \times (\alpha \nabla \times \mathbf{E}) + \beta \mathbf{E} = \mathbf{f},
+.. math:: \nabla \times (\alpha \nabla \times \vec{E}) + \beta \vec{E} = \vec{f},
 
-where :math:`\mathbf{E}` and :math:`\mathbf{f}` are defined on grid edges,
+where :math:`\vec{E}` and :math:`\vec{f}` are defined on grid edges,
 :math:`\alpha` is a positive scalar, and :math:`\beta` is a non-negative
 scalar (either a constant or a field). An :cpp:`Array` of three
-:cpp:`MultiFab`\ s is used to store the components of :math:`\mathbf{E}` and
-:math:`\mathbf{f}`. It's the user's responsibility to ensure that the
+:cpp:`MultiFab`\ s is used to store the components of :math:`\vec{E}` and
+:math:`\vec{f}`. It's the user's responsibility to ensure that the
 right-hand-side data are consistent on edges shared by multiple
 :cpp:`Box`\ es.  If needed, you can call :cpp:`MLCurlCurl::prepareRHS` to
 perform this synchronization.
 
 The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
-:math:`\mathbf{E}` still has three components, one for each spatial
+:math:`\vec{E}` still has three components, one for each spatial
 direction.
 
 Open Boundary Poisson Solver
