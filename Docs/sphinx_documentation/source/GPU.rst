@@ -1607,7 +1607,7 @@ including AMReX's native kernel launching mechanisms as well OpenMP and OpenACC.
        amrex::ParallelFor( np,
        [=] AMREX_GPU_DEVICE (const int ip) noexcept
        {
-           ptd[i].make_invalid();
+           ptd.id(i).make_invalid();
        });
    }
 
