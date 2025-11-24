@@ -37,7 +37,7 @@ Additional information that is required for creating GPU applications is
 detailed throughout the rest of this chapter:
 
 - Each MPI rank offloads its work to a single GPU. Multiple ranks can share the
-  same device, but best performance we usually recommend ``(MPI ranks == Number of GPUs)``.
+  same device, but for best performance we usually recommend ``(MPI ranks == Number of GPUs)``.
 
 - GPU kernels are launched through ``ParallelFor`` looping constructs that use GPU extended lambdas,
   providing performance portability. When commpiled with GPU support, these constructs launch
