@@ -40,7 +40,7 @@ detailed throughout the rest of this chapter:
   same device, but for best performance we usually recommend ``(MPI ranks == Number of GPUs)``.
 
 - GPU kernels are launched through ``ParallelFor`` looping constructs that use GPU extended lambdas,
-  providing performance portability. When commpiled with GPU support, these constructs launch
+  providing performance portability. When compiled with GPU support, these constructs launch
   kernels with a large number GPU threads that only work on a few cells each. This work
   distribution is illustrated in :numref:`fig:gpu:threads`.
 
