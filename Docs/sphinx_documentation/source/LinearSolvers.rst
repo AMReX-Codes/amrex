@@ -360,7 +360,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
     void setBottomSolver (BottomSolver s);
 
-Available choices the bottom solver are
+Available choices of the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
