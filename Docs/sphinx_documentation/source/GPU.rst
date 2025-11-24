@@ -10,7 +10,7 @@ Overview of AMReX GPU Support
 =============================
 
 AMReX's GPU support focuses on providing performance portability
-with minimal code changes required at the application level . This allows
+with minimal code changes required at the application level. This allows
 application teams to use a single, maintainable codebase that works
 on a variety of platforms while allowing for the performance tuning of specific,
 high-impact kernels if desired.
