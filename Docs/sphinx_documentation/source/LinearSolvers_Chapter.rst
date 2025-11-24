@@ -9,10 +9,10 @@ Linear Solvers
 AMReX supports both single-level solves and composite solves on multiple AMR levels,
 with the solution to the linear system defined on either cell centers, edges or nodes.
 AMReX also supports solution of linear systems with embedded boundaries.
-(See chapter :ref:`Chap:EB` for more details on the embedded boundary representation of complex geometry.)
-In addition to the iterative solvers discussed in this chapter, AMReX also
-supports solving Poisson equations using Fast Fourier Transform (FFT) (see
-chapter :ref:`Chap:FFT` for more information).
+(See chapter :ref:`Chap:EB` for more details on the embedded boundary representation of
+complex geometry.) In addition to the iterative solvers discussed in this
+chapter, AMReX also supports solving Poisson equations using Fast Fourier
+Transform (FFT) (see chapter :ref:`Chap:FFT` for more information).
 
 The default solution technique is geometric multigrid. AMReX also provides
 BiCGStab solvers, GMRES, and interfaces to the hypre and PETSc libraries.
