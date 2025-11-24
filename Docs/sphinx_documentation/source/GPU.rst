@@ -10,7 +10,8 @@ Overview of AMReX GPU Support
 =============================
 
 AMReX's GPU support focuses on providing performance portability
-with minimal code changes required at the application level. This allows
+across a range of important architectures with minimal
+code changes required at the application level. This allows
 application teams to use a single, maintainable codebase that works
 on a variety of platforms while allowing for the performance tuning of specific,
 high-impact kernels if desired.
@@ -28,8 +29,9 @@ AMReX uses an ``MPI+X`` approach to hierarchical parallelism. When running on
 CPUs, ``X`` is ``OpenMP``, and threads are used to process tiles assigned to the
 same MPI rank concurrently, as detailed in :ref:`sec:basics:mfiter:tiling`. On GPUs,
 ``X`` is one of ``CUDA/HIP/SYCL``, and tiling is disabled by default
-to mitigate the overhead associated with kernel launching. Instead, one or more cells
-in a a given ``Box`` are mapped to a given GPU thread, as detailed in :numref:`fig:gpu:threads`
+to mitigate the overhead associated with kernel launching. Instead, kernels are usually
+launched at the ``Box`` level, and one or more cells
+in a given ``Box`` are mapped to a each GPU thread, as detailed in :numref:`fig:gpu:threads`
 below.
 
 Presented here is an overview of important features of AMReX's GPU strategy.
@@ -39,9 +41,9 @@ detailed throughout the rest of this chapter:
 - Each MPI rank offloads its work to a single GPU. Multiple ranks can share the
   same device, but for best performance we usually recommend ``(MPI ranks == Number of GPUs)``.
 
-- GPU kernels are launched through ``ParallelFor`` looping constructs that use GPU extended lambdas,
-  providing performance portability. When compiled with GPU support, these constructs launch
-  kernels with a large number GPU threads that only work on a few cells each. This work
+- To provide performance portability, GPU kernels are usually launched through ``ParallelFor`` looping constructs
+  that use GPU extended lambdas to specify the work to be performed on each loop element. When compiled with GPU
+  support, these constructs launch kernels with a large number GPU threads that only work on a few cells each. This work
   distribution is illustrated in :numref:`fig:gpu:threads`.
 
 .. |a| image:: ./GPU/gpu_2.png
