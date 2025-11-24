@@ -1613,7 +1613,7 @@ including AMReX's native kernel launching mechanisms as well OpenMP and OpenACC.
 
 The above code simply invalidates all particle on all particle tiles. The ``ParticleTileData``
 object is analagous to ``Array4`` in that it stores pointers to particle data and can be used
-on either the host or the device. It is a convenient way to pass particle data into GPU kernels
+on either the host or the device. This is a convenient way to pass particle data into GPU kernels
 because the same object can be used regardless of whether the data layout is AoS or SoA.
 
 An example Fortran particle subroutine offloaded via OpenACC might look like the following:
