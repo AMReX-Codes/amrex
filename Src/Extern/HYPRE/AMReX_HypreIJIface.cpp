@@ -393,6 +393,7 @@ void HypreIJIface::ilu_precond_configure (const std::string& prefix)
 
 
     HypreOptParse hpp(prefix, m_precond);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
     // Process ILU smoother parameters
     // ParILUK
     hpp("ilu_type", HYPRE_ILUSetType);
@@ -406,6 +407,7 @@ void HypreIJIface::ilu_precond_configure (const std::string& prefix)
     // ILUT
     hpp("ilu_max_nnz_per_row", HYPRE_ILUSetMaxNnzPerRow);
     hpp("ilu_drop_threshold", HYPRE_ILUSetDropThreshold);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
     hpp("ilu_iterative_algorithm_type", HYPRE_ILUSetIterativeSetupType);
     hpp("ilu_iterative_setup_type", HYPRE_ILUSetIterativeSetupOption);
     hpp("ilu_iterative_max_iter", HYPRE_ILUSetIterativeSetupMaxIter);
@@ -413,6 +415,8 @@ void HypreIJIface::ilu_precond_configure (const std::string& prefix)
     hpp("ilu_tri_solve", HYPRE_ILUSetTriSolve);
     hpp("ilu_lower_jacobi_iters", HYPRE_ILUSetLowerJacobiIters);
     hpp("ilu_upper_jacobi_iters", HYPRE_ILUSetUpperJacobiIters);
+#endif
+#endif
 }
 
 void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
