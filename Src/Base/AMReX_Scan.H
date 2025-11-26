@@ -378,11 +378,14 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
     T totalsum = 0;
     if (a_ret_sum) {
         Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
-    }
-    Gpu::streamSynchronize();
-    The_Arena()->free(dp);
 
-    AMREX_GPU_ERROR_CHECK();
+        Gpu::streamSynchronize();
+        The_Arena()->free(dp);
+
+        AMREX_GPU_ERROR_CHECK();
+    } else {
+        Gpu::freeAsync(The_Arena(), dp);
+    }
 
     return totalsum;
 }
@@ -617,11 +620,14 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
         // xxxxx SYCL todo: Should test if using pinned memory and thus
         // avoiding memcpy is faster.
         Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
-    }
-    Gpu::streamSynchronize();
-    The_Arena()->free(dp);
 
-    AMREX_GPU_ERROR_CHECK();
+        Gpu::streamSynchronize();
+        The_Arena()->free(dp);
+
+        AMREX_GPU_ERROR_CHECK();
+    } else {
+        Gpu::freeAsync(The_Arena(), dp);
+    }
 
     return totalsum;
 }
@@ -780,10 +786,14 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         }
     });
 
-    Gpu::streamSynchronize();
-    AMREX_GPU_ERROR_CHECK();
+    if (totalsum_p) {
+        Gpu::streamSynchronize();
+        AMREX_GPU_ERROR_CHECK();
 
-    The_Arena()->free(dp);
+        The_Arena()->free(dp);
+    } else {
+        Gpu::freeAsync(The_Arena(), dp);
+    }
 
     T ret = (a_ret_sum) ? *totalsum_p : T(0);
     if (totalsum_p) { The_Pinned_Arena()->free(totalsum_p); }
@@ -1177,11 +1187,14 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
         // xxxxx CUDA < 11 todo: Should test if using pinned memory and thus
         // avoiding memcpy is faster.
         Gpu::dtoh_memcpy_async(&totalsum, totalsum_p, sizeof(T));
-    }
-    Gpu::streamSynchronize();
-    The_Arena()->free(dp);
 
-    AMREX_GPU_ERROR_CHECK();
+        Gpu::streamSynchronize();
+        The_Arena()->free(dp);
+
+        AMREX_GPU_ERROR_CHECK();
+    } else {
+        Gpu::freeAsync(The_Arena(), dp);
+    }
 
     return totalsum;
 }
