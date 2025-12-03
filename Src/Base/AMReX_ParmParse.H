@@ -1710,7 +1710,7 @@ public:
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
         mutable Long                          m_count = 0;
-        std::variant<
+        mutable std::variant<
             std::string*,
             bool*,
             int*,
@@ -1721,6 +1721,8 @@ public:
             float*,
             double*
         > m_typehint = static_cast<std::string*>(nullptr);
+        mutable std::vector<std::variant<bool, int, long, long long, float, double>> m_last_vals;
+        mutable bool m_parsed = false;
     };
     using Table = std::unordered_map<std::string, PP_entry>;
 
