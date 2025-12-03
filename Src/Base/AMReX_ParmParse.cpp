@@ -690,7 +690,7 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
 #pragma omp single nowait
 #endif
     {
-        if (ival >= entry.m_last_vals.size()) {
+        if (ival >= int(entry.m_last_vals.size())) {
             entry.m_last_vals.resize(ival+1);
         }
         entry.m_last_vals[ival] = ref;
@@ -2351,7 +2351,6 @@ bool squeryarrWithParser (const ParmParse::Table& table,
 #pragma omp single nowait
 #endif
     {
-        auto const& entry = table.at(name);
         using T_ptr = std::decay_t<T>*;
         entry.m_typehint = static_cast<T_ptr>(nullptr);
     }
