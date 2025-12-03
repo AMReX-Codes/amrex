@@ -165,8 +165,12 @@ void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
         int ncasesy = (AMREX_SPACEDIM > 1) ? ncases : 1;
         int ncasesz = (AMREX_SPACEDIM > 2) ? ncases : 1;
         if (n_cell_x == 1) { ncasesx = 1; }
+#if (AMREX_SPACEDIM > 1)
         if (n_cell_y == 1) { ncasesy = 1; }
+#endif
+#if (AMREX_SPACEDIM == 3)
         if (n_cell_z == 1) { ncasesz = 1; }
+#endif
         int icase = 0;
         for (int zcase = 0; zcase < ncasesz; ++zcase) {
         for (int ycase = 0; ycase < ncasesy; ++ycase) {
