@@ -1544,8 +1544,13 @@ Initialize ()
 {
 #if defined(AMREX_USE_CUDA)
 
-#if (defined(OMPI_HAVE_MPI_EXT_CUDA) && OMPI_HAVE_MPI_EXT_CUDA) || (defined(MPICH) && defined(MPIX_GPU_SUPPORT_CUDA))
+#if defined(OMPI_HAVE_MPI_EXT_CUDA) && OMPI_HAVE_MPI_EXT_CUDA
     use_gpu_aware_mpi = (bool) MPIX_Query_cuda_support();
+#elif defined(MPICH) && defined(MPIX_GPU_SUPPORT_CUDA)
+    int is_supported = 0;
+    if (MPIX_GPU_query_support(MPIX_GPU_SUPPORT_CUDA, &is_supported) == MPI_SUCCESS) {
+        use_gpu_aware_mpi = (bool) is_supported;
+    }
 #endif
 
 #elif defined(AMREX_USE_HIP)
