@@ -1,3 +1,65 @@
+# 25.12
+
+ ## Highlights:
+
+  * There is a new overload of partitionParticles that takes num_left as an
+    input to skip the reduction that would compute num_left in the original
+    function. This can be useful when combining the reduction with other
+    operations in an effort to reduce the overhead from extra kernel
+    launches and stream synchronizations.
+
+  * We can now set the default value of amrex.the_arena_init_size with an
+    environment variable, AMREX_THE_ARENA_INIT_SIZE. This is convenient for
+    CI jobs.
+
+  * Fix restart w/ out-of-bounds Particles. Seen on Frontier at 6000 nodes.
+    If the particle locator decides that a particle is out-of-bounds, it
+    used an inconsistent level for the particle in restart. Now, it uses the
+    currently loaded level consistently, with an invalid-marked tile.
+
+  * `PC::make_alike<Allocator>` changes the template default of
+    `make_alike<>()` to use the same allocator as the creating
+    allocator. This is a breaking change.
+
+  * Add some extra room when we call `PODVector::resize` and `reserve`. By
+    default, the extra capacity is computed as 3*sqrt(capacity), and is
+    capped at 10%. Other strategies can be specified with the GrowthStrategy
+    argument to PODVector resize and reserve. This helps particle codes
+    avoid memory re-allocation.
+
+ ## Other major changes:
+
+  * Fix compile error with Conduit + Particles (#4813)
+
+  * Fix loop bounds in selectActualNeighbors (#4809)
+
+  * RNG on GPU: Assertion it's not in OMP parallel region (#4799)
+
+  * Add int overflow assert to PrefixSum (#4794)
+
+  * Add index and size information to Vector assertion message (#4790)
+
+  * Add Amr::derive overloads for all levels (#4780)
+
+  * ParticleContainerToBlueprint: Allocator (#4776)
+
+  * Add amrex::Math::rsqrt (#4777)
+
+  * AMREX_ENUM: Fix enumerator = int (#4766)
+
+  * Make htod_memcpy_async available on CPU (#4640)
+
+  * Add ParmParse::Add for AMREX_NUM (#4765)
+
+  * use atomic add in SRD algorithm (#4754)
+    Refactor MLStateRedist to run faster when many cells have no nbors (#4742)
+
+  * amrex::Initialize: Add optional argument of device ID (#4741)
+
+  * Minor optimization of ReduceToPlaneMF2 (#4745)
+
+  * Fix PODVector shrink_to_fit() with nonzero size (#4748)
+
 # 25.11
 
  ## Highlights:
