@@ -1050,10 +1050,10 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             host_particles[lev][ind];
 
             for (int j = 0; j < AMREX_SPACEDIM; j++) {
-                host_real_attribs[pld.m_lev][ind][j].push_back(ptemp.pos(j));
+                host_real_attribs[lev][ind][j].push_back(ptemp.pos(j));
             }
 
-            host_idcpu[pld.m_lev][ind].push_back(ptemp.m_idcpu);
+            host_idcpu[lev][ind].push_back(ptemp.m_idcpu);
 
             // read all other SoA
             // add the real...

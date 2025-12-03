@@ -24,24 +24,47 @@ type of components that the particles carry. The first template parameter is the
 number of extra :cpp:`Real` variables this particle will have (either single or
 double precision [1]_), while the second is the number of extra integer
 variables.  It is important to note that this is the number of *extra* real and
-integer variables; a particle will always have at least :cpp:`BL_SPACEDIM` real
-components that store the particle's position and 2 integer components that
-store the particle's :cpp:`id` and :cpp:`cpu` numbers. [2]_
+integer variables; a particle will always have at least :cpp:`AMREX_SPACEDIM` real
+components that store the particle's position and one 64-bit integer component that
+stores a combination of the particle's unique `id` and `cpu` numbers.
 
-The particle struct is designed to store these variables in a way that
-minimizes padding, which in practice means that the :cpp:`Real` components
-always come first, and the integer components second. Additionally, the
-required particle variables are stored before the optional ones, for both the
-real and the integer components. For example, say we want to define a particle
-type that stores a mass, three velocity components, and two extra integer
-flags. Our particle struct would be set up like:
+The particle struct is stored such that the :cpp:`Real` components come first
+and the integer component second. Additionally, the required particle variables
+are stored before the optional ones, for both the real and the integer components.
+For example, say we want to define a particle type that stores a mass, three velocity
+components, and two extra integer flags. Our particle struct would be declared like:
 
 ::
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3):
-:cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
+and the order of the particle components in would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
+:cpp:`x y z m vx vy vz idcpu flag1 flag2`.  [2]_
+
+The `idcpu` variable stores a combination of the MPI process a particle was generated on
+(the `cpu`) and an identification number that is specific to that process (the `id`).
+The combination of these numbers is unique across processes. This is done to facilitate
+the creation of particle initial conditions in parallel. In storing these
+identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550 billion
+possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
+unique (MPI) processes.
+
+One bit is devoted to mark a particle valid or invalid. This is often used to remove particles from a
+simulation. During :cpp:`Redistribute()`, particles with
+invalid ids are removed from the simulation by default, although this behavior is customizable. Particles
+with invalid ids are also not written out during plotfile writes or checkpoint / restart operations.
+The allowed values for :cpp:`p.id()` are `0` to `2**39 - 1`, and the allowed values for :cpp:`p.cpu()` are
+`0` to `2**24 - 1`.
+
+To pack and unpack these numbers, one uses the following syntax:
+
+::
+
+       Particle <0, 0> p;
+       p.id() = 1;
+       p.cpu() = 0;
+       amrex::Print() << p.m_idcpu << "\n"; // 9223372036871553024
+       amrex::Print() << p.id() << " " << p.cpu() << "\n"; // 1 0
 
 Setting Particle data
 ---------------------
@@ -135,24 +158,15 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
 
    \end{center}
 
-To see why the distinction between AoS and SoA data is important, consider the
-following extreme case. Say you have particles that carry 100 different
-components, but that most of the time, you only need to do calculations
-involving 3 of them (say, the particle positions) at once. In this case,
-storing all 100 particle variables in the particle struct is clearly
-inefficient, since most of the time you are reading 97 extra variables into
-cache that you will never use. By splitting up the particle variables into
-stuff that gets used all the time (stored in the AoS) and stuff that only gets
-used infrequently (stored in the SoA), you can in principle achieve much better
-cache reuse. Of course, the usage pattern of your application likely won't be
-so clear-cut. Flexibility in how the particle data is stored also makes it
-easier to interface between AMReX and already-existing Fortran subroutines.
+.. attention::
 
-Note that while "extra" particle data can be stored in either the SoA or AoS
-style, the particle positions and id numbers are **always** stored in the
-particle structs. This is because these particle variables are special and used
-internally by AMReX to assign the particles to grids and to mark particles as
-valid or invalid, respectively.
+   The ability to store particle data in AoS form is provided for backward
+   compatibility and convenience; however, for performance reasons, whether
+   targeting CPU or GPU execution, we recommend storing extra particle variables in SoA form.
+   Additionally, starting in AMReX version 23.05, the ability to store *all* particle
+   data, including the particle positions and `idcpu` numbers, is provided via the
+   :cpp:`amrex::ParticleContainerPureSoA` class. Details on using pure SoA particles
+   are provided in the Section on :ref:`sec:Particles:PureSoA`.
 
 Constructing ParticleContainers
 -------------------------------
@@ -440,8 +454,7 @@ example:
            real(amrex_particle_real) :: pos(3)
            real(amrex_particle_real) :: vel(3)
            real(amrex_particle_real) :: acc(3)
-           integer(c_int)   :: id
-           integer(c_int)   :: cpu
+           integer(c_int64_t) :: idcpu
         end type particle_t
 
 is equivalent to a particle struct you get with :cpp:`Particle<6, 0>`. Here,
@@ -450,6 +463,41 @@ on whether ``USE_SINGLE_PRECISION_PARTICLES`` is ``TRUE`` or not. We recommend
 always using this type in Fortran routines that work on particle data to avoid
 hard-to-debug incompatibilities between floating point types.
 
+.. _sec:Particles:PureSoA:
+
+Pure Struct-of-Array Particles
+------------------------------
+
+Beginning with AMReX version 24.05, the requirement that the particle positions
+and ids be stored in AoS form has been lifted. Users can now use the class
+:cpp:`amrex::ParticleContainerPureSoA`, which stores all components in SoA form.
+When using data layout, it is assumed that the first :cpp:`AMREX_SPACEDIM` :cpp:`Real`
+components store the particle position variables, which are used internally to map
+particle coordinates to grids and cells.
+
+For the most part, functions that work on the standard :cpp:`ParticleContainer` will
+also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to access
+the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
+particlularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
+allows the same code to work with both AoS and pure SoA particles. For example, within
+a ``ParIter`` loop, one can do:
+
+.. highlight:: c++
+
+::
+
+    // Iterating over SoA Particles
+    ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData();
+
+    ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
+    {
+        ParticleType p = ptd[ip];  // p will be a different type for AoS and pure SoA
+        // use p.pos(0), p.id(), etc.
+    }
+
+In this way, code can be written that is agnostic as to the data layout. For more examples
+of pure SoA particles, please see the SOA tests in :cpp:`amrex/Tests/Particles/`, or refer
+to `WarpX <https://github.com/BLAST-WarpX/warpx>`_, `Hipace++ <https://github.com/Hi-PACE/hipace>`_, or `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_, which use this type of particle container.
 
 .. _sec:Particles:Interacting:
 
@@ -793,9 +841,6 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
 .. [2]
-   Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one it's currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
-
-.. [3]
    Note that for the extra particle components, which component refers to which
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please
