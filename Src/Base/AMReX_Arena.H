@@ -225,7 +225,7 @@ protected:
     virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
-    static void out_of_memory_abort (std::string const& memory_type, amrex::Long nbytes,
+    static void out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
                                      std::string const& error_msg);
 
     struct ArenaProfiler {

@@ -694,7 +694,7 @@ Arena::PrintUsageToFiles (const std::string& filename, const std::string& messag
 }
 
 void
-Arena::out_of_memory_abort (std::string const& memory_type, amrex::Long nbytes,
+Arena::out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
                             std::string const& error_msg)
 {
     std::ostringstream ss;
