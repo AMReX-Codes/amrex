@@ -60,6 +60,28 @@ CArena::alloc_protected (std::size_t nbytes)
         }
     }
 
+#ifdef AMREX_USE_GPU
+    if (free_it == m_freelist.end()) {
+        // Clear Gpu::freeAsync buffer and try again.
+        // We need to unlock the mutex for this so that free() can be called.
+        // This may invalidate free_it.
+        carena_mutex.unlock();
+        const bool freed_something = Gpu::clearFreeAsyncBuffer();
+        carena_mutex.lock();
+
+        if (freed_something) {
+            free_it = m_freelist.begin();
+            for ( ; free_it != m_freelist.end(); ++free_it) {
+                if ((*free_it).size() >= nbytes) {
+                    break;
+                }
+            }
+        } else {
+            free_it = m_freelist.end();
+        }
+    }
+#endif
+
     void* vp = nullptr;
 
     if (free_it == m_freelist.end())

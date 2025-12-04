@@ -62,6 +62,7 @@ public:
     [[nodiscard]] gpuStream_t& get ();
     void sync ();
     void free_async (Arena* arena, void* mem);
+    std::size_t wait_list_size ();
 };
 #endif
 
@@ -124,6 +125,8 @@ public:
     static void streamSynchronizeAll () noexcept;
 
     static void freeAsync (Arena* arena, void* mem) noexcept;
+
+    static bool clearFreeAsyncBuffer () noexcept;
 
 #if defined(__CUDACC__)
     /**  Generic graph selection. These should be called by users.  */
@@ -281,6 +284,15 @@ inline void
 freeAsync (Arena* arena, void* mem) noexcept
 {
     Device::freeAsync(arena, mem);
+}
+
+/** Clear the temporary buffer used by freeAsync. This is done by synchronizing the stream in
+ * case there is memory in the buffer. Returns true if some memory could be freed.
+ */
+inline bool
+clearFreeAsyncBuffer () noexcept
+{
+    return Device::clearFreeAsyncBuffer();
 }
 
 #ifdef AMREX_USE_GPU
