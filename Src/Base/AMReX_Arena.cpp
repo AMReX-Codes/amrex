@@ -705,11 +705,13 @@ Arena::out_of_memory_abort (std::string const& memory_type, amrex::Long nbytes,
     ss << "MPI rank: " << ParallelDescriptor::MyProc() << '\n';
     ss << "Error: " << error_msg << '\n';
 
+#ifdef AMREX_TINY_PROFILING
     ss << "\n\nTinyProfiler call stack:\n\n";
     TinyProfiler::PrintCallStack(ss);
 
     ss << "\n\nTinyProfiler memory usage so far:\n\n";
     TinyProfiler::PrintMemoryUsage(&ss, true);
+#endif
 
     ss << "\nAMReX Arena usage so far:\n\n";
     PrintUsageToStream(ss, "");
