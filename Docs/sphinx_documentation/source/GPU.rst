@@ -31,7 +31,7 @@ same MPI rank concurrently, as detailed in :ref:`sec:basics:mfiter:tiling`. On G
 ``X`` is one of ``CUDA/HIP/SYCL``, and tiling is disabled by default
 to mitigate the overhead associated with kernel launching. Instead, kernels are usually
 launched at the ``Box`` level, and one or more cells
-in a given ``Box`` are mapped to a each GPU thread, as detailed in :numref:`fig:gpu:threads`
+in a given ``Box`` are mapped to each GPU thread, as detailed in :numref:`fig:gpu:threads`
 below.
 
 Presented here is an overview of important features of AMReX's GPU strategy.
@@ -43,7 +43,7 @@ detailed throughout the rest of this chapter:
 
 - To provide performance portability, GPU kernels are usually launched through ``ParallelFor`` looping constructs
   that use GPU extended lambdas to specify the work to be performed on each loop element. When compiled with GPU
-  support, these constructs launch kernels with a large number GPU threads that only work on a few cells each. This work
+  support, these constructs launch kernels with a large number of GPU threads that only work on a few cells each. This work
   distribution is illustrated in :numref:`fig:gpu:threads`.
 
 .. |a| image:: ./GPU/gpu_2.png
@@ -66,9 +66,9 @@ detailed throughout the rest of this chapter:
    +-----------------------------------------------------+------------------------------------------------------+
 
 - These kernels are usually launched inside AMReX's :cpp:`MFIter` and :cpp:`ParIter`
-  loops, since in AMReX's approach to parallelism it is assumed that separate ``Box`` objects
-  can be processed independently. However, AMReX also provides a ``MultiFab`` version
-  of ``ParallelFor`` that can process and entire level worth of ``Box`` objects in
+  loops, since in AMReX's approach to parallelism it is assumed that separate :cpp:`Box` objects
+  can be processed independently. However, AMReX also provides a :cpp:`MultiFab` version
+  of :cpp:`ParallelFor` that can process an entire level worth of :cpp:`Box` objects in
   a single kernel launch when it is safe to do so.
 
 - AMReX can utilize GPU managed memory to automatically handle memory
