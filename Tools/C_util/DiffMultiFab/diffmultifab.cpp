@@ -61,7 +61,8 @@ int main(int argc, char* argv[])
             Abort(" ngrow bigger than infile2's ngrow! ");
         }
         if (mf1.boxArray() != mf2.boxArray()) {
-            Abort("The two multifabs have different BoxArray");
+            Warning("The two multifabs have different BoxArrays");
+            AMREX_ALWAYS_ASSERT(mf1.boxArray().minimalBox() == mf2.boxArray().minimalBox());
         }
 
         const int ncomp = mf1.nComp();
@@ -78,30 +79,34 @@ int main(int argc, char* argv[])
             mf2_max[icomp] = mf2.max(icomp,ngrow);
         }
 
-        MultiFab mfdiff(mf1.boxArray(), mf2.DistributionMap(), ncomp, ngrow);
+        MultiFab mfdiff1(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
+        MultiFab mfdiff2(mf2.boxArray(), mf2.DistributionMap(), ncomp, ngrow);
 #ifdef AMREX_USE_MPI
         {
             MultiFab tmp(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
             MultiFab::Copy(tmp, mf1, 0, 0, ncomp, ngrow);
-            mfdiff.Redistribute(tmp, 0, 0, ncomp, IntVect(ngrow));
+            mfdiff1.Redistribute(tmp, 0, 0, ncomp, IntVect(ngrow));
         }
 #else
-        MultiFab::Copy(mfdiff, mf1, 0, 0, ncomp, ngrow);
+        MultiFab::Copy(mfdiff1, mf1, 0, 0, ncomp, ngrow);
 #endif
-        MultiFab::Subtract(mfdiff, mf2, 0, 0, ncomp, ngrow);
+
+        mfdiff2.ParallelCopy(mfdiff1);
+
+        MultiFab::Subtract(mfdiff2, mf2, 0, 0, ncomp, ngrow);
 
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            Real mn = mfdiff.min(icomp,ngrow);
-            Real mx = mfdiff.max(icomp,ngrow);
+            Real mn = mfdiff2.min(icomp,ngrow);
+            Real mx = mfdiff2.max(icomp,ngrow);
             if (ncomp > 1) {
                 Print() << "Component " << icomp << "\n";
             }
             Print() << "    Min and max of the diff are " << mn << " and " << mx << "\n";
             if (mn != 0.0) {
-                Print() << "    Min Index: " << mfdiff.minIndex(icomp,ngrow) << "\n";
+                Print() << "    Min Index: " << mfdiff2.minIndex(icomp,ngrow) << "\n";
             }
             if (mx != 0.0) {
-                Print() << "    Max Index: " << mfdiff.maxIndex(icomp,ngrow) << "\n";
+                Print() << "    Max Index: " << mfdiff2.maxIndex(icomp,ngrow) << "\n";
             }
             Print() << "    Min and max of 1st mf are " << mf1_min[icomp]
                     << " and " << mf1_max[icomp] << "\n";
@@ -110,7 +115,7 @@ int main(int argc, char* argv[])
         }
 
         Print() << "Writing mfdiff" << "\n";
-        VisMF::Write(mfdiff, "mfdiff");
+        VisMF::Write(mfdiff2, "mfdiff");
     }
     amrex::Finalize();
 }
