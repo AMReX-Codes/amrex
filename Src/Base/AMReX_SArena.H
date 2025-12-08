@@ -32,6 +32,11 @@ public:
     [[nodiscard]] bool isManaged () const final;
     [[nodiscard]] bool isDevice () const final;
     [[nodiscard]] bool isPinned () const final;
+
+#ifdef AMREX_USE_GPU
+    //! Is this CUDA stream ordered memory allocator?
+    [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
+#endif
 };
 
 }
