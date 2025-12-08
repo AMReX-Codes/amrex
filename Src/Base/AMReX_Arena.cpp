@@ -2,7 +2,7 @@
 #include <AMReX_Arena.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
-#include <AMReX_PArena.H>
+#include <AMReX_SArena.H>
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
@@ -47,7 +47,6 @@ namespace {
     Long the_managed_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_pinned_arena_release_threshold = std::numeric_limits<Long>::max();
     Long the_comms_arena_release_threshold = std::numeric_limits<Long>::max();
-    Long the_async_arena_release_threshold = std::numeric_limits<Long>::max();
     bool the_arena_defragmentation = true;
     bool the_device_arena_defragmentation = true;
     bool the_managed_arena_defragmentation = true;
@@ -427,7 +426,6 @@ Arena::Initialize (bool minimal)
     pp.queryAdd("the_managed_arena_release_threshold", the_managed_arena_release_threshold);
     pp.queryAdd( "the_pinned_arena_release_threshold",  the_pinned_arena_release_threshold);
     pp.queryAdd(  "the_comms_arena_release_threshold",   the_comms_arena_release_threshold);
-    pp.queryAdd(  "the_async_arena_release_threshold",   the_async_arena_release_threshold);
     pp.queryAdd(        "the_arena_defragmentation",         the_arena_defragmentation);
     pp.queryAdd( "the_device_arena_defragmentation",  the_device_arena_defragmentation);
     pp.queryAdd("the_managed_arena_defragmentation", the_managed_arena_defragmentation);
@@ -469,7 +467,7 @@ Arena::Initialize (bool minimal)
 #endif
     }
 
-    the_async_arena = new PArena(the_async_arena_release_threshold);
+    the_async_arena = new SArena();
     the_async_arena->registerForProfiling("Async Memory");
 
 #ifdef AMREX_USE_GPU
