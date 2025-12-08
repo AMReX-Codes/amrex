@@ -59,18 +59,15 @@ CArena::alloc_protected (std::size_t nbytes)
         // We need to unlock the mutex for this so that free() can be called.
         // This may invalidate free_it.
         carena_mutex.unlock();
-        const bool freed_something = Gpu::clearFreeAsyncBuffer();
+        Gpu::clearFreeAsyncBuffer();
         carena_mutex.lock();
 
-        if (freed_something) {
-            free_it = m_freelist.begin();
-            for ( ; free_it != m_freelist.end(); ++free_it) {
-                if ((*free_it).size() >= nbytes) {
-                    break;
-                }
+        // Always check freelist again as it might have changed when the mutex was unlocked.
+        free_it = m_freelist.begin();
+        for ( ; free_it != m_freelist.end(); ++free_it) {
+            if ((*free_it).size() >= nbytes) {
+                break;
             }
-        } else {
-            free_it = m_freelist.end();
         }
     }
 #endif
