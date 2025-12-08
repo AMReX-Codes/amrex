@@ -36,13 +36,6 @@ CArena::alloc (std::size_t nbytes)
 void*
 CArena::alloc_protected (std::size_t nbytes)
 {
-    MemStat* stat = nullptr;
-#ifdef AMREX_TINY_PROFILING
-    if (m_profiler.m_do_profiling) {
-        stat = TinyProfiler::memory_alloc(nbytes, m_profiler.m_profiling_stats);
-    }
-#endif
-
     bool freeunused_called = false;
     if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
         freeUnused_protected();
@@ -117,6 +110,13 @@ CArena::alloc_protected (std::size_t nbytes)
             m_freelist.insert(m_freelist.end(), Node(block, vp, N-nbytes));
         }
 
+        MemStat* stat = nullptr;
+#ifdef AMREX_TINY_PROFILING
+        if (m_profiler.m_do_profiling) {
+            stat = TinyProfiler::memory_alloc(nbytes, m_profiler.m_profiling_stats);
+        }
+#endif
+
         m_busylist.insert(Node(vp, vp, nbytes, stat));
     }
     else
@@ -125,6 +125,14 @@ CArena::alloc_protected (std::size_t nbytes)
         BL_ASSERT(m_busylist.find(*free_it) == m_busylist.end());
 
         vp = (*free_it).block();
+
+        MemStat* stat = nullptr;
+#ifdef AMREX_TINY_PROFILING
+        if (m_profiler.m_do_profiling) {
+            stat = TinyProfiler::memory_alloc(nbytes, m_profiler.m_profiling_stats);
+        }
+#endif
+
         m_busylist.insert(Node(vp, free_it->owner(), nbytes, stat));
 
         if ((*free_it).size() > nbytes)

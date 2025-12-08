@@ -162,11 +162,20 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
+#endif
         p = std::malloc(nbytes);
         if (!p) {
             freeUnused_protected();
             p = std::malloc(nbytes);
         }
+        if (!p) {
+            // out_of_memory_abort uses heap allocations,
+            // so we print an error before in case it doesn't work.
+            amrex::ErrorStream() <<
+                "Out of CPU memory: got nullptr from std::malloc, aborting...\n";
+            out_of_memory_abort("CPU memory", nbytes, "std::malloc returned nullptr");
+        }
+
 #ifndef _WIN32
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -177,24 +186,44 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 #pragma GCC diagnostic pop
 #endif
 #endif
+
+#ifdef AMREX_USE_GPU
     }
     else if (arena_info.device_use_hostalloc)
     {
-#if defined(AMREX_USE_HIP)
-        auto ret = hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent);
-        if (ret != hipSuccess) { p = nullptr; }
-#elif defined(AMREX_USE_CUDA)
-        auto ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
-        if (ret != cudaSuccess) { p = nullptr; }
-#else
-        p = sycl::malloc_host(nbytes, Gpu::Device::syclContext());
-#endif
+        AMREX_HIP_OR_CUDA_OR_SYCL(
+            auto ret = hipHostMalloc(&p, nbytes, hipHostMallocMapped | hipHostMallocNonCoherent);
+            if (ret != hipSuccess) { p = nullptr; },
+            auto ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
+            if (ret != cudaSuccess) { p = nullptr; },
+            p = sycl::malloc_host(nbytes, Gpu::Device::syclContext())
+        );
+
         if (!p) {
             freeUnused_protected();
             AMREX_HIP_OR_CUDA_OR_SYCL(
-                AMREX_HIP_SAFE_CALL (hipHostMalloc(&p, nbytes, hipHostMallocMapped|hipHostMallocNonCoherent));,
-                AMREX_CUDA_SAFE_CALL(cudaHostAlloc(&p, nbytes, cudaHostAllocMapped));,
-                p = sycl::malloc_host(nbytes, Gpu::Device::syclContext()));
+                ret = hipHostMalloc(&p, nbytes, hipHostMallocMapped | hipHostMallocNonCoherent);
+                if (ret != hipSuccess) { p = nullptr; },
+                ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
+                if (ret != cudaSuccess) { p = nullptr; },
+                p = sycl::malloc_host(nbytes, Gpu::Device::syclContext())
+            );
+        }
+
+        if (!p) {
+            // out_of_memory_abort uses heap allocations,
+            // so we print an error before in case it doesn't work.
+            amrex::ErrorStream() <<
+                "Out of CPU pinned memory: got nullptr from host malloc, aborting...\n";
+            std::string msg = "";
+            AMREX_HIP_OR_CUDA_OR_SYCL(
+                msg = "hipHostMalloc returned " + std::to_string(ret) +
+                      ": " + hipGetErrorString(ret),
+                msg = "cudaHostAlloc returned " + std::to_string(ret) +
+                      ": " + cudaGetErrorString(ret),
+                msg = "sycl::malloc_host returned nullptr"
+            );
+            out_of_memory_abort("CPU pinned memory", nbytes, msg);
         }
     }
     else
@@ -202,30 +231,48 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
         std::size_t free_mem_avail = Gpu::Device::freeMemAvailable();
         if (nbytes >= free_mem_avail) {
             free_mem_avail += freeUnused_protected(); // For CArena, mutex has already acquired
-            if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail && arena_info.device_use_managed_memory) {
-                amrex::Abort("Out of gpu memory. Free: " + std::to_string(free_mem_avail)
-                             + " Asked: " + std::to_string(nbytes));
+            if (abort_on_out_of_gpu_memory && nbytes >= free_mem_avail &&
+                arena_info.device_use_managed_memory) {
+                out_of_memory_abort("GPU memory", nbytes,
+                                    "Free memory: " + std::to_string(free_mem_avail));
             }
         }
 
         if (arena_info.device_use_managed_memory)
         {
-#if defined(AMREX_USE_HIP)
-            auto ret = hipMallocManaged(&p, nbytes);
-            if (ret != hipSuccess) { p = nullptr; }
-#elif defined(AMREX_USE_CUDA)
-            auto ret = cudaMallocManaged(&p, nbytes);
-            if (ret != cudaSuccess) { p = nullptr; }
-#else
-            p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext());
-#endif
+            AMREX_HIP_OR_CUDA_OR_SYCL(
+                auto ret = hipMallocManaged(&p, nbytes);
+                if (ret != hipSuccess) { p = nullptr; },
+                auto ret = cudaMallocManaged(&p, nbytes);
+                if (ret != cudaSuccess) { p = nullptr; },
+                p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(),
+                                        Gpu::Device::syclContext())
+            );
+
             if (!p) {
                 freeUnused_protected();
-                AMREX_HIP_OR_CUDA_OR_SYCL
-                    (AMREX_HIP_SAFE_CALL(hipMallocManaged(&p, nbytes));,
-                     AMREX_CUDA_SAFE_CALL(cudaMallocManaged(&p, nbytes));,
-                     p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+                AMREX_HIP_OR_CUDA_OR_SYCL(
+                    ret = hipMallocManaged(&p, nbytes);
+                    if (ret != hipSuccess) { p = nullptr; },
+                    ret = cudaMallocManaged(&p, nbytes);
+                    if (ret != cudaSuccess) { p = nullptr; },
+                    p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(),
+                                            Gpu::Device::syclContext())
+                );
             }
+
+            if (!p) {
+                std::string msg = "";
+                AMREX_HIP_OR_CUDA_OR_SYCL(
+                    msg = "hipMallocManaged returned " + std::to_string(ret) +
+                          ": " + hipGetErrorString(ret),
+                    msg = "cudaMallocManaged returned " + std::to_string(ret) +
+                          ": " + cudaGetErrorString(ret),
+                    msg = "sycl::malloc_shared returned nullptr"
+                );
+                out_of_memory_abort("GPU managed memory", nbytes, msg);
+            }
+
 #ifdef AMREX_USE_HIP
             // Otherwise atomiAdd won't work because we instruct the compiler to do unsafe atomics
             AMREX_HIP_SAFE_CALL(hipMemAdvise(p, nbytes, hipMemAdviseSetCoarseGrain,
@@ -243,42 +290,42 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
         }
         else
         {
-#if defined(AMREX_USE_HIP)
-            auto ret = hipMalloc(&p, nbytes);
-            if (ret != hipSuccess) { p = nullptr; }
-#elif defined(AMREX_USE_CUDA)
-            auto ret = cudaMalloc(&p, nbytes);
-            if (ret != cudaSuccess) { p = nullptr; }
-#else
-            p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext());
-#endif
+            AMREX_HIP_OR_CUDA_OR_SYCL(
+                auto ret = hipMalloc(&p, nbytes);
+                if (ret != hipSuccess) { p = nullptr; },
+                auto ret = cudaMalloc(&p, nbytes);
+                if (ret != cudaSuccess) { p = nullptr; },
+                p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(),
+                                        Gpu::Device::syclContext())
+            );
+
             if (!p) {
                 freeUnused_protected();
-                AMREX_HIP_OR_CUDA_OR_SYCL
-                    (AMREX_HIP_SAFE_CALL ( hipMalloc(&p, nbytes));,
-                     AMREX_CUDA_SAFE_CALL(cudaMalloc(&p, nbytes));,
-                     p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(), Gpu::Device::syclContext()));
+                AMREX_HIP_OR_CUDA_OR_SYCL(
+                    ret = hipMalloc(&p, nbytes);
+                    if (ret != hipSuccess) { p = nullptr; },
+                    ret = cudaMalloc(&p, nbytes);
+                    if (ret != cudaSuccess) { p = nullptr; },
+                    p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(),
+                                            Gpu::Device::syclContext())
+                );
+            }
+
+            if (!p) {
+                std::string msg = "";
+                AMREX_HIP_OR_CUDA_OR_SYCL(
+                    msg = "hipMalloc returned " + std::to_string(ret) +
+                          ": " + hipGetErrorString(ret),
+                    msg = "cudaMalloc returned " + std::to_string(ret) +
+                          ": " + cudaGetErrorString(ret),
+                    msg = "sycl::malloc_device returned nullptr"
+                );
+                out_of_memory_abort("GPU device memory", nbytes, msg);
             }
         }
     }
-#else
-    p = std::malloc(nbytes);
-    if (!p) {
-        freeUnused_protected();
-        p = std::malloc(nbytes);
-    }
-#ifndef _WIN32
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
-    if (p && (nbytes > 0) && arena_info.device_use_hostalloc) { mlock(p, nbytes); }
-#if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
-#endif
-#endif
-    if (p == nullptr) { amrex::Abort("Sorry, malloc failed"); }
+    AMREX_ALWAYS_ASSERT(p != nullptr);
     return p;
 }
 
@@ -288,8 +335,10 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
 #ifdef AMREX_USE_GPU
     if (arena_info.use_cpu_memory)
     {
+#endif
         if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
         std::free(p);
+#ifdef AMREX_USE_GPU
     }
     else if (arena_info.device_use_hostalloc)
     {
@@ -305,9 +354,6 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
              AMREX_CUDA_SAFE_CALL(cudaFree(p));,
              sycl::free(p,Gpu::Device::syclContext()));
     }
-#else
-    if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
-    std::free(p);
 #endif
 }
 
@@ -588,6 +634,50 @@ Arena::PrintUsage (bool print_max_usage)
 }
 
 void
+Arena::PrintUsageToStream (std::ostream& os, std::string const& space)
+{
+#ifdef AMREX_USE_GPU
+    Long megabytes = Gpu::Device::totalGlobalMem() / (1024*1024);
+    os << space << "Total GPU global memory (MB): " << megabytes << "\n";
+
+    megabytes = Gpu::Device::freeMemAvailable() / (1024*1024);
+    os << space << "Free  GPU global memory (MB): " << megabytes << "\n";
+#endif
+
+    if (The_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Arena());
+        if (p) {
+            p->PrintUsage(os, "The         Arena", space);
+        }
+    }
+    if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Device_Arena());
+        if (p) {
+            p->PrintUsage(os, "The  Device Arena", space);
+        }
+    }
+    if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Managed_Arena());
+        if (p) {
+            p->PrintUsage(os, "The Managed Arena", space);
+        }
+    }
+    if (The_Pinned_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
+        if (p) {
+            p->PrintUsage(os, "The  Pinned Arena", space);
+        }
+    }
+    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
+        && The_Comms_Arena() != The_Pinned_Arena()) {
+        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
+        if (p) {
+            p->PrintUsage(os, "The   Comms Arena", space);
+        }
+    }
+}
+
+void
 Arena::PrintUsageToFiles (const std::string& filename, const std::string& message)
 {
     std::ofstream ofs(filename+"."+std::to_string(ParallelDescriptor::MyProc()),
@@ -598,47 +688,37 @@ Arena::PrintUsageToFiles (const std::string& filename, const std::string& messag
 
     ofs << message << "\n";
 
-#ifdef AMREX_USE_GPU
-    Long megabytes = Gpu::Device::totalGlobalMem() / (1024*1024);
-    ofs << "    Total GPU global memory (MB): " << megabytes << "\n";
-
-    megabytes = Gpu::Device::freeMemAvailable() / (1024*1024);
-    ofs << "    Free  GPU global memory (MB): " << megabytes << "\n";
-#endif
-
-    if (The_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Arena());
-        if (p) {
-            p->PrintUsage(ofs, "The         Arena", "    ");
-        }
-    }
-    if (The_Device_Arena() && The_Device_Arena() != The_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Device_Arena());
-        if (p) {
-            p->PrintUsage(ofs, "The  Device Arena", "    ");
-        }
-    }
-    if (The_Managed_Arena() && The_Managed_Arena() != The_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Managed_Arena());
-        if (p) {
-            p->PrintUsage(ofs, "The Managed Arena", "    ");
-        }
-    }
-    if (The_Pinned_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Pinned_Arena());
-        if (p) {
-            p->PrintUsage(ofs, "The  Pinned Arena", "    ");
-        }
-    }
-    if (The_Comms_Arena() && The_Comms_Arena() != The_Device_Arena()
-        && The_Comms_Arena() != The_Pinned_Arena()) {
-        auto* p = dynamic_cast<CArena*>(The_Comms_Arena());
-        if (p) {
-            p->PrintUsage(ofs, "The   Comms Arena", "    ");
-        }
-    }
+    PrintUsageToStream(ofs, "    ");
 
     ofs << "\n";
+}
+
+void
+Arena::out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
+                            std::string const& error_msg)
+{
+    std::ostringstream ss;
+
+    ss << "Arena out of memory!!!\n";
+    ss << "Bytes to allocate: " << nbytes << " (" << nbytes/(1024*1024) << " MiB)\n";
+    ss << "Memory type: " << memory_type << '\n';
+    ss << "MPI rank: " << ParallelDescriptor::MyProc() << '\n';
+    ss << "Error: " << error_msg << '\n';
+
+#ifdef AMREX_TINY_PROFILING
+    ss << "\n\nTinyProfiler call stack:\n\n";
+    TinyProfiler::PrintCallStack(ss);
+
+    ss << "\n\nTinyProfiler memory usage so far:\n\n";
+    TinyProfiler::PrintMemoryUsage(&ss, true);
+#endif
+
+    ss << "\nAMReX Arena usage so far:\n\n";
+    PrintUsageToStream(ss, "");
+
+    ss << "\n\nOut of memory, see message above";
+
+    amrex::Abort(ss.str());
 }
 
 void

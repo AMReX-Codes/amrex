@@ -194,6 +194,7 @@ public:
 
     static void Initialize (bool minimal);
     static void PrintUsage (bool print_max_usage=false);
+    static void PrintUsageToStream (std::ostream& os, std::string const& space);
     static void PrintUsageToFiles (std::string const& filename, std::string const& message);
     static void Finalize ();
 
@@ -224,6 +225,8 @@ protected:
     virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
+    static void out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
+                                     std::string const& error_msg);
 
     struct ArenaProfiler {
         //! If this arena is profiled by TinyProfiler

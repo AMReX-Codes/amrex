@@ -49,6 +49,7 @@ std::vector<std::string>          TinyProfiler::regionstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
+double TinyProfiler::t_memory_init = std::numeric_limits<double>::max();
 bool TinyProfiler::device_synchronize_around_region = false;
 int TinyProfiler::n_print_tabs = 0;
 int TinyProfiler::verbose = 0;
@@ -349,6 +350,8 @@ TinyProfiler::MemoryInitialize ()
     mem_stack_thread_private.resize(omp_get_max_threads());
 #endif
 
+    t_memory_init = amrex::second();
+
     memprof_finalized = false;
 }
 
@@ -460,11 +463,6 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
         }
     }
 
-    double t_final = amrex::second();
-    double dt_max = t_final - t_init;
-    int ioproc = ParallelDescriptor::IOProcessorNumber();
-    ParallelReduce::Max(dt_max, ioproc, ParallelDescriptor::Communicator());
-
     std::ofstream ofs;
     std::ostream* os = nullptr;
     if (ParallelDescriptor::IOProcessor()) {
@@ -480,9 +478,7 @@ TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
         }
     }
 
-    for (std::size_t i = 0; i < all_memstats.size(); ++i) {
-        PrintMemStats(*(all_memstats[i]), all_memnames[i], dt_max, t_final, os);
-    }
+    PrintMemoryUsage(os, false);
 
     if (!bFlushing) {
         all_memstats.clear();
@@ -733,10 +729,10 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
 void
 TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
                              std::string const& memname, double dt_max,
-                             double t_final, std::ostream* os)
+                             double t_final, std::ostream* os, bool only_local)
 {
     // make sure the set of profiled functions is the same on all processes
-    {
+    if (!only_local) {
         Vector<std::string> localStrings, syncedStrings;
         bool alreadySynced;
 
@@ -757,46 +753,54 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
 
     if (memstats.empty()) { return; }
 
-    const int nprocs = ParallelDescriptor::NProcs();
-    const int ioproc = ParallelDescriptor::IOProcessorNumber();
+    const int nprocs = only_local ? 1 : ParallelDescriptor::NProcs();
+    const int ioproc = only_local ? 0 : ParallelDescriptor::IOProcessorNumber();
+    const bool is_io_proc = only_local ? true : ParallelDescriptor::IOProcessor();
 
     std::vector<MemProcStats> allprocstats;
+
+    bool has_currently_used_memory = false;
 
     // now collect global data onto the ioproc
     for (const auto & it : memstats)
     {
         Long nalloc = it.second.nalloc;
         Long nfree = it.second.nfree;
+        Long curmem = it.second.currentmem;
         // simulate the freeing of remaining memory currentmem for the avgmem metric
         Long avgmem = static_cast<Long>(
-            (it.second.avgmem + static_cast<double>(it.second.currentmem) * t_final) / dt_max);
+            (it.second.avgmem + static_cast<double>(curmem) * t_final) / dt_max);
         Long maxmem = it.second.maxmem;
 
         std::vector<Long> nalloc_vec(nprocs);
         std::vector<Long> nfree_vec(nprocs);
+        std::vector<Long> curmem_vec(nprocs);
         std::vector<Long> avgmem_vec(nprocs);
         std::vector<Long> maxmem_vec(nprocs);
 
-        if (ParallelDescriptor::NProcs() == 1)
+        if (nprocs == 1)
         {
             nalloc_vec[0] = nalloc;
             nfree_vec[0] = nfree;
+            curmem_vec[0] = curmem;
             avgmem_vec[0] = avgmem;
             maxmem_vec[0] = maxmem;
         } else
         {
             ParallelDescriptor::Gather(&nalloc, 1, nalloc_vec.data(), 1, ioproc);
             ParallelDescriptor::Gather(&nfree , 1,  nfree_vec.data(), 1, ioproc);
+            ParallelDescriptor::Gather(&curmem, 1, curmem_vec.data(), 1, ioproc);
             ParallelDescriptor::Gather(&maxmem, 1, maxmem_vec.data(), 1, ioproc);
             ParallelDescriptor::Gather(&avgmem, 1, avgmem_vec.data(), 1, ioproc);
         }
 
-        if (ParallelDescriptor::IOProcessor()) {
+        if (is_io_proc) {
             MemProcStats pst;
             for (int i = 0; i < nprocs; ++i) {
 
                 pst.nalloc += nalloc_vec[i];
                 pst.nfree += nfree_vec[i];
+                pst.curmem_max = std::max(pst.curmem_max, curmem_vec[i]);
                 pst.avgmem_min = std::min(pst.avgmem_min, avgmem_vec[i]);
                 pst.avgmem_avg += avgmem_vec[i];
                 pst.avgmem_max = std::max(pst.avgmem_max, avgmem_vec[i]);
@@ -807,8 +811,15 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
             pst.avgmem_avg /= nprocs;
             pst.maxmem_avg /= nprocs;
             pst.fname = it.first;
+            if (pst.nalloc != pst.nfree || pst.curmem_max > 0) {
+                has_currently_used_memory = true;
+            }
             allprocstats.push_back(std::move(pst));
         }
+    }
+
+    if (!is_io_proc) {
+        return;
     }
 
     std::sort(allprocstats.begin(), allprocstats.end(), MemProcStats::compmem);
@@ -816,11 +827,22 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
     std::vector<std::vector<std::string>> allstatsstr;
 
     if (nprocs == 1) {
-        allstatsstr.push_back({"Name", "Nalloc", "Nfree", "AvgMem", "MaxMem"});
+        if (has_currently_used_memory) {
+            allstatsstr.push_back({"Name", "Nalloc", "Nfree", "AvgMem", "MaxMem", "CurrentMem"});
+        } else {
+            allstatsstr.push_back({"Name", "Nalloc", "AvgMem", "MaxMem"});
+        }
     } else {
-        allstatsstr.push_back({"Name", "Nalloc", "Nfree",
-                               "AvgMem min", "AvgMem avg", "AvgMem max",
-                               "MaxMem min", "MaxMem avg", "MaxMem max"});
+        if (has_currently_used_memory) {
+            allstatsstr.push_back({"Name", "Nalloc", "Nfree",
+                                   "AvgMem min", "AvgMem avg", "AvgMem max",
+                                   "MaxMem min", "MaxMem avg", "MaxMem max",
+                                   "CurrentMem max"});
+        } else {
+            allstatsstr.push_back({"Name", "Nalloc",
+                                   "AvgMem min", "AvgMem avg", "AvgMem max",
+                                   "MaxMem min", "MaxMem avg", "MaxMem max"});
+        }
     }
 
     auto mem_to_string = [] (Long nbytes) {
@@ -847,21 +869,41 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
     for (auto& stat : allprocstats) {
         if (stat.nalloc != 0 || stat.nfree != 0 || stat.maxmem_max != 0) {
             if (nprocs == 1) {
-                allstatsstr.push_back({stat.fname,
-                                    std::to_string(stat.nalloc),
-                                    std::to_string(stat.nfree),
-                                    mem_to_string(stat.avgmem_max),
-                                    mem_to_string(stat.maxmem_max)});
+                if (has_currently_used_memory) {
+                    allstatsstr.push_back({stat.fname,
+                                        std::to_string(stat.nalloc),
+                                        std::to_string(stat.nfree),
+                                        mem_to_string(stat.avgmem_max),
+                                        mem_to_string(stat.maxmem_max),
+                                        mem_to_string(stat.curmem_max)});
+                } else {
+                    allstatsstr.push_back({stat.fname,
+                                        std::to_string(stat.nalloc),
+                                        mem_to_string(stat.avgmem_max),
+                                        mem_to_string(stat.maxmem_max)});
+                }
             } else {
-                allstatsstr.push_back({stat.fname,
-                                    std::to_string(stat.nalloc),
-                                    std::to_string(stat.nfree),
-                                    mem_to_string(stat.avgmem_min),
-                                    mem_to_string(stat.avgmem_avg),
-                                    mem_to_string(stat.avgmem_max),
-                                    mem_to_string(stat.maxmem_min),
-                                    mem_to_string(stat.maxmem_avg),
-                                    mem_to_string(stat.maxmem_max)});
+                if (has_currently_used_memory) {
+                    allstatsstr.push_back({stat.fname,
+                                        std::to_string(stat.nalloc),
+                                        std::to_string(stat.nfree),
+                                        mem_to_string(stat.avgmem_min),
+                                        mem_to_string(stat.avgmem_avg),
+                                        mem_to_string(stat.avgmem_max),
+                                        mem_to_string(stat.maxmem_min),
+                                        mem_to_string(stat.maxmem_avg),
+                                        mem_to_string(stat.maxmem_max),
+                                        mem_to_string(stat.curmem_max)});
+                } else {
+                    allstatsstr.push_back({stat.fname,
+                                        std::to_string(stat.nalloc),
+                                        mem_to_string(stat.avgmem_min),
+                                        mem_to_string(stat.avgmem_avg),
+                                        mem_to_string(stat.avgmem_max),
+                                        mem_to_string(stat.maxmem_min),
+                                        mem_to_string(stat.maxmem_avg),
+                                        mem_to_string(stat.maxmem_max)});
+                }
             }
         }
     }
@@ -953,6 +995,23 @@ TinyProfiler::PrintCallStack (std::ostream& os)
     os << "===== TinyProfilers ======\n";
     for (auto const& x : ttstack) {
         os << *(std::get<2>(x)) << "\n";
+    }
+}
+
+void
+TinyProfiler::PrintMemoryUsage (std::ostream* os, bool only_local) noexcept
+{
+    if (!memprof_enabled) { return; }
+
+    double t_final = amrex::second();
+    double dt_max = t_final - t_memory_init;
+    if (!only_local) {
+        int ioproc = ParallelDescriptor::IOProcessorNumber();
+        ParallelReduce::Max(dt_max, ioproc, ParallelDescriptor::Communicator());
+    }
+
+    for (std::size_t i = 0; i < all_memstats.size(); ++i) {
+        PrintMemStats(*(all_memstats[i]), all_memnames[i], dt_max, t_final, os, only_local);
     }
 }
 
