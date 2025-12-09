@@ -20,6 +20,7 @@
 #include <AMReX_BndryRegister.H>
 #include <AMReX_FabDataType.H>
 #include <AMReX_MLMGBndry.H>
+#include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 
 #include <algorithm>
