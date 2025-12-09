@@ -7,7 +7,19 @@
 
 namespace amrex {
 /**
-* \brief Doc TODO
+* \brief A STREAM-ordered memory arena.
+*
+* This Arena is implemented as a wrapper around amrex::The_Arena()
+* where the free() function calls amrex::Gpu::freeAsync().
+* This allows memory to be used by GPU kernels that were launched before free() was called
+* but may execute afterward, without calling amrex::Gpu::streamSynchronize().
+* These kernels need to use the same GPU stream that is active when free() is called,
+* otherwise explicit synchronization is needed.
+*
+* This is achieved by holding freed memory in a temporary buffer until the next time the
+* GPU stream is synchronized. In case too much memory is held up in this buffer or if The_Arena
+* needs more memory, the stream is automatically synchronized to clear the buffer.
+*
 */
 class SArena
     :
@@ -15,14 +27,17 @@ class SArena
 {
 public:
     /**
-    * \brief Allocates a dynamic memory arena of size sz.
+    * \brief Allocates dynamic memory from the arena of size sz.
     * Returns a pointer to this memory.
-    * Doc TODO
+    * The memory can be used immediately by both the CPU and GPU with any stream.
+    * This function may synchronize all GPU streams to free up memory.
     */
     [[nodiscard]] void* alloc (std::size_t sz) final;
     /**
     * \brief Deletes the arena pointed to by pt.
-    * Doc TODO
+    * After this function is called, the memory can still be used by already launched
+    * GPU kernels on the currently active stream.
+    * This function may synchronize the currently active GPU stream to free up memory.
     */
     void free (void* pt) final;
 
@@ -34,7 +49,7 @@ public:
     [[nodiscard]] bool isPinned () const final;
 
 #ifdef AMREX_USE_GPU
-    //! Is this CUDA stream ordered memory allocator?
+    //! Is this a CUDA stream ordered memory allocator?
     [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
 #endif
 };

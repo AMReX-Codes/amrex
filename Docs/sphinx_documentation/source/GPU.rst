@@ -930,9 +930,8 @@ async-safe.
 Async Arena
 -----------
 
-CUDA 11.2 has introduced a new feature, stream-ordered CUDA memory
-allocator.  This feature enables AMReX to solve the temporary memory
-allocation and deallocation issue discussed above using a memory pool.
+Using a stream-ordered allocator, the temporary memory
+allocation and deallocation issue discussed above can be solved.
 Instead of using :cpp:`Elixir`, we can write code like below,
 
 .. highlight:: c++
@@ -947,12 +946,10 @@ Instead of using :cpp:`Elixir`, we can write code like below,
       // GPU kernels using the temporary
     }
 
+The freed memory is held in a buffer until the next time the GPU stream is synchronized.
+In case too much memory is in this buffer, the stream is synchronized automatically.
 This is now the recommended way because it's usually more efficient than
-:cpp:`Elixir`.  Note that the code above works for CUDA older than 11.2, HIP
-and SYCL as well, and it's equivalent to using :cpp:`Elixir` in these
-cases.  By default, the release threshold for the memory pool is unlimited.
-One can adjust it with :cpp:`ParmParse` parameter,
-``amrex.the_async_arena_release_threshold``.
+:cpp:`Elixir`. Note that the code above works on all platforms.
 
 .. _sec:gpu:launch:
 

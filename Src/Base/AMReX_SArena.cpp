@@ -2,10 +2,10 @@
 #include <AMReX_GpuDevice.H>
 
 void*
-amrex::SArena::alloc (std::size_t sz_)
+amrex::SArena::alloc (std::size_t sz)
 {
-    void* pt = The_Arena()->alloc(sz_);
-    m_profiler.profile_alloc(pt, sz_);
+    void* pt = The_Arena()->alloc(sz);
+    m_profiler.profile_alloc(pt, sz);
     return pt;
 }
 
