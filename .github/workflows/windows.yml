@@ -12,7 +12,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_msvc:
-    name: MSVC C++17 w/o Fortran w/o MPI
+    name: MSVC C++20 w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -43,6 +43,7 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
+              -DCMAKE_CXX_STANDARD=20       `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=OFF                `
