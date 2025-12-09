@@ -49,7 +49,7 @@ public:
     [[nodiscard]] bool isPinned () const final;
 
 #ifdef AMREX_USE_GPU
-    //! Is this a CUDA stream ordered memory allocator?
+    //! Is this a GPU stream ordered memory allocator?
     [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
 #endif
 };
