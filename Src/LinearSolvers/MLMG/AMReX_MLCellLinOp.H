@@ -55,7 +55,7 @@ public:
                      const AMF* robinbc_b = nullptr,
                      const AMF* robinbc_f = nullptr)
     {
-        MLLinOpT<AMF>::setLevelBC(amrlev, levelbcdata, robinbc_a, robinbc_b, robinbc_f);
+        this->MLLinOpT<AMF>::setLevelBC(amrlev, levelbcdata, robinbc_a, robinbc_b, robinbc_f);
     }
 
     bool needsUpdate () const override {
