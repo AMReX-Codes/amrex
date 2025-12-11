@@ -542,6 +542,13 @@ void SpMatrix<T,Allocator>::prepare_comm ()
             }
         }
     }
+    else
+    {
+        auto* pcol = m_data.col_index.data();
+        ParallelFor(all_nnz, [=] AMREX_GPU_DEVICE (Long i)
+        { pcol[i] -= row_begin; });
+        m_shifted = true;
+    }
 
     // Need to make plans for MPI
     auto const mpi_tag = ParallelDescriptor::SeqNum();

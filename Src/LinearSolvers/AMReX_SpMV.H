@@ -193,11 +193,12 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 #else
 
     Long const ny = y.numLocalRows();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
     for (Long i = 0; i < ny; ++i) {
         T r = 0;
-#ifdef AMREX_USE_OMP
-#pragma omp parallel for reduction(+:r)
-#endif
         for (Long j = row[i]; j < row[i+1]; ++j) {
             r += mat[j] * px[col[j]];
         }
