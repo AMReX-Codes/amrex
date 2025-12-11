@@ -192,9 +192,6 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 
 #else
 
-    Long const rowsBegin = x.globalBegin();
-    Long const rowsEnd = x.globalEnd();
-
     Long const ny = y.numLocalRows();
 
 #ifdef AMREX_USE_OMP
@@ -203,9 +200,7 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
     for (Long i = 0; i < ny; ++i) {
         T r = 0;
         for (Long j = row[i]; j < row[i+1]; ++j) {
-            r += mat[j] * ((col[j] >= rowsBegin && col[j] < rowsEnd)
-                    ? px[col[j] - rowsBegin]
-                    : 0.0);
+            r += mat[j] * px[col[j]];
         }
         py[i] = r;
     }
