@@ -21,7 +21,6 @@ int main(int argc, char *argv[]) {
     auto ib = bvec.globalBegin();
 
     auto *matVals = mat.data();
-    auto *matRowOffsets = mat.rowOffset();
     auto *matCols = mat.columnIndex();
 
     // simple algebraic system:
@@ -36,8 +35,6 @@ int main(int argc, char *argv[]) {
         rhs[0] = Real(1.0);
         phi[0] = Real(1.0);
 
-        matRowOffsets[0] = 0;
-        matRowOffsets[nrows] = 2*nrows;
         matCols[0] = ib;
         matCols[1] = ib + 1;
         matVals[0] = Real(1.0);
@@ -46,7 +43,6 @@ int main(int argc, char *argv[]) {
         rhs[lrow] = static_cast<Real>(lrow + 2 * (lrow + 1));
         phi[lrow] = static_cast<Real>(lrow + 1);
 
-        matRowOffsets[lrow] = static_cast<Long>(2 * lrow);
         matCols[2*lrow    ] = row;
         matCols[2*lrow + 1] = row - 1;
         matVals[2*lrow    ] = static_cast<Real>(2.0);
