@@ -705,7 +705,25 @@ public:
     void AverageSync (const Periodicity& period = Periodicity::NonPeriodic());
     //! Sync up nodal data with weights
     void WeightedSync (const MultiFab& wgt, const Periodicity& period = Periodicity::NonPeriodic());
-    //! Sync up nodal data with owners overriding non-owners
+    /**
+     * \brief Synchronize nodal data.  The synchronization will override
+     * valid regions by the intersecting valid regions with a higher
+     * precedence.  The smaller the global box index is, the higher
+     * precedence the box has.  With periodic boundaries, for cells in the
+     * same box, those near the lower corner have higher precedence than
+     * those near the upper corner.
+     *
+     * Example: Suppose there is a valid point that is shared by 4 boxes.
+     * Some operation assigns values a, b, c, and d to the 4 points in the 4 boxes.
+     * We then call SumBoundary to add the 4 values and store the result in the 4 boxes.
+     * The value in box 0 might be the result of a+b+c+d, the value in box 1 might be
+     * the result of b+a+c+d, etc. The resulting data are out of sync across boxes.
+     * OverrideSync synchronizes the data by overriding all values with one value
+     * (e.g., the value from box 0).
+     *
+     * \param msk    owner mask
+     * \param period periodic length if it's non-zero
+     */
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
     using FabArray<FArrayBox>::OverrideSync;
