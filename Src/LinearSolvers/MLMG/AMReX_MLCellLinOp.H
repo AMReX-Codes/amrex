@@ -21,8 +21,8 @@ class MLCellLinOpT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
 {
 public:
 
-    using FAB = typename MF::fab_type;
-    using RT  = typename MF::value_type;
+    using FAB = typename FabDataType<MF>::fab_type;
+    using RT  = typename FabDataType<MF>::value_type;
 
     using BCType = LinOpBCType;
     using BCMode    = typename MLLinOpT<MF>::BCMode;
@@ -48,7 +48,15 @@ public:
                              const MF* robinbc_b = nullptr,
                              const MF* robinbc_f = nullptr) final;
 
-    using MLLinOpT<MF>::setLevelBC;
+    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
+                                             IsMultiFabLike_v<AMF>, int> = 0>
+    void setLevelBC (int amrlev, const AMF* levelbcdata,
+                     const AMF* robinbc_a = nullptr,
+                     const AMF* robinbc_b = nullptr,
+                     const AMF* robinbc_f = nullptr)
+    {
+        this->MLLinOpT<MF>::template setLevelBC<AMF>(amrlev, levelbcdata, robinbc_a, robinbc_b, robinbc_f);
+    }
 
     bool needsUpdate () const override {
         return MLLinOpT<MF>::needsUpdate();
