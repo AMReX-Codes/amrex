@@ -1591,8 +1591,7 @@ Particle Support
 .. _sec:gpu:particle:
 
 As with ``MultiFab``, particle data stored in AMReX ``ParticleContainer`` classes can be
-stored in GPU-accessible memory when AMReX is compiled with ``USE_CUDA=TRUE``, ``USE_HIP=TRUE``,
-or ``USE_SYCL=TRUE``.  The type of memory used by a given ``ParticleContainer`` can be controlled
+stored in GPU-accessible memory when AMReX is compiled with GPU support.  The type of memory used by a given ``ParticleContainer`` can be controlled
 by the ``Allocator`` template parameter. By default, when compiled with GPU support ``ParticleContainer`` uses ``The_Arena()``. This means that the :cpp:`dataPtr` associated with particle data
 can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
 including AMReX's native kernel launching mechanisms as well OpenMP and OpenACC. Using AMReX's C++ syntax, a kernel launch involving particle data might look like:
