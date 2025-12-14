@@ -6,14 +6,17 @@
 
 .. _sec:gpu:overview:
 
-Overview of AMReX GPU Strategy
-==============================
+Overview of AMReX GPU Support
+=============================
 
-AMReX's GPU strategy focuses on providing performant GPU support
-with minimal changes and maximum flexibility.  This allows
-application teams to get running on GPUs quickly while allowing
-long term performance tuning and programming model selection.  AMReX
-uses the native programming language for GPUs: CUDA for NVIDIA, HIP
+AMReX's GPU support focuses on providing performance portability
+across a range of important architectures with minimal
+code changes required at the application level. This allows
+application teams to use a single, maintainable codebase that works
+on a variety of platforms while allowing for the performance tuning of specific,
+high-impact kernels if desired.
+
+Internally, AMReX uses the native programming languages for GPUs: CUDA for NVIDIA, HIP
 for AMD and SYCL for Intel. This will be designated with ``CUDA/HIP/SYCL``
 throughout the documentation.  However, application teams can also use
 OpenACC or OpenMP in their individual codes.
@@ -22,33 +25,25 @@ At this time, AMReX does not support cross-native language compilation
 (HIP for non-AMD systems and SYCL for non Intel systems).  It may work with
 a given version, but AMReX does not track or guarantee such functionality.
 
-When running AMReX on a CPU system, the parallelization strategy is a
-combination of MPI and OpenMP using tiling, as detailed in
-:ref:`sec:basics:mfiter:tiling`. However, tiling is ineffective on GPUs
-due to the overhead associated with kernel launching.  Instead,
-efficient use of the GPU's resources is the primary concern.  Improving
-resource efficiency allows a larger percentage of GPU threads to work
-simultaneously, increasing effective parallelism and decreasing the time
-to solution.
-
-When running on CPUs, AMReX uses an ``MPI+X`` strategy where the ``X``
-threads are used to perform parallelization techniques, like tiling.
-The most common ``X`` is ``OpenMP``.  On GPUs, AMReX requires ``CUDA/HIP/SYCL``
-and can be further combined with other parallel GPU languages, including
-``OpenACC`` and ``OpenMP``, to control the offloading of subroutines
-to the GPU.  This ``MPI+X+Y`` GPU strategy has been developed
-to give users the maximum flexibility to find the best combination of
-portability, readability and performance for their applications.
+AMReX uses an ``MPI+X`` approach to hierarchical parallelism. When running on
+CPUs, ``X`` is ``OpenMP``, and threads are used to process tiles assigned to the
+same MPI rank concurrently, as detailed in :ref:`sec:basics:mfiter:tiling`. On GPUs,
+``X`` is one of ``CUDA/HIP/SYCL``, and tiling is disabled by default
+to mitigate the overhead associated with kernel launching. Instead, kernels are usually
+launched at the ``Box`` level, and one or more cells
+in a given ``Box`` are mapped to each GPU thread, as detailed in :numref:`fig:gpu:threads`
+below.
 
 Presented here is an overview of important features of AMReX's GPU strategy.
 Additional information that is required for creating GPU applications is
 detailed throughout the rest of this chapter:
 
-- Each MPI rank offloads its work to a single GPU. ``(MPI ranks == Number of GPUs)``
+- Each MPI rank offloads its work to a single GPU. Multiple ranks can share the
+  same device, but for best performance we usually recommend ``(MPI ranks == Number of GPUs)``.
 
-- Calculations that can be offloaded efficiently to GPUs use GPU threads
-  to parallelize over a valid box at a time.  This is done by launching over
-  a large number GPU threads that only work on a few cells each. This work
+- To provide performance portability, GPU kernels are usually launched through ``ParallelFor`` looping constructs
+  that use GPU extended lambdas to specify the work to be performed on each loop element. When compiled with GPU
+  support, these constructs launch kernels with a large number of GPU threads that only work on a few cells each. This work
   distribution is illustrated in :numref:`fig:gpu:threads`.
 
 .. |a| image:: ./GPU/gpu_2.png
@@ -70,31 +65,26 @@ detailed throughout the rest of this chapter:
    |   The lo and hi of one tiled box are marked.        |   thread, each thread using a box with lo = hi.      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-- C++ macros and GPU extended lambdas are used to provide performance
-  portability while making the code as understandable as possible to
-  science-focused code teams.
+- These kernels are usually launched inside AMReX's :cpp:`MFIter` and :cpp:`ParIter`
+  loops, since in AMReX's approach to parallelism it is assumed that separate :cpp:`Box` objects
+  can be processed independently. However, AMReX also provides a :cpp:`MultiFab` version
+  of :cpp:`ParallelFor` that can process an entire level worth of :cpp:`Box` objects in
+  a single kernel launch when it is safe to do so.
 
 - AMReX can utilize GPU managed memory to automatically handle memory
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
-  data movement for the user.  Tests have shown CUDA managed memory
-  to be efficient and reliable, especially when applications remove
-  any unnecessary data accesses. However, managed memory is not used by
+  data movement for the user. This particularly useful for the early stages
+  of porting an application to GPUs. However, for best performance on a
+  variety of platforms, we recommend disabling managed memory and handling
+  host/device data migration explicitly. managed memory is not used by
   :cpp:`FArrayBox` and :cpp:`MultiFab` by default.
 
-- Application teams should strive to keep mesh and particle data structures
+- Best performance is usually achieved when keeping mesh and particle data structures
   on the GPU for as long as possible, minimizing movement back to the CPU.
-  This strategy lends itself to AMReX applications readily; the mesh and
-  particle data can stay on the GPU for most subroutines except for
-  of redistribution, communication and I/O operations.
-
-- AMReX's GPU strategy is focused on launching GPU kernels inside AMReX's
-  :cpp:`MFIter` and :cpp:`ParIter` loops.  By performing GPU work within
-  :cpp:`MFIter` and :cpp:`ParIter` loops, GPU work is isolated to independent
-  data sets on well-established AMReX data objects, providing consistency and safety
-  that also matches AMReX's coding methodology.  Similar tools are also available for
-  launching work outside of AMReX loops.
+  In many AMReX applications, the mesh and particle data can stay on the GPU for most
+  subroutines except for I/O operations.
 
 - AMReX further parallelizes GPU applications by utilizing streams.
   Streams guarantee execution order of kernels within the same stream, while
@@ -613,7 +603,7 @@ SUNDIALS CUDA vector:
 GPU Safe Classes and Functions
 ==============================
 
-AMReX GPU work takes place inside of MFIter and particle loops.
+AMReX GPU work takes place inside of MFIter and ParIter loops.
 Therefore, there are two ways classes and functions have been modified
 to interact with the GPU:
 
@@ -624,7 +614,7 @@ such as :cpp:`amrex::min` and :cpp:`amrex::max`. In specialized cases,
 classes are labeled such that the object can be constructed, destructed
 and its functions can be implemented on the device, including ``IntVect``.
 
-2. Functions that contain MFIter or particle loops have been rewritten
+2. Functions that contain MFIter or ParIter loops have been rewritten
 to contain device launches. For example, the :cpp:`FillBoundary`
 function cannot be called from device code, but calling it from
 CPU will launch GPU kernels if AMReX is compiled with GPU support.
@@ -1597,11 +1587,34 @@ Particle Support
 
 .. _sec:gpu:particle:
 
-As with ``MultiFab``, particle data stored in AMReX ``ParticleContainer`` classes are
-stored in GPU memory when AMReX is compiled with ``USE_CUDA=TRUE``. This means that the :cpp:`dataPtr` associated with particles
+As with ``MultiFab``, particle data stored in AMReX ``ParticleContainer`` classes can be
+stored in GPU-accessible memory when AMReX is compiled with GPU support.  The type of memory used by a given ``ParticleContainer`` can be controlled
+by the ``Allocator`` template parameter. By default, when compiled with GPU support ``ParticleContainer`` uses ``The_Arena()``. This means that the :cpp:`dataPtr` associated with particle data
 can be passed into GPU kernels. These kernels can be launched with a variety of approaches,
-including Cuda C / Fortran and OpenACC. An example Fortran particle subroutine offloaded via OpenACC might
-look like the following:
+including AMReX's native kernel launching mechanisms as well OpenMP and OpenACC. Using AMReX's C++ syntax, a kernel launch involving particle data might look like:
+
+.. highlight:: c++
+
+::
+
+   for(MyParIter pti(pc, lev); pti.isValid(); ++pti)
+   {
+       auto& ptile = pti.GetParticleTile();
+       auto ptd = tile.getParticleTileData();
+       const auto np = tile.numParticles();
+       amrex::ParallelFor( np,
+       [=] AMREX_GPU_DEVICE (const int ip) noexcept
+       {
+           ptd.id(i).make_invalid();
+       });
+   }
+
+The above code simply invalidates all particle on all particle tiles. The ``ParticleTileData``
+object is analogous to ``Array4`` in that it stores pointers to particle data and can be used
+on either the host or the device. This is a convenient way to pass particle data into GPU kernels
+because the same object can be used regardless of whether the data layout is AoS or SoA.
+
+An example Fortran particle subroutine offloaded via OpenACC might look like the following:
 
 .. highlight:: fortran
 
