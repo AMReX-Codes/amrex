@@ -46,7 +46,7 @@ to calculate the viscous terms that appear in the compressible Navier-Stokes
 equations.  In these solves, all components of the velocity field are solved
 for simultaneously.  The tensor solve functionality is only available for
 cell-centered velocity. AMReX also supports the curl-curl operator, with
-solutions defined on grid edges.
+solutions defined on cell edges.
 
 The tutorials in `Linear Solvers`_ show examples of
 using the solvers.  The tutorial

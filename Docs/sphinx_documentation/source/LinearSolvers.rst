@@ -14,7 +14,7 @@ system using the geometric multigrid method.  The constructor of
 class of various linear operator
 classes, :cpp:`MLABecLaplacian`, :cpp:`MLPoisson`,
 :cpp:`MLNodeLaplacian`, etc.  We choose the type of linear operator
-class according to the type the linear system to solve. Examples of the
+class according to the type of linear system to solve. Examples of the
 linear operators include
 
 - :cpp:`MLABecLaplacian` for cell-centered canonical form (equation :eq:`eqn::abeclap`).
@@ -858,7 +858,7 @@ discretized form of
 
 .. math:: \nabla \times (\alpha \nabla \times \vec{E}) + \beta \vec{E} = \vec{f},
 
-where :math:`\vec{E}` and :math:`\vec{f}` are defined on grid edges,
+where :math:`\vec{E}` and :math:`\vec{f}` are defined on cell edges,
 :math:`\alpha` is a positive scalar, and :math:`\beta` is a non-negative
 scalar (either a constant or a field). An :cpp:`Array` of three
 :cpp:`MultiFab`\ s is used to store the components of :math:`\vec{E}` and
