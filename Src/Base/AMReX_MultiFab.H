@@ -708,10 +708,7 @@ public:
     /**
      * \brief Synchronize nodal data.  The synchronization will override
      * valid regions by the intersecting valid regions with a higher
-     * precedence.  The smaller the global box index is, the higher
-     * precedence the box has.  With periodic boundaries, for cells in the
-     * same box, those near the lower corner have higher precedence than
-     * those near the upper corner.
+     * precedence, according to the owner mask provided as input.
      *
      * Example: Suppose there is a valid point that is shared by 4 boxes.
      * Some operation assigns values a, b, c, and d to the 4 points in the 4 boxes.
