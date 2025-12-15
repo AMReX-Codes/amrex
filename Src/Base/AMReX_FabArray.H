@@ -1201,7 +1201,7 @@ public:
      * We then call SumBoundary to add the 4 values and store the result in the 4 boxes.
      * The value in box 0 might be the result of a+b+c+d, the value in box 1 might be
      * the result of b+c+d+a, etc. The resulting data could be out of sync across
-     * boxes due to roundoff erors.
+     * boxes due to roundoff errors.
      * OverrideSync synchronizes the data by overriding all values with one value
      * (e.g., the value from box 0).
      *

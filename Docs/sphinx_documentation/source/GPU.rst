@@ -1458,7 +1458,7 @@ host.
 
 The only exception in the :cpp:`ParallelFor` family is
 :cpp:`ParallelForRNG`, which is used when random number generation is
-requried inside the GPU kernel. It contains an implicit stream
+required inside the GPU kernel. It contains an implicit stream
 synchronization to avoid potential race conditions. Many member functions of
 :cpp:`BaseFab` and :cpp:`FArrayBox` are also asynchronous. However, implicit
 synchronizations occur in a number of situations. Some are unavoidable. For
