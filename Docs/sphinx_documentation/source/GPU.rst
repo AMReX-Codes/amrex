@@ -1475,6 +1475,7 @@ using with :cpp:`MFItInfo`. For example,
 .. highlight:: c++
 
 ::
+
    // There is no implicit synchronization in the following loop.
    for (MFIter mfi(mf, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi)
    { ... }
@@ -1484,6 +1485,7 @@ One could also use :cpp:`Gpu::NoSyncRegion`, as shown below:
 .. highlight:: c++
 
 ::
+
    {
      Gpu::NoSyncRegion no_sync{}; // No implicit GPU synchronization in the
                                   // current scope
