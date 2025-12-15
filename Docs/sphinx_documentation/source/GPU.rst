@@ -1449,6 +1449,58 @@ In addition to stream synchronization, there is also
 However, a device wide synchronization is usually too excessive and it might
 interfere with other libraries (e.g., MPI).
 
+AMReX functions can exhibit different synchronization behaviors. Functions
+that launch user-provided GPU kernels are typically asynchronous. For
+example, GPU kernels launched by the :cpp:`ParallelFor` family of functions
+(including variants for 1D arrays, :cpp:`Box`\ es, and an entire
+:cpp:`MultiFab` in a single kernel) are asynchronous with respect to the
+host.
+
+The only exception in the :cpp:`ParallelFor` family is
+:cpp:`ParallelForRNG`, which is used when random number generation is
+required inside the GPU kernel. It contains an implicit stream
+synchronization to avoid potential race conditions. Many member functions of
+:cpp:`BaseFab` and :cpp:`FArrayBox` are also asynchronous. However, implicit
+synchronizations occur in a number of situations. Some are unavoidable. For
+example, :cpp:`Reduce::Sum` returns a value on the host, and therefore must
+perform an implicit synchronization. Another example is the communication
+functions such as :cpp:`FillBoundary`. Since MPI has no notion of GPU
+streams, the data must be synchronized before being passed to MPI calls.
+
+Other synchronizations are introduced for safety. A notable example is
+:cpp:`MFIter`, which performs implicit synchronizations at both the
+beginning and end of the loop (as a whole, not on each iteration). These
+synchronizations can be disabled using with :cpp:`MFItInfo`. For example,
+
+.. highlight:: c++
+
+::
+
+   // There is no implicit synchronization in the following loop.
+   for (MFIter mfi(mf, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi)
+   { ... }
+
+One could also use :cpp:`Gpu::NoSyncRegion`, as shown below:
+
+.. highlight:: c++
+
+::
+
+   {
+     Gpu::NoSyncRegion no_sync{}; // No implicit GPU synchronization in the
+                                  // current scope
+
+     for (MFIter mfi(mf); mfi.isValid(); ++mfi) { ... }
+
+     // Gpu::streamSynchronize(); Explicit synchronization is allowed.
+
+     for (MFIter mfi(mf2); mfi.isValid9); ++mfi) { .... }
+   }
+
+This approach suppresses implicit synchronization for all operations within
+the scoped region and restores the previous synchronization setting upon
+exiting.
+
 .. _sec:gpu:example:
 
 An Example of Migrating to GPU
