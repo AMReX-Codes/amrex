@@ -13,7 +13,7 @@ If you use AMReX, we ask you to cite the JOSS paper and the first IJHPCA paper:
     }
 
     @ARTICLE{AMReX_IJHPCA1,
-         author = {Zhang, W. and Myers, A. and Gott, K. and Almgren, A. and Bell, J. and et al.},
+         author = {Zhang, W. and Myers, A. and Gott, K. and Almgren, A. and Bell, J.},
          title = {{AMReX}: {B}lock-structured adaptive mesh refinement for multiphysics applications},
          journal = {The International Journal of High Performance Computing Applications},
          year = {2021},
