@@ -27,7 +27,7 @@ If you have also used pyAMReX and/or you use more modern features of AMReX, plea
 
     @ARTICLE{AMReX_IJHPCA2,
          author = {Andrew Myers and Weiqun Zhang and Ann Almgren and Thierry Antoun and John Bell and Axel Huebl and Alexander Sinn},
-         title = {{AMReX} and {pyAMReX}: Looking Beyond {ECP}},
+         title = {{AMReX} and {pyAMReX}: Looking Beyond the Exascale Computing Project},
          journal = {The International Journal of High Performance Computing Applications},
          year = {2024},
          volume = {38},
