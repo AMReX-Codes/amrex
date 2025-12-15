@@ -1469,8 +1469,8 @@ streams, the data must be synchronized before being passed to MPI calls.
 
 Other synchronizations are introduced for safety. A notable example is
 :cpp:`MFIter`, which performs implicit synchronizations at both the
-beginning and end of its iteration. These synchronizations can be disabled
-using with :cpp:`MFItInfo`. For example,
+beginning and end of the loop (as a whole, not on each iteration). These
+synchronizations can be disabled using with :cpp:`MFItInfo`. For example,
 
 .. highlight:: c++
 
