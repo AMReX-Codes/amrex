@@ -12,20 +12,22 @@ namespace amrex {
 template <int N, typename DU>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 GpuArray<Real,AMREX_SPACEDIM>
-calc_slopes_eb (Real A[N][AMREX_SPACEDIM], DU const& f, int n = N)
+calc_slopes_eb (Real A[N][AMREX_SPACEDIM], DU const& f, int nx, int ny)
 {
     Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM] = {};
     Real Atb[AMREX_SPACEDIM] = {};
 
-    for(int lc(0); lc<n; ++lc)
-    {
+    int lc = 0;
+    for (int jj = -ny; jj <= ny; ++jj) {
+    for (int ii = -nx; ii <= nx; ++ii) {
         AtA[0][0] += A[lc][0] * A[lc][0];
         AtA[0][1] += A[lc][0] * A[lc][1];
         AtA[1][1] += A[lc][1] * A[lc][1];
-        auto du = f(lc);
+        auto du = f(ii,jj);
         Atb[0] += A[lc][0]*du;
         Atb[1] += A[lc][1]*du;
-    }
+        ++lc;
+    }}
 
     // Fill in symmetric
     AtA[1][0] = AtA[0][1];
@@ -67,11 +69,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int /*k*/, int n,
                               amrex::Array4<amrex::Real const> const& state,
                               amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    auto f = [&] (int lc) {
-        int jj = lc / 3;
-        int ii = lc - jj * 3;
-        --ii;
-        --jj;
+    auto f = [&] (int ii, int jj) {
         if( flag(i,j,0).isConnected(ii,jj,0) && !(ii==0 && jj==0))
         {
             return state(i+ii,j+jj,0,n) - state(i,j,0,n);
@@ -79,7 +77,7 @@ amrex_calc_slopes_eb_given_A (int i, int j, int /*k*/, int n,
             return amrex::Real(0.0);
         }
     };
-    return amrex::calc_slopes_eb<9>(A, f);
+    return amrex::calc_slopes_eb<9>(A, f, 1, 1);
 }
 
 // amrex_calc_slopes_eb_grown calculates the slope in each coordinate direction using a
@@ -100,13 +98,7 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int /*k*/, int n, int nx, int 
     AMREX_ASSERT(nx == 1 || nx == 2);
     AMREX_ASSERT(ny == 1 || ny == 2);
 
-    int jstride = 2*nx + 1;
-
-    auto f = [&] (int lc) {
-        int jj = lc / jstride;
-        int ii = lc - jj * jstride;
-        ii -= nx;
-        jj -= ny;
+    auto f = [&] (int ii, int jj) {
         if(!flag(i+ii,j+jj,0).isCovered() && !(ii==0 && jj==0))
         {
             return state(i+ii,j+jj,0,n) - state(i,j,0,n);
@@ -114,7 +106,7 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int /*k*/, int n, int nx, int 
             return amrex::Real(0);
         }
     };
-    return amrex::calc_slopes_eb<25>(A, f, (2*ny+1)*jstride);
+    return amrex::calc_slopes_eb<25>(A, f, nx, ny);
 }
 
 //
