@@ -120,6 +120,7 @@ License for AMReX can be found at [LICENSE](LICENSE).
 ## Citation
 
 To cite AMReX, please use [![Citing](http://joss.theoj.org/papers/10.21105/joss.01370/status.svg)](https://doi.org/10.21105/joss.01370)
+and [the first IJHPCA paper](https://journals.sagepub.com/doi/full/10.1177/10943420211022811).
 
 ```
 @article{AMReX_JOSS,
@@ -134,5 +135,31 @@ To cite AMReX, please use [![Citing](http://joss.theoj.org/papers/10.21105/joss.
   author = {Weiqun Zhang and Ann Almgren and Vince Beckner and John Bell and Johannes Blaschke and Cy Chan and Marcus Day and Brian Friesen and Kevin Gott and Daniel Graves and Max Katz and Andrew Myers and Tan Nguyen and Andrew Nonaka and Michele Rosso and Samuel Williams and Michael Zingale},
   title = {{AMReX}: a framework for block-structured adaptive mesh refinement},
   journal = {Journal of Open Source Software}
+}
+
+@article{AMReX_IJHPCA1,
+     author = {Zhang, W. and Myers, A. and Gott, K. and Almgren, A. and Bell, J.},
+     title = {{AMReX}: {B}lock-structured adaptive mesh refinement for multiphysics applications},
+     journal = {The International Journal of High Performance Computing Applications},
+     year = {2021},
+     volume = {35},
+     number = {6},
+     pages = {508-526},
+     doi = {10.1177/10943420211022811}
+}
+```
+
+If you have also used pyAMReX and/or you use more modern features of AMReX, please also cite
+[the second IJHPCA paper](https://journals.sagepub.com/doi/full/10.1177/10943420241271017).
+
+```
+@article{AMReX_IJHPCA2,
+     author = {Andrew Myers and Weiqun Zhang and Ann Almgren and Thierry Antoun and John Bell and Axel Huebl and Alexander Sinn},
+     title = {{AMReX} and {pyAMReX}: Looking Beyond the Exascale Computing Project},
+     journal = {The International Journal of High Performance Computing Applications},
+     year = {2024},
+     volume = {38},
+     number = {6},
+     doi = {10.1177/10943420241271017}
 }
 ```
