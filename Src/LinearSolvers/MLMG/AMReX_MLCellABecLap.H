@@ -48,14 +48,14 @@ public:
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
-        for (MFIter mfi(*m_overset_mask[amrlev][0], TilingIfNotGPU());mfi.isValid();++mfi)
+        for (MFIter mfi(*m_overset_mask[amrlev][0], TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             Array4<int const> const& amsk = a_mask.const_array(mfi);
             Array4<int> const& omsk = m_overset_mask[amrlev][0]->array(mfi);
             Box const& bx = mfi.tilebox();
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx,i,j,k,
             {
-                omsk(i,j,k) = 1-amsk(i,j,k);
+                omsk(i,j,k) = amsk(i,j,k);
             });
         }
     }
