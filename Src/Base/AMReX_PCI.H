@@ -152,23 +152,19 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
     else
     {
-
-				detail::deterministic_fab_to_fab<value_type, value_type>(
-						loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
-
-				// if (deterministic) {
-				// 		// Use deterministic_fab_to_fab for ADD operations to ensure bitwise
-				// 		// reproducibility. The atomic add operations (fab_to_fab_atomic_add) are
-				// 		// non-deterministic because the order of atomic additions is not guaranteed.
-				// 		detail::deterministic_fab_to_fab<value_type, value_type>(
-				// 				loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
-				// } else if (is_thread_safe) {
-        //     detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
-        //         dcomp, ncomp, detail::CellAdd<value_type, value_type>());
-        // } else {
-        //     detail::fab_to_fab_atomic_add<value_type, value_type>(
-        //         loc_copy_tags, scomp, dcomp, ncomp, masks);
-        // }
+        if (deterministic) {
+            // Use deterministic_fab_to_fab for ADD operations to ensure bitwise
+            // reproducibility. The atomic add operations (fab_to_fab_atomic_add) are
+            // non-deterministic because the order of atomic additions is not guaranteed.
+            detail::deterministic_fab_to_fab<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else if (is_thread_safe) {
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else {
+            detail::fab_to_fab_atomic_add<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
+        }
     }
 }
 #endif
