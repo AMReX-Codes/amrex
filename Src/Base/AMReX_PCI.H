@@ -86,7 +86,8 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
 template <class FAB>
 void
 FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
-                             int scomp, int dcomp, int ncomp, CpOp op)
+                             int scomp, int dcomp, int ncomp, CpOp op,
+                             bool deterministic)
 {
     int N_locs = thecpc.m_LocTags->size();
     if (N_locs == 0) { return; }
@@ -99,11 +100,10 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4Tag<int> > masks_unique;
     Vector<Array4Tag<int> > masks;
-    if (!is_thread_safe)
+    if (!is_thread_safe && !deterministic)
     {
-        // For ADD operations, we always use deterministic mode to ensure reproducibility
-        // This avoids non-deterministic atomic add operations on GPU
-        if (op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value)
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
             masks_unique.reserve(this->local_size());
@@ -152,13 +152,19 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
     else
     {
-        // For ADD operations, always use deterministic_fab_to_fab to ensure reproducibility
-        // This avoids non-deterministic atomic add operations that can cause different
-        // results between runs when multiple sources contribute to the same destination cell.
-        // The deterministic version sorts operations by destination and processes them
-        // sequentially to guarantee consistent ordering of floating-point additions.
-        detail::deterministic_fab_to_fab<value_type, value_type>(
-            loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+				if (deterministic) {
+						// Use deterministic_fab_to_fab for ADD operations to ensure bitwise
+						// reproducibility. The atomic add operations (fab_to_fab_atomic_add) are
+						// non-deterministic because the order of atomic additions is not guaranteed.
+						detail::deterministic_fab_to_fab<value_type, value_type>(
+								loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+				} else if (is_thread_safe) {
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else {
+            detail::fab_to_fab_atomic_add<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
+        }
     }
 }
 #endif

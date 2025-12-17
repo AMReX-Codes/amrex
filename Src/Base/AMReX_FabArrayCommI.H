@@ -306,11 +306,13 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              const IntVect&       dnghost,
                              const Periodicity&   period,
                              CpOp                 op,
-                             const FabArrayBase::CPC * a_cpc)
+                             const FabArrayBase::CPC * a_cpc,
+                             bool                 deterministic)
 {
     BL_PROFILE("FabArray::ParallelCopy()");
 
-    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc,
+                        false, deterministic);
     ParallelCopy_finish();
 }
 
@@ -389,10 +391,11 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const Periodicity&   period,
                                     CpOp                 op,
                                     const FabArrayBase::CPC * a_cpc,
-                                    bool                 to_ghost_cells_only)
+                                    bool                 to_ghost_cells_only,
+                                    bool                 deterministic)
 {
     ParallelCopy_nowait(src,scomp,dcomp,ncomp,snghost,dnghost,IntVect(0),period,op,a_cpc,
-                        to_ghost_cells_only);
+                        to_ghost_cells_only, deterministic);
 }
 
 template <class FAB>
@@ -407,7 +410,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const Periodicity&   period,
                                     CpOp                 op,
                                     const FabArrayBase::CPC * a_cpc,
-                                    bool                 to_ghost_cells_only)
+                                    bool                 to_ghost_cells_only,
+                                    bool                 deterministic)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
@@ -526,7 +530,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op);
+            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op, deterministic);
         }
         else
 #endif
@@ -626,7 +630,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, SC, DC, NC, op);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op, deterministic);
             }
             else
 #endif

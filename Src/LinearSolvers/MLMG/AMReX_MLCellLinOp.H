@@ -422,6 +422,7 @@ MLCellLinOpT<MF>::defineAuxData ()
                                  this->m_geom[amrlev+1][0],
                                  this->m_geom[amrlev][0],
                                  ratio, amrlev+1, ncomp);
+        m_fluxreg[amrlev].setDeterministic(this->info.deterministic);
         m_norm_fine_mask[amrlev] = std::make_unique<iMultiFab>
             (makeFineMask(this->m_grids[amrlev][0], this->m_dmap[amrlev][0],
                           this->m_grids[amrlev+1][0],
