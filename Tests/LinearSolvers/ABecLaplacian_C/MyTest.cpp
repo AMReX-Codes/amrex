@@ -54,6 +54,7 @@ MyTest::solvePoisson ()
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
     info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setDeterministic(true);
 
     const auto tol_rel = Real(1.e-10);
     const auto tol_abs = Real(0.0);
