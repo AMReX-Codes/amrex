@@ -19,7 +19,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     AMREX_ASSERT(!enforce_periodicity_only || !override_sync);
 
     bool sumboundary = sumboundary_src_nghost.allGE(0);
-    amrex::ignore_unused(deterministic);
 
     bool work_to_do;
     if (enforce_periodicity_only) {
@@ -57,7 +56,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     if constexpr (amrex::IsAddAssignable<value_type>::value) {
                         FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
                     } else {
-                        amrex::Abort("SumBoundary requires operator+=");
+                      amrex::Abort("SumBoundary requires operator+=");
                     }
                 } else {
                     FB_local_copy_gpu(TheFB, scomp, ncomp);
@@ -206,6 +205,10 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     }
 
 #endif /*BL_USE_MPI*/
+
+#ifndef AMREX_USE_GPU
+    amrex::ignore_unused(deterministic);
+#endif
 }
 
 template <class FAB>
@@ -652,6 +655,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     }
 
 #endif /*BL_USE_MPI*/
+
+#ifndef AMREX_USE_GPU
+    amrex::ignore_unused(deterministic);
+#endif
 }
 
 template <class FAB>
