@@ -213,7 +213,7 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
 }
 
 template <typename T0, typename T1, class F>
-void deterministic_reductions_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int scomp,
+void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int scomp,
                                int dcomp, int ncomp, F const& f)
 {
     if (a_tags.empty()) { return; }
@@ -563,7 +563,7 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
 template <class FAB>
 void
-FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool deterministic_reductions)
+FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool deterministic)
 {
     auto const& LocTags = *(TheFB.m_LocTags);
     int N_locs = LocTags.size();
@@ -595,8 +595,8 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
 
     detail::fab_to_fab(loc_copy_tags_1, 0, 0, ncomp,
                        detail::CellStore<value_type, value_type>{});
-    if (deterministic_reductions || ! amrex::HasAtomicAdd<value_type>::value) {
-        detail::deterministic_reductions_fab_to_fab(loc_copy_tags_2, 0, 0, ncomp,
+    if (deterministic || ! amrex::HasAtomicAdd<value_type>::value) {
+        detail::deterministic_fab_to_fab(loc_copy_tags_2, 0, 0, ncomp,
                                          detail::CellAdd<value_type,value_type>{});
     } else {
         if constexpr(amrex::HasAtomicAdd<value_type>::value) {
@@ -1173,7 +1173,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                                        Vector<std::size_t> const& recv_size,
                                        Vector<CopyComTagsContainer const*> const& recv_cctc,
                                        CpOp op, bool is_thread_safe, std::uint64_t id,
-                                       bool deterministic_reductions)
+                                       bool deterministic)
 {
     const int N_rcvs = recv_cctc.size();
     if (N_rcvs == 0) { return; }
@@ -1188,7 +1188,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
         }
     }
 
-    if (deterministic_reductions)
+    if (deterministic)
     {
         AMREX_ALWAYS_ASSERT(op == FabArrayBase::ADD); // Only ADD for now
         using TagType = Array4CopyTag<value_type,BUF>;
@@ -1210,7 +1210,7 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
             }
         }
         if constexpr (amrex::IsAddAssignable<value_type>::value) {
-            detail::deterministic_reductions_fab_to_fab<value_type,BUF>
+            detail::deterministic_fab_to_fab<value_type,BUF>
                 (tags, 0, dcomp, ncomp, detail::CellAdd<value_type,BUF>{});
         } else {
             amrex::Abort("SumBoundary requires operator+=");

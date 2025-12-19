@@ -84,13 +84,13 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
 
 #ifdef AMREX_USE_GPU
 template <class FAB>
-void FabArray<FAB>::PC_local_gpu(const CPC &thecpc, FabArray<FAB> const &src,
-                                 int scomp, int dcomp, int ncomp, CpOp op,
-                                 bool deterministic_reductions) {
-  int N_locs = thecpc.m_LocTags->size();
-  if (N_locs == 0) {
-    return;
-  }
+void
+FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
+                             int scomp, int dcomp, int ncomp, CpOp op,
+                             bool deterministic)
+{
+    int N_locs = thecpc.m_LocTags->size();
+    if (N_locs == 0) { return; }
     bool is_thread_safe = thecpc.m_threadsafe_loc;
 
     using TagType = Array4CopyTag<value_type>;
@@ -100,15 +100,15 @@ void FabArray<FAB>::PC_local_gpu(const CPC &thecpc, FabArray<FAB> const &src,
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4Tag<int> > masks_unique;
     Vector<Array4Tag<int> > masks;
-    if (!is_thread_safe && !deterministic_reductions) {
-      if ((op == FabArrayBase::COPY &&
-           !amrex::IsStoreAtomic<value_type>::value) ||
-          (op == FabArrayBase::ADD &&
-           !amrex::HasAtomicAdd<value_type>::value)) {
-        maskfabs.resize(this->local_size());
-        masks_unique.reserve(this->local_size());
-        masks.reserve(N_locs);
-      }
+    if (!is_thread_safe && !deterministic)
+    {
+        if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
+        {
+            maskfabs.resize(this->local_size());
+            masks_unique.reserve(this->local_size());
+            masks.reserve(N_locs);
+        }
     }
 
     for (int i = 0; i < N_locs; ++i)
@@ -152,22 +152,19 @@ void FabArray<FAB>::PC_local_gpu(const CPC &thecpc, FabArray<FAB> const &src,
     }
     else
     {
-      if (deterministic_reductions) {
-        // Use deterministic_reductions_fab_to_fab for ADD operations to ensure
-        // bitwise reproducibility. The atomic add operations
-        // (fab_to_fab_atomic_add) are non-deterministic_reductions because the
-        // order of atomic additions is not guaranteed.
-        detail::deterministic_reductions_fab_to_fab<value_type, value_type>(
-            loc_copy_tags, scomp, dcomp, ncomp,
-            detail::CellAdd<value_type, value_type>());
-      } else if (is_thread_safe) {
-        detail::fab_to_fab<value_type, value_type>(
-            loc_copy_tags, scomp, dcomp, ncomp,
-            detail::CellAdd<value_type, value_type>());
-      } else {
-        detail::fab_to_fab_atomic_add<value_type, value_type>(
-            loc_copy_tags, scomp, dcomp, ncomp, masks);
-      }
+        if (deterministic) {
+            // Use deterministic_fab_to_fab for ADD operations to ensure bitwise
+            // reproducibility. The atomic add operations (fab_to_fab_atomic_add) are
+            // non-deterministic because the order of atomic additions is not guaranteed.
+            detail::deterministic_fab_to_fab<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else if (is_thread_safe) {
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else {
+            detail::fab_to_fab_atomic_add<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, masks);
+        }
     }
 }
 #endif

@@ -69,7 +69,6 @@ namespace amrex
         extern AMREX_EXPORT bool abort_on_unused_inputs;
 
         extern AMREX_EXPORT bool init_snan;
-        extern AMREX_EXPORT bool deterministic_reductions;
     }
 
     /** the AMReX "git describe" version */
@@ -246,9 +245,6 @@ namespace amrex
 
     [[nodiscard]] bool InitSNaN () noexcept;
     void SetInitSNaN (bool v) noexcept;
-
-    [[nodiscard]] bool DeterministicReductions() noexcept;
-    void SetDeterministicReductions(bool v) noexcept;
 
     // ! Get the entire command line including the executable
     [[nodiscard]] std::string get_command ();
