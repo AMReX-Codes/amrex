@@ -56,7 +56,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                     if constexpr (amrex::IsAddAssignable<value_type>::value) {
                         FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
                     } else {
-                      amrex::Abort("SumBoundary requires operator+=");
+                        amrex::Abort("SumBoundary requires operator+=");
                     }
                 } else {
                     FB_local_copy_gpu(TheFB, scomp, ncomp);
