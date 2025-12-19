@@ -10,7 +10,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only,
                             bool override_sync,
                             IntVect const& sumboundary_src_nghost,
-                            bool deterministic) // so far the deterministic is for sumboundary only
+                            bool deterministic_reductions) // so far the deterministic_reductions is for sumboundary only
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
@@ -54,7 +54,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             {
                 if (sumboundary) {
                     if constexpr (amrex::IsAddAssignable<value_type>::value) {
-                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
+                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic_reductions);
                     } else {
                         amrex::Abort("SumBoundary requires operator+=");
                     }
@@ -105,7 +105,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fbd->scomp = scomp;
     fbd->ncomp = ncomp;
     fbd->tag   = SeqNum;
-    fbd->deterministic = deterministic;
+    fbd->deterministic_reductions = deterministic_reductions;
 
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
@@ -175,7 +175,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             {
                 if (sumboundary) {
                     if constexpr (amrex::IsAddAssignable<value_type>::value) {
-                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
+                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic_reductions);
                     } else {
                         amrex::Abort("SumBoundary requires operator+=");
                     }
@@ -207,7 +207,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 #endif /*BL_USE_MPI*/
 
 #ifndef AMREX_USE_GPU
-    amrex::ignore_unused(deterministic);
+    amrex::ignore_unused(deterministic_reductions);
 #endif
 }
 
@@ -266,9 +266,9 @@ FabArray<FAB>::FillBoundary_finish ()
             else
 #endif
             {
-                bool deterministic = fbd->deterministic;
+                bool deterministic_reductions = fbd->deterministic_reductions;
                 unpack_recv_buffer_gpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                            recv_cctc, op, is_thread_safe, TheFB->m_id, deterministic);
+                                            recv_cctc, op, is_thread_safe, TheFB->m_id, deterministic_reductions);
             }
         }
         else
@@ -310,12 +310,12 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              const Periodicity&   period,
                              CpOp                 op,
                              const FabArrayBase::CPC * a_cpc,
-                             bool                 deterministic)
+                             bool                 deterministic_reductions)
 {
     BL_PROFILE("FabArray::ParallelCopy()");
 
     ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc,
-                        false, deterministic);
+                        false, deterministic_reductions);
     ParallelCopy_finish();
 }
 
@@ -395,10 +395,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     CpOp                 op,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only,
-                                    bool                 deterministic)
+                                    bool                 deterministic_reductions)
 {
     ParallelCopy_nowait(src,scomp,dcomp,ncomp,snghost,dnghost,IntVect(0),period,op,a_cpc,
-                        to_ghost_cells_only, deterministic);
+                        to_ghost_cells_only, deterministic_reductions);
 }
 
 template <class FAB>
@@ -414,7 +414,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     CpOp                 op,
                                     const FabArrayBase::CPC * a_cpc,
                                     bool                 to_ghost_cells_only,
-                                    bool                 deterministic)
+                                    bool                 deterministic_reductions)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
@@ -533,7 +533,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op, deterministic);
+            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op, deterministic_reductions);
         }
         else
 #endif
@@ -577,7 +577,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->src = &src;
         pcd->op = op;
         pcd->tag = tag;
-        pcd->deterministic = deterministic;
+        pcd->deterministic_reductions = deterministic_reductions;
 
         NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == NC);
@@ -634,7 +634,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, SC, DC, NC, op, deterministic);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op, deterministic_reductions);
             }
             else
 #endif
@@ -658,7 +658,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #endif /*BL_USE_MPI*/
 
 #ifndef AMREX_USE_GPU
-    amrex::ignore_unused(deterministic);
+    amrex::ignore_unused(deterministic_reductions);
 #endif
 }
 
@@ -710,7 +710,7 @@ FabArray<FAB>::ParallelCopy_finish ()
           unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data,
                                  pcd->recv_size, recv_cctc, pcd->op,
                                  is_thread_safe, thecpc->m_id,
-                                 pcd->deterministic);
+                                 pcd->deterministic_reductions);
         }
         else
 #endif
