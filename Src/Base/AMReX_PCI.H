@@ -89,8 +89,13 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                              int scomp, int dcomp, int ncomp, CpOp op,
                              bool deterministic)
 {
-    int N_locs = thecpc.m_LocTags->size();
-    if (N_locs == 0) { return; }
+  amrex::Print() << "CCH: deterministic = " << deterministic << "\n";
+//   std::cout << "CCH: deterministic = " << deterministic << "\n";
+
+  int N_locs = thecpc.m_LocTags->size();
+  if (N_locs == 0) {
+    return;
+  }
     bool is_thread_safe = thecpc.m_threadsafe_loc;
 
     using TagType = Array4CopyTag<value_type>;
