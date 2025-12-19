@@ -577,6 +577,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->src = &src;
         pcd->op = op;
         pcd->tag = tag;
+        pcd->deterministic = deterministic;
 
         NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == NC);
@@ -706,8 +707,10 @@ FabArray<FAB>::ParallelCopy_finish ()
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id, false);
+          unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data,
+                                 pcd->recv_size, recv_cctc, pcd->op,
+                                 is_thread_safe, thecpc->m_id,
+                                 pcd->deterministic);
         }
         else
 #endif

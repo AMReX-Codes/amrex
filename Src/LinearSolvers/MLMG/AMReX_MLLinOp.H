@@ -45,7 +45,8 @@ struct LPInfo
     int max_semicoarsening_level = 0;
     int semicoarsening_direction = -1;
     int hidden_direction = -1;
-    bool deterministic = false;   //!< Enable deterministic mode for GPU operations
+    bool deterministic = amrex::Deterministic(); //!< Enable deterministic mode
+                                                 //!< for GPU operations
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }

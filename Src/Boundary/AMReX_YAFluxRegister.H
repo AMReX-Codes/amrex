@@ -114,7 +114,7 @@ protected:
     int m_ncomp;
 
     MF const* m_cvol = nullptr;
-    bool m_deterministic = false;
+    bool m_deterministic = amrex::Deterministic();
 };
 
 template <typename MF>

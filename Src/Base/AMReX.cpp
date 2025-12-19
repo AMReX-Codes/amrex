@@ -113,6 +113,7 @@ namespace system
     bool call_addr2line;
     bool throw_exception;
     bool regtest_reduction;
+    bool deterministic;
     bool abort_on_unused_inputs = false;
     std::ostream* osout = &std::cout;
     std::ostream* oserr = &std::cerr;
@@ -165,6 +166,11 @@ namespace {
 #endif
 }
 #endif
+
+bool amrex::Deterministic() noexcept { return amrex::system::deterministic; }
+void amrex::SetDeterministic(bool v) noexcept {
+  amrex::system::deterministic = v;
+}
 
 int amrex::Verbose () noexcept { return amrex::system::verbose; }
 
@@ -368,12 +374,14 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         system::handle_sigill  = false;
         system::call_addr2line = false;
         system::throw_exception = false;
+        system::deterministic = false;
         system::osout = &std::cout;
         system::oserr = &std::cerr;
         system::error_handler = nullptr;
     } else {
 //    system::verbose = 0;
         system::regtest_reduction = false;
+        system::deterministic = false;
         system::signal_handling = true;
         system::handle_sigsegv = true;
         system::handle_sigterm = false;
@@ -493,6 +501,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
             pp.add("verbose", system::verbose);
         }
         pp.queryAdd("init_snan", system::init_snan);
+        pp.queryAdd("deterministic", system::deterministic);
     }
 
     if (system::verbose > 0) {

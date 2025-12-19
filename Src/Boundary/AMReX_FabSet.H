@@ -110,7 +110,7 @@ public:
 
     FabSetT<MF>& plusFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
                            const Periodicity& period = Periodicity::NonPeriodic(),
-                           bool deterministic = false);
+                           bool deterministic = amrex::Deterministic());
 
     void copyTo (MF& dest, int ngrow, int scomp, int dcomp, int ncomp,
                  const Periodicity& period = Periodicity::NonPeriodic()) const;

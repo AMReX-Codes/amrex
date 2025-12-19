@@ -124,7 +124,7 @@ struct FBData {
     Vector<MPI_Request> send_reqs;
     int                 tag;
     //
-    bool                deterministic = false;
+    bool deterministic = amrex::Deterministic();
 };
 
 // Data used in non-blocking parallel copy.
@@ -145,7 +145,7 @@ struct PCData {
     Vector<std::size_t> recv_size;
     Vector<MPI_Request> recv_reqs;
     Vector<MPI_Request> send_reqs;
-
+    bool deterministic = amrex::Deterministic();
 };
 
 template <typename T>
@@ -933,16 +933,12 @@ public:
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY)
        { ParallelCopy(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),IntVect(dst_nghost),period,op); }
-    void ParallelCopy (const FabArray<FAB>& src,
-                       int                  scomp,
-                       int                  dcomp,
-                       int                  ncomp,
-                       const IntVect&       snghost,
-                       const IntVect&       dnghost,
-                       const Periodicity&   period = Periodicity::NonPeriodic(),
-                       CpOp                 op = FabArrayBase::COPY,
-                       const FabArrayBase::CPC* a_cpc = nullptr,
-                       bool                 deterministic = false);
+    void ParallelCopy(const FabArray<FAB> &src, int scomp, int dcomp, int ncomp,
+                      const IntVect &snghost, const IntVect &dnghost,
+                      const Periodicity &period = Periodicity::NonPeriodic(),
+                      CpOp op = FabArrayBase::COPY,
+                      const FabArrayBase::CPC *a_cpc = nullptr,
+                      bool deterministic = amrex::Deterministic());
 
     void ParallelAdd_nowait (const FabArray<FAB>& src,
                              int                  src_comp,
@@ -975,30 +971,21 @@ public:
        { ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,IntVect(src_nghost),
                              IntVect(dst_nghost),period,op); }
 
-    void ParallelCopy_nowait (const FabArray<FAB>& src,
-                              int                  scomp,
-                              int                  dcomp,
-                              int                  ncomp,
-                              const IntVect&       snghost,
-                              const IntVect&       dnghost,
-                              const Periodicity&   period = Periodicity::NonPeriodic(),
-                              CpOp                 op = FabArrayBase::COPY,
-                              const FabArrayBase::CPC* a_cpc = nullptr,
-                              bool                 to_ghost_cells_only = false,
-                              bool                 deterministic = false);
+    void ParallelCopy_nowait(
+        const FabArray<FAB> &src, int scomp, int dcomp, int ncomp,
+        const IntVect &snghost, const IntVect &dnghost,
+        const Periodicity &period = Periodicity::NonPeriodic(),
+        CpOp op = FabArrayBase::COPY, const FabArrayBase::CPC *a_cpc = nullptr,
+        bool to_ghost_cells_only = false,
+        bool deterministic = amrex::Deterministic());
 
-    void ParallelCopy_nowait (const FabArray<FAB>& src,
-                              int                  scomp,
-                              int                  dcomp,
-                              int                  ncomp,
-                              const IntVect&       snghost,
-                              const IntVect&       dnghost,
-                              const IntVect&       offset,
-                              const Periodicity&   period = Periodicity::NonPeriodic(),
-                              CpOp                 op = FabArrayBase::COPY,
-                              const FabArrayBase::CPC* a_cpc = nullptr,
-                              bool                 to_ghost_cells_only = false,
-                              bool                 deterministic = false);
+    void ParallelCopy_nowait(
+        const FabArray<FAB> &src, int scomp, int dcomp, int ncomp,
+        const IntVect &snghost, const IntVect &dnghost, const IntVect &offset,
+        const Periodicity &period = Periodicity::NonPeriodic(),
+        CpOp op = FabArrayBase::COPY, const FabArrayBase::CPC *a_cpc = nullptr,
+        bool to_ghost_cells_only = false,
+        bool deterministic = amrex::Deterministic());
 
     void ParallelCopy_finish ();
 
@@ -1228,14 +1215,18 @@ public:
     * after this. Sometimes, you can also wait till you need to do ghost
     * cell exchanges, and you can then call FillBoundaryAndSync to do both.
     */
-    void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
-    void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
-    void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
-    void SumBoundary_nowait (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
+    void SumBoundary(const Periodicity &period = Periodicity::NonPeriodic(),
+                     bool deterministic = amrex::Deterministic());
+    void SumBoundary(int scomp, int ncomp,
+                     const Periodicity &period = Periodicity::NonPeriodic(),
+                     bool deterministic = amrex::Deterministic());
+    void
+    SumBoundary_nowait(const Periodicity &period = Periodicity::NonPeriodic(),
+                       bool deterministic = amrex::Deterministic());
+    void
+    SumBoundary_nowait(int scomp, int ncomp,
+                       const Periodicity &period = Periodicity::NonPeriodic(),
+                       bool deterministic = amrex::Deterministic());
 
     /**
     * \brief Sum values in overlapped cells.
@@ -1246,12 +1237,13 @@ public:
     * after this. Sometimes, you can also wait till you need to do ghost
     * cell exchanges, and you can then call FillBoundaryAndSync to do both.
     */
-    void SumBoundary (int scomp, int ncomp, IntVect const& nghost,
-                      const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& nghost,
-                             const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
+    void SumBoundary(int scomp, int ncomp, IntVect const &nghost,
+                     const Periodicity &period = Periodicity::NonPeriodic(),
+                     bool deterministic = amrex::Deterministic());
+    void
+    SumBoundary_nowait(int scomp, int ncomp, IntVect const &nghost,
+                       const Periodicity &period = Periodicity::NonPeriodic(),
+                       bool deterministic = amrex::Deterministic());
 
     /**
     * \brief Sum values in overlapped cells.
@@ -1263,12 +1255,15 @@ public:
     * also wait till you need to do ghost cell exchanges, and you can then
     * call FillBoundaryAndSync to do both.
     */
-    void SumBoundary (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
-                      const Periodicity& period = Periodicity::NonPeriodic(),
-                      bool deterministic = false);
-    void SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_nghost, IntVect const& dst_nghost,
-                             const Periodicity& period = Periodicity::NonPeriodic(),
-                             bool deterministic = false);
+    void SumBoundary(int scomp, int ncomp, IntVect const &src_nghost,
+                     IntVect const &dst_nghost,
+                     const Periodicity &period = Periodicity::NonPeriodic(),
+                     bool deterministic = amrex::Deterministic());
+    void
+    SumBoundary_nowait(int scomp, int ncomp, IntVect const &src_nghost,
+                       IntVect const &dst_nghost,
+                       const Periodicity &period = Periodicity::NonPeriodic(),
+                       bool deterministic = amrex::Deterministic());
     void SumBoundary_finish ();
 
     /** \brief Fill ghost cells with values from their corresponding cells across periodic
@@ -1294,14 +1289,14 @@ public:
 
     // The following are private functions.  But we have to make them public for cuda.
 
-    template <typename BUF=value_type,
-              class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-    void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
-                      const Periodicity& period, bool cross,
-                      bool enforce_periodicity_only = false,
-                      bool override_sync = false,
-                      IntVect const& sumboundary_src_nghost = IntVect(-1),
-                      bool deterministic = false);
+    template <typename BUF = value_type, class F = FAB,
+              std::enable_if_t<IsBaseFab<F>::value, int> = 0>
+    void FBEP_nowait(int scomp, int ncomp, const IntVect &nghost,
+                     const Periodicity &period, bool cross,
+                     bool enforce_periodicity_only = false,
+                     bool override_sync = false,
+                     IntVect const &sumboundary_src_nghost = IntVect(-1),
+                     bool deterministic = amrex::Deterministic());
 
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
     void FB_local_add_cpu (const FB& TheFB, int scomp, int ncomp);
