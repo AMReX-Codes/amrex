@@ -941,7 +941,8 @@ public:
                        const IntVect&       dnghost,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY,
-                       const FabArrayBase::CPC* a_cpc = nullptr);
+                       const FabArrayBase::CPC* a_cpc = nullptr,
+                       bool                 deterministic = false);
 
     void ParallelAdd_nowait (const FabArray<FAB>& src,
                              int                  src_comp,
@@ -983,7 +984,8 @@ public:
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY,
                               const FabArrayBase::CPC* a_cpc = nullptr,
-                              bool                 to_ghost_cells_only = false);
+                              bool                 to_ghost_cells_only = false,
+                              bool                 deterministic = false);
 
     void ParallelCopy_nowait (const FabArray<FAB>& src,
                               int                  scomp,
@@ -995,7 +997,8 @@ public:
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY,
                               const FabArrayBase::CPC* a_cpc = nullptr,
-                              bool                 to_ghost_cells_only = false);
+                              bool                 to_ghost_cells_only = false,
+                              bool                 deterministic = false);
 
     void ParallelCopy_finish ();
 
@@ -1328,7 +1331,7 @@ public:
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
     void FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool deterministic);
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
-                       int scomp, int dcomp, int ncomp, CpOp op);
+                       int scomp, int dcomp, int ncomp, CpOp op, bool deterministic);
 
     void CMD_local_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
     void CMD_remote_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);

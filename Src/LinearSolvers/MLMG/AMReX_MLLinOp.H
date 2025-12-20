@@ -46,6 +46,7 @@ struct LPInfo
     int max_semicoarsening_level = 0;
     int semicoarsening_direction = -1;
     int hidden_direction = -1;
+    bool deterministic = false;   //!< Enable deterministic mode for GPU operations
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
@@ -59,6 +60,7 @@ struct LPInfo
     LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
     LPInfo& setSemicoarseningDirection (int n) noexcept { semicoarsening_direction = n; return *this; }
     LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
+    LPInfo& setDeterministic (bool x) noexcept { deterministic = x; return *this; }
 
     [[nodiscard]] bool hasHiddenDimension () const noexcept {
         return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
