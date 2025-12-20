@@ -29,7 +29,8 @@ namespace amrex
     inline void Finalize_FFT () { amrex::Finalize_minimal(); }
 }
 
-namespace amrex::FFT
+//! Not to be called the user
+namespace amrex::FFT::detail
 {
     void Initialize ();
     void Finalize ();
