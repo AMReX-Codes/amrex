@@ -353,6 +353,34 @@ float rsqrt (float x)
     return r;
 }
 
+//! Return 10**x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double exp10 (double x)
+{
+    double r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::exp10(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::exp10(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = std::pow(10.0, x); ))
+    return r;
+}
+
+//! Return 10**x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+float exp10 (float x)
+{
+    float r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::exp10(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::exp10f(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = std::pow(10.0F, x); ))
+    return r;
+}
+
 /***************************************************************************************************
  * Copyright (c) 2017 - 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause
