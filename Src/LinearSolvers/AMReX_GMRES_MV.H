@@ -131,13 +131,13 @@ void GMRES_MV<T>::assign (VEC& lhs, VEC const& rhs)
 template <typename T>
 void GMRES_MV<T>::increment (VEC& lhs, VEC const& rhs, T a)
 {
-    amrex::Axpy(lhs, a, rhs, true);
+    amrex::Axpy(lhs, a, rhs);
 }
 
 template <typename T>
 void GMRES_MV<T>::linComb (VEC& lhs, T a, VEC const& rhs_a, T b, VEC const& rhs_b)
 {
-    amrex::LinComb(lhs, a, rhs_a, b, rhs_b, true);
+    amrex::LinComb(lhs, a, rhs_a, b, rhs_b);
 }
 
 template <typename T>
