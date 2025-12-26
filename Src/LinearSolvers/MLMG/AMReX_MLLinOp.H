@@ -718,11 +718,11 @@ protected:
     [[nodiscard]] Array4<T> compactify (Array4<T> const& a) const noexcept
     {
         if (info.hidden_direction == 0) {
-            return Array4<T>(a.dataPtr(), {a.begin.y,a.begin.z,0}, {a.end.y,a.end.z,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[1],a.begin[2],0}, {a.end[1],a.end[2],1}, a.nComp());
         } else if (info.hidden_direction == 1) {
-            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.z,0}, {a.end.x,a.end.z,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[0],a.begin[2],0}, {a.end[0],a.end[2],1}, a.nComp());
         } else if (info.hidden_direction == 2) {
-            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.y,0}, {a.end.x,a.end.y,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[0],a.begin[1],0}, {a.end[0],a.end[1],1}, a.nComp());
         } else {
             return a;
         }

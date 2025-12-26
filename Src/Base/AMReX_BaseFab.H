@@ -1536,33 +1536,33 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T const* p)
 template<class T>
 BaseFab<T>::BaseFab (Array4<T> const& a) noexcept
     : dptr(a.p),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1))),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T> const& a, IndexType t) noexcept
     : dptr(a.p),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1)), t),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T const> const& a) noexcept
     : dptr(const_cast<T*>(a.p)),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1))),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
     : dptr(const_cast<T*>(a.p)),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1)), t),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template <class T>

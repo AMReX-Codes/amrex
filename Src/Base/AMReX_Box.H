@@ -97,8 +97,8 @@ public:
     template <typename T, int Tdim=dim, std::enable_if_t<( 1<=Tdim && Tdim<=3 ), int> = 0>
     AMREX_GPU_HOST_DEVICE
     explicit BoxND (Array4<T> const& a) noexcept
-        : smallend(a.begin),
-          bigend(IntVectND<dim>(a.end) - 1)
+        : smallend(IntVectShrink<dim>(a.begin)),
+          bigend(IntVectShrink<dim>(a.end) - 1)
         {}
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
