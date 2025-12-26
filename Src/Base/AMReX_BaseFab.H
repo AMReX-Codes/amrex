@@ -23,6 +23,7 @@
 #include <AMReX_Math.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_MemPool.H>
+#include <AMReX_TypeTraits.H>
 
 #include <cmath>
 #include <cstdlib>
@@ -2841,6 +2842,39 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     return *this;
 }
 
+namespace detail
+{
+
+template <RunOn run_on, typename T,
+          std::enable_if_t<HasAtomicAdd<T>::value,int> FOO = 0>
+void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
+                         const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept
+{
+    Array4<T> const& d = dfab.array();
+    Array4<T const> const& s = sfab.const_array();
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
+    {
+        T* p = d.ptr(i,j,k,n+destcomp);
+        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
+    });
+}
+
+template <RunOn run_on, typename T,
+          std::enable_if_t<! HasAtomicAdd<T>::value,int> FOO = 0>
+void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
+                         const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept
+{
+    amrex::ignore_unused(dfab, sfab, srcbox, destbox, srccomp, destcomp, numcomp);
+    amrex::Abort("BaseFab: atomicAdd not supported");
+}
+
+}
+
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&
@@ -2854,16 +2888,8 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    Array4<T> const& d = this->array();
-    Array4<T const> const& s = src.const_array();
-    const auto dlo = amrex::lbound(destbox);
-    const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
-    {
-        T* p = d.ptr(i,j,k,n+destcomp);
-        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
-    });
+    detail::basefab_atomic_add<run_on>(*this, src, srcbox, destbox,
+                                       srccomp, destcomp, numcomp);
 
     return *this;
 }

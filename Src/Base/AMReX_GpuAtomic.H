@@ -20,6 +20,7 @@ namespace Gpu::Atomic {
 // All these functions are non-atomic in host code!!!
 // If one needs them to be atomic in host code, use HostDevice::Atomic::*.  Currently only
 // HostDevice::Atomic::Add is supported.  We could certainly add more.
+// If we add more types for atomicAdd, we also need to update HasAtomicAdd in AMReX_TypeTraits.H.
 
 namespace detail {
 
