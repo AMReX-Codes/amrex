@@ -167,6 +167,10 @@ jobs:
         echo "$pwd" >> $env:GITHUB_PATH
     - name: Set Up MSVC
       uses: ilammy/msvc-dev-cmd@v1
+    - name: Set Up MS-MPI
+      uses: mpi4py/setup-mpi@v1
+      with:
+        mpi: msmpi
     - name: Compile
       run: |
         cmake -S . -B build                       `
@@ -181,7 +185,7 @@ jobs:
               -DAMReX_LINEAR_SOLVERS=ON           `
               -DAMReX_PARTICLES=ON                `
               -DAMReX_FORTRAN=OFF                 `
-              -DAMReX_MPI=OFF                     `
+              -DAMReX_MPI=ON                      `
               -DCMAKE_CXX_COMPILER=cl             `
               -DCMAKE_CUDA_COMPILER=nvcc
         # Sometimes cmake fails, but powershell continues to run
