@@ -337,6 +337,35 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
     Gpu::streamSynchronize();
 }
 
+template <typename B, typename V, typename TT,
+          std::enable_if_t<amrex::HasAtomicAdd<V>::value,int> FOO = 0>
+void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
+                                        int dcomp, int ncomp)
+{
+    detail::ParallelFor_doit(tv,
+        [=] AMREX_GPU_DEVICE (
+            int icell, int ncells, int i, int j, int k, TT const& tag) noexcept
+        {
+            if (icell < ncells) {
+                Array4<B const> sfab{(B const*)(pbuffer+tag.poff),
+                    amrex::begin(tag.bx), amrex::end(tag.bx), ncomp};
+                for (int n = 0; n < ncomp; ++n) {
+                    Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n+dcomp),
+                                          (V)sfab(i,j,k,n));
+                }
+            }
+        });
+}
+
+template <typename B, typename V, typename TT,
+          std::enable_if_t<!amrex::HasAtomicAdd<V>::value,int> FOO = 0>
+void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
+                                        int dcomp, int ncomp)
+{
+    amrex::ignore_unused(pbuffer, tv, dcomp, ncomp);
+    amrex::Abort("unpack_recv_buffer_gpu: should NOT get here");
+}
+
 #endif /* AMREX_USE_GPU */
 
 }
@@ -1256,23 +1285,8 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                     }
                 });
             } else {
-                if constexpr (amrex::HasAtomicAdd<value_type>::value) {
-                    detail::ParallelFor_doit(*tv,
-                        [=] AMREX_GPU_DEVICE (
-                            int icell, int ncells, int i, int j, int k, TagType const& tag) noexcept
-                    {
-                        if (icell < ncells) {
-                            Array4<BUF const> sfab{(BUF const*)(pbuffer+tag.poff),
-                                amrex::begin(tag.bx), amrex::end(tag.bx), ncomp};
-                            for (int n = 0; n < ncomp; ++n) {
-                                Gpu::Atomic::AddNoRet(tag.dfab.ptr(i,j,k,n+dcomp),
-                                                      (value_type)sfab(i,j,k,n));
-                            }
-                        }
-                    });
-                } else {
-                    amrex::Abort("unpack_recv_buffer_gpu: should NOT get here");
-                }
+                detail::unpack_recv_buffer_gpu_atomic_add<BUF, value_type>
+                    (pbuffer, *tv, dcomp, ncomp);
             }
         }
         Gpu::streamSynchronize();
