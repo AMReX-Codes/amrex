@@ -81,7 +81,7 @@ namespace amrex {
         inline constexpr bool ArrayNDIndexCheck_impl_v = ArrayNDIndexCheck_impl<dim, idx...>::value;
 
         template<std::size_t... idx>
-        constexpr auto make_oob_message_impl (std::index_sequence<idx...>&&) {
+        constexpr auto make_oob_message_impl (std::index_sequence<idx...>) {
             constexpr std::size_t Dim = sizeof...(idx);
             constexpr char prefix[] = " (";
             constexpr char middle[] = ") is out of bound (";
@@ -201,8 +201,7 @@ namespace amrex {
         template <class U,
             std::enable_if_t
                   <std::is_same_v<std::remove_const_t<T>,
-                                std::remove_const_t<U>>,int> = 0,
-            std::enable_if_t<dim == 4,int> = 0>
+                                std::remove_const_t<U>> && (dim == 4),int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, dim> const& rhs, int start_comp, int num_comp) noexcept
             : p((T*)(rhs.p + start_comp*rhs.nstride[dim-2])),
