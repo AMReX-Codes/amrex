@@ -258,6 +258,17 @@ namespace amrex {
             return p[get_offset(iv, n)];
         }
 
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && (dim == 4),int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (Dim3 const& cell) const noexcept {
+            return this->operator()(cell.x,cell.y,cell.z);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && (dim == 4),int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (Dim3 const& cell, int n) const noexcept {
+            return this->operator()(cell.x,cell.y,cell.z,n);
+        }
 
         // This overload is enabled only when number of indices matches dimension or is one less than dimension
         template <typename... idx, class U=T,
@@ -271,7 +282,7 @@ namespace amrex {
             return p + get_offset(IntVectND<nidx>{i...});
         }
 
-        template <int Dim, class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+        template <int Dim>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVectND<Dim> const& iv) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -280,7 +291,7 @@ namespace amrex {
             return p + get_offset(iv);
         }
 
-        template <int Dim, class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+        template <int Dim>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVectND<Dim> const& iv, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -289,16 +300,16 @@ namespace amrex {
             return p + get_offset(iv, n);
         }
 
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && (dim == 4),int> = 0>
+        template <int Dim=dim, std::enable_if_t<(Dim == 4),int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (Dim3 const& cell) const noexcept {
-            return this->operator()(cell.x,cell.y,cell.z);
+        T* ptr (Dim3 const& cell) const noexcept {
+            return this->ptr(cell.x,cell.y,cell.z);
         }
 
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && (dim == 4),int> = 0>
+        template <int Dim=dim, std::enable_if_t<(Dim == 4),int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (Dim3 const& cell, int n) const noexcept {
-            return this->operator()(cell.x,cell.y,cell.z,n);
+        T* ptr (Dim3 const& cell, int n) const noexcept {
+            return this->ptr(cell.x,cell.y,cell.z,n);
         }
 
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
