@@ -5,7 +5,6 @@
 #include <AMReX.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_GpuPrint.H>
-#include <AMReX_ConstexprFor.H>
 
 #include <iostream>
 #include <sstream>
@@ -444,11 +443,11 @@ namespace amrex {
         void index_assert (IntVectND<dim> const& iv) const
         {
             bool out_of_bounds = false;
-            constexpr_for<0, dim>([&] (auto d) {
+            for (int d = 0; d < dim; ++d) {
                 if (iv[d] < begin[d] || iv[d] >= end[d]) {
                     out_of_bounds = true;
                 }
-            });
+            }
             if (out_of_bounds) {
                 AMREX_IF_ON_DEVICE((
                     device_printf_impl(std::make_index_sequence<dim>{}, iv, begin, end);
@@ -457,15 +456,15 @@ namespace amrex {
                 AMREX_IF_ON_HOST((
                     std::stringstream ss;
                     ss << " (";
-                    constexpr_for<0, dim>([&] (auto d) {
+                    for (int d = 0; d < dim; ++d) {
                         ss << iv[d];
                         if (d + 1 < dim) ss << ",";
-                    });
+                    }
                     ss << ") is out of bound (";
-                    constexpr_for<0, dim>([&] (auto d) {
+                    for (int d = 0; d < dim; ++d) {
                         ss << begin[d] << ":" << end[d]-1;
                         if (d + 1 < dim) ss << ",";
-                    });
+                    };
                     ss << ")";
                     amrex::Abort(ss.str());
                 ))
