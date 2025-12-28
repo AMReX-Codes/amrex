@@ -398,7 +398,7 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                                       csrt.mat, csrt_row_offset, csrt_col_index,
                                       data_type, CUSPARSE_ACTION_NUMERIC,
                                       CUSPARSE_INDEX_BASE_ZERO,
-                                      CUSPARSE_CSR2CSC_ALG_DEFAULT,
+                                      CUSPARSE_CSR2CSC_ALG1,
                                       &buffer_size));
 
     auto* pbuffer = (void*)The_Arena()->alloc(buffer_size);
@@ -409,7 +409,7 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
                            csrt.mat, csrt_row_offset, csrt_col_index,
                            data_type, CUSPARSE_ACTION_NUMERIC,
                            CUSPARSE_INDEX_BASE_ZERO,
-                           CUSPARSE_CSR2CSC_ALG_DEFAULT,
+                           CUSPARSE_CSR2CSC_ALG1,
                            pbuffer));
 
     ParallelFor(std::max(csrt.nnz, csrt.nrows+1), [=] AMREX_GPU_DEVICE (Long i)

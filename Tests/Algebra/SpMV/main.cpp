@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
       });
 
       auto error = fvec.norminf();
-      amrex::Print() << " Max norm error of restriction: " << error << "\n\n";
+      amrex::Print() << " Max norm error of interpolation: " << error << "\n\n";
       auto eps = (sizeof(T) == 4) ? T(1.e-5) : T(1.e-14);
       AMREX_ALWAYS_ASSERT(error < eps);
   }

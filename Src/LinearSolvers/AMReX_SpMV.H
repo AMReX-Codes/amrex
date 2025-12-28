@@ -125,12 +125,14 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
 #endif
 
     std::size_t buffer_size;
-    rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                   &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+    auto err0 =
+        rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
 #if (HIP_VERSION_MAJOR >= 6)
-                   rocsparse_spmv_stage_buffer_size,
+                       rocsparse_spmv_stage_buffer_size,
 #endif
-                   &buffer_size, nullptr);
+                       &buffer_size, nullptr);
+    AMREX_ROCSPARSE_SAFE_CALL(err0);
 
     void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
 
@@ -141,12 +143,14 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
                        rocsparse_spmv_stage_preprocess, &buffer_size, pbuffer));
 #endif
 
-    rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                   &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+    auto err1 =
+        rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
 #if (HIP_VERSION_MAJOR >= 6)
-                   rocsparse_spmv_stage_compute,
+                       rocsparse_spmv_stage_compute,
 #endif
-                   &buffer_size, pbuffer);
+                       &buffer_size, pbuffer);
+    AMREX_ROCSPARSE_SAFE_CALL(err1);
 
 #if (HIP_VERSION_MAJOR >= 7)
 // xxxxx HIP TODO: rocsparse_spmv has been deprecated.
