@@ -104,6 +104,9 @@ ForEach (V1 & x, V2 & y, V3 & z, V4 & a, V5 & b, F const& f)
     });
 }
 
+//! Return dot product of two vectors. By default, this returns the global
+//! result over all MPI ranks. If `local` is true, it returns the result
+//! over the locally stored entries only.
 template <typename T, typename Allocator>
 T Dot (AlgVector<T,Allocator> const& x, AlgVector<T,Allocator> const& y, bool local = false)
 {
@@ -121,21 +124,24 @@ T Dot (AlgVector<T,Allocator> const& x, AlgVector<T,Allocator> const& y, bool lo
     return r;
 }
 
-//! y = ax + y
+//! y = ax + y. For GPU guilds, this function is asynchronous with respect
+//! to the host.
 template <typename T, typename Allocator>
 void Axpy (AlgVector<T,Allocator>& y, T a, AlgVector<T,Allocator> const& x)
 {
     ForEach(y, x, [=] AMREX_GPU_DEVICE (T& yi, T const& xi) { yi += a*xi; });
 }
 
-//! y = x + a*y
+//! y = x + a*y. For GPU guilds, this function is asynchronous with respect
+//! to the host.
 template <typename T, typename Allocator>
 void Xpay (AlgVector<T,Allocator>& y, T a, AlgVector<T,Allocator> const& x)
 {
     ForEach(y, x, [=] AMREX_GPU_DEVICE (T& yi, T const& xi) { yi = a*yi + xi; });
 }
 
-//! y = a*xa + b*xb
+//! y = a*xa + b*xb. For GPU guilds, this function is asynchronous with
+//! respect to the host.
 template <typename T, typename Allocator>
 void LinComb (AlgVector<T,Allocator>& y, T a, AlgVector<T,Allocator> const& xa,
               T b, AlgVector<T,Allocator> const& xb)
