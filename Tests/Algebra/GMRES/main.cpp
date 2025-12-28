@@ -100,7 +100,7 @@ int main (int argc, char* argv[])
 
         int num_non_zeros = 2*AMREX_SPACEDIM+1;
         SpMatrix<Real> mat(xvec.partition(), num_non_zeros);
-        mat.setVal(set_stencil);
+        mat.setVal(set_stencil, CsrSorted{false});
 
         GMRES_MV<Real> gmres(&mat);
         gmres.setPrecond(JacobiSmoother<Real>(&mat));
