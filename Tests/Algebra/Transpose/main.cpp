@@ -25,7 +25,7 @@ int main (int argc, char *argv[])
         auto nrows = nn[0];
         auto ncols = nn[1];
 
-        amrex::Print() << "  Shape: " << nrows << " x " << ncols << std::endl;
+        amrex::Print() << "  Shape: " << nrows << " x " << ncols << "\n";
 
         AlgPartition row_part(nrows);
         AlgPartition col_part(ncols);
