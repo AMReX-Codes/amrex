@@ -1452,6 +1452,8 @@ void SpMatrix<T,Allocator>::update_remote_col_index (C& csrr, bool in_device_mem
 
     // Note that amrex::RemoveDuplicates sorts the data.
     auto const& cp = this->m_col_partition.dataVector();
+    AMREX_ALWAYS_ASSERT(m_remote_cols_v.front() >= cp.front() &&
+                        m_remote_cols_v.back() < cp.back());
     auto it = cp.cbegin();
     for (auto c : m_remote_cols_v) {
         it = std::find_if(it, cp.cend(), [&] (auto x) { return x > c; });

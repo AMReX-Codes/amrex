@@ -210,20 +210,28 @@ int main(int argc, char *argv[]) {
                   col[4*lrow+3] = cbox.index(civ + IntVectND<2>{1,1});
               }
           });
+
           // For this small problem, let's use int.
           Gpu::DeviceVector<int> psum_dv(nnz_max);
           auto* ps = psum_dv.data();
           actual_nnz = Scan::PrefixSum<int>
               (int(nnz_max),
                [=] AMREX_GPU_DEVICE (int i) -> int { return col[i] >= 0; },
-               [=] AMREX_GPU_DEVICE (int i, int x) {
-                   ps[i] = x;
-                   if (col[i] >= 0) {
-                       mat[x] = mat[i];
-                       col[x] = col[i];
-                   }
-               },
+               [=] AMREX_GPU_DEVICE (int i, int x) { ps[i] = x; },
                Scan::Type::exclusive, Scan::retSum);
+
+          Gpu::DeviceVector<T> mat_tmp(actual_nnz);
+          Gpu::DeviceVector<Long> col_tmp(actual_nnz);
+          auto* mat2 = mat_tmp.data();
+          auto* col2 = col_tmp.data();
+          ParallelFor(nnz_max, [=] AMREX_GPU_DEVICE (Long i)
+          {
+              if (col[i] >= 0) {
+                  mat2[ps[i]] = mat[i];
+                  col2[ps[i]] = col[i];
+              }
+          });
+
           auto* row_offset = row_dv.data();
           ParallelFor(nrows_f, [=] AMREX_GPU_DEVICE (Long i)
           {
@@ -232,6 +240,9 @@ int main(int argc, char *argv[]) {
                   row_offset[nrows_f] = actual_nnz;
               }
           });
+
+          std::swap(mat_dv, mat_tmp);
+          std::swap(col_dv, col_tmp);
           Gpu::streamSynchronize();
       }
 
