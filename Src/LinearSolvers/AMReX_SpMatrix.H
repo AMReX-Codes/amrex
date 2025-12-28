@@ -22,9 +22,6 @@
 #include <type_traits>
 #include <unordered_map>
 
-// xxxxx TODO: Should we sort the entries in each row of csr and csr_remote
-//             by their column indice? Would that improve performance?
-
 namespace amrex {
 
 //! GPU-ready non-owning CSR data container
@@ -36,6 +33,18 @@ struct ParCsr {
     Long col_begin = 0; // global col index begin
     Long const* AMREX_RESTRICT row_map = nullptr; // mapping from csr0's row to csr1
     Long const* AMREX_RESTRICT col_map = nullptr; // mapping from csr1's col to global
+};
+
+//! Sorted CSR means for each row the column indices are sorted.
+struct CsrSorted {
+    bool b = true;
+    explicit operator bool() const { return b; }
+};
+
+//! Valid CSR means all entries are valid. It may be sorted ro unsorted.
+struct CsrValid {
+    bool b = true;
+    explicit operator bool() const { return b; }
 };
 
 template <typename T, template<typename> class Allocator = DefaultAllocator>
@@ -59,7 +68,11 @@ public:
      * uninitialized. Matrix values can be written through the pointer
      * returned by `data()` and the corresponding column indices through the
      * pointer returned by the `columnIndex()`. Alternatively, the matrix
-     * may be initialized using `setVal()`.
+     * may be initialized using `setVal()`. In either case, the CSR data
+     * must not contain duplicated entries or invalid entries (i.e.,
+     * negative column indices). If the matrix is set manually through
+     * pointers and the entries within each row are not sorted by column
+     * index, the user must call `sortCSR` after all data have been set.
      *
      * \param partition Parallel partition information.
      * \param nnz_per_row Number of nonzeros per row.
@@ -70,7 +83,8 @@ public:
      * \brief Construct a sparse matrix from a given Partition and CSR
      *
      * The input CSR represents the portion of the matrix local to this
-     * process.
+     * process. It must be both sorted and valid. Moreover, it should not
+     * have duplicagted entries.
      *
      * \param partition Parallel partition information.
      * \param csr CSR represents of the matrix local to this process.
@@ -105,28 +119,50 @@ public:
      * \brief Define a default-constructed matrix from given CSR arrays.
      *
      * The CSR arrays describe the portion of the matrix local to this
-     * process. The input data can be freed after this function call. For
-     * GPU builds, the data are expected to be in GPU memory.
+     * process.
+     *
+     * If `is_valid` indicates that the input CSR may contain invalid
+     * entries, this function will filter the input and omit such entries
+     * from the resulting matrix. An entry is considered invalid if its
+     * column index is negative. In addition, when `is_valid` is false, this
+     * function also removes entries whose values are zero. The input CSR is
+     * not allowed to contain duplicated valid entries.
+     *
+     * It is not an error to specify \p is_sorted = false when the input CSR
+     * is in fact sorted, nor to specify \p is_valid = false when the input
+     * CSR contains no invalid entries. In these cases, the result is
+     * correct, but the function may perform unnecessary work and therefore
+     * result in a performance penalty. If the input properties are not
+     * known, it is safe to set both flags to false.
+     *
+     * The input data can be freed after this function call. For GPU builds,
+     * the data are expected to be in GPU memory.
      *
      * \param partition Parallel partition information.
-     * \param mat CSR values array (length `nnz`).
-     * \param col_index CSR column indices array (length `nnz`).
-     * \param nnz Number of nonzeros.
+     * \param mat CSR values array (length `nentries`).
+     * \param col_index CSR column indices array (length `nentries`).
+     * \param nentries Number of entries.
      * \param row_offset CSR row offsets array (length `num_local_rows + 1`).
+     * \param is_sorted Indicates whether the CSR entries are sorted (within each row).
+     * \param is_valid Indicates whether the input CSR is guaranteed to be valid
+     *                 (i.e., contains no negative column indices).
      */
     void define (AlgPartition partition, T const* mat, Long const* col_index,
-                 Long nnz, Long const* row_offset);
+                 Long nentries, Long const* row_offset, CsrSorted is_sorted,
+                 CsrValid is_valid);
 
     /**
      * \brief Define a default-constructed matrix from a given CSR.
      *
      * The input CSR represents the portion of the matrix local to this
-     * process.
+     * process. It must be valid. Moreover, it should not have duplicagted
+     * entries.
      *
      * \param partition Parallel partition information.
      * \param csr CSR represents of the matrix local to this process.
+     * \param is_sorted Indicates whether the CSR entries are sorted (within each row).
      */
-    void define (AlgPartition partition, csr_type csr);
+    void define (AlgPartition partition, csr_type csr, CsrSorted is_sorted);
 
     [[nodiscard]] AlgPartition const& partition () const { return m_partition; }
 
@@ -195,13 +231,23 @@ public:
      * and is responsible for setting the global column indices and values
      * for the row specified by the global row index.
      *
-     * This function is intended to be used after `define(AlgPartition
-     * partition, int nnz_per_row)`, when the storage has been allocated. It
+     * This function is intended to be used after
+     * \ref define(AlgPartition,int), when the storage has been allocated. It
      * should only be used during initial matrix setup and not for modifying
      * an already assembled matrix.
-    */
+     *
+     * The CSR data must not contain duplicated entries or invalid entries
+     * (i.e., negative column indices).
+     *
+     * \param f Functor `void(Long,Long*,T*)`
+     * \param is_sorted Indicates whether the CSR entries are sorted (within each row).
+     */
     template <typename F>
-    void setVal (F const& f);
+    void setVal (F const& f, CsrSorted is_sorted);
+
+    //! Sort CSR by column index withint each row. This is intended to be
+    //! used after the user sets the matrix manually or with `setVal`.
+    void sortCSR ();
 
     //! Return diagonal elements in a square matrix.
     [[nodiscard]] AlgVector<T,AllocT> const& diagonalVector () const;
@@ -223,6 +269,11 @@ public:
 
     //! Private function, but public for cuda
     void define_doit (int nnz_per_row);
+
+    //! Private function, but public for cuda
+    template <typename I>
+    void define_and_filter_doit (T const* mat, Long const* col_index,
+                                 Long nentries, Long const* row_offset);
 
     void startComm_mv (AlgVector<T,AllocT> const& x);
     void finishComm_mv (AlgVector<T,AllocT>& y);
@@ -598,19 +649,12 @@ void transpose (CsrView<T> const& csrt, CsrView<T const> const& csr)
         current_pos[i+1] = p[i+1];
     }
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel for
-#endif
+    // The following code is not OMP safe. It's difficult to use OMP and
+    // still keep CSR sorted.
     for (Long i = 0; i < nrows; ++i) {
         for (Long idx = csr.row_offset[i]; idx < csr.row_offset[i+1]; ++idx) {
             auto col = csr.col_index[idx];
-
-            Long dest;
-#ifdef AMREX_USE_OMP
-#pragma omp atomic capture
-#endif
-            dest = current_pos[col]++;
-
+            Long dest = current_pos[col]++;
             csrt.mat[dest] = csr.mat[idx];
             csrt.col_index[dest] = i;
         }
@@ -648,13 +692,15 @@ void SpMatrix<T,Allocator>::define (AlgPartition partition, int nnz_per_row)
 }
 
 template <typename T, template<typename> class Allocator>
-void SpMatrix<T,Allocator>::define (AlgPartition partition, csr_type csr)
+void SpMatrix<T,Allocator>::define (AlgPartition partition, csr_type csr,
+                                    CsrSorted is_sorted)
 {
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
     m_nnz = csr.nnz;
     m_csr = std::move(csr);
+    if (! is_sorted) { m_csr.sort(); }
 }
 
 template <typename T, template<typename> class Allocator>
@@ -682,25 +728,94 @@ SpMatrix<T,Allocator>::define_doit (int nnz_per_row)
 template <typename T, template<typename> class Allocator>
 void
 SpMatrix<T,Allocator>::define (AlgPartition partition, T const* mat,
-                               Long const* col_index, Long nnz,
-                               Long const* row_offset)
+                               Long const* col_index, Long nentries,
+                               Long const* row_offset, CsrSorted is_sorted,
+                               CsrValid is_valid)
 {
     AMREX_ALWAYS_ASSERT(m_split == false);
 
     m_partition = std::move(partition);
     m_row_begin = m_partition[ParallelDescriptor::MyProc()];
     m_row_end = m_partition[ParallelDescriptor::MyProc()+1];
-    m_nnz = nnz;
+
+    bool synced = false;
+
+    if (is_valid) {
+        m_nnz = nentries;
+        Long nlocalrows = this->numLocalRows();
+        m_csr.mat.resize(nentries);
+        m_csr.col_index.resize(nentries);
+        m_csr.row_offset.resize(nlocalrows+1);
+        m_csr.nnz = nentries;
+        Gpu::copyAsync(Gpu::deviceToDevice, mat, mat+nentries, m_csr.mat.begin());
+        Gpu::copyAsync(Gpu::deviceToDevice, col_index, col_index+nentries,
+                       m_csr.col_index.begin());
+        Gpu::copyAsync(Gpu::deviceToDevice, row_offset, row_offset+nlocalrows+1,
+                       m_csr.row_offset.begin());
+    } else {
+        if (nentries < Long(std::numeric_limits<int>::max())) {
+            define_and_filter_doit<int>(mat, col_index, nentries, row_offset);
+        } else {
+            define_and_filter_doit<Long>(mat, col_index, nentries, row_offset);
+        }
+        synced = true;
+    }
+
+    if (! is_sorted) {
+        m_csr.sort();
+        synced = true;
+    }
+
+    if (! synced) {
+        Gpu::streamSynchronize();
+    }
+}
+
+template <typename T, template<typename> class Allocator>
+void
+SpMatrix<T,Allocator>::sortCSR ()
+{
+    m_csr.sort();
+}
+
+template <typename T, template<typename> class Allocator>
+template <typename I>
+void
+SpMatrix<T,Allocator>::define_and_filter_doit (T const* mat, Long const* col_index,
+                                               Long nentries, Long const* row_offset)
+{
+    Gpu::DeviceVector<I> psum(nentries);
+    auto* ps = psum.data();
+    m_nnz = Scan::PrefixSum<I>(I(nentries),
+                               [=] AMREX_GPU_DEVICE (I i) -> I {
+                                   return col_index[i] >= 0 && mat[i] != 0; },
+                               [=] AMREX_GPU_DEVICE (I i, I x) {
+                                   ps[i] = x; },
+                               Scan::Type::exclusive, Scan::retSum);
     Long nlocalrows = this->numLocalRows();
-    m_csr.mat.resize(nnz);
-    m_csr.col_index.resize(nnz);
+    m_csr.mat.resize(m_nnz);
+    m_csr.col_index.resize(m_nnz);
     m_csr.row_offset.resize(nlocalrows+1);
-    m_csr.nnz = nnz;
-    Gpu::copyAsync(Gpu::deviceToDevice, mat, mat+nnz, m_csr.mat.begin());
-    Gpu::copyAsync(Gpu::deviceToDevice, col_index, col_index+nnz,
-                   m_csr.col_index.begin());
-    Gpu::copyAsync(Gpu::deviceToDevice, row_offset, row_offset+nlocalrows+1,
-                   m_csr.row_offset.begin());
+    m_csr.nnz = m_nnz;
+    auto* pmat = m_csr.mat.data();
+    auto* pcol = m_csr.col_index.data();
+    auto* prow = m_csr.row_offset.data();
+    auto actual_nnz = m_nnz;
+    ParallelFor(std::max(nentries,nlocalrows), [=] AMREX_GPU_DEVICE (Long i)
+    {
+        if (i < nentries) {
+            if (col_index[i] >= 0 && mat[i] != 0) {
+                pmat[ps[i]] = mat[i];
+                pcol[ps[i]] = col_index[i];
+            }
+        }
+        if (i < nlocalrows) {
+            prow[i] = ps[row_offset[i]];
+            if (i == nlocalrows - 1) {
+                prow[nlocalrows] = actual_nnz;
+            }
+        }
+    });
     Gpu::streamSynchronize();
 }
 
@@ -771,7 +886,7 @@ SpMatrix<T,Allocator>::printToFile (std::string const& file) const
 
 template <typename T, template<typename> class Allocator>
 template <typename F>
-void SpMatrix<T,Allocator>::setVal (F const& f)
+void SpMatrix<T,Allocator>::setVal (F const& f, CsrSorted is_sorted)
 {
     // xxxxx TODO: We can try to optimize this later by using shared memory.
 
@@ -786,6 +901,8 @@ void SpMatrix<T,Allocator>::setVal (F const& f)
     {
         f(rowbegin+lrow, pcolindex+prowoffset[lrow], pmat+prowoffset[lrow]);
     });
+
+    if (! is_sorted) { m_csr.sort(); }
 }
 
 template <typename T, template<typename> class Allocator>

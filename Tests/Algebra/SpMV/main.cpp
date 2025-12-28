@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
               val[count] = T(0.25*(1.0 + 1.e-2*(2*rx-1) + 1.e-1*(2*ry-1)));
               ++count;
           }}
-      });
+      }, CsrSorted{false});
 
       amrex::SpMV(cvec, rmat, fvec);
 
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
 
       SpMatrix<T> pmat{};
       pmat.define(fvec.partition(), mat_dv.data(), col_dv.data(), actual_nnz,
-                  row_dv.data());
+                  row_dv.data(), CsrSorted{false}, CsrValid{true});
 
       amrex::SpMV(fvec, pmat, cvec);
 

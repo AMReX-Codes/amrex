@@ -72,6 +72,8 @@ int main (int argc, char *argv[])
             matCols[lrow*nnz+4] = col;
         });
 
+        mat.sortCSR();
+
 #ifdef AMREX_DEBUG
         ParallelDescriptor::Barrier();
         mat.printToFile("mat-"+std::to_string(nrows)+"x"+std::to_string(ncols));
