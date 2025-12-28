@@ -1674,7 +1674,7 @@ void SpMatrix<T,Allocator>::unpack_buffer_tr (CommTR const& ctr,
             while (p < nrows && ri_map[p] < gr) { ++p; }
             AMREX_ASSERT(p < nrows && ri_map[p] == gr);
             // p is now compressed row index
-            row_nnz[p] += row_offset[lr+1] - row_offset[lr];
+            row_nnz[p] += int(row_offset[lr+1] - row_offset[lr]);
         }
     }
 
