@@ -6,6 +6,10 @@
 #include <AMReX_INT.H>
 #include <AMReX_OpenMP.H>
 
+#if defined(AMREX_USE_CUDA)
+#include <cub/cub.cuh> // for Clang
+#endif
+
 #include <algorithm>
 #include <climits>
 #include <type_traits>
