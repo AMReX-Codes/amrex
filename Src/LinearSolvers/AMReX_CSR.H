@@ -61,7 +61,6 @@ struct CSR {
 
     void sort ();
 
-private:
     void sort_on_host ();
 };
 
