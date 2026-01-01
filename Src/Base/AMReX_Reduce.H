@@ -316,24 +316,36 @@ private:
 };
 
 namespace Reduce::detail {
-    template <typename F>
+
+    // call_f_intvect_box
+
+    template <typename F, int dim>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto call_f (F const& f, int i, int j, int k, IndexType)
-        noexcept -> decltype(f(0,0,0))
+    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim>) noexcept ->
+        decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
-        return f(i,j,k);
+        return amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
     }
 
-    template <typename F>
+    template <typename F, int dim>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto call_f (F const& f, int i, int j, int k, IndexType t)
-        noexcept -> decltype(f(Box()))
+    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim> t) noexcept ->
+        decltype(f(BoxND<dim>(iv, iv, t)))
     {
-        AMREX_D_PICK(amrex::ignore_unused(j,k),amrex::ignore_unused(k),(void)0);
-        return f(Box(IntVect(AMREX_D_DECL(i,j,k)),
-                     IntVect(AMREX_D_DECL(i,j,k)),
-                     t));
+        return f(BoxND<dim>(iv, iv, t));
     }
+
+    // call_f_intvect_n
+
+    template <typename F, typename T, int dim>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect_n (F const& f, IntVectND<dim> iv, T n) noexcept ->
+        decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n))
+    {
+        return amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n);
+    }
+
+    // mf_call_f
 
     struct iterate_box {};
     struct iterate_box_comp {};
@@ -482,23 +494,19 @@ public:
         }
     }
 
-    template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F const& f)
+    template <typename D, typename F, int dim>
+    void eval (BoxND<dim> const& box, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
         int& nblocks = reduce_data.nBlocks(stream);
-        int ncells = box.numPts();
-        const auto lo  = amrex::lbound(box);
-        const auto len = amrex::length(box);
-        const auto lenxy = len.x*len.y;
-        const auto lenx = len.x;
-        IndexType ixtype = box.ixType();
+        const BoxIndexerND<dim> indexer(box);
+        IndexTypeND<dim> ixtype = box.ixType();
         constexpr int nitems_per_thread = 4;
-        int nblocks_ec = (ncells + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
+        Long nblocks_ec = (box.numPts() + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
-        nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
+        nblocks_ec = std::min<Long>(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
@@ -520,15 +528,13 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
-                 icell < ncells; icell += stride) {
-                int k =  icell /   lenxy;
-                int j = (icell - k*lenxy) /   lenx;
-                int i = (icell - k*lenxy) - j*lenx;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
-                auto pr = Reduce::detail::call_f(f,i,j,k,ixtype);
+            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
+                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
+                 icell < indexer.numPts();
+                 icell += stride)
+            {
+                auto iv = indexer.intVect(icell);
+                auto pr = Reduce::detail::call_f_intvect_box(f, iv, ixtype);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
             }
 #ifdef AMREX_USE_SYCL
@@ -537,26 +543,22 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
 #endif
         });
-        nblocks = std::max(nblocks, nblocks_ec);
+        nblocks = std::max(nblocks, static_cast<int>(nblocks_ec));
     }
 
-    template <typename N, typename D, typename F,
+    template <typename N, typename D, typename F, int dim,
               typename M=std::enable_if_t<std::is_integral_v<N>> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
+    void eval (BoxND<dim> const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr(stream);
         int& nblocks = reduce_data.nBlocks(stream);
-        int ncells = box.numPts();
-        const auto lo  = amrex::lbound(box);
-        const auto len = amrex::length(box);
-        const auto lenxy = len.x*len.y;
-        const auto lenx = len.x;
+        const BoxIndexerND<dim> indexer(box);
         constexpr int nitems_per_thread = 4;
-        int nblocks_ec = (ncells + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
+        Long nblocks_ec = (box.numPts() + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
-        nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
+        nblocks_ec = std::min<Long>(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
@@ -578,16 +580,14 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
-                 icell < ncells; icell += stride) {
-                int k =  icell /   lenxy;
-                int j = (icell - k*lenxy) /   lenx;
-                int i = (icell - k*lenxy) - j*lenx;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
+            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
+                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
+                 icell < indexer.numPts();
+                 icell += stride)
+            {
+                auto iv = indexer.intVect(icell);
                 for (N n = 0; n < ncomp; ++n) {
-                    auto pr = f(i,j,k,n);
+                    auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 }
             }
@@ -597,7 +597,7 @@ public:
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
 #endif
         });
-        nblocks = std::max(nblocks, nblocks_ec);
+        nblocks = std::max(nblocks, static_cast<int>(nblocks_ec));
     }
 
     template <typename N, typename D, typename F,
@@ -634,8 +634,11 @@ public:
             if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
                 dst = r;
             }
-            for (N i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
-                 i < n; i += stride) {
+            for (N i = N(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
+                 stride = N(AMREX_GPU_MAX_THREADS)*gridDim.x;
+                 i < n;
+                 i += stride)
+            {
                 auto pr = f(i);
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
@@ -895,18 +898,14 @@ bool AnyOf (N n, T const* v, P const& pred)
     return ds.dataValue();
 }
 
-template <typename P>
-bool AnyOf (Box const& box, P const& pred)
+template <typename P, int dim>
+bool AnyOf (BoxND<dim> const& box, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
     Gpu::DeviceScalar<int> ds(0);
     int* dp = ds.dataPtr();
-    int ncells = box.numPts();
-    const auto lo  = amrex::lbound(box);
-    const auto len = amrex::length(box);
-    const auto lenxy = len.x*len.y;
-    const auto lenx = len.x;
-    auto ec = Gpu::ExecutionConfig(ncells);
+    const BoxIndexerND<dim> indexer(box);
+    auto ec = Gpu::ExecutionConfig(box.numPts());
     ec.numBlocks.x = std::min(ec.numBlocks.x, Gpu::Device::maxBlocksPerLaunch());
 
 #ifdef AMREX_USE_SYCL
@@ -921,15 +920,13 @@ bool AnyOf (Box const& box, P const& pred)
         if (!(*has_any))
         {
             int r = false;
-            for (int icell = AMREX_GPU_MAX_THREADS*gh.blockIdx()+gh.threadIdx(), stride = AMREX_GPU_MAX_THREADS*gh.gridDim();
-                 icell < ncells && !r; icell += stride) {
-                int k =  icell /   lenxy;
-                int j = (icell - k*lenxy) /   lenx;
-                int i = (icell - k*lenxy) - j*lenx;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
-                r = pred(i,j,k) ? 1 : 0;
+            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*gh.blockIdx()+gh.threadIdx(),
+                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gh.gridDim();
+                 icell < indexer.numPts() && !r;
+                 icell += stride)
+            {
+                auto iv = indexer.intVect(icell);
+                r = amrex::detail::call_f_intvect(pred, iv) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, gh);
@@ -947,15 +944,13 @@ bool AnyOf (Box const& box, P const& pred)
         if (!has_any)
         {
             int r = false;
-            for (int icell = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
-                 icell < ncells && !r; icell += stride) {
-                int k =  icell /   lenxy;
-                int j = (icell - k*lenxy) /   lenx;
-                int i = (icell - k*lenxy) - j*lenx;
-                i += lo.x;
-                j += lo.y;
-                k += lo.z;
-                r = pred(i,j,k) ? 1 : 0;
+            for (std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x,
+                 stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
+                 icell < indexer.numPts() && !r;
+                 icell += stride)
+            {
+                auto iv = indexer.intVect(icell);
+                r = amrex::detail::call_f_intvect(pred, iv) ? 1 : 0;
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
@@ -1018,31 +1013,55 @@ private:
     std::function<Type()> m_fn_value;
 };
 
+namespace Reduce::detail {
+
+    // call_f_intvect
+
+    template <typename F, int dim>
+    AMREX_FORCE_INLINE
+    auto call_f_intvect (F const& f, IntVectND<dim> iv) noexcept ->
+        decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
+    {
+        return amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
+    }
+
+    // call_f_intvect_n
+
+    template <typename F, typename T, int dim>
+    AMREX_FORCE_INLINE
+    auto call_f_intvect_n (F const& f, IntVectND<dim> iv, T n) noexcept ->
+        decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n))
+    {
+        return amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n);
+    }
+}
+
 template <typename... Ps>
 class ReduceOps
 {
 private:
 
-    template <typename D, typename F>
+    // call_f_box
+
+    template <typename D, typename F, int dim>
     AMREX_FORCE_INLINE
-    static auto call_f (Box const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(0,0,0))>,
-                                                  typename D::Type>>
+    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
+        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(
+            Reduce::detail::call_f_intvect(f, IntVectND<dim>(0))
+        )>, typename D::Type>>
     {
         using ReduceTuple = typename D::Type;
-        const auto lo = amrex::lbound(box);
-        const auto hi = amrex::ubound(box);
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(i,j,k));
-        }}}
+        For(box,
+            [&] (IntVectND<dim> iv) {
+                auto pr = Reduce::detail::call_f_intvect(f, iv);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
+            });
     }
 
-    template <typename D, typename F>
+    template <typename D, typename F, int dim>
     AMREX_FORCE_INLINE
-    static auto call_f (Box const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(Box()))>,
+    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
+        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(box))>,
                                                   typename D::Type>>
     {
         using ReduceTuple = typename D::Type;
@@ -1106,32 +1125,29 @@ public:
         }
     }
 
-    template <typename D, typename F>
-    void eval (Box const& box, D & reduce_data, F&& f)
+    template <typename D, typename F, int dim>
+    void eval (BoxND<dim> const& box, D & reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple rr;
         Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        call_f<D>(box, rr, std::forward<F>(f));
+        call_f_box<D>(box, rr, std::forward<F>(f));
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
              reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
 
-    template <typename N, typename D, typename F,
+    template <typename N, typename D, typename F, int dim,
               typename M=std::enable_if_t<std::is_integral_v<N>> >
-    void eval (Box const& box, N ncomp, D & reduce_data, F const& f)
+    void eval (BoxND<dim> const& box, N ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
         ReduceTuple rr;
         Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        const auto lo = amrex::lbound(box);
-        const auto hi = amrex::ubound(box);
-        for (N n = 0; n < ncomp; ++n) {
-        for (int k = lo.z; k <= hi.z; ++k) {
-        for (int j = lo.y; j <= hi.y; ++j) {
-        for (int i = lo.x; i <= hi.x; ++i) {
-            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(i,j,k,n));
-        }}}}
+        For(box, ncomp,
+            [&] (IntVectND<dim> iv, int n) {
+                auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, pr);
+            });
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
              reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
@@ -1262,16 +1278,12 @@ bool AnyOf (N n, T const* v, P&& pred)
     return std::any_of(v, v+n, std::forward<P>(pred));
 }
 
-template <typename P>
-bool AnyOf (Box const& box, P const& pred)
+template <typename P, int dim>
+bool AnyOf (BoxND<dim> const& box, P const& pred)
 {
-    const auto lo = amrex::lbound(box);
-    const auto hi = amrex::ubound(box);
-    for (int k = lo.z; k <= hi.z; ++k) {
-    for (int j = lo.y; j <= hi.y; ++j) {
-    for (int i = lo.x; i <= hi.x; ++i) {
-        if (pred(i,j,k)) { return true; }
-    }}}
+    for (auto iv : box.iterator()) {
+        if (Reduce::detail::call_f_intvect(pred, iv)) { return true; }
+    }
     return false;
 }
 
