@@ -1,3 +1,49 @@
+# 26.01
+
+ ## Highlights:
+
+  * Deterministic MLMG. The MLMG solver is not reproducible because it uses
+    non-deterministic atomic operations in reflux. We now have an option to
+    make the MLMG solver deterministic:
+
+  * Add SArena: The_Arena wrapper using Gpu::freeAsync. This adds a new
+    memory arena that is a wrapper for The_Arena but calls freeAsync in its
+    free function. The new arena, called SArena for stream-ordered arena,
+    replaces the PArena in the implementation of The_Async_Arena.
+
+  * Generalize diffmultifab routine to allow for different BoxArrays
+    covering the same region. (#4836)
+
+  * Add amrex::Gpu::freeAsync. This adds the function `amrex::Gpu::freeAsync
+    (Arena* arena, void* mem)` that can be used to free memory the next time
+    the current GPU stream is synchronized.
+
+ ## Other major changes:
+
+  * Parser: Fix bugs in optimization (#4866)
+
+  * Add amrex::Math::exp10() (#4864)
+
+  * Workaround for MSVC (#4842)
+
+  * Update GNUMake for Catalyst 2.0 (#4863)
+
+  * AlgVector: Fix printToFile for CPU builds (#4843)
+
+  * Refactor EB slope functions (#4853) (#4854)
+
+  * fix: `SpMatrix::prepare_comm` in case of no communication necessary (#4844)
+
+  * clear freeAsync buffer before allocating new memory (#4832)
+
+  * Improve out of memory error message (#4831)
+
+  * FFT::PoissonHybrid: Fix cases with nx or ny being 1 (#4829)
+
+  * Workaround for MPICH MPIX_Query_cuda_support assertion error (#4824)
+
+  * Hypre iterative ILU features (#4818)
+
 # 25.12
 
  ## Highlights:
