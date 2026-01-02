@@ -1,5 +1,6 @@
 #ifndef AMREX_ARRAY4_H_
 #define AMREX_ARRAY4_H_
+
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
@@ -10,6 +11,9 @@
 #include <sstream>
 
 namespace amrex {
+
+    template<int dim>
+    class BoxND;
 
     template <typename T>
     struct CellData // Data in a single cell
@@ -167,22 +171,9 @@ namespace amrex {
         constexpr ArrayND (ArrayND<std::remove_const_t<T>, N> const& rhs) noexcept
             : p(rhs.p), nstride(rhs.nstride), begin(rhs.begin), end(rhs.end) {}
 
-        AMREX_GPU_HOST_DEVICE
-        constexpr ArrayND (T* a_p, IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
-            : p(a_p), begin(a_begin), end(a_end)
-        {
-            if constexpr (N > 1) {
-                Long current_stride = 1;
-                for (int d = 0; d < N - 1; ++d) {
-                    Long len = a_end[d] - a_begin[d];
-                    current_stride *= len;
-                    nstride[d] = current_stride;
-                }
-            }
-        }
-
         // Dim3 overload for dim=4
         template <int Dim=N, std::enable_if_t<Dim==4,int> = 0>
+        AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, Dim3 const& a_begin, Dim3 const& a_end, int a_ncomp) noexcept
             : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
         {
@@ -194,10 +185,91 @@ namespace amrex {
             }
         }
 
+        // Note: BoxND constructors are not constexpr because functions in BoxND are not constexpr
+        template <int Dim>
+        AMREX_GPU_HOST_DEVICE
+        ArrayND (T* a_p, BoxND<Dim> const& box) noexcept
+            : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1)
+        {}
+
+        template <int Dim>
+        AMREX_GPU_HOST_DEVICE
+        ArrayND (T* a_p, BoxND<Dim> const& box, int ncomp) noexcept
+            : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1, ncomp)
+        {}
+
+
+        // Standard constructor for full dimension N
+        AMREX_GPU_HOST_DEVICE
+        constexpr ArrayND (T* a_p, IntVectND<N> const& a_smallend, IntVectND<N> const& a_bigend) noexcept
+            : p(a_p), begin(a_smallend), end(a_bigend)
+        {
+            if constexpr (N > 1) {
+                Long current_stride = 1;
+                for (int d = 0; d < N - 1; ++d) {
+                    Long len = a_bigend[d] - a_smallend[d];
+                    current_stride *= len;
+                    nstride[d] = current_stride;
+                }
+            }
+        }
+
+        // Reduced dimension constructor: Pads remaining dims with [0,1)
+        template <int M, std::enable_if_t<(M < N),int> = 0>
+        AMREX_GPU_HOST_DEVICE
+        constexpr ArrayND (T* a_p, IntVectND<M> const& a_smallend, IntVectND<M> const& a_bigend) noexcept
+            : p(a_p), begin(), end()
+        {
+            for (int d = 0; d < M; ++d) {
+                begin[d] = a_smallend[d];
+                end[d] = a_bigend[d];
+            }
+            for (int d = M; d < N; ++d) {
+                begin[d] = 0;
+                end[d] = 1;
+            }
+
+            if constexpr (N > 1) {
+                Long current_stride = 1;
+                for (int d = 0; d < N - 1; ++d) {
+                    Long len = end[d] - begin[d];
+                    current_stride *= len;
+                    nstride[d] = current_stride;
+                }
+            }
+        }
+
+        // Reduced dimension constructor with ncomp: Pads intermediate dims with [0,1), sets last dim to [0,ncomp)
+        template <int M, std::enable_if_t<(M < N) && (N != 1),int> = 0>
+        AMREX_GPU_HOST_DEVICE
+        constexpr ArrayND (T* a_p, IntVectND<M> const& a_smallend, IntVectND<M> const& a_bigend, int ncomp) noexcept
+            : p(a_p), begin(), end()
+        {
+            for (int d = 0; d < M; ++d) {
+                begin[d] = a_smallend[d];
+                end[d] = a_bigend[d];
+            }
+            for (int d = M; d < N-1; ++d) {
+                begin[d] = 0;
+                end[d] = 1;
+            }
+            begin[N-1] = 0;
+            end[N-1] = ncomp;
+
+            if constexpr (N > 1) {
+                Long current_stride = 1;
+                for (int d = 0; d < N - 1; ++d) {
+                    Long len = end[d] - begin[d];
+                    current_stride *= len;
+                    nstride[d] = current_stride;
+                }
+            }
+        }
+
         template <class U,
             std::enable_if_t
                   <std::is_same_v<std::remove_const_t<T>,
-                                std::remove_const_t<U>> && (N == 4),int> = 0>
+                                std::remove_const_t<U>> && (N  >= 2),int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, N> const& rhs, int start_comp) noexcept
             : p((T*)(rhs.p + start_comp*rhs.nstride[N-2])),
@@ -212,7 +284,7 @@ namespace amrex {
         template <class U,
             std::enable_if_t
                   <std::is_same_v<std::remove_const_t<T>,
-                                std::remove_const_t<U>> && (N == 4),int> = 0>
+                                std::remove_const_t<U>> && (N >= 2),int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, N> const& rhs, int start_comp, int num_comp) noexcept
             : p((T*)(rhs.p + start_comp*rhs.nstride[N-2])),
@@ -225,7 +297,9 @@ namespace amrex {
         }
 
         AMREX_GPU_HOST_DEVICE
-        explicit operator bool() const noexcept { return p != nullptr; }
+        explicit operator bool() const noexcept {
+            return p != nullptr && end.allGT(begin);    // Additional check for properly initialized ArrayND
+        }
 
         // This overload is enabled only when number of indices matches dimension or is one less than dimension
         template <typename... idx, class U=T,
@@ -494,6 +568,24 @@ namespace amrex {
         }
 #endif
     };
+
+    // Deduction guides for ArrayND
+    // 1: Matches ArrayND (T*, BoxND<N>) -> ArrayND<T,N>
+    template <typename T, int Dim>
+    ArrayND (T*, BoxND<Dim> const&) -> ArrayND<T, Dim>;
+
+    // 2: Matches ArrayND (T*, BoxND<N>, ncomp) -> ArrayND<T,N+1>
+    // This supports the "N+1" logic (Spatial + Component)
+    template <typename T, int Dim>
+    ArrayND (T*, BoxND<Dim> const&, int) -> ArrayND<T, Dim+1>;
+
+    // 3: Matches ArrayND (T*, IntVectND<N>, IntVectND<N>) -> ArrayND<T,N>
+    template <typename T, int N>
+    ArrayND (T*, IntVectND<N> const&, IntVectND<N> const&) -> ArrayND<T, N>;
+
+    // 4: Matches ArrayND (T*, IntVectND<N>, IntVectND<N>, int) -> ArrayND<T,N+1>
+    template <typename T, int N>
+    ArrayND (T*, IntVectND<N> const&, IntVectND<N> const&, int) -> ArrayND<T, N+1>;
 
     template<typename T>
     using Array4 = ArrayND<T,4>;
