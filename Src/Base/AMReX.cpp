@@ -702,7 +702,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     VectorGrowthStrategy::Initialize();
 
 #ifdef AMREX_USE_FFT
-    FFT::Initialize();
+    FFT::detail::Initialize();
 #endif
 
 #ifdef AMREX_USE_EB
