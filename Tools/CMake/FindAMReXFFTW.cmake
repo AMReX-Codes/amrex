@@ -54,7 +54,7 @@ endfunction()
 # Check if the found FFTW install location has an _omp library, e.g.,
 # libfftw3(f)_omp.(a|so) shipped and if yes, set the AMReX_FFTW_OMP=1 define.
 #
-function(fftw_check_omp library_paths fftw_precision_suffix)
+function(fftw_require_omp library_paths fftw_precision_suffix)
     find_library(HAS_FFTW_OMP_LIB${fftw_precision_suffix} fftw3${fftw_precision_suffix}_omp
         PATHS ${library_paths}
         # this is intentional, so we don't mix different FFTW installs
@@ -73,6 +73,11 @@ function(fftw_check_omp library_paths fftw_precision_suffix)
         # explicitly - we add those manually to avoid any trouble,
         # e.g., in static builds.
         target_link_libraries(AMReX::FFTW INTERFACE ${HAS_FFTW_OMP_LIB${fftw_precision_suffix}})
+    else()
+        message(FATAL_ERROR
+            "AMReX_OMP and AMReX_FFT are set, but provided FFTW does not provide OpenMP! "
+            "Re-compile FFTW or set AMReX_FFTW_IGNORE_OMP=OFF"
+        )
     endif()
 
     fftw_add_define("${HAS_FFTW_OMP_LIB${fftw_precision_suffix}}")
@@ -128,7 +133,7 @@ function(fftw_find_precision HFFTWp)
         if(AMReX_FFTW_IGNORE_OMP)
             message(STATUS "FFTW: Requested to IGNORE OpenMP support")
         else()
-            fftw_check_omp("${AMReX_FFTW_LIBRARY_DIRS}" "${HFFTWp}")
+            fftw_require_omp("${AMReX_FFTW_LIBRARY_DIRS}" "${HFFTWp}")
         endif()
     else()
         message(STATUS "FFTW: Did NOT search for OpenMP support (AMReX_OMP is not set)")
