@@ -1281,11 +1281,10 @@ bool AnyOf (N n, T const* v, P&& pred)
 template <typename P, int dim>
 bool AnyOf (BoxND<dim> const& box, P const& pred)
 {
-    auto box_it = box.iterator();
-    return std::any_of(box_it.begin(), box_it.end(),
-        [&] (auto iv) {
-            return Reduce::detail::call_f_intvect(pred, iv);
-        });
+    for (auto iv : box.iterator()) { // NOLINT(readability-use-anyofallof)
+        if (Reduce::detail::call_f_intvect(pred, iv)) { return true; }
+    }
+    return false;
 }
 
 }
