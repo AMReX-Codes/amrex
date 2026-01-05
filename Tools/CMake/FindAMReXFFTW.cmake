@@ -39,20 +39,20 @@ This will also create an imported target, AMReX::FFTW.
 option(AMReX_FFTW_IGNORE_OMP "Ignore FFTW3's OpenMP support, even if found" OFF)
 mark_as_advanced(AMReX_FFTW_IGNORE_OMP)
 
-# Set the AMReX_FFTW_OMP=1 define on AMReX::FFTW if TRUE and print
+# Set the AMREX_FFTW_OMP=1 define on AMReX::FFTW if TRUE and print
 # a message
 #
 function(fftw_add_define HAS_FFTW_OMP_LIB)
     if(HAS_FFTW_OMP_LIB)
         message(STATUS "FFTW: Found OpenMP support")
-        target_compile_definitions(AMReX::FFTW INTERFACE AMReX_FFTW_OMP=1)
+        target_compile_definitions(AMReX::FFTW INTERFACE AMREX_FFTW_OMP=1)
     else()
         message(STATUS "FFTW: Could NOT find OpenMP support")
     endif()
 endfunction()
 
 # Check if the found FFTW install location has an _omp library, e.g.,
-# libfftw3(f)_omp.(a|so) shipped and if yes, set the AMReX_FFTW_OMP=1 define.
+# libfftw3(f)_omp.(a|so) shipped and if yes, set the AMREX_FFTW_OMP=1 define.
 #
 function(fftw_require_omp library_paths fftw_precision_suffix)
     find_library(HAS_FFTW_OMP_LIB${fftw_precision_suffix} fftw3${fftw_precision_suffix}_omp
