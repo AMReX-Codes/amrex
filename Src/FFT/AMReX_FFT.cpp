@@ -18,7 +18,7 @@ void Initialize ()
 {
     if (s_initialized == 0)
     {
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
 #elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
         fftw_init_threads();
@@ -39,7 +39,7 @@ void Finalize ()
     {
         Clear();
 
-#if defined(AMREX_USE_HIP)
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
 #elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
         fftw_cleanup_threads();
@@ -99,7 +99,7 @@ DistributionMapping make_iota_distromap (Long n)
     return DistributionMapping(std::move(pm));
 }
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
 void hip_execute (rocfft_plan plan, void **in, void **out)
 {
     rocfft_execution_info execinfo = nullptr;
