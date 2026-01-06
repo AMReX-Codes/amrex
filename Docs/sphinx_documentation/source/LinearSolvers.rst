@@ -239,7 +239,7 @@ if we want to do a linear solve where the boundary conditions on the
 coarsest AMR level of the solve come from a coarser level (e.g. the
 base AMR level of the solve is > 0 and does not cover the entire domain),
 we must explicitly provide the coarser data.  Boundary conditions from a
-coarser level are always Dirichlet.
+coarser level are Dirichlet and can be changed to homogeneous Neumann.
 
 Note that this step, if needed, must be performed before the step below.
 The :cpp:`MLLinOp` member function for this step is
@@ -248,7 +248,11 @@ The :cpp:`MLLinOp` member function for this step is
 
 ::
 
-    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet);
+
+    void setCoarseFineBC (const MultiFab* crse, IntVect const& crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet);
 
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
