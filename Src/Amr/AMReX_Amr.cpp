@@ -205,6 +205,46 @@ Amr::derive (const std::string& name,
     return amr_level[lev]->derive(name,time,ngrow);
 }
 
+Vector<std::unique_ptr<MultiFab>>
+Amr::derive(const std::string& name,
+            amrex::Real        time,
+            int                ngrow)
+{
+    BL_PROFILE("Amr::derive()");
+    Vector<std::unique_ptr<MultiFab>> out;
+    out.reserve(finest_level + 1);
+
+    for (int i = 0; i <= finest_level; ++i)
+    {
+        auto mf = amr_level[i]->derive(name,time,ngrow);
+        out.push_back(std::move(mf));
+    }
+
+    return out;
+}
+
+void
+Amr::derive (const std::string&       name,
+             Real                     time,
+             const Vector<MultiFab*>& mf,
+             int                      dcomp)
+{
+    BL_PROFILE("Amr::derive()");
+    AMREX_ASSERT(mf.size() == static_cast<amrex::Long>(finest_level + 1));
+
+    for (int i = 0; i <= finest_level; ++i)
+    {
+        AMREX_ASSERT(mf[i] != nullptr);
+        AMREX_ASSERT(mf[i]->ok());
+        AMREX_ASSERT(mf[i]->nComp() > dcomp);
+    }
+
+    for (int i = 0; i <= finestLevel(); ++i)
+    {
+        amr_level[i]->derive(name,time,*(mf[i]),dcomp);
+    }
+}
+
 Amr::Amr (LevelBld* a_levelbld)
     :
     levelbld(a_levelbld)

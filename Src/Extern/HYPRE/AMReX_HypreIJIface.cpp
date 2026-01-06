@@ -203,6 +203,8 @@ void HypreIJIface::init_preconditioner (
         boomeramg_precond_configure(prefix);
     } else if (name == "euclid") {
         euclid_precond_configure(prefix);
+    } else if (name == "ILU") {
+        ilu_precond_configure(prefix);
     } else {
         amrex::Abort("Invalid HYPRE preconditioner specified: " + name);
     }
@@ -324,6 +326,10 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
             hpp("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
             hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
+            hpp("bamg_ilu_iterative_algorithm_type", HYPRE_BoomerAMGSetILUIterSetupType);
+            hpp("bamg_ilu_iterative_setup_type", HYPRE_BoomerAMGSetILUIterSetupOption);
+            hpp("bamg_ilu_iterative_max_iter", HYPRE_BoomerAMGSetILUIterSetupMaxIter);
+            hpp("bamg_ilu_iterative_tolerance", HYPRE_BoomerAMGSetILUIterSetupTolerance);
             hpp("bamg_ilu_reordering_type", HYPRE_BoomerAMGSetILULocalReordering);
             hpp("bamg_ilu_tri_solve", HYPRE_BoomerAMGSetILUTriSolve);
             hpp("bamg_ilu_lower_jacobi_iters", HYPRE_BoomerAMGSetILULowerJacobiIters);
@@ -371,6 +377,46 @@ void HypreIJIface::euclid_precond_configure (const std::string& prefix)
     hpp("euclid_stats", HYPRE_EuclidSetStats, 0);
     // Flag indicating whether to print out memory diagnostic
     hpp("euclid_mem", HYPRE_EuclidSetMem, 0);
+}
+
+void HypreIJIface::ilu_precond_configure (const std::string& prefix)
+{
+    if (m_verbose > 2) {
+        amrex::Print() << "Creating ILU preconditioner" << '\n';
+    }
+    HYPRE_ILUCreate(&m_precond);
+
+    // Setup the pointers
+    m_precondDestroyPtr = &HYPRE_ILUDestroy;
+    m_precondSetupPtr = &HYPRE_ILUSetup;
+    m_precondSolvePtr = &HYPRE_ILUSolve;
+
+
+    HypreOptParse hpp(prefix, m_precond);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
+    // Process ILU smoother parameters
+    // ParILUK
+    hpp("ilu_type", HYPRE_ILUSetType);
+    hpp("ilu_max_iter", HYPRE_ILUSetMaxIter);
+    hpp("ilu_tolerance", HYPRE_ILUSetTol);
+    hpp("ilu_reordering_type", HYPRE_ILUSetLocalReordering);
+    hpp("ilu_print_level", HYPRE_ILUSetPrintLevel);
+
+    // ILUK
+    hpp("ilu_fill", HYPRE_ILUSetLevelOfFill);
+    // ILUT
+    hpp("ilu_max_nnz_per_row", HYPRE_ILUSetMaxNnzPerRow);
+    hpp("ilu_drop_threshold", HYPRE_ILUSetDropThreshold);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
+    hpp("ilu_iterative_algorithm_type", HYPRE_ILUSetIterativeSetupType);
+    hpp("ilu_iterative_setup_type", HYPRE_ILUSetIterativeSetupOption);
+    hpp("ilu_iterative_max_iter", HYPRE_ILUSetIterativeSetupMaxIter);
+    hpp("ilu_iterative_tolerance", HYPRE_ILUSetIterativeSetupTolerance);
+    hpp("ilu_tri_solve", HYPRE_ILUSetTriSolve);
+    hpp("ilu_lower_jacobi_iters", HYPRE_ILUSetLowerJacobiIters);
+    hpp("ilu_upper_jacobi_iters", HYPRE_ILUSetUpperJacobiIters);
+#endif
+#endif
 }
 
 void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)

@@ -1,0 +1,79 @@
+name: HPSF GitLab CI
+
+on:
+  issue_comment:
+    types: [created]
+
+env:
+  GITLAB_PROJECT_PATH: "amrex/amrex"
+  GITLAB_PROJECT_ID: "70"
+
+jobs:
+  run-hpsf-gitlab-ci:
+    if: |
+      github.event.issue.pull_request &&
+      contains(fromJson('["atmyers","asalmgren","ax3l","WeiqunZhang"]'), github.actor) &&
+      contains(github.event.comment.body, '/run-hpsf-gitlab-ci')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Determine PR merge ref
+        id: setref
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=${{ github.event.issue.number }}
+          MERGE_REF="refs/pull/$PR_NUMBER/merge"
+          PR_TITLE=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER --jq '.title')
+          echo "merge_ref=$MERGE_REF" >> $GITHUB_OUTPUT
+          echo "pr_title=$PR_TITLE" >> $GITHUB_OUTPUT
+          echo "Using merge ref: $MERGE_REF"
+
+      - name: Trigger GitLab pipeline
+        id: trigger
+        shell: bash
+        env:
+          PR_TITLE: ${{ steps.setref.outputs.pr_title }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          MERGE_REF: ${{ steps.setref.outputs.merge_ref }}
+        run: |
+          echo "Triggering GitLab pipeline for ref: $MERGE_REF"
+
+          GITHUB_PIPELINE_NAME="GitHub #${PR_NUMBER}: ${PR_TITLE}"
+
+          RESPONSE=$(curl -s -X POST \
+            -F token=${{ secrets.HPSF_GITLAB_TRIGGER_TOKEN }} \
+            -F ref=development \
+            -F "variables[GITHUB_PR_NUMBER]=${PR_NUMBER}" \
+            -F "variables[GITHUB_MERGE_REF]=refs/pull/${PR_NUMBER}/merge" \
+            -F "variables[GITHUB_TRIGGER_ACTOR]=${GITHUB_ACTOR}" \
+            -F "variables[GITHUB_PR_TITLE]=${PR_TITLE}" \
+            -F "variables[GITHUB_PIPELINE_NAME]=${GITHUB_PIPELINE_NAME}" \
+            "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/trigger/pipeline")
+
+          echo "GitLab response: $RESPONSE"
+
+          PIPELINE_ID=$(echo "$RESPONSE" | jq -r '.id')
+
+          if [ "$PIPELINE_ID" == "null" ] || [ -z "$PIPELINE_ID" ]; then
+            echo "Failed to trigger GitLab pipeline."
+            exit 1
+          fi
+
+          PIPELINE_URL="https://gitlab.spack.io/${{ env.GITLAB_PROJECT_PATH }}/-/pipelines/$PIPELINE_ID"
+          echo "Pipeline URL: $PIPELINE_URL"
+          echo "pipeline_url=$PIPELINE_URL" >> $GITHUB_OUTPUT
+
+      - name: Post status to GitHub PR
+        shell: bash
+        run: |
+          PIPELINE_URL=${{ steps.trigger.outputs.pipeline_url }}
+          COMMENT="GitLab CI has started at ${PIPELINE_URL}."
+
+          gh api \
+            repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+            -f body="$COMMENT" || echo "Failed to post comment to GitHub"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

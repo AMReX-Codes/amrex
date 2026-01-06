@@ -2947,6 +2947,18 @@ owners overriding non-owners.
     auto mask = amrex::OwnerMask(mf, geom.periodicity());
     mf.OverrideSync(*mask, geom.periodicity());
 
+This version of :cpp:`OverrideSync` offers the flexibility of providing a custom mask.
+However, when a custom mask is not needed, we can synchronize the data also with
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...); // non-cell-centered
+    mf.OverrideSync(geom.periodicity());
+
+This version of :cpp:`OverrideSync` has better performance than the previous one.
+
 To compute the dot product of two nodal :cpp:`MultiFab`\ s, we can use a
 mask to avoid double counting.
 

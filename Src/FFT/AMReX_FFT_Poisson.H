@@ -172,6 +172,9 @@ public:
                             bc[2].second != Boundary::periodic);
         Info info{};
         info.setTwoDMode(true);
+        if (m_geom.Domain().length(0) == 1 || m_geom.Domain().length(1) == 1) {
+            info.setOneDMode(true);
+        }
         if (periodic_xy) {
             m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain(),
                                                                    info);

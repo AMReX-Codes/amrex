@@ -1,0 +1,195 @@
+workflow:
+  name: '$GITHUB_PIPELINE_NAME'
+
+.dependency-n-fetch-pr:
+  stage: test
+  before_script:
+    - apt-get update && apt-get install -y git cmake python3 libopenmpi-dev openmpi-bin
+    - |
+      if [ -n "$GITHUB_PR_NUMBER" ]; then
+        echo "GITHUB_PR_NUMBER=$GITHUB_PR_NUMBER"
+        echo "GITHUB_MERGE_REF=$GITHUB_MERGE_REF"
+        echo "GITHUB_TRIGGER_ACTOR=$GITHUB_TRIGGER_ACTOR"
+        echo "GITHUB_PR_TITLE=$GITHUB_PR_TITLE"
+        git remote remove github || true
+        git remote add github https://github.com/amrex-codes/amrex.git
+        git fetch --depth=1 github "${GITHUB_MERGE_REF}"
+        git checkout FETCH_HEAD
+      fi
+
+Nvidia-H100-single-precision:
+  extends: .dependency-n-fetch-pr
+  tags: [nvidia-h100]
+  image: nvcr.io/nvidia/cuda:12.8.0-devel-ubuntu24.04
+  script:
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_PRECISION=SINGLE                     \
+          -DAMReX_PARTICLES_PRECISION=SINGLE           \
+          -DAMReX_SPACEDIM="1;2;3"                     \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=CUDA                     \
+          -DCMAKE_C_COMPILER=$(which gcc)              \
+          -DCMAKE_CXX_COMPILER=$(which g++)            \
+          -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
+          -DAMReX_CUDA_ARCH="9.0"                      \
+          -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+          -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON
+    - cmake --build build -j 16
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+    - ctest -j 2 --test-dir build --output-on-failure
+
+AMD-MI300A:
+  extends: .dependency-n-fetch-pr
+  tags: [amd-mi300]
+  image: rocm/dev-ubuntu-24.04:6.4.3-complete
+  script:
+    - export ROCM_PATH=/opt/rocm-6.4.3
+    - export PATH=$ROCM_PATH/bin:$ROCM_PATH/llvm/bin:$PATH
+    - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
+    - export HIP_PATH=$ROCM_PATH
+    - export HIP_CLANG_PATH=$ROCM_PATH/llvm/bin
+    - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_SPACEDIM="1;2;3"                     \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=HIP                      \
+          -DAMReX_AMD_ARCH=gfx942                      \
+          -DCMAKE_C_COMPILER=$(which clang)            \
+          -DCMAKE_CXX_COMPILER=$(which clang++)        \
+          -DCMAKE_CXX_STANDARD=17
+    - cmake --build build -j 16
+    - export OMPI_ALLOW_RUN_AS_ROOT=1
+    - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+    - ctest -j 2 --test-dir build --output-on-failure
+
+Intel-PVC:
+  extends: .dependency-n-fetch-pr
+  tags: [intel-data-center-max-1100]
+  image: intel/oneapi-basekit:2025.3.0-0-devel-ubuntu24.04
+  script:
+    - sycl-ls
+    - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
+    - |
+      cmake -S . -B build                              \
+          -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+          -DAMReX_MPI=OFF                              \
+          -DAMReX_SPACEDIM="1;2;3"                     \
+          -DAMReX_FFT=ON                               \
+          -DAMReX_EB=ON                                \
+          -DAMReX_ENABLE_TESTS=ON                      \
+          -DAMReX_FORTRAN=OFF                          \
+          -DAMReX_GPU_BACKEND=SYCL                     \
+          -DCMAKE_C_COMPILER=$(which icx)              \
+          -DCMAKE_CXX_COMPILER=$(which icpx)           \
+          -DCMAKE_CXX_FLAGS="-fp-model=precise"        \
+          -DAMReX_PARALLEL_LINK_JOBS=8
+    - cmake --build build -j 16
+    - export AMREX_THE_ARENA_INIT_SIZE=1e9
+    - ctest -j 4 --test-dir build --output-on-failure
+
+post_github_comment:
+  stage: .post
+  image: python:3.11-slim
+  script:
+    - pip install PyJWT requests cryptography
+    - |
+      python3 << 'EOF'
+      import jwt
+      import time
+      import requests
+      import os
+      import sys
+      import base64
+
+      # --- START: Get effective Pipeline Status from GitLab API ---
+      gitlab_api_url = os.environ['CI_API_V4_URL']
+      project_id = os.environ['CI_PROJECT_ID']
+      pipeline_id = os.environ['CI_PIPELINE_ID']
+      job_token = os.environ['CI_JOB_TOKEN']
+      current_job_name = os.environ['CI_JOB_NAME']
+
+      final_status = 'success' # Assume success until a failure is found
+      try:
+          # Get all jobs for the pipeline
+          api_endpoint = f"{gitlab_api_url}/projects/{project_id}/pipelines/{pipeline_id}/jobs"
+          headers = {'JOB-TOKEN': job_token}
+          params = {'scope[]': ['success', 'failed', 'canceled'], 'per_page': 100}
+          response = requests.get(api_endpoint, headers=headers, params=params)
+          response.raise_for_status()
+
+          jobs = response.json()
+          for job in jobs:
+              # We only care about the result of test/build jobs, not this notification job itself
+              if job['name'] == current_job_name:
+                  continue
+
+              if job['status'] in ['failed', 'canceled']:
+                  final_status = 'failed'
+                  break # Found a failure, no need to check further
+
+      except requests.exceptions.RequestException as e:
+          print(f"Error fetching job statuses from GitLab API: {e}", file=sys.stderr)
+          final_status = 'unknown' # If API fails, report unknown status
+      # --- END: Get effective Pipeline Status ---
+
+      # Generate JWT for GitHub App authentication
+      app_id = os.environ['GITHUB_APP_ID']
+      payload = {
+          'iat': int(time.time()),
+          'exp': int(time.time()) + 600,
+          'iss': app_id
+      }
+      token = jwt.encode(
+            payload,
+            base64.b64decode(os.environ['GITHUB_APP_PRIVATE_KEY']).decode('utf-8'),
+            algorithm='RS256'
+      )
+
+      # Get installation access token
+      installation_id = os.environ['GITHUB_APP_INSTALLATION_ID']
+      token_response = requests.post(
+          f'https://api.github.com/app/installations/{installation_id}/access_tokens',
+          headers = {
+              'Authorization': f'Bearer {token}',
+              'Accept': 'application/vnd.github+json'
+          }
+      )
+      if token_response.status_code != 201:
+         print(f"Failed to get access token: HTTP {token_response.status_code}")
+         sys.exit(1)
+
+      # Post comment to PR
+      pr_number = os.environ.get('GITHUB_PR_NUMBER')
+      pipeline_url = os.environ['CI_PIPELINE_URL']
+
+      comment_body = f"GitLab CI {pipeline_id} finished with status: **{final_status}**. See details at {pipeline_url}."
+
+      comment_response = requests.post(
+          f'https://api.github.com/repos/AMReX-Codes/amrex/issues/{pr_number}/comments',
+          headers = {
+              'Authorization': f'Bearer {token_response.json()["token"]}',
+              'Accept': 'application/vnd.github+json'
+          },
+          json={'body': comment_body}
+      )
+      if comment_response.status_code != 201:
+          print(f"Failed to post comment: HTTP {comment_response.status_code}")
+          sys.exit(1)
+      print("Successfully posted comment to GitHub PR")
+      EOF
+  when: always
+  rules:
+    - if: $GITHUB_PR_NUMBER

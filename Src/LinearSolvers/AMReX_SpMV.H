@@ -171,6 +171,7 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 
     amrex::ignore_unused(nnz);
     mkl::sparse::matrix_handle_t handle{};
+    mkl::sparse::init_matrix_handle(&handle);
 
 #if defined(INTEL_MKL_VERSION) && (INTEL_MKL_VERSION < 20250300)
     mkl::sparse::set_csr_data(Gpu::Device::streamQueue(), handle, nrows, ncols,
@@ -182,6 +183,9 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
     mkl::sparse::gemv(Gpu::Device::streamQueue(), mkl::transpose::nontrans,
                       T(1), handle, px, T(0), py);
 
+    auto ev = mkl::sparse::release_matrix_handle(Gpu::Device::streamQueue(), &handle);
+    ev.wait();
+
 #endif
 
     AMREX_GPU_ERROR_CHECK();
@@ -189,11 +193,12 @@ void SpMV (AlgVector<T>& y, SpMatrix<T> const& A, AlgVector<T> const& x)
 #else
 
     Long const ny = y.numLocalRows();
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
     for (Long i = 0; i < ny; ++i) {
         T r = 0;
-#ifdef AMREX_USE_OMP
-#pragma omp parallel for reduction(+:r)
-#endif
         for (Long j = row[i]; j < row[i+1]; ++j) {
             r += mat[j] * px[col[j]];
         }

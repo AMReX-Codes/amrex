@@ -20,6 +20,7 @@
 #include <AMReX_BndryRegister.H>
 #include <AMReX_FabDataType.H>
 #include <AMReX_MLMGBndry.H>
+#include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 
 #include <algorithm>
@@ -45,6 +46,7 @@ struct LPInfo
     int max_semicoarsening_level = 0;
     int semicoarsening_direction = -1;
     int hidden_direction = -1;
+    bool deterministic = false;   //!< Enable deterministic mode for GPU operations
 
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
@@ -58,6 +60,7 @@ struct LPInfo
     LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
     LPInfo& setSemicoarseningDirection (int n) noexcept { semicoarsening_direction = n; return *this; }
     LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
+    LPInfo& setDeterministic (bool x) noexcept { deterministic = x; return *this; }
 
     [[nodiscard]] bool hasHiddenDimension () const noexcept {
         return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
@@ -234,7 +237,8 @@ public:
                              const MF* /*robinbc_b*/ = nullptr,
                              const MF* /*robinbc_f*/ = nullptr) = 0;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
+                                             IsMultiFabLike_v<AMF>, int> = 0>
     void setLevelBC (int amrlev, const AMF* levelbcdata,
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,
@@ -1606,7 +1610,8 @@ MLLinOpT<MF>::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
+                                         IsMultiFabLike_v<AMF>, int> >
 void
 MLLinOpT<MF>::setLevelBC (int amrlev, const AMF* levelbcdata,
                           const AMF* robinbc_a, const AMF* robinbc_b,

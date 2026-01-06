@@ -249,7 +249,11 @@ int main (int argc, char* argv[])
         //    nodal_solver.setBottomSolver(MLMG::BottomSolver::hypre);
 
         // Define the relative tolerance
+#ifdef AMREX_USE_FLOAT
+        Real reltol = 2.e-4;
+#else
         Real reltol = 1.e-8;
+#endif
 
         // Define the absolute tolerance; note that this argument is optional
         Real abstol = 1.e-15;

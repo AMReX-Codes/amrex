@@ -74,5 +74,30 @@ int main (int argc, char* argv[])
         }
     }
 
+    {
+        std::string expr("x / max(y,0.8)");
+        Parser parser(expr);
+        parser.registerVariables({"x", "y"});
+        auto exe = parser.compile<2>();
+        auto r1 = exe(2.2, 3.3);
+        auto r2 = 2.2 / 3.3;
+        if (! amrex::almostEqual(r1, r2, 10)) {
+            amrex::Abort("Expression " + expr + " failed");
+        }
+    }
+
+
+    {
+        std::string expr("pow(x,0.6) / min(x,0.8)");
+        Parser parser(expr);
+        parser.registerVariables({"x"});
+        auto exe = parser.compile<1>();
+        auto r1 = exe(2.2);
+        auto r2 = std::pow(2.2,0.6) / 0.8;
+        if (! amrex::almostEqual(r1, r2, 10)) {
+            amrex::Abort("Expression " + expr + " failed");
+        }
+    }
+
     amrex::Finalize();
 }

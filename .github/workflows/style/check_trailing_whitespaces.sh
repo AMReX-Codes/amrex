@@ -32,5 +32,6 @@ else
     echo -e "  ${0}\n"
     git --no-pager diff
     echo ""
+    echo "We recommend using EditorConfig to avoid trailing whitespaces: https://editorconfig.org/"
     exit 1
 fi
