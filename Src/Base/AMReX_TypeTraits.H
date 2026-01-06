@@ -269,6 +269,30 @@ namespace amrex
     template <typename T, typename... Args>
     inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value;
 
+    namespace detail {
+        template <typename T, typename U, typename Enable = void>
+        struct IsNarrowingConversionImp : std::true_type {};
+
+        template <typename T, typename U>
+        struct IsNarrowingConversionImp<T, U, std::void_t<decltype(U{std::declval<T>()})>> : std::false_type {};
+    }
+
+    template <typename From, typename To>
+    struct IsNarrowingConversion : detail::IsNarrowingConversionImp<From, To> {};
+
+    template <typename From, typename To>
+    inline constexpr bool IsNarrowingConversion_v = IsNarrowingConversion<From, To>::value;
+
+    template <typename From, typename To>
+    inline constexpr bool IsNonNarrowingConversion_v = !IsNarrowingConversion<From, To>::value;
+
+    //! \brief Test if type T is a valid index type. Valid index type is integral and can be safely
+    //!         converted to int without narrowing.
+    template <typename T>
+    struct IsValidIndexType {
+        static constexpr bool value = std::is_integral_v<T> && IsNonNarrowingConversion_v<T, int>;
+    };
+
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
     template <class T, class Enable = void>
     struct IsStoreAtomic : std::false_type {};

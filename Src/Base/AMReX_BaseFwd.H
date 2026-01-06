@@ -13,7 +13,7 @@ class FabArrayBase;
 class FArrayBox;
 class IArrayBox;
 template <class T> class BaseFab;
-template <typename T> struct Array4;
+template <typename T, int N> struct ArrayND;
 
 template <class T, unsigned int N> struct GpuArray;
 

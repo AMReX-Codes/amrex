@@ -62,21 +62,39 @@ namespace amrex {
     };
 
     namespace detail {
-        /**
-         * /brief Indices checker for ArrayND
-         *
-         * 1. All indices are int
-         * 2. Number of indices matches dimension or is one less than dimension
-         */
         template <int N, typename... idx>
-        struct ArrayNDIndexCheck_impl {
-            constexpr static bool value =
-                (sizeof...(idx) == N || sizeof...(idx) == N - 1)
-                && (Conjunction<std::is_same<int, std::decay_t<idx>>...>::value);
+        struct ValidIndiciesForArrayNDImpl {
+        private:
+            static constexpr int num_indicies = sizeof...(idx);
+
+            template <typename... Ts>
+            struct AllExceptLastEnum;
+
+            template <typename first, typename... Ts>
+            struct AllExceptLastEnum<first, Ts...> {
+                static constexpr bool value =
+                    IsValidIndexType<std::decay_t<first>>::value
+                    && AllExceptLastEnum<Ts...>::value;
+            };
+
+            template <typename last>
+            struct AllExceptLastEnum<last> {
+                static constexpr bool value = IsValidIndexType<std::decay_t<last>>::value
+                        || (std::is_enum_v<std::decay_t<last>>);
+            };
+
+            static constexpr bool index_with_enum = AllExceptLastEnum<idx...>::value;
+
+            static constexpr bool index_all_values = Conjunction<
+                IsValidIndexType<std::decay_t<idx>>...>::value;
+
+        public:
+            static constexpr bool value = ((num_indicies == N) && index_with_enum) ||
+                                          ((num_indicies == N - 1) && index_all_values);
         };
 
         template <int N, class... idx>
-        inline constexpr bool ArrayNDIndexCheck_impl_v = ArrayNDIndexCheck_impl<N, idx...>::value;
+        inline constexpr bool ArrayNDIndexCheck_impl_v = ValidIndiciesForArrayNDImpl<N, idx...>::value;
 
         template<std::size_t... idx>
         constexpr auto make_oob_message_impl (std::index_sequence<idx...>) {
@@ -139,16 +157,15 @@ namespace amrex {
             );
         }
 
-        template <std::size_t... idx, std::enable_if_t<sizeof...(idx)>=1,int> = 0>
+        template <int N, std::enable_if_t<(N>=1),int> = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void device_printf_impl (std::index_sequence<idx...>,
-                                const IntVectND<sizeof...(idx)>& iv,
-                                const IntVectND<sizeof...(idx)>& begin,
-                                const IntVectND<sizeof...(idx)>& end)
+        void device_printf_impl (const IntVectND<N>& iv,
+                                const IntVectND<N>& begin,
+                                const IntVectND<N>& end)
         {
             device_print_impl2(
-                std::index_sequence<idx...>{},
-                std::make_index_sequence<sizeof...(idx)*2>{},
+                std::make_index_sequence<N>{},
+                std::make_index_sequence<N*2>{},
                 iv, begin, end
             );
         }
@@ -278,8 +295,8 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end)
         {
-            begin[3] = 0;
-            end[3] = rhs.end[3] - start_comp;
+            begin[N-1] = 0;
+            end[N-1] = rhs.end[N-1] - start_comp;
         }
 
         template <class U,
@@ -293,8 +310,8 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end)
         {
-            begin[3] = 0;
-            end[3] = num_comp;
+            begin[N-1] = 0;
+            end[N-1] = num_comp;
         }
 
         AMREX_GPU_HOST_DEVICE
@@ -391,10 +408,11 @@ namespace amrex {
             return this->p;
         }
 
+        // Overload for nComp only when N=4. Here, last dimension is number of components
         template <int M=N, std::enable_if_t<M==4,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int nComp () const noexcept {
-            return end[3] - begin[3];
+            return end[N-1] - begin[N-1];
         }
 
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -429,11 +447,6 @@ namespace amrex {
             constexpr_for<0, M>([&](int d) {
                 inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
             });
-            constexpr_for<M, N-1>([&](int d) {
-                inside = inside && (0 >= begin[d]) && (0 < end[d]);
-            });
-            // Check last dimension with begin[N-1] which is always true
-            // inside = inside && (begin[N-1] >= begin[N-1]) && (begin[N-1] < end[N-1]);
             return inside;
         }
 
@@ -444,10 +457,6 @@ namespace amrex {
             constexpr_for<0, M>([&](int d) {
                 inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
             });
-            constexpr_for<M, N-1>([&](int d) {
-                inside = inside && (0 >= begin[d]) && (0 < end[d]);
-            });
-            // Check last dimension with n
             inside = inside && (n >= begin[N-1]) && (n < end[N-1]);
             return inside;
         }
@@ -486,9 +495,9 @@ namespace amrex {
             constexpr_for<1, M>([&](int d) {
                 offset += (iv[d] - begin[d]) * nstride[d-1];
             });
-            constexpr_for<M, N-1>([&](int d) {
-                offset += (Long(0) - begin[d]) * nstride[d-1];
-            });
+            // constexpr_for<M, N-1>([&](int d) {
+            //     offset += (begin[d] - begin[d]) * nstride[d-1];
+            // });
             // offset += (begin[M-1] - begin[M-1]) * nstride[M-2];
             return offset;
         }
@@ -526,7 +535,7 @@ namespace amrex {
             }
             if (out_of_bounds) {
                 AMREX_IF_ON_DEVICE((
-                    device_printf_impl(std::make_index_sequence<N>{}, iv, begin, end);
+                    detail::device_printf_impl(iv, begin, end);
                     amrex::Abort();
                 ))
                 AMREX_IF_ON_HOST((
@@ -553,7 +562,9 @@ namespace amrex {
         void index_assert (IntVectND<M> const& iv) const
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
-            iv_full[N-1] = begin[N-1];
+            for (int d = M; d < N; ++d) {
+                iv_full[d] = begin[d];
+            }
             index_assert(iv_full);
         }
 
@@ -564,6 +575,9 @@ namespace amrex {
         void index_assert (IntVectND<M> const& iv, int n) const
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
+            for (int d = M; d < N-1; ++d) {
+                iv_full[d] = begin[d];
+            }
             iv_full[N-1] = n;
             index_assert(iv_full);
         }
