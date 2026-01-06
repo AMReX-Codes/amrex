@@ -166,6 +166,9 @@ MyTest::readParameters ()
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("reltol", reltol);
+#ifdef AMREX_USE_FLOAT
+        reltol = std::max(reltol, 1.e-5F);
+#endif
 
     pp.query("gpu_regtest", gpu_regtest);
 

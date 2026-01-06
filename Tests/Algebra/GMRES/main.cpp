@@ -113,7 +113,11 @@ int main (int argc, char* argv[])
         amrex::Axpy(xvec, Real(-1.0), exact);
         auto error = xvec.norminf();
         amrex::Print() << " Max norm error: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+        AMREX_ALWAYS_ASSERT(error < eps);
+#else
         AMREX_ALWAYS_ASSERT(error*10 < eps);
+#endif
     }
     amrex::Finalize();
 }

@@ -941,7 +941,8 @@ public:
                        const IntVect&       dnghost,
                        const Periodicity&   period = Periodicity::NonPeriodic(),
                        CpOp                 op = FabArrayBase::COPY,
-                       const FabArrayBase::CPC* a_cpc = nullptr);
+                       const FabArrayBase::CPC* a_cpc = nullptr,
+                       bool                 deterministic = false);
 
     void ParallelAdd_nowait (const FabArray<FAB>& src,
                              int                  src_comp,
@@ -983,7 +984,8 @@ public:
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY,
                               const FabArrayBase::CPC* a_cpc = nullptr,
-                              bool                 to_ghost_cells_only = false);
+                              bool                 to_ghost_cells_only = false,
+                              bool                 deterministic = false);
 
     void ParallelCopy_nowait (const FabArray<FAB>& src,
                               int                  scomp,
@@ -995,7 +997,8 @@ public:
                               const Periodicity&   period = Periodicity::NonPeriodic(),
                               CpOp                 op = FabArrayBase::COPY,
                               const FabArrayBase::CPC* a_cpc = nullptr,
-                              bool                 to_ghost_cells_only = false);
+                              bool                 to_ghost_cells_only = false,
+                              bool                 deterministic = false);
 
     void ParallelCopy_finish ();
 
@@ -1196,6 +1199,15 @@ public:
      * same box, those near the lower corner have higher precedence than
      * those near the upper corner.
      *
+     * Example: Suppose there is a valid point that is shared by 4 boxes.
+     * Some operation assigns values a, b, c, and d to the 4 points in the 4 boxes.
+     * We then call SumBoundary to add the 4 values and store the result in the 4 boxes.
+     * The value in box 0 might be the result of a+b+c+d, the value in box 1 might be
+     * the result of b+c+d+a, etc. The resulting data could be out of sync across
+     * boxes due to roundoff errors.
+     * OverrideSync synchronizes the data by overriding all values with one value
+     * (e.g., the value from box 0).
+     *
      * \param period periodic length if it's non-zero
      */
     void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
@@ -1319,7 +1331,7 @@ public:
     void FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp);
     void FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool deterministic);
     void PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
-                       int scomp, int dcomp, int ncomp, CpOp op);
+                       int scomp, int dcomp, int ncomp, CpOp op, bool deterministic);
 
     void CMD_local_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);
     void CMD_remote_setVal_gpu (value_type x, const CommMetaData& thecmd, int scomp, int ncomp);

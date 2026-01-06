@@ -2,7 +2,10 @@
 #define AMREX_ML_NODE_LAPLACIAN_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_iMultiFab.H>
 #include <AMReX_MLNodeLinOp.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 

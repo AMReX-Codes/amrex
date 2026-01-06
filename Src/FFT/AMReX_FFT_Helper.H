@@ -68,6 +68,9 @@ struct Info
     //! batch size.
     bool twod_mode = false;
 
+    //! We might have a special twod_mode: nx or ny == 1 && nz > 1.
+    bool oned_mode = false;
+
     //! Batched FFT size. Only support in R2C, not R2X.
     int batch_size = 1;
 
@@ -77,6 +80,7 @@ struct Info
     Info& setDomainStrategy (DomainStrategy s) { domain_strategy = s; return *this; }
     Info& setPencilThreshold (int t) { pencil_threshold = t; return *this; }
     Info& setTwoDMode (bool x) { twod_mode = x; return *this; }
+    Info& setOneDMode (bool x) { oned_mode = x; return *this; }
     Info& setBatchSize (int bsize) { batch_size = bsize; return *this; }
     Info& setNumProcs (int n) { nprocs = n; return *this; }
 };
@@ -402,7 +406,7 @@ struct Plan
         strides[0] = 0;
         strides[ndims] = 1;
         for (int i = ndims-1; i >= 1; --i) {
-            strides[i] = strides[i+1] * len[ndims-1-i];
+            strides[i] = strides[i+1] * len[i];
         }
 #ifndef AMREX_USE_MKL_DFTI_2024
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
@@ -1198,11 +1202,13 @@ using Key = std::tuple<IntVectND<3>,int,Direction,Kind>;
 using PlanD = typename Plan<double>::VendorPlan;
 using PlanF = typename Plan<float>::VendorPlan;
 
-PlanD* get_vendor_plan_d (Key const& key);
-PlanF* get_vendor_plan_f (Key const& key);
+namespace detail {
+    PlanD* get_vendor_plan_d (Key const& key);
+    PlanF* get_vendor_plan_f (Key const& key);
 
-void add_vendor_plan_d (Key const& key, PlanD plan);
-void add_vendor_plan_f (Key const& key, PlanF plan);
+    void add_vendor_plan_d (Key const& key, PlanD plan);
+    void add_vendor_plan_f (Key const& key, PlanF plan);
+}
 
 template <typename T>
 template <Direction D, int M>
@@ -1224,9 +1230,9 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
     if (cache) {
         VendorPlan* cached_plan = nullptr;
         if constexpr (std::is_same_v<float,T>) {
-            cached_plan = get_vendor_plan_f(key);
+            cached_plan = detail::get_vendor_plan_f(key);
         } else {
-            cached_plan = get_vendor_plan_d(key);
+            cached_plan = detail::get_vendor_plan_d(key);
         }
         if (cached_plan) {
             plan = *cached_plan;
@@ -1356,9 +1362,9 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #if defined(AMREX_USE_GPU)
     if (cache) {
         if constexpr (std::is_same_v<float,T>) {
-            add_vendor_plan_f(key, plan);
+            detail::add_vendor_plan_f(key, plan);
         } else {
-            add_vendor_plan_d(key, plan);
+            detail::add_vendor_plan_d(key, plan);
         }
     }
 #endif

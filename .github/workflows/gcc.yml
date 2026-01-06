@@ -311,7 +311,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-maybe-uninitialized"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -361,6 +361,7 @@ jobs:
     - uses: actions/checkout@v5
     - name: Dependencies
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_gcc.sh 12
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh

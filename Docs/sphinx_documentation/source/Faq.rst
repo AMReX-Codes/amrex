@@ -172,6 +172,13 @@ to the device and pass a device pointer function object `DevicePtrIF` into the `
 |
 |
 
+**Q.** I'm getting errors when running with GPU-aware MPI
+
+**A.** While other problems may exist. One thing to check, if the machine is using Slurm, is the `cgroup.conf` file. If it contains `ConstrainDevices=yes`, then IPC can be impacted, which means bindings such as `--gpu-bind=closest` should not be used. Instead try `--gpu-bind=none`.
+
+.. _`This Slurm issue provides more information`: https://support.schedmd.com/show_bug.cgi?id=17875
+
+
 More Questions
 --------------
 

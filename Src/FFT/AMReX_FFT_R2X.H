@@ -187,7 +187,7 @@ R2X<T>::R2X (Box const& domain,
     } // else: x-fft: r2r(m_rx)
 
 #if (AMREX_SPACEDIM >= 2)
-    if (domain.length(1) > 1) {
+    if (domain.length(1) > 1 && !m_info.oned_mode) {
         if (! m_cx.empty()) {
             // copy(m_cx->m_cy)
             m_dom_cy = Box(IntVect(0), IntVect(AMREX_D_DECL(m_dom_cx.bigEnd(1),
