@@ -33,19 +33,23 @@ jobs:
       - name: Trigger GitLab pipeline
         id: trigger
         shell: bash
+        env:
+          PR_TITLE: ${{ steps.setref.outputs.pr_title }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          MERGE_REF: ${{ steps.setref.outputs.merge_ref }}
         run: |
-          MERGE_REF="${{ steps.setref.outputs.merge_ref }}"
           echo "Triggering GitLab pipeline for ref: $MERGE_REF"
 
-          GITHUB_PIPELINE_NAME="GitHub #${{ github.event.issue.number }}: ${{ steps.setref.outputs.pr_title }}"
+          GITHUB_PIPELINE_NAME="GitHub #${PR_NUMBER}: ${PR_TITLE}"
 
           RESPONSE=$(curl -s -X POST \
             -F token=${{ secrets.HPSF_GITLAB_TRIGGER_TOKEN }} \
             -F ref=development \
-            -F "variables[GITHUB_PR_NUMBER]=${{ github.event.issue.number }}" \
-            -F "variables[GITHUB_MERGE_REF]=refs/pull/${{ github.event.issue.number }}/merge" \
-            -F "variables[GITHUB_TRIGGER_ACTOR]=${{ github.actor }}" \
-            -F "variables[GITHUB_PR_TITLE]=${{ steps.setref.outputs.pr_title }}" \
+            -F "variables[GITHUB_PR_NUMBER]=${PR_NUMBER}" \
+            -F "variables[GITHUB_MERGE_REF]=refs/pull/${PR_NUMBER}/merge" \
+            -F "variables[GITHUB_TRIGGER_ACTOR]=${GITHUB_ACTOR}" \
+            -F "variables[GITHUB_PR_TITLE]=${PR_TITLE}" \
             -F "variables[GITHUB_PIPELINE_NAME]=${GITHUB_PIPELINE_NAME}" \
             "https://gitlab.spack.io/api/v4/projects/${{ env.GITLAB_PROJECT_ID }}/trigger/pipeline")
 

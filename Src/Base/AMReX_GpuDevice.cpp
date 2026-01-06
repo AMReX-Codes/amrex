@@ -200,6 +200,13 @@ StreamManager::free_async (Arena* arena, void* mem) {
     }
 }
 
+std::size_t
+StreamManager::wait_list_size () {
+    // lock mutex before accessing member variables
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_free_wait_list.size();
+}
+
 #endif
 
 void
@@ -771,6 +778,23 @@ Device::freeAsync (Arena* arena, void* mem) noexcept
     gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].free_async(arena, mem);
 #else
     arena->free(mem);
+#endif
+}
+
+bool
+Device::clearFreeAsyncBuffer () noexcept
+{
+#ifdef AMREX_USE_GPU
+    bool freed_memory = false;
+    for (auto& s : gpu_stream_pool) {
+        if (s.wait_list_size() > 0) {
+            s.sync();
+            freed_memory = true;
+        }
+    }
+    return freed_memory;
+#else
+    return false;
 #endif
 }
 

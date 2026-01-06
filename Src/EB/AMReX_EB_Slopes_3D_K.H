@@ -7,6 +7,72 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
+namespace amrex {
+
+template <int N, typename DU>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+GpuArray<Real,AMREX_SPACEDIM>
+calc_slopes_eb (Real A[N][AMREX_SPACEDIM], DU const& f, int nx, int ny, int nz)
+{
+    Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM] = {};
+    Real Atb[AMREX_SPACEDIM] = {};
+
+    int lc = 0;
+    for (int kk = -nz; kk <= nz; ++kk) {
+    for (int jj = -ny; jj <= ny; ++jj) {
+    for (int ii = -nx; ii <= nx; ++ii) {
+        AtA[0][0] += A[lc][0] * A[lc][0];
+        AtA[0][1] += A[lc][0] * A[lc][1];
+        AtA[0][2] += A[lc][0] * A[lc][2];
+        AtA[1][1] += A[lc][1] * A[lc][1];
+        AtA[1][2] += A[lc][1] * A[lc][2];
+        AtA[2][2] += A[lc][2] * A[lc][2];
+        auto du = f(ii,jj,kk);
+        Atb[0] += A[lc][0]*du;
+        Atb[1] += A[lc][1]*du;
+        Atb[2] += A[lc][2]*du;
+        ++lc;
+    }}}
+
+    // Fill in symmetric
+    AtA[1][0] = AtA[0][1];
+    AtA[2][0] = AtA[0][2];
+    AtA[2][1] = AtA[1][2];
+
+    Real detAtA =
+      AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
+      AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
+      AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
+
+    Real detAtA_x =
+        Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
+        AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
+        AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
+
+    // Slope at centroid of (i,j,k)
+    Real xs = detAtA_x / detAtA;
+
+    Real detAtA_y =
+        AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
+        Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
+        AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
+
+    // Slope at centroid of (i,j,k)
+    Real ys = detAtA_y / detAtA;
+
+    Real detAtA_z =
+        AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
+        AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
+        Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
+
+    // Slope at centroid of (i,j,k)
+    Real zs = detAtA_z / detAtA;
+
+    return {xs,ys,zs};
+}
+
+}
+
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
 // least squares linear fit to the 26 nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
@@ -21,81 +87,15 @@ amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
                               amrex::Array4<amrex::Real const> const& state,
                               amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    constexpr int dim_a = 27;
-    amrex::Real du[dim_a];
-
-    int ll=0;
-    for(int kk(-1); kk<=1; kk++) {
-    for(int jj(-1); jj<=1; jj++){
-    for(int ii(-1); ii<=1; ii++){
+    auto f = [&] (int ii, int jj, int kk) {
         if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
         {
-            du[ll] = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
+            return state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
         } else {
-            du[ll] = amrex::Real(0.0);
+            return amrex::Real(0);
         }
-        ll++;
-    }}}
-
-    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
-    amrex::Real Atb[AMREX_SPACEDIM];
-
-    for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
-        for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-            AtA[jj][ii] = amrex::Real(0.0);
-        }
-        Atb[jj] = amrex::Real(0.0);
-    }
-
-    for(int lc(0); lc < 27; ++lc)
-    {
-        AtA[0][0] += A[lc][0]* A[lc][0];
-        AtA[0][1] += A[lc][0]* A[lc][1];
-        AtA[0][2] += A[lc][0]* A[lc][2];
-        AtA[1][1] += A[lc][1]* A[lc][1];
-        AtA[1][2] += A[lc][1]* A[lc][2];
-        AtA[2][2] += A[lc][2]* A[lc][2];
-
-        Atb[0] += A[lc][0]*du[lc];
-        Atb[1] += A[lc][1]*du[lc];
-        Atb[2] += A[lc][2]*du[lc];
-    }
-
-    // Fill in symmetric
-    AtA[1][0] = AtA[0][1];
-    AtA[2][0] = AtA[0][2];
-    AtA[2][1] = AtA[1][2];
-
-    amrex::Real detAtA =
-      AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
-      AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
-      AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-
-    amrex::Real detAtA_x =
-        Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
-        AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
-        AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real xs = detAtA_x / detAtA;
-
-    amrex::Real detAtA_y =
-        AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
-        Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
-        AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real ys = detAtA_y / detAtA;
-
-    amrex::Real detAtA_z =
-        AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
-        AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
-        Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real zs = detAtA_z / detAtA;
-
-    return {xs,ys,zs};
+    };
+    return amrex::calc_slopes_eb<27>(A, f, 1, 1, 1);
 }
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
@@ -116,77 +116,17 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, 
     AMREX_ASSERT(ny == 1 || ny == 2);
     AMREX_ASSERT(nz == 1 || nz == 2);
 
-    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
-    amrex::Real Atb[AMREX_SPACEDIM];
-
-    for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
-      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-        AtA[jj][ii] = amrex::Real(0.0);
-      }
-      Atb[jj] = amrex::Real(0.0);
-    }
-
-    // for(int lc(0); lc < dim_a; ++lc)
-    for (int kk=-nz; kk<=nz; ++kk) {
-      for (int jj=-ny; jj<=ny; ++jj) {
-        for (int ii=-nx; ii<=nx; ++ii) {
-          int lc     = (kk+nz)*(2*nx+1)*(2*ny+1) + (jj+ny)*(2*nx+1) + ii+nx;
-          AtA[0][0] += A[lc][0]* A[lc][0];
-          AtA[0][1] += A[lc][0]* A[lc][1];
-          AtA[0][2] += A[lc][0]* A[lc][2];
-          AtA[1][1] += A[lc][1]* A[lc][1];
-          AtA[1][2] += A[lc][1]* A[lc][2];
-          AtA[2][2] += A[lc][2]* A[lc][2];
-
-          auto du = amrex::Real(0.0);
-          if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0) &&
-              ii >= -nx && ii <= nx && jj >= -ny && jj <= ny &&
-              kk >= -nz && kk <= nz) {
-            du = state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
-          }
-
-          Atb[0] += A[lc][0]*du;
-          Atb[1] += A[lc][1]*du;
-          Atb[2] += A[lc][2]*du;
+    auto f = [&] (int ii, int jj, int kk) {
+        if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0) &&
+            ii >= -nx && ii <= nx && jj >= -ny && jj <= ny &&
+            kk >= -nz && kk <= nz)
+        {
+            return state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
+        } else {
+            return amrex::Real(0);
         }
-      }
-    }
-
-    // Fill in symmetric
-    AtA[1][0] = AtA[0][1];
-    AtA[2][0] = AtA[0][2];
-    AtA[2][1] = AtA[1][2];
-
-    amrex::Real detAtA =
-      AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
-      AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
-      AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-
-    amrex::Real detAtA_x =
-        Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
-        AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
-        AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real xs = detAtA_x / detAtA;
-
-    amrex::Real detAtA_y =
-        AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
-        Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
-        AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real ys = detAtA_y / detAtA;
-
-    amrex::Real detAtA_z =
-        AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
-        AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
-        Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real zs = detAtA_z / detAtA;
-
-    return {xs,ys,zs};
+    };
+    return amrex::calc_slopes_eb<125>(A, f, nx, ny, nz);
 }
 
 //

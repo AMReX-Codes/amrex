@@ -1,44 +1,53 @@
 #include <AMReX_FFT.H>
 #include <AMReX_FFT_Helper.H>
+#include <AMReX_OpenMP.H>
 
 #include <map>
 
-namespace amrex::FFT
+namespace amrex::FFT::detail
 {
 
 namespace
 {
-    bool s_initialized = false;
+    long long s_initialized = 0;
     std::map<Key, PlanD> s_plans_d;
     std::map<Key, PlanF> s_plans_f;
 }
 
 void Initialize ()
 {
-    if (!s_initialized)
+    if (s_initialized == 0)
     {
-        s_initialized = true;
-
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
+#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
+        fftw_init_threads();
+        fftwf_init_threads();
+        fftw_plan_with_nthreads(amrex::OpenMP::get_max_threads());
+        fftwf_plan_with_nthreads(amrex::OpenMP::get_max_threads());
 #endif
     }
 
-    amrex::ExecOnFinalize(amrex::FFT::Finalize);
+    ++s_initialized;
+
+    amrex::ExecOnFinalize(amrex::FFT::detail::Finalize);
 }
 
 void Finalize ()
 {
-    if (s_initialized)
+    if (s_initialized == 1)
     {
-        s_initialized = false;
-
         Clear();
 
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
+#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
+        fftw_cleanup_threads();
+        fftwf_cleanup_threads();
 #endif
     }
+
+    if (s_initialized > 0) { --s_initialized; }
 }
 
 void Clear ()
@@ -80,11 +89,6 @@ void add_vendor_plan_f (Key const& key, PlanF plan)
     s_plans_f[key] = plan;
 }
 
-}
-
-namespace amrex::FFT::detail
-{
-
 DistributionMapping make_iota_distromap (Long n)
 {
     AMREX_ASSERT(n <= ParallelContext::NProcsSub());
@@ -95,7 +99,7 @@ DistributionMapping make_iota_distromap (Long n)
     return DistributionMapping(std::move(pm));
 }
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
 void hip_execute (rocfft_plan plan, void **in, void **out)
 {
     rocfft_execution_info execinfo = nullptr;

@@ -4,6 +4,7 @@
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_MultiFab.H>
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreNodeLap.H>

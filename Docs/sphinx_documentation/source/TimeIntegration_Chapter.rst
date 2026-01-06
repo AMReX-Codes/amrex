@@ -113,10 +113,18 @@ Once you have unpacked or cloned the source code, run the following
 
 ::
 
-   cmake -S /path_to_sundials_source_code -B /path_to_sundials_build_dir -D CMAKE_INSTALL_PREFIX=/path_to_sundials_install_dir -D ENABLE_MPI=ON -D ENABLE_CUDA=ON
+   cmake -S /path_to_sundials_source_code -B /path_to_sundials_build_dir -D CMAKE_INSTALL_PREFIX=/path_to_sundials_install_dir -D ENABLE_MPI=ON -D ENABLE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=XX
    cd /path_to_sundials_build_dir
    make
    make install
+
+To determine the ``XX`` in the ``-DCMAKE_CUDA_ARCHITECTURES=XX`` argument, run the following command:
+
+::
+
+   nvidia-smi --query-gpu=compute_cap --format=csv,noheader
+
+If the result is ``7.0``, use ``70``, etc.
 
 To use SUNDIALS integrators, the user needs to compile their AMReX application with
 ``USE_SUNDIALS=TRUE`` and ``SUNDIALS_HOME=/path_to_sundials_install_dir``
