@@ -7,7 +7,7 @@ Linear Solvers
 ==============
 
 AMReX supports both single-level solves and composite solves on multiple AMR levels,
-with the solution to the linear system defined on either cell centers, edges or nodes.
+with the solution to the linear system defined on cell centers, edges or nodes.
 AMReX also supports solution of linear systems with embedded boundaries.
 (See chapter :ref:`Chap:EB` for more details on the embedded boundary representation of
 complex geometry.) In addition to the iterative solvers discussed in this
