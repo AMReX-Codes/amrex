@@ -14,6 +14,8 @@ class FArrayBox;
 class IArrayBox;
 template <class T> class BaseFab;
 template <typename T, int N> struct ArrayND;
+template <typename T>
+using Array4 = ArrayND<T,4>;
 
 template <class T, unsigned int N> struct GpuArray;
 
