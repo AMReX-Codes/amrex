@@ -90,6 +90,11 @@ public:
     //! YAFluxRegister.
     void setCrseVolume (MF const* cvol) { m_cvol = cvol; }
 
+    //! Enable deterministic mode for GPU operations.
+    //! When enabled, uses deterministic reduction for parallel additions.
+    void setDeterministic (bool flag) { m_deterministic = flag; }
+    [[nodiscard]] bool getDeterministic () const { return m_deterministic; }
+
 protected:
 
     MF m_crse_data;
@@ -109,6 +114,7 @@ protected:
     int m_ncomp;
 
     MF const* m_cvol = nullptr;
+    bool m_deterministic = false;
 };
 
 template <typename MF>
@@ -538,7 +544,9 @@ YAFluxRegisterT<MF>::Reflux (MF& state, int srccomp, int destcomp, int numcomp)
         }
     }
 
-    m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp, m_crse_geom.periodicity(), FabArrayBase::ADD);
+    m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp,
+                             IntVect(0), IntVect(0), m_crse_geom.periodicity(),
+                             FabArrayBase::ADD, nullptr, m_deterministic);
 
     BL_ASSERT(state.nComp() >= destcomp + numcomp);
     if (m_cvol) {

@@ -93,9 +93,9 @@ private:
     std::string type = "ERK";
 
     // Use SUNDIALS default methods
-    std::string method   = "DEFAULT";
-    std::string method_e = "DEFAULT";
-    std::string method_i = "DEFAULT";
+    std::string method   = "DEFAULT"; // ERK, DIRK, or slow method with MRI
+    std::string method_e = "DEFAULT"; // ERK in IMEX-RK
+    std::string method_i = "DEFAULT"; // DIRK in IMEX-RK
 
     // Fast method type (ERK or DIRK) and method
     std::string fast_type   = "ERK";
@@ -289,7 +289,7 @@ private:
 
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
-            if (amrex::Verbose()) { amrex::Print() << "Fast ERK method: " << method << "\n"; }
+            if (amrex::Verbose()) { amrex::Print() << "Fast ERK method: " << fast_method << "\n"; }
             arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
             AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
             if (fast_method != "DEFAULT") {
@@ -298,7 +298,7 @@ private:
             }
         }
         else if (fast_type == "DIRK") {
-            if (amrex::Verbose()) { amrex::Print() << "Fast DIRK method: " << method << "\n"; }
+            if (amrex::Verbose()) { amrex::Print() << "Fast DIRK method: " << fast_method << "\n"; }
             arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
             AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
             if (fast_method != "DEFAULT") {

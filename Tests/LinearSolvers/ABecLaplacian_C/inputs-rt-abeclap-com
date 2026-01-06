@@ -18,3 +18,5 @@ max_fmg_iter = 100     # # of F-cycles before switching to V.  To do pure V-cycl
 linop_maxorder = 3
 agglomeration = 1    # Do agglomeration on AMR Level 0?
 consolidation = 1    # Do consolidation?
+deterministic = 1    # Enable deterministic MLMG solver
+

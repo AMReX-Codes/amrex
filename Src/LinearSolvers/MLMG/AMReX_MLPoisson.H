@@ -2,9 +2,11 @@
 #define AMREX_MLPOISSON_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_iMultiFab.H>
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_MLPoisson_K.H>
 #include <AMReX_MLALaplacian.H>
+#include <AMReX_MultiFab.H>
 
 namespace amrex {
 

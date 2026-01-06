@@ -4,9 +4,9 @@ GPU
 ===
 
 In this chapter, we will present the GPU support in AMReX.  AMReX targets
-NVIDIA, AMD and Intel GPUs using their native vendor language and therefore
+NVIDIA, AMD and Intel GPUs using their native vendor languages and therefore
 requires CUDA, HIP/ROCm and SYCL, for NVIDIA, AMD and Intel GPUs, respectively.
-Users can also use OpenMP and/or OpenACC in their applications.
+Users can also use OpenMP and/or OpenACC in their applications if desired.
 
 AMReX supports NVIDIA GPUs with compute capability >= 6 and CUDA >= 11, and
 AMD GPUs with ROCm >= 5. While SYCL compilers are in development in

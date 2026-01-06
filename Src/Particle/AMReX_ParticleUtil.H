@@ -560,7 +560,8 @@ partitionParticles (PTile& ptile, ParFunc const& is_left)
             }
         });
 
-    Gpu::streamSynchronize(); // for index_left and index_right deallocation
+    index_left.free_async();
+    index_right.free_async();
 
     return num_left;
 }
@@ -627,7 +628,8 @@ partitionParticles (PTile& ptile, int num_left, ParFunc const& is_left)
             }
         });
 
-    Gpu::streamSynchronize(); // for index_left and index_right deallocation
+    index_left.free_async();
+    index_right.free_async();
 }
 
 template <typename PTile>

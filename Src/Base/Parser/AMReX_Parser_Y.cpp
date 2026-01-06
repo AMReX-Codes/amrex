@@ -1324,9 +1324,11 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         }
         else if (node->l->type == PARSER_F2 &&
                  node->r->type == PARSER_F2 &&
+                 ((struct parser_f2*)(node->l))->ftype == PARSER_POW &&
+                 ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
                  parser_node_equal(((struct parser_f2*)(node->l))->l,
                                    ((struct parser_f2*)(node->r))->l))
-        { // pow(x^m) / pow(x^n) => pow(x^(m-n))
+        { // pow(x,m) / pow(x,n) => pow(x,(m-n))
             auto* l = node->l;
             auto* r = node->r;
             std::memcpy(node, node->l, sizeof(struct parser_node));
@@ -1339,6 +1341,7 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
             parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_F2 &&
+                 ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
                  ((struct parser_f2*)(node->r))->r->type == PARSER_NUMBER)
         { // f(.) / pow(x,n) => f(.) * pow(x,-n)
             node->type = PARSER_MUL;

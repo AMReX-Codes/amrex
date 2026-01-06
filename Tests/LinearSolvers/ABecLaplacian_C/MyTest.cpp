@@ -53,6 +53,7 @@ MyTest::solvePoisson ()
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
+    info.setDeterministic(deterministic);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     const auto tol_rel = Real(1.e-10);
@@ -610,6 +611,7 @@ MyTest::readParameters ()
     pp.query("linop_maxorder", linop_maxorder);
     pp.query("agglomeration", agglomeration);
     pp.query("consolidation", consolidation);
+    pp.query("deterministic", deterministic);
     pp.query("semicoarsening", semicoarsening);
     pp.query("max_coarsening_level", max_coarsening_level);
     pp.query("max_semicoarsening_level", max_semicoarsening_level);

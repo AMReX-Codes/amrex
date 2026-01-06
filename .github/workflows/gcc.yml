@@ -361,6 +361,7 @@ jobs:
     - uses: actions/checkout@v5
     - name: Dependencies
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_gcc.sh 12
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
