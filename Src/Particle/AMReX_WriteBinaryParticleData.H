@@ -260,10 +260,12 @@ rPackParticleData (const PTD& ptd, int idx, typename PTD::RealType * rdata_ptr,
 
     constexpr int real_start_offset = PTD::ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
 
-    for (int j = real_start_offset; j < PTD::NAR; ++j) {
-        if (write_real_comp[PTD::ParticleType::NReal + j - real_start_offset]) {
-            rdata_ptr[rout_index] = ptd.rdata(j)[idx];
-            rout_index++;
+    if constexpr (PTD::NAR > 0) {
+        for (int j = real_start_offset; j < PTD::NAR; ++j) {
+            if (write_real_comp[PTD::ParticleType::NReal + j - real_start_offset]) {
+                rdata_ptr[rout_index] = ptd.rdata(j)[idx];
+                rout_index++;
+            }
         }
     }
 
@@ -296,10 +298,12 @@ iPackParticleData (const PTD& ptd, int idx, typename PTD::IntType * idata_ptr,
         }
     }
 
-    for (int j = 0; j < PTD::NAI; ++j) {
-        if (write_int_comp[PTD::ParticleType::NInt + j]) {
-            idata_ptr[iout_index] = ptd.idata(j)[idx];
-            iout_index++;
+    if constexpr (PTD::NAI > 0) {
+        for (int j = 0; j < PTD::NAI; ++j) {
+            if (write_int_comp[PTD::ParticleType::NInt + j]) {
+                idata_ptr[iout_index] = ptd.idata(j)[idx];
+                iout_index++;
+            }
         }
     }
 

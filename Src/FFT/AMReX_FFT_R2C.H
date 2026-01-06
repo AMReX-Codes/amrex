@@ -502,10 +502,12 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         }
     }
 
-    if (m_info.twod_mode) {
-        m_slab_decomp = true;
-    } else if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
-        m_slab_decomp = true;
+    if (!m_info.oned_mode) {
+        if (m_info.twod_mode) {
+            m_slab_decomp = true;
+        } else if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
+            m_slab_decomp = true;
+        }
     }
 
 #endif
@@ -538,7 +540,7 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 
 #if (AMREX_SPACEDIM >= 2)
         DistributionMapping cdmy;
-        if ((m_real_domain.length(1) > 1) && !m_slab_decomp)
+        if ((m_real_domain.length(1) > 1) && !m_slab_decomp && !m_info.oned_mode)
         {
             auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
                                          {AMREX_D_DECL(false,true,true)}, true);
