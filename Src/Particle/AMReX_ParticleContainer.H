@@ -1372,14 +1372,14 @@ public:
     /** Create an empty particle container
      *
      * This creates a new AMReX particle container type with same compile-time
-     * and run-time attributes. But, it can change its allocator. This is
-     * helpful when creating temporary particle buffers for filter operations
+     * and run-time attributes. But, it can change its allocator (default: same allocator).
+     * This is helpful when creating temporary particle buffers for filter operations
      * and device-to-host copies.
      *
-     * @tparam Allocator AMReX allocator, e.g., amrex::PinnedArenaAllocator
+     * @tparam Allocator AMReX allocator, e.g., amrex::PinnedArenaAllocator, default: same allocator as the creating PC
      * @return an empty particle container
      * */
-    template <template<class> class NewAllocator=amrex::DefaultAllocator>
+    template <template<class> class NewAllocator=Allocator>
     ContainerLike<NewAllocator>
     make_alike () const
     {

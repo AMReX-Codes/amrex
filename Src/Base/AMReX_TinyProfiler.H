@@ -66,6 +66,7 @@ public:
     static void StopRegion (const std::string& regname) noexcept;
 
     static void PrintCallStack (std::ostream& os);
+    static void PrintMemoryUsage (std::ostream* os, bool only_local) noexcept;
 
 private:
     struct Stats
@@ -101,6 +102,7 @@ private:
     {
         Long nalloc = 0;
         Long nfree = 0;
+        Long curmem_max = 0;
         Long avgmem_min = std::numeric_limits<Long>::max();
         Long avgmem_avg = 0;
         Long avgmem_max = 0;
@@ -135,6 +137,7 @@ private:
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
+    static double t_memory_init;
     static bool device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
@@ -148,7 +151,7 @@ private:
                             std::ostream* os);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,
                                std::string const& memname, double dt_max,
-                               double t_final, std::ostream* os);
+                               double t_final, std::ostream* os, bool only_local);
 };
 
 class TinyProfileRegion

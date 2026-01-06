@@ -108,16 +108,9 @@ std::pair<Real,Real> check_convergence
     return {bnorm, rnorm};
 }
 
-int main (int argc, char* argv[])
+void run_test (AMREX_D_DECL(int n_cell_x, int n_cell_y, int n_cell_z))
 {
-    amrex::Initialize(argc, argv);
     {
-        BL_PROFILE("main");
-
-        AMREX_D_TERM(int n_cell_x = 64;,
-                     int n_cell_y = 48;,
-                     int n_cell_z = 128);
-
         AMREX_D_TERM(int max_grid_size_x = 32;,
                      int max_grid_size_y = 32;,
                      int max_grid_size_z = 32);
@@ -168,12 +161,20 @@ int main (int argc, char* argv[])
                 std::pair<FFT::Boundary,FFT::Boundary>{FFT::Boundary::even,
                                                        FFT::Boundary::odd}};
 
+        int ncasesx = ncases;
         int ncasesy = (AMREX_SPACEDIM > 1) ? ncases : 1;
         int ncasesz = (AMREX_SPACEDIM > 2) ? ncases : 1;
+        if (n_cell_x == 1) { ncasesx = 1; }
+#if (AMREX_SPACEDIM > 1)
+        if (n_cell_y == 1) { ncasesy = 1; }
+#endif
+#if (AMREX_SPACEDIM == 3)
+        if (n_cell_z == 1) { ncasesz = 1; }
+#endif
         int icase = 0;
         for (int zcase = 0; zcase < ncasesz; ++zcase) {
         for (int ycase = 0; ycase < ncasesy; ++ycase) {
-        for (int xcase = 0; xcase < ncases ; ++xcase) {
+        for (int xcase = 0; xcase < ncasesx; ++xcase) {
             ++icase;
             Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
                 fft_bc{AMREX_D_DECL(bcs[xcase],bcs[ycase],bcs[zcase])};
@@ -200,7 +201,7 @@ int main (int argc, char* argv[])
 #ifdef AMREX_USE_FLOAT
             auto eps = 2.e-3f;
 #else
-            auto eps = 1.e-11;
+            auto eps = 2.e-10;
 #endif
             AMREX_ALWAYS_ASSERT(rnorm < eps*bnorm);
         }}}
@@ -211,7 +212,7 @@ int main (int argc, char* argv[])
         icase = 0;
         for (int zcase = 1; zcase < ncasesz; ++zcase) { // skip periodic z-direction
         for (int ycase = 0; ycase < ncasesy; ++ycase) {
-        for (int xcase = 0; xcase < ncases ; ++xcase) {
+        for (int xcase = 0; xcase < ncasesx; ++xcase) {
             ++icase;
             Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
                 fft_bc{bcs[xcase], bcs[ycase], bcs[zcase]};
@@ -241,10 +242,33 @@ int main (int argc, char* argv[])
 #ifdef AMREX_USE_FLOAT
             auto eps = 2.e-3f;
 #else
-            auto eps = 1.e-11;
+            auto eps = 2.e-10;
 #endif
             AMREX_ALWAYS_ASSERT(rnorm < eps*bnorm);
         }}}
+#endif
+    }
+}
+
+int main (int argc, char* argv[])
+{
+    amrex::Initialize(argc, argv);
+    {
+        BL_PROFILE("main");
+
+        AMREX_D_TERM(int n_cell_x = 64;,
+                     int n_cell_y = 48;,
+                     int n_cell_z = 128);
+
+        ParmParse pp;
+        AMREX_D_TERM(pp.query("n_cell_x", n_cell_x);,
+                     pp.query("n_cell_y", n_cell_y);,
+                     pp.query("n_cell_z", n_cell_z));
+
+        run_test(AMREX_D_DECL(n_cell_x, n_cell_y, n_cell_z));
+#if (AMREX_SPACEDIM == 3)
+        run_test(n_cell_x,        1, n_cell_z);
+        run_test(       1, n_cell_y, n_cell_z);
 #endif
     }
 

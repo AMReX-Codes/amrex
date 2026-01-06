@@ -109,7 +109,8 @@ public:
     FabSetT<MF>& plusFrom (const FabSetT<MF>& src, int scomp, int dcomp, int ncomp);
 
     FabSetT<MF>& plusFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
-                           const Periodicity& period = Periodicity::NonPeriodic());
+                           const Periodicity& period = Periodicity::NonPeriodic(),
+                           bool deterministic = false);
 
     void copyTo (MF& dest, int ngrow, int scomp, int dcomp, int ncomp,
                  const Periodicity& period = Periodicity::NonPeriodic()) const;
@@ -224,10 +225,11 @@ FabSetT<MF>::plusFrom (const FabSetT<MF>& src, int scomp, int dcomp, int ncomp)
 template <typename MF>
 FabSetT<MF>&
 FabSetT<MF>::plusFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
-                       const Periodicity& period)
+                       const Periodicity& period, bool deterministic)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
+    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,IntVect(ngrow),IntVect(0),period,
+                      FabArrayBase::ADD,nullptr,deterministic);
     return *this;
 }
 

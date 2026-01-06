@@ -1077,14 +1077,6 @@ Memory
 
    This controls the release threshold of the communication arena.
 
-.. py:data:: amrex.the_async_arena_release_threshold
-   :type: long
-   :value: LONG_MAX
-
-   This controls the release threshold of the asynchronous arena. Note that
-   this is only relevant for the CUDA (>= 11.2) and HIP backends that
-   support stream-ordered memory allocator.
-
 .. py:data:: amrex.the_arena_defragmentation
    :type: bool
    :value: true

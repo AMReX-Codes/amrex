@@ -306,7 +306,7 @@ void AlgVector<T,Allocator>::printToFile (std::string const& file) const
     Gpu::streamSynchronize();
     T const* p = hv.data();
 #else
-    T const* p = m_data;
+    T const* p = m_data.data();
 #endif
     for (Long i = 0, N = m_data.size(); i < N; ++i) {
         ofs << i+m_begin << " " << p[i] << "\n";
