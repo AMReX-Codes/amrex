@@ -663,9 +663,6 @@ namespace amrex {
             constexpr_for<1, M>([&](int d) {
                 offset += (iv[d] - begin[d]) * nstride[d-1];
             });
-            constexpr_for<M, N-1>([&](int d) {
-                offset += (Long(0) - begin[d]) * nstride[d-1];
-            });
             offset += (n - begin[N-1]) * nstride[N-2];
             return offset;
         }
