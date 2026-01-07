@@ -391,7 +391,9 @@ struct SoAParticleBase
     static constexpr bool is_soa_particle = true;
 };
 
-/** \brief The struct used to store particles.
+/**
+ * \ingroup amrex_particles
+ * \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
  * \tparam T_NInt The number of extra integer components

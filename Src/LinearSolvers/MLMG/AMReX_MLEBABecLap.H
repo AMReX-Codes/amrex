@@ -11,6 +11,7 @@ namespace amrex {
 
 // (alpha * a - beta * (del dot b grad)) phi
 
+/// \ingroup amrex_eb
 class MLEBABecLap
     : public MLCellABecLap
 {

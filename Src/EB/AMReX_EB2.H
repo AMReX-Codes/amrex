@@ -121,6 +121,7 @@ private:
 bool ExtendDomainFace ();
 int NumCoarsenOpt ();
 
+/// \ingroup amrex_eb
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
@@ -138,6 +139,7 @@ Build (const G& gshop, const Geometry& geom,
                                           num_coarsen_opt));
 } // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
+/// \ingroup amrex_eb
 template <typename G>
 void
 Build (const G& gshop, Vector<Geometry> geom,
@@ -153,6 +155,7 @@ Build (const G& gshop, Vector<Geometry> geom,
                                           num_coarsen_opt));
 } // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
+/// \ingroup amrex_eb
 void Build (const Geometry& geom,
             int required_coarsening_level,
             int max_coarsening_level,

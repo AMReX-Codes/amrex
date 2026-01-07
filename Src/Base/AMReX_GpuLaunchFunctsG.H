@@ -788,6 +788,10 @@ void launch (BoxND<dim> const& box, L const& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
@@ -812,6 +816,10 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename L, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
@@ -835,6 +843,10 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f) noexcept
@@ -858,6 +870,11 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with random number
+ * generation support.
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelForRNG (T n, L const& f) noexcept
@@ -879,6 +896,11 @@ ParallelForRNG (T n, L const& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with random number
+ * generation support.
+ */
 template <typename L, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
@@ -902,6 +924,11 @@ ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with random number
+ * generation support.
+ */
 template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
@@ -925,6 +952,10 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename L1, typename L2, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const&,
@@ -952,6 +983,10 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename L1, typename L2, typename L3, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const&,
@@ -985,6 +1020,10 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>> >
@@ -1015,6 +1054,10 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>>,
@@ -1066,6 +1109,10 @@ void launch (T const& n, L&& f) noexcept
     launch<AMREX_GPU_MAX_THREADS>(n, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
@@ -1073,6 +1120,10 @@ ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, n, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename L, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f) noexcept
@@ -1080,6 +1131,10 @@ ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f) noexcept
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 std::enable_if_t<MaybeDeviceRunnable<L>::value>
 ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f) noexcept
@@ -1087,6 +1142,10 @@ ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f)
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, ncomp, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename L1, typename L2, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
 ParallelFor (Gpu::KernelInfo const& info,
@@ -1096,6 +1155,10 @@ ParallelFor (Gpu::KernelInfo const& info,
                                        std::forward<L2>(f2));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename L1, typename L2, typename L3, int dim>
 std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
 ParallelFor (Gpu::KernelInfo const& info,
@@ -1106,6 +1169,10 @@ ParallelFor (Gpu::KernelInfo const& info,
                                        std::forward<L2>(f2), std::forward<L3>(f3));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T1, typename T2, typename L1, typename L2, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>> >
@@ -1118,6 +1185,10 @@ ParallelFor (Gpu::KernelInfo const& info,
                                              box2, ncomp2, std::forward<L2>(f2));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>>,
@@ -1249,54 +1320,90 @@ void For (Gpu::KernelInfo const& info,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelFor (T n, L&& f) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelFor (T n, L&& f) noexcept
 {
     ParallelFor<MT>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename L, int dim>
 void ParallelFor (BoxND<dim> const& box, L&& f) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, box, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename L, int dim>
 void ParallelFor (BoxND<dim> const& box, L&& f) noexcept
 {
     ParallelFor<MT>(Gpu::KernelInfo{}, box, std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     ParallelFor<MT>(Gpu::KernelInfo{},box,ncomp,std::forward<L>(f));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename L1, typename L2, int dim>
 void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename L1, typename L2, int dim>
 void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2) noexcept
 {
     ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename L1, typename L2, typename L3, int dim>
 void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
@@ -1304,6 +1411,10 @@ void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> con
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
                   L1&& f1, L2&& f2, L3&& f3) noexcept
@@ -1311,6 +1422,10 @@ void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> con
     ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T1, typename T2, typename L1, typename L2, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>> >
@@ -1320,6 +1435,10 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>> >
@@ -1329,6 +1448,10 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor<MT>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>>,
@@ -1343,6 +1466,10 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ */
 template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>>,

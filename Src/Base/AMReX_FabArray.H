@@ -285,6 +285,8 @@ Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int
 }
 
 /**
+ * \class amrex::FabArray
+ * \ingroup amrex_multifab_containers
  * \brief An Array of FortranArrayBox(FAB)-like Objects
  *
  * The FabArray<FAB> class implements a collection (stored as an array) of
@@ -1104,32 +1106,37 @@ public:
     bool defined (const MFIter& mfi) const noexcept;
 
     /**
-    * \brief Copy on intersection within a FabArray.  Data is copied from
-    * valid regions to intersecting regions of definition.  The
-    * purpose is to fill in the boundary regions of each FAB in
-    * the FabArray.  If cross=true, corner cells are not filled.
-    * If the length of periodic is provided, periodic boundaries are
-    * also filled.  Note that FabArray itself does not contains
-    * any periodicity information.
-    * FillBoundary expects that its cell-centered version of its BoxArray
-    * is non-overlapping.
+    * \ingroup amrex_fabarray_communication
+    * \brief Copy on intersection within a FabArray.
+    *
+    * Data is copied from valid regions to intersecting regions of
+    * definition.  The purpose is to fill in the boundary regions of each
+    * FAB in the FabArray.  If cross=true, corner cells are not filled.  If
+    * the length of periodic is provided, periodic boundaries are also
+    * filled.  Note that FabArray itself does not contains any periodicity
+    * information.  FillBoundary expects that its cell-centered version of
+    * its BoxArray is non-overlapping.
     */
     template <typename BUF=value_type>
     void FillBoundary (bool cross = false);
 
+    /// \ingroup amrex_fabarray_communication
     template <typename BUF=value_type>
     void FillBoundary (const Periodicity& period, bool cross = false);
 
     template <typename BUF=value_type>
     void FillBoundary (const IntVect& nghost, const Periodicity& period, bool cross = false);
 
+    /// \ingroup amrex_fabarray_communication
     //! Same as FillBoundary(), but only copies ncomp components starting at scomp.
     template <typename BUF=value_type>
     void FillBoundary (int scomp, int ncomp, bool cross = false);
 
+    /// \ingroup amrex_fabarray_communication
     template <typename BUF=value_type>
     void FillBoundary (int scomp, int ncomp, const Periodicity& period, bool cross = false);
 
+    /// \ingroup amrex_fabarray_communication
     template <typename BUF=value_type>
     void FillBoundary (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
 
@@ -1159,25 +1166,29 @@ public:
 
 
     /**
-     * \brief Fill ghost cells and synchronize nodal data. Ghost regions are
-     * filled with data from the intersecting valid regions. The
-     * synchronization will override valid regions by the intersecting valid
-     * regions with a higher precedence.  The smaller the global box index
-     * is, the higher precedence the box has.  With periodic boundaries, for
-     * cells in the same box, those near the lower corner have higher
-     * precedence than those near the upper corner.
+     * \ingroup amrex_fabarray_communication
+     * \brief Fill ghost cells and synchronize nodal data.
+     *
+     * Ghost regions are filled with data from the intersecting valid
+     * regions. The synchronization will override valid regions by the
+     * intersecting valid regions with a higher precedence.  The smaller the
+     * global box index is, the higher precedence the box has.  With
+     * periodic boundaries, for cells in the same box, those near the lower
+     * corner have higher precedence than those near the upper corner.
      *
      * \param period periodic length if it's non-zero
      */
     void FillBoundaryAndSync (const Periodicity& period = Periodicity::NonPeriodic());
     /**
-     * \brief Fill ghost cells and synchronize nodal data. Ghost regions are
-     * filled with data from the intersecting valid regions. The
-     * synchronization will override valid regions by the intersecting valid
-     * regions with a higher precedence.  The smaller the global box index
-     * is, the higher precedence the box has.  With periodic boundaries, for
-     * cells in the same box, those near the lower corner have higher
-     * precedence than those near the upper corner.
+     * \ingroup amrex_fabarray_communication
+     * \brief Fill ghost cells and synchronize nodal data.
+     *
+     * Ghost regions are filled with data from the intersecting valid
+     * regions. The synchronization will override valid regions by the
+     * intersecting valid regions with a higher precedence.  The smaller the
+     * global box index is, the higher precedence the box has.  With
+     * periodic boundaries, for cells in the same box, those near the lower
+     * corner have higher precedence than those near the upper corner.
      *
      * \param scomp starting component
      * \param ncomp number of components
@@ -1192,12 +1203,14 @@ public:
     void FillBoundaryAndSync_finish ();
 
     /**
-     * \brief Synchronize nodal data.  The synchronization will override
-     * valid regions by the intersecting valid regions with a higher
-     * precedence.  The smaller the global box index is, the higher
-     * precedence the box has.  With periodic boundaries, for cells in the
-     * same box, those near the lower corner have higher precedence than
-     * those near the upper corner.
+     * \ingroup amrex_fabarray_communication
+     * \brief Synchronize nodal data.
+     *
+     * The synchronization will override valid regions by the intersecting
+     * valid regions with a higher precedence.  The smaller the global box
+     * index is, the higher precedence the box has.  With periodic
+     * boundaries, for cells in the same box, those near the lower corner
+     * have higher precedence than those near the upper corner.
      *
      * Example: Suppose there is a valid point that is shared by 4 boxes.
      * Some operation assigns values a, b, c, and d to the 4 points in the 4 boxes.
@@ -1212,12 +1225,14 @@ public:
      */
     void OverrideSync (const Periodicity& period = Periodicity::NonPeriodic());
     /**
-     * \brief Synchronize nodal data.  The synchronization will override
-     * valid regions by the intersecting valid regions with a higher
-     * precedence.  The smaller the global box index is, the higher
-     * precedence the box has.  With periodic boundaries, for cells in the
-     * same box, those near the lower corner have higher precedence than
-     * those near the upper corner.
+     * \ingroup amrex_fabarray_communication
+     * \brief Synchronize nodal data.
+     *
+     * The synchronization will override valid regions by the intersecting
+     * valid regions with a higher precedence.  The smaller the global box
+     * index is, the higher precedence the box has.  With periodic
+     * boundaries, for cells in the same box, those near the lower corner
+     * have higher precedence than those near the upper corner.
      *
      * \param scomp starting component
      * \param ncomp number of components
@@ -1229,6 +1244,7 @@ public:
     void OverrideSync_finish ();
 
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Sum values in overlapped cells.
     *
     * The destination is limited to valid cells. Note that being
@@ -1239,6 +1255,7 @@ public:
     */
     void SumBoundary (const Periodicity& period = Periodicity::NonPeriodic(),
                       bool deterministic = false);
+    /// \ingroup amrex_fabarray_communication
     void SumBoundary (int scomp, int ncomp, const Periodicity& period = Periodicity::NonPeriodic(),
                       bool deterministic = false);
     void SumBoundary_nowait (const Periodicity& period = Periodicity::NonPeriodic(),
@@ -1247,6 +1264,7 @@ public:
                              bool deterministic = false);
 
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Sum values in overlapped cells.
     *
     * The destination is limited to valid + ngrow cells. Note that being
@@ -1263,6 +1281,7 @@ public:
                              bool deterministic = false);
 
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Sum values in overlapped cells.
     *
     * For computing the overlap, the dst is grown by dst_ngrow, while the
@@ -1280,13 +1299,20 @@ public:
                              bool deterministic = false);
     void SumBoundary_finish ();
 
-    /** \brief Fill ghost cells with values from their corresponding cells across periodic
-    * boundaries, regardless of whether the corresponding cells are valid. This differs from
-    * FillBoundary, which only fills from valid cells, and does not fill from ghost cells.
-    * The BoxArray is allowed to be overlapping.
+    /**
+     * \ingroup amrex_fabarray_communication
+     * \brief Fill ghost cells with values from their corresponding cells
+     * across periodic boundaries, regardless of whether the corresponding
+     * cells are valid.
+     *
+     * This differs from FillBoundary, which only fills from valid cells,
+     * and does not fill from ghost cells.  The BoxArray is allowed to be
+     * overlapping.
     */
     void EnforcePeriodicity (const Periodicity& period);
+    /// \ingroup amrex_fabarray_communication
     void EnforcePeriodicity (int scomp, int ncomp, const Periodicity& period);
+    /// \ingroup amrex_fabarray_communication
     void EnforcePeriodicity (int scomp, int ncomp, const IntVect& nghost,
                              const Periodicity& period);
 
@@ -1409,6 +1435,7 @@ public:
 #endif
 
     /**
+     * \ingroup amrex_fabarray_communication
      * \brief Return infinity norm
      *
      * \param comp           starting component
@@ -1423,6 +1450,7 @@ public:
              [[maybe_unused]] bool ignore_covered = false) const;
 
     /**
+     * \ingroup amrex_fabarray_communication
      * \brief Return infinity norm in masked region
      *
      * \param mask   only mask=true region is included

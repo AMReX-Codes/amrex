@@ -953,6 +953,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 #else
 
+/// \ingroup amrex_collectives
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
                                       (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
@@ -1201,7 +1202,17 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 #endif
 
-// The return value is the total sum if a_ret_sum is true.
+/**
+ * \ingroup amrex_collectives
+ *
+ * \brief Inclusive sum
+ *
+ * \param n number of elements
+ * \param in input
+ * \param out output
+ * \param a_ret_sum control the return value
+ * \return return the total sum if `a_ret_sum` is true
+ */
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
@@ -1262,7 +1273,17 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #endif
 }
 
-// The return value is the total sum if a_ret_sum is true.
+/**
+ * \ingroup amrex_collectives
+ *
+ * \brief Exclusive sum
+ *
+ * \param n number of elements
+ * \param in input
+ * \param out output
+ * \param a_ret_sum control the return value
+ * \return return the total sum if `a_ret_sum` is true
+ */
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
@@ -1394,6 +1415,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 
 namespace Gpu
 {
+    /// \ingroup amrex_collectives
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
@@ -1411,6 +1433,7 @@ namespace Gpu
 #endif
     }
 
+    /// \ingroup amrex_collectives
     template<class InIter, class OutIter>
     OutIter exclusive_scan (InIter begin, InIter end, OutIter result)
     {

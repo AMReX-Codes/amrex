@@ -1,7 +1,6 @@
 /**
  * \file AMReX_HypreSolver.H
  *
- * \addtogroup HYPRE
  *  @{
  */
 
