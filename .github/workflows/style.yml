@@ -29,3 +29,12 @@ jobs:
         run: |
           sudo apt-get install -y --no-install-recommends doxygen
           .github/workflows/style/doxygen.sh
+
+  zenodo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Validate Zenodo Metadata
+        uses: vsoch/zenodo-validator@main
+        with:
+          path: '.zenodo.json'
