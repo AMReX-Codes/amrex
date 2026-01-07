@@ -253,19 +253,19 @@ namespace amrex {
         /**
          * \brief IntVectND<N> constructor.
          * \param a_p Pointer to data.
-         * \param a_smallend Start index (inclusive).
-         * \param a_bigend End index (exclusive).
+         * \param a_begin Start index (inclusive).
+         * \param a_end End index (exclusive).
          *
          * This constructor specifies begin and end indices using IntVectND<N> for all N dimensions.
          */
         AMREX_GPU_HOST_DEVICE
-        constexpr ArrayND (T* a_p, IntVectND<N> const& a_smallend, IntVectND<N> const& a_bigend) noexcept
-            : p(a_p), begin(a_smallend), end(a_bigend)
+        constexpr ArrayND (T* a_p, IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
+            : p(a_p), begin(a_begin), end(a_end)
         {
             if constexpr (N > 1) {
                 Long current_stride = 1;
                 constexpr_for<0, N-1>([&](int d) {
-                    Long len = a_bigend[d] - a_smallend[d];
+                    Long len = a_end[d] - a_begin[d];
                     current_stride *= len;
                     nstride[d] = current_stride;
                 });
@@ -275,19 +275,19 @@ namespace amrex {
         /**
          * \brief IntVectND<M> constructor for M < N.
          * \param a_p Pointer to data.
-         * \param a_smallend Start index (inclusive).
-         * \param a_bigend End index (exclusive).
+         * \param a_begin Start index (inclusive).
+         * \param a_end End index (exclusive).
          *
          * For dimensions not specified are padded with [0,1).
          */
         template <int M, std::enable_if_t<(M < N),int> = 0>
         AMREX_GPU_HOST_DEVICE
-        constexpr ArrayND (T* a_p, IntVectND<M> const& a_smallend, IntVectND<M> const& a_bigend) noexcept
+        constexpr ArrayND (T* a_p, IntVectND<M> const& a_begin, IntVectND<M> const& a_end) noexcept
             : p(a_p), begin(), end()
         {
             constexpr_for<0, M>([&](int d) {
-                begin[d] = a_smallend[d];
-                end[d] = a_bigend[d];
+                begin[d] = a_begin[d];
+                end[d] = a_end[d];
             });
             constexpr_for<M, N>([&](int d) {
                 begin[d] = 0;
@@ -307,20 +307,20 @@ namespace amrex {
         /**
          * \brief Reduced dimension constructor with component count.
          * \param a_p Pointer to data.
-         * \param a_smallend Start index (inclusive).
-         * \param a_bigend End index (exclusive).
+         * \param a_begin Start index (inclusive).
+         * \param a_end End index (exclusive).
          * \param ncomp Number of components (size of last dimension).
          *
          * Pads intermediate dimensions with [0,1) and sets the last dimension to [0, ncomp).
          */
         template <int M, std::enable_if_t<(M < N) && (N != 1),int> = 0>
         AMREX_GPU_HOST_DEVICE
-        constexpr ArrayND (T* a_p, IntVectND<M> const& a_smallend, IntVectND<M> const& a_bigend, int ncomp) noexcept
+        constexpr ArrayND (T* a_p, IntVectND<M> const& a_begin, IntVectND<M> const& a_end, int ncomp) noexcept
             : p(a_p), begin(), end()
         {
             constexpr_for<0, M>([&](int d) {
-                begin[d] = a_smallend[d];
-                end[d] = a_bigend[d];
+                begin[d] = a_begin[d];
+                end[d] = a_end[d];
             });
             constexpr_for<M, N-1>([&](int d) {
                 begin[d] = 0;
@@ -391,7 +391,7 @@ namespace amrex {
          */
         AMREX_GPU_HOST_DEVICE
         explicit operator bool() const noexcept {
-            return p != nullptr && end.allGT(begin);    // Additional check for properly initialized ArrayND
+            return p != nullptr && end.allGT(begin);
         }
 
         /**
