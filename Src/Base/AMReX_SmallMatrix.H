@@ -385,6 +385,16 @@ namespace amrex {
         operator* (SmallMatrix<U,N1,N2,Ord,SI> const& lhs,
                    SmallMatrix<V,N2,N3,Ord,SI> const& rhs);
 
+        //! Returns the matrix product with another matrix
+        template <class V, int N2, int N3, Order Ord, int SI>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
+        operator *= (SmallMatrix<V,N2,N3,Ord,SI> const & a)
+        {
+            *this = *this * a;
+            return *this;
+        }
+
         //! Returns the dot product of two vectors
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T dot (SmallMatrix<T,NRows,NCols,ORDER,StartIndex> const& rhs) const
