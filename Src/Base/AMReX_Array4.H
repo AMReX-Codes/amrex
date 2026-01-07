@@ -397,7 +397,7 @@ namespace amrex {
         /**
          * \brief Multi-index operator() for accessing elements.
          * \tparam idx Variadic template for indices.
-         * \param i Variadic list of indicies.
+         * \param i Variadic list of indices.
          * \return Reference to the element.
          *
          * This operator is only enabled when the number of indices provided matches the dimension N or N-1
@@ -475,7 +475,7 @@ namespace amrex {
         /**
          * \brief Multi-index ptr() for accessing pointer to element.
          * \tparam idx Variadic template for indices.
-         * \param i Variadic list of indicies.
+         * \param i Variadic list of indices.
          * \return Pointer to the element.
          */
         template <typename... idx, class U=T,
