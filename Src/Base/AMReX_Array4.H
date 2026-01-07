@@ -181,6 +181,7 @@ namespace amrex {
      * \brief A multidimensional array accessor.
      * \tparam T The type of data (e.g., Real, int).
      * \tparam N The dimension of the array (rank).
+     * \tparam last_dim_component If true, the last dimension is treated as components.
      *
      * ArrayND is a lightweight, non-owning wrapper around a pointer that provides
      * multidimensional indexing into a contiguous memory block. It is trivially
@@ -190,10 +191,11 @@ namespace amrex {
      * It stores the pointer, stride information, and the bounds (begin and end)
      * of the array.
      */
-    template<typename T, int N>
+    template<typename T, int N, bool last_dim_component = true>
     struct ArrayND
     {
         static_assert(N >= 1, "ArrayND must have at least one dimension");
+        static_assert(N > 1 || !last_dim_component, "ArrayND with N=1 cannot have last_dim_component=true");
 
         T* AMREX_RESTRICT p = nullptr;
         std::array<Long, N-1> nstride{};
@@ -562,10 +564,14 @@ namespace amrex {
          * For N!=4 case, the user is expected to keep track if they are using the last dimension
          * as components.
          */
-        template <int M=N, std::enable_if_t<M==4,int> = 0>
+        template <int M=N, std::enable_if_t<M==4 || last_dim_component,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int nComp () const noexcept {
-            return end[N-1] - begin[N-1];
+            if constexpr (last_dim_component) {
+                return end[N-1];
+            } else {
+                return end[N-1] - begin[N-1];
+            }
         }
 
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -587,9 +593,16 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (IntVectND<N> const& iv) const noexcept {
             bool inside = true;
-            constexpr_for<0, N>([&](int d) {
-                inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
-            });
+            if constexpr (last_dim_component == false) {
+                constexpr_for<0, N>([&](int d) {
+                    inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
+                });
+            } else {
+                constexpr_for<0, N-1>([&](int d) {
+                    inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
+                });
+                inside = inside && (iv[N-1] >= 0) && (iv[N-1] < end[N-1]);
+            }
             return inside;
         }
 
@@ -633,9 +646,16 @@ namespace amrex {
         constexpr Long get_offset (IntVectND<N> const& iv) const noexcept
         {
             Long offset = iv[0] - begin[0];
-            constexpr_for<1, N>([&](int d) {
-                offset += (iv[d] - begin[d]) * nstride[d-1];
-            });
+            if constexpr (last_dim_component == false) {
+                constexpr_for<1, N>([&](int d) {
+                    offset += (iv[d] - begin[d]) * nstride[d-1];
+                });
+            } else {
+                constexpr_for<1, N-1>([&](int d) {
+                    offset += (iv[d] - begin[d]) * nstride[d-1];
+                });
+                offset += iv[N-1] * nstride[N-2];
+            }
             return offset;
         }
 
@@ -663,7 +683,11 @@ namespace amrex {
             constexpr_for<1, M>([&](int d) {
                 offset += (iv[d] - begin[d]) * nstride[d-1];
             });
-            offset += (n - begin[N-1]) * nstride[N-2];
+            if constexpr (last_dim_component == false) {
+                offset += (n - begin[N-1]) * nstride[N-2];
+            } else {
+                offset += n * nstride[N-2];
+            }
             return offset;
         }
 
@@ -733,25 +757,25 @@ namespace amrex {
     };
 
     // Deduction guides for ArrayND
-    // 1: Matches ArrayND (T*, BoxND<N>) -> ArrayND<T,N>
+    // 1: Matches ArrayND (T*, BoxND<N>) -> ArrayND<T,N, last_dim_component=false>
     template <typename T, int N>
-    ArrayND (T*, BoxND<N> const&) -> ArrayND<T, N>;
+    ArrayND (T*, BoxND<N> const&) -> ArrayND<T, N, false>;
 
-    // 2: Matches ArrayND (T*, BoxND<N>, ncomp) -> ArrayND<T,N+1>
+    // 2: Matches ArrayND (T*, BoxND<N>, ncomp) -> ArrayND<T,N+1, last_dim_component=true>
     // This supports the "N+1" logic (Spatial + Component)
     template <typename T, int N>
-    ArrayND (T*, BoxND<N> const&, int) -> ArrayND<T, N+1>;
+    ArrayND (T*, BoxND<N> const&, int) -> ArrayND<T, N+1, true>;
 
-    // 3: Matches ArrayND (T*, IntVectND<N>, IntVectND<N>) -> ArrayND<T,N>
+    // 3: Matches ArrayND (T*, IntVectND<N>, IntVectND<N>) -> ArrayND<T,N, last_dim_component=false>
     template <typename T, int N>
-    ArrayND (T*, IntVectND<N> const&, IntVectND<N> const&) -> ArrayND<T, N>;
+    ArrayND (T*, IntVectND<N> const&, IntVectND<N> const&) -> ArrayND<T, N, false>;
 
-    // 4: Matches ArrayND (T*, IntVectND<N>, IntVectND<N>, int) -> ArrayND<T,N+1>
+    // 4: Matches ArrayND (T*, IntVectND<N>, IntVectND<N>, int) -> ArrayND<T,N+1, last_dim_component=true>
     template <typename T, int N>
-    ArrayND (T*, IntVectND<N> const&, IntVectND<N> const&, int) -> ArrayND<T, N+1>;
+    ArrayND (T*, IntVectND<N> const&, IntVectND<N> const&, int) -> ArrayND<T, N+1, true>;
 
     template<typename T>
-    using Array4 = ArrayND<T,4>;
+    using Array4 = ArrayND<T, 4, true>;
 
     template <class Tto, class Tfrom, int N>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
