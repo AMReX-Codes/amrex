@@ -17,14 +17,15 @@ namespace amrex {
 // note that the mask in these functions is different from masks in bndry registers
 // 1 means valid data, 0 means invalid data
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
-                             Array4<Real> const& phi,
+                             Array4<T> const& phi,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& area,
-                             BoundCond bct, Real bcl,
-                             Array4<Real const> const& bcval,
-                             int maxorder, Real dxinv, int inhomog, int icomp) noexcept
+                             Array4<T const> const& area,
+                             BoundCond bct, T bcl,
+                             Array4<T const> const& bcval,
+                             int maxorder, T dxinv, int inhomog, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -56,10 +57,10 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)};
-        Array2D<Real, 0, 3, 0, 2> coef{};
+        GpuArray<T,4> x{-bcl * dxinv, T(0.5), T(1.5), T(2.5)};
+        Array2D<T, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
+            poly_interp_coeff(-T(0.5), x.data(), r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int j = lo.y; j <= hi.y; ++j) {
@@ -67,10 +68,10 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
                     int order = 1;
                     bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        Real a = area(i+(1-side)+s*r,j,k);
-                        if (a > Real(0.0)) {
+                        T a = area(i+(1-side)+s*r,j,k);
+                        if (a > T(0.0)) {
                             ++order;
-                            if (a < Real(1.0)) {
+                            if (a < T(1.0)) {
                                 has_cutfaces = true;
                             }
                         } else {
@@ -82,10 +83,10 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                         } else {
-                            phi(i,j,k,icomp) = Real(0.0);
+                            phi(i,j,k,icomp) = T(0.0);
                         }
                     } else {
-                        Real tmp = Real(0.0);
+                        T tmp = T(0.0);
                         for (int m = 1; m < order; ++m) {
                             tmp += phi(i+m*s,j,k,icomp) * coef(m,order-2);
                         }
@@ -103,14 +104,15 @@ void mlebabeclap_apply_bc_x (int side, Box const& box, int blen,
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
-                             Array4<Real> const& phi,
+                             Array4<T> const& phi,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& area,
-                             BoundCond bct, Real bcl,
-                             Array4<Real const> const& bcval,
-                             int maxorder, Real dyinv, int inhomog, int icomp) noexcept
+                             Array4<T const> const& area,
+                             BoundCond bct, T bcl,
+                             Array4<T const> const& bcval,
+                             int maxorder, T dyinv, int inhomog, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -142,10 +144,10 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)};
-        Array2D<Real, 0, 3, 0, 2> coef{};
+        GpuArray<T,4> x{-bcl * dyinv, T(0.5), T(1.5), T(2.5)};
+        Array2D<T, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
+            poly_interp_coeff(-T(0.5), x.data(), r+2, &(coef(0,r)));
         }
         for     (int k = lo.z; k <= hi.z; ++k) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -153,10 +155,10 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
                     int order = 1;
                     bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        Real a = area(i,j+(1-side)+s*r,k);
-                        if (a > Real(0.0)) {
+                        T a = area(i,j+(1-side)+s*r,k);
+                        if (a > T(0.0)) {
                             ++order;
-                            if (a < Real(1.0)) {
+                            if (a < T(1.0)) {
                                 has_cutfaces = true;
                             }
                         } else {
@@ -168,10 +170,10 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                         } else {
-                            phi(i,j,k,icomp) = Real(0.0);
+                            phi(i,j,k,icomp) = T(0.0);
                         }
                     } else {
-                        Real tmp = Real(0.0);
+                        T tmp = T(0.0);
                         for (int m = 1; m < order; ++m) {
                             tmp += phi(i,j+m*s,k,icomp) * coef(m,order-2);
                         }
@@ -189,14 +191,15 @@ void mlebabeclap_apply_bc_y (int side, Box const& box, int blen,
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
-                             Array4<Real> const& phi,
+                             Array4<T> const& phi,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& area,
-                             BoundCond bct, Real bcl,
-                             Array4<Real const> const& bcval,
-                             int maxorder, Real dzinv, int inhomog, int icomp) noexcept
+                             Array4<T const> const& area,
+                             BoundCond bct, T bcl,
+                             Array4<T const> const& bcval,
+                             int maxorder, T dzinv, int inhomog, int icomp) noexcept
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);
@@ -228,10 +231,10 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)};
-        Array2D<Real, 0, 3, 0, 2> coef{};
+        GpuArray<T,4> x{-bcl * dzinv, T(0.5), T(1.5), T(2.5)};
+        Array2D<T, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
+            poly_interp_coeff(-T(0.5), x.data(), r+2, &(coef(0,r)));
         }
         for     (int j = lo.y; j <= hi.y; ++j) {
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -239,10 +242,10 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
                     int order = 1;
                     bool has_cutfaces = false;
                     for (int r = 0; r <= NX-2; ++r) {
-                        Real a = area(i,j,k+(1-side)+s*r);
-                        if (a > Real(0.0)) {
+                        T a = area(i,j,k+(1-side)+s*r);
+                        if (a > T(0.0)) {
                             ++order;
-                            if (a < Real(1.0)) {
+                            if (a < T(1.0)) {
                                 has_cutfaces = true;
                             }
                         } else {
@@ -254,10 +257,10 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
                         if (inhomog) {
                             phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                         } else {
-                            phi(i,j,k,icomp) = Real(0.0);
+                            phi(i,j,k,icomp) = T(0.0);
                         }
                     } else {
-                        Real tmp = Real(0.0);
+                        T tmp = T(0.0);
                         for (int m = 1; m < order; ++m) {
                             tmp += phi(i,j,k+m*s,icomp) * coef(m,order-2);
                         }
@@ -275,14 +278,15 @@ void mlebabeclap_apply_bc_z (int side, Box const& box, int blen,
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_apply_bc_x (int side, int i, int j, int k, int blen,
-                             Array4<Real> const& phi,
+                             Array4<T> const& phi,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& area,
-                             BoundCond bct, Real bcl,
-                             Array4<Real const> const& bcval,
-                             int maxorder, Real dxinv, int inhomog, int icomp) noexcept
+                             Array4<T const> const& area,
+                             BoundCond bct, T bcl,
+                             Array4<T const> const& bcval,
+                             int maxorder, T dxinv, int inhomog, int icomp) noexcept
 {
     const int s = 1-2*side;  // +1 for lo and -1 for hi
     switch (bct) {
@@ -303,19 +307,19 @@ void mlebabeclap_apply_bc_x (int side, int i, int j, int k, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dxinv, Real(0.5), Real(1.5), Real(2.5)};
-        Array2D<Real, 0, 3, 0, 2> coef{};
+        GpuArray<T,4> x{-bcl * dxinv, T(0.5), T(1.5), T(2.5)};
+        Array2D<T, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
+            poly_interp_coeff(-T(0.5), x.data(), r+2, &(coef(0,r)));
         }
         if (mask(i,j,k) == 0 && mask(i+s,j,k) == 1) {
             int order = 1;
             bool has_cutfaces = false;
             for (int r = 0; r <= NX-2; ++r) {
-                Real a = area(i+(1-side)+s*r,j,k);
-                if (a > Real(0.0)) {
+                T a = area(i+(1-side)+s*r,j,k);
+                if (a > T(0.0)) {
                     ++order;
-                    if (a < Real(1.0)) {
+                    if (a < T(1.0)) {
                         has_cutfaces = true;
                     }
                 } else {
@@ -327,10 +331,10 @@ void mlebabeclap_apply_bc_x (int side, int i, int j, int k, int blen,
                 if (inhomog) {
                     phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                 } else {
-                    phi(i,j,k,icomp) = Real(0.0);
+                    phi(i,j,k,icomp) = T(0.0);
                 }
             } else {
-                Real tmp = Real(0.0);
+                T tmp = T(0.0);
                 for (int m = 1; m < order; ++m) {
                     tmp += phi(i+m*s,j,k,icomp) * coef(m,order-2);
                 }
@@ -346,14 +350,15 @@ void mlebabeclap_apply_bc_x (int side, int i, int j, int k, int blen,
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_apply_bc_y (int side, int i, int j, int k, int blen,
-                             Array4<Real> const& phi,
+                             Array4<T> const& phi,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& area,
-                             BoundCond bct, Real bcl,
-                             Array4<Real const> const& bcval,
-                             int maxorder, Real dyinv, int inhomog, int icomp) noexcept
+                             Array4<T const> const& area,
+                             BoundCond bct, T bcl,
+                             Array4<T const> const& bcval,
+                             int maxorder, T dyinv, int inhomog, int icomp) noexcept
 {
     const int s = 1-2*side; // +1 for lo and -1 for hi
     switch (bct) {
@@ -374,19 +379,19 @@ void mlebabeclap_apply_bc_y (int side, int i, int j, int k, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dyinv, Real(0.5), Real(1.5), Real(2.5)};
-        Array2D<Real, 0, 3, 0, 2> coef{};
+        GpuArray<T,4> x{-bcl * dyinv, T(0.5), T(1.5), T(2.5)};
+        Array2D<T, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
+            poly_interp_coeff(-T(0.5), x.data(), r+2, &(coef(0,r)));
         }
         if (mask(i,j,k) == 0 && mask(i,j+s,k) == 1) {
             int order = 1;
             bool has_cutfaces = false;
             for (int r = 0; r <= NX-2; ++r) {
-                Real a = area(i,j+(1-side)+s*r,k);
-                if (a > Real(0.0)) {
+                T a = area(i,j+(1-side)+s*r,k);
+                if (a > T(0.0)) {
                     ++order;
-                    if (a < Real(1.0)) {
+                    if (a < T(1.0)) {
                         has_cutfaces = true;
                     }
                 } else {
@@ -398,10 +403,10 @@ void mlebabeclap_apply_bc_y (int side, int i, int j, int k, int blen,
                 if (inhomog) {
                     phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                 } else {
-                    phi(i,j,k,icomp) = Real(0.0);
+                    phi(i,j,k,icomp) = T(0.0);
                 }
             } else {
-                Real tmp = Real(0.0);
+                T tmp = T(0.0);
                 for (int m = 1; m < order; ++m) {
                     tmp += phi(i,j+m*s,k,icomp) * coef(m,order-2);
                 }
@@ -417,14 +422,15 @@ void mlebabeclap_apply_bc_y (int side, int i, int j, int k, int blen,
     }
 }
 
+template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_apply_bc_z (int side, int i, int j, int k, int blen,
-                             Array4<Real> const& phi,
+                             Array4<T> const& phi,
                              Array4<int const> const& mask,
-                             Array4<Real const> const& area,
-                             BoundCond bct, Real bcl,
-                             Array4<Real const> const& bcval,
-                             int maxorder, Real dzinv, int inhomog, int icomp) noexcept
+                             Array4<T const> const& area,
+                             BoundCond bct, T bcl,
+                             Array4<T const> const& bcval,
+                             int maxorder, T dzinv, int inhomog, int icomp) noexcept
 {
     const int s = 1-2*side; // +1 for lo and -1 for hi
     switch (bct) {
@@ -445,19 +451,19 @@ void mlebabeclap_apply_bc_z (int side, int i, int j, int k, int blen,
     case AMREX_LO_DIRICHLET:
     {
         const int NX = amrex::min(blen+1, maxorder);
-        GpuArray<Real,4> x{-bcl * dzinv, Real(0.5), Real(1.5), Real(2.5)};
-        Array2D<Real, 0, 3, 0, 2> coef{};
+        GpuArray<T,4> x{-bcl * dzinv, T(0.5), T(1.5), T(2.5)};
+        Array2D<T, 0, 3, 0, 2> coef{};
         for (int r = 0; r <= maxorder-2; ++r) {
-            poly_interp_coeff(-Real(0.5), x.data(), r+2, &(coef(0,r)));
+            poly_interp_coeff(-T(0.5), x.data(), r+2, &(coef(0,r)));
         }
         if (mask(i,j,k) == 0 && mask(i,j,k+s) == 1) {
             int order = 1;
             bool has_cutfaces = false;
             for (int r = 0; r <= NX-2; ++r) {
-                Real a = area(i,j,k+(1-side)+s*r);
-                if (a > Real(0.0)) {
+                T a = area(i,j,k+(1-side)+s*r);
+                if (a > T(0.0)) {
                     ++order;
-                    if (a < Real(1.0)) {
+                    if (a < T(1.0)) {
                         has_cutfaces = true;
                     }
                 } else {
@@ -469,10 +475,10 @@ void mlebabeclap_apply_bc_z (int side, int i, int j, int k, int blen,
                 if (inhomog) {
                     phi(i,j,k,icomp) = bcval(i,j,k,icomp);
                 } else {
-                    phi(i,j,k,icomp) = Real(0.0);
+                    phi(i,j,k,icomp) = T(0.0);
                 }
             } else {
-                Real tmp = Real(0.0);
+                T tmp = T(0.0);
                 for (int m = 1; m < order; ++m) {
                     tmp += phi(i,j,k+m*s,icomp) * coef(m,order-2);
                 }

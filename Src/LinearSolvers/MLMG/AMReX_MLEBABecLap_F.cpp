@@ -37,8 +37,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
     const int ncomp = getNComp();
 
-    Array4<Real const> foo;
-
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
 
@@ -57,97 +55,168 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
-    MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && in.isFusingCandidate()) {
+        MultiArray4<Real const> foo;
+        const auto& xma = in.arrays();
+        const auto& yma = out.arrays();
+        const auto& ama = acoef.const_arrays();
+        AMREX_D_TERM(const auto& bxma = bxcoef.const_arrays();,
+                     const auto& byma = bycoef.const_arrays();,
+                     const auto& bzma = bzcoef.const_arrays(););
+        auto const& ccmma = ccmask.const_arrays();
+        auto const& flagma = flags->const_arrays();
+        auto const& vfracma = vfrac->const_arrays();
+        AMREX_D_TERM(auto const& apxma = area[0]->const_arrays();,
+                     auto const& apyma = area[1]->const_arrays();,
+                     auto const& apzma = area[2]->const_arrays(););
+        AMREX_D_TERM(auto const& fcxma = fcent[0]->const_arrays();,
+                     auto const& fcyma = fcent[1]->const_arrays();,
+                     auto const& fczma = fcent[2]->const_arrays(););
+        auto const& bama = barea->const_arrays();
+        auto const& bcma = bcent->const_arrays();
+        auto const& ccentma = ccent->const_arrays();
+        auto const& bebma = (is_eb_dirichlet)
+            ? m_eb_b_coeffs[amrlev][mglev]->const_arrays() : foo;
+        auto const& phiebma = (is_eb_dirichlet && is_eb_inhomog)
+            ? m_eb_phi[amrlev]->const_arrays() : foo;
+
+        bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+        bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+        bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
+
+        Real dhx = bscalar*dxinvarr[0]*dxinvarr[0];
+        Real dhy = bscalar*dxinvarr[1]*dxinvarr[1];
+        Real dhz = bscalar*dxinvarr[2]*dxinvarr[2];
+        if (treat_phi_as_on_centroid) {
+            amrex::ParallelFor(out, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                mlebabeclap_adotx_centroid(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
+                                    AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                    flagma[box_no], vfracma[box_no],
+                                    AMREX_D_DECL(apxma[box_no],apyma[box_no],apzma[box_no]),
+                                    AMREX_D_DECL(fcxma[box_no],fcyma[box_no],fczma[box_no]),
+                                    ccentma[box_no], bama[box_no], bcma[box_no],
+                                    bebma[box_no], phiebma[box_no],
+                                    AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                    AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                    AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                    is_eb_dirichlet, is_eb_inhomog,
+                                    ascalar, dhx, dhy, dhz);
+            });
+        } else {
+            amrex::ParallelFor(out, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                mlebabeclap_adotx(i,j,k,n, yma[box_no], xma[box_no], ama[box_no],
+                                AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                ccmma[box_no], flagma[box_no], vfracma[box_no],
+                                AMREX_D_DECL(apxma[box_no],apyma[box_no],apzma[box_no]),
+                                AMREX_D_DECL(fcxma[box_no],fcyma[box_no],fczma[box_no]),
+                                bama[box_no], bcma[box_no], bebma[box_no],
+                                is_eb_dirichlet, phiebma[box_no],
+                                is_eb_inhomog, ascalar, dhx, dhy, dhz,
+                                beta_on_centroid, phi_on_centroid);
+            });
+        }
+    } else
+#endif
+    {
+        Array4<Real const> foo;
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real const> const& xfab = in.const_array(mfi);
-        Array4<Real> const& yfab = out.array(mfi);
-        Array4<Real const> const& afab = acoef.const_array(mfi);
-        AMREX_D_TERM(Array4<Real const> const& bxfab = bxcoef.const_array(mfi);,
-                     Array4<Real const> const& byfab = bycoef.const_array(mfi);,
-                     Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
+        for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real const> const& xfab = in.const_array(mfi);
+            Array4<Real> const& yfab = out.array(mfi);
+            Array4<Real const> const& afab = acoef.const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& bxfab = bxcoef.const_array(mfi);,
+                        Array4<Real const> const& byfab = bycoef.const_array(mfi);,
+                        Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
-        if (fabtyp == FabType::covered) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-            {
-                yfab(i,j,k,n) = 0.0;
-            });
-        } else if (fabtyp == FabType::regular) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-            {
-                mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
-                                AMREX_D_DECL(bxfab,byfab,bzfab),
-                                dxinvarr, ascalar, bscalar);
-            });
-        } else {
-            Array4<int const> const& ccmfab = ccmask.const_array(mfi);
-            Array4<EBCellFlag const> const& flagfab = flags->const_array(mfi);
-            Array4<Real const> const& vfracfab = vfrac->const_array(mfi);
-            AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
-                         Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
-                         Array4<Real const> const& apzfab = area[2]->const_array(mfi););
-            AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
-                         Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
-                         Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
-            Array4<Real const> const& bafab = barea->const_array(mfi);
-            Array4<Real const> const& bcfab = bcent->const_array(mfi);
-            Array4<Real const> const& ccfab = ccent->const_array(mfi);
-            Array4<Real const> const& bebfab = (is_eb_dirichlet)
-                ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
-            Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
-                ? m_eb_phi[amrlev]->const_array(mfi) : foo;
-
-            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
-            bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
-
-            bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
-
-            if (treat_phi_as_on_centroid) {
-#ifdef AMREX_USE_HIP
-                // This causes an abort in HIP 4.5 but works in earlier versions
-                // A follow-up release should fix this.
-                // Error message:
-                //   lld: error: ran out of registers during register allocation
-                amrex::Abort("MLEBABecLap::Fapply: phi on centroid not supported for HIP");
-                amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
-                                     AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
-                                     AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
-                amrex::ignore_unused(ccfab);
-#else
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-               {
-                   mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                     flagfab, vfracfab,
-                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     ccfab, bafab, bcfab, bebfab, phiebfab,
-                                     AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
-                                     AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
-                                     AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
-                                     is_eb_dirichlet, is_eb_inhomog, dxinvarr,
-                                     ascalar, bscalar, ncomp);
-               });
-#endif
+            if (fabtyp == FabType::covered) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    yfab(i,j,k,n) = 0.0;
+                });
+            } else if (fabtyp == FabType::regular) {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
+                                    AMREX_D_DECL(bxfab,byfab,bzfab),
+                                    dxinvarr, ascalar, bscalar);
+                });
             } else {
-               AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
-               {
-                   mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
-                                     ccmfab, flagfab, vfracfab,
-                                     AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                     AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                     bafab, bcfab, bebfab,
-                                     is_eb_dirichlet,
-                                     phiebfab,
-                                     is_eb_inhomog, dxinvarr,
-                                     ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
-               });
+                Array4<int const> const& ccmfab = ccmask.const_array(mfi);
+                Array4<EBCellFlag const> const& flagfab = flags->const_array(mfi);
+                Array4<Real const> const& vfracfab = vfrac->const_array(mfi);
+                AMREX_D_TERM(Array4<Real const> const& apxfab = area[0]->const_array(mfi);,
+                            Array4<Real const> const& apyfab = area[1]->const_array(mfi);,
+                            Array4<Real const> const& apzfab = area[2]->const_array(mfi););
+                AMREX_D_TERM(Array4<Real const> const& fcxfab = fcent[0]->const_array(mfi);,
+                            Array4<Real const> const& fcyfab = fcent[1]->const_array(mfi);,
+                            Array4<Real const> const& fczfab = fcent[2]->const_array(mfi););
+                Array4<Real const> const& bafab = barea->const_array(mfi);
+                Array4<Real const> const& bcfab = bcent->const_array(mfi);
+                Array4<Real const> const& ccfab = ccent->const_array(mfi);
+                Array4<Real const> const& bebfab = (is_eb_dirichlet)
+                    ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
+                Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
+                    ? m_eb_phi[amrlev]->const_array(mfi) : foo;
+
+                bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+                bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+                bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
+
+                if (treat_phi_as_on_centroid) {
+#ifdef AMREX_USE_HIP
+                    // This causes an abort in HIP 4.5 but works in earlier versions
+                    // A follow-up release should fix this.
+                    // Error message:
+                    //   lld: error: ran out of registers during register allocation
+                    amrex::Abort("MLEBABecLap::Fapply: phi on centroid not supported for HIP");
+                    amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                        AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                        AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
+                    amrex::ignore_unused(ccfab);
+#else
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                            flagfab, vfracfab,
+                                            AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                            AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                            ccfab, bafab, bcfab, bebfab, phiebfab,
+                                            AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                            AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                            AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                            is_eb_dirichlet, is_eb_inhomog, dxinvarr,
+                                            ascalar, bscalar, ncomp);
+                    });
+#endif
+                } else {
+                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    {
+                        mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                                        ccmfab, flagfab, vfracfab,
+                                        AMREX_D_DECL(apxfab,apyfab,apzfab),
+                                        AMREX_D_DECL(fcxfab,fcyfab,fczfab),
+                                        bafab, bcfab, bebfab,
+                                        is_eb_dirichlet,
+                                        phiebfab,
+                                        is_eb_inhomog, dxinvarr,
+                                        ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
+                    });
+                }
             }
         }
     }
