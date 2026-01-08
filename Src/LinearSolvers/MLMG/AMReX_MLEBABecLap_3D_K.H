@@ -958,351 +958,6 @@ void mlebabeclap_gsrb (int i, int j, int k, int n,
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_gsrb (int i, int j, int k, int n,
-                       Array4<T> const& phi, Array4<T const> const& rhs,
-                       T alpha, Array4<T const> const& a,
-                       T dhx, T dhy, T dhz,
-                       Array4<T const> const& bX, Array4<T const> const& bY,
-                       Array4<T const> const& bZ,
-                       Array4<int const> const& m0, Array4<int const> const& m2,
-                       Array4<int const> const& m4,
-                       Array4<int const> const& m1, Array4<int const> const& m3,
-                       Array4<int const> const& m5,
-                       Array4<T const> const& f0, Array4<T const> const& f2,
-                       Array4<T const> const& f4,
-                       Array4<T const> const& f1, Array4<T const> const& f3,
-                       Array4<T const> const& f5,
-                       Array4<const int> const& ccm, Array4<T const> const& beb,
-                       EBData const& ebdata,
-                       bool is_dirichlet, bool beta_on_centroid, bool phi_on_centroid,
-                       Box const& vbox, int redblack) noexcept
-{
-    constexpr T omega = 1.15;
-    if ((i+j+k+redblack) % 2 == 0)
-    {
-        const auto vlo = amrex::lbound(vbox);
-        const auto vhi = amrex::ubound(vbox);
-        auto const flag = ebdata.get<EBData_t::cellflag>(i,j,k);
-        if (flag.isCovered())
-        {
-            phi(i,j,k,n) = T(0.0);
-        }
-        else
-        {
-            T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                ? f0(vlo.x,j,k,n) : T(0.0);
-            T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                ? f1(i,vlo.y,k,n) : T(0.0);
-            T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
-                ? f2(i,j,vlo.z,n) : T(0.0);
-            T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
-                ? f3(vhi.x,j,k,n) : T(0.0);
-            T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
-                ? f4(i,vhi.y,k,n) : T(0.0);
-            T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
-                ? f5(i,j,vhi.z,n) : T(0.0);
-
-            if (flag.isRegular())
-            {
-                T gamma = alpha*a(i,j,k)
-                    + dhx*(bX(i+1,j,k,n) + bX(i,j,k,n))
-                    + dhy*(bY(i,j+1,k,n) + bY(i,j,k,n))
-                    + dhz*(bZ(i,j,k+1,n) + bZ(i,j,k,n));
-
-                T rho = dhx*(bX(i+1,j  ,k  ,n)*phi(i+1,j  ,k  ,n) +
-                                bX(i  ,j  ,k  ,n)*phi(i-1,j  ,k  ,n))
-                    +      dhy*(bY(i  ,j+1,k  ,n)*phi(i  ,j+1,k  ,n) +
-                                bY(i  ,j  ,k  ,n)*phi(i  ,j-1,k  ,n))
-                    +      dhz*(bZ(i  ,j  ,k+1,n)*phi(i  ,j  ,k+1,n) +
-                                bZ(i  ,j  ,k  ,n)*phi(i  ,j  ,k-1,n));
-
-                T delta = dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
-                    +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
-                    +        dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5);
-
-                T res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
-                phi(i,j,k,n) += omega*res/(gamma-delta);
-            }
-            else
-            {
-                T kappa = ebdata.get<EBData_t::volfrac>(i,j,k);
-                T apxm = ebdata.get<EBData_t::apx>(i  ,j  ,k  );
-                T apxp = ebdata.get<EBData_t::apx>(i+1,j  ,k  );
-                T apym = ebdata.get<EBData_t::apy>(i  ,j  ,k  );
-                T apyp = ebdata.get<EBData_t::apy>(i  ,j+1,k  );
-                T apzm = ebdata.get<EBData_t::apz>(i  ,j  ,k  );
-                T apzp = ebdata.get<EBData_t::apz>(i  ,j  ,k+1);
-
-                T fxm = -bX(i,j,k,n)*phi(i-1,j,k,n);
-                T oxm = -bX(i,j,k,n)*cf0;
-                T sxm =  bX(i,j,k,n);
-                if (apxm != T(0.0) && apxm != T(1.0)) {
-                    auto fcx0 = ebdata.get<EBData_t::fcx>(i,j,k,0);
-                    auto fcx1 = ebdata.get<EBData_t::fcx>(i,j,k,1);
-                    int jj = j + static_cast<int>(std::copysign(T(1.0), fcx0));
-                    int kk = k + static_cast<int>(std::copysign(T(1.0), fcx1));
-                    T fracy = (ccm(i-1,jj,k) || ccm(i,jj,k))
-                        ? std::abs(fcx0) : T(0.0);
-                    T fracz = (ccm(i-1,j,kk) || ccm(i,j,kk))
-                        ? std::abs(fcx1) : T(0.0);
-                    if (!beta_on_centroid && !phi_on_centroid)
-                    {
-                        fxm = (T(1.0)-fracy)*(T(1.0)-fracz)*fxm
-                                +     fracy *(T(1.0)-fracz)*bX(i,jj,k ,n)*(phi(i,jj,k ,n)-phi(i-1,jj,k ,n))
-                                +(T(1.0)-fracy)*     fracz *bX(i,j ,kk,n)*(phi(i,j ,kk,n)-phi(i-1,j ,kk,n))
-                                +     fracy *     fracz *bX(i,jj,kk,n)*(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
-                    }
-                    else if (beta_on_centroid && !phi_on_centroid)
-                    {
-                        fxm = (T(1.0)-fracy)*(T(1.0)-fracz)*(              -phi(i-1, j, k,n))
-                                +     fracy *(T(1.0)-fracz)*(phi(i,jj,k ,n)-phi(i-1,jj, k,n))
-                                +(T(1.0)-fracy)*     fracz *(phi(i,j ,kk,n)-phi(i-1, j,kk,n))
-                                +     fracy *     fracz *(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
-                        fxm *= bX(i,j,k,n);
-
-                    }
-                    oxm = T(0.0);
-                    sxm = (T(1.0)-fracy)*(T(1.0)-fracz)*sxm;
-                }
-
-                T fxp =  bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                T oxp =  bX(i+1,j,k,n)*cf3;
-                T sxp = -bX(i+1,j,k,n);
-                if (apxp != T(0.0) && apxp != T(1.0)) {
-                    auto fcx0 = ebdata.get<EBData_t::fcx>(i+1,j,k,0);
-                    auto fcx1 = ebdata.get<EBData_t::fcx>(i+1,j,k,1);
-                    int jj = j + static_cast<int>(std::copysign(T(1.0),fcx0));
-                    int kk = k + static_cast<int>(std::copysign(T(1.0),fcx1));
-                    T fracy = (ccm(i,jj,k) || ccm(i+1,jj,k))
-                        ? std::abs(fcx0) : T(0.0);
-                    T fracz = (ccm(i,j,kk) || ccm(i+1,j,kk))
-                        ? std::abs(fcx1) : T(0.0);
-                    if (!beta_on_centroid && !phi_on_centroid)
-                    {
-                        fxp = (T(1.0)-fracy)*(T(1.0)-fracz)*fxp
-                                +    fracy *(T(1.0)-fracz)*bX(i+1,jj,k ,n)*(phi(i+1,jj,k ,n)-phi(i,jj,k ,n))
-                                +(T(1.0)-fracy)*     fracz *bX(i+1,j ,kk,n)*(phi(i+1,j ,kk,n)-phi(i,j ,kk,n))
-                                +     fracy *     fracz *bX(i+1,jj,kk,n)*(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
-                    }
-                    else if (beta_on_centroid && !phi_on_centroid)
-                    {
-                        fxp = (T(1.0)-fracy)*(T(1.0)-fracz)*(phi(i+1, j, k,n)               ) +
-                                    fracy *(T(1.0)-fracz)*(phi(i+1,jj, k,n)-phi(i,jj, k,n)) +
-                                    fracz *(T(1.0)-fracy)*(phi(i+1, j,kk,n)-phi(i, j,kk,n)) +
-                                    fracy *     fracz *(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
-                        fxp *= bX(i+1,j,k,n);
-
-                    }
-
-                    oxp = T(0.0);
-                    sxp = (T(1.0)-fracy)*(T(1.0)-fracz)*sxp;
-                }
-
-                T fym = -bY(i,j,k,n)*phi(i,j-1,k,n);
-                T oym = -bY(i,j,k,n)*cf1;
-                T sym =  bY(i,j,k,n);
-                if (apym != T(0.0) && apym != T(1.0)) {
-                    auto fcy0 = ebdata.get<EBData_t::fcy>(i,j,k,0);
-                    auto fcy1 = ebdata.get<EBData_t::fcy>(i,j,k,1);
-                    int ii = i + static_cast<int>(std::copysign(T(1.0),fcy0));
-                    int kk = k + static_cast<int>(std::copysign(T(1.0),fcy1));
-                    T fracx = (ccm(ii,j-1,k) || ccm(ii,j,k))
-                        ? std::abs(fcy0) : T(0.0);
-                    T fracz = (ccm(i,j-1,kk) || ccm(i,j,kk))
-                        ? std::abs(fcy1) : T(0.0);
-                    if (!beta_on_centroid && !phi_on_centroid)
-                    {
-                        fym = (T(1.0)-fracx)*(T(1.0)-fracz)*fym
-                            +      fracx *(T(1.0)-fracz)*bY(ii,j,k ,n)*(phi(ii,j,k ,n)-phi(ii,j-1,k ,n))
-                            + (T(1.0)-fracx)*     fracz *bY(i ,j,kk,n)*(phi(i ,j,kk,n)-phi(i ,j-1,kk,n))
-                            +      fracx *     fracz *bY(ii,j,kk,n)*(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
-                    }
-                    else if (beta_on_centroid && !phi_on_centroid)
-                    {
-                        fym = (T(1.0)-fracx)*(T(1.0)-fracz)*(              -phi( i,j-1, k,n))
-                            +      fracx *(T(1.0)-fracz)*(phi(ii,j,k ,n)-phi(ii,j-1, k,n))
-                            + (T(1.0)-fracx)*     fracz *(phi(i ,j,kk,n)-phi( i,j-1,kk,n))
-                            +      fracx *     fracz *(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
-                        fym *= bY(i,j,k,n);
-
-                    }
-                    oym = T(0.0);
-                    sym = (T(1.0)-fracx)*(T(1.0)-fracz)*sym;
-                }
-
-                T fyp =  bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                T oyp =  bY(i,j+1,k,n)*cf4;
-                T syp = -bY(i,j+1,k,n);
-                if (apyp != T(0.0) && apyp != T(1.0)) {
-                    auto fcy0 = ebdata.get<EBData_t::fcy>(i,j+1,k,0);
-                    auto fcy1 = ebdata.get<EBData_t::fcy>(i,j+1,k,1);
-                    int ii = i + static_cast<int>(std::copysign(T(1.0),fcy0));
-                    int kk = k + static_cast<int>(std::copysign(T(1.0),fcy1));
-                    T fracx = (ccm(ii,j,k) || ccm(ii,j+1,k))
-                        ? std::abs(fcy0) : T(0.0);
-                    T fracz = (ccm(i,j,kk) || ccm(i,j+1,kk))
-                        ? std::abs(fcy1) : T(0.0);
-                    if (!beta_on_centroid && !phi_on_centroid)
-                    {
-                        fyp = (T(1.0)-fracx)*(T(1.0)-fracz)*fyp
-                            +      fracx *(T(1.0)-fracz)*bY(ii,j+1,k ,n)*(phi(ii,j+1,k ,n)-phi(ii,j,k ,n))
-                            + (T(1.0)-fracx)*     fracz *bY(i ,j+1,kk,n)*(phi(i ,j+1,kk,n)-phi(i ,j,kk,n))
-                            +      fracx *     fracz *bY(ii,j+1,kk,n)*(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
-                    }
-                    else if (beta_on_centroid && !phi_on_centroid)
-                    {
-                        fyp = (T(1.0)-fracx)*(T(1.0)-fracz)*(phi( i,j+1, k,n)               )
-                            +      fracx *(T(1.0)-fracz)*(phi(ii,j+1, k,n)-phi(ii,j, k,n))
-                            + (T(1.0)-fracx)*     fracz *(phi( i,j+1,kk,n)-phi( i,j,kk,n))
-                            +      fracx *     fracz *(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
-                        fyp *= bY(i,j+1,k,n);
-
-                    }
-                    oyp = T(0.0);
-                    syp = (T(1.0)-fracx)*(T(1.0)-fracz)*syp;
-                }
-
-                T fzm = -bZ(i,j,k,n)*phi(i,j,k-1,n);
-                T ozm = -bZ(i,j,k,n)*cf2;
-                T szm =  bZ(i,j,k,n);
-                if (apzm != T(0.0) && apzm != T(1.0)) {
-                    auto fcz0 = ebdata.get<EBData_t::fcz>(i,j,k,0);
-                    auto fcz1 = ebdata.get<EBData_t::fcz>(i,j,k,1);
-                    int ii = i + static_cast<int>(std::copysign(T(1.0),fcz0));
-                    int jj = j + static_cast<int>(std::copysign(T(1.0),fcz1));
-                    T fracx = (ccm(ii,j,k-1) || ccm(ii,j,k))
-                        ? std::abs(fcz0) : T(0.0);
-                    T fracy = (ccm(i,jj,k-1) || ccm(i,jj,k))
-                        ? std::abs(fcz1) : T(0.0);
-                    if (!beta_on_centroid && !phi_on_centroid)
-                    {
-                        fzm = (T(1.0)-fracx)*(T(1.0)-fracy)*fzm
-                                +     fracx *(T(1.0)-fracy)*bZ(ii, j,k,n)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
-                                +(T(1.0)-fracx)*     fracy *bZ( i,jj,k,n)*(phi( i,jj,k,n)-phi( i,jj,k-1,n))
-                                +     fracx *     fracy *bZ(ii,jj,k,n)*(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
-                    }
-                    else if (beta_on_centroid && !phi_on_centroid)
-                    {
-                        fzm = (T(1.0)-fracx)*(T(1.0)-fracy)*(              -phi( i, j,k-1,n))
-                            +      fracx *(T(1.0)-fracy)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
-                            + (T(1.0)-fracx)*     fracy *(phi( i,jj,k,n)-phi(i ,jj,k-1,n))
-                            +      fracx *     fracy *(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
-                        fzm *= bZ(i,j,k,n);
-
-                    }
-                    ozm = T(0.0);
-                    szm = (T(1.0)-fracx)*(T(1.0)-fracy)*szm;
-                }
-
-                T fzp =  bZ(i,j,k+1,n)*phi(i,j,k+1,n);
-                T ozp =  bZ(i,j,k+1,n)*cf5;
-                T szp = -bZ(i,j,k+1,n);
-                if (apzp != T(0.0) && apzp != T(1.0)) {
-                    auto fcz0 = ebdata.get<EBData_t::fcz>(i,j,k+1,0);
-                    auto fcz1 = ebdata.get<EBData_t::fcz>(i,j,k+1,1);
-                    int ii = i + static_cast<int>(std::copysign(T(1.0),fcz0));
-                    int jj = j + static_cast<int>(std::copysign(T(1.0),fcz1));
-                    T fracx = (ccm(ii,j,k) || ccm(ii,j,k+1))
-                        ? std::abs(fcz0) : T(0.0);
-                    T fracy = (ccm(i,jj,k) || ccm(i,jj,k+1))
-                        ? std::abs(fcz1) : T(0.0);
-                    if (!beta_on_centroid && !phi_on_centroid)
-                    {
-                        fzp = (T(1.0)-fracx)*(T(1.0)-fracy)*fzp
-                            +      fracx *(T(1.0)-fracy)*bZ(ii,j ,k+1,n)*(phi(ii,j ,k+1,n)-phi(ii,j ,k,n))
-                            + (T(1.0)-fracx)*     fracy *bZ(i ,jj,k+1,n)*(phi(i ,jj,k+1,n)-phi(i ,jj,k,n))
-                            +      fracx *     fracy *bZ(ii,jj,k+1,n)*(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
-                    }
-                    else if (beta_on_centroid && !phi_on_centroid)
-                    {
-                        fzp = (T(1.0)-fracx)*(T(1.0)-fracy)*(phi( i, j,k+1,n)               )
-                            +      fracx *(T(1.0)-fracy)*(phi(ii, j,k+1,n)-phi(ii, j,k,n))
-                            + (T(1.0)-fracx)*     fracy *(phi( i,jj,k+1,n)-phi( i,jj,k,n))
-                            +      fracx *     fracy *(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
-                        fzp *= bZ(i,j,k+1,n);
-
-                    }
-                    ozp = T(0.0);
-                    szp = (T(1.0)-fracx)*(T(1.0)-fracy)*szp;
-                }
-
-                T vfrcinv = T(1.0)/kappa;
-                T gamma = alpha*a(i,j,k) + vfrcinv *
-                    (dhx*(apxm*sxm-apxp*sxp) +
-                        dhy*(apym*sym-apyp*syp) +
-                        dhz*(apzm*szm-apzp*szp));
-
-                T rho = -vfrcinv *
-                    (dhx*(apxm*fxm-apxp*fxp) +
-                        dhy*(apym*fym-apyp*fyp) +
-                        dhz*(apzm*fzm-apzp*fzp));
-
-                T delta = -vfrcinv *
-                    (dhx*(apxm*oxm-apxp*oxp) +
-                        dhy*(apym*oym-apyp*oyp) +
-                        dhz*(apzm*ozm-apzp*ozp));
-
-                if (is_dirichlet) {
-                    T dapx = apxm-apxp;
-                    T dapy = apym-apyp;
-                    T dapz = apzm-apzp;
-                    T anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-                    T anorminv = T(1.0)/anorm;
-                    T anrmx = dapx * anorminv;
-                    T anrmy = dapy * anorminv;
-                    T anrmz = dapz * anorminv;
-                    T bctx = ebdata.get<EBData_t::bndrycent>(i,j,k,0);
-                    T bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
-                    T bctz = ebdata.get<EBData_t::bndrycent>(i,j,k,2);
-                    T dx_eb = get_dx_eb(kappa);
-
-                    T dg = dx_eb / amrex::max(std::abs(anrmx),std::abs(anrmy),
-                                                    std::abs(anrmz));
-
-                    T gx = bctx - dg*anrmx;
-                    T gy = bcty - dg*anrmy;
-                    T gz = bctz - dg*anrmz;
-                    T sx = std::copysign(T(1.0),anrmx);
-                    T sy = std::copysign(T(1.0),anrmy);
-                    T sz = std::copysign(T(1.0),anrmz);
-                    int ii = i - static_cast<int>(sx);
-                    int jj = j - static_cast<int>(sy);
-                    int kk = k - static_cast<int>(sz);
-
-                    gx *= sx;
-                    gy *= sy;
-                    gz *= sz;
-                    T gxy = gx*gy;
-                    T gxz = gx*gz;
-                    T gyz = gy*gz;
-                    T gxyz = gx*gy*gz;
-                    T phig_gamma = (T(1.0)+gx+gy+gz+gxy+gxz+gyz+gxyz);
-                    T phig = (-gz - gxz - gyz - gxyz) * phi(i,j,kk,n)
-                        + (-gy - gxy - gyz - gxyz) * phi(i,jj,k,n)
-                        + (gyz + gxyz) * phi(i,jj,kk,n)
-                        + (-gx - gxy - gxz - gxyz) * phi(ii,j,k,n)
-                        + (gxz + gxyz) * phi(ii,j,kk,n)
-                        + (gxy + gxyz) * phi(ii,jj,k,n)
-                        + (-gxyz) * phi(ii,jj,kk,n);
-
-                    T ba = ebdata.get<EBData_t::bndryarea>(i,j,k);
-
-                    T dphidn    = (    -phig)/dg;
-                    T feb_gamma = -phig_gamma/dg * ba * beb(i,j,k,n);
-                    gamma += vfrcinv*(-dhx)*feb_gamma;
-                    T feb = dphidn * ba * beb(i,j,k,n);
-                    rho += -vfrcinv*(-dhx)*feb;
-                }
-
-                T res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
-                phi(i,j,k,n) += omega*res/(gamma-delta);
-            }
-        }
-    }
-}
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_gsrb (Box const& box,
                        Array4<T> const& phi, Array4<T const> const& rhs,
                        T alpha, Array4<T const> const& a,
@@ -1322,6 +977,11 @@ void mlebabeclap_gsrb (Box const& box,
                        bool is_dirichlet, bool beta_on_centroid, bool phi_on_centroid,
                        Box const& vbox, int redblack, int ncomp) noexcept
 {
+    constexpr T omega = 1.15;
+
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
 //    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
     // amrex::Loop here causes gcc 8 to crash.
     const auto lo = amrex::lbound(box);
@@ -1331,20 +991,325 @@ void mlebabeclap_gsrb (Box const& box,
     for (int j = lo.y; j <= hi.y; ++j) {
     for (int i = lo.x; i <= hi.x; ++i)
     {
-        mlebabeclap_gsrb(i, j, k, n,
-                       phi, rhs,
-                       alpha, a,
-                       dhx, dhy, dhz,
-                       bX, bY, bZ,
-                       m0, m2, m4,
-                       m1, m3, m5,
-                       f0, f2, f4,
-                       f1, f3, f5,
-                       ccm, beb,
-                       ebdata,
-                       is_dirichlet, beta_on_centroid, phi_on_centroid,
-                       vbox, redblack);
+        if ((i+j+k+redblack) % 2 == 0)
+        {
+            auto const flag = ebdata.get<EBData_t::cellflag>(i,j,k);
+            if (flag.isCovered())
+            {
+                phi(i,j,k,n) = T(0.0);
+            }
+            else
+            {
+                T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                    ? f0(vlo.x,j,k,n) : T(0.0);
+                T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                    ? f1(i,vlo.y,k,n) : T(0.0);
+                T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+                    ? f2(i,j,vlo.z,n) : T(0.0);
+                T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+                    ? f3(vhi.x,j,k,n) : T(0.0);
+                T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+                    ? f4(i,vhi.y,k,n) : T(0.0);
+                T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+                    ? f5(i,j,vhi.z,n) : T(0.0);
 
+                if (flag.isRegular())
+                {
+                    T gamma = alpha*a(i,j,k)
+                        + dhx*(bX(i+1,j,k,n) + bX(i,j,k,n))
+                        + dhy*(bY(i,j+1,k,n) + bY(i,j,k,n))
+                        + dhz*(bZ(i,j,k+1,n) + bZ(i,j,k,n));
+
+                    T rho = dhx*(bX(i+1,j  ,k  ,n)*phi(i+1,j  ,k  ,n) +
+                                    bX(i  ,j  ,k  ,n)*phi(i-1,j  ,k  ,n))
+                        +      dhy*(bY(i  ,j+1,k  ,n)*phi(i  ,j+1,k  ,n) +
+                                    bY(i  ,j  ,k  ,n)*phi(i  ,j-1,k  ,n))
+                        +      dhz*(bZ(i  ,j  ,k+1,n)*phi(i  ,j  ,k+1,n) +
+                                    bZ(i  ,j  ,k  ,n)*phi(i  ,j  ,k-1,n));
+
+                    T delta = dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf3)
+                        +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf4)
+                        +        dhz*(bZ(i,j,k,n)*cf2 + bZ(i,j,k+1,n)*cf5);
+
+                    T res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
+                    phi(i,j,k,n) += omega*res/(gamma-delta);
+                }
+                else
+                {
+                    T kappa = ebdata.get<EBData_t::volfrac>(i,j,k);
+                    T apxm = ebdata.get<EBData_t::apx>(i  ,j  ,k  );
+                    T apxp = ebdata.get<EBData_t::apx>(i+1,j  ,k  );
+                    T apym = ebdata.get<EBData_t::apy>(i  ,j  ,k  );
+                    T apyp = ebdata.get<EBData_t::apy>(i  ,j+1,k  );
+                    T apzm = ebdata.get<EBData_t::apz>(i  ,j  ,k  );
+                    T apzp = ebdata.get<EBData_t::apz>(i  ,j  ,k+1);
+
+                    T fxm = -bX(i,j,k,n)*phi(i-1,j,k,n);
+                    T oxm = -bX(i,j,k,n)*cf0;
+                    T sxm =  bX(i,j,k,n);
+                    if (apxm != T(0.0) && apxm != T(1.0)) {
+                        auto fcx0 = ebdata.get<EBData_t::fcx>(i,j,k,0);
+                        auto fcx1 = ebdata.get<EBData_t::fcx>(i,j,k,1);
+                        int jj = j + static_cast<int>(std::copysign(T(1.0), fcx0));
+                        int kk = k + static_cast<int>(std::copysign(T(1.0), fcx1));
+                        T fracy = (ccm(i-1,jj,k) || ccm(i,jj,k))
+                            ? std::abs(fcx0) : T(0.0);
+                        T fracz = (ccm(i-1,j,kk) || ccm(i,j,kk))
+                            ? std::abs(fcx1) : T(0.0);
+                        if (!beta_on_centroid && !phi_on_centroid)
+                        {
+                            fxm = (T(1.0)-fracy)*(T(1.0)-fracz)*fxm
+                                 +     fracy *(T(1.0)-fracz)*bX(i,jj,k ,n)*(phi(i,jj,k ,n)-phi(i-1,jj,k ,n))
+                                 +(T(1.0)-fracy)*     fracz *bX(i,j ,kk,n)*(phi(i,j ,kk,n)-phi(i-1,j ,kk,n))
+                                 +     fracy *     fracz *bX(i,jj,kk,n)*(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
+                        }
+                        else if (beta_on_centroid && !phi_on_centroid)
+                        {
+                            fxm = (T(1.0)-fracy)*(T(1.0)-fracz)*(              -phi(i-1, j, k,n))
+                                 +     fracy *(T(1.0)-fracz)*(phi(i,jj,k ,n)-phi(i-1,jj, k,n))
+                                 +(T(1.0)-fracy)*     fracz *(phi(i,j ,kk,n)-phi(i-1, j,kk,n))
+                                 +     fracy *     fracz *(phi(i,jj,kk,n)-phi(i-1,jj,kk,n));
+                            fxm *= bX(i,j,k,n);
+
+                        }
+                        oxm = T(0.0);
+                        sxm = (T(1.0)-fracy)*(T(1.0)-fracz)*sxm;
+                    }
+
+                    T fxp =  bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                    T oxp =  bX(i+1,j,k,n)*cf3;
+                    T sxp = -bX(i+1,j,k,n);
+                    if (apxp != T(0.0) && apxp != T(1.0)) {
+                        auto fcx0 = ebdata.get<EBData_t::fcx>(i+1,j,k,0);
+                        auto fcx1 = ebdata.get<EBData_t::fcx>(i+1,j,k,1);
+                        int jj = j + static_cast<int>(std::copysign(T(1.0),fcx0));
+                        int kk = k + static_cast<int>(std::copysign(T(1.0),fcx1));
+                        T fracy = (ccm(i,jj,k) || ccm(i+1,jj,k))
+                            ? std::abs(fcx0) : T(0.0);
+                        T fracz = (ccm(i,j,kk) || ccm(i+1,j,kk))
+                            ? std::abs(fcx1) : T(0.0);
+                        if (!beta_on_centroid && !phi_on_centroid)
+                        {
+                            fxp = (T(1.0)-fracy)*(T(1.0)-fracz)*fxp
+                                  +    fracy *(T(1.0)-fracz)*bX(i+1,jj,k ,n)*(phi(i+1,jj,k ,n)-phi(i,jj,k ,n))
+                                 +(T(1.0)-fracy)*     fracz *bX(i+1,j ,kk,n)*(phi(i+1,j ,kk,n)-phi(i,j ,kk,n))
+                                 +     fracy *     fracz *bX(i+1,jj,kk,n)*(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
+                        }
+                        else if (beta_on_centroid && !phi_on_centroid)
+                        {
+                            fxp = (T(1.0)-fracy)*(T(1.0)-fracz)*(phi(i+1, j, k,n)               ) +
+                                       fracy *(T(1.0)-fracz)*(phi(i+1,jj, k,n)-phi(i,jj, k,n)) +
+                                       fracz *(T(1.0)-fracy)*(phi(i+1, j,kk,n)-phi(i, j,kk,n)) +
+                                       fracy *     fracz *(phi(i+1,jj,kk,n)-phi(i,jj,kk,n));
+                            fxp *= bX(i+1,j,k,n);
+
+                        }
+
+                        oxp = T(0.0);
+                        sxp = (T(1.0)-fracy)*(T(1.0)-fracz)*sxp;
+                    }
+
+                    T fym = -bY(i,j,k,n)*phi(i,j-1,k,n);
+                    T oym = -bY(i,j,k,n)*cf1;
+                    T sym =  bY(i,j,k,n);
+                    if (apym != T(0.0) && apym != T(1.0)) {
+                        auto fcy0 = ebdata.get<EBData_t::fcy>(i,j,k,0);
+                        auto fcy1 = ebdata.get<EBData_t::fcy>(i,j,k,1);
+                        int ii = i + static_cast<int>(std::copysign(T(1.0),fcy0));
+                        int kk = k + static_cast<int>(std::copysign(T(1.0),fcy1));
+                        T fracx = (ccm(ii,j-1,k) || ccm(ii,j,k))
+                            ? std::abs(fcy0) : T(0.0);
+                        T fracz = (ccm(i,j-1,kk) || ccm(i,j,kk))
+                            ? std::abs(fcy1) : T(0.0);
+                        if (!beta_on_centroid && !phi_on_centroid)
+                        {
+                            fym = (T(1.0)-fracx)*(T(1.0)-fracz)*fym
+                                +      fracx *(T(1.0)-fracz)*bY(ii,j,k ,n)*(phi(ii,j,k ,n)-phi(ii,j-1,k ,n))
+                                + (T(1.0)-fracx)*     fracz *bY(i ,j,kk,n)*(phi(i ,j,kk,n)-phi(i ,j-1,kk,n))
+                                +      fracx *     fracz *bY(ii,j,kk,n)*(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
+                        }
+                        else if (beta_on_centroid && !phi_on_centroid)
+                        {
+                            fym = (T(1.0)-fracx)*(T(1.0)-fracz)*(              -phi( i,j-1, k,n))
+                                +      fracx *(T(1.0)-fracz)*(phi(ii,j,k ,n)-phi(ii,j-1, k,n))
+                                + (T(1.0)-fracx)*     fracz *(phi(i ,j,kk,n)-phi( i,j-1,kk,n))
+                                +      fracx *     fracz *(phi(ii,j,kk,n)-phi(ii,j-1,kk,n));
+                            fym *= bY(i,j,k,n);
+
+                        }
+                        oym = T(0.0);
+                        sym = (T(1.0)-fracx)*(T(1.0)-fracz)*sym;
+                    }
+
+                    T fyp =  bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                    T oyp =  bY(i,j+1,k,n)*cf4;
+                    T syp = -bY(i,j+1,k,n);
+                    if (apyp != T(0.0) && apyp != T(1.0)) {
+                        auto fcy0 = ebdata.get<EBData_t::fcy>(i,j+1,k,0);
+                        auto fcy1 = ebdata.get<EBData_t::fcy>(i,j+1,k,1);
+                        int ii = i + static_cast<int>(std::copysign(T(1.0),fcy0));
+                        int kk = k + static_cast<int>(std::copysign(T(1.0),fcy1));
+                        T fracx = (ccm(ii,j,k) || ccm(ii,j+1,k))
+                            ? std::abs(fcy0) : T(0.0);
+                        T fracz = (ccm(i,j,kk) || ccm(i,j+1,kk))
+                            ? std::abs(fcy1) : T(0.0);
+                        if (!beta_on_centroid && !phi_on_centroid)
+                        {
+                            fyp = (T(1.0)-fracx)*(T(1.0)-fracz)*fyp
+                                +      fracx *(T(1.0)-fracz)*bY(ii,j+1,k ,n)*(phi(ii,j+1,k ,n)-phi(ii,j,k ,n))
+                                + (T(1.0)-fracx)*     fracz *bY(i ,j+1,kk,n)*(phi(i ,j+1,kk,n)-phi(i ,j,kk,n))
+                                +      fracx *     fracz *bY(ii,j+1,kk,n)*(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
+                        }
+                        else if (beta_on_centroid && !phi_on_centroid)
+                        {
+                            fyp = (T(1.0)-fracx)*(T(1.0)-fracz)*(phi( i,j+1, k,n)               )
+                                +      fracx *(T(1.0)-fracz)*(phi(ii,j+1, k,n)-phi(ii,j, k,n))
+                                + (T(1.0)-fracx)*     fracz *(phi( i,j+1,kk,n)-phi( i,j,kk,n))
+                                +      fracx *     fracz *(phi(ii,j+1,kk,n)-phi(ii,j,kk,n));
+                            fyp *= bY(i,j+1,k,n);
+
+                        }
+                        oyp = T(0.0);
+                        syp = (T(1.0)-fracx)*(T(1.0)-fracz)*syp;
+                    }
+
+                    T fzm = -bZ(i,j,k,n)*phi(i,j,k-1,n);
+                    T ozm = -bZ(i,j,k,n)*cf2;
+                    T szm =  bZ(i,j,k,n);
+                    if (apzm != T(0.0) && apzm != T(1.0)) {
+                        auto fcz0 = ebdata.get<EBData_t::fcz>(i,j,k,0);
+                        auto fcz1 = ebdata.get<EBData_t::fcz>(i,j,k,1);
+                        int ii = i + static_cast<int>(std::copysign(T(1.0),fcz0));
+                        int jj = j + static_cast<int>(std::copysign(T(1.0),fcz1));
+                        T fracx = (ccm(ii,j,k-1) || ccm(ii,j,k))
+                            ? std::abs(fcz0) : T(0.0);
+                        T fracy = (ccm(i,jj,k-1) || ccm(i,jj,k))
+                            ? std::abs(fcz1) : T(0.0);
+                        if (!beta_on_centroid && !phi_on_centroid)
+                        {
+                            fzm = (T(1.0)-fracx)*(T(1.0)-fracy)*fzm
+                                 +     fracx *(T(1.0)-fracy)*bZ(ii, j,k,n)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
+                                 +(T(1.0)-fracx)*     fracy *bZ( i,jj,k,n)*(phi( i,jj,k,n)-phi( i,jj,k-1,n))
+                                 +     fracx *     fracy *bZ(ii,jj,k,n)*(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
+                        }
+                        else if (beta_on_centroid && !phi_on_centroid)
+                        {
+                            fzm = (T(1.0)-fracx)*(T(1.0)-fracy)*(              -phi( i, j,k-1,n))
+                                +      fracx *(T(1.0)-fracy)*(phi(ii, j,k,n)-phi(ii, j,k-1,n))
+                                + (T(1.0)-fracx)*     fracy *(phi( i,jj,k,n)-phi(i ,jj,k-1,n))
+                                +      fracx *     fracy *(phi(ii,jj,k,n)-phi(ii,jj,k-1,n));
+                            fzm *= bZ(i,j,k,n);
+
+                        }
+                        ozm = T(0.0);
+                        szm = (T(1.0)-fracx)*(T(1.0)-fracy)*szm;
+                    }
+
+                    T fzp =  bZ(i,j,k+1,n)*phi(i,j,k+1,n);
+                    T ozp =  bZ(i,j,k+1,n)*cf5;
+                    T szp = -bZ(i,j,k+1,n);
+                    if (apzp != T(0.0) && apzp != T(1.0)) {
+                        auto fcz0 = ebdata.get<EBData_t::fcz>(i,j,k+1,0);
+                        auto fcz1 = ebdata.get<EBData_t::fcz>(i,j,k+1,1);
+                        int ii = i + static_cast<int>(std::copysign(T(1.0),fcz0));
+                        int jj = j + static_cast<int>(std::copysign(T(1.0),fcz1));
+                        T fracx = (ccm(ii,j,k) || ccm(ii,j,k+1))
+                            ? std::abs(fcz0) : T(0.0);
+                        T fracy = (ccm(i,jj,k) || ccm(i,jj,k+1))
+                            ? std::abs(fcz1) : T(0.0);
+                        if (!beta_on_centroid && !phi_on_centroid)
+                        {
+                            fzp = (T(1.0)-fracx)*(T(1.0)-fracy)*fzp
+                                +      fracx *(T(1.0)-fracy)*bZ(ii,j ,k+1,n)*(phi(ii,j ,k+1,n)-phi(ii,j ,k,n))
+                                + (T(1.0)-fracx)*     fracy *bZ(i ,jj,k+1,n)*(phi(i ,jj,k+1,n)-phi(i ,jj,k,n))
+                                +      fracx *     fracy *bZ(ii,jj,k+1,n)*(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
+                        }
+                        else if (beta_on_centroid && !phi_on_centroid)
+                        {
+                            fzp = (T(1.0)-fracx)*(T(1.0)-fracy)*(phi( i, j,k+1,n)               )
+                                +      fracx *(T(1.0)-fracy)*(phi(ii, j,k+1,n)-phi(ii, j,k,n))
+                                + (T(1.0)-fracx)*     fracy *(phi( i,jj,k+1,n)-phi( i,jj,k,n))
+                                +      fracx *     fracy *(phi(ii,jj,k+1,n)-phi(ii,jj,k,n));
+                            fzp *= bZ(i,j,k+1,n);
+
+                        }
+                        ozp = T(0.0);
+                        szp = (T(1.0)-fracx)*(T(1.0)-fracy)*szp;
+                    }
+
+                    T vfrcinv = T(1.0)/kappa;
+                    T gamma = alpha*a(i,j,k) + vfrcinv *
+                        (dhx*(apxm*sxm-apxp*sxp) +
+                         dhy*(apym*sym-apyp*syp) +
+                         dhz*(apzm*szm-apzp*szp));
+
+                    T rho = -vfrcinv *
+                        (dhx*(apxm*fxm-apxp*fxp) +
+                         dhy*(apym*fym-apyp*fyp) +
+                         dhz*(apzm*fzm-apzp*fzp));
+
+                    T delta = -vfrcinv *
+                        (dhx*(apxm*oxm-apxp*oxp) +
+                         dhy*(apym*oym-apyp*oyp) +
+                         dhz*(apzm*ozm-apzp*ozp));
+
+                    if (is_dirichlet) {
+                        T dapx = apxm-apxp;
+                        T dapy = apym-apyp;
+                        T dapz = apzm-apzp;
+                        T anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
+                        T anorminv = T(1.0)/anorm;
+                        T anrmx = dapx * anorminv;
+                        T anrmy = dapy * anorminv;
+                        T anrmz = dapz * anorminv;
+                        T bctx = ebdata.get<EBData_t::bndrycent>(i,j,k,0);
+                        T bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
+                        T bctz = ebdata.get<EBData_t::bndrycent>(i,j,k,2);
+                        T dx_eb = get_dx_eb(kappa);
+
+                        T dg = dx_eb / amrex::max(std::abs(anrmx),std::abs(anrmy),
+                                                     std::abs(anrmz));
+
+                        T gx = bctx - dg*anrmx;
+                        T gy = bcty - dg*anrmy;
+                        T gz = bctz - dg*anrmz;
+                        T sx = std::copysign(T(1.0),anrmx);
+                        T sy = std::copysign(T(1.0),anrmy);
+                        T sz = std::copysign(T(1.0),anrmz);
+                        int ii = i - static_cast<int>(sx);
+                        int jj = j - static_cast<int>(sy);
+                        int kk = k - static_cast<int>(sz);
+
+                        gx *= sx;
+                        gy *= sy;
+                        gz *= sz;
+                        T gxy = gx*gy;
+                        T gxz = gx*gz;
+                        T gyz = gy*gz;
+                        T gxyz = gx*gy*gz;
+                        T phig_gamma = (T(1.0)+gx+gy+gz+gxy+gxz+gyz+gxyz);
+                        T phig = (-gz - gxz - gyz - gxyz) * phi(i,j,kk,n)
+                            + (-gy - gxy - gyz - gxyz) * phi(i,jj,k,n)
+                            + (gyz + gxyz) * phi(i,jj,kk,n)
+                            + (-gx - gxy - gxz - gxyz) * phi(ii,j,k,n)
+                            + (gxz + gxyz) * phi(ii,j,kk,n)
+                            + (gxy + gxyz) * phi(ii,jj,k,n)
+                            + (-gxyz) * phi(ii,jj,kk,n);
+
+                        T ba = ebdata.get<EBData_t::bndryarea>(i,j,k);
+
+                        T dphidn    = (    -phig)/dg;
+                        T feb_gamma = -phig_gamma/dg * ba * beb(i,j,k,n);
+                        gamma += vfrcinv*(-dhx)*feb_gamma;
+                        T feb = dphidn * ba * beb(i,j,k,n);
+                        rho += -vfrcinv*(-dhx)*feb;
+                    }
+
+                    T res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
+                    phi(i,j,k,n) += omega*res/(gamma-delta);
+                }
+            }
+        }
     }}}}
 //    });
 }
