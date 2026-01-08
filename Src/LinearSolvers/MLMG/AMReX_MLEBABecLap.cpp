@@ -1105,12 +1105,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvlo, mlo, foo,
+                                    mlo, foo,
                                     bcllo, blo, bctlo, blen,
                                     icomp, 0, 0, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvhi, mhi, foo,
+                                    mhi, foo,
                                     bclhi, bhi, bcthi, blen,
                                     icomp, 0, 0,1, local_index
                                 });
@@ -1128,12 +1128,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvlo, mlo, foo,
+                                    mlo, foo,
                                     bcllo, blo, bctlo, blen,
                                     icomp,1, 0, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvhi, mhi, foo,
+                                    mhi, foo,
                                     bclhi, bhi, bcthi, blen,
                                     icomp, 1, 0,1, local_index
                                 });
@@ -1151,12 +1151,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvlo, mlo, foo,
+                                    mlo, foo,
                                     bcllo, blo, bctlo, blen,
                                     icomp, 2, 0, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvhi, mhi, foo,
+                                    mhi, foo,
                                     bclhi, bhi, bcthi, blen,
                                     icomp, 2, 0,1, local_index
                                 });
@@ -1180,12 +1180,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvlo, mask, ap,
+                                    mask, ap,
                                     bcllo, blo, bctlo, blen,
                                     icomp, 0, 1, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvhi, mask, ap,
+                                    mask, ap,
                                     bclhi, bhi, bcthi, blen,
                                     icomp, 0, 1, 1, local_index
                                 });
@@ -1203,12 +1203,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvlo, mask, ap,
+                                    mask, ap,
                                     bcllo, blo, bctlo, blen,
                                     icomp, 1, 1, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvhi, mask, ap,
+                                    mask, ap,
                                     bclhi, bhi, bcthi, blen,
                                     icomp, 1, 1, 1, local_index
                                 });
@@ -1226,12 +1226,12 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvlo, mask, ap,
+                                    mask, ap,
                                     bcllo, blo, bctlo, blen,
                                     icomp, 2, 1, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    bvhi, mask, ap,
+                                    mask, ap,
                                     bclhi, bhi, bcthi, blen,
                                     icomp, 2, 1, 1, local_index
                                 });
@@ -1254,6 +1254,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
 #ifdef AMREX_USE_GPU
     m_eb_bc_tags[amrlev][mglev].define(ebtags);
+apply_eb_tags:
     MultiArray4<Real const> foo_ma;
     Array<MultiArray4<Real const>, 2*AMREX_SPACEDIM> bndry_arrays;
     for (OrientationIter oit; oit; ++oit) {
@@ -1261,7 +1262,6 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         bndry_arrays[ori] = (bndry != nullptr) ?
             bndry->bndryValues(ori).arrays() : foo_ma;
     }
-apply_eb_tags:
     auto inma = in.arrays();
     amrex::ParallelFor(
         m_eb_bc_tags[amrlev][mglev], [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCEBTag<RT> const& tag) noexcept

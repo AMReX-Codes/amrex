@@ -172,7 +172,6 @@ protected:
 // Tag for applyBC EB version
 template <typename T>
 struct MLMGABCEBTag {
-    amrex::Array4<T const> bcval;
     amrex::Array4<int const> mask;
     amrex::Array4<T const> area;
     T bcloc;
