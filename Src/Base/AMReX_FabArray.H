@@ -440,6 +440,8 @@ public:
                  const FabFactory<FAB>&     factory = DefaultFabFactory<FAB>());
 #endif
 
+    void define (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp);
+
     const FabFactory<FAB>& Factory () const noexcept { return *m_factory; }
 
     // Provides access to the Arena this FabArray was build with.
@@ -2177,6 +2179,28 @@ FabArray<FAB>::define (const BoxArray&            bxs,
 #ifdef BL_USE_TEAM
         ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
+    }
+}
+
+template <class FAB>
+void
+FabArray<FAB>::define (const FabArray<FAB>& rhs, MakeType maketype, int scomp, int ncomp)
+{
+    std::unique_ptr<FabFactory<FAB> > factory(rhs.Factory().clone());
+    m_factory = std::move(factory);
+    define(rhs.boxArray(), rhs.DistributionMap(), ncomp, rhs.nGrowVect(),
+           MFInfo().SetAlloc(false), *m_factory);
+
+    if (maketype == amrex::make_alias)
+    {
+        for (int i = 0, n = indexArray.size(); i < n; ++i) {
+            auto const& rhsfab = *(rhs.m_fabs_v[i]);
+            m_fabs_v.push_back(m_factory->create_alias(rhsfab, scomp, ncomp));
+        }
+    }
+    else
+    {
+        amrex::Abort("FabArray: unknown MakeType");
     }
 }
 

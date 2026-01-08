@@ -540,6 +540,12 @@ MultiFab::define (const BoxArray&            bxs,
 }
 
 void
+MultiFab::define (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp)
+{
+    this->FabArray<FArrayBox>::define(rhs,maketype,scomp,ncomp);
+}
+
+void
 MultiFab::initVal ()
 {
 #ifdef AMREX_USE_OMP

@@ -282,6 +282,12 @@ iMultiFab::define (const BoxArray&            bxs,
     this->FabArray<IArrayBox>::define(bxs,dm,nvar,ngrow,info, factory);
 }
 
+void
+iMultiFab::define (const iMultiFab& rhs, MakeType maketype, int scomp, int ncomp)
+{
+    this->FabArray<IArrayBox>::define(rhs,maketype,scomp,ncomp);
+}
+
 int
 iMultiFab::min (int comp, int nghost, bool local) const
 {

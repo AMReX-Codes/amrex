@@ -578,6 +578,8 @@ public:
                  const FabFactory<IArrayBox>& factory = DefaultFabFactory<IArrayBox>());
 #endif
 
+    void define (const iMultiFab& rhs, MakeType maketype, int scomp, int ncomp);
+
     static void Initialize ();
     static void Finalize ();
 };

@@ -136,6 +136,8 @@ public:
                  const FabFactory<FArrayBox>& factory = FArrayBoxFactory());
 #endif
 
+    void define (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp);
+
     MultiFab& operator= (Real r);
 
     /**
