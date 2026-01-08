@@ -9,6 +9,9 @@
 
 namespace amrex {
 
+template <typename T>
+struct MLMGABCEBTag;
+
 // (alpha * a - beta * (del dot b grad)) phi
 
 class MLEBABecLap
@@ -162,6 +165,9 @@ protected:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+// #ifdef AMREX_USE_GPU
+    mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
+// #endif
 };
 
 // Tag for applyBC EB version

@@ -64,12 +64,14 @@ MLEBABecLap::define (const Vector<Geometry>& a_geom,
     m_cc_mask.resize(m_num_amr_levels);
     m_eb_phi.resize(m_num_amr_levels);
     m_eb_b_coeffs.resize(m_num_amr_levels);
+    m_eb_bc_tags.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_a_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
         m_cc_mask[amrlev].resize(m_num_mg_levels[amrlev]);
         m_eb_b_coeffs[amrlev].resize(m_num_mg_levels[amrlev]);
+        m_eb_bc_tags[amrlev].resize(m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
         {
             m_a_coeffs[amrlev][mglev].define(m_grids[amrlev][mglev],
@@ -1049,12 +1051,15 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     FArrayBox foofab(Box::TheUnitBox(),ncomp);
     const auto& foo = foofab.array();
+    MFItInfo mfi_info;
 #ifdef AMREX_USE_GPU
     Vector<MLMGABCEBTag<RT>> ebtags;
-    ebtags.reserve(in.local_size() * 2 * AMREX_SPACEDIM*ncomp);
     bool run_on_gpu = Gpu::inLaunchRegion();
+    if (m_eb_bc_tags[amrlev][mglev].is_defined()) {
+        goto apply_eb_tags;
+    }
+    ebtags.reserve(in.local_size() * 2 * AMREX_SPACEDIM*ncomp);
 #endif
-    MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1244,8 +1249,13 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     }
 
 #ifdef AMREX_USE_GPU
+    m_eb_bc_tags[amrlev][mglev].define(ebtags);
+#endif
+
+#ifdef AMREX_USE_GPU
+apply_eb_tags:
     amrex::ParallelFor(
-        ebtags, [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCEBTag<RT> const& tag) noexcept
+        m_eb_bc_tags[amrlev][mglev], [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCEBTag<RT> const& tag) noexcept
         {
             if (tag.is_eb == 0) {
                 if (tag.dir == 0) {
