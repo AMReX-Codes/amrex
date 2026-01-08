@@ -121,7 +121,7 @@
     This topic covers particle data structures in AMReX.
 
   - \ref amrex_eb
-    This topic covers the embedded boundary capabilities in AMReX, include
+    This topic covers the embedded boundary capabilities in AMReX, including
     geometry generation EB data structures and solvers
 
   - \ref amrex_fft
