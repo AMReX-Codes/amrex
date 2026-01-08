@@ -122,7 +122,7 @@
 
   - \ref amrex_eb
     This topic covers the embedded boundary capabilities in AMReX, including
-    geometry generation EB data structures and solvers
+    geometry generation, EB data structures and solvers
 
   - \ref amrex_fft
     This topic covers parallel Fast Fourier Transform (FFT) interfaces in
