@@ -1,4 +1,5 @@
 
+#include "AMReX_Orientation.H"
 #include <AMReX_MLEBABecLap.H>
 #include <AMReX_MLABecLaplacian.H>
 #include <AMReX_MultiFabUtil.H>
@@ -1253,6 +1254,13 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
 #ifdef AMREX_USE_GPU
     m_eb_bc_tags[amrlev][mglev].define(ebtags);
+    MultiArray4<Real const> foo_ma;
+    Array<MultiArray4<Real const>, 2*AMREX_SPACEDIM> bndry_arrays;
+    for (OrientationIter oit; oit; ++oit) {
+        const Orientation ori = oit();
+        bndry_arrays[ori] = (bndry != nullptr) ?
+            bndry->bndryValues(ori).arrays() : foo_ma;
+    }
 apply_eb_tags:
     auto inma = in.arrays();
     amrex::ParallelFor(
@@ -1261,32 +1269,42 @@ apply_eb_tags:
             if (tag.is_eb == 0) {
                 if (tag.dir == 0) {
                     mllinop_apply_bc_x(tag.side, i, j, k, tag.blen, inma[tag.local_index],
-                        tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dxi, flagbc,
-                        tag.comp);
+                        tag.mask, tag.bctype, tag.bcloc,
+                        bndry_arrays[Orientation(0, static_cast<Orientation::Side>(tag.side))][tag.local_index],
+                        imaxorder, dxi, flagbc, tag.comp);
                 } else if (tag.dir == 1) {
                     mllinop_apply_bc_y(tag.side, i, j, k, tag.blen, inma[tag.local_index],
-                        tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dyi, flagbc,
-                        tag.comp);
+                        tag.mask, tag.bctype, tag.bcloc,
+                        bndry_arrays[Orientation(1, static_cast<Orientation::Side>(tag.side))][tag.local_index],
+                        imaxorder, dyi, flagbc, tag.comp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 else if (tag.dir == 2) {
                     mllinop_apply_bc_z(tag.side, i, j, k, tag.blen, inma[tag.local_index],
-                        tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dzi, flagbc,
+                        tag.mask, tag.bctype, tag.bcloc,
+                        bndry_arrays[Orientation(2, static_cast<Orientation::Side>(tag.side))][tag.local_index],
+                        imaxorder, dzi, flagbc,
                         tag.comp);
                 }
 #endif
             } else {
                 if (tag.dir == 0) {
                     mlebabeclap_apply_bc_x(tag.side, i, j, k, tag.blen, inma[tag.local_index], tag.mask, tag.area,
-                        tag.bctype, tag.bcloc, tag.bcval, imaxorder, dxi, flagbc, tag.comp);
+                        tag.bctype, tag.bcloc,
+                        bndry_arrays[Orientation(0, static_cast<Orientation::Side>(tag.side))][tag.local_index],
+                        imaxorder, dxi, flagbc, tag.comp);
                 } else if (tag.dir == 1) {
                     mlebabeclap_apply_bc_y(tag.side, i, j, k, tag.blen, inma[tag.local_index], tag.mask, tag.area,
-                        tag.bctype, tag.bcloc, tag.bcval, imaxorder, dyi, flagbc, tag.comp);
+                        tag.bctype, tag.bcloc,
+                        bndry_arrays[Orientation(1, static_cast<Orientation::Side>(tag.side))][tag.local_index],
+                        imaxorder, dyi, flagbc, tag.comp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 else if (tag.dir == 2) {
                     mlebabeclap_apply_bc_z(tag.side, i, j, k, tag.blen, inma[tag.local_index], tag.mask, tag.area,
-                        tag.bctype, tag.bcloc, tag.bcval, imaxorder, dzi, flagbc, tag.comp);
+                        tag.bctype, tag.bcloc,
+                        bndry_arrays[Orientation(2, static_cast<Orientation::Side>(tag.side))][tag.local_index],
+                        imaxorder, dzi, flagbc, tag.comp);
                 }
 #endif
             }
