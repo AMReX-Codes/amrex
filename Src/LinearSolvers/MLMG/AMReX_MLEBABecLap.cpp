@@ -1069,6 +1069,8 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         const Box& vbx   = mfi.validbox();
         const auto& iofab = in.array(mfi);
 
+        const int local_index = mfi.LocalIndex();
+
         auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
         if (fabtyp != FabType::covered)
         {
@@ -1101,14 +1103,14 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvlo, mlo, foo,
+                                    bvlo, mlo, foo,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 0, 0, 0
+                                    icomp, 0, 0, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvhi, mhi, foo,
+                                    bvhi, mhi, foo,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 0, 0,1
+                                    icomp, 0, 0,1, local_index
                                 });
                             } else
 #endif
@@ -1124,14 +1126,14 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvlo, mlo, foo,
+                                    bvlo, mlo, foo,
                                     bcllo, blo, bctlo, blen,
-                                    icomp,1, 0, 0
+                                    icomp,1, 0, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvhi, mhi, foo,
+                                    bvhi, mhi, foo,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 1, 0,1
+                                    icomp, 1, 0,1, local_index
                                 });
                             } else
 #endif
@@ -1147,14 +1149,14 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvlo, mlo, foo,
+                                    bvlo, mlo, foo,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 2, 0, 0
+                                    icomp, 2, 0, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvhi, mhi, foo,
+                                    bvhi, mhi, foo,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 2, 0,1
+                                    icomp, 2, 0,1, local_index
                                 });
                             } else
 #endif
@@ -1176,14 +1178,14 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvlo, mask, ap,
+                                    bvlo, mask, ap,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 0, 1, 0
+                                    icomp, 0, 1, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvhi, mask, ap,
+                                    bvhi, mask, ap,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 0, 1, 1
+                                    icomp, 0, 1, 1, local_index
                                 });
                             } else
 #endif
@@ -1199,14 +1201,14 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvlo, mask, ap,
+                                    bvlo, mask, ap,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 1, 1, 0
+                                    icomp, 1, 1, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvhi, mask, ap,
+                                    bvhi, mask, ap,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 1, 1, 1
+                                    icomp, 1, 1, 1, local_index
                                 });
                             } else
 #endif
@@ -1222,14 +1224,14 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 #ifdef AMREX_USE_GPU
                             if (run_on_gpu) {
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvlo, mask, ap,
+                                    bvlo, mask, ap,
                                     bcllo, blo, bctlo, blen,
-                                    icomp, 2, 1, 0
+                                    icomp, 2, 1, 0, local_index
                                 });
                                 ebtags.emplace_back(MLMGABCEBTag<RT>{
-                                    iofab,bvhi, mask, ap,
+                                    bvhi, mask, ap,
                                     bclhi, bhi, bcthi, blen,
-                                    icomp, 2, 1, 1
+                                    icomp, 2, 1, 1, local_index
                                 });
                             } else
 #endif
@@ -1254,37 +1256,38 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
 #ifdef AMREX_USE_GPU
 apply_eb_tags:
+    auto inma = in.arrays();
     amrex::ParallelFor(
         m_eb_bc_tags[amrlev][mglev], [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCEBTag<RT> const& tag) noexcept
         {
             if (tag.is_eb == 0) {
                 if (tag.dir == 0) {
-                    mllinop_apply_bc_x(tag.side, i, j, k, tag.blen, tag.fab,
+                    mllinop_apply_bc_x(tag.side, i, j, k, tag.blen, inma[tag.local_index],
                         tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dxi, flagbc,
                         tag.comp);
                 } else if (tag.dir == 1) {
-                    mllinop_apply_bc_y(tag.side, i, j, k, tag.blen, tag.fab,
+                    mllinop_apply_bc_y(tag.side, i, j, k, tag.blen, inma[tag.local_index],
                         tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dyi, flagbc,
                         tag.comp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 else if (tag.dir == 2) {
-                    mllinop_apply_bc_z(tag.side, i, j, k, tag.blen, tag.fab,
+                    mllinop_apply_bc_z(tag.side, i, j, k, tag.blen, inma[tag.local_index],
                         tag.mask, tag.bctype, tag.bcloc, tag.bcval, imaxorder, dzi, flagbc,
                         tag.comp);
                 }
 #endif
             } else {
                 if (tag.dir == 0) {
-                    mlebabeclap_apply_bc_x(tag.side, i, j, k, tag.blen, tag.fab, tag.mask, tag.area,
+                    mlebabeclap_apply_bc_x(tag.side, i, j, k, tag.blen, inma[tag.local_index], tag.mask, tag.area,
                         tag.bctype, tag.bcloc, tag.bcval, imaxorder, dxi, flagbc, tag.comp);
                 } else if (tag.dir == 1) {
-                    mlebabeclap_apply_bc_y(tag.side, i, j, k, tag.blen, tag.fab, tag.mask, tag.area,
+                    mlebabeclap_apply_bc_y(tag.side, i, j, k, tag.blen, inma[tag.local_index], tag.mask, tag.area,
                         tag.bctype, tag.bcloc, tag.bcval, imaxorder, dyi, flagbc, tag.comp);
                 }
 #if (AMREX_SPACEDIM == 3)
                 else if (tag.dir == 2) {
-                    mlebabeclap_apply_bc_z(tag.side, i, j, k, tag.blen, tag.fab, tag.mask, tag.area,
+                    mlebabeclap_apply_bc_z(tag.side, i, j, k, tag.blen, inma[tag.local_index], tag.mask, tag.area,
                         tag.bctype, tag.bcloc, tag.bcval, imaxorder, dzi, flagbc, tag.comp);
                 }
 #endif
