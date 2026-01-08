@@ -1252,9 +1252,6 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
 #ifdef AMREX_USE_GPU
     m_eb_bc_tags[amrlev][mglev].define(ebtags);
-#endif
-
-#ifdef AMREX_USE_GPU
 apply_eb_tags:
     auto inma = in.arrays();
     amrex::ParallelFor(
