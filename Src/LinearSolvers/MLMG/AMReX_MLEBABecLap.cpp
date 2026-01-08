@@ -1070,6 +1070,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
         const auto& iofab = in.array(mfi);
 
         const int local_index = mfi.LocalIndex();
+        amrex::ignore_unused(local_index);
 
         auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
         if (fabtyp != FabType::covered)
