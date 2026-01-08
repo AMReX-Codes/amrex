@@ -910,7 +910,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             ? m_eb_b_coeffs[amrlev][mglev]->const_arrays() : foo;
 
         bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
-        bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
         amrex::ParallelFor(mf, IntVect(0), ncomp, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
         {
             mlebabeclap_normalize(i, j, k, n,
