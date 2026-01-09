@@ -160,7 +160,7 @@
  * on CPUs and GPUs without exposing backend-specific programming models.
  *
  * Key functions and classes include:
- * - amrex::ParallelFor
+ * - \ref amrex::ParallelFor
  * - \ref amrex::ParallelForOMP
  * - \ref amrex::ParallelForRNG
  */
