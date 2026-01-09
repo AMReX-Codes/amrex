@@ -78,6 +78,9 @@ public:
     [[nodiscard]] bool hasValue () const { return m_ptr != nullptr; }
 
 private:
+
+    /// \cond DOXYGEN_IGNORE
+
     struct innards_base // NOLINT(cppcoreguidelines-special-member-functions)
     {
         [[nodiscard]] virtual const std::type_info& Type () const = 0;
@@ -99,6 +102,8 @@ private:
 
         MF m_mf;
     };
+
+    /// \endcond
 
     std::unique_ptr<innards_base> m_ptr;
 };

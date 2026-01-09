@@ -20,6 +20,7 @@ namespace amrex {
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <std::size_t I, typename T>
@@ -84,6 +85,7 @@ struct gpu_tuple_impl<I, Head>
 };
 
 } // detail
+/// \endcond
 
 /**
  * \class amrex::GpuTuple
@@ -141,6 +143,7 @@ struct GpuTupleElement<0, GpuTuple<Head, Tail...> > {
 
 // get
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <std::size_t I, typename... Ts>
@@ -174,6 +177,7 @@ get_impl (detail::gpu_tuple_element
 }
 
 } // detail
+/// \endcond
 
 template <std::size_t I, typename... Ts>
 AMREX_GPU_HOST_DEVICE
@@ -202,6 +206,7 @@ get (GpuTuple<Ts...> && tup) noexcept
     return detail::get_impl<I,Ts...>(std::move(tup));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <std::size_t I, std::size_t N, typename TP1, typename TP2>
     AMREX_GPU_HOST_DEVICE
@@ -220,6 +225,7 @@ namespace detail {
         amrex::get<I>(a) = amrex::get<I>(std::forward<TP2>(b));
     }
 }
+/// \endcond
 
 template <typename... Ts>
 template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> >
@@ -241,12 +247,14 @@ GpuTuple<Ts...>::operator= (GpuTuple<Us...> && rhs)
 
 // makeTuple
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <typename T> struct unwrap { using type = T; };
     template <typename T> struct unwrap<std::reference_wrapper<T> > { using type = T&; };
     template <typename T>
     using tuple_decay_t = typename unwrap<std::decay_t<T>>::type;
 }
+/// \endcond
 
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE
@@ -257,6 +265,7 @@ makeTuple (Ts &&... args)
     return GpuTuple<detail::tuple_decay_t<Ts>...>(std::forward<Ts>(args)...);
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <typename...> struct tuple_cat_result {};
 
@@ -280,6 +289,7 @@ namespace detail {
         return R(amrex::get<N1>(a)..., amrex::get<N2>(b)...);
     }
 }
+/// \endcond
 
 // TupleCat
 
@@ -320,6 +330,7 @@ TupleCat (TP1&& a, TP2&& b, TPs&&... args)
 
 // TupleSplit
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     template<std::size_t...Is>
@@ -364,6 +375,7 @@ namespace detail {
         );
     }
 }
+/// \endcond
 
 /**
  * \brief Returns a GpuTuple of GpuTuples obtained by splitting the input GpuTuple
@@ -384,6 +396,7 @@ TupleSplit (const GpuTuple<Args...>& tup) noexcept
 
 // Apply
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     template <typename F, typename... Args>
@@ -416,6 +429,7 @@ namespace detail {
         return std::forward<F>(f)(amrex::get<N>(std::forward<TP>(t))...);
     }
 }
+/// \endcond
 
 template <typename F, typename TP>
 AMREX_GPU_HOST_DEVICE
@@ -460,6 +474,7 @@ MakeZeroTuple (GpuTuple<Ts...>) noexcept
     return GpuTuple<Ts...>(static_cast<Ts>(0)...);
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <typename T, std::size_t... I>
     AMREX_GPU_HOST_DEVICE constexpr
@@ -467,6 +482,7 @@ namespace detail {
         return GpuArray<typename GpuTupleElement<0,T>::type, sizeof...(I)>{amrex::get<I>(tup)...};
     }
 }
+/// \endcond
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE constexpr

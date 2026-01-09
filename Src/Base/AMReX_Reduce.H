@@ -14,6 +14,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace Reduce::detail {
 
 #ifdef AMREX_USE_GPU
@@ -80,6 +81,7 @@ namespace Reduce::detail {
         for_each_init<I+1,T,P1,Ps...>(t);
     }
 }
+/// \endcond
 
 /// \ingroup amrex_collectives
 struct ReduceOpSum
@@ -321,6 +323,7 @@ private:
     std::function<Type()> m_fn_value;
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace Reduce::detail {
     template <typename F>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -341,8 +344,10 @@ namespace Reduce::detail {
                      t));
     }
 
+    /// \cond DOXYGEN_IGNORE
     struct iterate_box {};
     struct iterate_box_comp {};
+    /// \endcond
 
     template <typename I, typename F, typename T, typename... Ps,
               std::enable_if_t<std::is_same<iterate_box,I>::value,int> = 0>
@@ -364,6 +369,7 @@ namespace Reduce::detail {
         }
     }
 }
+/// \endcond
 
 /// \ingroup amrex_collectives
 template <typename... Ps>

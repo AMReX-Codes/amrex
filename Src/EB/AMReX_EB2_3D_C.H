@@ -159,12 +159,14 @@ amrex_eb2_build_types (Box const& tbx, Box const& bxg2,
     });
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int num_cuts (Real a, Real b) noexcept {
         return (a >= 0.0_rt && b < 0.0_rt) || (b >= 0.0_rt && a < 0.0_rt);
     }
 }
+/// \endcond
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
@@ -274,6 +276,7 @@ int check_mvmc (int i, int j, int k, Array4<Real const> const& fine)
     return ierr;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real coarsen_edge_cent (Real f1, Real f2)
@@ -302,6 +305,7 @@ Real coarsen_edge_cent (Real f1, Real f2)
     }
 }
 }
+/// \endcond
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,

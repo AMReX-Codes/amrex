@@ -4,6 +4,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <typename F, typename MF>
@@ -28,6 +29,7 @@ auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
 }
 
 }
+/// \endcond
 
 template <typename Interp>
 bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
@@ -302,6 +304,7 @@ InterpFace (InterpBase *interp,
 }
 
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 // ======== FArrayBox
@@ -790,6 +793,7 @@ namespace detail {
     }
 
 } // namespace detail
+/// \endcond
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 std::enable_if_t<IsFabArray<MF>::value>

@@ -11,6 +11,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     enum ReduceOp : int {
@@ -97,6 +98,7 @@ namespace detail {
     template<typename T> void Gather (const T& /*v*/, T * /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
 #endif
 }
+/// \endcond
 
 namespace ParallelAllGather {
     /// \ingroup amrex_mpi

@@ -20,6 +20,7 @@
 
 namespace amrex
 {
+    /// \cond DOXYGEN_IGNORE
     namespace detail
     {
         template <typename T, typename Size, template<class> class Allocator>
@@ -244,6 +245,7 @@ namespace amrex
             }
         }
     }
+    /// \endcond
 
     AMREX_ENUM(GrowthStrategy, Poisson, Exact, Geometric);
 
@@ -253,10 +255,12 @@ namespace amrex
         inline Real GetGrowthFactor () { return growth_factor; }
         inline void SetGrowthFactor (Real a_factor);
 
+        /// \cond DOXYGEN_IGNORE
         namespace detail
         {
             void ValidateUserInput ();
         }
+        /// \endcond
 
         void Initialize ();
     }

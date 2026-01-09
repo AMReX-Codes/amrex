@@ -154,7 +154,7 @@ public:
     //! Is this a good candidate for kernel fusing?
     [[nodiscard]] bool isFusingCandidate () const noexcept;
 
-    //
+    /// \cond DOXYGEN_IGNORE
     struct CacheStats
     {
         int         size{0};     //!< current size: nbuild - nerase
@@ -189,7 +189,7 @@ public:
                                           << "    max # of uses    : " << maxuse  << "\n";
         }
     };
-    //
+    /// \endcond
     //! Used by a bunch of routines when communicating via MPI.
     struct CopyComTag
     {
@@ -740,6 +740,7 @@ private:
     static void flushCPCache (); //!< This flusheds the entire cache.
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     class SingleChunkArena final
         : public Arena
@@ -774,6 +775,7 @@ namespace detail {
         std::size_t m_size = 0;
     };
 }
+/// \endcond
 
 [[nodiscard]] int nComp (FabArrayBase const& fa);
 [[nodiscard]] IntVect nGrowVect (FabArrayBase const& fa);

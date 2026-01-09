@@ -40,6 +40,7 @@ IParser::define (std::string const& func_body)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 IParser::Data::~Data ()
 {
     m_expression.clear();
@@ -55,6 +56,7 @@ IParser::Data::~Data ()
     if (m_device_executor) { The_Arena()->free(m_device_executor); }
 #endif
 }
+/// \endcond
 
 IParser::operator bool () const
 {

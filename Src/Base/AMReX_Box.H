@@ -1232,6 +1232,7 @@ BoxND<dim>::shiftHalf (const IntVectND<dim>& iv) noexcept
     return *this;
 }
 
+/// \cond DOXYGEN_IGNORE
 class BoxCommHelper
 {
 public:
@@ -1251,6 +1252,7 @@ private:
     int* p;
     std::vector<int> v;
 };
+/// \endcond
 
 class BoxConverter { // NOLINT
 public:
@@ -1795,6 +1797,7 @@ BoxND<dim> minBox (const BoxND<dim>& b1, const BoxND<dim>& b2) noexcept
     return result;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     std::ostream& box_write (std::ostream& os, const int * smallend, const int * bigend,
                              const int * type, int dim);
@@ -1807,6 +1810,7 @@ namespace detail {
         return makeTuple(BoxND(get<Ns>(lo), get<Ns>(hi), get<Ns>(typ))...);
     }
 }
+/// \endcond
 
 //! Write an ASCII representation to the ostream.
 template<int dim>

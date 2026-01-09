@@ -1307,6 +1307,7 @@ namespace ParallelDescriptor {
 
 #ifdef AMREX_USE_MPI
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template<typename T>
@@ -1344,6 +1345,7 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 }
 
 }
+/// \endcond
 
     //! Real sum reduction.
     template <typename T>

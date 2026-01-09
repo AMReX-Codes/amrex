@@ -22,6 +22,7 @@ struct SIMDindex
     N index = 0;
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     // call_f_scalar_handler
@@ -133,6 +134,7 @@ namespace detail {
     }
 
 }
+/// \endcond
 
 template<typename T, typename L>
 void launch (T const& n, L&& f) noexcept
@@ -231,6 +233,7 @@ void ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
     ParallelFor(n, std::forward<L>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <int idim, typename L, int dim>
@@ -260,6 +263,7 @@ void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, In
 }
 
 }
+/// \endcond
 
 template <typename L, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -291,6 +295,7 @@ void For (Gpu::KernelInfo const&, BoxND<dim> const& box, L&& f) noexcept
     For(box, std::forward<L>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <int idim, typename L, int dim>
@@ -323,6 +328,7 @@ void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> cons
 }
 
 }
+/// \endcond
 
 template <typename L, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -354,6 +360,7 @@ void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L&& f) noexcept
     ParallelFor(box, std::forward<L>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <int idim, typename L, typename T, int dim>
@@ -383,6 +390,7 @@ void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, In
 }
 
 }
+/// \endcond
 
 template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -416,6 +424,7 @@ void For (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcep
     For(box, ncomp, std::forward<L>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <int idim, typename L, typename T, int dim>
@@ -448,6 +457,7 @@ void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> cons
 }
 
 }
+/// \endcond
 
 template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -1268,6 +1278,7 @@ void ParallelForRNG (T n, L const& f) noexcept
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <int idim, typename L, int dim>
@@ -1323,6 +1334,7 @@ void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 }
 
 }
+/// \endcond
 
 template <typename L, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR

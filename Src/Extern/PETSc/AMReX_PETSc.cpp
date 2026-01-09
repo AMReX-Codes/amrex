@@ -17,6 +17,8 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+
 struct amrex_KSP
 {
     amrex_KSP () = default;
@@ -49,6 +51,8 @@ struct amrex_Vec
     amrex_Vec& operator= (amrex_Vec &&) = delete;
     Vec a = nullptr;
 };
+
+/// \endcond
 
 std::unique_ptr<PETScABecLap>
 makePetsc (const BoxArray& grids, const DistributionMapping& dmap,

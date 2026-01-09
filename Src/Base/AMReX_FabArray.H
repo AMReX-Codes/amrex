@@ -1733,8 +1733,11 @@ public:
                              int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 };
 
+}
 
 #include <AMReX_FabArrayCommI.H>
+
+namespace amrex {
 
 template <class FAB>
 bool

@@ -253,6 +253,7 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexc
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <typename T>
@@ -279,6 +280,7 @@ T multi_shuffle_down (T x, int offset) noexcept
 }
 
 }
+/// \endcond
 
 template <int warpSize, typename T, typename F>
 struct warpReduce
@@ -501,8 +503,6 @@ void deviceReduceMax_full (T * dest, T source) noexcept
     if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
 }
 
-// \cond CODEGEN
-
 // Compute the block-wide reduction for thread0
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int blockReduceLogicalAnd (int source) noexcept
@@ -598,8 +598,6 @@ void deviceReduceLogicalOr_full (int * dest, int source) noexcept
     int aggregate = blockReduceLogicalOr<BLOCKDIMX>(source);
     if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
-
-// \endcond
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE

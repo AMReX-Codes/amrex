@@ -89,22 +89,6 @@ namespace Gpu {
     inline constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
 
-// ************************************************
-
-    struct ComponentBox {
-        Box box;
-        int ic;
-        int nc;
-    };
-
-    struct GridSize {
-        int numBlocks;
-        int numThreads;
-        int globalBlockId;
-    };
-
-// ************************************************
-
     AMREX_GPU_HOST_DEVICE
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept

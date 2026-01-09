@@ -39,6 +39,7 @@ namespace Type {
 
 #if defined(AMREX_USE_GPU)
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <typename T>
@@ -185,6 +186,7 @@ struct BlockStatus<T, false>
 };
 
 }
+/// \endcond
 
 #if defined(AMREX_USE_SYCL)
 

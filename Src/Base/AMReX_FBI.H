@@ -1,6 +1,8 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
 
+namespace amrex {
+
 template <class FAB>
 struct FabCopyTag {
     FAB const* sfab;
@@ -13,6 +15,7 @@ struct VoidCopyTag {
     Box dbox;
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 #ifdef AMREX_USE_GPU
@@ -340,6 +343,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
 #endif /* AMREX_USE_GPU */
 
 }
+/// \endcond
 
 template <class FAB>
 void
@@ -1474,5 +1478,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
 }
 
 #endif /* AMREX_USE_MPI */
+
+}
 
 #endif

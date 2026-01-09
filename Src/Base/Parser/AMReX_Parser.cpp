@@ -41,6 +41,7 @@ Parser::define (std::string const& func_body)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 Parser::Data::~Data ()
 {
     m_expression.clear();
@@ -56,6 +57,7 @@ Parser::Data::~Data ()
     if (m_device_executor) { The_Arena()->free(m_device_executor); }
 #endif
 }
+/// \endcond
 
 Parser::operator bool () const
 {

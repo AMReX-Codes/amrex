@@ -122,6 +122,8 @@ void hip_execute (rocfft_plan plan, void **in, void **out)
 }
 #endif
 
+/// \cond DOXYGEN_IGNORE
+
 SubHelper::SubHelper (Box const& domain)
 {
 #if (AMREX_SPACEDIM == 1)
@@ -352,5 +354,7 @@ GpuArray<int,3> SubHelper::xyz_order () const
     }
 #endif
 }
+
+/// \endcond
 
 }

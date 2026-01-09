@@ -34,6 +34,7 @@ template<int dim>
 class RealVectND;
 using RealVect = RealVectND<AMREX_SPACEDIM>;
 
+/// \cond DOXYGEN_IGNORE
 namespace ppdetail {
     template <class T, class Enable = void>
     struct ArithmeticOptional_TT : std::false_type {};
@@ -59,6 +60,7 @@ namespace ppdetail {
     template <class T>
     using underlying_type_t = typename ArithmeticOptional_TT<T>::value_type;
 }
+/// \endcond
 
 //
 // ParmParse class implements a simple database for the storage and

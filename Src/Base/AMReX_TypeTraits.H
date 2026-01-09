@@ -150,6 +150,7 @@ namespace amrex
     //
     // https://en.cppreference.com/w/cpp/experimental/is_detected
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template <class...> using Void_t = void;
 
@@ -175,6 +176,7 @@ namespace amrex
             using type = Op<Args...>;
         };
     }
+    /// \endcond
 
     template <template <class...> class Op, class... Args>
     using IsDetected = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::value_t;
@@ -191,10 +193,12 @@ namespace amrex
     ////////////////////////////////////////////////////////////////////////////////
     //                                                           [traits.IsCallable]
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template <typename T, typename... Args>
         using call_result_t = decltype(std::declval<T>()(std::declval<Args>()...));
     }
+    /// \endcond
 
     //! \brief Test if a given type T is callable with arguments of type Args...
     //!
@@ -249,6 +253,7 @@ namespace amrex
     ////////////////////////////////////////////////////////////////////////////////
     //                                                        [traits.IsConvertible]
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template<typename T>
         inline constexpr bool is_convertible(T) {return true;}
@@ -259,6 +264,7 @@ namespace amrex
         template <typename T, typename U>
         struct IsConvertibleImp<T, U, std::enable_if_t<is_convertible<T>(U{})>> : std::true_type {};
     }
+    /// \endcond
 
     //! \brief Test if all the types Args... are automatically convertible to type T
     template <typename T, typename... Args>

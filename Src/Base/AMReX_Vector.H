@@ -214,6 +214,7 @@ namespace amrex
         vec.erase(it, vec.end());
     }
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template <class T, class H>
         std::size_t removeDupDoit (Vector<T>& vec, std::size_t start, std::size_t stop)
@@ -296,6 +297,7 @@ namespace amrex
             return detail::removeDupDoit<T,H>(vec, start+swapPos, start+sentinelPos+1);
         }
     }
+    /// \endcond
 
     template <class T, class H>
     void RemoveDuplicates (Vector<T>& vec) {

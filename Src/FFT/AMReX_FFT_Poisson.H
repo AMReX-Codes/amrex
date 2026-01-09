@@ -7,6 +7,7 @@
 namespace amrex::FFT
 {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
@@ -48,6 +49,7 @@ void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
 }
 
 }
+/// \endcond
 
 /**
  * \ingroup amrex_fft
@@ -357,6 +359,7 @@ void PoissonOpenBC<MF>::solve (MF& soln, MF const& rhs)
 
 #endif /* AMREX_SPACEDIM == 3 */
 
+/// \cond DOXYGEN_IGNORE
 namespace fft_poisson_detail {
     template <typename T>
     struct Tri_Zero {
@@ -399,6 +402,7 @@ namespace fft_poisson_detail {
         int m_size;
     };
 }
+/// \endcond
 
 template <typename MF>
 std::pair<BoxArray,DistributionMapping>
@@ -764,6 +768,7 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <class T>
@@ -835,6 +840,7 @@ void fill_physbc (MF& mf, Geometry const& geom,
 #endif
 }
 }
+/// \endcond
 
 }
 

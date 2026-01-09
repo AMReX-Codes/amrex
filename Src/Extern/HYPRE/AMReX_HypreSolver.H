@@ -443,6 +443,7 @@ HypreSolver<MSS>::fill_global_id ()
 }
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename T>
 void pack_matrix_gpu (Gpu::DeviceVector<HYPRE_Int>& cols_tmp,
@@ -472,6 +473,7 @@ void pack_matrix_gpu (Gpu::DeviceVector<HYPRE_Int>& cols_tmp,
     std::swap(mat_tmp, mat);
 }
 }
+/// \endcond
 #endif
 
 template <int MSS>

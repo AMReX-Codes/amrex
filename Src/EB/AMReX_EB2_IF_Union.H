@@ -15,6 +15,7 @@ namespace amrex::EB2 {
 
 // Union of bodies
 
+/// \cond DOXYGEN_IGNORE
 namespace UIF_detail {
     template <typename F>
     [[nodiscard]] inline Real do_max (const RealArray& p, F&& f) noexcept
@@ -42,6 +43,7 @@ namespace UIF_detail {
         return amrex::max(std::forward<F>(f)(AMREX_D_DECL(x,y,z)), do_max(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
     }
 }
+/// \endcond
 
 template <class... Fs>
 class UnionIF

@@ -255,6 +255,7 @@ template <class...Args,
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IndexTypeND(IndexType::CellIndex, Args...) -> IndexTypeND<sizeof...(Args)+1>;
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     std::ostream& index_type_write (std::ostream& os, const unsigned int& iv, int dim);
     std::istream& index_type_read (std::istream& is, unsigned int& iv, int dim);
@@ -273,6 +274,7 @@ namespace detail {
         return retval;
     }
 }
+/// \endcond
 
 //! Write an IndexTypeND to an ostream in ASCII.
 template<int dim>
