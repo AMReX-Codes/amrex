@@ -100,7 +100,7 @@
 
   - \ref amrex_execution
     This topic covers performance-portable execution and kernel launch
-    interfaces including various amrex::ParallelFor functions.
+    interfaces including various \ref amrex::ParallelFor functions.
 
   - \ref amrex_collectives
     This topic covers performance-portable reductions and scans, including
