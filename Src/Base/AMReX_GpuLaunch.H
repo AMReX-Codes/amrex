@@ -245,18 +245,42 @@ namespace amrex {
 
 #if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with optional OpenMP threading.
+ *
+ * For GPU builds and for CPU builds without OpenMP support, this is the
+ * same as ParalleFor. For CPU builds with OpenMP enabled, this function
+ * uses OpenMP threading.
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelForOMP (T n, L const& f) noexcept
 {
     ParallelFor(n, f);
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with optional OpenMP threading.
+ *
+ * For GPU builds and for CPU builds without OpenMP support, this is the
+ * same as ParalleFor. For CPU builds with OpenMP enabled, this function
+ * uses OpenMP threading.
+ */
 template <typename L>
 void ParallelForOMP (Box const& box, L const& f) noexcept
 {
     ParallelFor(box, f);
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with optional OpenMP threading.
+ *
+ * For GPU builds and for CPU builds without OpenMP support, this is the
+ * same as ParalleFor. For CPU builds with OpenMP enabled, this function
+ * uses OpenMP threading.
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {

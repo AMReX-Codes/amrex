@@ -542,6 +542,8 @@ class AmrMesh;
 class FabArrayBase;
 
 /**
+ * \class amrex::BoxArray
+ * \ingroup amrex_domain_decomposition
  * \brief A collection of Boxes stored in an Array.
  *
  * It is a reference-counted concrete class, not a polymorphic one; i.e. you

@@ -292,6 +292,13 @@ namespace amrex
         return 0; // unreachable
     }
 
+    /**
+     * \class amrex::PODVector
+     * \ingroup amrex_linear_containers
+     * \brief Dynamically allocated vector for trivially copyable data.
+     *
+     * Unlike std::vector, the data in PODVector are uninitialized by default.
+     */
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {

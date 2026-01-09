@@ -15,6 +15,7 @@ template <typename T> class Poisson;
 template <typename T> class PoissonHybrid;
 
 /**
+ * \ingroup amrex_fft
  * \brief Discrete Fourier Transform
  *
  * This class supports Fourier transforms including cosine and sine

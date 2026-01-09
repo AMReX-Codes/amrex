@@ -16,6 +16,7 @@ template <typename T> class Poisson;
 template <typename T> class PoissonHybrid;
 
 /**
+ * \ingroup amrex_fft
  * \brief Parallel Discrete Fourier Transform
  *
  * This class supports Fourier transforms between real and complex data. The

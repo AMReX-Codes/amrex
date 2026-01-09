@@ -24,6 +24,7 @@ namespace amrex {
 // New feature: for non-RZ, sigma can also be a single-component
 // cell-centered multifab.
 
+/// \ingroup amrex_eb
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
 {

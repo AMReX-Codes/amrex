@@ -130,6 +130,8 @@ placementDelete (T* const ptr, Long n)
 }
 
 /**
+ * \class amrex::BaseFab
+ * \ingroup amrex_fab_containers
  * \brief A FortranArrayBox(FAB)-like object
  *
  * BaseFab emulates the Fortran array concept.

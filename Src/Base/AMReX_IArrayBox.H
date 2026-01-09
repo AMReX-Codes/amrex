@@ -22,6 +22,8 @@ public:
 };
 
 /**
+* \class amrex::IArrayBox
+* \ingroup amrex_fab_containers
 * \brief  A Fortran Array of ints
 
 *  iFortran Array Box's (generally called iFAB's) are objects constructed

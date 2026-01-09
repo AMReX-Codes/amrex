@@ -16,6 +16,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T norm (const GpuComplex<T>& a_z) noexcept;
 
 /**
+ * \ingroup amrex_arithmetic_types
  * \brief A host / device complex number type, because std::complex doesn't
  *  work in device code with Cuda yet.
  *

@@ -226,6 +226,7 @@ using ParConstIter = ParConstIter_impl<Particle<T_NStructReal, T_NStructInt>, T_
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParConstIterSoA = ParConstIter_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
+/// \ingroup amrex_particles
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParIter = ParIter_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;

@@ -50,6 +50,7 @@ void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
 }
 
 /**
+ * \ingroup amrex_fft
  * \brief Poisson solver for periodic, Dirichlet & Neumann boundaries using
  * FFT.
  */
@@ -112,6 +113,7 @@ private:
 
 #if (AMREX_SPACEDIM == 3)
 /**
+ * \ingroup amrex_fft
  * \brief Poisson solve for Open BC using FFT.
  */
 template <typename MF = MultiFab>
@@ -137,6 +139,7 @@ private:
 #endif
 
 /**
+ * \ingroup amrex_fft
  * \brief 3D Poisson solver for periodic, Dirichlet & Neumann boundaries in
  * the first two dimensions, and Dirichlet & Neumann in the last
  * dimension. The last dimension could have non-uniform mesh.

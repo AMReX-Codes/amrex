@@ -12,6 +12,7 @@ namespace amrex {
 // del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal, and sigma is cell-centered.
 
+/// \ingroup amrex_eb
 class MLNodeLaplacian
     : public MLNodeLinOp
 {

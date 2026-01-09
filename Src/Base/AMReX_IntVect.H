@@ -42,7 +42,9 @@ int coarsen (int i) noexcept
 }
 
 /**
-* An Integer Vector in dim-Dimensional Space
+* \class amrex::IntVectND
+* \ingroup amrex_index_space
+* \brief An Integer Vector in dim-Dimensional Space
 *
 * The class IntVectND is an implementation of an integer vector in a
 * dim-dimensional space.  It represents a point in a discrete space.
@@ -56,6 +58,7 @@ class IntVectND
 public:
     static_assert(dim >= 1, "The number of dimensions of IntVectND must be positive");
 
+    //! \brief Hash function for IntVectND.
     struct shift_hasher {
         std::size_t operator()(const IntVectND<dim>& vec) const noexcept
         {
@@ -812,6 +815,8 @@ template <class...Args,
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
+//! \brief IntVect is an alias for \ref amrex::IntVectND instantiated with
+//! <tt>AMREX_SPACEDIM</tt>.
 using IntVect = IntVectND<AMREX_SPACEDIM>;
 
 template<int dim>

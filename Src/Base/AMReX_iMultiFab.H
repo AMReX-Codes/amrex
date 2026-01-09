@@ -12,8 +12,10 @@
 
 namespace amrex {
 
-/*
-* A Collection of IArrayBoxes
+/**
+* \class amrex::iMultiFab
+* \ingroup amrex_multifab_containers
+* \brief A Collection of IArrayBoxes
 *
 * The iMultiFab class is publicly derived from the
 * FabArray<int,IArrayBox> class.  It is a collection (stored as an array) of

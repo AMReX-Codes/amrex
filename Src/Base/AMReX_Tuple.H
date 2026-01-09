@@ -85,8 +85,11 @@ struct gpu_tuple_impl<I, Head>
 
 } // detail
 
-// GpuTuple
-
+/**
+ * \class amrex::GpuTuple
+ * \ingroup amrex_linear_containers
+ * \brief GPU-compatible tuple
+ */
 template <typename... Ts>
 class GpuTuple
     : public detail::gpu_tuple_impl<0, Ts...>

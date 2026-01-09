@@ -127,6 +127,7 @@ template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
 class ParIterBase_impl;
 
 /**
+ * \ingroup amrex_particles
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarchy.
  *
@@ -1549,6 +1550,7 @@ private:
     std::vector<std::string> m_soa_idata_names;
 };
 
+/// \ingroup amrex_particles
 template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
 using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 

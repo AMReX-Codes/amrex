@@ -20,7 +20,9 @@ namespace amrex
 {
 
 /**
-    \brief A Real vector in dim-dimensional space
+ * \class RealVectND
+ * \ingroup amrex_real_space
+ * \brief A Real vector in dim-dimensional space
 
     The class RealVectND is an implementation of a Real vector in a
     dim-dimensional space.

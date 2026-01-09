@@ -189,6 +189,8 @@ private:
 };
 
 /**
+* \class amrex::FArrayBox
+* \ingroup amrex_fab_containers
 * \brief  A Fortran Array of REALs
 *
 *  Fortran Array Box's (generally called FAB's) are objects constructed

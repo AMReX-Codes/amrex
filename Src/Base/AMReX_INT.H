@@ -26,8 +26,10 @@ typedef unsigned long amrex_ulong;      // NOLINT(modernize-use-using)
 
 #ifdef __cplusplus
 namespace amrex {
-    using Long = amrex_long;
-    using ULong = amrex_ulong;
+    /// \ingroup amrex_arithmetic_types
+    using Long = amrex_long; ///< Signed integer type guaranteed to be wider than int.
+    /// \ingroup amrex_arithmetic_types
+    using ULong = amrex_ulong; ///< Unsigned integer type guaranteed to be wider than unsigned int.
 }
 #endif
 

@@ -96,6 +96,7 @@ template <typename T> class MLPoissonT;
 template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLLinOpT
 {
@@ -1681,6 +1682,7 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 
 extern template class MLLinOpT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLLinOp = MLLinOpT<MultiFab>;
 
 }

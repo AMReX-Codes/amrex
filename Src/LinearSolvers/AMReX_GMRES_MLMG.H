@@ -10,6 +10,7 @@
 namespace amrex {
 
 /**
+ * \ingroup amrex_solver_gmres
  * \brief Solve using GMRES with multigrid as preconditioner
  *
  * The linear system to solve is provided by MLMG, which is also being used
@@ -262,6 +263,7 @@ void GMRESMLMGT<MF>::solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a
     m_mlmg->decPrintIdentation();
 }
 
+/// \ingroup amrex_solver_gmres
 using GMRESMLMG = GMRESMLMGT<MultiFab>;
 
 }

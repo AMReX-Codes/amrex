@@ -7,8 +7,8 @@
 
 namespace amrex {
 
-// (alpha * a - beta * (del dot b grad)) phi
-
+/// \ingroup amrex_solver_mlmg
+/// (alpha * a - beta * (del dot b grad)) phi
 template <typename MF>
 class MLABecLaplacianT
     : public MLCellABecLapT<MF>
@@ -1470,6 +1470,7 @@ MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 
 extern template class MLABecLaplacianT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLABecLaplacian = MLABecLaplacianT<MultiFab>;
 
 }

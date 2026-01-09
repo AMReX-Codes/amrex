@@ -24,6 +24,7 @@ class AmrInSituBridge;
 #endif
 
 /**
+* \ingroup amrex_amrlevel
 * \brief Manage hierarchy of levels for time-dependent AMR computations.
 *
 * The Amr class is designed to manage parts of the computation  which do
@@ -255,12 +256,14 @@ public:
                                           const Real* est_work,
                                           const int*  cycle_max);
 
+    /// \ingroup amrex_io
     //! Write the plot file to be used for visualization.
     virtual void writePlotFile ();
     int stepOfLastPlotFile () const noexcept {return last_plotfile;}
     //! Write the small plot file to be used for visualization.
     virtual void writeSmallPlotFile ();
     int stepOfLastSmallPlotFile () const noexcept {return last_smallplotfile;}
+    /// \ingroup amrex_io
     //! Write current state into a chk* file.
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const noexcept {return last_checkpoint;}

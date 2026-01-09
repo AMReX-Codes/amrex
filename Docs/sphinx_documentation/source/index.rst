@@ -8,7 +8,9 @@ massively parallel, block-structured adaptive mesh refinement (AMR)
 applications. AMReX is freely available `on Github
 <https://github.com/AMReX-Codes/amrex>`_.
 
-AMReX is developed at LBNL.
+AMReX is a project of the `High Performance Software Foundation (HPSF)
+<https://hpsf.io/>`_, which is part of the nonprofit `Linux Foundation
+<https://www.linuxfoundation.org/>`_.
 
 All of AMReX's development is done in the GitHub repository under the
 development branch; anyone can see the latest updates. A monthly release is tagged at the beginning

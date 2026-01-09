@@ -11,6 +11,7 @@ namespace amrex {
 // Norm used to evaluate the target convergece criteria
 AMREX_ENUM(MLMGNormType, greater, bnorm, resnorm);
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLMGT
 {
@@ -2094,6 +2095,7 @@ MLMGT<MF>::decPrintIdentation ()
 
 extern template class MLMGT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLMG = MLMGT<MultiFab>;
 
 }

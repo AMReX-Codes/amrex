@@ -24,6 +24,8 @@ template <typename T> class LayoutData;
 class FabArrayBase;
 
 /**
+* \class amrex::DistributionMapping
+* \ingroup amrex_domain_decomposition
 * \brief Calculates the distribution of FABs to MPI processes.
 *
 *  This class calculates the distribution of FABs to MPI processes in a
