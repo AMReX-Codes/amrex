@@ -528,6 +528,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
     RoundRobinDoIt(static_cast<int>(wgts.size()), nprocs, &LIpairV, sort);
 }
 
+/// \cond DOXYGEN_IGNORE
 class WeightedBox
 {
     int  m_boxid;
@@ -542,7 +543,9 @@ public:
         return weight() > rhs.weight();
     }
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct WeightedBoxList
 {
     Vector<WeightedBox>* m_lb     = nullptr;
@@ -575,6 +578,7 @@ struct WeightedBoxList
         return weight() > rhs.weight();
     }
 };
+/// \endcond
 
 namespace {
 void

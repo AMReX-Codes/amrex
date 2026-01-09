@@ -13,6 +13,7 @@ namespace amrex {
 
 namespace detail {
 
+    /// \cond DOXYGEN_IGNORE
     enum ReduceOp : int {
         max = 0,
         min,
@@ -20,6 +21,7 @@ namespace detail {
         lor,
         land
     };
+    /// \endcond
 
 #ifdef BL_USE_MPI
 

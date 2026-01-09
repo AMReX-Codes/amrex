@@ -1426,6 +1426,8 @@ namespace detail
     }
 }
 
+/// \cond DOXYGEN_IGNORE
+
 struct Swap01
 {
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
@@ -1522,6 +1524,9 @@ struct RotateBwd
     }
 };
 
+/// \endcond
+
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     struct SubHelper
@@ -1598,6 +1603,7 @@ namespace detail
 #endif
     };
 }
+/// \endcond
 
 }
 

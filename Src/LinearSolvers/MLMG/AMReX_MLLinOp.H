@@ -620,6 +620,7 @@ protected:
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
     MPI_Comm m_bottom_comm = MPI_COMM_NULL;
+    /// \cond DOXYGEN_IGNORE
     struct CommContainer {
         MPI_Comm comm;
         CommContainer (MPI_Comm m) noexcept : comm(m) {}
@@ -633,6 +634,7 @@ protected:
 #endif
         }
     };
+    /// \endcond
     std::unique_ptr<CommContainer> m_raii_comm;
 
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};

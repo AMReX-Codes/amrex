@@ -112,6 +112,7 @@ private:
     template <int argc, typename F>
     void register_user_fn (std::string const& name, F fh, F fd);
 
+    /// \cond DOXYGEN_IGNORE
     struct Data {
         std::string m_expression;
         struct amrex_parser* m_parser = nullptr;
@@ -131,6 +132,7 @@ private:
         Data& operator= (Data const&) = delete;
         Data& operator= (Data &&) = delete;
     };
+    /// \endcond
 
     std::shared_ptr<Data> m_data;
     std::map<std::string,int> m_ufs;

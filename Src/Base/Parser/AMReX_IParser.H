@@ -84,6 +84,7 @@ public:
 
 private:
 
+    /// \cond DOXYGEN_IGNORE
     struct Data {
         std::string m_expression;
         struct amrex_iparser* m_iparser = nullptr;
@@ -102,6 +103,7 @@ private:
         Data& operator= (Data const&) = delete;
         Data& operator= (Data &&) = delete;
     };
+    /// \endcond
 
     std::shared_ptr<Data> m_data;
 };

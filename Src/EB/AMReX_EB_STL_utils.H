@@ -18,6 +18,8 @@ namespace amrex
 class STLtools
 {
 public:
+
+    /// \cond DOXYGEN_IGNORE
     struct Triangle {
         XDim3 v1, v2, v3;
 
@@ -33,7 +35,9 @@ public:
             return std::minmax({(&v1.x)[d], (&v2.x)[d], (&v3.x)[d]});
         }
     };
+    /// \endcond
 
+    /// \cond DOXYGEN_IGNORE
     template <int M, int N>
     struct BVHNodeT
     {
@@ -49,6 +53,7 @@ public:
         std::int8_t ntriangles = 0;
         std::int8_t nchildren = 0;
     };
+    /// \endcond
 
     static constexpr int m_bvh_max_size = 4; // max # of triangles in a leaf node
     static constexpr int m_bvh_max_splits = 4; // max # of children

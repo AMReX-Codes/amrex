@@ -341,8 +341,10 @@ namespace Reduce::detail {
                      t));
     }
 
+    /// \cond DOXYGEN_IGNORE
     struct iterate_box {};
     struct iterate_box_comp {};
+    /// \endcond
 
     template <typename I, typename F, typename T, typename... Ps,
               std::enable_if_t<std::is_same<iterate_box,I>::value,int> = 0>

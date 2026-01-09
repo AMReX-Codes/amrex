@@ -96,6 +96,7 @@ box_read (std::istream& is,
 
 } // namespace detail
 
+/// \cond DOXYGEN_IGNORE
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
@@ -115,6 +116,7 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
                  p[1+AMREX_SPACEDIM*2] = typ[1],
                  p[2+AMREX_SPACEDIM*2] = typ[2]);
 }
+/// \endcond
 
 void
 AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)

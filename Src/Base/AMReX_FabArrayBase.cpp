@@ -2801,6 +2801,7 @@ FabArrayBase::getNextCommMetaDataId ()
     return comm_meta_data_id++;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     SingleChunkArena::SingleChunkArena (Arena* a_arena, std::size_t a_size)
@@ -2848,6 +2849,7 @@ namespace detail {
         return m_dallocator.arena()->isPinned();
     }
 }
+/// \endcond
 
 int nComp (FabArrayBase const& fa)
 {

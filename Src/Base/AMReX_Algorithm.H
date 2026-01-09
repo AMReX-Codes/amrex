@@ -248,9 +248,11 @@ namespace amrex
 
 namespace detail {
 
+/// \cond DOXYGEN_IGNORE
 struct clzll_tag {};
 struct clzl_tag : clzll_tag {};
 struct clz_tag : clzl_tag {};
+/// \endcond
 
 // in gcc and clang, there are three versions of __builtin_clz taking unsigned int,
 // unsigned long, and unsigned long long inputs. Because the sizes of these data types

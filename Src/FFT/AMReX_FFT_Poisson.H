@@ -357,6 +357,7 @@ void PoissonOpenBC<MF>::solve (MF& soln, MF const& rhs)
 
 #endif /* AMREX_SPACEDIM == 3 */
 
+/// \cond DOXYGEN_IGNORE
 namespace fft_poisson_detail {
     template <typename T>
     struct Tri_Zero {
@@ -399,6 +400,7 @@ namespace fft_poisson_detail {
         int m_size;
     };
 }
+/// \endcond
 
 template <typename MF>
 std::pair<BoxArray,DistributionMapping>

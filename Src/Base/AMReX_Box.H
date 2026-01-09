@@ -1232,6 +1232,7 @@ BoxND<dim>::shiftHalf (const IntVectND<dim>& iv) noexcept
     return *this;
 }
 
+/// \cond DOXYGEN_IGNORE
 class BoxCommHelper
 {
 public:
@@ -1251,6 +1252,7 @@ private:
     int* p;
     std::vector<int> v;
 };
+/// \endcond
 
 class BoxConverter { // NOLINT
 public:

@@ -150,6 +150,7 @@ namespace amrex
     //
     // https://en.cppreference.com/w/cpp/experimental/is_detected
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template <class...> using Void_t = void;
 
@@ -175,6 +176,7 @@ namespace amrex
             using type = Op<Args...>;
         };
     }
+    /// \endcond
 
     template <template <class...> class Op, class... Args>
     using IsDetected = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::value_t;

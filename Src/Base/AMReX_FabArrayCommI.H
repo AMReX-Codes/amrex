@@ -2,6 +2,8 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
+namespace amrex {
+
 template <class FAB>
 template <typename BUF, class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
 void
@@ -1311,4 +1313,6 @@ FillBoundary (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::
         nghost.push_back(x->nGrowVect());
     }
     FillBoundary(mf, scomp, ncomp, nghost, period);
+}
+
 }
