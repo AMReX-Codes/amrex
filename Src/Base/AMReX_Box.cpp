@@ -10,6 +10,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 //
@@ -95,6 +96,7 @@ box_read (std::istream& is,
 }
 
 } // namespace detail
+/// \endcond
 
 /// \cond DOXYGEN_IGNORE
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)

@@ -30,9 +30,11 @@ namespace {
     bool initialized = false;
     ParmParse::Table g_table;
     std::vector<std::set<std::string>> g_parser_recursive_symbols(1);
+    /// \cond DOXYGEN_IGNORE
     namespace pp_detail {
         int verbose = -1;
     }
+    /// \endcond
 }
 
 std::string const ParmParse::FileKeyword = "FILE";

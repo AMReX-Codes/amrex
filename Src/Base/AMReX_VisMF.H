@@ -528,6 +528,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename FAB>
 void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
@@ -545,6 +546,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
     fab.readFrom(ifs);
 }
 }
+/// \endcond
 
 /**
  * \brief Read `iMultiFab/FabArray<IArrayBox>`

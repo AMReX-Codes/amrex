@@ -430,6 +430,7 @@ GpuComplex<T> pow (const GpuComplex<T>& a_z, const T& a_y) noexcept
     return amrex::polar<T>(std::exp(a_y * t.real()), a_y * t.imag());
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename T>
@@ -449,6 +450,7 @@ namespace detail
         return y;
     }
 }
+/// \endcond
 
 /**
  * \brief Raise a complex number to an integer power.

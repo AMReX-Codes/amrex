@@ -8,6 +8,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
     // call_f_intvect_inner
@@ -118,6 +119,7 @@ namespace loop_detail {
         call_f_intvect_inner_cpu(std::make_index_sequence<dim>(), f, iv, n);
     }
 }
+/// \endcond
 
 template <class F>
 AMREX_GPU_HOST_DEVICE
@@ -171,6 +173,7 @@ void LoopConcurrent (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
     }}}}
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -200,6 +203,7 @@ void Loop_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, I
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
@@ -212,6 +216,7 @@ void Loop (BoxND<dim> const& bx, F const& f) noexcept
     loop_detail::Loop_impND<dim>(f, lo, hi, iv);
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -241,6 +246,7 @@ void Loop_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, I
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
@@ -255,6 +261,7 @@ void Loop (BoxND<dim> const& bx, int ncomp, F const& f) noexcept
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -287,6 +294,7 @@ void LoopConcurrent_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
@@ -299,6 +307,7 @@ void LoopConcurrent (BoxND<dim> const& bx, F const& f) noexcept
     loop_detail::LoopConcurrent_impND<dim>(f, lo, hi, iv);
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -331,6 +340,7 @@ void LoopConcurrent_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
@@ -398,6 +408,7 @@ void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
     }}}}
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -427,6 +438,7 @@ void LoopOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const 
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -438,6 +450,7 @@ void LoopOnCpu (BoxND<dim> const& bx, F const& f) noexcept
     loop_detail::LoopOnCpu_impND<dim>(f, lo, hi, iv);
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -467,6 +480,7 @@ void LoopOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const 
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -480,6 +494,7 @@ void LoopOnCpu (BoxND<dim> const& bx, int ncomp, F const& f) noexcept
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -512,6 +527,7 @@ void LoopConcurrentOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<d
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -523,6 +539,7 @@ void LoopConcurrentOnCpu (BoxND<dim> const& bx, F const& f) noexcept
     loop_detail::LoopConcurrentOnCpu_impND<dim>(f, lo, hi, iv);
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace loop_detail {
 
 template <int idim, typename L, int dim>
@@ -555,6 +572,7 @@ void LoopConcurrentOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<d
 }
 
 }
+/// \endcond
 
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR

@@ -235,11 +235,13 @@ namespace amrex
     //! Fill random numbers from normal distribution
     void FillRandomNormal (Real* p, Long N, Real mean, Real stddev);
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         inline ULong DefaultGpuSeed () {
             return ParallelDescriptor::MyProc()*1234567ULL + 12345ULL;
         }
     }
+    /// \endcond
 
     /** \brief Set the seed of the random number generator.
     *

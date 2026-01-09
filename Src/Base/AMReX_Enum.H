@@ -17,6 +17,7 @@ using amrex_enum_traits = decltype(amrex_get_enum_traits(std::declval<T>()));
 
 namespace amrex
 {
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename T, typename ET = amrex_enum_traits<T>,
@@ -59,6 +60,7 @@ namespace detail
         return r;
     }
 }  // namespace detail
+/// \endcond
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>

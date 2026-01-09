@@ -9,6 +9,7 @@
 namespace amrex
 {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     // SelectActualNeighbors
@@ -97,6 +98,7 @@ namespace detail
         return check_pair(src_tile, i, j, type, ghost_i, ghost_pid);
     }
 }
+/// \endcond
 
 template <class ParticleType>
 struct Neighbors

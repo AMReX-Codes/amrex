@@ -86,10 +86,13 @@ struct Info
 };
 
 #ifdef AMREX_USE_HIP
+/// \cond DOXYGEN_IGNORE
 namespace detail { void hip_execute (rocfft_plan plan, void **in, void **out); }
+/// \endcond
 #endif
 
 #ifdef AMREX_USE_SYCL
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
 template <typename T, Direction direction, typename P, typename TI, typename TO>
@@ -123,6 +126,7 @@ void sycl_execute (P* plan, TI* in, TO* out)
     amrex::The_Arena()->free(buffer);
 }
 }
+/// \endcond
 #endif
 
 template <typename T>
@@ -1202,6 +1206,7 @@ using Key = std::tuple<IntVectND<3>,int,Direction,Kind>;
 using PlanD = typename Plan<double>::VendorPlan;
 using PlanF = typename Plan<float>::VendorPlan;
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     PlanD* get_vendor_plan_d (Key const& key);
     PlanF* get_vendor_plan_f (Key const& key);
@@ -1209,6 +1214,7 @@ namespace detail {
     void add_vendor_plan_d (Key const& key, PlanD plan);
     void add_vendor_plan_f (Key const& key, PlanF plan);
 }
+/// \endcond
 
 template <typename T>
 template <Direction D, int M>
@@ -1370,6 +1376,7 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     DistributionMapping make_iota_distromap (Long n);
@@ -1425,6 +1432,7 @@ namespace detail
         return std::unique_ptr<char,DataDeleter>((char*)p, DataDeleter{The_Arena()});
     }
 }
+/// \endcond
 
 /// \cond DOXYGEN_IGNORE
 

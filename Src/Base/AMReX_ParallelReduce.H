@@ -11,9 +11,9 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
-    /// \cond DOXYGEN_IGNORE
     enum ReduceOp : int {
         max = 0,
         min,
@@ -21,7 +21,6 @@ namespace detail {
         lor,
         land
     };
-    /// \endcond
 
 #ifdef BL_USE_MPI
 
@@ -99,6 +98,7 @@ namespace detail {
     template<typename T> void Gather (const T& /*v*/, T * /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
 #endif
 }
+/// \endcond
 
 namespace ParallelAllGather {
     /// \ingroup amrex_mpi

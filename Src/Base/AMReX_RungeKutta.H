@@ -53,6 +53,7 @@ struct PostStageNoOp {
     std::enable_if_t<IsFabArray<MF>::value> operator() (int, MF&) const {}
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 //! Unew = Uold + dUdt * dt
 template <typename MF>
@@ -142,6 +143,7 @@ void rk4_update_4 (MF& Unew, MF const& Uold, Array<MF,4> const& rkk, Real dt6)
     Gpu::streamSynchronize();
 }
 }
+/// \endcond
 
 /**
  * \brief Time stepping with RK2

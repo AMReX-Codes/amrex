@@ -200,8 +200,8 @@ namespace amrex
     // For gcc, there are extra 32 bytes for each map node.
     // For others, this number may be different.
     static const Long gcc_map_node_extra_bytes = 32L;
-    template <typename T> Long bytesOf (const std::vector<T>& v);
-    template <typename Key, typename T, class Compare> Long bytesOf (const std::map<Key,T,Compare>& m);
+    template <typename T> amrex::Long bytesOf (const std::vector<T>& v);
+    template <typename Key, typename T, class Compare> amrex::Long bytesOf (const std::map<Key,T,Compare>& m);
 
     void BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm);
 
@@ -348,7 +348,6 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 */
 #define BL_IGNORE_MAX 100000
 
-// \cond CODEGEN
 template <typename T>
 amrex::Long
 amrex::bytesOf (const std::vector<T>& v)
@@ -362,7 +361,6 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
-// \endcond
 
 extern "C" {
     void* amrex_malloc (std::size_t size);
@@ -412,7 +410,7 @@ amrex::hash_vector (const Vector<T> & vec, uint64_t seed) noexcept
     return seed;
 }
 
-
+/// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
 
     // Determine if type has .begin() and .end() member functions
@@ -458,6 +456,7 @@ namespace amrex::detail {
         os << symbol_end;
     }
 }
+/// \endcond
 
 template <class T>
 std::ostream& amrex::ToString(std::ostream& os, const T& t, const char* symbol_begin,

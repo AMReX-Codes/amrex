@@ -1,6 +1,7 @@
 #include <AMReX_RealVect.H>
 #include <iostream>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
 
 std::ostream&
@@ -58,3 +59,4 @@ real_vector_read (std::istream& is, Real* p, int dim)
 }
 
 } //namespace amrex::detail
+/// \endcond

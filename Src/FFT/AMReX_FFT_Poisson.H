@@ -7,6 +7,7 @@
 namespace amrex::FFT
 {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
@@ -48,6 +49,7 @@ void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
 }
 
 }
+/// \endcond
 
 /**
  * \ingroup amrex_fft
@@ -766,6 +768,7 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <class T>
@@ -837,6 +840,7 @@ void fill_physbc (MF& mf, Geometry const& geom,
 #endif
 }
 }
+/// \endcond
 
 }
 

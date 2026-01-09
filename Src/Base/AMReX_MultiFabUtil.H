@@ -1196,6 +1196,7 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename Op, typename T, typename F>
 void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box_no,
@@ -1280,6 +1281,7 @@ void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box
 #endif
 }
 }
+/// \endcond
 
 template <typename Op, typename T, typename FAB, typename F,
           std::enable_if_t<IsBaseFab<FAB>::value
@@ -1316,6 +1318,7 @@ ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F co
     return r;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename Op, typename FA, typename F>
 FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
@@ -1352,6 +1355,7 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
     return tmpfa;
 }
 }
+/// \endcond
 
 template <typename Op, typename FA, typename F,
           std::enable_if_t<IsMultiFabLike_v<FA>

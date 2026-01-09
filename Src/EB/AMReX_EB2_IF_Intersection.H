@@ -15,6 +15,7 @@ namespace amrex::EB2 {
 
 // Intersection of bodies
 
+/// \cond DOXYGEN_IGNORE
 namespace IIF_detail {
     template <typename F>
     [[nodiscard]] inline Real do_min (const RealArray& p, F&& f) noexcept
@@ -42,6 +43,7 @@ namespace IIF_detail {
         return amrex::min(std::forward<F>(f)(AMREX_D_DECL(x,y,z)), do_min(AMREX_D_DECL(x,y,z), std::forward<Fs>(fs)...));
     }
 }
+/// \endcond
 
 template <class... Fs>
 class IntersectionIF

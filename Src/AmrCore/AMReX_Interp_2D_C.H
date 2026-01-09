@@ -28,11 +28,13 @@ pcinterp_interp (Box const& bx,
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace interp_detail {
     constexpr int ix   = 0;
     constexpr int iy   = 1;
     constexpr int ixy  = 2;
 }
+/// \endcond
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void

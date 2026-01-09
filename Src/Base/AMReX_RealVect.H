@@ -1138,6 +1138,7 @@ RealVectND<dim> scale (const RealVectND<dim>& p, Real s) noexcept {
     return retval;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     std::ostream& real_vector_write (std::ostream& os, const Real* p, int dim);
     std::istream& real_vector_read (std::istream& is, Real* p, int dim);
@@ -1167,6 +1168,7 @@ namespace detail {
         return retval;
     }
 }
+/// \endcond
 
 template<int dim>
 std::ostream&

@@ -1108,6 +1108,7 @@ Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     std::ostream& int_vector_write (std::ostream& os, const int* iv, int dim);
     std::istream& int_vector_read (std::istream& is, int* iv, int dim);
@@ -1143,6 +1144,7 @@ namespace detail {
         return (0 + ... + dims);
     }
 }
+/// \endcond
 
 template<int dim>
 std::ostream&

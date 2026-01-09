@@ -9,6 +9,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace particle_detail {
 
 template <typename F, typename T, typename T_ParticleType, template<class, int, int> class PTDType, int NAR, int NAI>
@@ -37,6 +38,7 @@ auto call_f (F const& f,
     }
 }
 }
+/// \endcond
 
 template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void

@@ -4,6 +4,7 @@
 
 #include <AMReX_FArrayBox.H>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::nodelap_detail {
 
 #ifdef AMREX_USE_HYPRE
@@ -57,6 +58,7 @@ namespace amrex::nodelap_detail {
     constexpr int crse_fine_node = 1;
     constexpr int fine_node = 2;
 }
+/// \endcond
 
 namespace amrex {
 

@@ -161,6 +161,7 @@ struct TypeArray {
     static constexpr std::size_t size () noexcept { return N; }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
     template <class T, std::size_t N>
@@ -203,6 +204,7 @@ namespace detail {
         return TypeList<TParam<Args...>>{};
     }
 }
+/// \endcond
 
 /**
  * \brief Return the first template argument with the later arguments applied to it.

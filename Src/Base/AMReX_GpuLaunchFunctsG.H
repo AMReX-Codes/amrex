@@ -4,6 +4,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     // call_f_scalar_handler
@@ -143,6 +144,7 @@ namespace detail {
     }
 
 }
+/// \endcond
 
 #ifdef AMREX_USE_SYCL
 

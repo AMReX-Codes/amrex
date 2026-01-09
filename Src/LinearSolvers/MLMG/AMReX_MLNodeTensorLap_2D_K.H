@@ -4,6 +4,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace mlndts_detail {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -27,6 +28,7 @@ namespace mlndts_detail {
                 ts_interp_line_x(crse,ic  ,jc+1)) * Real(0.25);
     }
 }
+/// \endcond
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
