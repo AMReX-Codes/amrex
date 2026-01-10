@@ -54,6 +54,7 @@ struct IParserExecutor
 #endif
 };
 
+/// \ingroup amrex_utilities
 class IParser
 {
 public:

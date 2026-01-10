@@ -15,7 +15,9 @@
 
 namespace amrex::EB2 {
 
+/// \cond DOXYGEN_IGNORE
 extern AMREX_EXPORT int max_grid_size;
+/// \endcond
 
 void useEB2 (bool);
 

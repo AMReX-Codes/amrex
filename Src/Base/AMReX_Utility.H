@@ -199,7 +199,9 @@ namespace amrex
     //
     // For gcc, there are extra 32 bytes for each map node.
     // For others, this number may be different.
+    /// \cond DOXYGEN_IGNORE
     static const Long gcc_map_node_extra_bytes = 32L;
+    /// \endcond
     template <typename T> amrex::Long bytesOf (const std::vector<T>& v);
     template <typename Key, typename T, class Compare> amrex::Long bytesOf (const std::map<Key,T,Compare>& m);
 

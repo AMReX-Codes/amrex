@@ -24,19 +24,19 @@
 #include <iomanip>
 
 namespace {
-int flag_verbose_mapper;
-}
-
-namespace amrex {
+    int flag_verbose_mapper;
 
     bool initialized = false;
     //
     // Set default values for these in Initialize()!!!
     //
-    int    verbose;
-    int    sfc_threshold;
-    Real   max_efficiency;
-    int    node_size;
+    int verbose;
+    int sfc_threshold;
+    int node_size;
+    amrex::Real max_efficiency;
+}
+
+namespace amrex {
 
 // We default to SFC.
 DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapping::SFC;

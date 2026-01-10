@@ -288,6 +288,8 @@ template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept;
 
+/// \cond DOXYGEN_IGNORE
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint8_t x) noexcept
 {
@@ -324,6 +326,8 @@ int clz_generic (std::uint64_t x) noexcept
     auto lower = std::uint32_t(x & 0xFFFFFFFF);
     return upper ? clz(upper) : 32 + clz(lower);
 }
+
+/// \endcond
 
 #if defined AMREX_USE_CUDA
 

@@ -10,10 +10,10 @@ namespace amrex
 
 namespace openbc {
 
+    /// \cond DOXYGEN_IGNORE
+
     static constexpr int M = 7; // highest order of moments
     static constexpr int P = 3;
-
-    /// \cond DOXYGEN_IGNORE
 
     struct Moments
     {

@@ -4,6 +4,7 @@
 
 #include <map>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::FFT::detail
 {
 
@@ -121,8 +122,6 @@ void hip_execute (rocfft_plan plan, void **in, void **out)
     AMREX_ROCFFT_SAFE_CALL(rocfft_execution_info_destroy(execinfo));
 }
 #endif
-
-/// \cond DOXYGEN_IGNORE
 
 SubHelper::SubHelper (Box const& domain)
 {
@@ -355,6 +354,5 @@ GpuArray<int,3> SubHelper::xyz_order () const
 #endif
 }
 
-/// \endcond
-
 }
+/// \endcond

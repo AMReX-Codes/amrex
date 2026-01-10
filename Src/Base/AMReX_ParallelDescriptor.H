@@ -107,7 +107,9 @@ while ( false )
     void Initialize ();
     void Finalize ();
 
+    /// \cond DOXYGEN_IGNORE
     extern AMREX_EXPORT bool use_gpu_aware_mpi;
+    /// \endcond
     inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
@@ -191,6 +193,7 @@ while ( false )
         [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
         [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
+        /// \cond DOXYGEN_IGNORE
         int    m_numTeams;
         int    m_size;
         int    m_color;
@@ -200,44 +203,50 @@ while ( false )
 
         MPI_Comm  m_team_comm;
         MPI_Comm  m_lead_comm;
+        /// \endcond
     };
 
+    /// \cond DOXYGEN_IGNORE
     extern AMREX_EXPORT ProcessTeam m_Team;
-
     extern AMREX_EXPORT int m_MinTag, m_MaxTag;
+    extern AMREX_EXPORT MPI_Comm m_comm;
+    extern AMREX_EXPORT int m_nprocs_per_node;
+    extern AMREX_EXPORT int m_rank_in_node;
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    extern AMREX_EXPORT int m_rank_in_processor;
+    extern AMREX_EXPORT const int ioProcessor;
+    /// \endcond
+
     inline int MinTag () noexcept { return m_MinTag; }
     inline int MaxTag () noexcept { return m_MaxTag; }
 
-    extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
-    extern AMREX_EXPORT int m_nprocs_per_node;
     //! Return the number of MPI ranks per node as defined by
     //! MPI_COMM_TYPE_SHARED. This might be the same or different from
     //! NProcsPerProcessor based on MPI_Get_processor_name.
     inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
 
-    extern AMREX_EXPORT int m_rank_in_node;
     //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
     //! might be the same or different from MyRankInProcessor based on
     //! MPI_Get_processor_name.
     inline int MyRankInNode () noexcept { return m_rank_in_node; }
 
-    extern AMREX_EXPORT int m_nprocs_per_processor;
     //! Return the number of MPI ranks per node as defined by
     //! MPI_Get_processor_name. This might be the same or different from
     //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
     inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
 
-    extern AMREX_EXPORT int m_rank_in_processor;
     //! Return the rank in a node defined by MPI_Get_processor_name. This
     //! might be the same or different from MyRankInNode based on
     //! MPI_COMM_TYPE_SHARED.
     inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
 
 #ifdef AMREX_USE_MPI
-    extern Vector<MPI_Datatype*> m_mpi_types;
-    extern Vector<MPI_Op*> m_mpi_ops;
+    /// \cond DOXYGEN_IGNORE
+    extern AMREX_EXPORT Vector<MPI_Datatype*> m_mpi_types;
+    extern AMREX_EXPORT Vector<MPI_Op*> m_mpi_ops;
+    /// \endcond
 #endif
 
     /// \ingroup amrex_mpi
@@ -266,7 +275,6 @@ while ( false )
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
     * This rank is usually used to write to stdout.
     */
-    extern AMREX_EXPORT const int ioProcessor;
     inline int
     IOProcessorNumber () noexcept
     {

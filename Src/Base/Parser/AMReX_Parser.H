@@ -66,6 +66,7 @@ struct ParserExecutor
 #endif
 };
 
+/// \ingroup amrex_utilities
 class Parser
 {
 public:

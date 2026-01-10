@@ -20,9 +20,14 @@ namespace amrex::EB2 {
 
 AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
+/// \cond DOXYGEN_IGNORE
 AMREX_EXPORT int max_grid_size = 64;
-AMREX_EXPORT bool extend_domain_face = true;
-AMREX_EXPORT int num_coarsen_opt = 0;
+/// \endcond
+
+namespace {
+    bool extend_domain_face = true;
+    int num_coarsen_opt = 0;
+}
 
 void Initialize ()
 {
