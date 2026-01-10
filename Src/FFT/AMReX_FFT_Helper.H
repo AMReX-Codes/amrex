@@ -1202,11 +1202,12 @@ struct Plan
     }
 };
 
+/// \cond DOXYGEN_IGNORE
+
 using Key = std::tuple<IntVectND<3>,int,Direction,Kind>;
 using PlanD = typename Plan<double>::VendorPlan;
 using PlanF = typename Plan<float>::VendorPlan;
 
-/// \cond DOXYGEN_IGNORE
 namespace detail {
     PlanD* get_vendor_plan_d (Key const& key);
     PlanF* get_vendor_plan_f (Key const& key);

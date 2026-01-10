@@ -277,7 +277,7 @@
  *
  * \brief GMRES solver
  *
- * This topics is on the GMRES solver, which can also use amrex::MLMG as a
+ * This topic is on the GMRES solver, which can also use amrex::MLMG as a
  * preconditioner.
  *
  * Central types include:
@@ -338,4 +338,29 @@
  * - amrex::ParticleContainer::Checkpoint
  * - amrex::Amr::writePlotFile
  * - amrex::Amr::checkPoint
+ */
+
+/**
+ * \defgroup amrex_utilities Utilities
+ *
+ * \brief General purpose utilities
+ *
+ * This topic covers general purpose utilities used throughout AMReX and
+ * AMReX applications.
+ *
+ * Central capabilities include:
+ * - \ref amrex::ParmParse
+ * - \ref amrex::Parser
+ * - \ref amrex::IParser
+ * - \ref AMREX_ENUM
+ * - \ref amrex::Random
+ * - \ref amrex::Random_int
+ * - \ref amrex::Random_long
+ * - \ref amrex::RandomNormal
+ * - \ref amrex::RandomPoisson
+ * - \ref amrex::RandomGamma
+ * - \ref amrex::FillRandom
+ * - \ref amrex::FillRandomNormal
+ * - \ref amrex::InitRandom
+ * - \ref amrex::ResetRandomSeed
  */

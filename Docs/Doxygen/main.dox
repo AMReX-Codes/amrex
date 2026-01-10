@@ -79,57 +79,77 @@
     This topic covers fundamental scalar arithmetic types used
     throughout AMReX, including \ref amrex::Real, \ref amrex::Long, and \ref
     amrex::GpuComplex.
+  \par
 
   - \ref amrex_index_space
     This topic covers integer index space types, including \ref
     amrex::IndexType, \ref amrex::IntVect and \ref amrex::Box, as well as
     operations such as \ref amrex::refine and \ref amrex::coarsen.
+  \par
 
   - \ref amrex_real_space
     This topic covers real space coordinate types and operations, including
     \ref amrex::RealVect, \ref amrex::RealBox, \ref amrex::Geometry.
+  \par
 
   - \ref amrex_domain_decomposition
     This topic covers domain decomposition and distribution, including \ref
     amrex::BoxArray and \ref amrex::DistributionMapping.
+  \par
 
   - \ref amrex_data_containers
     This topic covers AMReX data containers, from linear containers such as
     \ref amrex::Vector to box-based and distributed field data containers
     such as \ref amrex::MultiFab.
+  \par
 
   - \ref amrex_execution
     This topic covers performance-portable execution and kernel launch
     interfaces including various \ref amrex::ParallelFor functions.
+  \par
 
   - \ref amrex_collectives
     This topic covers performance-portable reductions and scans, including
-    \ref amrex::Reduce::Sum, \ref amrex::Scan::PrefixSum.
+    \ref amrex::Reduce::Sum and \ref amrex::Scan::PrefixSum.
+  \par
 
   - \ref amrex_mpi
     This topic covers MPI based communication capabilities in AMReX.
+  \par
 
   - \ref amrex_amr
-    This topic covers adaptive mesh refine (AMR) interfaces, including both
+    This topic covers adaptive mesh refinement (AMR) interfaces, including both
     \ref amrex_amrcore and \ref amrex_amrlevel approaches.
+  \par
 
   - \ref amrex_linear_solvers
     This topic covers linear system solver interfaces in AMReX, including
     \ref amrex::MLMG and \ref amrex::GMRES.
+  \par
 
   - \ref amrex_particles
     This topic covers particle data structures in AMReX.
+  \par
 
   - \ref amrex_eb
     This topic covers the embedded boundary capabilities in AMReX, including
     geometry generation, EB data structures and solvers
+  \par
 
   - \ref amrex_fft
     This topic covers parallel Fast Fourier Transform (FFT) interfaces in
     AMReX, including FFT operations and FFT-based solvers.
+  \par
 
   - \ref amrex_io
     This topic covers I/O interfaces in AMReX.
+  \par
+
+  - \ref amrex_utilities
+    This topic covers utility interfaces, including runtime parameters (\ref
+    amrex::ParmParse), math expression parsing (\ref amrex::Parser), and
+    random number generation (\ref amrex::Random).
+  \par
 
 */
 

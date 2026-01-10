@@ -230,6 +230,7 @@ namespace ppdetail {
 
 
 /**
+* \ingroup amrex_utilities
 * \brief  Parse Parameters From Command Line and Input Files
 *
 *  The ParmParse class is used to interpret parameters passed in to a program

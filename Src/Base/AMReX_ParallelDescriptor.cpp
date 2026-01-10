@@ -62,6 +62,8 @@ namespace amrex::ParallelDescriptor {
     template <> MPI_Datatype Mpi_typemap<Box>::type();
 #endif
 
+    /// \cond DOXYGEN_IGNORE
+
 #ifdef AMREX_USE_GPU
     bool use_gpu_aware_mpi = false;
 #else
@@ -86,6 +88,8 @@ namespace amrex::ParallelDescriptor {
     int m_MinTag = 1000, m_MaxTag = -1;
 
     const int ioProcessor = 0;
+
+    /// \endcond
 
 #ifdef AMREX_PMI
     void PMI_Initialize()
