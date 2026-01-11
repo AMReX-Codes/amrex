@@ -29,11 +29,14 @@ namespace amrex
     inline void Finalize_FFT () { amrex::Finalize_minimal(); }
 }
 
-namespace amrex::FFT
+/// \cond DOXYGEN_IGNORE
+//! Not to be called by the user
+namespace amrex::FFT::detail
 {
     void Initialize ();
     void Finalize ();
     void Clear ();
 }
+/// \endcond
 
 #endif

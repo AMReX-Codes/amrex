@@ -24,19 +24,19 @@
 #include <iomanip>
 
 namespace {
-int flag_verbose_mapper;
-}
-
-namespace amrex {
+    int flag_verbose_mapper;
 
     bool initialized = false;
     //
     // Set default values for these in Initialize()!!!
     //
-    int    verbose;
-    int    sfc_threshold;
-    Real   max_efficiency;
-    int    node_size;
+    int verbose;
+    int sfc_threshold;
+    int node_size;
+    amrex::Real max_efficiency;
+}
+
+namespace amrex {
 
 // We default to SFC.
 DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapping::SFC;
@@ -528,6 +528,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
     RoundRobinDoIt(static_cast<int>(wgts.size()), nprocs, &LIpairV, sort);
 }
 
+/// \cond DOXYGEN_IGNORE
 class WeightedBox
 {
     int  m_boxid;
@@ -542,7 +543,9 @@ public:
         return weight() > rhs.weight();
     }
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct WeightedBoxList
 {
     Vector<WeightedBox>* m_lb     = nullptr;
@@ -575,6 +578,7 @@ struct WeightedBoxList
         return weight() > rhs.weight();
     }
 };
+/// \endcond
 
 namespace {
 void

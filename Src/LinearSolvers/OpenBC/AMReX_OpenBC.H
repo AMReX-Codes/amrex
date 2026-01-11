@@ -10,6 +10,8 @@ namespace amrex
 
 namespace openbc {
 
+    /// \cond DOXYGEN_IGNORE
+
     static constexpr int M = 7; // highest order of moments
     static constexpr int P = 3;
 
@@ -28,6 +30,8 @@ namespace openbc {
         Orientation face;
         int offset;
     };
+
+    /// \endcond
 
     std::ostream& operator<< (std::ostream& os, Moments const& mom);
 }

@@ -21,6 +21,8 @@ using fMultiFab = FabArray<BaseFab<float> >;
 class iMultiFab;
 
 /**
+ * \class amrex::MultiFab
+ * \ingroup amrex_multifab_containers
  * \brief A collection (stored as an array) of FArrayBox objects.
  *
  * This class is useful for storing floating point data on a domain defined by
@@ -181,11 +183,13 @@ public:
     * component comp of the MultiFab.
     */
     [[nodiscard]] Real norm0 (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Real norminf (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const {
         return norm0(comp,nghost,local,ignore_covered);
     }
 
     [[nodiscard]] Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
         return norm0(mask,comp,nghost,local);
     }
@@ -200,6 +204,7 @@ public:
     * each component of \p comps of the MultiFab. \p nghost ghost cells are used.
     */
     [[nodiscard]] Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false) const {
         return norm0(comps,nghost,local,ignore_covered);
     }
@@ -211,40 +216,48 @@ public:
     */
     [[nodiscard]] Real norm1 (int comp, const Periodicity& period, bool ignore_covered = false) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L1 norm of component \p comp over the MultiFab.
     * \p ngrow ghost cells are used.
     */
     [[nodiscard]] Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L1 norm of each component of "comps" over the MultiFab.
     * ngrow ghost cells are used.
     */
     [[nodiscard]] Vector<Real> norm1 (const Vector<int>& comps, int ngrow = 0, bool local = false) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used.
     */
     [[nodiscard]] Real norm2 (int comp = 0) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of \p numcomp components starting from \p comp component over the MultiFab.
     * No ghost cells are used.
     */
     [[nodiscard]] Real norm2 (int comp, int numcomp) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used. This version has no double counting for nodal data.
     */
     [[nodiscard]] Real norm2 (int comp, const Periodicity& period) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
     */
     [[nodiscard]] Vector<Real> norm2 (const Vector<int>& comps) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     [[nodiscard]] Real sum (int comp = 0, bool local = false) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the sum of component "comp" in the given "region". -- no ghost cells are included.
     */
     [[nodiscard]] Real sum (Box const& region, int comp = 0, bool local = false) const;
@@ -252,6 +265,7 @@ public:
     using FabArray<FArrayBox>::sum;
 
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Same as sum with \p local =false, but for non-cell-centered data, this
     * only adds non-unique points that are owned by multiple boxes once.
     */
@@ -424,9 +438,11 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] IntVect minIndex (int comp,
                       int nghost = 0) const;
 
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] IntVect maxIndex (int comp,
                       int nghost = 0) const;
     /**
@@ -470,6 +486,7 @@ public:
                  int             num_comp,
                  int             nghost);
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the dot product of two MultiFabs.
     */
     static Real Dot (const MultiFab& x, int xcomp,
@@ -477,11 +494,13 @@ public:
                      int numcomp, int nghost, bool local = false);
 
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the dot product of a MultiFab with itself.
     */
     static Real Dot (const MultiFab& x, int xcomp,
                      int numcomp, int nghost, bool local = false);
 
+    /// \ingroup amrex_fabarray_communication
     static Real Dot (const iMultiFab& mask,
                      const MultiFab& x, int xcomp,
                      const MultiFab& y, int ycomp,

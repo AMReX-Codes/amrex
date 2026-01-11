@@ -7,6 +7,7 @@
 
 #include <iostream>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
 
 std::ostream&
@@ -64,3 +65,4 @@ int_vector_read (std::istream& is, int* iv, int dim)
 }
 
 }
+/// \endcond

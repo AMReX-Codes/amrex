@@ -26,6 +26,7 @@ namespace amrex {
 class IArrayBox;
 
 /**
+* \ingroup amrex_io
 * \brief File I/O for FabArray<FArrayBox>.
 *  Wrapper class for reading/writing FabArray<FArrayBox> objects to disk in various "smart" ways.
 */
@@ -527,6 +528,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename FAB>
 void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
@@ -544,6 +546,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
     fab.readFrom(ifs);
 }
 }
+/// \endcond
 
 /**
  * \brief Read `iMultiFab/FabArray<IArrayBox>`

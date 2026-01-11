@@ -19,6 +19,8 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+
 #ifdef AMREX_MEM_PROFILING
 int  BARef::numboxarrays         = 0;
 int  BARef::numboxarrays_hwm     = 0;
@@ -29,11 +31,14 @@ Long BARef::total_hash_bytes_hwm = 0L;
 #endif
 
 bool    BARef::initialized = false;
+/// \endcond
 bool BoxArray::initialized = false;
 
 namespace {
     const int bl_ignore_max = 100000;
 }
+
+/// \cond DOXYGEN_IGNORE
 
 BARef::BARef () // NOLINT(modernize-use-equals-default)
 {
@@ -259,6 +264,8 @@ BARef::Finalize ()
 {
     initialized = false;
 }
+
+/// \endcond
 
 void
 BoxArray::Initialize ()
@@ -1543,6 +1550,7 @@ BoxArray::getDoiHi () const noexcept
     return m_bat.doiHi();
 }
 
+/// \cond DOXYGEN_IGNORE
 BARef::HashType&
 BoxArray::getHashMap () const
 {
@@ -1596,6 +1604,7 @@ BoxArray::getHashMap () const
 
     return BoxHashMap;
 }
+/// \endcond
 
 void
 BoxArray::uniqify ()

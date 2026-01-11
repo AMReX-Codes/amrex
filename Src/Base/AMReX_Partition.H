@@ -12,6 +12,7 @@ namespace amrex {
 
 #ifdef AMREX_USE_GPU
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename T, typename F>
@@ -55,6 +56,7 @@ namespace detail
         }
     }
 }
+/// \endcond
 
 /**
  * \brief A GPU-capable partition function for contiguous data.

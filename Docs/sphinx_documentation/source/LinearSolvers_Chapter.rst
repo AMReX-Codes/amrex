@@ -7,13 +7,15 @@ Linear Solvers
 ==============
 
 AMReX supports both single-level solves and composite solves on multiple AMR levels,
-with the scalar solution to the linear system defined on either cell centers or nodes.
+with the solution to the linear system defined on cell centers, edges or nodes.
 AMReX also supports solution of linear systems with embedded boundaries.
 (See chapter :ref:`Chap:EB` for more details on the embedded boundary representation of
-complex geometry.)
+complex geometry.) In addition to the iterative solvers discussed in this
+chapter, AMReX also supports solving Poisson equations using Fast Fourier
+Transform (FFT) (see chapter :ref:`Chap:FFT` for more information).
 
-The default solution technique is geometric multigrid, but AMReX includes native
-BiCGStab solvers for a single level as well as interfaces to the hypre library.
+The default solution technique is geometric multigrid. AMReX also provides
+BiCGStab solvers, GMRES, and interfaces to the hypre and PETSc libraries.
 
 In this Chapter we give an overview of the linear solvers in AMReX
 that solve linear systems in the canonical form
@@ -43,7 +45,8 @@ In addition to these solvers, AMReX has support for tensor solves used
 to calculate the viscous terms that appear in the compressible Navier-Stokes
 equations.  In these solves, all components of the velocity field are solved
 for simultaneously.  The tensor solve functionality is only available for
-cell-centered velocity.
+cell-centered velocity. AMReX also supports the curl-curl operator, with
+solutions defined on cell edges.
 
 The tutorials in `Linear Solvers`_ show examples of
 using the solvers.  The tutorial

@@ -9,6 +9,7 @@ namespace amrex::FFT
 {
 
 /**
+ * \ingroup amrex_fft
  * \brief Local Discrete Fourier Transform
  *
  * This class supports Fourier transforms between real and complex data. The

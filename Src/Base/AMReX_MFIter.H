@@ -53,6 +53,12 @@ struct MFItInfo
     }
 };
 
+/**
+ * \class amrex::MFIter
+ * \ingroup amrex_multifab_containers
+ * \brief Iterator for looping ever tiles and boxes of \ref amrex::FabArray
+ * based containers.
+ */
 class MFIter
 {
 public:

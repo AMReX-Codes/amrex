@@ -246,6 +246,7 @@ namespace amrex
         }
     }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 struct clzll_tag {};
@@ -278,6 +279,7 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
 }
 
 }
+/// \endcond
 
 template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
                                     std::is_same_v<std::decay_t<T>,std::uint16_t> ||
@@ -285,6 +287,8 @@ template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>
                                     std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept;
+
+/// \cond DOXYGEN_IGNORE
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz_generic (std::uint8_t x) noexcept
@@ -323,8 +327,11 @@ int clz_generic (std::uint64_t x) noexcept
     return upper ? clz(upper) : 32 + clz(lower);
 }
 
+/// \endcond
+
 #if defined AMREX_USE_CUDA
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     // likewise with CUDA, there are __clz functions that take (signed) int and long long int
     template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(int)> >
@@ -341,6 +348,7 @@ namespace detail {
         return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
     }
 }
+/// \endcond
 
 template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
                                     std::is_same_v<std::decay_t<T>,std::uint16_t> ||

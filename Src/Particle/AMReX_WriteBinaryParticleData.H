@@ -19,6 +19,7 @@ struct KeepValidFilter
     }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace particle_detail {
 
 template <typename ParticleReal>
@@ -460,6 +461,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 }
 
 }
+/// \endcond
 
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataSync (PC const& pc,

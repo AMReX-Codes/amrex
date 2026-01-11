@@ -83,6 +83,7 @@ namespace amrex
                                    const std::string &mfPrefix = "Cell",
                                    const Vector<std::string>& extra_dirs = Vector<std::string>());
 
+    /// \ingroup amrex_io
     void WriteMultiLevelPlotfile (const std::string &plotfilename,
                                   int nlevels,
                                   const Vector<const MultiFab*> &mf,
@@ -151,7 +152,8 @@ namespace amrex
 
 #endif
 
-    // helper class for reading plotfile
+    /// \ingroup amrex_io
+    /// helper class for reading plotfile
     class PlotFileData
     {
     public:

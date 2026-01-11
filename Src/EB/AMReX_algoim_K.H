@@ -106,6 +106,7 @@ struct QuadratureRule
     }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <class T>
@@ -159,6 +160,7 @@ namespace detail
         }
     }
 } // namespace detail
+/// \endcond
 
 // PsiCode encodes sign information of restricted level set functions
 // on particular sides of a hyperrectangle in a packed array of

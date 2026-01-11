@@ -27,6 +27,7 @@ struct SoAParticle;
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
 struct ConstParticleTileData;
 
+/// \ingroup amrex_particles
 template <typename T_ParticleType, int NArrayReal, int NArrayInt>
 struct ParticleTileData
 {

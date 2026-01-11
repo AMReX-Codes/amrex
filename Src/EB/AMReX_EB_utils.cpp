@@ -18,6 +18,7 @@ void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
 // Purpose: Given a collision between particle and EB surface, and
@@ -195,6 +196,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
     return c_vec;
 }
 }
+/// \endcond
 
 void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                          EBFArrayBoxFactory const& eb_factory, int refratio,

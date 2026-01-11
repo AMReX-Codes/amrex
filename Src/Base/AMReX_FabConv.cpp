@@ -245,6 +245,8 @@ RealDescriptor::newRealDescriptor (int fmt, int prec, const char* /*sys*/,
     return rd;
 }
 
+namespace {
+
 inline
 void
 ONES_COMP_NEG (Long& n,
@@ -294,7 +296,6 @@ _pd_get_bit (char const* base,
 // for longer fields
 //
 
-namespace {
 Long
 _pd_extract_field (char const* in,
                    int         offs,
@@ -389,8 +390,6 @@ _pd_btrvout (char* out, Long  nitems)
 
 constexpr int BitsMax       = 8*sizeof(Long);
 constexpr int REVERSE_ORDER = 2;
-
-}
 
 //
 // Copy the least significant NB bits from the given Long into the byte array
@@ -489,7 +488,6 @@ _pd_set_bit (char* base, int offs)
 // on input.
 //
 
-namespace {
 void
 _pd_reorder (char*      arr,
              Long       nitems,

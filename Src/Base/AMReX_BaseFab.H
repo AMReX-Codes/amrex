@@ -38,6 +38,8 @@
 namespace amrex
 {
 
+/// \cond DOXYGEN_IGNORE
+
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs;
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm;
 extern std::atomic<Long> atomic_total_cells_allocated_in_fabs;
@@ -52,6 +54,8 @@ extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs)
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
 #endif
+
+/// \endcond
 
 Long TotalBytesAllocatedInFabs () noexcept;
 Long TotalBytesAllocatedInFabsHWM () noexcept;
@@ -130,6 +134,8 @@ placementDelete (T* const ptr, Long n)
 }
 
 /**
+ * \class amrex::BaseFab
+ * \ingroup amrex_fab_containers
  * \brief A FortranArrayBox(FAB)-like object
  *
  * BaseFab emulates the Fortran array concept.

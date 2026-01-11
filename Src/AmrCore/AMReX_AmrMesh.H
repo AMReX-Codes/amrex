@@ -57,6 +57,7 @@ struct AmrInfo {
     bool iterate_on_new_grids = true;
 };
 
+/// \ingroup amrex_amrcore
 class AmrMesh
     : protected AmrInfo
 {

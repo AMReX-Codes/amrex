@@ -11,7 +11,7 @@
 
 using namespace amrex;
 
-template <typename T_PC,template<class> class Allocator=DefaultAllocator>
+template <typename T_PC,template<class> class Allocator=amrex::PolymorphicArenaAllocator>
 void addParticles ()
 {
     int is_per[AMREX_SPACEDIM];
@@ -37,6 +37,7 @@ void addParticles ()
     DistributionMapping dm(ba);
 
     T_PC pc(geom, dm, ba);
+    pc.SetArena(The_Arena());
     int const NArrayReal = pc.NArrayReal;
     int const NArrayInt = pc.NArrayInt;
 
@@ -61,7 +62,7 @@ void addParticles ()
 
     int lev=0;
     // int numparticles=0;
-    using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt>;
+    using MyParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PolymorphicArenaAllocator>;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         const int np = pti.numParticles();
         // preparing access to particle data: SoA of Reals
@@ -114,12 +115,11 @@ void addParticles ()
     }
 
     // create a host-side particle buffer
-    auto tmp = pc.template make_alike<amrex::PinnedArenaAllocator>();
+    auto tmp = pc.template make_alike<amrex::PolymorphicArenaAllocator>();
+    tmp.SetArena(The_Pinned_Arena());
     tmp.copyParticles(pc, true);
 
-    using MyPinnedParIter = ParIter_impl<ParticleType, NArrayReal, NArrayInt, amrex::PinnedArenaAllocator>;
-
-    for (MyPinnedParIter pti(tmp, lev); pti.isValid(); ++pti) {
+    for (MyParIter pti(tmp, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
         auto& real_comp0 = particle_attributes.GetRealData(0);
         auto&  int_comp1  = particle_attributes.GetIntData(1);
@@ -186,7 +186,7 @@ int main(int argc, char* argv[])
     }
     amrex::Initialize(argc,argv);
     {
-        addParticles< ParticleContainerPureSoA<4, 2> > ();
+        addParticles< ParticleContainerPureSoA<4, 2, amrex::PolymorphicArenaAllocator> > ();
     }
     amrex::Finalize();
  }

@@ -122,6 +122,7 @@ struct CommSendBufTag { // for packing send buffer
     Box const& box () const noexcept { return bx; }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     template <typename T>
@@ -140,8 +141,6 @@ namespace detail {
         return tag.size();
     }
 
-    //! \cond
-
     template <typename T>
     constexpr
     std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<T>().box())>, Box>, bool>
@@ -152,9 +151,8 @@ namespace detail {
     std::enable_if_t<std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >, bool>
     is_box_tag (T const&) { return false; }
 
-    //! \endcond
-
 }
+/// \endcond
 
 template <class TagType>
 struct TagVector {
@@ -306,11 +304,10 @@ struct TagVector {
     }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 #ifdef AMREX_USE_GPU
-
-//! \cond
 
 template <typename T, typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -337,8 +334,6 @@ tagparfor_call_f (int i, T const& tag, F&& f) noexcept
     int N = tag.size();
     f(i, N, tag);
 }
-
-//! \endcond
 
 template <class TagType, class F>
 void
@@ -436,6 +431,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 #endif
 
 }
+/// \endcond
 
 template <class TagType, class F>
 std::enable_if_t<std::is_same_v<std::decay_t<decltype(std::declval<TagType>().box())>, Box>>

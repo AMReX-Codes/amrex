@@ -14,6 +14,7 @@ struct TypeList
     static constexpr std::size_t size () noexcept { return sizeof...(Ts); }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <std::size_t I, typename T> struct TypeListGet;
 
@@ -26,11 +27,13 @@ namespace detail {
         using type = Head;
     };
 }
+/// \endcond
 
 //! Type at position I of a TypeList
 template <std::size_t I, typename T>
 using TypeAt = typename detail::TypeListGet<I,T>::type;
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename TL, typename F, std::size_t...N>
@@ -45,6 +48,7 @@ namespace detail
         return (f(TypeAt<N,TL>{}) || ...);
     }
 }
+/// \endcond
 
 /**
  * \brief For each type t in TypeList, call f(t)
@@ -157,6 +161,7 @@ struct TypeArray {
     static constexpr std::size_t size () noexcept { return N; }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
     template <class T, std::size_t N>
@@ -199,6 +204,7 @@ namespace detail {
         return TypeList<TParam<Args...>>{};
     }
 }
+/// \endcond
 
 /**
  * \brief Return the first template argument with the later arguments applied to it.

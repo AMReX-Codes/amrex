@@ -13,6 +13,7 @@
 namespace amrex
 {
     /**
+    * \ingroup amrex_utilities
     * \brief Generate a psuedo-random double from uniform distribution
     *
     *  Generates one pseudorandom real number (double) from a uniform
@@ -21,6 +22,7 @@ namespace amrex
     */
     Real Random ();
 
+    /// \ingroup amrex_utilities
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real Random (RandomEngine const& random_engine)
     {
@@ -51,6 +53,7 @@ namespace amrex
     }
 
     /**
+    * \ingroup amrex_utilities
     * \brief Generate a psuedo-random double from a normal distribution
     *
     *  Generates one pseudorandom real number (double) from a normal
@@ -59,6 +62,7 @@ namespace amrex
     */
     Real RandomNormal (Real mean, Real stddev);
 
+    /// \ingroup amrex_utilities
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomNormal (Real mean, Real stddev, RandomEngine const& random_engine)
     {
@@ -89,6 +93,7 @@ namespace amrex
     }
 
     /**
+    * \ingroup amrex_utilities
     * \brief Generate a psuedo-random integer from a Poisson distribution
     *
     *  Generates one pseudorandom positive integer number (double)
@@ -99,6 +104,7 @@ namespace amrex
     */
     unsigned int RandomPoisson (Real lambda);
 
+    /// \ingroup amrex_utilities
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int RandomPoisson (Real lambda, RandomEngine const& random_engine)
     {
@@ -119,6 +125,7 @@ namespace amrex
 #endif
     }
 
+    /// \cond DOXYGEN_IGNORE
     namespace random_util {
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -151,8 +158,10 @@ namespace amrex
         return beta * d * v;
     }
     }
+    /// \endcond
 
     /**
+    * \ingroup amrex_utilities
     * \brief Generate a psuedo-random floating point number from the Gamma distribution
     *
     *  Generates one real number (single or double)
@@ -165,6 +174,7 @@ namespace amrex
     */
     Real RandomGamma (Real alpha, Real beta);
 
+    /// \ingroup amrex_utilities
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real RandomGamma (Real alpha, Real beta, RandomEngine const& random_engine)
     {
@@ -188,6 +198,7 @@ namespace amrex
     }
 
     /**
+    * \ingroup amrex_utilities
     * \brief Generates one pseudorandom unsigned integer which is
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
@@ -196,6 +207,7 @@ namespace amrex
     */
     unsigned int Random_int (unsigned int n); // [0,n-1]
 
+    /// \ingroup amrex_utilities
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
@@ -220,6 +232,7 @@ namespace amrex
     }
 
     /**
+    * \ingroup amrex_utilities
     * \brief Generates one pseudorandom unsigned long which is
     *  uniformly distributed on [0,n-1]-interval for each call.
     *
@@ -228,20 +241,25 @@ namespace amrex
     */
     ULong Random_long (ULong n); // [0,n-1]
 
+    //! \ingroup amrex_utilities
     //! Fill random numbers from uniform distribution.  The range is [0,1)
     //! for CPU and SYCl, and (0,1] for CUADA and HIP.
     void FillRandom (Real* p, Long N);
 
+    //! \ingroup amrex_utilities
     //! Fill random numbers from normal distribution
     void FillRandomNormal (Real* p, Long N, Real mean, Real stddev);
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         inline ULong DefaultGpuSeed () {
             return ParallelDescriptor::MyProc()*1234567ULL + 12345ULL;
         }
     }
+    /// \endcond
 
     /** \brief Set the seed of the random number generator.
+    * \ingroup amrex_utilities
     *
     *  There is also an entry point for Fortran callable as:
     *
@@ -256,17 +274,21 @@ namespace amrex
     void InitRandom (ULong cpu_seed, int nprocs=ParallelDescriptor::NProcs(),
                      ULong gpu_seed = detail::DefaultGpuSeed());
 
+    /// \ingroup amrex_utilities
     void ResetRandomSeed (ULong cpu_seed, ULong gpu_seed = detail::DefaultGpuSeed());
 
     /**
+    * \ingroup amrex_utilities
     * \brief Save and restore random state.
     *
     */
     void SaveRandomState (std::ostream& os);
 
+    /// \ingroup amrex_utilities
     void RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old);
 
     /**
+    * \ingroup amrex_utilities
     * \brief Create a unique subset of random numbers from a pool
     *   of integers in the range [0, poolSize - 1]
     *   the set will be in the order they are found

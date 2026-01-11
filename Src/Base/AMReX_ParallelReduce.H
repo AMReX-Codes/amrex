@@ -11,6 +11,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     enum ReduceOp : int {
@@ -97,12 +98,15 @@ namespace detail {
     template<typename T> void Gather (const T& /*v*/, T * /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
 #endif
 }
+/// \endcond
 
 namespace ParallelAllGather {
+    /// \ingroup amrex_mpi
     template<typename T>
     void AllGather (const T* v, int cnt, T* vs, MPI_Comm comm) {
         detail::Gather(v, cnt, vs, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void AllGather (const T& v, T* vs, MPI_Comm comm) {
         detail::Gather(v, vs, -1, comm);
@@ -110,10 +114,12 @@ namespace ParallelAllGather {
 }
 
 namespace ParallelGather {
+    /// \ingroup amrex_mpi
     template<typename T>
     void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {
         detail::Gather(v, cnt, vs, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Gather (const T& v, T* vs, int root, MPI_Comm comm) {
         detail::Gather(v, vs, root, comm);
@@ -122,6 +128,7 @@ namespace ParallelGather {
 
 namespace ParallelAllReduce {
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>& vi, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -135,6 +142,7 @@ namespace ParallelAllReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>* vi, int cnt, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -148,6 +156,7 @@ namespace ParallelAllReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>& vi, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -161,6 +170,7 @@ namespace ParallelAllReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>* vi, int cnt, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -174,51 +184,62 @@ namespace ParallelAllReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename T>
     void Max (T& v, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Max (T* v, int cnt, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, cnt, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
         detail::Reduce<T>(detail::ReduceOp::max, v, -1, comm);
     }
 
+    /// \ingroup amrex_mpi
     template<typename T>
     void Min (T& v, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::min, v, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Min (T* v, int cnt, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::min, v, cnt, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
         detail::Reduce<T>(detail::ReduceOp::min, v, -1, comm);
     }
 
+    /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T& v, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::sum, v, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T* v, int cnt, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::sum, v, cnt, -1, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
         detail::Reduce<T>(detail::ReduceOp::sum, v, -1, comm);
     }
 
+    /// \ingroup amrex_mpi
     inline void Or (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
         detail::Reduce(detail::ReduceOp::lor, iv, -1, comm);
         v = static_cast<bool>(iv);
     }
 
+    /// \ingroup amrex_mpi
     inline void And (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
         detail::Reduce(detail::ReduceOp::land, iv, -1, comm);
@@ -228,6 +249,7 @@ namespace ParallelAllReduce {
 
 namespace ParallelReduce {
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>& vi, int root, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -243,6 +265,7 @@ namespace ParallelReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>* vi, int cnt, int root, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -259,6 +282,7 @@ namespace ParallelReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>& vi, int root, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -274,6 +298,7 @@ namespace ParallelReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>* vi, int cnt, int root, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -290,51 +315,62 @@ namespace ParallelReduce {
 #endif
     }
 
+    /// \ingroup amrex_mpi
     template<typename T>
     void Max (T& v, int root, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Max (T* v, int cnt, int root, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, cnt, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
         detail::Reduce<T>(detail::ReduceOp::max, v, root, comm);
     }
 
+    /// \ingroup amrex_mpi
     template<typename T>
     void Min (T& v, int root, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::min, v, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Min (T* v, int cnt, int root, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::min, v, cnt, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
         detail::Reduce<T>(detail::ReduceOp::min, v, root, comm);
     }
 
+    /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T& v, int root, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::sum, v, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T* v, int cnt, int root, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::sum, v, cnt, root, comm);
     }
+    /// \ingroup amrex_mpi
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
         detail::Reduce<T>(detail::ReduceOp::sum, v, root, comm);
     }
 
+    /// \ingroup amrex_mpi
     inline void Or (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
         detail::Reduce(detail::ReduceOp::lor, iv, root, comm);
         v = static_cast<bool>(iv);
     }
 
+    /// \ingroup amrex_mpi
     inline void And (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
         detail::Reduce(detail::ReduceOp::land, iv, root, comm);

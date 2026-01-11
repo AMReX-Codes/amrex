@@ -11,6 +11,7 @@ namespace amrex {
 
 // (alpha * a - beta * (del dot b grad)) phi
 
+/// \ingroup amrex_eb
 class MLEBABecLap
     : public MLCellABecLap
 {
@@ -164,6 +165,8 @@ protected:
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 };
 
+/// \cond DOXYGEN_IGNORE
+
 // Tag for applyBC EB version
 template <typename T>
 struct MLMGABCEBTag {
@@ -183,6 +186,8 @@ struct MLMGABCEBTag {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::Box const& box() const noexcept { return bx; }
 };
+
+/// \endcond
 
 }
 

@@ -20,6 +20,7 @@
 
 namespace amrex {
 
+    /// \ingroup amrex_linear_containers
     template <class T, std::size_t N>
     using Array = std::array<T,N>;
 
@@ -29,6 +30,11 @@ namespace amrex {
 }
 
 namespace amrex {
+    /**
+     * \class amrex::GpuArray
+     * \ingroup amrex_linear_containers
+     * \brief Fixed-size array that can be used on GPU.
+     */
     template <class T, unsigned int N>
     struct GpuArray
     {

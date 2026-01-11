@@ -145,10 +145,12 @@ public:
     void beginPrecondBC () override;
     void endPrecondBC () override;
 
+    /// \cond DOXYGEN_IGNORE
     struct BCTL {
         BoundCond type;
         RT location;
     };
+    /// \endcond
 
     Vector<std::unique_ptr<MF> > m_robin_bcval;
 
@@ -171,6 +173,7 @@ protected:
     // bcond and bcloc for each MG level.
     using RealTuple = Array<RT,2*BL_SPACEDIM>;
     using BCTuple   = Array<BoundCond,2*BL_SPACEDIM>;
+    /// \cond DOXYGEN_IGNORE
     class BndryCondLoc
     {
     public:
@@ -206,6 +209,7 @@ protected:
         Gpu::DeviceVector<GpuArray<BCTL,2*AMREX_SPACEDIM> > bctl_dv;
         int m_ncomp;
     };
+    /// \endcond
     Vector<Vector<std::unique_ptr<BndryCondLoc> > > m_bcondloc;
 
     // used to save interpolation coefficients of the first interior cells
@@ -230,6 +234,8 @@ private:
 
     int m_interpbndry_halfwidth = 2;
 };
+
+/// \cond DOXYGEN_IGNORE
 
 template <typename T>
 struct MLMGABCTag {
@@ -358,6 +364,8 @@ setLOBndryConds (const Geometry& geom, const Real* dx,
     Gpu::copyAsync(Gpu::hostToDevice, hv.begin(), hv.end(), bctl_dv.begin());
     Gpu::streamSynchronize();
 }
+
+/// \endcond
 
 template <typename MF>
 MLCellLinOpT<MF>::MLCellLinOpT ()
