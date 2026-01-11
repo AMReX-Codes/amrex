@@ -1166,54 +1166,6 @@ number of threads per block by :cpp:`ParallelFor<MY_BLOCK_SIZE>(...)`, where
 ``MY_BLOCK_SIZE`` is a multiple of the warp size (e.g., 128).  This allows
 the users to do performance tuning for individual kernels.
 
-Launching general kernels
--------------------------
-
-To launch more general work on the GPU, AMReX provides a standard launch function:
-:cpp:`amrex::launch`.  Instead of creating nested loops, this function
-prepares the device launch based on a :cpp:`Box`, launches with an appropriate sized
-GPU kernel and constructs a thread :cpp:`Box` that defines the work for each thread.
-On the CPU, the thread :cpp:`Box` is set equal to the total launch :cpp:`Box`, so
-tiling works as expected.  On the GPU, the thread :cpp:`Box` usually
-contains a single cell to allow all GPU threads to be utilized effectively.
-
-An example of a generic function launch is shown here:
-
-.. highlight:: c++
-
-::
-
-    for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real> const& arr = mf.array(mfi);
-
-        amrex::launch(bx,
-        [=] AMREX_GPU_DEVICE (Box const& tbx)
-        {
-            pluseone_array4(tbx, arr);
-            FArrayBox fab(arr, tbx.ixType());
-            plusone_fab(tbx, fab); // this version takes FArrayBox
-        });
-
-        /* MACRO VARIATION
-        /
-        /   AMREX_LAUNCH_DEVICE_LAMBDA ( bx, tbx,
-        /   {
-        /       plusone_array4(tbx, arr);
-        /       plusone_fab(tbx, FArrayBox(arr,tbx.ixType()));
-        /   });
-        */
-    }
-
-It also shows how to make a :cpp:`FArrayBox` from :cpp:`Array4` when
-needed.  Note that :cpp:`FarrayBox`\ es cannot be passed to GPU
-kernels directly.  :cpp:`TilingIfNotGPU()` returns ``false`` in the
-GPU case to turn off tiling and maximize the amount of work given to
-the GPU in each launch, which substantially improves performance.
-When tiling is off, :cpp:`tilebox()` returns the :cpp:`validbox()` of
-the :cpp:`FArrayBox` for that iteration.
-
 Offloading work using OpenACC or OpenMP pragmas
 -----------------------------------------------
 
@@ -1335,8 +1287,8 @@ not work as intended.  For example,
         Box bx;
         int m;                           // integer created on the host.
         void f () {
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 printf("m = %d\n", m);   // Failed attempt to use m on the GPU.
             });
@@ -1358,8 +1310,8 @@ lambda to capture. For example:
         int m;
         void f () {
             int local_m = m;                  // Local temporary copy of m.
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 printf("m = %d\n", local_m);  // Lambda captures local_m by value.
             });
