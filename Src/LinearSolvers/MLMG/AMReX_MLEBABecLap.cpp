@@ -1050,6 +1050,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     FArrayBox foofab(Box::TheUnitBox(),ncomp);
     const auto& foo = foofab.array();
+    MFItInfo mfi_info;
 #ifdef AMREX_USE_GPU
     Vector<MLMGABCEBTag<RT>> ebtags;
     bool run_on_gpu = Gpu::inLaunchRegion();
@@ -1058,7 +1059,6 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     }
     ebtags.reserve(in.local_size() * 2 * AMREX_SPACEDIM*ncomp);
 #endif
-    MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
