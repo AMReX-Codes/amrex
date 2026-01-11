@@ -1050,15 +1050,15 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     FArrayBox foofab(Box::TheUnitBox(),ncomp);
     const auto& foo = foofab.array();
-    MFItInfo mfi_info;
 #ifdef AMREX_USE_GPU
     Vector<MLMGABCEBTag<RT>> ebtags;
     bool run_on_gpu = Gpu::inLaunchRegion();
-    if (m_eb_bc_tags[amrlev][mglev].is_defined()) {
+    if (run_on_gpu && m_eb_bc_tags[amrlev][mglev].is_defined()) {
         goto apply_eb_tags;
     }
     ebtags.reserve(in.local_size() * 2 * AMREX_SPACEDIM*ncomp);
 #endif
+    MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1251,6 +1251,7 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     }
 
 #ifdef AMREX_USE_GPU
+    if (!run_on_gpu) { return; }
     m_eb_bc_tags[amrlev][mglev].define(ebtags);
 apply_eb_tags:
     MultiArray4<Real const> foo_ma;
