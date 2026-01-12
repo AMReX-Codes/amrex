@@ -83,17 +83,17 @@ AmrLevelAdv::advect (amrex::Real /*time*/,
     Array4<Real const> phix_c = phix;
 
     // Fromm slope
-    amrex::launch(amrex::grow(gbx,Direction::x,1),
-    [=] AMREX_GPU_DEVICE (const Box& tbx)
+    amrex::ParallelFor(amrex::grow(gbx,Direction::x,1),
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
-        slopex2(tbx, slope2, phi_in);
+        slopex2(i, j, k, slope2, phi_in);
     });
 
     // Limited fourth order slope
-    amrex::launch(gbx,
-    [=] AMREX_GPU_DEVICE (const Box& tbx)
+    amrex::ParallelFor(gbx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
-        slopex4(tbx, slope4, phi_in, slope2_c);
+        slopex4(i, j, k, slope4, phi_in, slope2_c);
     });
 
     // Longitudinal flux
@@ -109,17 +109,17 @@ AmrLevelAdv::advect (amrex::Real /*time*/,
     Array4<Real const> phiy_c = phiy;
 
     // Fromm slope
-    amrex::launch(amrex::grow(gbx,Direction::y,1),
-    [=] AMREX_GPU_DEVICE (const Box& tbx)
+    amrex::ParallelFor(amrex::grow(gbx,Direction::y,1),
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
-        slopey2(tbx, slope2, phi_in);
+        slopey2(i, j, k, slope2, phi_in);
     });
 
     // Limited fourth order slope
-    amrex::launch(gbx,
-    [=] AMREX_GPU_DEVICE (const Box& tbx)
+    amrex::ParallelFor(gbx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
-        slopey4(tbx, slope4, phi_in, slope2_c);
+        slopey4(i, j, k, slope4, phi_in, slope2_c);
     });
 
     // Longitudinal flux
@@ -136,17 +136,17 @@ AmrLevelAdv::advect (amrex::Real /*time*/,
     Array4<Real const> phiz_c = phiz;
 
     // Fromm slope
-    amrex::launch(amrex::grow(gbx,Direction::z,1),
-    [=] AMREX_GPU_DEVICE (const Box& tbx)
+    amrex::ParallelFor(amrex::grow(gbx,Direction::z,1),
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
-        slopez2(tbx, slope2, phi_in);
+        slopez2(i, j, k, slope2, phi_in);
     });
 
     // Limited fourth order slope
-    amrex::launch(gbx,
-    [=] AMREX_GPU_DEVICE (const Box& tbx)
+    amrex::ParallelFor(gbx,
+    [=] AMREX_GPU_DEVICE (int i, int j, int k)
     {
-        slopez4(tbx, slope4, phi_in, slope2_c);
+        slopez4(i, j, k, slope4, phi_in, slope2_c);
     });
 
     // Longitudinal flux

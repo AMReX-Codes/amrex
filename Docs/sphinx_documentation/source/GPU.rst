@@ -1335,8 +1335,8 @@ not work as intended.  For example,
         Box bx;
         int m;                           // integer created on the host.
         void f () {
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 printf("m = %d\n", m);   // Failed attempt to use m on the GPU.
             });
@@ -1358,8 +1358,8 @@ lambda to capture. For example:
         int m;
         void f () {
             int local_m = m;                  // Local temporary copy of m.
-            amrex::launch(bx,
-            [=] AMREX_GPU_DEVICE (Box const& tbx)
+            amrex::ParallelFor(bx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 printf("m = %d\n", local_m);  // Lambda captures local_m by value.
             });
