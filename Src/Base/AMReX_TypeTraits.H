@@ -286,13 +286,6 @@ namespace amrex
     template <typename From, typename To>
     inline constexpr bool IsNonNarrowingConversion_v = !IsNarrowingConversion<From, To>::value;
 
-    //! \brief Test if type T is a valid index type. Valid index type is integral and can be safely
-    //!         converted to int without narrowing.
-    template <typename T>
-    struct IsValidIndexType {
-        static constexpr bool value = std::is_integral_v<T> && IsNonNarrowingConversion_v<T, int>;
-    };
-
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
     template <class T, class Enable = void>
     struct IsStoreAtomic : std::false_type {};
