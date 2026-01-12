@@ -108,9 +108,9 @@ namespace amrex {
                 IsValidIndexType<std::decay_t<idx>>...>::value;
 
         public:
-            static constexpr bool value = ((num_indices == N) && index_all_values)      // N indicies are integer types
-                                || ((num_indices == N - 1) && index_all_values && last_dim_component) // N-1 indicies are integer types, last is component
-                                || ((num_indices == N) && index_with_maybe_enum && last_dim_component); // N indicies, last dim is component and can be enum
+            static constexpr bool value = ((num_indices == N) && index_all_values)      // N indices are integer types
+                                || ((num_indices == N - 1) && index_all_values && last_dim_component) // N-1 indices are integer types, last is component
+                                || ((num_indices == N) && index_with_maybe_enum && last_dim_component); // N indices, last dim is component and can be enum
         };
 
         template <int N, bool last_dim_component, class... idx>
