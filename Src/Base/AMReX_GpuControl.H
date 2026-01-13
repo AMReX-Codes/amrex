@@ -33,6 +33,14 @@
 #define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) ((void)0);
 #endif
 
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_CUDA)
+#define AMREX_HIP_CUDA_OR_SYCL_OR_CPU(a,b,c) a
+#elif defined(AMREX_USE_SYCL)
+#define AMREX_HIP_CUDA_OR_SYCL_OR_CPU(a,b,c) b
+#else
+#define AMREX_HIP_CUDA_OR_SYCL_OR_CPU(a,b,c) c
+#endif
+
 #ifdef AMREX_USE_GPU
 #define AMREX_GPU_OR_CPU(a,b) a
 #else
