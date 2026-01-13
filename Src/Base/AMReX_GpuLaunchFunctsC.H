@@ -32,7 +32,7 @@ namespace detail {
     auto call_f_scalar_handler (F const& f, N i)
         noexcept -> decltype(f(0))
     {
-        f(i);
+        return f(i);
     }
 
     template <typename F, typename N>
@@ -40,7 +40,7 @@ namespace detail {
     auto call_f_scalar_handler (F const& f, N i)
         noexcept -> decltype(f(0,Gpu::Handler{}))
     {
-        f(i, Gpu::Handler{});
+        return f(i, Gpu::Handler{});
     }
 
     // call_f_intvect_inner
@@ -50,7 +50,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<1> iv, Args...args)
         noexcept -> decltype(f(0, 0, 0, args...))
     {
-        f(iv[0], 0, 0, args...);
+        return f(iv[0], 0, 0, args...);
     }
 
     template <typename F, std::size_t...Ns, class...Args>
@@ -58,7 +58,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<2> iv, Args...args)
         noexcept -> decltype(f(0, 0, 0, args...))
     {
-        f(iv[0], iv[1], 0, args...);
+        return f(iv[0], iv[1], 0, args...);
     }
 
     template <typename F, int dim, std::size_t...Ns, class...Args>
@@ -66,7 +66,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
         noexcept -> decltype(f(iv, args...))
     {
-        f(iv, args...);
+        return f(iv, args...);
     }
 
     template <typename F, int dim, std::size_t...Ns, class...Args>
@@ -74,7 +74,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
         noexcept -> decltype(f(iv[Ns]..., args...))
     {
-        f(iv[Ns]..., args...);
+        return f(iv[Ns]..., args...);
     }
 
     // call_f_intvect_engine
@@ -84,7 +84,7 @@ namespace detail {
     auto call_f_intvect_engine (F const& f, IntVectND<dim> iv, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine);
     }
 
     // call_f_intvect_handler
@@ -94,7 +94,7 @@ namespace detail {
     auto call_f_intvect_handler (F const& f, IntVectND<dim> iv)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
     }
 
     template <typename F, int dim>
@@ -102,7 +102,7 @@ namespace detail {
     auto call_f_intvect_handler (F const& f, IntVectND<dim> iv)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, Gpu::Handler{}))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, Gpu::Handler{});
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, Gpu::Handler{});
     }
 
     // call_f_intvect_ncomp_engine
@@ -112,7 +112,7 @@ namespace detail {
     auto call_f_intvect_ncomp_engine (F const& f, IntVectND<dim> iv, T n, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, engine))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, engine);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, engine);
     }
 
     // call_f_intvect_ncomp_handler
@@ -122,7 +122,7 @@ namespace detail {
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n);
     }
 
     template <typename F, typename T, int dim>
@@ -130,7 +130,7 @@ namespace detail {
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, Gpu::Handler{}))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, Gpu::Handler{});
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, Gpu::Handler{});
     }
 
 }
