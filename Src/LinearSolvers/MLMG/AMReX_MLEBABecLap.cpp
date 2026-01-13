@@ -1050,15 +1050,17 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
 
     FArrayBox foofab(Box::TheUnitBox(),ncomp);
     const auto& foo = foofab.array();
-    MFItInfo mfi_info;
 #ifdef AMREX_USE_GPU
+    bool skip_loop = false;
     Vector<MLMGABCEBTag<RT>> ebtags;
     bool run_on_gpu = Gpu::inLaunchRegion();
     if (run_on_gpu && m_eb_bc_tags[amrlev][mglev].is_defined()) {
-        goto apply_eb_tags;
+        skip_loop = true;
     }
+    if (!skip_loop) {
     ebtags.reserve(in.local_size() * 2 * AMREX_SPACEDIM*ncomp);
 #endif
+    MFItInfo mfi_info;
     if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -1251,9 +1253,15 @@ MLEBABecLap::applyBC (int amrlev, int mglev, MultiFab& in, BCMode bc_mode, State
     }
 
 #ifdef AMREX_USE_GPU
+    }  // end of if (!skip_loop)
+#endif
+
+#ifdef AMREX_USE_GPU
     if (!run_on_gpu) { return; }
-    m_eb_bc_tags[amrlev][mglev].define(ebtags);
-apply_eb_tags:
+    if (!m_eb_bc_tags[amrlev][mglev].is_defined()) {
+        // Cache the ebtags for next time
+        m_eb_bc_tags[amrlev][mglev].define(ebtags);
+    }
     MultiArray4<Real const> foo_ma;
     Array<MultiArray4<Real const>, 2*AMREX_SPACEDIM> bndry_arrays;
     for (OrientationIter oit; oit; ++oit) {
