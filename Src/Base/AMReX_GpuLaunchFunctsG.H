@@ -154,7 +154,7 @@ void single_task (gpuStream_t stream, L const& f) noexcept
     auto& q = *(stream.queue);
     try {
         q.submit([&] (sycl::handler& h) {
-            h.single_task([=] () { f(); });
+            h.single_task(f);
         });
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("single_task: ")+ex.what()+"!!!!!");
@@ -711,8 +711,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
 template <typename L>
 void single_task (gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(Gpu::Device::warp_size, 1, 1, 0, stream,
-                        [=] AMREX_GPU_DEVICE () noexcept {f();});
+    AMREX_LAUNCH_KERNEL(Gpu::Device::warp_size, 1, 1, 0, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -720,16 +719,14 @@ template <int MT, typename L>
 void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
              L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, shared_mem_bytes, stream,
-                        [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, shared_mem_bytes, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
 template <int MT, typename L>
 void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, stream,
-                        [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -737,8 +734,7 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL_NOBOUND(nblocks, nthreads_per_block, shared_mem_bytes,
-                                stream, [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL_NOBOUND(nblocks, nthreads_per_block, shared_mem_bytes, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
