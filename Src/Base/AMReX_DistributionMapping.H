@@ -284,6 +284,10 @@ class DistributionMapping
                                                       const std::vector<T>& cost,
                                                       Real* efficiency);
 
+    //! Convert cost vector from Real to Long. Other than convenience, this
+    //! also provides a consistent way for the conversion.
+    static Vector<Long> ConvertCostRealToLong (const Vector<Real>& rcost);
+
     [[nodiscard]] std::weak_ptr<Ref> getWeakRef () const;
 
 private:
