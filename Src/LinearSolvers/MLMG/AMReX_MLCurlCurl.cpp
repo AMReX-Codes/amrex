@@ -984,7 +984,8 @@ MLCurlCurl::make (int amrlev, int mglev, IntVect const& ng) const
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(this->m_grids[amrlev][mglev], m_etype[idim]),
-                       this->m_dmap[amrlev][mglev], m_ncomp, ng, MFInfo(),
+                       this->m_dmap[amrlev][mglev], m_ncomp, ng,
+                       MFInfo().SetArena(The_Async_Arena()),
                        *(this->m_factory)[amrlev][mglev]);
     }
     return r;
@@ -1010,7 +1011,8 @@ MLCurlCurl::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(cba, m_etype[idim]),
-                       this->m_dmap[amrlev][mglev], m_ncomp, ng);
+                       this->m_dmap[amrlev][mglev], m_ncomp, ng,
+                       MFInfo().SetArena(The_Async_Arena()));
     }
     return r;
 }
@@ -1025,7 +1027,8 @@ MLCurlCurl::makeCoarseAmr (int famrlev, IntVect const& ng) const
     MF r;
     for (int idim = 0; idim < 3; ++idim) {
         r[idim].define(amrex::convert(cba, m_etype[idim]),
-                       this->m_dmap[famrlev][0], m_ncomp, ng);
+                       this->m_dmap[famrlev][0], m_ncomp, ng,
+                       MFInfo().SetArena(The_Async_Arena()));
     }
     return r;
 }

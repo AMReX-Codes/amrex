@@ -1785,7 +1785,8 @@ MLLinOpT<MF>::make (int amrlev, int mglev, IntVect const& ng) const
 {
     if constexpr (IsMultiFabLike_v<MF>) {
         return MF(amrex::convert(m_grids[amrlev][mglev], m_ixtype),
-                  m_dmap[amrlev][mglev], getNComp(), ng, MFInfo(),
+                  m_dmap[amrlev][mglev], getNComp(), ng,
+                  MFInfo().SetArena(The_Async_Arena()),
                   *m_factory[amrlev][mglev]);
     } else {
         amrex::ignore_unused(amrlev, mglev, ng);
@@ -1816,7 +1817,7 @@ MLLinOpT<MF>::makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const
         IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev];
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
-        return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng);
+        return MF(cba, m_dmap[amrlev][mglev], getNComp(), ng, MFInfo().SetArena(The_Async_Arena()));
     } else {
         amrex::ignore_unused(amrlev, mglev, ng);
         amrex::Abort("MLLinOpT::makeCoarseMG: how did we get here?");
@@ -1833,7 +1834,7 @@ MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng) const
         IntVect ratio(AMRRefRatioVect(famrlev-1));
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
-        return MF(cba, m_dmap[famrlev][0], getNComp(), ng);
+        return MF(cba, m_dmap[famrlev][0], getNComp(), ng, MFInfo().SetArena(The_Async_Arena()));
     } else {
         amrex::ignore_unused(famrlev, ng);
         amrex::Abort("MLLinOpT::makeCoarseAmr: how did we get here?");

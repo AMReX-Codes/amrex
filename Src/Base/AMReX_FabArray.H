@@ -2131,8 +2131,14 @@ void
 FabArray<FAB>::clear_arrays ()
 {
 #ifdef AMREX_USE_GPU
-    The_Pinned_Arena()->free(m_hp_arrays);
-    The_Arena()->free(m_dp_arrays);
+    // The host-to-device copy of the Array4s issued in build_arrays() is
+    // asynchronous and is not synchronized when we are in a NoSync region.
+    // Use stream-ordered frees so that the pinned and device buffers are not
+    // reused before the copy and any kernels using them have completed.
+    if (m_hp_arrays) {
+        Gpu::freeAsync(The_Pinned_Arena(), m_hp_arrays);
+        Gpu::freeAsync(The_Arena(), m_dp_arrays);
+    }
     m_dp_arrays = nullptr;
 #else
     std::free(m_hp_arrays);

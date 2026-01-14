@@ -6,6 +6,8 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
+#include <optional>
+
 namespace amrex {
 
 /**
@@ -393,9 +395,15 @@ public:
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
     /**
-     * \brief Disable global GPU syncs before returning to the app.
+     * \brief Control implicit GPU synchronization inside solve().
      *
-     * \param do_not_sync True skips the sync.
+     * By default (true), solve() runs in a single-stream region without the
+     * implicit stream synchronizations normally performed by MFIter and
+     * many amrex functions.  The GPU streams are synchronized once when
+     * solve() returns, unless the caller is already in a Gpu::NoSyncRegion.
+     * Passing false restores the implicit synchronizations (slower).
+     *
+     * \param do_not_sync True (default) skips the implicit syncs.
      */
     void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
 
@@ -678,7 +686,7 @@ private:
 
     std::string print_ident;
 
-    bool do_no_sync_gpu = false;
+    bool do_no_sync_gpu = true;
 
     //! HYPRE
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
@@ -787,12 +795,17 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
 {
     BL_PROFILE("MLMG::solve()");
 
-    bool prev_in_single_stream_region = false;
-    bool prev_in_nosync_region = false;
-
+    // Run the whole solve in a single-stream, no-implicit-sync region.  The
+    // RAII objects restore the previous state (also when an exception is
+    // thrown), and SyncAtExitOnly synchronizes the GPU streams on exit unless
+    // the caller was already in a NoSync region.  The order matters:
+    // no_sync_region is destroyed last, i.e., after the single stream region
+    // has been popped, so that all streams are synchronized.
+    std::optional<Gpu::SyncAtExitOnly> no_sync_region;
+    std::optional<Gpu::SingleStreamRegion> single_stream_region;
     if (do_no_sync_gpu) {
-        prev_in_single_stream_region = Gpu::setSingleStreamRegion(true);
-        prev_in_nosync_region = Gpu::setNoSyncRegion(true);
+        no_sync_region.emplace();
+        single_stream_region.emplace();
     }
 
     if constexpr (std::is_same<AMF,MultiFab>()) {
@@ -988,11 +1001,6 @@ MLMGT<MF>::solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
     }
 
     ++solve_called;
-
-    if (do_no_sync_gpu) {
-        (void)Gpu::setSingleStreamRegion(prev_in_single_stream_region);
-        (void)Gpu::setNoSyncRegion(prev_in_nosync_region);
-    }
 
     return composite_norminf;
 }

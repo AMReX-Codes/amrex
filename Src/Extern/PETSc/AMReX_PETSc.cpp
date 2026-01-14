@@ -705,6 +705,10 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         }
     }
 
+    // Sync required: soln (setVal above) and rhs_diag (non-fused path above)
+    // are written by GPU kernels and passed to PETSc host APIs below.
+    Gpu::streamSynchronize();
+
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const PetscInt nrows = ncells_grid[mfi];

@@ -149,7 +149,7 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
             MultiFab cfine;
             if (need_parallel_copy) {
                 const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
-                cfine.define(ba, fine.DistributionMap(), 1, 0);
+                cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
             }
 
             MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
@@ -580,7 +580,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     }
     else
     {
-        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
+        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
         Fapply(amrlev, mglev, Ax, sol);
 
 #ifdef AMREX_USE_GPU
@@ -718,7 +718,7 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
             }
         }
 
-        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
     }

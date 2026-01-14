@@ -440,6 +440,16 @@ For example, using AMReX-Hydro's :cpp:`NodalProjector`
         // Do something else...
     }
 
+On GPUs, :cpp:`MLMG::solve` runs by default in a single-stream region without
+the implicit stream synchronizations that :cpp:`MFIter` and many AMReX
+functions normally perform (see :ref:`sec:gpu:stream`).  This
+avoids many small synchronizations during the multigrid iterations.  The
+GPU streams are synchronized once when :cpp:`solve` returns, so the solution
+is complete when control comes back to the application, unless the
+application itself is inside a :cpp:`Gpu::NoSyncRegion`.  The old behavior
+with implicit synchronizations can be restored with
+:cpp:`MLMG::setNoGpuSync(false)`.
+
 
 Boundary Stencils for Cell-Centered Solvers
 ===========================================

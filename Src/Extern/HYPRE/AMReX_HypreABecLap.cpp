@@ -293,6 +293,10 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         }
     }
 
+    // Sync required: soln (setVal above) and rhs_diag (non-fused path above)
+    // are written by GPU kernels and passed to HYPRE host APIs below.
+    Gpu::streamSynchronize();
+
     for (MFIter mfi(soln); mfi.isValid(); ++mfi)
     {
         const Box &reg = mfi.validbox();

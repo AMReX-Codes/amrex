@@ -92,7 +92,7 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
     MultiFab cfine;
     if (need_parallel_copy) {
         const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
-        cfine.define(ba, fine.DistributionMap(), 1, 0);
+        cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
     }
 
     MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
@@ -139,7 +139,7 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     const MultiFab* cmf = &crse;
     if (need_parallel_copy) {
         const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
-        cfine.define(ba, fine.DistributionMap(), 1, 0);
+        cfine.define(ba, fine.DistributionMap(), 1, 0, MFInfo().SetArena(The_Async_Arena()));
         cfine.ParallelCopy(crse);
         cmf = &cfine;
     }

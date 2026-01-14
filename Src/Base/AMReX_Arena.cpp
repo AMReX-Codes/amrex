@@ -754,6 +754,11 @@ void
 Arena::Finalize ()
 {
 #ifdef AMREX_USE_GPU
+    // Release memory still held by Gpu::freeAsync before the arenas are
+    // deleted.  Otherwise the deferred frees would be applied to arenas that
+    // no longer exist when the streams are synchronized later.
+    Gpu::clearFreeAsyncBuffer();
+
     if (amrex::Verbose() > 0) {
 #else
     if (amrex::Verbose() > 1) {

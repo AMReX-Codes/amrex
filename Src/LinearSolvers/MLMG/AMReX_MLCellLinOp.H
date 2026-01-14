@@ -1325,7 +1325,7 @@ MLCellLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) cons
     {
         BoxArray cba = fine.boxArray();
         cba.coarsen(refratio);
-        cfine.define(cba, fine.DistributionMap(), ncomp, ng);
+        cfine.define(cba, fine.DistributionMap(), ncomp, ng, MFInfo().SetArena(The_Async_Arena()));
         cfine.setVal(RT(0.0));
         cfine.ParallelCopy(crse, 0, 0, ncomp, IntVect(0), ng, crse_geom.periodicity());
         cmf = & cfine;
