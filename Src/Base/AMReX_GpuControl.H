@@ -177,8 +177,8 @@ namespace Gpu {
 
     /**
      * This struct provides a RAII-style mechanism for disabling GPU
-     * synchronization in MFITer by default.  Note that explicit calls to
-     * Gpu::steramSynchronize and Gpu::deviceSynchronize still work.
+     * synchronization in MFIter by default.  Note that explicit calls to
+     * Gpu::streamSynchronize and Gpu::synchronize still work.
      */
     struct [[nodiscard]] NoSyncRegion
     {
@@ -188,7 +188,9 @@ namespace Gpu {
 
         ~NoSyncRegion () { in_nosync_region = m_prev_flag; }
 
-    private:
+        [[nodiscard]] bool inNoSyncRegionPreviously () const { return m_prev_flag; }
+
+    protected:
         bool m_prev_flag;
     };
 
@@ -217,7 +219,9 @@ namespace Gpu {
     [[nodiscard]] inline constexpr bool setSingleStreamRegion (bool) { return false; }
     [[nodiscard]] inline constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
-    struct [[nodiscard]] NoSyncRegion {};
+    struct [[nodiscard]] NoSyncRegion {
+        [[nodiscard]] constexpr bool inNoSyncRegionPreviously () const { return true; }
+    };
 
 #endif
 
