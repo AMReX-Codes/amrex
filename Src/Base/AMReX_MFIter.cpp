@@ -370,7 +370,7 @@ MFIter::Initialize ()
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && device_sync && device_sync_pre &&
-            streams > 1 && ((index_map->size() > 1) || this->numLocalTiles() > 1)) {
+            streams > 1 && (index_map->size() > 1)) {
             // No need to call streamSynchronize when there is only single
             // stream or only one box/tile.
 #ifdef AMREX_USE_OMP
