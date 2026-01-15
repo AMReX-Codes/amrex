@@ -3,6 +3,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Extension.H>
+#include <AMReX_BaseFwd.H>
+#include <AMReX_GpuControl.H>
 
 #ifdef AMREX_USE_GPU
 
