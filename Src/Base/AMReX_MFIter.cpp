@@ -167,6 +167,8 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
     streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
+    device_sync_pre(info.device_sync_pre),
+    device_sync_post(info.device_sync_post),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -199,6 +201,8 @@ MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
+    device_sync_pre(info.device_sync_pre),
+    device_sync_post(info.device_sync_post),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -239,7 +243,7 @@ MFIter::Finalize ()
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) {
+    if (device_sync && device_sync_post) {
         const int nstreams = std::min(endIndex, streams);
         for (int i = 0; i < nstreams; ++i) {
             Gpu::Device::setStreamIndex(i);
@@ -281,16 +285,6 @@ MFIter::Initialize ()
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
             "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }
-
-#if defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
-    if (Gpu::inLaunchRegion() && device_sync && (streams > 1)
-        && (OpenMP::get_num_threads() > 1))
-    { // If there are multiple gpu streams and multiple omp threads, we need
-      // to sync here. Otherwise, the sync will be delayed.
-#pragma omp single
-        Gpu::streamSynchronize();
-    }
-#endif
 
     if (flags & AllBoxes)  // a very special case
     {
@@ -375,6 +369,15 @@ MFIter::Initialize ()
         currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && device_sync && device_sync_pre &&
+            streams > 1 && ((index_map->size() > 1) || this->numLocalTiles() > 1)) {
+            // No need to call streamSynchronize when there is only single
+            // stream or only one box/tile.
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+            Gpu::streamSynchronize();
+        }
         Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
@@ -535,19 +538,7 @@ MFIter::operator++ () noexcept
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            if (device_sync && (streams > 1) && (OpenMP::get_num_threads() == 1)
-                && (currentIndex == 1) && isValid())
-            {
-                // Because omp num threads is 1, gpu stream sync has not
-                // been called in Initialize. We need to sync stream 0
-                // before launching kernels on stream 1, because the user
-                // might have launched kernels (such as memcpyAsync) on
-                // stream 0 before this MFIter and the kernels on stream 1
-                // might depend on it.
-                Gpu::streamSynchronize();
-            }
             Gpu::Device::setStreamIndex(currentIndex%streams);
-            AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
 //            Gpu::synchronize();
 #endif
