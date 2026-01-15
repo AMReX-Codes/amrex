@@ -618,13 +618,9 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (IntVectND<M> const& iv) const noexcept {
             bool inside = true;
-            constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
-            constexpr_for<0, idx>([&](int d) {
+            constexpr_for<0, M>([&](int d) {
                 inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
             });
-            if constexpr (last_dim_component && M == N) {
-                inside = inside && (iv[N-1] >= 0) && (iv[N-1] < end[N-1]);
-            }
             return inside;
         }
 
@@ -780,25 +776,11 @@ namespace amrex {
     template<typename T>
     using Array4 = ArrayND<T, 4, true>;
 
-    template <class Tto, class Tfrom, int N>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE
-    ArrayND<Tto,N> ToArray4 (ArrayND<Tfrom,N> const& a_in) noexcept
-    {
-        return ArrayND<Tto,N>((Tto*)(a_in.p), a_in.begin, a_in.end);
-    }
-
     template <class T>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 lbound (Array4<T> const& a) noexcept
     {
         return Dim3{a.begin[0],a.begin[1],a.begin[2]};
-    }
-
-    template <class T, int N, std::enable_if_t<(N != 4), int> = 0>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<N> lbound (ArrayND<T,N> const& a) noexcept
-    {
-        return a.begin;
     }
 
     template <class T>
@@ -808,33 +790,11 @@ namespace amrex {
         return Dim3{a.end[0]-1,a.end[1]-1,a.end[2]-1};
     }
 
-    template <class T, int N, std::enable_if_t<(N != 4), int> = 0>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<N> ubound (ArrayND<T,N> const& a) noexcept
-    {
-        IntVectND<N> hi;
-        for (int d = 0; d < N; ++d) {
-            hi[d] = a.end[d] - 1;
-        }
-        return hi;
-    }
-
     template <class T>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 length (Array4<T> const& a) noexcept
     {
         return Dim3{a.end[0]-a.begin[0],a.end[1]-a.begin[1],a.end[2]-a.begin[2]};
-    }
-
-    template <class T, int N, std::enable_if_t<(N != 4), int> = 0>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<N> length (ArrayND<T,N> const& a) noexcept
-    {
-        IntVectND<N> len;
-        for (int d = 0; d < N; ++d) {
-            len[d] = a.end[d] - a.begin[d];
-        }
-        return len;
     }
 
     template <typename T, int N, bool C>
