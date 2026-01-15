@@ -706,27 +706,67 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
 }
 
 template<int MT, int dim, typename L>
-void Launch (IntVectND<dim> nblocks, std::size_t shared_mem_bytes, L const& f)
+void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 {
-    const auto nthreads_total = MT * std::size_t(nblocks);
-    const std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
-        / sizeof(unsigned long long);
-    auto& q = *(stream.queue);
+    auto& q = Gpu::Device::streamQueue();
+
+    sycl::range<dim> threads_per_block;
+    sycl::range<dim> threads_total;
+
+    for (int i=0; i<dim; ++i) {
+        threads_per_block[i] = (i == dim-1) ? MT : 1;
+        threads_total[i] = nblocks[dim-1-i] * threads_per_block[i];
+    }
+
     try {
         q.submit([&] (sycl::handler& h) {
-            sycl::local_accessor<unsigned long long>
-                shared_data(sycl::range<1>(shared_mem_numull), h);
-            h.parallel_for(sycl::nd_range<1>(sycl::range<1>(nthreads_total),
-                                             sycl::range<1>(MT)),
-            [=] (sycl::nd_item<1> item)
-            [[sycl::reqd_work_group_size(MT)]]
-            [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
-            {
-                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
-            });
+
+            h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
+                [=] (sycl::nd_item<dim> item)
+                [[sycl::reqd_work_group_size(1, 1, MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+                {
+                    f(Gpu::LaunchHandler<MT, void, dim>{
+                        &item,
+                        nullptr
+                    });
+                });
         });
     } catch (sycl::exception const& ex) {
-        amrex::Abort(std::string("launch: ")+ex.what()+"!!!!!");
+        amrex::Abort(std::string("LaunchRaw: ")+ex.what()+"!!!!!");
+    }
+}
+
+template<int MT, typename T, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
+{
+    auto& q = Gpu::Device::streamQueue();
+
+    sycl::range<dim> threads_per_block;
+    sycl::range<dim> threads_total;
+
+    for (int i=0; i<dim; ++i) {
+        threads_per_block[i] = (i == dim-1) ? MT : 1;
+        threads_total[i] = nblocks[dim-1-i] * threads_per_block[i];
+    }
+
+    try {
+        q.submit([&] (sycl::handler& h) {
+            sycl::local_accessor<T> shared_data(sycl::range<1>(shared_mem_elements), h);
+
+            h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
+                [=] (sycl::nd_item<dim> item)
+                [[sycl::reqd_work_group_size(1, 1, MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+                {
+                    f(Gpu::LaunchHandler<MT, T, dim>{
+                        &item,
+                        shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()
+                    });
+                });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("LaunchRaw: ")+ex.what()+"!!!!!");
     }
 }
 
@@ -1120,6 +1160,44 @@ ParallelFor (Gpu::KernelInfo const&,
             }
         }
     });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template<int MT, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, L const& f)
+{
+    dim3 num_blocks;
+    num_blocks.x = nblocks[0];
+    if constexpr (dim >= 2) {
+        num_blocks.y = nblocks[1];
+    }
+    if constexpr (dim == 3) {
+        num_blocks.z = nblocks[2];
+    }
+
+    AMREX_LAUNCH_KERNEL(MT, num_blocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            f(Gpu::LaunchHandler<MT, void, dim>{});
+        });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+template<int MT, typename T, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
+{
+    dim3 num_blocks;
+    num_blocks.x = nblocks[0];
+    if constexpr (dim >= 2) {
+        num_blocks.y = nblocks[1];
+    }
+    if constexpr (dim == 3) {
+        num_blocks.z = nblocks[2];
+    }
+
+    AMREX_LAUNCH_KERNEL(MT, num_blocks, MT, shared_mem_elements * sizeof(T), Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            f(Gpu::LaunchHandler<MT, T, dim>{});
+        });
     AMREX_GPU_ERROR_CHECK();
 }
 

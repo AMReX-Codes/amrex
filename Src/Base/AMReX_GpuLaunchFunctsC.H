@@ -149,6 +149,57 @@ void launch (T const& n, L&& f) noexcept
     std::forward<L>(f)(n);
 }
 
+template<int MT, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, L const& f)
+{
+    static_assert(MT == 1);
+    if constexpr(dim == 1) {
+        for (int bx=0; bx < nblocks[0]; ++bx) {
+            f(Gpu::LaunchHandler<MT, void, dim>{{bx}, nblocks, nullptr});
+        }
+    } else if constexpr(dim == 2) {
+        for (int by=0; by < nblocks[1]; ++by) {
+            for (int bx=0; bx < nblocks[0]; ++bx) {
+                f(Gpu::LaunchHandler<MT, void, dim>{{bx, by}, nblocks, nullptr});
+            }
+        }
+    } else {
+        for (int bz=0; bz < nblocks[2]; ++bz) {
+            for (int by=0; by < nblocks[1]; ++by) {
+                for (int bx=0; bx < nblocks[0]; ++bx) {
+                    f(Gpu::LaunchHandler<MT, void, dim>{{bx, by, bz}, nblocks, nullptr});
+                }
+            }
+        }
+    }
+}
+
+template<int MT, typename T, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
+{
+    static_assert(MT == 1);
+    T smem[shared_mem_elements];
+    if constexpr(dim == 1) {
+        for (int bx=0; bx < nblocks[0]; ++bx) {
+            f(Gpu::LaunchHandler<MT, void, dim>{{bx}, nblocks, &smem});
+        }
+    } else if constexpr(dim == 2) {
+        for (int by=0; by < nblocks[1]; ++by) {
+            for (int bx=0; bx < nblocks[0]; ++bx) {
+                f(Gpu::LaunchHandler<MT, void, dim>{{bx, by}, nblocks, &smem});
+            }
+        }
+    } else {
+        for (int bz=0; bz < nblocks[2]; ++bz) {
+            for (int by=0; by < nblocks[1]; ++by) {
+                for (int bx=0; bx < nblocks[0]; ++bx) {
+                    f(Gpu::LaunchHandler<MT, void, dim>{{bx, by, bz}, nblocks, &smem});
+                }
+            }
+        }
+    }
+}
+
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (T n, L const& f) noexcept

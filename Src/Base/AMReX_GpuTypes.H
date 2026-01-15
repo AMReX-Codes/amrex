@@ -102,16 +102,16 @@ struct Handler {};
 
 #endif
 
-template<unsigned int threads_per_block, int dim>
+template<unsigned int threads_per_block, typename T, int dim>
 struct LaunchHandler
 {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     LaunchHandler() = default;
 #elif defined(AMREX_USE_SYCL)
-    LaunchHandler(sycl::nd_item<dim> const* a_item, char * a_shared_mem)
+    LaunchHandler(sycl::nd_item<dim> const* a_item, T * a_shared_mem)
         : m_item{a_item}, m_shared_mem{a_shared_mem} {};
 #else
-    LaunchHandler(IntVectND<dim> a_blockid, IntVectND<dim> a_griddim, char * a_shared_mem)
+    LaunchHandler(IntVectND<dim> a_blockid, IntVectND<dim> a_griddim, T * a_shared_mem)
         : m_blockid{a_blockid}, m_griddim{a_griddim}, m_shared_mem{a_shared_mem} {};
 #endif
 
@@ -230,14 +230,14 @@ struct LaunchHandler
         );
     }
 
-    template<class T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T* shared_memory () const {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        static_assert(32 >= alignof(T));
         alignas(32) extern __shared__ char smem[];
         return reinterpret_cast<T*>(smem);
 #else
-        return reinterpret_cast<T*>(m_shared_mem);
+        return m_shared_mem;
 #endif
     }
 
@@ -254,13 +254,13 @@ private:
 
 #if defined(AMREX_USE_SYCL)
     sycl::nd_item<dim> const* m_item;
-    char * m_shared_mem;
+    T * m_shared_mem;
 #endif
 
 #if !defined(AMREX_USE_GPU)
     IntVectND<dim> m_blockid;
     IntVectND<dim> m_griddim;
-    char * m_shared_mem;
+    T * m_shared_mem;
 #endif
 };
 
