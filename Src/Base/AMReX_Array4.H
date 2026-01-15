@@ -391,7 +391,7 @@ namespace amrex {
          * \return true if pointer and bounds are valid, false otherwise.
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE
-        bool ok () const noexcept { return p != nullptr && end.allGT(begin); }
+        constexpr bool ok () const noexcept { return p != nullptr && end.allGT(begin); }
 
         /**
          * \brief Multi-index operator() for accessing elements.
