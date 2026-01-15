@@ -594,11 +594,15 @@ namespace amrex {
 
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr std::size_t size () const noexcept {
-            std::size_t s = 1;
-            constexpr_for<0, N>([&](int d) {
-                s *= (end[d] - begin[d]);
-            });
-            return s;
+            if (ok()) {
+                std::size_t s = 1;
+                constexpr_for<0, N>([&](int d) {
+                    s *= (end[d] - begin[d]);
+                });
+                return s;
+            } else {
+                return 0;
+            }
         }
 
         template <typename... idx, std::enable_if_t<
