@@ -15,6 +15,9 @@
 
 namespace amrex {
 
+template <typename T>
+struct MLMGABCTag;
+
 template <typename MF>
 class MLCellLinOpT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLLinOpT<MF>
@@ -233,25 +236,42 @@ private:
     mutable Vector<Vector<RT> > m_volinv; // used by solvability fix
 
     int m_interpbndry_halfwidth = 2;
+
+    mutable Vector<Vector<TagVector<MLMGABCTag<RT>>>> m_bc_tags;
 };
 
 /// \cond DOXYGEN_IGNORE
 
+// template <typename T>
+// struct MLMGABCTag {
+//     Array4<T> fab;
+//     Array4<T const> bcval_lo;
+//     Array4<T const> bcval_hi;
+//     Array4<int const> mask_lo;
+//     Array4<int const> mask_hi;
+//     T bcloc_lo;
+//     T bcloc_hi;
+//     Box bx;
+//     BoundCond bctype_lo;
+//     BoundCond bctype_hi;
+//     int blen;
+//     int comp;
+//     int dir;
+
+//     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+//     Box const& box() const noexcept { return bx; }
+// };
+
 template <typename T>
 struct MLMGABCTag {
-    Array4<T> fab;
-    Array4<T const> bcval_lo;
-    Array4<T const> bcval_hi;
-    Array4<int const> mask_lo;
-    Array4<int const> mask_hi;
-    T bcloc_lo;
-    T bcloc_hi;
+    Array4<int const> mask;
+    T bcloc;
     Box bx;
-    BoundCond bctype_lo;
-    BoundCond bctype_hi;
+    BoundCond bctype;
     int blen;
     int comp;
-    int dir;
+    Orientation face;
+    int local_index;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
@@ -396,12 +416,14 @@ MLCellLinOpT<MF>::defineAuxData ()
     m_maskvals.resize(this->m_num_amr_levels);
     m_fluxreg.resize(this->m_num_amr_levels-1);
     m_norm_fine_mask.resize(this->m_num_amr_levels-1);
+    m_bc_tags.resize(this->m_num_amr_levels);
 
     const int ncomp = this->getNComp();
 
     for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
         m_undrrelxr[amrlev].resize(this->m_num_mg_levels[amrlev]);
+        m_bc_tags[amrlev].resize(this->m_num_mg_levels[amrlev]);
         for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
             m_undrrelxr[amrlev][mglev].define(this->m_grids[amrlev][mglev],
@@ -745,68 +767,84 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
 #ifdef AMREX_USE_GPU
     if ((cross || tensorop) && Gpu::inLaunchRegion())
     {
+        bool skip_loop = false;
         Vector<MLMGABCTag<RT>> tags;
-        tags.reserve(in.local_size()*AMREX_SPACEDIM*ncomp);
+        if (m_bc_tags[amrlev][mglev].is_defined()) {
+            skip_loop = true;
+        }
 
-        for (MFIter mfi(in); mfi.isValid(); ++mfi) {
-            const Box& vbx = mfi.validbox();
-            const auto& iofab = in.array(mfi);
-            const auto & bdlv = bcondloc.bndryLocs(mfi);
-            const auto & bdcv = bcondloc.bndryConds(mfi);
+        if (!skip_loop) {
+            tags.reserve(in.local_size()*2*AMREX_SPACEDIM*ncomp);
+            for (MFIter mfi(in); mfi.isValid(); ++mfi) {
+                const Box& vbx = mfi.validbox();
+                const auto & bdlv = bcondloc.bndryLocs(mfi);
+                const auto & bdcv = bcondloc.bndryConds(mfi);
 
-            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                if (idim != hidden_direction) {
-                    const Orientation olo(idim,Orientation::low);
-                    const Orientation ohi(idim,Orientation::high);
-                    const auto& bvlo = (bndry != nullptr) ?
-                        bndry->bndryValues(olo).const_array(mfi) : foo;
-                    const auto& bvhi = (bndry != nullptr) ?
-                        bndry->bndryValues(ohi).const_array(mfi) : foo;
-                    for (int icomp = 0; icomp < ncomp; ++icomp) {
-                        tags.emplace_back(MLMGABCTag<RT>{iofab, bvlo, bvhi,
-                                                 maskvals[olo].const_array(mfi),
-                                                 maskvals[ohi].const_array(mfi),
-                                                 bdlv[icomp][olo], bdlv[icomp][ohi],
-                                                 amrex::adjCell(vbx,olo),
-                                                 bdcv[icomp][olo], bdcv[icomp][ohi],
-                                                 vbx.length(idim), icomp, idim});
+                const int local_index = mfi.LocalIndex();
+
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    if (idim != hidden_direction) {
+                        const Orientation olo(idim,Orientation::low);
+                        const Orientation ohi(idim,Orientation::high);
+                        for (int icomp = 0; icomp < ncomp; ++icomp) {
+                            tags.emplace_back(MLMGABCTag<RT>{
+                                maskvals[olo].const_array(mfi),
+                                bdlv[icomp][olo],
+                                amrex::adjCell(vbx,olo),
+                                bdcv[icomp][olo], vbx.length(idim),
+                                icomp, olo, local_index
+                            });
+                            tags.emplace_back(MLMGABCTag<RT>{
+                                maskvals[ohi].const_array(mfi),
+                                bdlv[icomp][ohi],
+                                amrex::adjCell(vbx,ohi),
+                                bdcv[icomp][ohi], vbx.length(idim),
+                                icomp, ohi, local_index
+                            });
+                        }
                     }
                 }
             }
+            m_bc_tags[amrlev][mglev].define(tags);
         }
 
-        ParallelFor(tags,
+        MultiArray4<RT const> foo_ma;
+        Array<MultiArray4<RT const>, 2*AMREX_SPACEDIM> bndry_arrays;
+        for (OrientationIter oit; oit; ++oit) {
+            const Orientation ori = oit();
+            bndry_arrays[ori] = (bndry != nullptr) ?
+                bndry->bndryValues(ori).arrays() : foo_ma;
+        }
+
+        auto inma = in.arrays();
+        ParallelFor(m_bc_tags[amrlev][mglev],
         [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCTag<RT> const& tag) noexcept
         {
-            if (tag.dir == 0)
-            {
-                mllinop_apply_bc_x(0, i, j, k, tag.blen, tag.fab,
-                                   tag.mask_lo, tag.bctype_lo, tag.bcloc_lo, tag.bcval_lo,
-                                   imaxorder, dxi, flagbc, tag.comp);
-                mllinop_apply_bc_x(1, i+tag.blen+1, j, k, tag.blen, tag.fab,
-                                   tag.mask_hi, tag.bctype_hi, tag.bcloc_hi, tag.bcval_hi,
+            if (tag.face.coordDir() == 0) {
+                const auto& bcval = bndry_arrays[tag.face][tag.local_index];
+                const int side = tag.face.faceDir();
+                mllinop_apply_bc_x(side, i, j, k, tag.blen, inma[tag.local_index],
+                                   tag.mask, tag.bctype, tag.bcloc, bcval,
                                    imaxorder, dxi, flagbc, tag.comp);
             }
 #if (AMREX_SPACEDIM > 1)
             else
 #if (AMREX_SPACEDIM > 2)
-            if (tag.dir == 1)
+            if (tag.face.coordDir() == 1)
 #endif
             {
-                mllinop_apply_bc_y(0, i, j, k, tag.blen, tag.fab,
-                                   tag.mask_lo, tag.bctype_lo, tag.bcloc_lo, tag.bcval_lo,
-                                   imaxorder, dyi, flagbc, tag.comp);
-                mllinop_apply_bc_y(1, i, j+tag.blen+1, k, tag.blen, tag.fab,
-                                   tag.mask_hi, tag.bctype_hi, tag.bcloc_hi, tag.bcval_hi,
+                const auto& bcval = bndry_arrays[tag.face][tag.local_index];
+                const int side = tag.face.faceDir();
+                mllinop_apply_bc_y(side, i, j, k, tag.blen, inma[tag.local_index],
+                                   tag.mask, tag.bctype, tag.bcloc, bcval,
                                    imaxorder, dyi, flagbc, tag.comp);
             }
 #if (AMREX_SPACEDIM > 2)
             else {
-                mllinop_apply_bc_z(0, i, j, k, tag.blen, tag.fab,
-                                   tag.mask_lo, tag.bctype_lo, tag.bcloc_lo, tag.bcval_lo,
-                                   imaxorder, dzi, flagbc, tag.comp);
-                mllinop_apply_bc_z(1, i, j, k+tag.blen+1, tag.blen, tag.fab,
-                                   tag.mask_hi, tag.bctype_hi, tag.bcloc_hi, tag.bcval_hi,
+                const auto& bcval = bndry_arrays[tag.face][tag.local_index];
+                const int side = tag.face.faceDir();
+                mllinop_apply_bc_z(side, i, j, k, tag.blen, inma[tag.local_index],
+                                   tag.mask, tag.bctype, tag.bcloc, bcval,
                                    imaxorder, dzi, flagbc, tag.comp);
             }
 #endif
