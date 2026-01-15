@@ -837,9 +837,9 @@ namespace amrex {
         return len;
     }
 
-    template <typename T, int N>
-    std::ostream& operator<< (std::ostream& os, const ArrayND<T,N>& a) {
-        os << "((" << lbound(a) << ',' << ubound(a) << "))";
+    template <typename T, int N, bool C>
+    std::ostream& operator<< (std::ostream& os, const ArrayND<T,N,C>& a) {
+        os << "(" << a.begin << ',' << a.end-1 << ")";
         return os;
     }
 
