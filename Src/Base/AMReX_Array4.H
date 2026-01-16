@@ -63,6 +63,9 @@ namespace amrex {
 
     namespace detail {
 
+        template <int N> struct Stride { Long a[N] = {}; };
+        template <> struct Stride<0> {};
+
         /**
          * \brief Helper struct to check if a type is a valid index type.
          *
@@ -215,7 +218,7 @@ namespace amrex {
         static constexpr bool IsArray4_v = (N==4 && last_dim_component);
 
         T* AMREX_RESTRICT p = nullptr;
-        std::array<Long, N-1> nstride{};
+        AMREX_NO_UNIQUE_ADDRESS detail::Stride<N-1> stride{};
         IntVectND<N> begin{1};
         IntVectND<N> end{0}; // end is hi+1
 
@@ -225,7 +228,7 @@ namespace amrex {
         template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<std::remove_const_t<T>, N, last_dim_component> const& rhs) noexcept
-            : p(rhs.p), nstride(rhs.nstride), begin(rhs.begin), end(rhs.end) {}
+            : p(rhs.p), stride(rhs.stride), begin(rhs.begin), end(rhs.end) {}
 
         /**
          * \brief Constructor using a BoxND.
@@ -271,7 +274,7 @@ namespace amrex {
                 constexpr_for<0, N-1>([&](int d) {
                     Long len = a_end[d] - a_begin[d];
                     current_stride *= len;
-                    nstride[d] = current_stride;
+                    stride.a[d] = current_stride;
                 });
             }
         }
@@ -294,7 +297,7 @@ namespace amrex {
             constexpr_for<0, N-1>([&](int d) {
                 Long len = end[d] - begin[d];
                 current_stride *= len;
-                nstride[d] = current_stride;
+                stride.a[d] = current_stride;
             });
         }
 
@@ -328,7 +331,7 @@ namespace amrex {
                 constexpr_for<0, N-1>([&](int d) {
                     Long len = end[d] - begin[d];
                     current_stride *= len;
-                    nstride[d] = current_stride;
+                    stride.a[d] = current_stride;
                 });
             }
         }
@@ -346,8 +349,8 @@ namespace amrex {
                     && (N >= 2) && last_dim_component,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, N, last_dim_component> const& rhs, int start_comp) noexcept
-            : p((T*)(rhs.p + start_comp*rhs.nstride[N-2])),
-              nstride(rhs.nstride),
+            : p((T*)(rhs.p + start_comp*rhs.stride.a[N-2])),
+              stride(rhs.stride),
               begin(rhs.begin),
               end(rhs.end)
         {
@@ -369,8 +372,8 @@ namespace amrex {
                     && (N >= 2) && last_dim_component,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, N, last_dim_component> const& rhs, int start_comp, int num_comp) noexcept
-            : p((T*)(rhs.p + start_comp*rhs.nstride[N-2])),
-              nstride(rhs.nstride),
+            : p((T*)(rhs.p + start_comp*rhs.stride.a[N-2])),
+              stride(rhs.stride),
               begin(rhs.begin),
               end(rhs.end)
         {
@@ -590,7 +593,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         CellData<T> cellData (int i, int j, int k) const noexcept {
             int ncomp = end[M-1];
-            return CellData<T>(this->ptr(i,j,k), nstride[M-2], ncomp);
+            return CellData<T>(this->ptr(i,j,k), stride.a[M-2], ncomp);
         }
 
         template <int M, std::enable_if_t<(M == N)
@@ -603,13 +606,13 @@ namespace amrex {
             // Otherwise, we loop up to M.
             constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
             constexpr_for<1, idx>([&](int d) {
-                offset += (iv[d] - begin[d]) * nstride[d-1];
+                offset += (iv[d] - begin[d]) * stride.a[d-1];
             });
 
             // Handle the component offset if the input is the full N dimensions
             // and the last dimension is a component.
             if constexpr (last_dim_component && M == N) {
-                offset += iv[N-1] * nstride[N-2];
+                offset += iv[N-1] * stride.a[N-2];
             }
             return offset;
         }
@@ -621,9 +624,9 @@ namespace amrex {
         {
             Long offset = iv[0] - begin[0];
             constexpr_for<1, M>([&](int d) {
-                offset += (iv[d] - begin[d]) * nstride[d-1];
+                offset += (iv[d] - begin[d]) * stride.a[d-1];
             });
-            offset += n * nstride[N-2];
+            offset += n * stride.a[N-2];
             return offset;
         }
 
@@ -713,8 +716,8 @@ namespace amrex {
             index_assert(i,j,k,0);
 #endif
             return p[(i-begin.vect[0]) +
-                     (j-begin.vect[1]) * nstride[0] +
-                     (k-begin.vect[2]) * nstride[1]];
+                     (j-begin.vect[1]) * stride.a[0] +
+                     (k-begin.vect[2]) * stride.a[1]];
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -724,9 +727,9 @@ namespace amrex {
             index_assert(i,j,k,n);
 #endif
             return p[(i-begin.vect[0]) +
-                     (j-begin.vect[1]) * nstride[0] +
-                     (k-begin.vect[2]) * nstride[1] +
-                                     n * nstride[2]];
+                     (j-begin.vect[1]) * stride.a[0] +
+                     (k-begin.vect[2]) * stride.a[1] +
+                                     n * stride.a[2]];
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -772,8 +775,8 @@ namespace amrex {
             index_assert(i,j,k,0);
 #endif
             return p + ((i-begin.vect[0]) +
-                        (j-begin.vect[1]) * nstride[0] +
-                        (k-begin.vect[2]) * nstride[1]);
+                        (j-begin.vect[1]) * stride.a[0] +
+                        (k-begin.vect[2]) * stride.a[1]);
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -783,9 +786,9 @@ namespace amrex {
             index_assert(i,j,k,n);
 #endif
             return p + ((i-begin.vect[0]) +
-                        (j-begin.vect[1]) * nstride[0] +
-                        (k-begin.vect[2]) * nstride[1] +
-                                        n * nstride[2]);
+                        (j-begin.vect[1]) * stride.a[0] +
+                        (k-begin.vect[2]) * stride.a[1] +
+                                        n * stride.a[2]);
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
