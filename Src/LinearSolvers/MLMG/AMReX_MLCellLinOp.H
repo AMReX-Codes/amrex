@@ -242,26 +242,6 @@ private:
 
 /// \cond DOXYGEN_IGNORE
 
-// template <typename T>
-// struct MLMGABCTag {
-//     Array4<T> fab;
-//     Array4<T const> bcval_lo;
-//     Array4<T const> bcval_hi;
-//     Array4<int const> mask_lo;
-//     Array4<int const> mask_hi;
-//     T bcloc_lo;
-//     T bcloc_hi;
-//     Box bx;
-//     BoundCond bctype_lo;
-//     BoundCond bctype_hi;
-//     int blen;
-//     int comp;
-//     int dir;
-
-//     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-//     Box const& box() const noexcept { return bx; }
-// };
-
 template <typename T>
 struct MLMGABCTag {
     Array4<int const> mask;
