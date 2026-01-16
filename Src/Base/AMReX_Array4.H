@@ -462,32 +462,6 @@ namespace amrex {
         }
 
         /**
-         * \brief Access element by Dim3.
-         * \param cell Dim3
-         * \return Reference to the element.
-         * Only enabled when N=4 and last_dim_component == true or N=3 and last_dim_component == false.
-         */
-        template <class U=T, std::enable_if_t<!std::is_void_v<U>
-            && ((N == 4 && last_dim_component) || (N == 3 && !last_dim_component)),int> = 0>
-        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (Dim3 const& cell) const noexcept {
-            return this->operator()(cell.x,cell.y,cell.z);
-        }
-
-        /**
-         * \brief Access element by Dim3 and component index (only when N=4).
-         * \param cell Dim3
-         * \param n Component index (last dimension).
-         * \return Reference to the element.
-         */
-        template <class U=T, std::enable_if_t<!std::is_void_v<U>
-            && last_dim_component && (N == 4),int> = 0>
-        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (Dim3 const& cell, int n) const noexcept {
-            return this->operator()(cell.x,cell.y,cell.z,n);
-        }
-
-        /**
          * \brief Multi-index ptr() for accessing pointer to element.
          * \tparam idx Variadic template for indices.
          * \param i Variadic list of indices.
@@ -543,31 +517,6 @@ namespace amrex {
             index_assert(iv, n);
 #endif
             return p + get_offset(iv, n);
-        }
-
-        /**
-         * \brief Access pointer by Dim3.
-         * \param cell Dim3
-         * \return Pointer to the element.
-         * Only enabled when N=4 and last_dim_component == true or N=3 and last_dim_component == false.
-         */
-        template <int M=N, std::enable_if_t<(M == 4 && last_dim_component)
-            || (M == 3 && !last_dim_component),int> = 0>
-        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* ptr (Dim3 const& cell) const noexcept {
-            return this->ptr(cell.x,cell.y,cell.z);
-        }
-
-        /**
-         * \brief Access pointer by Dim3 and component index (only when N=4 and last_dim_component == true).
-         * \param cell Dim3
-         * \param n Component index (last dimension).
-         * \return Pointer to the element.
-         */
-        template <int M=N, std::enable_if_t<(M == 4) && last_dim_component,int> = 0>
-        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T* ptr (Dim3 const& cell, int n) const noexcept {
-            return this->ptr(cell.x,cell.y,cell.z,n);
         }
 
         /**
