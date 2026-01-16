@@ -211,8 +211,8 @@ namespace amrex {
         static_assert(N >= 1, "ArrayND must have at least one dimension");
         static_assert(N > 1 || !last_dim_component, "ArrayND with N=1 cannot have last_dim_component=true");
 
-        // Last dimension info for compile-time operations
-        using LastDimComponent = std::integral_constant<bool, last_dim_component>;
+        static constexpr bool IsLastDimComponent_v = last_dim_component;
+        static constexpr bool IsArray4_v = (N==4 && last_dim_component);
 
         T* AMREX_RESTRICT p = nullptr;
         std::array<Long, N-1> nstride{};
@@ -724,7 +724,11 @@ namespace amrex {
         // Only valid when last_dim_component == true
         template <int M, std::enable_if_t<((M+1 == N) || (M == AMREX_SPACEDIM))
             && last_dim_component,int> = 0>
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
         AMREX_GPU_HOST_DEVICE inline
+#endif
         void index_assert (IntVectND<M> const& iv) const
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
@@ -738,7 +742,11 @@ namespace amrex {
         // Only valid when last_dim_component == true
         template <int M, std::enable_if_t<((M+1 == N) || (M == AMREX_SPACEDIM))
             && last_dim_component,int> = 0>
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
         AMREX_GPU_HOST_DEVICE inline
+#endif
         void index_assert (IntVectND<M> const& iv, int n) const
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
@@ -747,6 +755,189 @@ namespace amrex {
             }
             iv_full[N-1] = n;
             index_assert(iv_full);
+        }
+#endif
+
+        //
+        // Specialization for Array4
+        //
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (int i, int j, int k) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i,j,k,0);
+#endif
+            return p[(i-begin.vect[0]) +
+                     (j-begin.vect[1]) * nstride[0] +
+                     (k-begin.vect[2]) * nstride[1]];
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (int i, int j, int k, int n) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i,j,k,n);
+#endif
+            return p[(i-begin.vect[0]) +
+                     (j-begin.vect[1]) * nstride[0] +
+                     (k-begin.vect[2]) * nstride[1] +
+                                     n * nstride[2]];
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (IntVect const& iv) const noexcept {
+#if (AMREX_SPACEDIM == 1)
+            return this->operator()(iv.vect[0],0,0);
+#elif (AMREX_SPACEDIM == 2)
+            return this->operator()(iv.vect[0],iv.vect[1],0);
+#else
+            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2]);
+#endif
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (IntVect const& iv, int n) const noexcept {
+#if (AMREX_SPACEDIM == 1)
+            return this->operator()(iv.vect[0],0,0,n);
+#elif (AMREX_SPACEDIM == 2)
+            return this->operator()(iv.vect[0],iv.vect[1],0,n);
+#else
+            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2],n);
+#endif
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (Dim3 const& cell) const noexcept {
+            return this->operator()(cell.x,cell.y,cell.z);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (Dim3 const& cell, int n) const noexcept {
+            return this->operator()(cell.x,cell.y,cell.z,n);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U* ptr (int i, int j, int k) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i,j,k,0);
+#endif
+            return p + ((i-begin.vect[0]) +
+                        (j-begin.vect[1]) * nstride[0] +
+                        (k-begin.vect[2]) * nstride[1]);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U* ptr (int i, int j, int k, int n) const noexcept {
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(i,j,k,n);
+#endif
+            return p + ((i-begin.vect[0]) +
+                        (j-begin.vect[1]) * nstride[0] +
+                        (k-begin.vect[2]) * nstride[1] +
+                                        n * nstride[2]);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U* ptr (IntVect const& iv) const noexcept {
+#if (AMREX_SPACEDIM == 1)
+            return this->ptr(iv.vect[0],0,0);
+#elif (AMREX_SPACEDIM == 2)
+            return this->ptr(iv.vect[0],iv.vect[1],0);
+#else
+            return this->ptr(iv.vect[0],iv.vect[1],iv.vect[2]);
+#endif
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U* ptr (IntVect const& iv, int n) const noexcept {
+#if (AMREX_SPACEDIM == 1)
+            return this->ptr(iv.vect[0],0,0,n);
+#elif (AMREX_SPACEDIM == 2)
+            return this->ptr(iv.vect[0],iv.vect[1],0,n);
+#else
+            return this->ptr(iv.vect[0],iv.vect[1],iv.vect[2],n);
+#endif
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U* ptr (Dim3 const& cell) const noexcept {
+            return this->ptr(cell.x,cell.y,cell.z);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U* ptr (Dim3 const& cell, int n) const noexcept {
+            return this->ptr(cell.x,cell.y,cell.z,n);
+        }
+
+        template <std::enable_if_t<IsArray4_v,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool contains (int i, int j, int k) const noexcept {
+            return (i>=begin.vect[0] && i<end.vect[0] &&
+                    j>=begin.vect[1] && j<end.vect[1] &&
+                    k>=begin.vect[2] && k<end.vect[2]);
+        }
+
+        template <std::enable_if_t<IsArray4_v,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool contains (IntVect const& iv) const noexcept {
+            return AMREX_D_TERM((iv.vect[0]>=begin.vect[0]) && (iv.vect[0]<end.vect[0]),
+                             && (iv.vect[1]>=begin.vect[1]) && (iv.vect[1]<end.vect[1]),
+                             && (iv.vect[2]>=begin.vect[2]) && (iv.vect[2]<end.vect[2]));
+        }
+
+        template <std::enable_if_t<IsArray4_v,int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        bool contains (Dim3 const& cell) const noexcept {
+            return (cell.x>=begin.vect[0] && cell.x<end.vect[0] &&
+                    cell.y>=begin.vect[1] && cell.y<end.vect[1] &&
+                    cell.z>=begin.vect[2] && cell.z<end.vect[2]);
+        }
+
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+        template <std::enable_if_t<IsArray4_v,int> = 0>
+#if defined(AMREX_USE_HIP)
+        AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+#else
+        AMREX_GPU_HOST_DEVICE inline
+#endif
+        void index_assert (int i, int j, int k, int n) const
+        {
+            if (i<begin.vect[0] || i>=end.vect[0] ||
+                j<begin.vect[1] || j>=end.vect[1] ||
+                k<begin.vect[2] || k>=end.vect[2] ||
+                n<0             || n>=end.vect[3])
+            {
+                AMREX_IF_ON_DEVICE((
+                    AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
+                                        i, j, k, n,
+                                        begin.vect[0], end.vect[0]-1,
+                                        begin.vect[1], end.vect[1]-1,
+                                        begin.vect[2], end.vect[2]-1,
+                                                       end.vect[3]-1);
+                    amrex::Abort();
+                ))
+                AMREX_IF_ON_HOST((
+                    std::stringstream ss;
+                    ss << " (" << i << "," << j << "," << k << "," <<  n
+                    << ") is out of bound ("
+                    << begin.vect[0] << ":" << end.vect[0]-1 << ","
+                    << begin.vect[1] << ":" << end.vect[1]-1 << ","
+                    << begin.vect[2] << ":" << end.vect[2]-1 << ","
+                    << "0:" << end.vect[3]-1 << ")";
+                    amrex::Abort(ss.str());
+                ))
+            }
         }
 #endif
     };
