@@ -299,7 +299,7 @@ namespace amrex {
          *
          * Typically used for standard (i, j, k, n) access in 3D simulations.
          */
-        template <std::enable_if_t<IsArray4_v,int> = 0>
+        template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, Dim3 const& a_begin, Dim3 const& a_end, int a_ncomp) noexcept
             : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
@@ -600,7 +600,7 @@ namespace amrex {
             return inside;
         }
 
-        template <int M=N, std::enable_if_t<IsArray4_v,int> = 0>
+        template <int M=N, bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         CellData<T> cellData (int i, int j, int k) const noexcept {
             int ncomp = end[M-1];
@@ -838,7 +838,7 @@ namespace amrex {
             return this->ptr(cell.x,cell.y,cell.z,n);
         }
 
-        template <std::enable_if_t<IsArray4_v,int> = 0>
+        template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (int i, int j, int k) const noexcept {
             return (i>=begin.vect[0] && i<end.vect[0] &&
@@ -846,7 +846,7 @@ namespace amrex {
                     k>=begin.vect[2] && k<end.vect[2]);
         }
 
-        template <std::enable_if_t<IsArray4_v,int> = 0>
+        template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (IntVect const& iv) const noexcept {
             return AMREX_D_TERM((iv.vect[0]>=begin.vect[0]) && (iv.vect[0]<end.vect[0]),
@@ -854,7 +854,7 @@ namespace amrex {
                              && (iv.vect[2]>=begin.vect[2]) && (iv.vect[2]<end.vect[2]));
         }
 
-        template <std::enable_if_t<IsArray4_v,int> = 0>
+        template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (Dim3 const& cell) const noexcept {
             return (cell.x>=begin.vect[0] && cell.x<end.vect[0] &&
@@ -863,7 +863,7 @@ namespace amrex {
         }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-        template <std::enable_if_t<IsArray4_v,int> = 0>
+        template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
 #if defined(AMREX_USE_HIP)
         AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 #else
