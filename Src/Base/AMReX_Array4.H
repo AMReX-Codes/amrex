@@ -248,6 +248,7 @@ namespace amrex {
          *
          * TODO: Make BoxND functions constexpr to allow this constructor to be constexpr.
          */
+        template <bool C = last_dim_component, std::enable_if_t<!C,int> = 0>
         AMREX_GPU_HOST_DEVICE
         ArrayND (T* a_p, BoxND<N> const& box) noexcept
             : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1)
@@ -276,6 +277,7 @@ namespace amrex {
          *
          * This constructor specifies begin and end indices using IntVectND<N> for all N dimensions.
          */
+        template <bool C = last_dim_component, std::enable_if_t<!C,int> = 0>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
             : p(a_p), begin(a_begin), end(a_end)
@@ -616,9 +618,11 @@ namespace amrex {
             // If M == N and we have a component at the end, we only loop up to N-1 for spatial.
             // Otherwise, we loop up to M.
             constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
-            constexpr_for<1, idx>([&](int d) {
-                offset += (iv[d] - begin[d]) * stride.a[d-1];
-            });
+            if constexpr (N > 1) {
+                constexpr_for<1, idx>([&](int d) {
+                    offset += (iv[d] - begin[d]) * stride.a[d-1];
+                });
+            }
 
             // Handle the component offset if the input is the full N dimensions
             // and the last dimension is a component.
