@@ -11,6 +11,17 @@
 #include <iostream>
 #include <sstream>
 
+/// \cond DOXYGEN_IGNORE
+#define AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n)         \
+    if ((i)<begin.vect[0] || (i)>=end.vect[0] ||   \
+        (j)<begin.vect[1] || (j)>=end.vect[1] ||   \
+        (k)<begin.vect[2] || (k)>=end.vect[2] ||   \
+        (n)<0             || (n)>=end.vect[3])     \
+    {                                              \
+        index_assert_print_error_message(i,j,k,n); \
+    }
+/// \endcond
+
 namespace amrex {
 
     template<int dim>
@@ -713,7 +724,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k,0);
+            AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
 #endif
             return p[(i-begin.vect[0]) +
                      (j-begin.vect[1]) * stride.a[0] +
@@ -724,7 +735,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k,n);
+            AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
 #endif
             return p[(i-begin.vect[0]) +
                      (j-begin.vect[1]) * stride.a[0] +
@@ -772,7 +783,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k,0);
+            AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
 #endif
             return p + ((i-begin.vect[0]) +
                         (j-begin.vect[1]) * stride.a[0] +
@@ -783,7 +794,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(i,j,k,n);
+            AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
 #endif
             return p + ((i-begin.vect[0]) +
                         (j-begin.vect[1]) * stride.a[0] +
@@ -858,14 +869,9 @@ namespace amrex {
 #else
         AMREX_GPU_HOST_DEVICE inline
 #endif
-        void index_assert (int i, int j, int k, int n) const
+        void index_assert_print_error_message (int i, int j, int k, int n) const
         {
-            if (i<begin.vect[0] || i>=end.vect[0] ||
-                j<begin.vect[1] || j>=end.vect[1] ||
-                k<begin.vect[2] || k>=end.vect[2] ||
-                n<0             || n>=end.vect[3])
-            {
-                AMREX_IF_ON_DEVICE((
+            AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
                                         i, j, k, n,
                                         begin.vect[0], end.vect[0]-1,
@@ -873,8 +879,8 @@ namespace amrex {
                                         begin.vect[2], end.vect[2]-1,
                                                        end.vect[3]-1);
                     amrex::Abort();
-                ))
-                AMREX_IF_ON_HOST((
+            ))
+            AMREX_IF_ON_HOST((
                     std::stringstream ss;
                     ss << " (" << i << "," << j << "," << k << "," <<  n
                     << ") is out of bound ("
@@ -883,8 +889,7 @@ namespace amrex {
                     << begin.vect[2] << ":" << end.vect[2]-1 << ","
                     << "0:" << end.vect[3]-1 << ")";
                     amrex::Abort(ss.str());
-                ))
-            }
+            ))
         }
 #endif
     };
