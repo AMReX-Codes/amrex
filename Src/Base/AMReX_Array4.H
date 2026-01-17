@@ -429,7 +429,43 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(IntVectND<nidx>{i...});
 #endif
-            return p[get_offset(IntVectND<nidx>{i...})];
+            if constexpr (N == 1) {
+                auto [i0] = std::forward_as_tuple(i...);
+                return p[i0-begin.vect[0]];
+            } else if constexpr (N == 2) {
+                if constexpr (nidx == 1) {
+                    auto [i0] = std::forward_as_tuple(i...);
+                    return p[i0-begin.vect[0]];
+                } else {
+                    auto [i0,i1] = std::forward_as_tuple(i...);
+                    if constexpr (last_dim_component) {
+                        return p[(i0-begin.vect[0]) +
+                                  i1                * stride.a[0]];
+                    } else {
+                        return p[(i0-begin.vect[0]) +
+                                 (i1-begin.vect[1]) * stride.a[0]];
+                    }
+                }
+            } else if constexpr (N == 3) {
+                if constexpr (nidx == 2) {
+                    auto [i0,i1] = std::forward_as_tuple(i...);
+                    return p[(i0-begin.vect[0]) +
+                             (i1-begin.vect[1]) * stride.a[0]];
+                } else {
+                    auto [i0,i1,i2] = std::forward_as_tuple(i...);
+                    if constexpr (last_dim_component) {
+                        return p[(i0-begin.vect[0]) +
+                                 (i1-begin.vect[1]) * stride.a[0] +
+                                  i2                * stride.a[1]];
+                    } else {
+                        return p[(i0-begin.vect[0]) +
+                                 (i1-begin.vect[1]) * stride.a[0] +
+                                 (i2-begin.vect[2]) * stride.a[1]];
+                    }
+                }
+            } else {
+                return p[get_offset(IntVectND<nidx>{i...})];
+            }
         }
 
         /**
@@ -490,7 +526,43 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(IntVectND<nidx>{i...});
 #endif
-            return p + get_offset(IntVectND<nidx>{i...});
+            if constexpr (N == 1) {
+                auto [i0] = std::forward_as_tuple(i...);
+                return p + (i0-begin.vect[0]);
+            } else if constexpr (N == 2) {
+                if constexpr (nidx == 1) {
+                    auto [i0] = std::forward_as_tuple(i...);
+                    return p + (i0-begin.vect[0]);
+                } else {
+                    auto [i0,i1] = std::forward_as_tuple(i...);
+                    if constexpr (last_dim_component) {
+                        return p + ((i0-begin.vect[0]) +
+                                     i1                * stride.a[0]);
+                    } else {
+                        return p + ((i0-begin.vect[0]) +
+                                    (i1-begin.vect[1]) * stride.a[0]);
+                    }
+                }
+            } else if constexpr (N == 3) {
+                if constexpr (nidx == 2) {
+                    auto [i0,i1] = std::forward_as_tuple(i...);
+                    return p + ((i0-begin.vect[0]) +
+                                (i1-begin.vect[1]) * stride.a[0]);
+                } else {
+                    auto [i0,i1,i2] = std::forward_as_tuple(i...);
+                    if constexpr (last_dim_component) {
+                        return p + ((i0-begin.vect[0]) +
+                                    (i1-begin.vect[1]) * stride.a[0] +
+                                     i2                * stride.a[1]);
+                    } else {
+                        return p + ((i0-begin.vect[0]) +
+                                    (i1-begin.vect[1]) * stride.a[0] +
+                                    (i2-begin.vect[2]) * stride.a[1]);
+                    }
+                }
+            } else {
+                return p + get_offset(IntVectND<nidx>{i...});
+            }
         }
 
         /**
