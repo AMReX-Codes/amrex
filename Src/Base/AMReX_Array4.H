@@ -726,9 +726,17 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
 #endif
+#if defined(AMREX_USE_GPU) || defined(AMREX_DEBUG)
             return p[(i-begin.vect[0]) +
                      (j-begin.vect[1]) * stride.a[0] +
                      (k-begin.vect[2]) * stride.a[1]];
+#else
+            Long idx1 = i + j*stride.a[0] + k*stride.a[1];
+            Long idx0 = begin.vect[0]
+                +       begin.vect[1] * stride.a[0]
+                +       begin.vect[2] * stride.a[1];
+            return p[idx1-idx0];
+#endif
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -737,10 +745,18 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
 #endif
+#if defined(AMREX_USE_GPU) || defined(AMREX_DEBUG)
             return p[(i-begin.vect[0]) +
                      (j-begin.vect[1]) * stride.a[0] +
                      (k-begin.vect[2]) * stride.a[1] +
                                      n * stride.a[2]];
+#else
+            Long idx1 = i + j*stride.a[0] + k*stride.a[1] + n*stride.a[2];
+            Long idx0 = begin.vect[0]
+                +       begin.vect[1] * stride.a[0]
+                +       begin.vect[2] * stride.a[1];
+            return p[idx1-idx0];
+#endif
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -785,9 +801,17 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
 #endif
+#if defined(AMREX_USE_GPU) || defined(AMREX_DEBUG)
             return p + ((i-begin.vect[0]) +
                         (j-begin.vect[1]) * stride.a[0] +
                         (k-begin.vect[2]) * stride.a[1]);
+#else
+            Long idx1 = i + j*stride.a[0] + k*stride.a[1];
+            Long idx0 = begin.vect[0]
+                +       begin.vect[1] * stride.a[0]
+                +       begin.vect[2] * stride.a[1];
+            return p + (idx1-idx0);
+#endif
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -796,10 +820,18 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
 #endif
+#if defined(AMREX_USE_GPU) || defined(AMREX_DEBUG)
             return p + ((i-begin.vect[0]) +
                         (j-begin.vect[1]) * stride.a[0] +
                         (k-begin.vect[2]) * stride.a[1] +
                                         n * stride.a[2]);
+#else
+            Long idx1 = i + j*stride.a[0] + k*stride.a[1] + n*stride.a[2];
+            Long idx0 = begin.vect[0]
+                +       begin.vect[1] * stride.a[0]
+                +       begin.vect[2] * stride.a[1];
+            return p + (idx1-idx0);
+#endif
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
