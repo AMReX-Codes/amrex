@@ -65,25 +65,13 @@ void test_comp (ArrayND<T,N,true> const& a, T tot)
         auto v1 = a(iv_full);
         auto* p0 = a.ptr(iv,n);
         auto* p1 = a.ptr(iv_full);
-        T v2 = v1;
-        T const* p2 = p1;
         ArrayND<T const, N, true> b(a, n);
-        if constexpr (N == 2) {
-            v2 = b(iv[0]);
-            p2 = b.ptr(iv[0]);
-        } else if constexpr (N == 3) {
-            v2 = b(iv[0], iv[1]);
-            p2 = b.ptr(iv[0], iv[1]);
-        } else if constexpr (N == 4) {
-            v2 = b(iv[0], iv[1], iv[2], 0);
-            p2 = b.ptr(iv[0], iv[1], iv[2], 0);
-        } else if constexpr (N == 5) {
-            v2 = b(iv[0], iv[1], iv[2], iv[3], 0);
-            p2 = b.ptr(iv[0], iv[1], iv[2], iv[3], 0);
-        } else if constexpr (N == 6) {
-            v2 = b(iv[0], iv[1], iv[2], iv[3], iv[4]);
-            p2 = b.ptr(iv[0], iv[1], iv[2], iv[3], iv[4]);
-        }
+        T v2 = amrex::Apply([&] (auto&&... i) {
+	    return b(i...);
+	}, iv);
+        T const* p2 = amrex::Apply([&] (auto&&... i) {
+	    return b.ptr(i...,0);
+	}, iv);
         return (v0+v1+v2+*p0+*p1+*p2)/6;
     });
     ReduceTuple hv = reduce_data.value(reduce_op);
@@ -120,27 +108,12 @@ void test (ArrayND<T,N,C>& a)
         {
             auto v0 = a(iv);
             auto* p0 = a.ptr(iv);
-            auto v1 = v0;
-            auto* p1 = p0;
-            if constexpr (N == 1) {
-                v1 = a(iv[0]);
-                p1 = a.ptr(iv[0]);
-            } else if constexpr (N == 2) {
-                v1 = a(iv[0], iv[1]);
-                p1 = a.ptr(iv[0], iv[1]);
-            } else if constexpr (N == 3) {
-                v1 = a(iv[0], iv[1], iv[2]);
-                p1 = a.ptr(iv[0], iv[1], iv[2]);
-            } else if constexpr (N == 4) {
-                v1 = a(iv[0], iv[1], iv[2], iv[3]);
-                p1 = a.ptr(iv[0], iv[1], iv[2], iv[3]);
-            } else if constexpr (N == 5) {
-                v1 = a(iv[0], iv[1], iv[2], iv[3], iv[4]);
-                p1 = a.ptr(iv[0], iv[1], iv[2], iv[3], iv[4]);
-            } else if constexpr (N == 6) {
-                v1 = a(iv[0], iv[1], iv[2], iv[3], iv[4], iv[5]);
-                p1 = a.ptr(iv[0], iv[1], iv[2], iv[3], iv[4], iv[5]);
-            }
+            auto v1 = amrex::Apply([&] (auto&&... i) {
+		return a(i...);
+	    }, iv);
+            auto* p1 = amrex::Apply([&] (auto&&... i) {
+		return a.ptr(i...);
+	    }, iv);
             return (v0+v1+*p0+*p1)/4;
         });
         ReduceTuple hv = reduce_data.value(reduce_op);
