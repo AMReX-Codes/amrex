@@ -791,7 +791,7 @@ public:
     */
     static const IntVectND<dim> Unit;
 
-private:
+// private:
 
     int vect[dim] = {};
 };

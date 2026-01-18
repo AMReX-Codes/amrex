@@ -654,20 +654,37 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_offset (IntVectND<M> const& iv) const noexcept
         {
-            Long offset = iv[0] - begin[0];
+            constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
+#if defined(AMREX_USE_GPU)
+            Long offset = iv.vect[0] - begin.vect[0];
             // If M == N and we have a component at the end, we only loop up to N-1 for spatial.
             // Otherwise, we loop up to M.
-            constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
             constexpr_for<1, idx>([&](int d) {
-                offset += (iv[d] - begin[d]) * nstride[d-1];
+                offset += (iv.vect[d] - begin.vect[d]) * nstride[d-1];
             });
 
             // Handle the component offset if the input is the full N dimensions
             // and the last dimension is a component.
             if constexpr (last_dim_component && M == N) {
-                offset += iv[N-1] * nstride[N-2];
+                offset += iv.vect[N-1] * nstride[N-2];
             }
             return offset;
+#else
+            Long idx_term = iv.vect[0];
+            constexpr_for <1, idx>([&](int d) {
+                idx_term += static_cast<Long>(iv.vect[d]) * nstride[d-1];
+            });
+            if constexpr (last_dim_component && M == N) {
+                idx_term += static_cast<Long>(iv.vect[N-1]) * nstride[N-2];
+            }
+            // Compute the origin term separately.
+            // This allows the compiler to calculate this once per nested loop.
+            Long origin_term = begin.vect[0];
+            constexpr_for <1, idx>([&](int d) {
+                origin_term += static_cast<Long>(begin.vect[d]) * nstride[d-1];
+            });
+            return idx_term - origin_term;
+#endif
         }
 
         template <int M, std::enable_if_t<last_dim_component
@@ -675,12 +692,27 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_offset (IntVectND<M> const& iv, int n) const noexcept
         {
-            Long offset = iv[0] - begin[0];
+#if defined(AMREX_USE_GPU)
+            Long offset = iv.vect[0] - begin.vect[0];
             constexpr_for<1, M>([&](int d) {
-                offset += (iv[d] - begin[d]) * nstride[d-1];
+                offset += (iv.vect[d] - begin.vect[d]) * nstride[d-1];
             });
             offset += n * nstride[N-2];
             return offset;
+#else
+            Long idx_term = iv.vect[0];
+            constexpr_for <1, M>([&](int d) {
+                idx_term += static_cast<Long>(iv.vect[d]) * nstride[d-1];
+            });
+            idx_term += static_cast<Long>(n) * nstride[N-2];
+            // Compute the origin term separately.
+            // This allows the compiler to calculate this once per nested loop.
+            Long origin_term = begin.vect[0];
+            constexpr_for <1, M>([&](int d) {
+                origin_term += static_cast<Long>(begin.vect[d]) * nstride[d-1];
+            });
+            return idx_term - origin_term;
+#endif
         }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
