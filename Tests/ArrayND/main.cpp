@@ -25,7 +25,12 @@ void test_array4 (Array4<T> const& a, T tot)
             auto v2 = a(IntVectND<4>(i,j,k,0));
             auto v3 = a(IntVect(AMREX_D_DECL(i,j,k)));
             auto v4 = a(Dim3{i,j,k});
-            return (v0+v1+v2+v3+v4)/5;
+            auto* p0 = a.ptr(i,j,k);
+            auto* p1 = a.ptr(i,j,k,0);
+            auto* p2 = a.ptr(IntVectND<4>(i,j,k,0));
+            auto* p3 = a.ptr(IntVect(AMREX_D_DECL(i,j,k)));
+            auto* p4 = a.ptr(Dim3{i,j,k});
+            return (v0+v1+v2+v3+v4+*p0+*p1+*p2+*p3+*p4)/10;
         });
     } else {
         reduce_op.eval(box, a.nComp(), reduce_data,
@@ -34,7 +39,10 @@ void test_array4 (Array4<T> const& a, T tot)
             auto v0 = a(i,j,k,n);
             auto v1 = a(IntVect(AMREX_D_DECL(i,j,k)),n);
             auto v2 = a(Dim3{i,j,k},n);
-            return (v0+v1+v2)/3;
+            auto* p0 = a.ptr(i,j,k,n);
+            auto* p1 = a.ptr(IntVect(AMREX_D_DECL(i,j,k)),n);
+            auto* p2 = a.ptr(Dim3{i,j,k},n);
+            return (v0+v1+v2+*p0+*p1+*p2)/6;
         });
     }
     ReduceTuple hv = reduce_data.value(reduce_op);
@@ -55,20 +63,28 @@ void test_comp (ArrayND<T,N,true> const& a, T tot)
         auto iv_full = IntVectExpand<N,N-1>(iv,n);
         auto v0 = a(iv,n);
         auto v1 = a(iv_full);
+        auto* p0 = a.ptr(iv,n);
+        auto* p1 = a.ptr(iv_full);
         T v2 = v1;
+        T const* p2 = p1;
         ArrayND<T const, N, true> b(a, n);
         if constexpr (N == 2) {
             v2 = b(iv[0]);
+            p2 = b.ptr(iv[0]);
         } else if constexpr (N == 3) {
             v2 = b(iv[0], iv[1]);
+            p2 = b.ptr(iv[0], iv[1]);
         } else if constexpr (N == 4) {
             v2 = b(iv[0], iv[1], iv[2], 0);
+            p2 = b.ptr(iv[0], iv[1], iv[2], 0);
         } else if constexpr (N == 5) {
             v2 = b(iv[0], iv[1], iv[2], iv[3], 0);
+            p2 = b.ptr(iv[0], iv[1], iv[2], iv[3], 0);
         } else if constexpr (N == 6) {
             v2 = b(iv[0], iv[1], iv[2], iv[3], iv[4]);
+            p2 = b.ptr(iv[0], iv[1], iv[2], iv[3], iv[4]);
         }
-        return (v0+v1+v2)/3;
+        return (v0+v1+v2+*p0+*p1+*p2)/6;
     });
     ReduceTuple hv = reduce_data.value(reduce_op);
     AMREX_ALWAYS_ASSERT(tot == amrex::get<0>(hv));
@@ -103,21 +119,29 @@ void test (ArrayND<T,N,C>& a)
         [=] AMREX_GPU_DEVICE (IntVectND<N> const& iv) -> ReduceTuple
         {
             auto v0 = a(iv);
+            auto* p0 = a.ptr(iv);
             auto v1 = v0;
+            auto* p1 = p0;
             if constexpr (N == 1) {
                 v1 = a(iv[0]);
+                p1 = a.ptr(iv[0]);
             } else if constexpr (N == 2) {
                 v1 = a(iv[0], iv[1]);
+                p1 = a.ptr(iv[0], iv[1]);
             } else if constexpr (N == 3) {
                 v1 = a(iv[0], iv[1], iv[2]);
+                p1 = a.ptr(iv[0], iv[1], iv[2]);
             } else if constexpr (N == 4) {
                 v1 = a(iv[0], iv[1], iv[2], iv[3]);
+                p1 = a.ptr(iv[0], iv[1], iv[2], iv[3]);
             } else if constexpr (N == 5) {
                 v1 = a(iv[0], iv[1], iv[2], iv[3], iv[4]);
+                p1 = a.ptr(iv[0], iv[1], iv[2], iv[3], iv[4]);
             } else if constexpr (N == 6) {
                 v1 = a(iv[0], iv[1], iv[2], iv[3], iv[4], iv[5]);
+                p1 = a.ptr(iv[0], iv[1], iv[2], iv[3], iv[4], iv[5]);
             }
-            return (v0+v1)/2;
+            return (v0+v1+*p0+*p1)/4;
         });
         ReduceTuple hv = reduce_data.value(reduce_op);
         AMREX_ALWAYS_ASSERT(tot == amrex::get<0>(hv));
