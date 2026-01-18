@@ -262,7 +262,8 @@ namespace amrex {
          *
          * TODO: Make BoxND functions constexpr to allow this constructor to be constexpr.
          */
-        template <int M, std::enable_if_t<(M+1==N) && last_dim_component, int> = 0>
+        template <int M, std::enable_if_t<((M+1==N) || (N == 4 && M == AMREX_SPACEDIM))
+            && last_dim_component, int> = 0>
         AMREX_GPU_HOST_DEVICE
         ArrayND (T* a_p, BoxND<M> const& box, int ncomp) noexcept
             : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1, ncomp)
@@ -786,6 +787,20 @@ namespace amrex {
             return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2],n);
 #endif
         }
+
+#if (AMREX_SPACEDIM < 3)
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (IntVectND<3> const& iv) const noexcept {
+            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2]);
+        }
+
+        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        U& operator() (IntVectND<3> const& iv, int n) const noexcept {
+            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2],n);
+        }
+#endif
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
