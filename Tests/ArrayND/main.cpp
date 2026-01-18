@@ -90,7 +90,7 @@ void test (ArrayND<T,N,C>& a)
         test_array4(a, tot);
     }
 
-    if constexpr (a.IsLastDimComponent_v) {
+    if constexpr (std::remove_reference_t<decltype(a)>::IsLastDimComponent_v) {
         test_comp(a, tot);
     }
 
