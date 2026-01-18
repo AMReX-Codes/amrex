@@ -67,11 +67,11 @@ void test_comp (ArrayND<T,N,true> const& a, T tot)
         auto* p1 = a.ptr(iv_full);
         ArrayND<T const, N, true> b(a, n);
         T v2 = amrex::Apply([&] (auto&&... i) {
-	    return b(i...);
-	}, iv);
+            return b(i...);
+        }, iv);
         T const* p2 = amrex::Apply([&] (auto&&... i) {
-	    return b.ptr(i...,0);
-	}, iv);
+            return b.ptr(i...,0);
+        }, iv);
         return (v0+v1+v2+*p0+*p1+*p2)/6;
     });
     ReduceTuple hv = reduce_data.value(reduce_op);
@@ -109,11 +109,11 @@ void test (ArrayND<T,N,C>& a)
             auto v0 = a(iv);
             auto* p0 = a.ptr(iv);
             auto v1 = amrex::Apply([&] (auto&&... i) {
-		return a(i...);
-	    }, iv);
+                return a(i...);
+            }, iv);
             auto* p1 = amrex::Apply([&] (auto&&... i) {
-		return a.ptr(i...);
-	    }, iv);
+                return a.ptr(i...);
+            }, iv);
             return (v0+v1+*p0+*p1)/4;
         });
         ReduceTuple hv = reduce_data.value(reduce_op);

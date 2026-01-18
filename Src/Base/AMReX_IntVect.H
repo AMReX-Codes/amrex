@@ -1234,9 +1234,9 @@ namespace detail {
     template <typename F, int dim, std::size_t... N>
     AMREX_GPU_HOST_DEVICE
     constexpr auto apply_impl (F&& f, IntVectND<dim> const& iv,
-			       std::index_sequence<N...> /*is*/)
+                               std::index_sequence<N...> /*is*/)
     {
-	return std::forward<F>(f)(amrex::get<N>(iv)...);
+        return std::forward<F>(f)(amrex::get<N>(iv)...);
     }
 }
 
