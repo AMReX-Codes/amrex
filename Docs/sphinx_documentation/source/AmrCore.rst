@@ -114,6 +114,8 @@ Their usage is described in the section on :ref:`sec:grid_creation`
    +------------------------+-------+---------------------+
    | amr.refine_grid_layout | int   | true                |
    +------------------------+-------+---------------------+
+   | amr.max_grid_iterations | int   | 4                   |
+   +------------------------+-------+---------------------+
 
 .. raw:: latex
 
