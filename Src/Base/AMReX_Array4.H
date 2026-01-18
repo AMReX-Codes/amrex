@@ -6,7 +6,6 @@
 #include <AMReX.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_GpuPrint.H>
-#include <AMReX_ConstexprFor.H>
 
 #include <iostream>
 #include <sstream>
@@ -268,11 +267,11 @@ namespace amrex {
         {
             if constexpr (N > 1) {
                 Long current_stride = 1;
-                constexpr_for<0, N-1>([&](int d) {
+                for (int d = 0; d < N-1; ++d) {
                     Long len = a_end.vect[d] - a_begin.vect[d];
                     current_stride *= len;
                     nstride[d] = current_stride;
-                });
+                }
             }
         }
 
@@ -291,11 +290,11 @@ namespace amrex {
             : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
         {
             Long current_stride = 1;
-            constexpr_for<0, N-1>([&](int d) {
+            for (int d = 0; d < N-1; ++d) {
                 Long len = end.vect[d] - begin.vect[d];
                 current_stride *= len;
                 nstride[d] = current_stride;
-            });
+            }
         }
 
         /**
@@ -313,23 +312,24 @@ namespace amrex {
         constexpr ArrayND (T* a_p, IntVectND<M> const& a_begin, IntVectND<M> const& a_end, int ncomp) noexcept
             : p(a_p)
         {
-            constexpr_for<0, M>([&](int d) {
+            for (int d = 0; d < M; ++d) {
                 begin.vect[d] = a_begin.vect[d];
                 end.vect[d] = a_end.vect[d];
-            });
-            constexpr_for<M, N>([&](int d) {
+            }
+            for (int d = M; d < N-1; ++d) {
                 begin.vect[d] = 0;
                 end.vect[d] = 1;
-            });
+            }
+            begin.vect[N-1] = 0;
             end.vect[N-1] = ncomp;
 
             if constexpr (N > 1) {
                 Long current_stride = 1;
-                constexpr_for<0, N-1>([&](int d) {
+                for (int d = 0; d < N-1; ++d) {
                     Long len = end.vect[d] - begin.vect[d];
                     current_stride *= len;
                     nstride[d] = current_stride;
-                });
+                }
             }
         }
 
@@ -598,9 +598,9 @@ namespace amrex {
         constexpr std::size_t size () const noexcept {
             if (ok()) {
                 std::size_t s = 1;
-                constexpr_for<0, N>([&](int d) {
+                for (int d = 0; d < N; ++d) {
                     s *= (end.vect[d] - begin.vect[d]);
-                });
+                }
                 return s;
             } else {
                 return 0;
@@ -620,9 +620,9 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (IntVectND<M> const& iv) const noexcept {
             bool inside = true;
-            constexpr_for<0, M>([&](int d) {
+            for (int d = 0; d < M; ++d) {
                 inside = inside && (iv.vect[d] >= begin.vect[d]) && (iv.vect[d] < end.vect[d]);
-            });
+            }
             return inside;
         }
 
@@ -631,9 +631,9 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (IntVectND<M> const& iv, int n) const noexcept {
             bool inside = true;
-            constexpr_for<0, M>([&](int d) {
+            for (int d = 0; d < M; ++d) {
                 inside = inside && (iv.vect[d] >= begin.vect[d]) && (iv.vect[d] < end.vect[d]);
-            });
+            }
             inside = inside && (n >= 0) && (n < end.vect[N-1]);
             return inside;
         }
@@ -641,7 +641,7 @@ namespace amrex {
         template <int M=N, std::enable_if_t<M==4 && last_dim_component,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (Dim3 const& cell) const noexcept {
-            return this->contains(IntVectND{cell.x, cell.y, cell.z});
+            return this->contains(cell.x, cell.y, cell.z);
         }
 
         template <int M=N, std::enable_if_t<M==4 && last_dim_component,int> = 0>
@@ -661,7 +661,6 @@ namespace amrex {
             Long offset = iv[0] - begin.vect[0];
             // If M == N and we have a component at the end, we only loop up to N-1 for spatial.
             // Otherwise, we loop up to M.
-            AMREX_UNROLL_LOOP(10)
             for (int d = 1; d < idx; ++d) {
                 offset += (iv[d] - begin.vect[d]) * nstride[d-1];
             }
@@ -674,7 +673,6 @@ namespace amrex {
             return offset;
 #else
             Long idx_term = iv[0];
-            AMREX_UNROLL_LOOP(10)
             for (int d = 1; d < idx; ++d) {
                 idx_term += static_cast<Long>(iv[d]) * nstride[d-1];
             }
@@ -684,7 +682,6 @@ namespace amrex {
             // Compute the origin term separately.
             // This allows the compiler to calculate this once per nested loop.
             Long origin_term = begin.vect[0];
-            AMREX_UNROLL_LOOP(10)
             for (int d = 1; d < idx; ++d) {
                 origin_term += static_cast<Long>(begin.vect[d]) * nstride[d-1];
             }
@@ -699,7 +696,6 @@ namespace amrex {
         {
 #if defined(AMREX_USE_GPU)
             Long offset = iv[0] - begin.vect[0];
-            AMREX_UNROLL_LOOP(10)
             for (int d = 1; d < M; ++d) {
                 offset += (iv[d] - begin.vect[d]) * nstride[d-1];
             }
@@ -707,7 +703,6 @@ namespace amrex {
             return offset;
 #else
             Long idx_term = iv[0];
-            AMREX_UNROLL_LOOP(10)
             for (int d = 1; d < M; ++d) {
                 idx_term += static_cast<Long>(iv[d]) * nstride[d-1];
             }
@@ -715,7 +710,6 @@ namespace amrex {
             // Compute the origin term separately.
             // This allows the compiler to calculate this once per nested loop.
             Long origin_term = begin.vect[0];
-            AMREX_UNROLL_LOOP(10)
             for (int d = 1; d < M; ++d) {
                 origin_term += static_cast<Long>(begin.vect[d]) * nstride[d-1];
             }

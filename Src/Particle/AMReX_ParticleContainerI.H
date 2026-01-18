@@ -976,7 +976,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if(imf_arr(i,j,k,0)!=0)
             {
                 const auto idx = last_offset + offsets_ptr[
-                    imf_arr.get_offset({i,j,k})
+                    imf_arr.template get_offset<3>({i,j,k})
                 ];
 
                 dst.cpu(idx) = 0;
