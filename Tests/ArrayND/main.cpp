@@ -8,6 +8,39 @@
 
 using namespace amrex;
 
+template <typename T, int N>
+void test_comp (ArrayND<T,N,true> const& a, T tot)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    BoxND<N-1> box(IntVectShrink<N-1,N>(a.begin),
+                   IntVectShrink<N-1,N>(a.end-1));
+    reduce_op.eval(box, a.nComp(), reduce_data,
+    [=] AMREX_GPU_DEVICE (IntVectND<N-1> const& iv, int n) -> ReduceTuple
+    {
+        auto iv_full = IntVectExpand<N,N-1>(iv,n);
+        auto v0 = a(iv,n);
+        auto v1 = a(iv_full);
+        T v2 = v1;
+        ArrayND<T const, N, true> b(a, n);
+        if constexpr (N == 2) {
+            v2 = b(iv[0]);
+        } else if constexpr (N == 3) {
+            v2 = b(iv[0], iv[1]);
+        } else if constexpr (N == 4) {
+            v2 = b(iv[0], iv[1], iv[2], 0);
+        } else if constexpr (N == 5) {
+            v2 = b(iv[0], iv[1], iv[2], iv[3], 0);
+        } else if constexpr (N == 6) {
+            v2 = b(iv[0], iv[1], iv[2], iv[3], iv[4]);
+        }
+        return (v0+v1+v2)/3;
+    });
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    AMREX_ALWAYS_ASSERT(tot == amrex::get<0>(hv));
+}
+
 template <typename T, int N, bool C>
 void test (ArrayND<T,N,C>& a)
 {
@@ -54,34 +87,7 @@ void test (ArrayND<T,N,C>& a)
 
     if constexpr (a.IsLastDimComponent_v)
     {
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<T> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-        BoxND<N-1> box(IntVectShrink<N-1,N>(a.begin),
-                       IntVectShrink<N-1,N>(a.end-1));
-        reduce_op.eval(box, a.nComp(), reduce_data,
-        [=] AMREX_GPU_DEVICE (IntVectND<N-1> const& iv, int n) -> ReduceTuple
-        {
-            auto iv_full = IntVectExpand<N,N-1>(iv,n);
-            auto v0 = a(iv,n);
-            auto v1 = a(iv_full);
-            T v2 = v1;
-            ArrayND<T,N,C> b(a, n);
-            if constexpr (N == 2) {
-                v2 = b(iv[0]);
-            } else if constexpr (N == 3) {
-                v2 = b(iv[0], iv[1]);
-            } else if constexpr (N == 4) {
-                v2 = b(iv[0], iv[1], iv[2], 0);
-            } else if constexpr (N == 5) {
-                v2 = b(iv[0], iv[1], iv[2], iv[3], 0);
-            } else if constexpr (N == 6) {
-                v2 = b(iv[0], iv[1], iv[2], iv[3], iv[4]);
-            }
-            return (v0+v1+v2)/3;
-        });
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        AMREX_ALWAYS_ASSERT(tot == amrex::get<0>(hv));
+        test_comp(a, tot); // This is in a function to work around a clang-tidy warning.
     }
 
     {
