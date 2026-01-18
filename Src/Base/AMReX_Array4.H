@@ -164,9 +164,9 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void device_print_impl2 (std::index_sequence<idx...>,
                                 std::index_sequence<idx2x...>,
-                                IntVectND<sizeof...(idx)> const& iv,
-                                IntVectND<sizeof...(idx)> const& begin,
-                                IntVectND<sizeof...(idx)> const& end)
+                                const int (&iv)[sizeof...(idx)],
+                                const int (&begin)[sizeof...(idx)],
+                                const int (&end)[sizeof...(idx)])
         {
             constexpr auto msg = make_oob_message_impl(std::index_sequence<idx...>{});
 
@@ -178,9 +178,9 @@ namespace amrex {
 
         template <int N, std::enable_if_t<(N>=1),int> = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        void device_printf_impl (const IntVectND<N>& iv,
-                                const IntVectND<N>& begin,
-                                const IntVectND<N>& end)
+        void device_printf_impl (const int (&iv)[N],
+                                const int (&begin)[N],
+                                const int (&end)[N])
         {
             device_print_impl2(
                 std::make_index_sequence<N>{},
@@ -412,10 +412,10 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (idx... i) const noexcept {
             constexpr auto nidx = sizeof...(i);
-#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(IntVectND<nidx>{i...});
-#endif
             const int iv[nidx] = { static_cast<int>(i)... };
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(iv);
+#endif
             return p[get_offset(iv)];
         }
 
@@ -436,7 +436,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVectND<M> const& iv) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(iv);
+            index_assert(iv.vect);
 #endif
             return p[get_offset(iv.vect)];
         }
@@ -457,7 +457,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVectND<M> const& iv, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(iv, n);
+            index_assert(iv.vect, n);
 #endif
             return p[get_offset(iv.vect, n)];
         }
@@ -499,10 +499,10 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (idx... i) const noexcept {
             constexpr auto nidx = sizeof...(i);
-#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(IntVectND<nidx>{i...});
-#endif
             const int iv[nidx] = { static_cast<int>(i)... };
+#if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
+            index_assert(iv);
+#endif
             return p + get_offset(iv);
         }
 
@@ -522,7 +522,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVectND<M> const& iv) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(iv);
+            index_assert(iv.vect);
 #endif
             return p + get_offset(iv.vect);
         }
@@ -542,7 +542,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVectND<M> const& iv, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-            index_assert(iv, n);
+            index_assert(iv.vect, n);
 #endif
             return p + get_offset(iv.vect, n);
         }
@@ -723,7 +723,7 @@ namespace amrex {
 #else
         AMREX_GPU_HOST_DEVICE inline
 #endif
-        void index_assert (IntVectND<N> const& iv) const
+        void index_assert (const int (&iv)[N]) const
         {
             bool out_of_bounds = false;
             for (int d = 0; d < N; ++d) {
@@ -733,7 +733,7 @@ namespace amrex {
             }
             if (out_of_bounds) {
                 AMREX_IF_ON_DEVICE((
-                    detail::device_printf_impl(iv, begin, end);
+                    detail::device_printf_impl(iv, begin.vect, end.vect);
                     amrex::Abort();
                 ))
                 AMREX_IF_ON_HOST((
@@ -759,9 +759,12 @@ namespace amrex {
         template <int M, std::enable_if_t<((M+1 == N) || (M == AMREX_SPACEDIM))
             && last_dim_component,int> = 0>
         AMREX_GPU_HOST_DEVICE inline
-        void index_assert (IntVectND<M> const& iv) const
+        void index_assert (const int (&iv)[M]) const
         {
-            IntVectND<N> iv_full = iv.template expand<N>(0);
+            int iv_full[N];
+            for (int d = 0; d < M; ++d) {
+                iv_full[d] = iv[d];
+            }
             for (int d = M; d < N; ++d) {
                 iv_full[d] = begin[d];
             }
@@ -773,9 +776,12 @@ namespace amrex {
         template <int M, std::enable_if_t<((M+1 == N) || (M == AMREX_SPACEDIM))
             && last_dim_component,int> = 0>
         AMREX_GPU_HOST_DEVICE inline
-        void index_assert (IntVectND<M> const& iv, int n) const
+        void index_assert (const int (&iv)[M], int n) const
         {
-            IntVectND<N> iv_full = iv.template expand<N>(0);
+            int iv_full[N];
+            for (int d = 0; d < M; ++d) {
+                iv_full[d] = iv[d];
+            }
             for (int d = M; d < N-1; ++d) {
                 iv_full[d] = begin[d];
             }
