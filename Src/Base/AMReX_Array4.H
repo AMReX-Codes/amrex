@@ -269,7 +269,7 @@ namespace amrex {
             if constexpr (N > 1) {
                 Long current_stride = 1;
                 constexpr_for<0, N-1>([&](int d) {
-                    Long len = a_end[d] - a_begin[d];
+                    Long len = a_end.vect[d] - a_begin.vect[d];
                     current_stride *= len;
                     nstride[d] = current_stride;
                 });
@@ -292,7 +292,7 @@ namespace amrex {
         {
             Long current_stride = 1;
             constexpr_for<0, N-1>([&](int d) {
-                Long len = end[d] - begin[d];
+                Long len = end.vect[d] - begin.vect[d];
                 current_stride *= len;
                 nstride[d] = current_stride;
             });
@@ -314,19 +314,19 @@ namespace amrex {
             : p(a_p)
         {
             constexpr_for<0, M>([&](int d) {
-                begin[d] = a_begin[d];
-                end[d] = a_end[d];
+                begin.vect[d] = a_begin.vect[d];
+                end.vect[d] = a_end.vect[d];
             });
             constexpr_for<M, N>([&](int d) {
-                begin[d] = 0;
-                end[d] = 1;
+                begin.vect[d] = 0;
+                end.vect[d] = 1;
             });
-            end[N-1] = ncomp;
+            end.vect[N-1] = ncomp;
 
             if constexpr (N > 1) {
                 Long current_stride = 1;
                 constexpr_for<0, N-1>([&](int d) {
-                    Long len = end[d] - begin[d];
+                    Long len = end.vect[d] - begin.vect[d];
                     current_stride *= len;
                     nstride[d] = current_stride;
                 });
@@ -351,8 +351,8 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end)
         {
-            begin[N-1] = 0;
-            end[N-1] = rhs.end[N-1] - start_comp;
+            begin.vect[N-1] = 0;
+            end.vect[N-1] = rhs.end.vect[N-1] - start_comp;
         }
 
         /**
@@ -374,8 +374,8 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end)
         {
-            begin[N-1] = 0;
-            end[N-1] = num_comp;
+            begin.vect[N-1] = 0;
+            end.vect[N-1] = num_comp;
         }
 
         /**
@@ -415,7 +415,8 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(IntVectND<nidx>{i...});
 #endif
-            return p[get_offset(IntVectND<nidx>{i...})];
+            const int iv[nidx] = { static_cast<int>(i)... };
+            return p[get_offset(iv)];
         }
 
         /**
@@ -437,7 +438,7 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv);
 #endif
-            return p[get_offset(iv)];
+            return p[get_offset(iv.vect)];
         }
 
         /**
@@ -458,7 +459,7 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv, n);
 #endif
-            return p[get_offset(iv, n)];
+            return p[get_offset(iv.vect, n)];
         }
 
         /**
@@ -501,7 +502,8 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(IntVectND<nidx>{i...});
 #endif
-            return p + get_offset(IntVectND<nidx>{i...});
+            const int iv[nidx] = { static_cast<int>(i)... };
+            return p + get_offset(iv);
         }
 
         /**
@@ -522,7 +524,7 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv);
 #endif
-            return p + get_offset(iv);
+            return p + get_offset(iv.vect);
         }
 
         /**
@@ -542,7 +544,7 @@ namespace amrex {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv, n);
 #endif
-            return p + get_offset(iv, n);
+            return p + get_offset(iv.vect, n);
         }
 
         /**
@@ -586,7 +588,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int nComp () const noexcept {
             if constexpr (last_dim_component) {
-                return end[N-1];
+                return end.vect[N-1];
             } else {
                 return 1;
             }
@@ -597,7 +599,7 @@ namespace amrex {
             if (ok()) {
                 std::size_t s = 1;
                 constexpr_for<0, N>([&](int d) {
-                    s *= (end[d] - begin[d]);
+                    s *= (end.vect[d] - begin.vect[d]);
                 });
                 return s;
             } else {
@@ -619,7 +621,7 @@ namespace amrex {
         constexpr bool contains (IntVectND<M> const& iv) const noexcept {
             bool inside = true;
             constexpr_for<0, M>([&](int d) {
-                inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
+                inside = inside && (iv.vect[d] >= begin.vect[d]) && (iv.vect[d] < end.vect[d]);
             });
             return inside;
         }
@@ -630,9 +632,9 @@ namespace amrex {
         constexpr bool contains (IntVectND<M> const& iv, int n) const noexcept {
             bool inside = true;
             constexpr_for<0, M>([&](int d) {
-                inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
+                inside = inside && (iv.vect[d] >= begin.vect[d]) && (iv.vect[d] < end.vect[d]);
             });
-            inside = inside && (n >= 0) && (n < end[N-1]);
+            inside = inside && (n >= 0) && (n < end.vect[N-1]);
             return inside;
         }
 
@@ -645,44 +647,47 @@ namespace amrex {
         template <int M=N, std::enable_if_t<M==4 && last_dim_component,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         CellData<T> cellData (int i, int j, int k) const noexcept {
-            int ncomp = end[M-1];
+            int ncomp = end.vect[M-1];
             return CellData<T>(this->ptr(i,j,k), nstride[M-2], ncomp);
         }
 
         template <int M, std::enable_if_t<(M == N)
             || (last_dim_component && (M + 1 == N || M == AMREX_SPACEDIM)), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr Long get_offset (IntVectND<M> const& iv) const noexcept
+        constexpr Long get_offset (const int (&iv)[M]) const noexcept
         {
             constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
 #if defined(AMREX_USE_GPU)
-            Long offset = iv.vect[0] - begin.vect[0];
+            Long offset = iv[0] - begin.vect[0];
             // If M == N and we have a component at the end, we only loop up to N-1 for spatial.
             // Otherwise, we loop up to M.
-            constexpr_for<1, idx>([&](int d) {
-                offset += (iv.vect[d] - begin.vect[d]) * nstride[d-1];
-            });
+            AMREX_UNROLL_LOOP(10)
+            for (int d = 1; d < idx; ++d) {
+                offset += (iv[d] - begin.vect[d]) * nstride[d-1];
+            }
 
             // Handle the component offset if the input is the full N dimensions
             // and the last dimension is a component.
             if constexpr (last_dim_component && M == N) {
-                offset += iv.vect[N-1] * nstride[N-2];
+                offset += iv[N-1] * nstride[N-2];
             }
             return offset;
 #else
-            Long idx_term = iv.vect[0];
-            constexpr_for <1, idx>([&](int d) {
-                idx_term += static_cast<Long>(iv.vect[d]) * nstride[d-1];
-            });
+            Long idx_term = iv[0];
+            AMREX_UNROLL_LOOP(10)
+            for (int d = 1; d < idx; ++d) {
+                idx_term += static_cast<Long>(iv[d]) * nstride[d-1];
+            }
             if constexpr (last_dim_component && M == N) {
-                idx_term += static_cast<Long>(iv.vect[N-1]) * nstride[N-2];
+                idx_term += static_cast<Long>(iv[N-1]) * nstride[N-2];
             }
             // Compute the origin term separately.
             // This allows the compiler to calculate this once per nested loop.
             Long origin_term = begin.vect[0];
-            constexpr_for <1, idx>([&](int d) {
+            AMREX_UNROLL_LOOP(10)
+            for (int d = 1; d < idx; ++d) {
                 origin_term += static_cast<Long>(begin.vect[d]) * nstride[d-1];
-            });
+            }
             return idx_term - origin_term;
 #endif
         }
@@ -690,27 +695,30 @@ namespace amrex {
         template <int M, std::enable_if_t<last_dim_component
             && ((M + 1 == N) || (N == 4 && M == AMREX_SPACEDIM)), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        constexpr Long get_offset (IntVectND<M> const& iv, int n) const noexcept
+        constexpr Long get_offset (const int (&iv)[M], int n) const noexcept
         {
 #if defined(AMREX_USE_GPU)
-            Long offset = iv.vect[0] - begin.vect[0];
-            constexpr_for<1, M>([&](int d) {
-                offset += (iv.vect[d] - begin.vect[d]) * nstride[d-1];
-            });
+            Long offset = iv[0] - begin.vect[0];
+            AMREX_UNROLL_LOOP(10)
+            for (int d = 1; d < M; ++d) {
+                offset += (iv[d] - begin.vect[d]) * nstride[d-1];
+            }
             offset += n * nstride[N-2];
             return offset;
 #else
-            Long idx_term = iv.vect[0];
-            constexpr_for <1, M>([&](int d) {
-                idx_term += static_cast<Long>(iv.vect[d]) * nstride[d-1];
-            });
+            Long idx_term = iv[0];
+            AMREX_UNROLL_LOOP(10)
+            for (int d = 1; d < M; ++d) {
+                idx_term += static_cast<Long>(iv[d]) * nstride[d-1];
+            }
             idx_term += static_cast<Long>(n) * nstride[N-2];
             // Compute the origin term separately.
             // This allows the compiler to calculate this once per nested loop.
             Long origin_term = begin.vect[0];
-            constexpr_for <1, M>([&](int d) {
+            AMREX_UNROLL_LOOP(10)
+            for (int d = 1; d < M; ++d) {
                 origin_term += static_cast<Long>(begin.vect[d]) * nstride[d-1];
-            });
+            }
             return idx_term - origin_term;
 #endif
         }
