@@ -764,43 +764,41 @@ namespace amrex {
 #endif
         }
 
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        template <int M, class U=T,
+                  std::enable_if_t<!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (IntVect const& iv) const noexcept {
+        U& operator() (IntVectND<M> const& iv) const noexcept {
 #if (AMREX_SPACEDIM == 1)
-            return this->operator()(iv.vect[0],0,0);
+            if constexpr (M == 1) {
+                return this->operator()(iv.vect[0],0,0);
+            } else
 #elif (AMREX_SPACEDIM == 2)
-            return this->operator()(iv.vect[0],iv.vect[1],0);
-#else
-            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2]);
+            if constexpr (M == 2) {
+                return this->operator()(iv.vect[0],iv.vect[1],0);
+            } else
 #endif
+            {
+                return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2]);
+            }
         }
 
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        template <int M, class U=T,
+                  std::enable_if_t<!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (IntVect const& iv, int n) const noexcept {
+        U& operator() (IntVectND<M> const& iv, int n) const noexcept {
 #if (AMREX_SPACEDIM == 1)
-            return this->operator()(iv.vect[0],0,0,n);
+            if constexpr (M == 1) {
+                return this->operator()(iv.vect[0],0,0,n);
+            } else
 #elif (AMREX_SPACEDIM == 2)
-            return this->operator()(iv.vect[0],iv.vect[1],0,n);
-#else
-            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2],n);
+            if constexpr (M == 2) {
+                return this->operator()(iv.vect[0],iv.vect[1],0,n);
+            } else
 #endif
+            {
+                return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2],n);
+            }
         }
-
-#if (AMREX_SPACEDIM < 3)
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
-        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (IntVectND<3> const& iv) const noexcept {
-            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2]);
-        }
-
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
-        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator() (IntVectND<3> const& iv, int n) const noexcept {
-            return this->operator()(iv.vect[0],iv.vect[1],iv.vect[2],n);
-        }
-#endif
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -853,28 +851,40 @@ namespace amrex {
 #endif
         }
 
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        template <int M, class U=T,
+                  std::enable_if_t<!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U* ptr (IntVect const& iv) const noexcept {
+        U* ptr (IntVectND<M> const& iv) const noexcept {
 #if (AMREX_SPACEDIM == 1)
-            return this->ptr(iv.vect[0],0,0);
+            if constexpr (M == 1) {
+                return this->ptr(iv.vect[0],0,0);
+            } else
 #elif (AMREX_SPACEDIM == 2)
-            return this->ptr(iv.vect[0],iv.vect[1],0);
-#else
-            return this->ptr(iv.vect[0],iv.vect[1],iv.vect[2]);
+            if constexpr (M == 2) {
+                return this->ptr(iv.vect[0],iv.vect[1],0);
+            } else
 #endif
+            {
+                return this->ptr(iv.vect[0],iv.vect[1],iv.vect[2]);
+            }
         }
 
-        template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
+        template <int M, class U=T,
+                  std::enable_if_t<!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U* ptr (IntVect const& iv, int n) const noexcept {
+        U* ptr (IntVectND<M> const& iv, int n) const noexcept {
 #if (AMREX_SPACEDIM == 1)
-            return this->ptr(iv.vect[0],0,0,n);
+            if constexpr (M == 1) {
+                return this->ptr(iv.vect[0],0,0,n);
+            } else
 #elif (AMREX_SPACEDIM == 2)
-            return this->ptr(iv.vect[0],iv.vect[1],0,n);
-#else
-            return this->ptr(iv.vect[0],iv.vect[1],iv.vect[2],n);
+            if constexpr (M == 2) {
+                return this->ptr(iv.vect[0],iv.vect[1],0,n);
+            } else
 #endif
+            {
+                return this->ptr(iv.vect[0],iv.vect[1],iv.vect[2],n);
+            }
         }
 
         template <class U=T, std::enable_if_t<!std::is_void_v<U> && IsArray4_v, int> = 0>
@@ -897,12 +907,21 @@ namespace amrex {
                     k>=begin.vect[2] && k<end.vect[2]);
         }
 
-        template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
+        template <int M, std::enable_if_t<IsArray4_v && (M == 3 || M == AMREX_SPACEDIM), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        bool contains (IntVect const& iv) const noexcept {
-            return AMREX_D_TERM((iv.vect[0]>=begin.vect[0]) && (iv.vect[0]<end.vect[0]),
-                             && (iv.vect[1]>=begin.vect[1]) && (iv.vect[1]<end.vect[1]),
-                             && (iv.vect[2]>=begin.vect[2]) && (iv.vect[2]<end.vect[2]));
+        bool contains (IntVectND<M> const& iv) const noexcept {
+#if (AMREX_SPACEDIM < 3)
+            if constexpr (M == AMREX_SPACEDIM) {
+                return AMREX_D_TERM((iv.vect[0]>=begin.vect[0]) && (iv.vect[0]<end.vect[0]),
+                                 && (iv.vect[1]>=begin.vect[1]) && (iv.vect[1]<end.vect[1]),
+                                 && (iv.vect[2]>=begin.vect[2]) && (iv.vect[2]<end.vect[2]));
+            } else
+#endif
+            {
+                return (iv.vect[0]>=begin.vect[0]) && (iv.vect[0]<end.vect[0])
+                    && (iv.vect[1]>=begin.vect[1]) && (iv.vect[1]<end.vect[1])
+                    && (iv.vect[2]>=begin.vect[2]) && (iv.vect[2]<end.vect[2]);
+            }
         }
 
         template <bool B = IsArray4_v, std::enable_if_t<B,int> = 0>

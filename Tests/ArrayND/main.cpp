@@ -8,6 +8,39 @@
 
 using namespace amrex;
 
+template <typename T>
+void test_array4 (Array4<T> const& a, T tot)
+{
+    ReduceOps<ReduceOpSum> reduce_op;
+    ReduceData<T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    Box box(IntVectShrink<AMREX_SPACEDIM,4>(a.begin),
+            IntVectShrink<AMREX_SPACEDIM,4>(a.end-1));
+    if (a.nComp() == 1) {
+        reduce_op.eval(box, reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
+        {
+            auto v0 = a(i,j,k);
+            auto v1 = a(i,j,k,0);
+            auto v2 = a(IntVectND<4>(i,j,k,0));
+            auto v3 = a(IntVect(AMREX_D_DECL(i,j,k)));
+            auto v4 = a(Dim3{i,j,k});
+            return (v0+v1+v2+v3+v4)/5;
+        });
+    } else {
+        reduce_op.eval(box, a.nComp(), reduce_data,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) -> ReduceTuple
+        {
+            auto v0 = a(i,j,k,n);
+            auto v1 = a(IntVect(AMREX_D_DECL(i,j,k)),n);
+            auto v2 = a(Dim3{i,j,k},n);
+            return (v0+v1+v2)/3;
+        });
+    }
+    ReduceTuple hv = reduce_data.value(reduce_op);
+    AMREX_ALWAYS_ASSERT(tot == amrex::get<0>(hv));
+}
+
 template <typename T, int N>
 void test_comp (ArrayND<T,N,true> const& a, T tot)
 {
@@ -53,41 +86,12 @@ void test (ArrayND<T,N,C>& a)
     });
     T tot = Reduce::Sum<T>(sz, p, 0);
 
-    if constexpr (a.IsArray4_v)
-    {
-        ReduceOps<ReduceOpSum> reduce_op;
-        ReduceData<T> reduce_data(reduce_op);
-        using ReduceTuple = typename decltype(reduce_data)::Type;
-        Box box(IntVectShrink<AMREX_SPACEDIM,N>(a.begin),
-                IntVectShrink<AMREX_SPACEDIM,N>(a.end-1));
-        if (a.nComp() == 1) {
-            reduce_op.eval(box, reduce_data,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
-            {
-                auto v0 = a(i,j,k);
-                auto v1 = a(i,j,k,0);
-                auto v2 = a(IntVectND<4>(i,j,k,0));
-                auto v3 = a(IntVect(AMREX_D_DECL(i,j,k)));
-                auto v4 = a(Dim3{i,j,k});
-                return (v0+v1+v2+v3+v4)/5;
-            });
-        } else {
-            reduce_op.eval(box, a.nComp(), reduce_data,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) -> ReduceTuple
-            {
-                auto v0 = a(i,j,k,n);
-                auto v1 = a(IntVect(AMREX_D_DECL(i,j,k)),n);
-                auto v2 = a(Dim3{i,j,k},n);
-                return (v0+v1+v2)/3;
-            });
-        }
-        ReduceTuple hv = reduce_data.value(reduce_op);
-        AMREX_ALWAYS_ASSERT(tot == amrex::get<0>(hv));
+    if constexpr (std::remove_reference_t<decltype(a)>::IsArray4_v) {
+        test_array4(a, tot);
     }
 
-    if constexpr (a.IsLastDimComponent_v)
-    {
-        test_comp(a, tot); // This is in a function to work around a clang-tidy warning.
+    if constexpr (a.IsLastDimComponent_v) {
+        test_comp(a, tot);
     }
 
     {
@@ -178,7 +182,7 @@ int main (int argc, char* argv[])
         auto* p = (Long*) The_Arena()->alloc(box.numPts()*sizeof(Long));
         ArrayND<Long, 4> a(p, box);
         test(a);
-        static_assert(!a.IsArray4_v);
+        static_assert(!std::remove_reference_t<decltype(a)>::IsArray4_v);
         The_Arena()->free(p);
     }
 
@@ -187,7 +191,7 @@ int main (int argc, char* argv[])
         int ncomp = 4;
         auto* p = (Long*) The_Arena()->alloc(box.numPts()*ncomp*sizeof(Long));
         ArrayND<Long, 4, true> a(p, box, ncomp);
-        static_assert(a.IsArray4_v);
+        static_assert(std::remove_reference_t<decltype(a)>::IsArray4_v);
         The_Arena()->free(p);
     }
 
@@ -202,7 +206,7 @@ int main (int argc, char* argv[])
         auto cell = amrex::begin(box);
         AMREX_ALWAYS_ASSERT(a.contains(cell) && a.contains(cell.x,cell.y,cell.z)
                             && !a.contains(-cell.x,cell.y,cell.z));
-        static_assert(a.IsArray4_v);
+        static_assert(std::remove_reference_t<decltype(a)>::IsArray4_v);
         The_Arena()->free(p);
     }
 
@@ -212,7 +216,7 @@ int main (int argc, char* argv[])
         auto* p = (Long*) The_Arena()->alloc(box.numPts()*ncomp*sizeof(Long));
         Array4<Long> a(p, amrex::begin(box), amrex::end(box), ncomp);
         test(a);
-        static_assert(a.IsArray4_v);
+        static_assert(std::remove_reference_t<decltype(a)>::IsArray4_v);
         The_Arena()->free(p);
     }
 
@@ -239,7 +243,8 @@ int main (int argc, char* argv[])
         ArrayND a(p, box.smallEnd(), box.bigEnd()+1);
         test(a);
         AMREX_ALWAYS_ASSERT(Long(a.size()) == box.numPts());
-        static_assert(!a.IsArray4_v && !a.IsLastDimComponent_v);
+        static_assert(!std::remove_reference_t<decltype(a)>::IsArray4_v &&
+                      !std::remove_reference_t<decltype(a)>::IsLastDimComponent_v);
         The_Arena()->free(p);
     }
 
@@ -250,7 +255,8 @@ int main (int argc, char* argv[])
         ArrayND a(p, box.smallEnd(), box.bigEnd()+1, 2);
         test(a);
         AMREX_ALWAYS_ASSERT(Long(a.size()) == box.numPts()*ncomp);
-        static_assert(!a.IsArray4_v && a.IsLastDimComponent_v);
+        static_assert(!std::remove_reference_t<decltype(a)>::IsArray4_v &&
+                      std::remove_reference_t<decltype(a)>::IsLastDimComponent_v);
         The_Arena()->free(p);
     }
 
