@@ -47,10 +47,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
-    AMREX_D_TERM(const Real dhx = bscalar*dxinvarr[0]*dxinvarr[0];,
-                 const Real dhy = bscalar*dxinvarr[1]*dxinvarr[1];,
-                 const Real dhz = bscalar*dxinvarr[2]*dxinvarr[2];)
-
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && in.isFusingCandidate()) {
         MultiArray4<Real const> foo;
@@ -231,11 +227,6 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     AMREX_D_TERM(const Real dhx = m_b_scalar * dxinv[0]*dxinv[0];,
                  const Real dhy = m_b_scalar * dxinv[1]*dxinv[1];,
                  const Real dhz = m_b_scalar * dxinv[2]*dxinv[2]);
-
-#if (AMREX_SPACEDIM == 2)
-    const auto h = m_geom[amrlev][mglev].CellSizeArray();
-    const Real dh = m_b_scalar/(AMREX_D_TERM(h[0],*h[1],*h[2]));
-#endif
     const Real ascalar = m_a_scalar;
     const Real bscalar = m_b_scalar;
 
