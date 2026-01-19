@@ -747,13 +747,8 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
 #ifdef AMREX_USE_GPU
     if ((cross || tensorop) && Gpu::inLaunchRegion())
     {
-        bool skip_loop = false;
-        Vector<MLMGABCTag<RT>> tags;
-        if (m_bc_tags[amrlev][mglev].is_defined()) {
-            skip_loop = true;
-        }
-
-        if (!skip_loop) {
+        if (! m_bc_tags[amrlev][mglev].is_defined()) {
+            Vector<MLMGABCTag<RT>> tags;
             tags.reserve(in.local_size()*2*AMREX_SPACEDIM*ncomp);
             for (MFIter mfi(in); mfi.isValid(); ++mfi) {
                 const Box& vbx = mfi.validbox();
@@ -800,9 +795,9 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
         ParallelFor(m_bc_tags[amrlev][mglev],
         [=] AMREX_GPU_DEVICE (int i, int j, int k, MLMGABCTag<RT> const& tag) noexcept
         {
+            const auto& bcval = bndry_arrays[tag.face][tag.local_index];
+            const int side = tag.face.faceDir();
             if (tag.face.coordDir() == 0) {
-                const auto& bcval = bndry_arrays[tag.face][tag.local_index];
-                const int side = tag.face.faceDir();
                 mllinop_apply_bc_x(side, i, j, k, tag.blen, inma[tag.local_index],
                                    tag.mask, tag.bctype, tag.bcloc, bcval,
                                    imaxorder, dxi, flagbc, tag.comp);
@@ -813,16 +808,12 @@ MLCellLinOpT<MF>::applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateM
             if (tag.face.coordDir() == 1)
 #endif
             {
-                const auto& bcval = bndry_arrays[tag.face][tag.local_index];
-                const int side = tag.face.faceDir();
                 mllinop_apply_bc_y(side, i, j, k, tag.blen, inma[tag.local_index],
                                    tag.mask, tag.bctype, tag.bcloc, bcval,
                                    imaxorder, dyi, flagbc, tag.comp);
             }
 #if (AMREX_SPACEDIM > 2)
             else {
-                const auto& bcval = bndry_arrays[tag.face][tag.local_index];
-                const int side = tag.face.faceDir();
                 mllinop_apply_bc_z(side, i, j, k, tag.blen, inma[tag.local_index],
                                    tag.mask, tag.bctype, tag.bcloc, bcval,
                                    imaxorder, dzi, flagbc, tag.comp);
