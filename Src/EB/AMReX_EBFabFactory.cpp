@@ -206,7 +206,7 @@ EBFArrayBoxFactory::getEBDataArrays () const noexcept
     auto const* pebflag = ebflags_ma.dp;
 #else
     auto const* pebflag = ebflags_ma.hp;
-#endif    
+#endif
     return EBDataArrays{pebflag, m_eb_data.data()};
 }
 
