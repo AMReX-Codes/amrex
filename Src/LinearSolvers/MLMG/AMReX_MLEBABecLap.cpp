@@ -887,7 +887,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const Real bscalar = m_b_scalar;
     const int ncomp = getNComp();
 
-#ifdef AMREX_USE_GPU
+// #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
         MultiArray4<Real const> foo;
         const auto& xma = mf.arrays();
@@ -916,6 +916,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             mlebabeclap_normalize(i, j, k, n,
                                 xma[box_no], ascalar, ama[box_no],
                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                AMREX_2D_ONLY_ARGS(dh, dxarray)
                                 AMREX_D_DECL(bxma[box_no], byma[box_no], bzma[box_no]),
                                 ccmma[box_no], flagma[box_no], vfracma[box_no],
                                 AMREX_D_DECL(apxma[box_no], apyma[box_no], apzma[box_no]),
@@ -928,7 +929,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             Gpu::streamSynchronize();
         }
     } else
-#endif
+// #endif
     {
         Array4<Real const> foo;
         MFItInfo mfi_info;
