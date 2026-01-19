@@ -55,6 +55,10 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
+    AMREX_D_TERM(const Real dhx = bscalar*dxinvarr[0]*dxinvarr[0];,
+                 const Real dhy = bscalar*dxinvarr[1]*dxinvarr[1];,
+                 const Real dhz = bscalar*dxinvarr[2]*dxinvarr[2];)
+
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && in.isFusingCandidate()) {
         MultiArray4<Real const> foo;
@@ -85,10 +89,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
         bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
-
-        Real dhx = bscalar*dxinvarr[0]*dxinvarr[0];
-        Real dhy = bscalar*dxinvarr[1]*dxinvarr[1];
-        Real dhz = bscalar*dxinvarr[2]*dxinvarr[2];
         if (treat_phi_as_on_centroid) {
             amrex::ParallelFor(out, IntVect(0), ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
@@ -192,32 +192,33 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                         AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
                     amrex::ignore_unused(ccfab);
 #else
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                     {
-                        mlebabeclap_adotx_centroid(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                        mlebabeclap_adotx_centroid(i,j,k,n, yfab, xfab, afab,
+                                            AMREX_D_DECL(bxfab,byfab,bzfab),
                                             flagfab, vfracfab,
                                             AMREX_D_DECL(apxfab,apyfab,apzfab),
                                             AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                            ccfab, bafab, bcfab, bebfab, phiebfab,
+                                            ccfab, bafab, bcfab, bebfab,phiebfab,
                                             AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                             AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                             AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
-                                            is_eb_dirichlet, is_eb_inhomog, dxinvarr,
-                                            ascalar, bscalar, ncomp);
-                    });
+                                            is_eb_dirichlet, is_eb_inhomog,
+                                            ascalar, dhx, dhy, dhz);
+                    })
 #endif
                 } else {
-                    AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
                     {
-                        mlebabeclap_adotx(tbx, yfab, xfab, afab, AMREX_D_DECL(bxfab,byfab,bzfab),
+                        mlebabeclap_adotx(i,j,k,n, yfab, xfab, afab,
+                                        AMREX_D_DECL(bxfab,byfab,bzfab),
                                         ccmfab, flagfab, vfracfab,
                                         AMREX_D_DECL(apxfab,apyfab,apzfab),
                                         AMREX_D_DECL(fcxfab,fcyfab,fczfab),
                                         bafab, bcfab, bebfab,
-                                        is_eb_dirichlet,
-                                        phiebfab,
-                                        is_eb_inhomog, dxinvarr,
-                                        ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
+                                        is_eb_dirichlet, phiebfab,
+                                        is_eb_inhomog, ascalar, dhx, dhy, dhz,
+                                        beta_on_centroid, phi_on_centroid);
                     });
                 }
             }

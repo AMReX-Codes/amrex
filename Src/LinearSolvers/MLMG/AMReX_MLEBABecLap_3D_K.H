@@ -205,50 +205,6 @@ void mlebabeclap_adotx_centroid (int i, int j, int k, int n, Array4<T> const& y,
     }
 }
 
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_adotx_centroid (Box const& box, Array4<T> const& y,
-                        Array4<T const> const& x, Array4<T const> const& a,
-                        Array4<T const> const& bX, Array4<T const> const& bY,
-                        Array4<T const> const& bZ,
-                        Array4<EBCellFlag const> const& flag,
-                        Array4<T const> const& vfrc, Array4<T const> const& apx,
-                        Array4<T const> const& apy, Array4<T const> const& apz,
-                        Array4<T const> const& fcx, Array4<T const> const& fcy,
-                        Array4<T const> const& fcz,
-                        Array4<T const> const& ccent, Array4<T const> const& ba,
-                        Array4<T const> const& bcent, Array4<T const> const& beb,
-                        Array4<T const> const& phieb,
-                        const int& domlo_x, const int& domlo_y, const int& domlo_z,
-                        const int& domhi_x, const int& domhi_y, const int& domhi_z,
-                        const bool& on_x_face, const bool& on_y_face, const bool& on_z_face,
-                        bool is_eb_dirichlet, bool is_eb_inhomog,
-                        GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                        T alpha, T beta, int ncomp) noexcept
-{
-    T dhx = beta*dxinv[0]*dxinv[0];
-    T dhy = beta*dxinv[1]*dxinv[1];
-    T dhz = beta*dxinv[2]*dxinv[2];
-
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
-    {
-        mlebabeclap_adotx_centroid(i, j, k, n,
-                                    y, x, a,
-                                    bX, bY, bZ,
-                                    flag, vfrc,
-                                    apx, apy, apz,
-                                    fcx, fcy, fcz,
-                                    ccent, ba, bcent, beb,
-                                    phieb,
-                                    domlo_x, domlo_y, domlo_z,
-                                    domhi_x, domhi_y, domhi_z,
-                                    on_x_face, on_y_face, on_z_face,
-                                    is_eb_dirichlet, is_eb_inhomog,
-                                    alpha, dhx, dhy, dhz);
-    });
-}
-
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebabeclap_adotx (int i, int j, int k, int n, Array4<T> const& y,
@@ -490,43 +446,6 @@ void mlebabeclap_adotx (int i, int j, int k, int n, Array4<T> const& y,
              dhy*(apym*fym - apyp*fyp) +
              dhz*(apzm*fzm - apzp*fzp) - dhx*feb);
     }
-}
-
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_adotx (Box const& box, Array4<T> const& y,
-                        Array4<T const> const& x, Array4<T const> const& a,
-                        Array4<T const> const& bX, Array4<T const> const& bY,
-                        Array4<T const> const& bZ, Array4<const int> const& ccm,
-                        Array4<EBCellFlag const> const& flag,
-                        Array4<T const> const& vfrc, Array4<T const> const& apx,
-                        Array4<T const> const& apy, Array4<T const> const& apz,
-                        Array4<T const> const& fcx, Array4<T const> const& fcy,
-                        Array4<T const> const& fcz, Array4<T const> const& ba,
-                        Array4<T const> const& bc, Array4<T const> const& beb,
-                        bool is_dirichlet, Array4<T const> const& phieb,
-                        bool is_inhomog, GpuArray<T,AMREX_SPACEDIM> const& dxinv,
-                        T alpha, T beta, int ncomp,
-                        bool beta_on_centroid, bool phi_on_centroid) noexcept
-{
-    T dhx = beta*dxinv[0]*dxinv[0];
-    T dhy = beta*dxinv[1]*dxinv[1];
-    T dhz = beta*dxinv[2]*dxinv[2];
-
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
-    {
-        mlebabeclap_adotx(i, j, k, n,
-                          y, x, a,
-                          bX, bY, bZ,
-                          ccm, flag, vfrc,
-                          apx, apy, apz,
-                          fcx, fcy, fcz,
-                          ba, bc, beb,
-                          is_dirichlet, phieb,
-                          is_inhomog, alpha,
-                          dhx, dhy, dhz,
-                          beta_on_centroid, phi_on_centroid);
-    });
 }
 
 template<typename T>
