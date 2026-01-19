@@ -153,7 +153,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                     amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
                                         AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
                                         AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
-                    amrex::ignore_unused(ccfab);
 #else
                     AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                     {
