@@ -887,7 +887,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
     const Real bscalar = m_b_scalar;
     const int ncomp = getNComp();
 
-// #ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {
         MultiArray4<Real const> foo;
         const auto& xma = mf.arrays();
@@ -929,7 +929,7 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
             Gpu::streamSynchronize();
         }
     } else
-// #endif
+#endif
     {
         Array4<Real const> foo;
         MFItInfo mfi_info;
@@ -974,17 +974,19 @@ MLEBABecLap::normalize (int amrlev, int mglev, MultiFab& mf) const
 
                 bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
 
-                AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(bx, ncomp, i, j, k, n,
                 {
-                    mlebabeclap_normalize(tbx, fab, ascalar, afab,
+                    mlebabeclap_normalize(i, j, k, n,
+                                        fab, ascalar, afab,
                                         AMREX_D_DECL(dhx, dhy, dhz),
                                         AMREX_2D_ONLY_ARGS(dh, dxarray)
                                         AMREX_D_DECL(bxfab, byfab, bzfab),
                                         ccmfab, flagfab, vfracfab,
-                                        AMREX_D_DECL(apxfab,apyfab,apzfab),
-                                        AMREX_D_DECL(fcxfab,fcyfab,fczfab),
-                                        bafab, bcfab, bebfab, is_eb_dirichlet,
-                                        beta_on_centroid, ncomp);
+                                        AMREX_D_DECL(apxfab, apyfab, apzfab),
+                                        AMREX_D_DECL(fcxfab, fcyfab, fczfab),
+                                        bafab, bcfab, bebfab,
+                                        is_eb_dirichlet,
+                                        beta_on_centroid);
                 });
             }
         }

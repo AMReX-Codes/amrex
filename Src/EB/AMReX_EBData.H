@@ -34,10 +34,10 @@ struct EBData
             return m_real_data[static_cast<int>(T)](i,j,k);
         }
     }
-    
+
     template <EBData_t T>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    auto get () const noexcept 
+    const auto& get () const noexcept
     {
         if constexpr (T == EBData_t::cellflag) {
             return *m_cell_flag;
@@ -210,15 +210,15 @@ struct EBDataArrays
     {
         return m_real_data[(box_no*real_data_size) + static_cast<int>(T)](i,j,k,n);
     }
-    
+
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    EBData get (int box_no) const noexcept 
+    EBData get (int box_no) const noexcept
     {
         return EBData{m_cell_flag + box_no, m_real_data + (box_no * real_data_size)};
     }
 
     static constexpr int real_data_size = static_cast<int>(EBData_t::cellflag);
-    
+
     Array4<EBCellFlag const> const * AMREX_RESTRICT m_cell_flag = nullptr;
     Array4<Real const> const * AMREX_RESTRICT m_real_data = nullptr;
 };

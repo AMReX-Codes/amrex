@@ -1384,39 +1384,6 @@ void mlebabeclap_normalize (int i, int j, int k, int n, Array4<T> const& phi,
     }
 }
 
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_normalize (Box const& box, Array4<T> const& phi,
-                            T alpha, Array4<T const> const& a,
-                            T dhx, T dhy, T dhz,
-                            Array4<T const> const& bX, Array4<T const> const& bY,
-                            Array4<T const> const& bZ,
-                            Array4<const int> const& ccm, Array4<EBCellFlag const> const& flag,
-                            Array4<T const> const& vfrc,
-                            Array4<T const> const& apx, Array4<T const> const& apy,
-                            Array4<T const> const& apz,
-                            Array4<T const> const& fcx, Array4<T const> const& fcy,
-                            Array4<T const> const& fcz,
-                            Array4<T const> const& ba, Array4<T const> const& bc,
-                            Array4<T const> const& beb,
-                            bool is_dirichlet, bool beta_on_centroid, int ncomp) noexcept
-{
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
-    {
-        mlebabeclap_normalize(i, j, k, n, phi,
-                              alpha, a,
-                              dhx, dhy, dhz,
-                              bX, bY, bZ,
-                              ccm, flag,
-                              vfrc,
-                              apx, apy, apz,
-                              fcx, fcy, fcz,
-                              ba, bc,
-                              beb,
-                              is_dirichlet, beta_on_centroid);
-    });
-}
-
 }
 
 #endif

@@ -23,14 +23,6 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
-    auto area = (factory) ? factory->getAreaFrac()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    auto fcent = (factory) ? factory->getFaceCent()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
-    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-    const auto *const  ccent = (factory) ? &(factory->getCentroid()) : nullptr;
 
     const bool is_eb_dirichlet =  isEBDirichlet();
     const bool is_eb_inhomog = m_is_eb_inhomog && (!this->m_precond_mode);
@@ -59,7 +51,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                  const Real dhy = bscalar*dxinvarr[1]*dxinvarr[1];,
                  const Real dhz = bscalar*dxinvarr[2]*dxinvarr[2];)
 
-// #ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && in.isFusingCandidate()) {
         MultiArray4<Real const> foo;
         const auto& xma = in.arrays();
@@ -110,7 +102,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
             Gpu::streamSynchronize();
         }
     } else
-// #endif
+#endif
     {
         Array4<Real const> foo;
         MFItInfo mfi_info;
@@ -249,20 +241,10 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
-    const MultiFab* vfrac = (factory) ? &(factory->getVolFrac()) : nullptr;
-    const auto area = (factory) ? factory->getAreaFrac()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const auto fcent = (factory) ? factory->getFaceCent()
-        : Array<const MultiCutFab*,AMREX_SPACEDIM>{AMREX_D_DECL(nullptr,nullptr,nullptr)};
-    const MultiCutFab* barea = (factory) ? &(factory->getBndryArea()) : nullptr;
-    const MultiCutFab* bcent = (factory) ? &(factory->getBndryCent()) : nullptr;
-    const auto *const  ccent = (factory) ? &(factory->getCentroid()) : nullptr;
-
-    amrex::ignore_unused(vfrac, area, fcent, barea, bcent, ccent);
 
     bool is_eb_dirichlet =  isEBDirichlet();
 
-// #ifdef AMREX_USE_GPU
+#ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && sol.isFusingCandidate()) {
         MultiArray4<Real const> foo;
         const auto& m0 = mm0.const_arrays();
@@ -322,7 +304,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
             Gpu::streamSynchronize();
         }
     } else
-// #endif
+#endif
     {
         Array4<Real const> foo;
         MFItInfo mfi_info;
