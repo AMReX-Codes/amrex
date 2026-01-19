@@ -149,7 +149,7 @@ public:
     /**
     * \brief Construct an IntVectND from an Array<int,dim>.
     */
-    explicit IntVectND (const Array<int,dim>& a) noexcept {
+    explicit constexpr IntVectND (const Array<int,dim>& a) noexcept {
         for (int i=0; i<dim; ++i) {
             vect[i] = a[i];
         }
@@ -170,7 +170,7 @@ public:
 
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Dim3 dim3 () const noexcept {
+    constexpr Dim3 dim3 () const noexcept {
         if constexpr (dim == 1) {
             return Dim3{vect[0],0,0};
         } else if constexpr (dim == 2) {
@@ -182,7 +182,7 @@ public:
 
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
+    constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
         if constexpr (dim == 1) {
             return Dim3{vect[0],fill_extra,fill_extra};
         } else if constexpr (dim == 2) {
@@ -194,8 +194,7 @@ public:
 
     template< typename T = int >
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Array<T, dim>
-    toArray () const noexcept {
+    constexpr Array<T, dim> toArray () const noexcept {
         Array<T, dim> ret {};
         for (int i=0; i<dim; ++i) {
             ret[i] = T(vect[i]);
@@ -208,7 +207,7 @@ public:
      Sum of all components of this IntVectND.
   */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int sum () const noexcept
+    constexpr int sum () const noexcept
     {
         int retval = vect[0];
         for (int i=1; i<dim; ++i) {
@@ -219,7 +218,7 @@ public:
 
     //! maximum (no absolute values) value
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int max () const noexcept
+    constexpr int max () const noexcept
     {
         int retval = vect[0];
         for (int i=1; i<dim; ++i) {
@@ -230,7 +229,7 @@ public:
 
     //! minimum (no absolute values) value
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int min () const noexcept
+    constexpr int min () const noexcept
     {
         int retval = vect[0];
         for (int i=1; i<dim; ++i) {
@@ -297,7 +296,7 @@ public:
 
     //! Returns true if all components are equal to the argument val.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator== (int val) const noexcept
+    constexpr bool operator== (int val) const noexcept
     {
         bool retval = vect[0] == val;
         for (int i=1; i<dim; ++i) {
@@ -308,7 +307,7 @@ public:
 
     //! Returns true if any component is not equal to the argument val.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator!= (int val) const noexcept
+    constexpr bool operator!= (int val) const noexcept
     {
         bool retval = vect[0] != val;
         for (int i=1; i<dim; ++i) {
@@ -319,7 +318,7 @@ public:
 
     //! Returns true if this is equivalent to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator== (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool operator== (const IntVectND<dim>& rhs) const noexcept
     {
         bool retval = vect[0] == rhs[0];
         for (int i=1; i<dim; ++i) {
@@ -329,7 +328,7 @@ public:
     }
     //! Returns true if this is different from rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator!= (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool operator!= (const IntVectND<dim>& rhs) const noexcept
     {
         bool retval = vect[0] != rhs[0];
         for (int i=1; i<dim; ++i) {
@@ -339,7 +338,7 @@ public:
     }
     //! Return true if this is lexicographically less than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator< (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool operator< (const IntVectND<dim>& rhs) const noexcept
     {
         for (int i=dim-1; i>=0; --i) {
             if (vect[i] < rhs[i]) {
@@ -352,19 +351,19 @@ public:
     }
     //! Return true if this is lexicographically less than or equal to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator<= (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool operator<= (const IntVectND<dim>& rhs) const noexcept
     {
         return !(rhs < *this);
     }
     //! Return true if this is lexicographically greater than rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator> (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool operator> (const IntVectND<dim>& rhs) const noexcept
     {
         return rhs < *this;
     }
     //! Return true if this is lexicographically greater than or equal to rhs.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool operator>= (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool operator>= (const IntVectND<dim>& rhs) const noexcept
     {
         return !(*this < rhs);
     }
@@ -373,7 +372,7 @@ public:
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allLT (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool allLT (const IntVectND<dim>& rhs) const noexcept
     {
         bool retval = vect[0] < rhs[0];
         for (int i=1; i<dim; ++i) {
@@ -385,7 +384,7 @@ public:
     * \brief Returns true if this is less than argument for all components.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allLT (int rhs) const noexcept
+    constexpr bool allLT (int rhs) const noexcept
     {
         bool retval = vect[0] < rhs;
         for (int i=1; i<dim; ++i) {
@@ -398,7 +397,7 @@ public:
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allLE (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool allLE (const IntVectND<dim>& rhs) const noexcept
     {
         bool retval = vect[0] <= rhs[0];
         for (int i=1; i<dim; ++i) {
@@ -410,7 +409,7 @@ public:
     * \brief Returns true if this is less than or equal to argument for all components.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allLE (int rhs) const noexcept
+    constexpr bool allLE (int rhs) const noexcept
     {
         bool retval = vect[0] <= rhs;
         for (int i=1; i<dim; ++i) {
@@ -423,7 +422,7 @@ public:
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allGT (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool allGT (const IntVectND<dim>& rhs) const noexcept
     {
         bool retval = vect[0] > rhs[0];
         for (int i=1; i<dim; ++i) {
@@ -435,7 +434,7 @@ public:
     * \brief Returns true if this is greater than argument for all components.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allGT (int rhs) const noexcept
+    constexpr bool allGT (int rhs) const noexcept
     {
         bool retval = vect[0] > rhs;
         for (int i=1; i<dim; ++i) {
@@ -448,7 +447,7 @@ public:
     * NOTE: This is NOT a strict weak ordering usable by STL sorting algorithms.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allGE (const IntVectND<dim>& rhs) const noexcept
+    constexpr bool allGE (const IntVectND<dim>& rhs) const noexcept
     {
         bool retval = vect[0] >= rhs[0];
         for (int i=1; i<dim; ++i) {
@@ -460,7 +459,7 @@ public:
     * \brief Returns true if this is greater than or equal to argument for all components.
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool allGE (int rhs) const noexcept
+    constexpr bool allGE (int rhs) const noexcept
     {
         bool retval = vect[0] >= rhs;
         for (int i=1; i<dim; ++i) {
@@ -470,10 +469,10 @@ public:
     }
     //! Unary plus -- for completeness.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator+ () const noexcept { return *this; }
+    constexpr IntVectND<dim> operator+ () const noexcept { return *this; }
     //! Unary Minus -- negates all components.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator- () const noexcept {
+    constexpr IntVectND<dim> operator- () const noexcept {
         IntVectND<dim> retval(0);
         for (int i=0; i<dim; ++i) {
             retval[i] = -vect[i];
@@ -482,7 +481,7 @@ public:
     }
     //! Modifies IntVectND by addition of a scalar to each component.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator+= (int s) noexcept
+    constexpr IntVectND<dim>& operator+= (int s) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] += s;
@@ -491,7 +490,7 @@ public:
     }
     //! Modifies IntVectND by component-wise addition with argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator+= (const IntVectND<dim>& p) noexcept
+    constexpr IntVectND<dim>& operator+= (const IntVectND<dim>& p) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] += p[i];
@@ -500,7 +499,7 @@ public:
     }
     //! Modifies IntVectND by multiplication of a scalar to each component.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator*= (int s) noexcept
+    constexpr IntVectND<dim>& operator*= (int s) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] *= s;
@@ -509,7 +508,7 @@ public:
     }
     //! Modifies IntVectND by component-wise multiplication with argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator*= (const IntVectND<dim>& p) noexcept
+    constexpr IntVectND<dim>& operator*= (const IntVectND<dim>& p) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] *= p[i];
@@ -518,7 +517,7 @@ public:
     }
     //! Modifies IntVectND by division by a scalar to each component.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator/= (int s) noexcept
+    constexpr IntVectND<dim>& operator/= (int s) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] /= s;
@@ -527,7 +526,7 @@ public:
     }
     //! Modifies IntVectND by component-wise division with argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator/= (const IntVectND<dim>& p) noexcept
+    constexpr IntVectND<dim>& operator/= (const IntVectND<dim>& p) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] /= p[i];
@@ -536,7 +535,7 @@ public:
     }
     //! Modifies IntVectND by subtraction of a scalar to each component.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator-= (int s) noexcept
+    constexpr IntVectND<dim>& operator-= (int s) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] -= s;
@@ -545,7 +544,7 @@ public:
     }
     //! Modifies IntVectND by component-wise subtraction with argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& operator-= (const IntVectND<dim>& p) noexcept
+    constexpr IntVectND<dim>& operator-= (const IntVectND<dim>& p) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] -= p[i];
@@ -554,63 +553,63 @@ public:
     }
     //! Returns component-wise sum of IntVectND<and argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator+ (const IntVectND<dim>& p) const noexcept
+    constexpr IntVectND<dim> operator+ (const IntVectND<dim>& p) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval += p;
     }
     //! Return an IntVectND that is this IntVectND + s.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator+ (int s) const noexcept
+    constexpr IntVectND<dim> operator+ (int s) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval += s;
     }
     //! Returns component-wise difference of IntVectND and argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator- (const IntVectND<dim>& p) const noexcept
+    constexpr IntVectND<dim> operator- (const IntVectND<dim>& p) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval -= p;
     }
     //! Return an IntVectND that is this IntVectND - s.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator- (int s) const noexcept
+    constexpr IntVectND<dim> operator- (int s) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval -= s;
     }
     //! Returns component-wise product of IntVectND and argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator* (const IntVectND<dim>& p) const noexcept
+    constexpr IntVectND<dim> operator* (const IntVectND<dim>& p) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval *= p;
     }
     //! Returns component-wise product of IntVectND and s.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator* (int s) const noexcept
+    constexpr IntVectND<dim> operator* (int s) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval *= s;
     }
     //! Returns component-wise division of IntVectND by argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator/ (const IntVectND<dim>& p) const noexcept
+    constexpr IntVectND<dim> operator/ (const IntVectND<dim>& p) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval /= p;
     }
     //! Returns component-wise division of IntVectND by s.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> operator/ (int s) const noexcept
+    constexpr IntVectND<dim> operator/ (int s) const noexcept
     {
         IntVectND<dim> retval = *this;
         return retval /= s;
     }
     //! Modifies IntVectND by taking component-wise min with argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& min (const IntVectND<dim>& p) noexcept
+    constexpr IntVectND<dim>& min (const IntVectND<dim>& p) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] = (vect[i] < p.vect[i] ? vect[i] : p.vect[i]);
@@ -619,7 +618,7 @@ public:
     }
     //! Modifies IntVectND by taking component-wise max with argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& max (const IntVectND<dim>& p) noexcept
+    constexpr IntVectND<dim>& max (const IntVectND<dim>& p) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] = (vect[i] > p.vect[i] ? vect[i] : p.vect[i]);
@@ -628,7 +627,7 @@ public:
     }
     //! Modify IntVectND by multiplying each coordinate by s.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& scale (int s) noexcept {
+    constexpr IntVectND<dim>& scale (int s) noexcept {
         for (int i=0; i<dim; ++i) {
             vect[i] *= s;
         }
@@ -639,7 +638,7 @@ public:
     * the index ref_ix and with normal in the direction of idir.
     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& reflect (int ref_ix, int idir) noexcept
+    constexpr IntVectND<dim>& reflect (int ref_ix, int idir) noexcept
     {
         BL_ASSERT(idir >= 0 && idir < dim);
         vect[idir] = -vect[idir] + 2*ref_ix;
@@ -647,16 +646,16 @@ public:
     }
     //! Modify IntVectND by adding s to given coordinate.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& shift (int coord, int s) noexcept
+    constexpr IntVectND<dim>& shift (int coord, int s) noexcept
     {
         BL_ASSERT(coord >= 0 && coord < dim); vect[coord] += s; return *this;
     }
     //! Equivalent to shift(0,iv[0]).shift(1,iv[1]) ...
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& shift (const IntVectND<dim>& iv) noexcept { *this += iv; return *this; }
+    constexpr IntVectND<dim>& shift (const IntVectND<dim>& iv) noexcept { *this += iv; return *this; }
     //! Modify IntVectND by adding s to each coordinate.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim>& diagShift (int s) noexcept
+    constexpr IntVectND<dim>& diagShift (int s) noexcept
     {
         for (int i=0; i<dim; ++i) {
             vect[i] += s;
@@ -747,7 +746,7 @@ public:
     */
     template<int new_dim>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<new_dim> shrink () const noexcept {
+    constexpr IntVectND<new_dim> shrink () const noexcept {
         static_assert(new_dim <= dim);
         return IntVectND<new_dim>(this->begin());
     }
@@ -758,7 +757,7 @@ public:
     */
     template<int new_dim>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<new_dim> expand (int fill_extra=0) const noexcept {
+    constexpr IntVectND<new_dim> expand (int fill_extra=0) const noexcept {
         static_assert(new_dim >= dim);
         IntVectND<new_dim> retval(fill_extra);
         for (int i=0; i<dim; ++i) {
@@ -773,7 +772,7 @@ public:
     */
     template<int new_dim>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    IntVectND<new_dim> resize (int fill_extra=0) const noexcept {
+    constexpr IntVectND<new_dim> resize (int fill_extra=0) const noexcept {
         if constexpr (new_dim > dim) {
             return expand<new_dim>(fill_extra);
         } else {
@@ -900,7 +899,7 @@ IntVectND<dim>::maxDir(bool a_doAbsValue) const noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim> operator+ (int s, const IntVectND<dim>& p) noexcept
+constexpr IntVectND<dim> operator+ (int s, const IntVectND<dim>& p) noexcept
 {
     IntVectND<dim> retval = p;
     for (int i=0; i<dim; ++i) {
@@ -914,7 +913,7 @@ template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 AMREX_GPU_HOST_DEVICE
-IntVectND<dim> operator- (int s, const IntVectND<dim>& p) noexcept
+constexpr IntVectND<dim> operator- (int s, const IntVectND<dim>& p) noexcept
 {
     IntVectND<dim> retval = p;
     for (int i=0; i<dim; ++i) {
@@ -927,7 +926,7 @@ IntVectND<dim> operator- (int s, const IntVectND<dim>& p) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim> operator* (int s, const IntVectND<dim>& p) noexcept
+constexpr IntVectND<dim> operator* (int s, const IntVectND<dim>& p) noexcept
 {
     IntVectND<dim> retval = p;
     for (int i=0; i<dim; ++i) {
@@ -943,7 +942,7 @@ IntVectND<dim> operator* (int s, const IntVectND<dim>& p) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 min (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 {
     IntVectND<dim> p(p1);
@@ -954,7 +953,7 @@ min (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 elemwiseMin (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 {
     IntVectND<dim> p(p1);
@@ -969,7 +968,7 @@ elemwiseMin (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 max (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 {
     IntVectND<dim> p(p1);
@@ -980,7 +979,7 @@ max (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 elemwiseMax (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 {
     IntVectND<dim> p(p1);
@@ -1012,7 +1011,7 @@ BASISV (int dir) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 scale (const IntVectND<dim>& p, int s) noexcept
 {
     return IntVectND<dim>(p).scale(s);
@@ -1026,7 +1025,7 @@ scale (const IntVectND<dim>& p, int s) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 reflect (const IntVectND<dim>& a, int ref_ix, int idir) noexcept
 {
     return IntVectND<dim>(a).reflect(ref_ix, idir);
@@ -1039,7 +1038,7 @@ reflect (const IntVectND<dim>& a, int ref_ix, int idir) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-IntVectND<dim>
+constexpr IntVectND<dim>
 diagShift (const IntVectND<dim>& p, int s) noexcept
 {
     return p + s;
@@ -1078,7 +1077,7 @@ coarsen (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 
 template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
+constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
 {
     if constexpr (dim == 1) {
         return Dim3{coarse.x*ratio[0], coarse.y, coarse.z};

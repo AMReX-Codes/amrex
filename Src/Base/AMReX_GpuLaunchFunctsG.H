@@ -14,7 +14,7 @@ namespace detail {
     auto call_f_scalar_handler (F const& f, N i, Gpu::Handler const&)
         noexcept -> decltype(f(0))
     {
-        f(i);
+        return f(i);
     }
 
     template <typename F, typename N>
@@ -22,7 +22,7 @@ namespace detail {
     auto call_f_scalar_handler (F const& f, N i, Gpu::Handler const& handler)
         noexcept -> decltype(f(0,Gpu::Handler{}))
     {
-        f(i, handler);
+        return f(i, handler);
     }
 
     // call_f_intvect_inner
@@ -32,7 +32,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<1> iv, Args...args)
         noexcept -> decltype(f(0, 0, 0, args...))
     {
-        f(iv[0], 0, 0, args...);
+        return f(iv[0], 0, 0, args...);
     }
 
     template <typename F, std::size_t...Ns, class...Args>
@@ -40,7 +40,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<2> iv, Args...args)
         noexcept -> decltype(f(0, 0, 0, args...))
     {
-        f(iv[0], iv[1], 0, args...);
+        return f(iv[0], iv[1], 0, args...);
     }
 
     template <typename F, int dim, std::size_t...Ns, class...Args>
@@ -48,7 +48,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
         noexcept -> decltype(f(iv, args...))
     {
-        f(iv, args...);
+        return f(iv, args...);
     }
 
     template <typename F, int dim, std::size_t...Ns, class...Args>
@@ -56,7 +56,7 @@ namespace detail {
     auto call_f_intvect_inner (std::index_sequence<Ns...>, F const& f, IntVectND<dim> iv, Args...args)
         noexcept -> decltype(f(iv[Ns]..., args...))
     {
-        f(iv[Ns]..., args...);
+        return f(iv[Ns]..., args...);
     }
 
     // call_f_intvect
@@ -66,7 +66,7 @@ namespace detail {
     auto call_f_intvect (F const& f, IntVectND<dim> iv)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
     }
 
     // call_f_intvect_engine
@@ -76,7 +76,7 @@ namespace detail {
     auto call_f_intvect_engine (F const& f, IntVectND<dim> iv, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, engine);
     }
 
     // call_f_intvect_handler
@@ -86,7 +86,7 @@ namespace detail {
     auto call_f_intvect_handler (F const& f, IntVectND<dim> iv, Gpu::Handler const&)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
     }
 
     template <typename F, int dim>
@@ -94,7 +94,7 @@ namespace detail {
     auto call_f_intvect_handler (F const& f, IntVectND<dim> iv, Gpu::Handler const& handler)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, Gpu::Handler{}))
     {
-        call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, handler);
+        return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, handler);
     }
 
     // call_f_intvect_ncomp
@@ -154,7 +154,7 @@ void single_task (gpuStream_t stream, L const& f) noexcept
     auto& q = *(stream.queue);
     try {
         q.submit([&] (sycl::handler& h) {
-            h.single_task([=] () { f(); });
+            h.single_task(f);
         });
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("single_task: ")+ex.what()+"!!!!!");
@@ -777,8 +777,7 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
 template <typename L>
 void single_task (gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(Gpu::Device::warp_size, 1, 1, 0, stream,
-                        [=] AMREX_GPU_DEVICE () noexcept {f();});
+    AMREX_LAUNCH_KERNEL(Gpu::Device::warp_size, 1, 1, 0, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -786,16 +785,14 @@ template <int MT, typename L>
 void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
              L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, shared_mem_bytes, stream,
-                        [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, shared_mem_bytes, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
 template <int MT, typename L>
 void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, stream,
-                        [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL(MT, nblocks, MT, 0, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
@@ -803,8 +800,7 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L const& f) noexcept
 {
-    AMREX_LAUNCH_KERNEL_NOBOUND(nblocks, nthreads_per_block, shared_mem_bytes,
-                                stream, [=] AMREX_GPU_DEVICE () noexcept { f(); });
+    AMREX_LAUNCH_KERNEL_NOBOUND(nblocks, nthreads_per_block, shared_mem_bytes, stream, f);
     AMREX_GPU_ERROR_CHECK();
 }
 
