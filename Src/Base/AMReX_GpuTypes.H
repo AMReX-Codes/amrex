@@ -133,7 +133,7 @@ struct LaunchHandler
                       (1 * ... * nd_block_size) == threads_per_block);
         constexpr IntVectND<dim> iv_block_size = blockDimND<nd_block_size...>();
         IntVectND<dim> ret(0);
-        unsigned int idx = threadIdx();
+        unsigned int idx = threadIdx1D();
         if constexpr (dim == 3) {
             ret[2] = idx / iv_block_size[2];
             idx = idx - ret[2] * iv_block_size[2];

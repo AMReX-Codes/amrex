@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
-#include <AMReX_GpuTypes.H>
 
 #include <utility>
 
