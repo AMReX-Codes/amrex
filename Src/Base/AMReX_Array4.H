@@ -553,6 +553,16 @@ namespace amrex {
             }
         }
 
+        template <int d, std::enable_if_t<(d < N) && (d >= 0), int> = 0>
+        [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        constexpr Long get_stride () const noexcept {
+            if constexpr (N > 1 && d > 0) {
+                return stride.a[d];
+            } else {
+                return 1;
+            }
+        }
+
         template <typename... idx, std::enable_if_t<!IsArray4_v &&
             detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
