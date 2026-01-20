@@ -186,8 +186,8 @@ namespace amrex {
             constexpr auto msg = make_oob_message_impl(std::index_sequence<idx...>{});
 
             AMREX_DEVICE_PRINTF(msg.data(),
-                iv[idx]...,
-                ((idx2x % 2 == 0) ? begin[idx2x / 2] : end[idx2x / 2])...
+                iv.vect[idx]...,
+                ((idx2x % 2 == 0) ? begin.vect[idx2x / 2] : end.vect[idx2x / 2])...
             );
         }
 
@@ -286,7 +286,7 @@ namespace amrex {
             if constexpr (N > 1) {
                 Long current_stride = 1;
                 constexpr_for<0, N-1>([&](int d) {
-                    Long len = a_end[d] - a_begin[d];
+                    Long len = a_end.vect[d] - a_begin.vect[d];
                     current_stride *= len;
                     stride.a[d] = current_stride;
                 });
@@ -309,7 +309,7 @@ namespace amrex {
         {
             Long current_stride = 1;
             constexpr_for<0, N-1>([&](int d) {
-                Long len = end[d] - begin[d];
+                Long len = end.vect[d] - begin.vect[d];
                 current_stride *= len;
                 stride.a[d] = current_stride;
             });
@@ -331,19 +331,19 @@ namespace amrex {
             : p(a_p)
         {
             constexpr_for<0, M>([&](int d) {
-                begin[d] = a_begin[d];
-                end[d] = a_end[d];
+                begin.vect[d] = a_begin.vect[d];
+                end.vect[d] = a_end.vect[d];
             });
             constexpr_for<M, N>([&](int d) {
-                begin[d] = 0;
-                end[d] = 1;
+                begin.vect[d] = 0;
+                end.vect[d] = 1;
             });
-            end[N-1] = ncomp;
+            end.vect[N-1] = ncomp;
 
             if constexpr (N > 1) {
                 Long current_stride = 1;
                 constexpr_for<0, N-1>([&](int d) {
-                    Long len = end[d] - begin[d];
+                    Long len = end.vect[d] - begin.vect[d];
                     current_stride *= len;
                     stride.a[d] = current_stride;
                 });
@@ -368,8 +368,8 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end)
         {
-            begin[N-1] = 0;
-            end[N-1] = rhs.end[N-1] - start_comp;
+            begin.vect[N-1] = 0;
+            end.vect[N-1] = rhs.end.vect[N-1] - start_comp;
         }
 
         /**
@@ -391,8 +391,8 @@ namespace amrex {
               begin(rhs.begin),
               end(rhs.end)
         {
-            begin[N-1] = 0;
-            end[N-1] = num_comp;
+            begin.vect[N-1] = 0;
+            end.vect[N-1] = num_comp;
         }
 
         /**
@@ -553,7 +553,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr int nComp () const noexcept {
             if constexpr (last_dim_component) {
-                return end[N-1];
+                return end.vect[N-1];
             } else {
                 return 1;
             }
@@ -564,7 +564,7 @@ namespace amrex {
             if (ok()) {
                 std::size_t s = 1;
                 constexpr_for<0, N>([&](int d) {
-                    s *= (end[d] - begin[d]);
+                    s *= (end.vect[d] - begin.vect[d]);
                 });
                 return s;
             } else {
@@ -586,7 +586,7 @@ namespace amrex {
         constexpr bool contains (IntVectND<M> const& iv) const noexcept {
             bool inside = true;
             constexpr_for<0, M>([&](int d) {
-                inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
+                inside = inside && (iv.vect[d] >= begin.vect[d]) && (iv.vect[d] < end.vect[d]);
             });
             return inside;
         }
@@ -597,16 +597,16 @@ namespace amrex {
         constexpr bool contains (IntVectND<M> const& iv, int n) const noexcept {
             bool inside = true;
             constexpr_for<0, M>([&](int d) {
-                inside = inside && (iv[d] >= begin[d]) && (iv[d] < end[d]);
+                inside = inside && (iv.vect[d] >= begin.vect[d]) && (iv.vect[d] < end.vect[d]);
             });
-            inside = inside && (n >= 0) && (n < end[N-1]);
+            inside = inside && (n >= 0) && (n < end.vect[N-1]);
             return inside;
         }
 
         template <int M=N, bool B = IsArray4_v, std::enable_if_t<B,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         CellData<T> cellData (int i, int j, int k) const noexcept {
-            int ncomp = end[M-1];
+            int ncomp = end.vect[M-1];
             return CellData<T>(this->ptr(i,j,k), stride.a[M-2], ncomp);
         }
 
@@ -615,20 +615,20 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_offset (IntVectND<M> const& iv) const noexcept
         {
-            Long offset = iv[0] - begin[0];
+            Long offset = iv.vect[0] - begin.vect[0];
             // If M == N and we have a component at the end, we only loop up to N-1 for spatial.
             // Otherwise, we loop up to M.
             constexpr int idx = (last_dim_component && M == N) ? N - 1 : M;
             if constexpr (N > 1) {
                 constexpr_for<1, idx>([&](int d) {
-                    offset += (iv[d] - begin[d]) * stride.a[d-1];
+                    offset += (iv.vect[d] - begin.vect[d]) * stride.a[d-1];
                 });
             }
 
             // Handle the component offset if the input is the full N dimensions
             // and the last dimension is a component.
             if constexpr (last_dim_component && M == N) {
-                offset += iv[N-1] * stride.a[N-2];
+                offset += iv.vect[N-1] * stride.a[N-2];
             }
             return offset;
         }
@@ -638,9 +638,9 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_offset (IntVectND<M> const& iv, int n) const noexcept
         {
-            Long offset = iv[0] - begin[0];
+            Long offset = iv.vect[0] - begin.vect[0];
             constexpr_for<1, M>([&](int d) {
-                offset += (iv[d] - begin[d]) * stride.a[d-1];
+                offset += (iv.vect[d] - begin.vect[d]) * stride.a[d-1];
             });
             offset += n * stride.a[N-2];
             return offset;
@@ -656,7 +656,7 @@ namespace amrex {
         {
             bool out_of_bounds = false;
             for (int d = 0; d < N; ++d) {
-                if (iv[d] < begin[d] || iv[d] >= end[d]) {
+                if (iv.vect[d] < begin.vect[d] || iv.vect[d] >= end.vect[d]) {
                     out_of_bounds = true;
                 }
             }
@@ -669,12 +669,12 @@ namespace amrex {
                     std::stringstream ss;
                     ss << " (";
                     for (int d = 0; d < N; ++d) {
-                        ss << iv[d];
+                        ss << iv.vect[d];
                         if (d + 1 < N) ss << ",";
                     }
                     ss << ") is out of bound (";
                     for (int d = 0; d < N; ++d) {
-                        ss << begin[d] << ":" << end[d]-1;
+                        ss << begin.vect[d] << ":" << end.vect[d]-1;
                         if (d + 1 < N) ss << ",";
                     };
                     ss << ")";
@@ -696,7 +696,7 @@ namespace amrex {
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
             for (int d = M; d < N; ++d) {
-                iv_full[d] = begin[d];
+                iv_full.vect[d] = begin.vect[d];
             }
             index_assert(iv_full);
         }
@@ -714,9 +714,9 @@ namespace amrex {
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
             for (int d = M; d < N-1; ++d) {
-                iv_full[d] = begin[d];
+                iv_full.vect[d] = begin.vect[d];
             }
-            iv_full[N-1] = n;
+            iv_full.vect[N-1] = n;
             index_assert(iv_full);
         }
 #endif
@@ -993,21 +993,21 @@ namespace amrex {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 lbound (Array4<T> const& a) noexcept
     {
-        return Dim3{a.begin[0],a.begin[1],a.begin[2]};
+        return Dim3{a.begin.vect[0],a.begin.vect[1],a.begin.vect[2]};
     }
 
     template <class T>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 ubound (Array4<T> const& a) noexcept
     {
-        return Dim3{a.end[0]-1,a.end[1]-1,a.end[2]-1};
+        return Dim3{a.end.vect[0]-1,a.end.vect[1]-1,a.end.vect[2]-1};
     }
 
     template <class T>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 length (Array4<T> const& a) noexcept
     {
-        return Dim3{a.end[0]-a.begin[0],a.end[1]-a.begin[1],a.end[2]-a.begin[2]};
+        return Dim3{a.end.vect[0]-a.begin.vect[0],a.end.vect[1]-a.begin.vect[1],a.end.vect[2]-a.begin.vect[2]};
     }
 
     template <typename T, int N, bool C>
