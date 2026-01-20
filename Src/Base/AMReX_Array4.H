@@ -557,7 +557,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_stride () const noexcept {
             if constexpr (N > 1 && d > 0) {
-                return stride.a[d];
+                return stride.a[d-1];
             } else {
                 return 1;
             }
