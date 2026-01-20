@@ -283,14 +283,7 @@ namespace amrex {
         constexpr ArrayND (T* a_p, IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
             : p(a_p), begin(a_begin), end(a_end)
         {
-            if constexpr (N > 1) {
-                Long current_stride = 1;
-                constexpr_for<0, N-1>([&](int d) {
-                    Long len = a_end.vect[d] - a_begin.vect[d];
-                    current_stride *= len;
-                    stride.a[d] = current_stride;
-                });
-            }
+            set_stride();
         }
 
         /**
@@ -307,12 +300,7 @@ namespace amrex {
         constexpr ArrayND (T* a_p, Dim3 const& a_begin, Dim3 const& a_end, int a_ncomp) noexcept
             : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
         {
-            Long current_stride = 1;
-            constexpr_for<0, N-1>([&](int d) {
-                Long len = end.vect[d] - begin.vect[d];
-                current_stride *= len;
-                stride.a[d] = current_stride;
-            });
+            set_stride();
         }
 
         /**
@@ -340,14 +328,7 @@ namespace amrex {
             });
             end.vect[N-1] = ncomp;
 
-            if constexpr (N > 1) {
-                Long current_stride = 1;
-                constexpr_for<0, N-1>([&](int d) {
-                    Long len = end.vect[d] - begin.vect[d];
-                    current_stride *= len;
-                    stride.a[d] = current_stride;
-                });
-            }
+            set_stride();
         }
 
         /**
@@ -962,6 +943,19 @@ namespace amrex {
             ))
         }
 #endif
+
+    private:
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        constexpr void set_stride () noexcept {
+            if constexpr (N > 1) {
+                Long current_stride = 1;
+                constexpr_for<0, N-1>([&](int d) {
+                    Long len = end.vect[d] - begin.vect[d];
+                    current_stride *= len;
+                    stride.a[d] = current_stride;
+                });
+            }
+        }
     };
 
     // Deduction guides for ArrayND
