@@ -1767,8 +1767,8 @@ MLMGT<MF>::interpCorrection (int alev)
         nghost = IntVect(linop.getNGrow(alev));
     }
 
-    MF const& crse_cor = cor[alev-1][0];
-    MF      & fine_cor = cor[alev  ][0];
+    MF & crse_cor = cor[alev-1][0];
+    MF & fine_cor = cor[alev  ][0];
 
     const Geometry& crse_geom = linop.Geom(alev-1,0);
 
@@ -1778,6 +1778,11 @@ MLMGT<MF>::interpCorrection (int alev)
     {
         ng_src = linop.getNGrow(alev-1);
         ng_dst = linop.getNGrow(alev-1);
+        if constexpr (IsMultiFabLike_v<MF>) {
+            crse_cor.FillBoundary(0, ncomp, IntVect(ng_src), crse_geom.periodicity());
+        } else {
+            amrex::Abort("MLMG: CFStrategy::ghostnodes not supported for non-MultiFab like types");
+        }
     }
 
     MF cfine = linop.makeCoarseAmr(alev, IntVect(ng_dst));
