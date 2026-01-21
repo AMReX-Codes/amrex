@@ -790,8 +790,6 @@ public:
     */
     static const IntVectND<dim> Unit;
 
-private:
-
     int vect[dim] = {};
 };
 
@@ -1224,6 +1222,30 @@ AMREX_FORCE_INLINE
 constexpr IntVectND<new_dim>
 IntVectResize (const IntVectND<old_dim>& iv, int fill_extra=0) noexcept {
     return iv.template resize<new_dim>(fill_extra);
+}
+
+//! Get I'th element of IntVectND<dim>
+template <std::size_t I, int dim>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr int get (IntVectND<dim> const& iv) noexcept { return iv.vect[I]; }
+
+namespace detail {
+    template <typename F, int dim, std::size_t... N>
+    AMREX_GPU_HOST_DEVICE
+    constexpr auto apply_impl (F&& f, IntVectND<dim> const& iv,
+                               std::index_sequence<N...> /*is*/)
+    {
+        return std::forward<F>(f)(amrex::get<N>(iv)...);
+    }
+}
+
+//! Invoke the callable `f` with the elements of the given IntVectND object
+//! as arguments.
+template <typename F, int dim>
+AMREX_GPU_HOST_DEVICE
+constexpr auto Apply (F&& f, IntVectND<dim> const& iv)
+{
+    return detail::apply_impl(std::forward<F>(f), iv, std::make_index_sequence<dim>());
 }
 
 } // namespace amrex

@@ -1342,6 +1342,45 @@ IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
     return r;
 }
 
+namespace Reduce {
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Sum (N n, T* v, T init_val = 0)
+{
+    return Sum(n, (T const*)v, init_val);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Min (N n, T* v, T init_val = std::numeric_limits<T>::max())
+{
+    return Min(n, (T const*)v, init_val);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Max (N n, T* v, T init_val = std::numeric_limits<T>::lowest())
+{
+    return Max(n, (T const*)v, init_val);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+std::pair<T,T> MinMax (N n, T* v)
+{
+    return MinMax(n, (T const*)v);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
+bool AnyOf (N n, T* v, P const& pred)
+{
+    return AnyOf(n, (T const*)v, pred);
+}
+
+}
+
 }
 
 #endif
