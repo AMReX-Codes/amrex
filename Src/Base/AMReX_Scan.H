@@ -1263,8 +1263,8 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #else
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
         return PrefixSum<T>(static_cast<int>(n),
-                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
-                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                             Type::inclusive, a_ret_sum);
     } else {
         return PrefixSum<T>(n,
@@ -1347,8 +1347,8 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #else
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
         return PrefixSum<T>(static_cast<int>(n),
-                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
-                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                             Type::exclusive, a_ret_sum);
     } else {
         return PrefixSum<T>(n,
