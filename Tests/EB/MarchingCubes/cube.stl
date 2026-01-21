@@ -1,0 +1,86 @@
+solid Created by Weiqun
+facet normal -1.0 0.0 0.0
+  outer loop
+    vertex -1.0 -1.0 -1.0
+    vertex -1.0 -1.0  1.0
+    vertex -1.0  1.0 -1.0
+  endloop
+endfacet
+facet normal -1.0 0.0 0.0
+  outer loop
+    vertex -1.0  1.0 -1.0
+    vertex -1.0 -1.0  1.0
+    vertex -1.0  1.0  1.0
+  endloop
+endfacet
+facet normal 1.0 0.0 0.0
+  outer loop
+    vertex 1.0 -1.0 -1.0
+    vertex 1.0  1.0 -1.0
+    vertex 1.0 -1.0  1.0
+  endloop
+endfacet
+facet normal 1.0 0.0 0.0
+  outer loop
+    vertex 1.0  1.0 -1.0
+    vertex 1.0  1.0  1.0
+    vertex 1.0 -1.0  1.0
+  endloop
+endfacet
+facet normal 0.0 -1.0 0.0
+  outer loop
+    vertex -1.0 -1.0 -1.0
+    vertex  1.0 -1.0 -1.0
+    vertex -1.0 -1.0  1.0
+  endloop
+endfacet
+facet normal 0.0 -1.0 0.0
+  outer loop
+    vertex  1.0 -1.0 -1.0
+    vertex  1.0 -1.0  1.0
+    vertex -1.0 -1.0  1.0
+  endloop
+endfacet
+facet normal 0.0 1.0 0.0
+  outer loop
+    vertex -1.0  1.0 -1.0
+    vertex -1.0  1.0  1.0
+    vertex  1.0  1.0 -1.0
+  endloop
+endfacet
+facet normal 0.0 1.0 0.0
+  outer loop
+    vertex  1.0  1.0 -1.0
+    vertex -1.0  1.0  1.0
+    vertex  1.0  1.0  1.0
+  endloop
+endfacet
+facet normal 0.0 0.0 -1.0
+  outer loop
+    vertex -1.0 -1.0 -1.0
+    vertex -1.0  1.0 -1.0
+    vertex  1.0 -1.0 -1.0
+  endloop
+endfacet
+facet normal 0.0 0.0 -1.0
+  outer loop
+    vertex  1.0 -1.0 -1.0
+    vertex -1.0  1.0 -1.0
+    vertex  1.0  1.0 -1.0
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex -1.0 -1.0 1.0
+    vertex  1.0 -1.0 1.0
+    vertex -1.0  1.0 1.0
+  endloop
+endfacet
+facet normal 0.0 0.0 1.0
+  outer loop
+    vertex  1.0 -1.0 1.0
+    vertex  1.0  1.0 1.0
+    vertex -1.0  1.0 1.0
+  endloop
+endfacet
+endsolid Created by Weiqun
