@@ -5,11 +5,9 @@ name: LinuxGCC
 
 on:
   push:
-    branches:
-      - development
+    branches-ignore:
+      - 'dependabot/**'
   pull_request:
-    branches:
-      - development
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
