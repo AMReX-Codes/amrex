@@ -232,6 +232,7 @@ void CSR<T,V>::sort ()
     // xxxxx TODO SYCL: Let's not worry about performance for now.
     CSR<T,Gpu::PinnedVector> h_csr;
     duplicateCSR(Gpu::deviceToHost, h_csr, *this);
+    Gpu::streamSynchronize();
     h_csr.sort_on_host();
     duplicateCSR(Gpu::hostToDevice, *this, h_csr);
     Gpu::streamSynchronize();

@@ -89,27 +89,27 @@ int main (int argc, char *argv[])
             auto const& csr = matt.const_parcsr();
             auto err = Reduce::Sum<int>(matt.numLocalRows(),
                                         [=] AMREX_GPU_DEVICE (Long i)
-           {
-               int r = 0;
-               for (auto idx = csr.csr0.row_offset[i]; idx < csr.csr0.row_offset[i+1]; ++idx) {
-                   auto v1 = csr.csr0.mat[idx];
-                   auto v2 = value(csr.csr0.col_index[idx]+csr.col_begin, i+csr.row_begin);
-                   if (! amrex::almostEqual(v1,v2)) {
-                       ++r;
-                   }
-               }
-               if (csr.row_map && csr.row_map[i] >= 0) {
-                   auto ii = csr.row_map[i];
-                   for (auto idx = csr.csr1.row_offset[ii]; idx < csr.csr1.row_offset[ii+1]; ++idx) {
-                       auto v1 = csr.csr1.mat[idx];
-                       auto v2 = value(csr.col_map[csr.csr1.col_index[idx]], i+csr.row_begin);
-                       if (! amrex::almostEqual(v1,v2)) {
-                           ++r;
-                       }
-                   }
-               }
-               return r;
-           });
+            {
+                int r = 0;
+                for (auto idx = csr.csr0.row_offset[i]; idx < csr.csr0.row_offset[i+1]; ++idx) {
+                    auto v1 = csr.csr0.mat[idx];
+                    auto v2 = value(csr.csr0.col_index[idx]+csr.col_begin, i+csr.row_begin);
+                    if (! amrex::almostEqual(v1,v2)) {
+                        ++r;
+                    }
+                }
+                if (csr.row_map && csr.row_map[i] >= 0) {
+                    auto ii = csr.row_map[i];
+                    for (auto idx = csr.csr1.row_offset[ii]; idx < csr.csr1.row_offset[ii+1]; ++idx) {
+                        auto v1 = csr.csr1.mat[idx];
+                        auto v2 = value(csr.col_map[csr.csr1.col_index[idx]], i+csr.row_begin);
+                        if (! amrex::almostEqual(v1,v2)) {
+                            ++r;
+                        }
+                    }
+                }
+                return r;
+            });
 
             AMREX_ALWAYS_ASSERT(err == 0);
 

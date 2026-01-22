@@ -108,7 +108,7 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
             -DAMReX_GPU_BACKEND=SYCL                       \
-            -DAMReX_SYCL_AOT=ON                            \
+            -DAMReX_SYCL_AOT=OFF                           \
             -DAMReX_INTEL_ARCH=pvc                         \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \
