@@ -1,6 +1,12 @@
 name: 🐧 Catalyst
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - development
+  pull_request:
+    branches:
+      - development
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-insituvis-catalyst
