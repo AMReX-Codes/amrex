@@ -16,7 +16,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Get Latest Release Tag
       run: |
         CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
@@ -24,13 +24,13 @@ jobs:
         MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
     - name: Download Castro
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'AMReX-Astro/Castro'
         ref: ${{env.CASTRO_TAG}}
         path: 'Castro'
     - name: Download Microphysics
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'AMReX-Astro/Microphysics'
         ref: ${{env.MICROPHYSICS_TAG}}
@@ -70,9 +70,9 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Download WarpX
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'BLAST-WarpX/warpx'
         ref: development
@@ -114,9 +114,9 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Checkout pyamrex
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'AMReX-Codes/pyamrex'
         ref: 'development'
