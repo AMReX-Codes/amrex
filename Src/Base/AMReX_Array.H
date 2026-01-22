@@ -21,6 +21,7 @@
 namespace amrex {
 
     /// \ingroup amrex_linear_containers
+    /// An alias to `std::array`.
     template <class T, std::size_t N>
     using Array = std::array<T,N>;
 

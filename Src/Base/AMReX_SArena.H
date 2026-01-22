@@ -7,6 +7,7 @@
 
 namespace amrex {
 /**
+* \ingroup amrex_memory
 * \brief A STREAM-ordered memory arena.
 *
 * This Arena is implemented as a wrapper around amrex::The_Arena()
