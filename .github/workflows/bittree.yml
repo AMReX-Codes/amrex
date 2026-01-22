@@ -1,6 +1,12 @@
 name: bittree
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - development
+  pull_request:
+    branches:
+      - development
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-bittree
@@ -16,21 +22,21 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Check out Bittree
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: Flash-X/Bittree
         path: bittree
@@ -70,21 +76,21 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Check out Bittree
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: Flash-X/Bittree
         path: bittree

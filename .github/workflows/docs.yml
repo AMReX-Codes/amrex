@@ -1,6 +1,12 @@
 name: Build and Deploy
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - development
+  pull_request:
+    branches:
+      - development
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-docs
@@ -11,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
 
@@ -27,7 +33,7 @@ jobs:
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
-        uses: JamesIves/github-pages-deploy-action@v4.5.0
+        uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           ssh-key: ${{ secrets.AMREX_BUILD_DOCS }}
           repository-name: AMReX-Codes/AMReX-Codes.github.io

@@ -63,6 +63,29 @@
  */
 
 /**
+ * \defgroup amrex_memory Memory Arenas and Allocators
+ *
+ * \brief Memory arenas and allocators.
+ *
+ * AMReX provides a number of memory arenas and allocators:
+ * - \ref amrex::The_Arena
+ * - \ref amrex::The_Device_Arena
+ * - \ref amrex::The_Managed_Arena
+ * - \ref amrex::The_Async_Arena
+ * - \ref amrex::The_Pinned_Arena
+ * - \ref amrex::The_Cpu_Arena
+ * - \ref amrex::ArenaAllocator
+ * - \ref amrex::DeviceArenaAllocator
+ * - \ref amrex::ManagedArenaAllocator
+ * - \ref amrex::AsyncArenaAllocator
+ * - \ref amrex::PinnedArenaAllocator
+ * - \ref amrex::PolymorphicArenaAllocator
+ * - \ref amrex::Arena
+ * - \ref amrex::CArena
+ * - \ref amrex::SArena
+ */
+
+/**
  * \defgroup amrex_data_containers Data Containers
  *
  * \brief Container types for storing AMReX data, from linear arrays to

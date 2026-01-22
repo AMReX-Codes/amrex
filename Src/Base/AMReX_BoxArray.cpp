@@ -1322,17 +1322,24 @@ BoxList
 BoxArray::complementIn (const Box& bx, const Periodicity& period) const
 {
     BoxList bl(bx.ixType());
+    BoxList bl2(bx.ixType());
+    BoxList bltmp(bx.ixType());
     complementIn(bl, bx);
     auto const& pshifts = period.shiftIntVect();
     for (auto const& pit : pshifts) {
+        if (bl.isEmpty()) { break; }
         if (pit != 0) {
-            auto bltmp = complementIn(bx+pit);
-            if (bltmp.isNotEmpty()) {
-                for (auto& btmp : bltmp) {
-                    btmp -= pit;
+            bl2.clear();
+            for (auto const& b : bl) {
+                complementIn(bltmp, amrex::shift(b, pit));
+                if (bltmp.isNotEmpty()) {
+                    for (auto& btmp : bltmp) {
+                        btmp -= pit;
+                    }
+                    bl2.join(bltmp);
                 }
-                bl.join(bltmp);
             }
+            std::swap(bl, bl2);
         }
     }
     return bl;

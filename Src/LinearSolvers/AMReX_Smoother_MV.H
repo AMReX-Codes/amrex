@@ -14,13 +14,16 @@ public:
 
     int setNumIters (int a_niters) { return std::exchange(m_niters, a_niters); }
 
-    void operator() (AlgVector<T>& xvec, AlgVector<T> const& bvec)
+    void operator() (AlgVector<T>& xvec, AlgVector<T> const& bvec,
+                     bool with_initial_guess = false)
     {
         auto const& diag = m_A->diagonalVector();
         AlgVector<T> Axvec(xvec.partition());
-        xvec.setVal(0);
+        if ( ! with_initial_guess) {
+            xvec.setVal(0);
+        }
         for (int iter = 0; iter < m_niters; ++iter) {
-            if (iter == 0) {
+            if ((iter == 0) && ! with_initial_guess) {
                 Axvec.setVal(0);
             } else {
                 SpMV(Axvec, *m_A, xvec);

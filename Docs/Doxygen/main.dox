@@ -97,6 +97,10 @@
     amrex::BoxArray and \ref amrex::DistributionMapping.
   \par
 
+  - \ref amrex_memory
+    This topic covers memory arenas and allocatros in AMReX.
+  \par
+
   - \ref amrex_data_containers
     This topic covers AMReX data containers, from linear containers such as
     \ref amrex::Vector to box-based and distributed field data containers
