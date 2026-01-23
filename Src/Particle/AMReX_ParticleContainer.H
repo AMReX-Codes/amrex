@@ -1469,10 +1469,12 @@ public:
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
                     const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
+
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
+public:
     /** Overwrite the default names for the compile-time SoA components */
     void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
 
