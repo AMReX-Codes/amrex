@@ -183,7 +183,7 @@ struct EBData
     static constexpr int real_data_size = static_cast<int>(EBData_t::cellflag);
 
     Array4<EBCellFlag const> const* m_cell_flag = nullptr;
-    Array4<Real const> const* AMREX_RESTRICT m_real_data = nullptr;
+    Array4<Real const> const* m_real_data = nullptr;
 };
 
 struct EBDataArrays
