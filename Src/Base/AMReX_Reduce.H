@@ -6,7 +6,9 @@
 #include <AMReX_Arena.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_ReduceOpType.H>
 #include <AMReX_ValLocPair.H>
+#include <AMReX_Vector.H>
 
 #include <algorithm>
 #include <functional>
@@ -362,7 +364,7 @@ namespace Reduce::detail {
     /// \endcond
 
     template <typename I, typename F, typename T, typename... Ps,
-              std::enable_if_t<std::is_same<iterate_box,I>::value,int> = 0>
+              std::enable_if_t<std::is_same_v<iterate_box,I>,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int, T& r) noexcept
     {
@@ -371,7 +373,7 @@ namespace Reduce::detail {
     }
 
     template <typename I, typename F, typename T, typename... Ps,
-              std::enable_if_t<std::is_same<iterate_box_comp,I>::value,int> = 0>
+              std::enable_if_t<std::is_same_v<iterate_box_comp,I>,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int ncomp, T& r) noexcept
     {
@@ -389,6 +391,7 @@ class ReduceOps
 {
 public:
 
+    /// \cond DOXYGEN_IGNORE
     // This is public for CUDA
     template <typename I, typename MF, typename D, typename F>
     void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F const& f)
@@ -448,6 +451,7 @@ public:
             });
         }
     }
+    /// \endcond
 
     template <typename MF, typename D, typename F>
     std::enable_if_t<IsFabArray<MF>::value
@@ -733,8 +737,7 @@ public:
                 ReduceTuple dst = r;
                 for (int istream = 0, nstreams = nblocks.size(); istream < nstreams; ++istream) {
                     auto dp_stream = dp+istream*maxblocks;
-                    for (int i = AMREX_GPU_MAX_THREADS*blockIdx.x+threadIdx.x, stride = AMREX_GPU_MAX_THREADS*gridDim.x;
-                         i < nblocks[istream]; i += stride) {
+                    for (int i = threadIdx.x; i < nblocks[istream]; i += AMREX_GPU_MAX_THREADS) {
                         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, dp_stream[i]);
                     }
                 }
@@ -1380,6 +1383,910 @@ bool AnyOf (N n, T* v, P const& pred)
 }
 
 }
+
+/// \cond DOXYGEN_IGNORE
+namespace reducer_detail
+{
+    template <typename F, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<1> iv)
+        noexcept -> decltype(f(0, 0, 0, 0))
+    {
+        return f(iop, iv[0], 0, 0);
+    }
+
+    template <typename F, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<2> iv)
+        noexcept -> decltype(f(0, 0, 0, 0))
+    {
+        return f(iop, iv[0], iv[1], 0);
+    }
+
+    template <typename F, int dim, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<dim> iv)
+        noexcept -> decltype(f(0, iv))
+    {
+        return f(iop, iv);
+    }
+
+    template <typename F, int dim, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<dim> iv)
+        noexcept -> decltype(f(0, iv[Ns]...))
+    {
+        return f(iop, iv[Ns]...);
+    }
+
+    template <typename F, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect_n (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<1> iv, int n)
+        noexcept -> decltype(f(0, 0, 0, 0, 0))
+    {
+        return f(iop, iv[0], 0, 0, n);
+    }
+
+    template <typename F, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect_n (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<2> iv, int n)
+        noexcept -> decltype(f(0, 0, 0, 0, 0))
+    {
+        return f(iop, iv[0], iv[1], 0, n);
+    }
+
+    template <typename F, int dim, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect_n (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<dim> iv, int n)
+        noexcept -> decltype(f(0, iv, n))
+    {
+        return f(iop, iv, n);
+    }
+
+    template <typename F, int dim, std::size_t...Ns>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect_n (std::index_sequence<Ns...>, F const& f, int iop, IntVectND<dim> iv, int n)
+        noexcept -> decltype(f(0, iv[Ns]..., n))
+    {
+        return f(iop, iv[Ns]..., n);
+    }
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T init_value (ReduceOpType op)
+    {
+        T r;
+        if (ReduceOpType::max == op) {
+            ReduceOpMax{}.init(r);
+        } else if (ReduceOpType::min == op) {
+            ReduceOpMin{}.init(r);
+        } else {
+            ReduceOpSum{}.init(r);
+        }
+        return r;
+    }
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void local_update (ReduceOpType op, T& dst, T const& src)
+    {
+        if (ReduceOpType::max == op) {
+            ReduceOpMax{}.local_update(dst, src);
+        } else if (ReduceOpType::min == op) {
+            ReduceOpMin{}.local_update(dst, src);
+        } else {
+            ReduceOpSum{}.local_update(dst, src);
+        }
+    }
+
+#ifdef AMREX_USE_GPU
+
+    template <typename T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void parallel_update (ReduceOpType op, T& dst, T const& src
+#ifdef AMREX_USE_SYCL
+                          , Gpu::Handler const& gh
+#endif
+        )
+    {
+        if (ReduceOpType::max == op) {
+            ReduceOpMax{}.parallel_update(dst, src
+#ifdef AMREX_USE_SYCL
+                                          , gh
+#endif
+                );
+        } else if (ReduceOpType::min == op) {
+            ReduceOpMin{}.parallel_update(dst, src
+#ifdef AMREX_USE_SYCL
+                                          , gh
+#endif
+                );
+        } else {
+            ReduceOpSum{}.parallel_update(dst, src
+#ifdef AMREX_USE_SYCL
+                                          , gh
+#endif
+                );
+        }
+    }
+
+    template <typename OP, typename T, int dim, typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_update (int iop, OP op, T* dst, std::uint64_t icell,
+                       std::uint64_t stride, BoxIndexerND<dim> const& indexer,
+                       F const& f
+#ifdef AMREX_USE_SYCL
+                       , Gpu::Handler const& gh
+#endif
+        )
+    {
+        T r;
+        op.init(r);
+        for ( ; icell < indexer.numPts(); icell += stride) {
+            auto pr = call_f_intvect(std::make_index_sequence<dim>(),
+                                     f, iop, indexer.intVect(icell));
+            op.local_update(r, pr);
+        }
+        op.parallel_update(*dst, r
+#ifdef AMREX_USE_SYCL
+                          , gh
+#endif
+            );
+    }
+
+    template <typename I, typename T, int dim, typename F,
+              std::enable_if_t<std::is_same_v<Reduce::detail::iterate_box,I>,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_update (int iop, ReduceOpType op, T* dst, std::uint64_t icell,
+                       std::uint64_t stride, BoxIndexerND<dim> const& indexer,
+                       int, F const& f
+#ifdef AMREX_USE_SYCL
+                       , Gpu::Handler const& gh
+#endif
+        )
+    {
+        if (ReduceOpType::max == op) {
+            block_update(iop, ReduceOpMax{}, dst, icell, stride, indexer, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        } else if (ReduceOpType::min == op) {
+            block_update(iop, ReduceOpMin{}, dst, icell, stride, indexer, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        } else {
+            block_update(iop, ReduceOpSum{}, dst, icell, stride, indexer, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        }
+    }
+
+    template <typename OP, typename T, int dim, typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_update (int iop, OP op, T* dst, std::uint64_t icell,
+                       std::uint64_t stride, BoxIndexerND<dim> const& indexer,
+                       int ncomp, F const& f
+#ifdef AMREX_USE_SYCL
+                       , Gpu::Handler const& gh
+#endif
+        )
+    {
+        T r;
+        op.init(r);
+        for ( ; icell < indexer.numPts(); icell += stride) {
+            auto iv = indexer.intVect(icell);
+            for (int n = 0; n < ncomp; ++n) {
+                auto pr = call_f_intvect_n(std::make_index_sequence<dim>(),
+                                           f, iop, iv, n);
+                op.local_update(r, pr);
+            }
+        }
+        op.parallel_update(*dst, r
+#ifdef AMREX_USE_SYCL
+                          , gh
+#endif
+            );
+    }
+
+    template <typename I, typename T, int dim, typename F,
+              std::enable_if_t<std::is_same_v<Reduce::detail::iterate_box_comp,I>,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_update (int iop, ReduceOpType op, T* dst, std::uint64_t icell,
+                       std::uint64_t stride, BoxIndexerND<dim> const& indexer,
+                       int ncomp, F const& f
+#ifdef AMREX_USE_SYCL
+                       , Gpu::Handler const& gh
+#endif
+        )
+    {
+        if (ReduceOpType::max == op) {
+            block_update(iop, ReduceOpMax{}, dst, icell, stride, indexer, ncomp, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        } else if (ReduceOpType::min == op) {
+            block_update(iop, ReduceOpMin{}, dst, icell, stride, indexer, ncomp, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        } else {
+            block_update(iop, ReduceOpSum{}, dst, icell, stride, indexer, ncomp, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        }
+    }
+
+    template <typename OP, typename T, typename N, typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_update (int iop, OP op, T* dst, N i, N n, N stride, F const& f
+#ifdef AMREX_USE_SYCL
+                       , Gpu::Handler const& gh
+#endif
+        )
+    {
+        T r;
+        op.init(r);
+        for ( ; i < n; i += stride) {
+            auto pr = f(iop, i);
+            op.local_update(r, pr);
+        }
+        op.parallel_update(*dst, r
+#ifdef AMREX_USE_SYCL
+                          , gh
+#endif
+            );
+    }
+
+    template <typename T, typename N, typename F>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void block_update (int iop, ReduceOpType op, T* dst, N i, N n, N stride, F const& f
+#ifdef AMREX_USE_SYCL
+                       , Gpu::Handler const& gh
+#endif
+        )
+    {
+        if (ReduceOpType::max == op) {
+            block_update(iop, ReduceOpMax{}, dst, i, n, stride, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        } else if (ReduceOpType::min == op) {
+            block_update(iop, ReduceOpMin{}, dst, i, n, stride, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        } else {
+            block_update(iop, ReduceOpSum{}, dst, i, n, stride, f
+#ifdef AMREX_USE_SYCL
+                         , gh
+#endif
+                );
+        }
+    }
+
+    template <typename OP, typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T final_update (int iop, int nops, OP op, T const* dp, int maxblocks,
+                    GpuArray<int,AMREX_GPU_MAX_STREAMS> const& nblocks
+#ifdef AMREX_USE_SYCL
+                    , Gpu::Handler const& gh
+#endif
+        )
+    {
+        T r;
+        op.init(r);
+        T dst = r;
+        for (int istream = 0; istream < AMREX_GPU_MAX_STREAMS; ++istream) {
+            auto dp_stream = dp + maxblocks*(istream*nops + iop);
+#ifdef AMREX_USE_SYCL
+            for (int i = gh.threadIdx(); i < nblocks[istream]; i += int(gh.blockDim())) {
+#else
+            for (int i = threadIdx.x; i < nblocks[istream]; i += int(blockDim.x)) {
+#endif
+                op.local_update(r, dp_stream[i]);
+            }
+        }
+        op.parallel_update(dst, r
+#ifdef AMREX_USE_SYCL
+                           , gh
+#endif
+            );
+        return dst;
+    }
+
+    template <typename T>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    T final_update (int iop, int nops, ReduceOpType op, T const* dp, int maxblocks,
+                    GpuArray<int,AMREX_GPU_MAX_STREAMS> const& nblocks
+#ifdef AMREX_USE_SYCL
+                    , Gpu::Handler const& gh
+#endif
+        )
+    {
+        if (ReduceOpType::max == op) {
+            return final_update(iop, nops, ReduceOpMax{}, dp, maxblocks, nblocks
+#ifdef AMREX_USE_SYCL
+                                , gh
+#endif
+                );
+        } else if (ReduceOpType::min == op) {
+            return final_update(iop, nops, ReduceOpMin{}, dp, maxblocks, nblocks
+#ifdef AMREX_USE_SYCL
+                                , gh
+#endif
+                );
+        } else {
+            return final_update(iop, nops, ReduceOpSum{}, dp, maxblocks, nblocks
+#ifdef AMREX_USE_SYCL
+                                , gh
+#endif
+                );
+        }
+    }
+
+    template <typename I, typename T, typename F,
+              std::enable_if_t<std::is_same_v<Reduce::detail::iterate_box,I>,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void mf_call_f (int iop, ReduceOpType op, T& dst, F const& f,
+                    int ibox, int i, int j, int k, int)
+    {
+        auto pr = f(iop, ibox, i, j, k);
+        local_update(op, dst, pr);
+    }
+
+    template <typename I, typename T, typename F,
+              std::enable_if_t<std::is_same_v<Reduce::detail::iterate_box_comp,I>,int> = 0>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    void mf_call_f (int iop, ReduceOpType op, T& dst, F const& f,
+                    int ibox, int i, int j, int k, int ncomp)
+    {
+        for (int n = 0; n < ncomp; ++n) {
+            auto pr = f(iop, ibox, i, j, k, n);
+            local_update(op, dst, pr);
+        }
+    }
+
+#else
+
+    template <typename OP, typename T, typename N, typename F>
+    void local_update (int iop, OP op, T& dst, N n, F const& f)
+    {
+        T r;
+        op.init(r);
+        for (N i = 0; i < n; ++i) {
+            auto pr = f(iop, i);
+            op.local_update(r, pr);
+        }
+        op.local_update(dst, r);
+    }
+
+    template <typename T, typename N, typename F>
+    void local_update (int iop, ReduceOpType op, T& dst, N n, F const& f)
+    {
+        if (ReduceOpType::max == op) {
+            local_update(iop, ReduceOpMax{}, dst, n, f);
+        } else if (ReduceOpType::min == op) {
+            local_update(iop, ReduceOpMin{}, dst, n, f);
+        } else {
+            local_update(iop, ReduceOpSum{}, dst, n, f);
+        }
+    }
+
+    template <typename OP, typename T, int dim, typename F>
+    void local_update (int iop, OP op, T& dst, BoxND<dim> const& box, F const& f)
+    {
+        T r;
+        op.init(r);
+        For(box, [&] (IntVectND<dim> const& iv)
+        {
+            auto pr = call_f_intvect(std::make_index_sequence<dim>(), f, iop, iv);
+            op.local_update(r, pr);
+        });
+        op.local_update(dst, r);
+    }
+
+    template <typename T, int dim, typename F>
+    void local_update (int iop, ReduceOpType op, T& dst, BoxND<dim> const& box, F const& f)
+    {
+        if (ReduceOpType::max == op) {
+            local_update(iop, ReduceOpMax{}, dst, box, f);
+        } else if (ReduceOpType::min == op) {
+            local_update(iop, ReduceOpMin{}, dst, box, f);
+        } else {
+            local_update(iop, ReduceOpSum{}, dst, box, f);
+        }
+    }
+
+    template <typename OP, typename T, int dim, typename F>
+    void local_update (int iop, OP op, T& dst, BoxND<dim> const& box, int ncomp, F const& f)
+    {
+        T r;
+        op.init(r);
+        For(box, ncomp, [&] (IntVectND<dim> const& iv, int n)
+        {
+            auto pr = call_f_intvect_n(std::make_index_sequence<dim>(), f, iop, iv, n);
+            op.local_update(r, pr);
+        });
+        op.local_update(dst, r);
+    }
+
+    template <typename T, int dim, typename F>
+    void local_update (int iop, ReduceOpType op, T& dst, BoxND<dim> const& box,
+                       int ncomp, F const& f)
+    {
+        if (ReduceOpType::max == op) {
+            local_update(iop, ReduceOpMax{}, dst, box, ncomp, f);
+        } else if (ReduceOpType::min == op) {
+            local_update(iop, ReduceOpMin{}, dst, box, ncomp, f);
+        } else {
+            local_update(iop, ReduceOpSum{}, dst, box, ncomp, f);
+        }
+    }
+
+    template <typename T>
+    void reduceop_doit (ReduceOpType op, T& dst, T const& src)
+    {
+        if (ReduceOpType::max == op) {
+            ReduceOpMax{}.local_update(dst, src);
+        } else if (ReduceOpType::min == op) {
+            ReduceOpMin{}.local_update(dst, src);
+        } else {
+            ReduceOpSum{}.local_update(dst, src);
+        }
+    }
+
+#endif
+}
+/// \endcond
+
+/// \ingroup amrex_collectives
+/// Note that this cannot be reused.
+template <typename T>
+class Reducer
+{
+public:
+    static_assert(std::is_trivially_copyable<T>(),
+                  "Reducer's type must be trivially copyable");
+    static_assert(std::is_trivially_destructible<T>(),
+                  "Reducer's type must be trivially destructible");
+
+    explicit Reducer (Vector<ReduceOpType> const& reduce_ops)
+#ifdef AMREX_USE_GPU
+        : m_max_blocks(Gpu::Device::maxBlocksPerLaunch()),
+          m_host_data((T*)(The_Pinned_Arena()->alloc(sizeof(T)*reduce_ops.size()))),
+          m_device_data((T*)(The_Arena()->alloc((AMREX_GPU_MAX_STREAMS)
+                    * m_max_blocks * sizeof(T) * reduce_ops.size()))),
+#else
+        : m_data(OpenMP::in_parallel() ? 1 : OpenMP::get_max_threads()), // no support for nested OMP
+#endif
+          m_ops(reduce_ops.data(), reduce_ops.size())
+    {
+        // For now, let's not worry about land and lor, because they only
+        // work on integral type.
+        for (auto op : reduce_ops) {
+            AMREX_ALWAYS_ASSERT(op != ReduceOpType::land &&
+                                op != ReduceOpType::lor);
+        }
+
+#ifdef AMREX_USE_GPU
+        for (int i = 0, N = int(m_ops.size()); i < N; ++i) {
+            new (m_host_data+i) T();
+        }
+        m_nblocks.fill(0);
+#else
+        for (auto& v : m_data) {
+            v.reserve(reduce_ops.size());
+            for (auto op : reduce_ops) {
+                v.push_back(reducer_detail::init_value<T>(op));
+            }
+        }
+#endif
+    }
+
+    ~Reducer ()
+    {
+#ifdef AMREX_USE_GPU
+        The_Pinned_Arena()->free(m_host_data);
+        The_Arena()->free(m_device_data);
+#endif
+    }
+
+    Reducer (Reducer const&) = delete;
+    Reducer (Reducer &&) = delete;
+    void operator= (Reducer const&) = delete;
+    void operator= (Reducer &&) = delete;
+
+    template <int dim, typename F>
+    std::enable_if_t<IsCallable<F, int, int, int, int>::value ||
+                     IsCallable<F, int, IntVectND<dim>>::value>
+    eval (BoxND<dim> const& box, F const& f)
+    {
+        if (box.isEmpty()) { return; }
+
+#ifdef AMREX_USE_GPU
+
+        eval_box(Reduce::detail::iterate_box{}, box, 0, f);
+
+#else
+
+        auto& dst = m_data[OpenMP::get_thread_num()];
+        for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
+            reducer_detail::local_update(iop, m_ops[iop], dst[iop], box, f);
+        }
+
+#endif
+    }
+
+    template <int dim, typename F>
+    std::enable_if_t<IsCallable<F, int, int, int, int, int>::value ||
+                     IsCallable<F, int, IntVectND<dim>, int>::value>
+    eval (BoxND<dim> const& box, int ncomp, F const& f)
+    {
+        if (box.isEmpty()) { return; }
+
+#ifdef AMREX_USE_GPU
+
+        eval_box(Reduce::detail::iterate_box_comp{}, box, ncomp, f);
+
+#else
+
+        auto& dst = m_data[OpenMP::get_thread_num()];
+        for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
+            reducer_detail::local_update(iop, m_ops[iop], dst[iop], box, ncomp, f);
+        }
+
+#endif
+    }
+
+    template <typename MF, typename F>
+    std::enable_if_t<IsFabArray<MF>::value &&
+                     IsCallable<F, int, int, int, int, int>::value>
+    eval (MF const& mf, IntVect const& nghost, F const& f)
+    {
+        const int nboxes = mf.local_size();
+        if (nboxes == 0) {
+            return;
+        } else
+#ifdef AMREX_USE_GPU
+            if (!mf.isFusingCandidate())
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.growntilebox(nghost);
+                int li = mfi.LocalIndex();
+                this->eval(b, [=] AMREX_GPU_DEVICE (int op, int i, int j, int k)
+                {
+                    return f(op, li, i, j, k);
+                });
+            }
+        }
+#ifdef AMREX_USE_GPU
+        else {
+            eval_mf(Reduce::detail::iterate_box{}, mf, nghost, 0, f);
+        }
+#endif
+    }
+
+    template <typename MF, typename F>
+    std::enable_if_t<IsFabArray<MF>::value &&
+                     IsCallable<F, int, int, int, int, int, int>::value>
+    eval (MF const& mf, IntVect const& nghost, int ncomp, F const& f)
+    {
+        const int nboxes = mf.local_size();
+        if (nboxes == 0) {
+            return;
+        } else
+#ifdef AMREX_USE_GPU
+            if (!mf.isFusingCandidate())
+#endif
+        {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+            for (MFIter mfi(mf,TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+                Box const& b = mfi.growntilebox(nghost);
+                int li = mfi.LocalIndex();
+                this->eval(b, ncomp,
+                    [=] AMREX_GPU_DEVICE (int op, int i, int j, int k, int n)
+                {
+                    return f(op, li, i, j, k, n);
+                });
+            }
+        }
+#ifdef AMREX_USE_GPU
+        else {
+            eval_mf(Reduce::detail::iterate_box_comp{}, mf, nghost, ncomp, f);
+        }
+#endif
+    }
+
+#ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
+
+    template <typename I, int dim, typename F>
+    void eval_box (I, BoxND<dim> const& box, int ncomp, F const& f)
+    {
+        if (box.isEmpty()) { return; }
+
+        auto nops = int(m_ops.size());
+        auto* ops = m_ops.data();
+        const BoxIndexerND<dim> indexer(box);
+
+        auto const& stream = Gpu::gpuStream();
+        int sidx = Gpu::Device::streamIndex(stream);
+        auto* dp = m_device_data + sidx*m_max_blocks*nops;
+        int& nblocks = m_nblocks[sidx];
+        auto maxblocks = m_max_blocks;
+        constexpr int nitems_per_thread = 4;
+        Long nblocks_ec = (box.numPts() + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
+            / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
+        nblocks_ec = std::min<Long>(nblocks_ec, m_max_blocks);
+        m_max_stream_index = std::max(m_max_stream_index, sidx);
+
+#ifdef AMREX_USE_SYCL
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+        {
+            Dim1 blockIdx {gh.blockIdx()};
+            Dim1 threadIdx{gh.threadIdx()};
+            Dim1 gridDim  {gh.gridDim()};
+#else
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
+        [=] AMREX_GPU_DEVICE () noexcept
+        {
+#endif
+            std::uint64_t icell = std::uint64_t(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
+            std::uint64_t stride = std::uint64_t(AMREX_GPU_MAX_THREADS)*gridDim.x;
+
+            for (int iop = 0; iop < nops; ++iop) {
+                auto op = ops[iop];
+                T* dst = dp + iop*maxblocks + blockIdx.x;
+                if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
+                    *dst = reducer_detail::init_value<T>(op);
+                }
+                reducer_detail::block_update<I>(iop, op, dst, icell, stride, indexer, ncomp, f
+#ifdef AMREX_USE_SYCL
+                                                , gh
+#endif
+                    );
+            }
+        });
+        nblocks = amrex::max(nblocks, static_cast<int>(nblocks_ec));
+    }
+
+    template <typename I, typename MF, typename F>
+    void eval_mf (I, MF const& mf, IntVect const& nghost, int ncomp, F const& f)
+    {
+        const int nboxes = mf.local_size();
+        if (nboxes <= 0) { return; }
+
+        auto nops = int(m_ops.size());
+        auto* ops = m_ops.data();
+
+        auto const& parforinfo = mf.getParForInfo(nghost);
+        auto nblocks_per_box = parforinfo.getNBlocksPerBox(AMREX_GPU_MAX_THREADS);
+        AMREX_ASSERT(Long(nblocks_per_box)*Long(nboxes) < Long(std::numeric_limits<int>::max()));
+        const int nblocks = nblocks_per_box * nboxes;
+        const BoxIndexer* dp_boxes = parforinfo.getBoxes();
+
+        auto const& stream = Gpu::gpuStream();
+        auto* dp = m_device_data;
+        auto maxblocks = m_max_blocks;
+        int nblocks_ec = std::min(nblocks, maxblocks);
+        AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
+        m_nblocks[0] = nblocks_ec;
+        m_max_stream_index = 0;
+
+#ifdef AMREX_USE_SYCL
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
+                      [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+        {
+            Dim1 blockIdx {gh.blockIdx()};
+            Dim1 threadIdx{gh.threadIdx()};
+#else
+        amrex::launch_global<AMREX_GPU_MAX_THREADS>
+            <<<nblocks_ec, AMREX_GPU_MAX_THREADS, 0, stream>>>
+            ([=] AMREX_GPU_DEVICE () noexcept
+        {
+#endif
+            for (int iop = 0; iop < nops; ++iop) {
+                auto op = ops[iop];
+                T r = reducer_detail::init_value<T>(op);
+                T* dst = dp + iop*maxblocks + blockIdx.x;
+                if (threadIdx.x == 0) {
+                    *dst = r;
+                }
+                for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {
+                    int ibox = iblock / nblocks_per_box;
+                    auto icell = std::uint64_t(iblock-ibox*nblocks_per_box)*AMREX_GPU_MAX_THREADS + threadIdx.x;
+
+                    BoxIndexer const& indexer = dp_boxes[ibox];
+                    if (icell < indexer.numPts()) {
+                        auto [i, j, k] = indexer(icell);
+                        reducer_detail::mf_call_f<I>(iop, op, r, f, ibox, i, j, k, ncomp);
+                    }
+                }
+
+                reducer_detail::parallel_update(op, *dst, r
+#ifdef AMREX_USE_SYCL
+                                                , gh
+#endif
+                                                );
+            }
+        });
+    }
+
+/// \endcond
+#endif
+
+    template <typename N, typename F>
+    std::enable_if_t<IsCallable<F, int, int>::value>
+    eval (N n, F const& f)
+    {
+        if (n <= 0) { return; }
+
+#ifdef AMREX_USE_GPU
+
+        auto nops = int(m_ops.size());
+        auto* ops = m_ops.data();
+
+        auto const& stream = Gpu::gpuStream();
+        int sidx = Gpu::Device::streamIndex(stream);
+        auto* dp = m_device_data + sidx*m_max_blocks*nops;
+        int& nblocks = m_nblocks[sidx];
+        auto maxblocks = m_max_blocks;
+        constexpr int nitems_per_thread = 4;
+        int nblocks_ec = (n + nitems_per_thread*AMREX_GPU_MAX_THREADS-1)
+            / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
+        nblocks_ec = std::min(nblocks_ec, m_max_blocks);
+        m_max_stream_index = std::max(m_max_stream_index, sidx);
+
+#ifdef AMREX_USE_SYCL
+        // device reduce needs local(i.e., shared) memory
+        constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, shared_mem_bytes, stream,
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& gh) noexcept
+        {
+            Dim1 blockIdx {gh.blockIdx()};
+            Dim1 threadIdx{gh.threadIdx()};
+            Dim1 gridDim  {gh.gridDim()};
+#else
+        amrex::launch<AMREX_GPU_MAX_THREADS>(nblocks_ec, 0, stream,
+        [=] AMREX_GPU_DEVICE () noexcept
+        {
+#endif
+            N i = N(AMREX_GPU_MAX_THREADS)*blockIdx.x+threadIdx.x;
+            N stride = N(AMREX_GPU_MAX_THREADS)*gridDim.x;
+
+            for (int iop = 0; iop < nops; ++iop) {
+                auto op = ops[iop];
+                T* dst = dp + iop*maxblocks + blockIdx.x;
+                if (threadIdx.x == 0 && static_cast<int>(blockIdx.x) >= nblocks) {
+                    *dst = reducer_detail::init_value<T>(op);
+                }
+#ifdef AMREX_USE_SYCL
+                reducer_detail::block_update(iop, op, dst, i, n, stride, f, gh);
+#else
+                reducer_detail::block_update(iop, op, dst, i, n, stride, f);
+#endif
+            }
+        });
+        nblocks = amrex::max(nblocks, nblocks_ec);
+
+#else
+
+        auto& dst = m_data[OpenMP::get_thread_num()];
+        for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
+            reducer_detail::local_update(iop, m_ops[iop], dst[iop], n, f);
+        }
+
+#endif
+    }
+
+    Vector<T> getResults () const
+    {
+#ifdef AMREX_USE_GPU
+
+        if (! m_results_ready)
+        {
+            auto nops = int(m_ops.size());
+            auto* ops = m_ops.data();
+
+            auto const& stream = Gpu::gpuStream();
+            auto const* dp = m_device_data;
+            auto* hp = m_host_data;
+            auto maxblocks = m_max_blocks;
+            auto nblocks = m_nblocks;
+
+#ifdef AMREX_USE_SYCL
+            // device reduce needs local(i.e., shared) memory
+            constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
+#ifndef AMREX_NO_SYCL_REDUCE_WORKAROUND
+            // xxxxx SYCL todo: reduce bug workaround
+            Gpu::DeviceVector<T> dtmp(m_ops.size());
+            auto* presult = dtmp.data();
+#else
+            auto* presult = hp;
+#endif
+#else
+            constexpr std::size_t shared_mem_bytes = 0;
+#endif
+            amrex::launch<AMREX_GPU_MAX_THREADS>(1, shared_mem_bytes, stream,
+            [=] AMREX_GPU_DEVICE (
+#ifdef AMREX_USE_SYCL
+                Gpu::Handler const& gh
+#endif
+                ) noexcept
+            {
+                for (int iop = 0; iop < nops; ++iop) {
+                    auto r = reducer_detail::final_update<T>(iop, nops, ops[iop], dp, maxblocks, nblocks
+#ifdef AMREX_USE_SYCL
+                                                             , gh
+#endif
+                        );
+#ifdef AMREX_USE_SYCL
+                    if (gh.threadIdx() == 0) { presult[iop] = r; }
+#else
+                    if (threadIdx.x == 0) { hp[iop] = r; }
+#endif
+                }
+            });
+#if defined(AMREX_USE_SYCL) && !defined(AMREX_NO_SYCL_REDUCE_WORKAROUND)
+            Gpu::dtoh_memcpy_async(hp, dtmp.data(), sizeof(T)*m_ops.size());
+#endif
+            Gpu::streamSynchronize();
+
+            m_results_ready = true;
+        }
+
+        return Vector<T>(m_host_data, m_host_data+m_ops.size());
+
+#else
+        if (! m_results_ready) {
+            for (int i = 1, N = int(m_data.size()); i < N; ++i) {
+                for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
+                    reducer_detail::reduceop_doit(m_ops[iop], m_data[0][iop], m_data[i][iop]);
+                }
+            }
+            m_results_ready = true;
+        }
+        return m_data[0];
+#endif
+    }
+
+private:
+
+#ifdef AMREX_USE_GPU
+    int m_max_blocks;
+    int m_max_stream_index = 0;
+    T* m_host_data = nullptr;
+    T* m_device_data = nullptr;
+    GpuArray<int,AMREX_GPU_MAX_STREAMS> m_nblocks;
+#else
+    mutable Vector<Vector<T>> m_data;
+#endif
+
+    Gpu::Buffer<ReduceOpType> m_ops;
+    mutable bool m_results_ready = false;
+};
 
 }
 

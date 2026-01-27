@@ -61,6 +61,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParallelDescriptor.cpp
        AMReX_OpenMP.H
        AMReX_OpenMP.cpp
+       AMReX_ReduceOpType.H
        AMReX_ParallelReduce.H
        AMReX_ForkJoin.H
        AMReX_ForkJoin.cpp

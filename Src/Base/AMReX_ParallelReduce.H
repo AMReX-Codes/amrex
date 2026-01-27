@@ -6,6 +6,7 @@
 #include <AMReX_Functional.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_ReduceOpType.H>
 #include <AMReX_Vector.H>
 #include <type_traits>
 
@@ -14,17 +15,9 @@ namespace amrex {
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-    enum ReduceOp : int {
-        max = 0,
-        min,
-        sum,
-        lor,
-        land
-    };
-
 #ifdef BL_USE_MPI
 
-    // NOTE: the order of these needs to match the order in the ReduceOp enum above
+    // NOTE: the order of these needs to match the order in the ReduceOpType enum
     const std::array<MPI_Op, 5> mpi_ops = {{
         MPI_MAX,
         MPI_MIN,
@@ -34,7 +27,7 @@ namespace detail {
     }};
 
     template<typename T>
-    inline void Reduce (ReduceOp op, T* v, int cnt, int root, MPI_Comm comm)
+    inline void Reduce (ReduceOpType op, T* v, int cnt, int root, MPI_Comm comm)
     {
         auto mpi_op = mpi_ops[static_cast<int>(op)]; // NOLINT
         if (root == -1) {
@@ -51,12 +44,12 @@ namespace detail {
     }
 
     template<typename T>
-    inline void Reduce (ReduceOp op, T& v, int root, MPI_Comm comm) {
+    inline void Reduce (ReduceOpType op, T& v, int root, MPI_Comm comm) {
         Reduce(op, &v, 1, root, comm);
     }
 
     template<typename T>
-    inline void Reduce (ReduceOp op, Vector<std::reference_wrapper<T> > const & v,
+    inline void Reduce (ReduceOpType op, Vector<std::reference_wrapper<T> > const & v,
                         int root, MPI_Comm comm)
     {
         Vector<T> sndrcv(std::begin(v), std::end(v));
@@ -90,9 +83,9 @@ namespace detail {
     }
 
 #else
-    template<typename T> void Reduce (ReduceOp /*op*/, T* /*v*/, int /*cnt*/, int /*root*/, MPI_Comm /*comm*/) {}
-    template<typename T> void Reduce (ReduceOp /*op*/, T& /*v*/, int /*root*/, MPI_Comm /*comm*/) {}
-    template<typename T> void Reduce (ReduceOp /*op*/, Vector<std::reference_wrapper<T> > const & /*v*/, int /*root*/, MPI_Comm /*comm*/) {}
+    template<typename T> void Reduce (ReduceOpType /*op*/, T* /*v*/, int /*cnt*/, int /*root*/, MPI_Comm /*comm*/) {}
+    template<typename T> void Reduce (ReduceOpType /*op*/, T& /*v*/, int /*root*/, MPI_Comm /*comm*/) {}
+    template<typename T> void Reduce (ReduceOpType /*op*/, Vector<std::reference_wrapper<T> > const & /*v*/, int /*root*/, MPI_Comm /*comm*/) {}
 
     template<typename T> void Gather (const T* /*v*/, int /*cnt*/, T* /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
     template<typename T> void Gather (const T& /*v*/, T * /*vs*/, int /*root*/, MPI_Comm /*comm*/) {}
@@ -187,62 +180,62 @@ namespace ParallelAllReduce {
     /// \ingroup amrex_mpi
     template<typename T>
     void Max (T& v, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::max, v, -1, comm);
+        detail::Reduce(ReduceOpType::max, v, -1, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Max (T* v, int cnt, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::max, v, cnt, -1, comm);
+        detail::Reduce(ReduceOpType::max, v, cnt, -1, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
-        detail::Reduce<T>(detail::ReduceOp::max, v, -1, comm);
+        detail::Reduce<T>(ReduceOpType::max, v, -1, comm);
     }
 
     /// \ingroup amrex_mpi
     template<typename T>
     void Min (T& v, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::min, v, -1, comm);
+        detail::Reduce(ReduceOpType::min, v, -1, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Min (T* v, int cnt, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::min, v, cnt, -1, comm);
+        detail::Reduce(ReduceOpType::min, v, cnt, -1, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
-        detail::Reduce<T>(detail::ReduceOp::min, v, -1, comm);
+        detail::Reduce<T>(ReduceOpType::min, v, -1, comm);
     }
 
     /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T& v, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::sum, v, -1, comm);
+        detail::Reduce(ReduceOpType::sum, v, -1, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T* v, int cnt, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::sum, v, cnt, -1, comm);
+        detail::Reduce(ReduceOpType::sum, v, cnt, -1, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
-        detail::Reduce<T>(detail::ReduceOp::sum, v, -1, comm);
+        detail::Reduce<T>(ReduceOpType::sum, v, -1, comm);
     }
 
     /// \ingroup amrex_mpi
     inline void Or (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        detail::Reduce(detail::ReduceOp::lor, iv, -1, comm);
+        detail::Reduce(ReduceOpType::lor, iv, -1, comm);
         v = static_cast<bool>(iv);
     }
 
     /// \ingroup amrex_mpi
     inline void And (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        detail::Reduce(detail::ReduceOp::land, iv, -1, comm);
+        detail::Reduce(ReduceOpType::land, iv, -1, comm);
         v = static_cast<bool>(iv);
     }
 }
@@ -318,62 +311,62 @@ namespace ParallelReduce {
     /// \ingroup amrex_mpi
     template<typename T>
     void Max (T& v, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::max, v, root, comm);
+        detail::Reduce(ReduceOpType::max, v, root, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Max (T* v, int cnt, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::max, v, cnt, root, comm);
+        detail::Reduce(ReduceOpType::max, v, cnt, root, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Max (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
-        detail::Reduce<T>(detail::ReduceOp::max, v, root, comm);
+        detail::Reduce<T>(ReduceOpType::max, v, root, comm);
     }
 
     /// \ingroup amrex_mpi
     template<typename T>
     void Min (T& v, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::min, v, root, comm);
+        detail::Reduce(ReduceOpType::min, v, root, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Min (T* v, int cnt, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::min, v, cnt, root, comm);
+        detail::Reduce(ReduceOpType::min, v, cnt, root, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Min (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
-        detail::Reduce<T>(detail::ReduceOp::min, v, root, comm);
+        detail::Reduce<T>(ReduceOpType::min, v, root, comm);
     }
 
     /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T& v, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::sum, v, root, comm);
+        detail::Reduce(ReduceOpType::sum, v, root, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Sum (T* v, int cnt, int root, MPI_Comm comm) {
-        detail::Reduce(detail::ReduceOp::sum, v, cnt, root, comm);
+        detail::Reduce(ReduceOpType::sum, v, cnt, root, comm);
     }
     /// \ingroup amrex_mpi
     template<typename T>
     void Sum (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
-        detail::Reduce<T>(detail::ReduceOp::sum, v, root, comm);
+        detail::Reduce<T>(ReduceOpType::sum, v, root, comm);
     }
 
     /// \ingroup amrex_mpi
     inline void Or (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        detail::Reduce(detail::ReduceOp::lor, iv, root, comm);
+        detail::Reduce(ReduceOpType::lor, iv, root, comm);
         v = static_cast<bool>(iv);
     }
 
     /// \ingroup amrex_mpi
     inline void And (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
-        detail::Reduce(detail::ReduceOp::land, iv, root, comm);
+        detail::Reduce(ReduceOpType::land, iv, root, comm);
         v = static_cast<bool>(iv);
     }
 }
