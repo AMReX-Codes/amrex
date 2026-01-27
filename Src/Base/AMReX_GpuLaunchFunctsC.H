@@ -220,6 +220,25 @@ void ParallelForSIMD (N n, L const& f) noexcept
     }
 }
 
+/** ParallelFor with a SIMD Width (derived from a type w/ fallback to non-SIMD)
+ *
+ * SIMD load/Write-back operations need to be performed before/after calling this.
+ *
+ * @tparam T a type that implements amrex::simd::Vectorized (or not)
+ * @tparam N index type (integer)
+ * @tparam L function/functor to call per SIMD set of elements
+ */
+template <typename T, typename N, typename L, typename M=std::enable_if_t<std::is_integral_v<N>> >
+AMREX_ATTRIBUTE_FLATTEN_FOR
+void ParallelForSIMD (N n, L && f) noexcept
+{
+    if constexpr (amrex::simd::is_vectorized<T>) {
+        amrex::ParallelForSIMD<T::simd_width>(n, std::forward<L>(f));
+    } else {
+        amrex::ParallelForSIMD<1, N>(n, std::forward<L>(f));
+    }
+}
+
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
