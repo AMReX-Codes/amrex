@@ -1759,81 +1759,6 @@ namespace reducer_detail
 
 #else
 
-    template <typename OP, typename T, typename N, typename F>
-    void local_update (int iop, OP op, T& dst, N n, F const& f)
-    {
-        T r;
-        op.init(r);
-        for (N i = 0; i < n; ++i) {
-            auto pr = f(iop, i);
-            op.local_update(r, pr);
-        }
-        op.local_update(dst, r);
-    }
-
-    template <typename T, typename N, typename F>
-    void local_update (int iop, ReduceOpType op, T& dst, N n, F const& f)
-    {
-        if (ReduceOpType::max == op) {
-            local_update(iop, ReduceOpMax{}, dst, n, f);
-        } else if (ReduceOpType::min == op) {
-            local_update(iop, ReduceOpMin{}, dst, n, f);
-        } else {
-            local_update(iop, ReduceOpSum{}, dst, n, f);
-        }
-    }
-
-    template <typename OP, typename T, int dim, typename F>
-    void local_update (int iop, OP op, T& dst, BoxND<dim> const& box, F const& f)
-    {
-        T r;
-        op.init(r);
-        For(box, [&] (IntVectND<dim> const& iv)
-        {
-            auto pr = call_f_intvect(std::make_index_sequence<dim>(), f, iop, iv);
-            op.local_update(r, pr);
-        });
-        op.local_update(dst, r);
-    }
-
-    template <typename T, int dim, typename F>
-    void local_update (int iop, ReduceOpType op, T& dst, BoxND<dim> const& box, F const& f)
-    {
-        if (ReduceOpType::max == op) {
-            local_update(iop, ReduceOpMax{}, dst, box, f);
-        } else if (ReduceOpType::min == op) {
-            local_update(iop, ReduceOpMin{}, dst, box, f);
-        } else {
-            local_update(iop, ReduceOpSum{}, dst, box, f);
-        }
-    }
-
-    template <typename OP, typename T, int dim, typename F>
-    void local_update (int iop, OP op, T& dst, BoxND<dim> const& box, int ncomp, F const& f)
-    {
-        T r;
-        op.init(r);
-        For(box, ncomp, [&] (IntVectND<dim> const& iv, int n)
-        {
-            auto pr = call_f_intvect_n(std::make_index_sequence<dim>(), f, iop, iv, n);
-            op.local_update(r, pr);
-        });
-        op.local_update(dst, r);
-    }
-
-    template <typename T, int dim, typename F>
-    void local_update (int iop, ReduceOpType op, T& dst, BoxND<dim> const& box,
-                       int ncomp, F const& f)
-    {
-        if (ReduceOpType::max == op) {
-            local_update(iop, ReduceOpMax{}, dst, box, ncomp, f);
-        } else if (ReduceOpType::min == op) {
-            local_update(iop, ReduceOpMin{}, dst, box, ncomp, f);
-        } else {
-            local_update(iop, ReduceOpSum{}, dst, box, ncomp, f);
-        }
-    }
-
     template <typename T>
     void reduceop_doit (ReduceOpType op, T& dst, T const& src)
     {
@@ -1920,10 +1845,17 @@ public:
 
 #else
 
-        auto& dst = m_data[OpenMP::get_thread_num()];
-        for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
-            reducer_detail::local_update(iop, m_ops[iop], dst[iop], box, f);
-        }
+        auto* AMREX_RESTRICT dst = m_data[OpenMP::get_thread_num()].data();
+        int nops = m_ops.size();
+        auto const* AMREX_RESTRICT ops = m_ops.data();
+        For(box, [&] (IntVectND<dim> const& iv)
+        {
+            for (int iop = 0; iop < nops; ++iop) {
+                auto pr = reducer_detail::call_f_intvect
+                    (std::make_index_sequence<dim>(), f, iop, iv);
+                reducer_detail::reduceop_doit(ops[iop], dst[iop], pr);
+            }
+        });
 
 #endif
     }
@@ -1941,10 +1873,17 @@ public:
 
 #else
 
-        auto& dst = m_data[OpenMP::get_thread_num()];
-        for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
-            reducer_detail::local_update(iop, m_ops[iop], dst[iop], box, ncomp, f);
-        }
+        auto* AMREX_RESTRICT dst = m_data[OpenMP::get_thread_num()].data();
+        int nops = m_ops.size();
+        auto const* AMREX_RESTRICT ops = m_ops.data();
+        For(box, ncomp, [&] (IntVectND<dim> const& iv, int n)
+        {
+            for (int iop = 0; iop < nops; ++iop) {
+                auto pr = reducer_detail::call_f_intvect_n
+                    (std::make_index_sequence<dim>(), f, iop, iv, n);
+                reducer_detail::reduceop_doit(ops[iop], dst[iop], pr);
+            }
+        });
 
 #endif
     }
@@ -2193,9 +2132,14 @@ public:
 
 #else
 
-        auto& dst = m_data[OpenMP::get_thread_num()];
-        for (int iop = 0, nops = int(m_ops.size()); iop < nops; ++iop) {
-            reducer_detail::local_update(iop, m_ops[iop], dst[iop], n, f);
+        auto* AMREX_RESTRICT dst = m_data[OpenMP::get_thread_num()].data();
+        int nops = m_ops.size();
+        auto const* AMREX_RESTRICT ops = m_ops.data();
+        for (N i = 0; i < n; ++i) {
+            for (int iop = 0; iop < nops; ++iop) {
+                auto pr = f(iop, i);
+                reducer_detail::reduceop_doit(ops[iop], dst[iop], pr);
+            }
         }
 
 #endif
