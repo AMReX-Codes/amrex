@@ -197,6 +197,46 @@ int main(int argc, char* argv[])
             }
         }
     }
+    { // AMREX_SPACEDIM
+        ParmParse pp("macro.spacedim");
+        std::vector<int> n_cell;
+        double t;
+        int use_gpu;
+        pp.getarr("n_cell", n_cell);
+        pp.get("t", t);
+        pp.get("use_gpu", use_gpu);
+        AMREX_ALWAYS_ASSERT(n_cell.size() == AMREX_SPACEDIM);
+#if (AMREX_SPACEDIM == 1)
+        AMREX_ALWAYS_ASSERT(n_cell[0] == 256);
+#elif (AMREX_SPACEDIM == 2)
+        AMREX_ALWAYS_ASSERT(n_cell[0] == 128 && n_cell[1] == 128);
+#else
+        AMREX_ALWAYS_ASSERT(n_cell[0] == 64 && n_cell[1] == 64 && n_cell[2] == 64);
+#endif
+#if (AMREX_SPACEDIM >= 2)
+        AMREX_ALWAYS_ASSERT(almostEqual(t,0.5));
+#else
+        AMREX_ALWAYS_ASSERT(almostEqual(t,1.5));
+#endif
+#if (AMREX_USE_GPU)
+        AMREX_ALWAYS_ASSERT(use_gpu == 1);
+#else
+        AMREX_ALWAYS_ASSERT(use_gpu == 0);
+#endif
+    }
+    { // AMREX_USE_GPU
+        ParmParse pp("macro.use_gpu");
+        int foo, spacedim;
+        std::string bar;
+        pp.get("foo", foo);
+        pp.get("bar", bar);
+        pp.get("spacedim", spacedim);
+#ifdef AMREX_USE_GPU
+        AMREX_ALWAYS_ASSERT(foo == 64 && bar == "use_gpu" && spacedim == AMREX_SPACEDIM*10);
+#else
+        AMREX_ALWAYS_ASSERT(foo == 32 && bar == "use_cpu" && spacedim == AMREX_SPACEDIM);
+#endif
+    }
     {
         amrex::Print() << "SUCCESS\n";
     }
