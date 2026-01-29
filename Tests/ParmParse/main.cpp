@@ -218,7 +218,7 @@ int main(int argc, char* argv[])
 #else
         AMREX_ALWAYS_ASSERT(almostEqual(t,1.5));
 #endif
-#if (AMREX_USE_GPU)
+#ifdef AMREX_USE_GPU
         AMREX_ALWAYS_ASSERT(use_gpu == 1);
 #else
         AMREX_ALWAYS_ASSERT(use_gpu == 0);
