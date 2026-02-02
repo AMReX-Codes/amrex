@@ -54,6 +54,7 @@ namespace amrex {
     template<class L, class... Lambdas>
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
 
+    /// \cond DOXYGEN_IGNORE
     template<class L>
     AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
 
@@ -62,6 +63,7 @@ namespace amrex {
         f0();
         call_device(std::forward<Lambdas>(fs)...);
     }
+    /// \endcond
 #endif
 
 // CPU variation
@@ -88,22 +90,6 @@ namespace Gpu {
 #else
     inline constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
-
-// ************************************************
-
-    struct ComponentBox {
-        Box box;
-        int ic;
-        int nc;
-    };
-
-    struct GridSize {
-        int numBlocks;
-        int numThreads;
-        int globalBlockId;
-    };
-
-// ************************************************
 
     AMREX_GPU_HOST_DEVICE
     inline
@@ -245,18 +231,42 @@ namespace amrex {
 
 #if defined(AMREX_USE_GPU) || !defined(AMREX_USE_OMP)
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with optional OpenMP threading.
+ *
+ * For GPU builds and for CPU builds without OpenMP support, this is the
+ * same as ParalleFor. For CPU builds with OpenMP enabled, this function
+ * uses OpenMP threading.
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelForOMP (T n, L const& f) noexcept
 {
     ParallelFor(n, f);
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with optional OpenMP threading.
+ *
+ * For GPU builds and for CPU builds without OpenMP support, this is the
+ * same as ParalleFor. For CPU builds with OpenMP enabled, this function
+ * uses OpenMP threading.
+ */
 template <typename L>
 void ParallelForOMP (Box const& box, L const& f) noexcept
 {
     ParallelFor(box, f);
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function with optional OpenMP threading.
+ *
+ * For GPU builds and for CPU builds without OpenMP support, this is the
+ * same as ParalleFor. For CPU builds with OpenMP enabled, this function
+ * uses OpenMP threading.
+ */
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {

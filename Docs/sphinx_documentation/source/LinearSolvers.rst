@@ -14,7 +14,8 @@ system using the geometric multigrid method.  The constructor of
 class of various linear operator
 classes, :cpp:`MLABecLaplacian`, :cpp:`MLPoisson`,
 :cpp:`MLNodeLaplacian`, etc.  We choose the type of linear operator
-class according to the type the linear system to solve.
+class according to the type of linear system to solve. Examples of the
+linear operators include
 
 - :cpp:`MLABecLaplacian` for cell-centered canonical form (equation :eq:`eqn::abeclap`).
 
@@ -238,7 +239,8 @@ if we want to do a linear solve where the boundary conditions on the
 coarsest AMR level of the solve come from a coarser level (e.g. the
 base AMR level of the solve is > 0 and does not cover the entire domain),
 we must explicitly provide the coarser data.  Boundary conditions from a
-coarser level are always Dirichlet.
+coarser level are Dirichlet by default and can be changed to homogeneous
+Neumann (i.e., :cpp:`LinOpBCType::Neumann`).
 
 Note that this step, if needed, must be performed before the step below.
 The :cpp:`MLLinOp` member function for this step is
@@ -247,7 +249,11 @@ The :cpp:`MLLinOp` member function for this step is
 
 ::
 
-    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet);
+
+    void setCoarseFineBC (const MultiFab* crse, IntVect const& crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet);
 
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
@@ -321,7 +327,7 @@ There are many parameters that can be set.  Here we discuss some
 commonly used ones.
 
 :cpp:`MLLinOp::setVerbose(int)`, :cpp:`MLMG::setVerbose(int)` and
-:cpp:`MLMG:setBottomVerbose(int)` control the verbosity of the
+:cpp:`MLMG::setBottomVerbose(int)` control the verbosity of the
 linear operator, multigrid solver and the bottom solver, respectively.
 
 The multigrid solver is an iterative solver.  The maximal number of
@@ -359,7 +365,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
     void setBottomSolver (BottomSolver s);
 
-Available choices the bottom solver are
+Available choices of the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
@@ -379,7 +385,7 @@ Available choices the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
-The :cpp:`LPInfo` class can be used control the agglomeration and
+The :cpp:`LPInfo` class can be used to control the agglomeration and
 consolidation strategy for multigrid coarsening.
 
 - :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
@@ -848,4 +854,76 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
 
 See ``amrex-tutorials/ExampleCodes/LinearSolvers/MultiComponent`` for a complete working example.
 
-.. solver reuse
+
+Curl-Curl
+=========
+
+The curl-curl solver supports solving the linear system arising from the
+discretized form of
+
+.. math:: \nabla \times (\alpha \nabla \times \vec{E}) + \beta \vec{E} = \vec{f},
+
+where :math:`\vec{E}` and :math:`\vec{f}` are defined on cell edges,
+:math:`\alpha` is a positive scalar, and :math:`\beta` is a non-negative
+scalar (either a constant or a field). An :cpp:`Array` of three
+:cpp:`MultiFab`\ s is used to store the components of :math:`\vec{E}` and
+:math:`\vec{f}`. It's the user's responsibility to ensure that the
+right-hand-side data are consistent on edges shared by multiple
+:cpp:`Box`\ es.  If needed, you can call :cpp:`MLCurlCurl::prepareRHS` to
+perform this synchronization.
+
+The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
+:math:`\vec{E}` still has three components, one for each spatial
+direction.
+
+Open Boundary Poisson Solver
+============================
+
+To solve Poisson's equation for isolated sources (i.e., no sources outside
+the boundary), there are several options. One option is to use :cpp:`MLMG`
+and :cpp:`MLPoisson` with Dirichlet boundary conditions. The Dirichlet
+boundary values can be computed using the multipole method, as done in the
+Castro code (see e.g.,
+https://amrex-astro.github.io/Castro/docs/file/Gravity_8H.html#_CPPv49multipole).
+Another option is to use the FFT based solver
+:cpp:`amrex::FFT::PoissonOpenBC` (see chapter :ref:`Chap:FFT`). A third
+option is :cpp:`amrex::OpenBCSolver`, which implements the James's method
+("The Solution of Poisson's Equation for Isolated Source
+Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
+71). Below are some of the member functions of :cpp:`OpenBCSolver`.
+
+.. highlight:: c++
+
+::
+
+    OpenBCSolver (const Vector<Geometry>& a_geom,
+                  const Vector<BoxArray>& a_grids,
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info = LPInfo());
+
+    Real solve (const Vector<MultiFab*>& a_sol,
+                const Vector<MultiFab const*>& a_rhs,
+                 Real a_tol_rel, Real a_tol_abs);
+
+
+GMRES
+=====
+
+AMReX provides a template implementation of the generalized minimal residual
+method (GMRES). The class template parameters are :cpp:`V` for a linear
+algebra vector class and :cpp:`M` for a linear operator class. The linear
+algebra vector class can contain one or several :cpp:`MultiFab`\ s, or your
+own data container. The linear operator class represents a matrix
+conceptually. Although it does not need to store the matrix explicitly, it
+must be able to apply the matrix vector product for a given vector. It also
+must provide some basic operations such as dot product and linear
+combination. For the full set of requirements on the operator class, see
+https://amrex-codes.github.io/amrex/doxygen/classamrex_1_1GMRES.html#details.
+
+An example of using GMRES combined with a Jacobi preconditioner to solve
+Poisson's equation can be found at
+https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html.
+
+AMReX also provides :cpp:`GMRESMLMGT`, a class template that solves the
+linear system in :cpp:`MLMG` using GMRES with :cpp:`MLMG` itself serving as
+the preconditioner.

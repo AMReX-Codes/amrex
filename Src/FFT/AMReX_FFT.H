@@ -29,6 +29,7 @@ namespace amrex
     inline void Finalize_FFT () { amrex::Finalize_minimal(); }
 }
 
+/// \cond DOXYGEN_IGNORE
 //! Not to be called by the user
 namespace amrex::FFT::detail
 {
@@ -36,5 +37,6 @@ namespace amrex::FFT::detail
     void Finalize ();
     void Clear ();
 }
+/// \endcond
 
 #endif

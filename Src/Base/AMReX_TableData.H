@@ -580,6 +580,7 @@ TableData<T,N,ORDER>::define ()
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <typename T, Order>
     Table1D<T> make_table (T* p, Array<int,1> const& lo, Array<int,1> const& hi) {
@@ -598,6 +599,7 @@ namespace detail {
         return Table4D<T,ORDER>(p, {lo[0],lo[1],lo[2],lo[3]}, {hi[0]+1,hi[1]+1,hi[2]+1,hi[3]+1});
     }
 }
+/// \endcond
 
 template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::table_type

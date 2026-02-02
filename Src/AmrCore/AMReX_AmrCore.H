@@ -14,6 +14,7 @@ class AmrParGDB;
 #endif
 
 /**
+ * \ingroup amrex_amrcore
  * \brief Provide basic functionalities to set up an AMR hierarchy
  *
  * Because it does not own any floating point data, AmrCore used

@@ -1,6 +1,10 @@
 name: windows
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-windows
@@ -17,7 +21,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     # If we add ccache back, don't forget to update cleanup-cache.yml
     #- name: Set Up Cache
     #  uses: actions/cache@v3
@@ -66,7 +70,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     # If we add ccache back, don't forget to update cleanup-cache.yml
     #- name: Set Up Cache
     #  uses: actions/cache@v3
@@ -117,7 +121,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: seanmiddleditch/gha-setup-ninja@master
     - name: Build & Install
       shell: cmd
@@ -152,8 +156,8 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
-    - uses: Jimver/cuda-toolkit@v0.2.19
+    - uses: actions/checkout@v6
+    - uses: Jimver/cuda-toolkit@v0.2.30
       id: cuda-toolkit
       with:
         cuda: '12.6.1'

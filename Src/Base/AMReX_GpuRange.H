@@ -18,6 +18,7 @@ AMREX_FORCE_INLINE bool isEmpty (BoxND<dim> const& b) noexcept { return b.isEmpt
 
 namespace Gpu {
 
+/// \cond DOXYGEN_IGNORE
 namespace range_detail {
 
 //! integer version
@@ -112,6 +113,7 @@ private:
 #endif
 };
 }
+/// \endcond
 
 #ifdef AMREX_USE_SYCL
 template <typename T>

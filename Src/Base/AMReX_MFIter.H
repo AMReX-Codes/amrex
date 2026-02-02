@@ -20,8 +20,10 @@ struct MFItInfo
 {
     bool do_tiling{false};
     bool dynamic{false};
-    bool device_sync;
-    int  num_streams;
+    bool device_sync = true;
+    bool device_sync_pre = true;
+    bool device_sync_post = true;
+    int  num_streams = 1;
     IntVect tilesize;
     MFItInfo () noexcept
         :  device_sync(!Gpu::inNoSyncRegion()), num_streams(Gpu::numGpuStreams()),
@@ -29,6 +31,10 @@ struct MFItInfo
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
         tilesize = ts;
+        return *this;
+    }
+    MFItInfo& SetTiling (bool f) noexcept {
+        do_tiling = f;
         return *this;
     }
     MFItInfo& SetDynamic (bool f) noexcept {
@@ -43,6 +49,22 @@ struct MFItInfo
         device_sync = f;
         return *this;
     }
+    MFItInfo& DisableDeviceSyncPre () noexcept {
+        device_sync_pre = false;
+        return *this;
+    }
+    MFItInfo& SetDeviceSyncPre (bool f) noexcept {
+        device_sync_pre = f;
+        return *this;
+    }
+    MFItInfo& DisableDeviceSyncPost () noexcept {
+        device_sync_post = false;
+        return *this;
+    }
+    MFItInfo& SetDeviceSyncPost (bool f) noexcept {
+        device_sync_post = f;
+        return *this;
+    }
     MFItInfo& SetNumStreams (int n) noexcept {
         num_streams = n;
         return *this;
@@ -53,6 +75,12 @@ struct MFItInfo
     }
 };
 
+/**
+ * \class amrex::MFIter
+ * \ingroup amrex_multifab_containers
+ * \brief Iterator for looping ever tiles and boxes of \ref amrex::FabArray
+ * based containers.
+ */
 class MFIter
 {
 public:
@@ -200,6 +228,8 @@ protected:
         bool flag = true;
     };
     DeviceSync device_sync;
+    DeviceSync device_sync_pre{true};
+    DeviceSync device_sync_post{true};
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;

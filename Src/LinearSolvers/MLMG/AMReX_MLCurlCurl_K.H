@@ -181,6 +181,7 @@ namespace amrex {
                      + ex(i  ,j+1,k  ))
 */
 
+/// \cond DOXYGEN_IGNORE
 struct CurlCurlDirichletInfo
 {
     IntVect dirichlet_lo;
@@ -331,6 +332,8 @@ struct CurlCurlSymmetryInfo
 };
 
 enum struct CurlCurlStateType { x, b, r }; // x, b & r=b-Ax
+
+/// \endcond
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_adotx_x (int i, int j, int k, Array4<Real> const& Ax,

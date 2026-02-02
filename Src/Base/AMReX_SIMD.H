@@ -69,9 +69,11 @@ namespace amrex::simd
     using SIMDIdCpu = std::uint64_t;
 #endif
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         struct InternalVectorized {};
     }
+    /// \endcond
 
     /** Mixin Helper Class
      *

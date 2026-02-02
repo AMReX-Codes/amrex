@@ -13,6 +13,7 @@
 namespace amrex {
 
 /**
+ * \ingroup amrex_solver_gmres
  * \brief GMRES
  *
  * This class implements the GMRES algorithm. The template parameter V is

@@ -2,6 +2,8 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
+namespace amrex {
+
 template <class FAB>
 template <typename BUF, class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
 void
@@ -298,7 +300,6 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 }
 
-// \cond CODEGEN
 template <class FAB>
 void
 FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
@@ -781,7 +782,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
     }
 #endif
 }
-// \endcond
+
 #ifdef BL_USE_MPI
 template <class FAB>
 template <typename BUF>
@@ -1008,6 +1009,7 @@ FabArray<FAB>::FillBoundary_test ()
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <class TagT>
 void fbv_copy (Vector<TagT> const& tags)
@@ -1041,6 +1043,7 @@ void fbv_copy (Vector<TagT> const& tags)
     }
 }
 }
+/// \endcond
 
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
@@ -1311,4 +1314,6 @@ FillBoundary (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::
         nghost.push_back(x->nGrowVect());
     }
     FillBoundary(mf, scomp, ncomp, nghost, period);
+}
+
 }

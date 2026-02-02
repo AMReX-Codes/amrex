@@ -61,6 +61,7 @@ public:
 
 /**
  * \class Geometry
+ * \ingroup amrex_real_space
  * \brief Rectangular problem domain geometry.
  *
  * This class describes problem domain and coordinate system for

@@ -7,6 +7,7 @@
 
 namespace amrex {
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLCellABecLapT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLCellLinOpT<MF>
@@ -781,6 +782,7 @@ MLCellABecLapT<MF>::makePETSc () const
 
 extern template class MLCellABecLapT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLCellABecLap = MLCellABecLapT<MultiFab>;
 
 }

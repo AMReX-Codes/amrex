@@ -31,6 +31,7 @@ pcinterp_interp (Box const& bx,
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace interp_detail {
     constexpr int ix   = 0;
     constexpr int iy   = 1;
@@ -40,6 +41,7 @@ namespace interp_detail {
     constexpr int iyz  = 5;
     constexpr int ixyz = 6;
 }
+/// \endcond
 
 // Let's keep these nodal functions even though amrex is no longer using
 // them, because they are used by other codes.

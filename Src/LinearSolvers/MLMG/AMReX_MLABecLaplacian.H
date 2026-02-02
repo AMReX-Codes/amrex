@@ -7,8 +7,8 @@
 
 namespace amrex {
 
-// (alpha * a - beta * (del dot b grad)) phi
-
+/// \ingroup amrex_solver_mlmg
+/// (alpha * a - beta * (del dot b grad)) phi
 template <typename MF>
 class MLABecLaplacianT
     : public MLCellABecLapT<MF>
@@ -483,6 +483,7 @@ MLABecLaplacianT<MF>::applyMetricTermsCoeffs ()
 //    \tilde{alpha}_i = alpha_i + (1-B) beta_{i+1/2} / h^2
 //    \tilde{rhs}_i = rhs_i + A beta_{i+1/2} / h^2
 //
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename LP>
 void applyRobinBCTermsCoeffs (LP& linop)
@@ -597,6 +598,7 @@ void applyRobinBCTermsCoeffs (LP& linop)
     }
 }
 } // namespace detail
+/// \endcond
 
 template <typename MF>
 void
@@ -1470,6 +1472,7 @@ MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 
 extern template class MLABecLaplacianT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLABecLaplacian = MLABecLaplacianT<MultiFab>;
 
 }

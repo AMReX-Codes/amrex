@@ -4,6 +4,7 @@
 
 #include <map>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::FFT::detail
 {
 
@@ -41,10 +42,12 @@ void Finalize ()
 
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
-#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
-        fftw_cleanup_threads();
-        fftwf_cleanup_threads();
 #endif
+        // We are not calling fftw[f]_cleanup_threads and fftw_cleanup here
+        // to deallocate a small amount of persist data used by FFTW. This
+        // can be regarded as a benign memory "leak". Trying to clean up
+        // fftw data here sometimes causes memory issues when application
+        // codes still have ffftw plans to be destroyed.
     }
 
     if (s_initialized > 0) { --s_initialized; }
@@ -354,3 +357,4 @@ GpuArray<int,3> SubHelper::xyz_order () const
 }
 
 }
+/// \endcond

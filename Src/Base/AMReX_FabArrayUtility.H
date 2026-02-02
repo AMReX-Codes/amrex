@@ -17,6 +17,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f) {
     return ReduceSum(fa, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -39,8 +40,10 @@ ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
     return sm;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class OP, class FAB, class F>
 std::enable_if_t<IsBaseFab<FAB>::value,
@@ -121,6 +124,7 @@ ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -151,6 +155,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return ReduceSum(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -175,8 +180,10 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return sm;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
@@ -196,6 +203,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -229,6 +237,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
   return ReduceSum(fa1, fa2, fa3, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -254,8 +263,10 @@ ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return sm;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
@@ -275,6 +286,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -307,6 +319,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
     return ReduceMin(fa, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -328,8 +341,10 @@ ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
@@ -347,6 +362,7 @@ ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -377,6 +393,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&&
     return ReduceMin(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -401,8 +418,10 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
@@ -422,6 +441,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -455,6 +475,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
     return ReduceMin(fa1, fa2, fa3, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -480,8 +501,10 @@ ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
@@ -501,6 +524,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -533,6 +557,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
     return ReduceMax(fa, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -555,8 +580,10 @@ ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB::value_type>
@@ -574,6 +601,7 @@ ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -604,6 +632,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&&
     return ReduceMax(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -628,8 +657,10 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
@@ -649,6 +680,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -682,6 +714,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
     return ReduceMax(fa1, fa2, fa3, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -707,8 +740,10 @@ ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, typename FAB1::value_type>
@@ -728,6 +763,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class FAB3, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -760,6 +796,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
     return ReduceLogicalAnd(fa, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -781,8 +818,10 @@ ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& 
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
@@ -800,6 +839,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F
     return false;
 }
 }
+/// \endcond
 
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -831,6 +871,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return ReduceLogicalAnd(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -854,8 +895,10 @@ ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
@@ -875,6 +918,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& 
     return false;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -907,6 +951,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
     return ReduceLogicalOr(fa, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -928,8 +973,10 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
@@ -947,6 +994,7 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
     return 0;
 }
 }
+/// \endcond
 
 template <class FAB, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
@@ -978,6 +1026,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return ReduceLogicalOr(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
@@ -1001,8 +1050,10 @@ ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     return r;
 }
 }
+/// \endcond
 
 #ifdef AMREX_USE_GPU
+/// \cond DOXYGEN_IGNORE
 namespace fudetail {
 template <class FAB1, class FAB2, class F>
 std::enable_if_t<!amrex::DefinitelyNotHostRunnable<F>::value, bool>
@@ -1022,6 +1073,7 @@ ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& f
     return false;
 }
 }
+/// \endcond
 
 template <class FAB1, class FAB2, class F,
           class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >

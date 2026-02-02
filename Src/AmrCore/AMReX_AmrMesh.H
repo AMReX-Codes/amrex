@@ -55,8 +55,10 @@ struct AmrInfo {
     bool check_input = true;
     bool use_new_chop = false;
     bool iterate_on_new_grids = true;
+    int max_grid_iterations = 4;
 };
 
+/// \ingroup amrex_amrcore
 class AmrMesh
     : protected AmrInfo
 {

@@ -976,9 +976,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if(imf_arr(i,j,k,0)!=0)
             {
                 const auto idx = last_offset + offsets_ptr[
-                    ((i-imf_arr.begin.x)
-                    +(j-imf_arr.begin.y)*imf_arr.jstride
-                    +(k-imf_arr.begin.z)*imf_arr.kstride)
+                    imf_arr.get_offset(IntVectND<3>{i,j,k})
                 ];
 
                 dst.cpu(idx) = 0;
@@ -1587,6 +1585,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     {
         plan.buildMPIFinish(BufferMap());
         communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
+        this->ReserveForRedistribute(plan);
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
@@ -1609,6 +1608,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         }
 
+        this->ReserveForRedistribute(plan);
+
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);
@@ -1621,6 +1622,43 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #else
     amrex::ignore_unused(lev_min,lev_max,nGrow,local,remove_negative);
 #endif
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::ReserveForRedistribute (ParticleCopyPlan const& plan)
+{
+    BL_PROFILE("ParticleContainer::ReserveForRedistribute()");
+
+    std::map<ParticleTileType*, int> addsizes;
+
+    for (int lev = 0; lev < this->BufferMap().numLevels(); ++lev) {
+        for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
+            int num_copies = plan.m_box_counts_h[this->BufferMap().gridAndLevToBucket(gid, lev)];
+            if (num_copies > 0) {
+                addsizes[&tile] += num_copies;
+            }
+        }
+    }
+
+    if (plan.m_nrcvs > 0) {
+        AMREX_ALWAYS_ASSERT(do_tiling == false);
+        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i) {
+            int copy_size = plan.m_rcv_box_counts[i];
+            int lev = plan.m_rcv_box_levs[i];
+            int gid = plan.m_rcv_box_ids[i];
+            int tid = 0; // It's always 0 because this function is for RedistributeGPU only and the tiling is off.
+            auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
+            addsizes[&tile] += copy_size;
+        }
+    }
+
+    ParticleTileType::reserve(addsizes);
 }
 
 //
