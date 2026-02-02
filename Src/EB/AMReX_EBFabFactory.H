@@ -94,6 +94,8 @@ public:
 
     [[nodiscard]] EBData getEBData (MFIter const& mfi) const noexcept;
 
+    [[nodiscard]] EBDataArrays getEBDataArrays () const noexcept;
+
 private:
 
     EBSupport m_support;
