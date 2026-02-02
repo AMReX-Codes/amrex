@@ -326,6 +326,8 @@ namespace ppdetail {
 *    #endif
 * \endcode
 *
+* Preprocessing of `#ifdef AMREX_USE_GPU` and `#ifndef AMREX_USE_GPU` is also supported.
+*
 *  Math expression is supported for integers and reals. For example
 *
 * ```

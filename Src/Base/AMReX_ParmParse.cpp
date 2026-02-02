@@ -492,11 +492,31 @@ read_file (const char* fname, ParmParse::Table& tab)
         std::regex elif_regex("^\\s*#\\s*elif\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=)\\s*([1-3])\\s*\\)?\\s*$"); // NOLINT
         std::regex else_regex("^\\s*#\\s*else\\s*$"); // NOLINT
         std::regex endif_regex("^\\s*#\\s*endif\\s*$"); // NOLINT
+        std::regex if_gpu_regex("^\\s*#\\s*ifdef\\s+AMREX_USE_GPU\\s*$"); // NOLINT
+        std::regex if_not_gpu_regex("^\\s*#\\s*ifndef\\s+AMREX_USE_GPU\\s*$"); // NOLINT
         std::vector<bool> valid_region;  // Keep this block or not?
         std::vector<bool> has_true;      // Has previous if/elif ever been true?
         for (std::string line; std::getline(is, line); ) {
             std::smatch sm;
-            if (std::regex_match(line, sm, if_regex)) {
+            if (std::regex_match(line, if_gpu_regex)) {
+#ifdef AMREX_USE_GPU
+                bool r = true;
+#else
+                bool r = false;
+#endif
+                valid_region.push_back(r);
+                has_true.push_back(r);
+                continue;
+            } else if (std::regex_match(line, if_not_gpu_regex)) {
+#ifdef AMREX_USE_GPU
+                bool r = false;
+#else
+                bool r = true;
+#endif
+                valid_region.push_back(r);
+                has_true.push_back(r);
+                continue;
+            } else if (std::regex_match(line, sm, if_regex)) {
                 bool r = isTrue(sm);
                 valid_region.push_back(r);
                 has_true.push_back(r);
