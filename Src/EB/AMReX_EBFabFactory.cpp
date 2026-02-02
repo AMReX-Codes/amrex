@@ -198,6 +198,18 @@ EBFArrayBoxFactory::getEBData (MFIter const& mfi) const noexcept
     return EBData{pebflag, m_eb_data.data()+EBData::real_data_size*li};
 }
 
+EBDataArrays
+EBFArrayBoxFactory::getEBDataArrays () const noexcept
+{
+    auto const& ebflags_ma = this->getMultiEBCellFlagFab().const_arrays();
+#ifdef AMREX_USE_GPU
+    auto const* pebflag = ebflags_ma.dp;
+#else
+    auto const* pebflag = ebflags_ma.hp;
+#endif
+    return EBDataArrays{pebflag, m_eb_data.data()};
+}
+
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const Geometry& a_geom,
                   const BoxArray& a_ba,
