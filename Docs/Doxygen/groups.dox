@@ -198,6 +198,7 @@
  * GPUs. They do not use MPI and operate on data local to the process.
  *
  * Key functions and classes include:
+ * - \ref amrex::Reducer
  * - \ref amrex::ReduceOpSum
  * - \ref amrex::ReduceOpMin
  * - \ref amrex::ReduceOpMax

@@ -15,6 +15,89 @@
 
 namespace amrex {
 
+namespace Reduce {
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Sum (N n, T const* v, T init_val = 0);
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename F,
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Sum (N n, F const& f, T init_val = 0);
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max());
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename F,
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max());
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest());
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename F,
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest());
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+std::pair<T,T> MinMax (N n, T const* v);
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename F,
+          typename M=std::enable_if_t<std::is_integral_v<N>> >
+std::pair<T,T> MinMax (N n, F const& f);
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
+bool AnyOf (N n, T const* v, P const& pred);
+
+/// \ingroup amrex_collectives
+template <typename P, int dim>
+bool AnyOf (BoxND<dim> const& box, P const& pred);
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Sum (N n, T* v, T init_val = 0)
+{
+    return Sum(n, (T const*)v, init_val);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Min (N n, T* v, T init_val = std::numeric_limits<T>::max())
+{
+    return Min(n, (T const*)v, init_val);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+T Max (N n, T* v, T init_val = std::numeric_limits<T>::lowest())
+{
+    return Max(n, (T const*)v, init_val);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+std::pair<T,T> MinMax (N n, T* v)
+{
+    return MinMax(n, (T const*)v);
+}
+
+/// \ingroup amrex_collectives
+template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
+bool AnyOf (N n, T* v, P const& pred)
+{
+    return AnyOf(n, (T const*)v, pred);
+}
+
+}
+
 /// \cond DOXYGEN_IGNORE
 namespace Reduce::detail {
 
@@ -872,8 +955,8 @@ private:
 namespace Reduce {
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Sum (N n, T const* v, T init_val = 0)
+template <typename T, typename N, typename M>
+T Sum (N n, T const* v, T init_val)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -884,9 +967,8 @@ T Sum (N n, T const* v, T init_val = 0)
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Sum (N n, F const& f, T init_val = 0)
+template <typename T, typename N, typename F, typename M>
+T Sum (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -897,8 +979,8 @@ T Sum (N n, F const& f, T init_val = 0)
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
+template <typename T, typename N, typename M>
+T Min (N n, T const* v, T init_val)
 {
     ReduceOps<ReduceOpMin> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -909,9 +991,8 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
+template <typename T, typename N, typename F, typename M>
+T Min (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpMin> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -922,8 +1003,8 @@ T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
+template <typename T, typename N, typename M>
+T Max (N n, T const* v, T init_val)
 {
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -934,9 +1015,8 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
+template <typename T, typename N, typename F, typename M>
+T Max (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -947,7 +1027,7 @@ T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename M>
 std::pair<T,T> MinMax (N n, T const* v)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
@@ -961,8 +1041,7 @@ std::pair<T,T> MinMax (N n, T const* v)
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename F, typename M>
 std::pair<T,T> MinMax (N n, F const& f)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
@@ -977,7 +1056,7 @@ std::pair<T,T> MinMax (N n, F const& f)
 }
 
 /// \ingroup amrex_collectives
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename P, typename M>
 bool AnyOf (N n, T const* v, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
@@ -1408,9 +1487,8 @@ private:
 
 namespace Reduce {
 
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Sum (N n, F const& f, T init_val = 0)
+template <typename T, typename N, typename F, typename M>
+T Sum (N n, F const& f, T init_val)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1422,15 +1500,14 @@ T Sum (N n, F const& f, T init_val = 0)
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Sum (N n, T const* v, T init_val = 0)
+template <typename T, typename N, typename M>
+T Sum (N n, T const* v, T init_val)
 {
     return Sum(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
+template <typename T, typename N, typename F, typename M>
+T Min (N n, F const& f, T init_val)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1442,15 +1519,14 @@ T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max())
+template <typename T, typename N, typename M>
+T Min (N n, T const* v, T init_val)
 {
     return Reduce::Min(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
+template <typename T, typename N, typename F, typename M>
+T Max (N n, F const& f, T init_val)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1462,14 +1538,13 @@ T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
     return r;
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest())
+template <typename T, typename N, typename M>
+T Max (N n, T const* v, T init_val)
 {
     return Reduce::Max(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
-template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename F, typename M>
 std::pair<T,T> MinMax (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();
@@ -1485,13 +1560,13 @@ std::pair<T,T> MinMax (N n, F const& f)
     return std::make_pair(r_min,r_max);
 }
 
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename M>
 std::pair<T,T> MinMax (N n, T const* v)
 {
     return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });
 }
 
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename P, typename M>
 bool AnyOf (N n, T const* v, P&& pred)
 {
     return std::any_of(v, v+n, std::forward<P>(pred));
@@ -1536,45 +1611,6 @@ IdentityTuple (GpuTuple<Ts...>, TypeList<Ps...>) noexcept
     GpuTuple<Ts...> r{};
     Reduce::detail::for_each_init<0, decltype(r), Ps...>(r);
     return r;
-}
-
-namespace Reduce {
-
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Sum (N n, T* v, T init_val = 0)
-{
-    return Sum(n, (T const*)v, init_val);
-}
-
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Min (N n, T* v, T init_val = std::numeric_limits<T>::max())
-{
-    return Min(n, (T const*)v, init_val);
-}
-
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Max (N n, T* v, T init_val = std::numeric_limits<T>::lowest())
-{
-    return Max(n, (T const*)v, init_val);
-}
-
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-std::pair<T,T> MinMax (N n, T* v)
-{
-    return MinMax(n, (T const*)v);
-}
-
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
-bool AnyOf (N n, T* v, P const& pred)
-{
-    return AnyOf(n, (T const*)v, pred);
-}
-
 }
 
 /// \cond DOXYGEN_IGNORE
