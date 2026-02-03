@@ -76,7 +76,7 @@ function(fftw_require_omp library_paths fftw_precision_suffix)
     else()
         message(FATAL_ERROR
             "AMReX_OMP and AMReX_FFT are set, but provided FFTW does not provide OpenMP! "
-            "Re-compile FFTW or set AMReX_FFTW_IGNORE_OMP=OFF"
+            "Re-compile FFTW or set AMReX_FFTW_IGNORE_OMP=ON"
         )
     endif()
 
