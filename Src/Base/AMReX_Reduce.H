@@ -1651,7 +1651,7 @@ public:
 
     Reducer () = default;
 
-    Reducer (Array<bool,size> const& mask) {
+    explicit Reducer (Array<bool,size> const& mask) {
         this->m_reduce_op.setMask(mask);
     }
 
