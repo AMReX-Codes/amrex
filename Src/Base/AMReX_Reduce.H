@@ -17,6 +17,8 @@ namespace amrex {
 
 namespace Reduce {
 
+// The declaration of these functions are here to work around doxygen issues.
+
 /**
  * \ingroup amrex_collectives
  *
@@ -29,9 +31,10 @@ namespace Reduce {
  * \param n number of elements to reduce.
  * \param v pointer to the input data array.
  * \param init_val initial value (default: 0).
- * \return the sum
+ * \return the sum.
  */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> = 0>
 T Sum (N n, T const* v, T init_val = 0);
 
 /**
@@ -48,10 +51,11 @@ T Sum (N n, T const* v, T init_val = 0);
  * \param f callable object invoked as \c f(i). For GPU builds,
             this needs to be a device lambda function or functor.
  * \param init_val initial value (default: 0).
- * \return the sum
+ * \return the sum.
  */
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> = 0>
 T Sum (N n, F const& f, T init_val = 0);
 
 /**
@@ -66,9 +70,10 @@ T Sum (N n, F const& f, T init_val = 0);
  * \param n number of elements to reduce.
  * \param v pointer to the input data array.
  * \param init_val initial value (default: \c std::numeric_limits<T>::max()).
- * \return the minimum
+ * \return the minimum.
  */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> = 0>
 T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max());
 
 /**
@@ -85,10 +90,11 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max());
  * \param f callable object invoked as \c f(i). For GPU builds,
             this needs to be a device lambda function or functor.
  * \param init_val initial value (default: \c std::numeric_limits<T>::max()).
- * \return the minimum
+ * \return the minimum.
  */
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> = 0>
 T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max());
 
 /**
@@ -103,9 +109,10 @@ T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max());
  * \param n number of elements to reduce.
  * \param v pointer to the input data array.
  * \param init_val initial value (default: \c std::numeric_limits<T>::lowest()).
- * \return the maximum
+ * \return the maximum.
  */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> = 0>
 T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest());
 
 /**
@@ -122,10 +129,11 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest());
  * \param f callable object invoked as \c f(i). For GPU builds,
             this needs to be a device lambda function or functor.
  * \param init_val initial value (default: \c std::numeric_limits<T>::lowest()).
- * \return the maximum
+ * \return the maximum.
  */
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> = 0>
 T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest());
 
 /**
@@ -139,9 +147,10 @@ T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest());
  * \tparam N integral index type.
  * \param n number of elements to reduce.
  * \param v pointer to the input data array.
- * \return the pair of minimum and maximum
+ * \return the pair of minimum and maximum.
  */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> = 0>
 std::pair<T,T> MinMax (N n, T const* v);
 
 /**
@@ -157,10 +166,11 @@ std::pair<T,T> MinMax (N n, T const* v);
  * \param n number of elements to reduce.
  * \param f callable object invoked as \c f(i). For GPU builds,
             this needs to be a device lambda function or functor.
- * \return the pair of minimum and maximum
+ * \return the pair of minimum and maximum.
  */
 template <typename T, typename N, typename F,
-          typename M=std::enable_if_t<std::is_integral_v<N>> >
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> = 0>
 std::pair<T,T> MinMax (N n, F const& f);
 
 /**
@@ -176,9 +186,10 @@ std::pair<T,T> MinMax (N n, F const& f);
  * \param n number of elements to test.
  * \param v pointer to the input data array.
  * \param pred unary predicate object.
- * \return the minimum
+ * \return the test result.
  */
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, typename N, typename P,
+          std::enable_if_t<std::is_integral_v<N>,int> = 0>
 bool AnyOf (N n, T const* v, P const& pred);
 
 /**
@@ -192,110 +203,10 @@ bool AnyOf (N n, T const* v, P const& pred);
  * \tparam dim dimension of the box
  * \param box index region for the loop
  * \param pred callable object with the signaure of \c bool(int,int,int).
- * \return the test result
+ * \return the test result.
  */
 template <typename P, int dim>
 bool AnyOf (BoxND<dim> const& box, P const& pred);
-
-/**
- * \ingroup amrex_collectives
- *
- * \brief Compute the sum of an array of values.
- *
- * Note that this is local reduction that does not involve MPI.
- *
- * \tparam T value type of the reduction.
- * \tparam N integral index type.
- * \param n number of elements to reduce.
- * \param v pointer to the input data array.
- * \param init_val initial value (default: 0).
- * \return the sum
- */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Sum (N n, T* v, T init_val = 0)
-{
-    return Sum(n, (T const*)v, init_val);
-}
-
-/**
- * \ingroup amrex_collectives
- *
- * \brief Compute the minimum of an array of values.
- *
- * Note that this is local reduction that does not involve MPI.
- *
- * \tparam T value type of the reduction.
- * \tparam N integral index type.
- * \param n number of elements to reduce.
- * \param v pointer to the input data array.
- * \param init_val initial value (default: \c std::numeric_limits<T>::max()).
- * \return the minimum
- */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Min (N n, T* v, T init_val = std::numeric_limits<T>::max())
-{
-    return Min(n, (T const*)v, init_val);
-}
-
-/**
- * \ingroup amrex_collectives
- *
- * \brief Compute the maximum of an array of values.
- *
- * Note that this is local reduction that does not involve MPI.
- *
- * \tparam T value type of the reduction.
- * \tparam N integral index type.
- * \param n number of elements to reduce.
- * \param v pointer to the input data array.
- * \param init_val initial value (default: \c std::numeric_limits<T>::lowest()).
- * \return the maximum
- */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-T Max (N n, T* v, T init_val = std::numeric_limits<T>::lowest())
-{
-    return Max(n, (T const*)v, init_val);
-}
-
-/**
- * \ingroup amrex_collectives
- *
- * \brief Compute the minimum and maximum of an array of values.
- *
- * Note that this is local reduction that does not involve MPI.
- *
- * \tparam T value type of the reduction.
- * \tparam N integral index type.
- * \param n number of elements to reduce.
- * \param v pointer to the input data array.
- * \return the pair of minimum and maximum
- */
-template <typename T, typename N, typename M=std::enable_if_t<std::is_integral_v<N>> >
-std::pair<T,T> MinMax (N n, T* v)
-{
-    return MinMax(n, (T const*)v);
-}
-
-/**
- * \ingroup amrex_collectives
- *
- * \brief Test whether any element in an array satisfies a unary predicate.
- *
- * Note that this is local test that does not involve MPI.
- *
- * \tparam T value type of the elements.
- * \tparam N integral index type.
- * \tparam P predicate type
- * \param n number of elements to test.
- * \param v pointer to the input data array.
- * \param pred unary predicate object.
- * \return the minimum
- */
-template <typename T, typename N, typename P, typename M=std::enable_if_t<std::is_integral_v<N>> >
-bool AnyOf (N n, T* v, P const& pred)
-{
-    return AnyOf(n, (T const*)v, pred);
-}
 
 }
 
@@ -1011,8 +922,8 @@ private:
 
 namespace Reduce {
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> FOO>
 T Sum (N n, T const* v, T init_val)
 {
     ReduceOps<ReduceOpSum> reduce_op;
@@ -1023,8 +934,9 @@ T Sum (N n, T const* v, T init_val)
     return amrex::get<0>(hv) + init_val;
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 T Sum (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpSum> reduce_op;
@@ -1035,8 +947,8 @@ T Sum (N n, F const& f, T init_val)
     return amrex::get<0>(hv) + init_val;
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> FOO>
 T Min (N n, T const* v, T init_val)
 {
     ReduceOps<ReduceOpMin> reduce_op;
@@ -1047,8 +959,9 @@ T Min (N n, T const* v, T init_val)
     return std::min(amrex::get<0>(hv),init_val);
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 T Min (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpMin> reduce_op;
@@ -1059,8 +972,8 @@ T Min (N n, F const& f, T init_val)
     return std::min(amrex::get<0>(hv),init_val);
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> FOO>
 T Max (N n, T const* v, T init_val)
 {
     ReduceOps<ReduceOpMax> reduce_op;
@@ -1071,8 +984,9 @@ T Max (N n, T const* v, T init_val)
     return std::max(amrex::get<0>(hv),init_val);
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 T Max (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpMax> reduce_op;
@@ -1083,8 +997,8 @@ T Max (N n, F const& f, T init_val)
     return std::max(amrex::get<0>(hv),init_val);
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> FOO>
 std::pair<T,T> MinMax (N n, T const* v)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
@@ -1097,8 +1011,9 @@ std::pair<T,T> MinMax (N n, T const* v)
     return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 std::pair<T,T> MinMax (N n, F const& f)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
@@ -1112,8 +1027,8 @@ std::pair<T,T> MinMax (N n, F const& f)
     return std::make_pair(amrex::get<0>(hv), amrex::get<1>(hv));
 }
 
-/// \ingroup amrex_collectives
-template <typename T, typename N, typename P, typename M>
+template <typename T, typename N, typename P,
+          std::enable_if_t<std::is_integral_v<N>,int> FOO>
 bool AnyOf (N n, T const* v, P const& pred)
 {
     Gpu::LaunchSafeGuard lsg(true);
@@ -1169,7 +1084,6 @@ bool AnyOf (N n, T const* v, P const& pred)
     return ds.dataValue();
 }
 
-/// \ingroup amrex_collectives
 template <typename P, int dim>
 bool AnyOf (BoxND<dim> const& box, P const& pred)
 {
@@ -1462,7 +1376,9 @@ private:
 
 namespace Reduce {
 
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> >
 T Sum (N n, F const& f, T init_val)
 {
     T r = init_val;
@@ -1475,13 +1391,16 @@ T Sum (N n, F const& f, T init_val)
     return r;
 }
 
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> >
 T Sum (N n, T const* v, T init_val)
 {
     return Sum(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 T Min (N n, F const& f, T init_val)
 {
     T r = init_val;
@@ -1494,13 +1413,16 @@ T Min (N n, F const& f, T init_val)
     return r;
 }
 
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> >
 T Min (N n, T const* v, T init_val)
 {
     return Reduce::Min(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 T Max (N n, F const& f, T init_val)
 {
     T r = init_val;
@@ -1513,13 +1435,16 @@ T Max (N n, F const& f, T init_val)
     return r;
 }
 
-template <typename T, typename N, typename M>
+template <typename T, typename N,
+          std::enable_if_t<std::is_integral_v<N>,int> >
 T Max (N n, T const* v, T init_val)
 {
     return Reduce::Max(n, [=] (N i) -> T { return v[i]; }, init_val);
 }
 
-template <typename T, typename N, typename F, typename M>
+template <typename T, typename N, typename F,
+          std::enable_if_t<std::is_integral_v<N> &&
+                           !std::is_same_v<T*,std::decay_t<F>>,int> FOO>
 std::pair<T,T> MinMax (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();
@@ -1541,7 +1466,8 @@ std::pair<T,T> MinMax (N n, T const* v)
     return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });
 }
 
-template <typename T, typename N, typename P, typename M>
+template <typename T, typename N, typename P,
+          std::enable_if_t<std::is_integral_v<N>,int> >
 bool AnyOf (N n, T const* v, P&& pred)
 {
     return std::any_of(v, v+n, std::forward<P>(pred));
