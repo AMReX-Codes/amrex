@@ -118,27 +118,6 @@ namespace Reduce::detail {
         for_each_parallel<I+1,T,P1,Ps...>(d, s, h);
     }
 
-    template <std::size_t I, typename T, int N, typename P>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void for_each_parallel (T& d, T const& s, Gpu::Handler const& h,
-                            Array<bool,N> const& m)
-    {
-        if (m[I]) {
-            P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
-        }
-    }
-
-    template <std::size_t I, typename T, int N, typename P, typename P1, typename... Ps>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void for_each_parallel (T& d, T const& s, Gpu::Handler const& h,
-                            Array<bool,N> const& m)
-    {
-        if (m[I]) {
-            P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
-        }
-        for_each_parallel<I+1,T,N,P1,Ps...>(d, s, h, m);
-    }
-
 #else
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -155,24 +134,6 @@ namespace Reduce::detail {
         for_each_parallel<I+1,T,P1,Ps...>(d, s);
     }
 
-    template <std::size_t I, typename T, int N, typename P>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void for_each_parallel (T& d, T const& s, Array<bool,N> const& m)
-    {
-        if (m[I]) {
-            P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
-        }
-    }
-
-    template <std::size_t I, typename T, int N, typename P, typename P1, typename... Ps>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void for_each_parallel (T& d, T const& s, Array<bool,N> const& m)
-    {
-        if (m[I]) {
-            P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
-        }
-        for_each_parallel<I+1,T,N,P1,Ps...>(d, s, m);
-    }
 #endif
 #endif
 
@@ -189,25 +150,6 @@ namespace Reduce::detail {
     {
         P().local_update(amrex::get<I>(d), amrex::get<I>(s));
         for_each_local<I+1,T,P1,Ps...>(d, s);
-    }
-
-    template <std::size_t I, typename T, int N, typename P>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_local (T& d, Array<bool,N> const& m, T const& s)
-    {
-        if (m[I]) {
-            P().local_update(amrex::get<I>(d), amrex::get<I>(s));
-        }
-    }
-
-    template <std::size_t I, typename T, int N, typename P, typename P1, typename... Ps>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void for_each_local (T& d, Array<bool,N> const& m, T const& s)
-    {
-        if (m[I]) {
-            P().local_update(amrex::get<I>(d), amrex::get<I>(s));
-        }
-        for_each_local<I+1,T,N,P1,Ps...>(d, m, s);
     }
 
     template <std::size_t I, typename T, typename P>
@@ -521,28 +463,6 @@ namespace Reduce::detail {
             Reduce::detail::for_each_local<0, T, Ps...>(r, pr);
         }
     }
-
-    template <typename I, typename F, typename T, int N, typename... Ps,
-              std::enable_if_t<std::is_same_v<iterate_box,I>,int> = 0>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void mf_call_f (F const& f, int ibox, int i, int j, int k, int, T& r,
-                    Array<bool,N> const& mask) noexcept
-    {
-        auto const& pr = f(ibox,i,j,k);
-        Reduce::detail::for_each_local<0, T, N, Ps...>(r, mask, pr);
-    }
-
-    template <typename I, typename F, typename T, int N, typename... Ps,
-              std::enable_if_t<std::is_same_v<iterate_box_comp,I>,int> = 0>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    void mf_call_f (F const& f, int ibox, int i, int j, int k, int ncomp, T& r,
-                    Array<bool,N> const& mask) noexcept
-    {
-        for (int n = 0; n < ncomp; ++n) {
-            auto const& pr = f(ibox,i,j,k,n);
-            Reduce::detail::for_each_local<0, T, N, Ps...>(r, mask, pr);
-        }
-    }
 }
 /// \endcond
 
@@ -573,10 +493,6 @@ public:
             AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
             reduce_data.nBlocks(stream) = nblocks_ec;
             reduce_data.updateMaxStreamIndex(stream);
-
-            bool all_on = m_all_on;
-            auto mask = m_mask;
-
 #ifdef AMREX_USE_SYCL
             // device reduce needs local(i.e., shared) memory
             constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
@@ -604,28 +520,14 @@ public:
                     BoxIndexer const& indexer = dp_boxes[ibox];
                     if (icell < indexer.numPts()) {
                         auto [i, j, k] = indexer(icell);
-                        if (all_on) {
-                            Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>
-                                (f, ibox, i, j, k, ncomp, r);
-                        } else {
-                            Reduce::detail::mf_call_f<I, F, ReduceTuple, sizeof...(Ps), Ps...>
-                                (f, ibox, i, j, k, ncomp, r, mask);
-                        }
+                        Reduce::detail::mf_call_f<I, F, ReduceTuple, Ps...>(f, ibox, i, j, k, ncomp, r);
                     }
                 }
-                if (all_on) {
 #ifdef AMREX_USE_SYCL
-                    Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
 #else
-                    Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
 #endif
-                } else {
-#ifdef AMREX_USE_SYCL
-                    Reduce::detail::for_each_parallel<0, ReduceTuple, sizeof...(Ps), Ps...>(dst, r, gh, mask);
-#else
-                    Reduce::detail::for_each_parallel<0, ReduceTuple, sizeof...(Ps), Ps...>(dst, r, mask);
-#endif
-                }
             });
         }
     }
@@ -645,8 +547,6 @@ public:
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
         nblocks_ec = std::min<Long>(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
-        bool all_on = m_all_on;
-        auto mask = m_mask;
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
@@ -673,38 +573,22 @@ public:
                  icell += stride)
             {
                 auto iv = indexer.intVect(icell);
-                amrex::ignore_unused(f,ncomp,ixtype,all_on,mask); // work around first-capture
+                amrex::ignore_unused(f,ncomp,ixtype); // work around first-capture
                 if constexpr (std::is_same_v<Reduce::detail::iterate_box,I>) {
                     auto pr = Reduce::detail::call_f_intvect_box(f, iv, ixtype);
-                    if (all_on) {
-                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
-                    } else {
-                        Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps), Ps...>(r, mask, pr);
-                    }
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 } else {
                     for (int n = 0; n < ncomp; ++n) {
                         auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
-                        if (all_on) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
-                        } else {
-                            Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps), Ps...>(r, mask, pr);
-                        }
+                        Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                     }
                 }
             }
-            if (all_on) {
 #ifdef AMREX_USE_SYCL
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
 #else
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
 #endif
-            } else {
-#ifdef AMREX_USE_SYCL
-                Reduce::detail::for_each_parallel<0, ReduceTuple, sizeof...(Ps), Ps...>(dst, r, gh, mask);
-#else
-                Reduce::detail::for_each_parallel<0, ReduceTuple, sizeof...(Ps), Ps...>(dst, r, mask);
-#endif
-            }
         });
         nblocks = std::max(nblocks, static_cast<int>(nblocks_ec));
     }
@@ -796,8 +680,6 @@ public:
             / (nitems_per_thread*AMREX_GPU_MAX_THREADS);
         nblocks_ec = std::min(nblocks_ec, reduce_data.maxBlocks());
         reduce_data.updateMaxStreamIndex(stream);
-        bool all_on = m_all_on;
-        auto mask = m_mask;
 #ifdef AMREX_USE_SYCL
         // device reduce needs local(i.e., shared) memory
         constexpr std::size_t shared_mem_bytes = sizeof(unsigned long long)*Gpu::Device::warp_size;
@@ -824,25 +706,13 @@ public:
                  i += stride)
             {
                 auto pr = f(i);
-                if (all_on) {
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
-                } else {
-                    Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps), Ps...>(r,mask,pr);
-                }
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
-            if (all_on) {
 #ifdef AMREX_USE_SYCL
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r, gh);
 #else
-                Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
+            Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r);
 #endif
-            } else {
-#ifdef AMREX_USE_SYCL
-                Reduce::detail::for_each_parallel<0, ReduceTuple, sizeof...(Ps), Ps...>(dst, r, gh, mask);
-#else
-                Reduce::detail::for_each_parallel<0, ReduceTuple, sizeof...(Ps), Ps...>(dst, r, mask);
-#endif
-            }
         });
         nblocks = amrex::max(nblocks, nblocks_ec);
     }
@@ -934,21 +804,7 @@ public:
 
     void resetResultReadiness () { m_result_is_ready = false; }
 
-    void setMask (Array<bool,sizeof...(Ps)> const& mask) {
-        m_mask = mask;
-        m_all_on = true;
-        for (auto m : m_mask) {
-            m_all_on = m_all_on && m;
-        }
-    }
-
 private:
-    bool m_all_on = true;
-    Array<bool, sizeof...(Ps)> m_mask = [] {
-        Array<bool, sizeof...(Ps)> a{};
-        a.fill(true);
-        return a;
-    }();
     bool m_result_is_ready = false;
 };
 
@@ -1273,23 +1129,6 @@ private:
             });
     }
 
-    template <typename D, int N, typename F, int dim>
-    AMREX_FORCE_INLINE
-    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r,
-                            Array<bool,N> const& mask, F const& f)
-        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(
-            Reduce::detail::call_f_intvect(f, IntVectND<dim>(0))
-        )>, typename D::Type>>
-    {
-        using ReduceTuple = typename D::Type;
-        For(box,
-            [&] (IntVectND<dim> iv) {
-                auto pr = Reduce::detail::call_f_intvect(f, iv);
-                Reduce::detail::for_each_local<0, ReduceTuple, N, Ps...>
-                    (r, mask, pr);
-            });
-    }
-
     template <typename D, typename F, int dim>
     AMREX_FORCE_INLINE
     static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
@@ -1298,17 +1137,6 @@ private:
     {
         using ReduceTuple = typename D::Type;
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
-    }
-
-    template <typename D, int N, typename F, int dim>
-    AMREX_FORCE_INLINE
-    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r,
-                            Array<bool,N> const& mask, F const& f)
-        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(box))>,
-                                                  typename D::Type>>
-    {
-        using ReduceTuple = typename D::Type;
-        Reduce::detail::for_each_local<0, ReduceTuple, N, Ps...>(r, mask, f(box));
     }
 
 public:
@@ -1331,19 +1159,9 @@ public:
                 const auto hi = amrex::ubound(b);
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    if (m_all_on) {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
-                                (rr, f(li,i,j,k));
-                        }
-                    } else {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps),
-                                                           Ps...>
-                                (rr, this->m_mask, f(li,i,j,k));
-                        }
-                    }
-                }}
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k));
+                }}}
             }
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
                 reduce_data.reference(OpenMP::get_thread_num()), rr);
@@ -1369,19 +1187,9 @@ public:
                 for (int n = 0; n < ncomp; ++n) {
                 for (int k = lo.z; k <= hi.z; ++k) {
                 for (int j = lo.y; j <= hi.y; ++j) {
-                    if (m_all_on) {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>
-                                (rr, f(li,i,j,k,n));
-                        }
-                    } else {
-                        for (int i = lo.x; i <= hi.x; ++i) {
-                            Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps),
-                                                           Ps...>
-                                (rr, this->m_mask, f(li,i,j,k,n));
-                        }
-                    }
-                }}}
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(li,i,j,k,n));
+                }}}}
             }
             Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
                 reduce_data.reference(OpenMP::get_thread_num()), rr);
@@ -1394,11 +1202,7 @@ public:
         using ReduceTuple = typename D::Type;
         ReduceTuple rr;
         Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        if (m_all_on) {
-            call_f_box<D>(box, rr, std::forward<F>(f));
-        } else {
-            call_f_box<D,sizeof...(Ps)>(box, rr, this->m_mask, std::forward<F>(f));
-        }
+        call_f_box<D>(box, rr, std::forward<F>(f));
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
              reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
@@ -1410,20 +1214,11 @@ public:
         using ReduceTuple = typename D::Type;
         ReduceTuple rr;
         Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        if (m_all_on) {
-            For(box, ncomp,
-                [&] (IntVectND<dim> iv, int n) {
-                    auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
-                    Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, pr);
-                });
-        } else {
-            For(box, ncomp,
-                [&] (IntVectND<dim> iv, int n) {
-                    auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
-                    Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps), Ps...>
-                        (rr, this->m_mask, pr);
-                });
-        }
+        For(box, ncomp,
+            [&] (IntVectND<dim> iv, int n) {
+                auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
+                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, pr);
+            });
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
              reduce_data.reference(OpenMP::get_thread_num()), rr);
     }
@@ -1435,15 +1230,8 @@ public:
         using ReduceTuple = typename D::Type;
         ReduceTuple rr;
         Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(rr);
-        if (m_all_on) {
-            for (N i = 0; i < n; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(i));
-            }
-        } else {
-            for (N i = 0; i < n; ++i) {
-                Reduce::detail::for_each_local<0, ReduceTuple, sizeof...(Ps), Ps...>
-                    (rr, this->m_mask, f(i));
-            }
+        for (N i = 0; i < n; ++i) {
+            Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(rr, f(i));
         }
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(
              reduce_data.reference(OpenMP::get_thread_num()), rr);
@@ -1467,21 +1255,7 @@ public:
 
     void resetResultReadiness () { m_result_is_ready = false; }
 
-    void setMask (Array<bool,sizeof...(Ps)> const& mask) {
-        m_mask = mask;
-        m_all_on = true;
-        for (auto m : m_mask) {
-            m_all_on = m_all_on && m;
-        }
-    }
-
 private:
-    bool m_all_on = true;
-    Array<bool, sizeof...(Ps)> m_mask = [] {
-        Array<bool, sizeof...(Ps)> a{};
-        a.fill(true);
-        return a;
-    }();
     bool m_result_is_ready = false;
 };
 
@@ -1650,11 +1424,6 @@ public:
     static constexpr int size = GpuTupleSize<Result_t>::value;
 
     Reducer () = default;
-
-    explicit Reducer (Array<bool,size> const& mask) {
-        this->m_reduce_op.setMask(mask);
-    }
-
     ~Reducer () = default;
 
     Reducer (Reducer const&) = delete;
