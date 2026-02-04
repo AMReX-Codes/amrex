@@ -1,3 +1,58 @@
+# 26.02
+
+ ## Highlights:
+
+  * SpMatrix: The sparse matrix vector multiplication functionality has been
+    extended to support non-square matrix. A matrix transpose function for
+    amrex::SpMatrix has been been added.
+
+  * Add the marching cubes algorithm of "Efficient implementation of
+    Marching Cubes' cases with topological guarantees" by Lewiner, Lopes,
+    Vieira & Tavares, Journal of Graphics Tools 8(2): pp. 1-15 (2003). The
+    implementation is adapted from the source code available at
+    http://thomas.lewiner.org/publication_page.php%EF%B9%96pubkey=marching_cubes_jgt.html.
+    Given a signed distance function (e.g., from our STL tools), this
+    generates a list of topologically consistent triangles.
+
+  * ArrayND: The Array4 class has been generalized to N-dimensions, where N
+    is a compile time constant.
+
+  * ReduceOps.eval with BoxND. This enables the use of `ReduceOps.eval()`
+    with a BoxND of any dimension. This is achieved using BoxIndexerND, just
+    like ParallelForRNG, which also provides support for 64-bit indexing to
+    support very large boxes.
+
+ ## Other major changes:
+
+  * AMREX_HOST_DEVICE_FOR_[34]D_FLAG: Pass by reference in CPU code (#4920)
+
+  * Reserve space in particle redistribution (#4731)
+
+  * ParmParse: Print parsed values as comments in prettyPrint (#4827)
+
+  * Fix bug in multi-ghost FillBoundary for the Alamo code (#4906)
+
+  * FFTW: Always initialize FFTW for users when OMP is on (#4861)
+    FFTW: Remove cleanup to avoid potenial issues (#4908)
+
+  * Reuse Gpu tags in `MLCellLinOp::applyBC()` (#4899)
+
+  * MakeNewGrids: param to set number of grid iterations (#4903)
+
+  * Make `IntVectND` functions constexpr (#4905)
+
+  * DistributionMapping: ConvertCostFromRealToLong (#4894)
+
+  * MFIter: Device sync optimization (#4897)
+
+  * Reuse GPU tags in `MLEBABecLap::applyBC()` (#4882)
+
+  * Remove identity Lambdas in amrex::launch (#4891)
+
+  * Move MF ParallelFor out of namespace experimental (#4887)
+
+  * Correct verbose output with SUNDIALS MRI methods (#4876)
+
 # 26.01
 
  ## Highlights:
