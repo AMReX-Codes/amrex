@@ -1609,17 +1609,32 @@ class Reducer
     using Base = ReducerImpl<ToTypeList_t<Ops>, ToTypeList_t<Ts>>;
 public:
 
-    using Result_t = typename Base::Result_t;
-    static constexpr int size = GpuTupleSize<Result_t>::value;
+    using Result_t = typename Base::Result_t; //!< Reduction result type, \c GpuTuple<U...>, where \c U... are the types in \p Ts.
+    static constexpr int size = GpuTupleSize<Result_t>::value; //!< Number of reduction operators.
 
     Reducer () = default;
     ~Reducer () = default;
 
+    /// \cond DOXYGEN_IGNORE
     Reducer (Reducer const&) = delete;
     Reducer (Reducer &&) = delete;
     void operator= (Reducer const&) = delete;
     void operator= (Reducer &&) = delete;
+    /// \endcond
 
+    /**
+     * \brief Reduction over a Box.
+     *
+     * This loops over all integer indices in \p box, i.e., a \c dim-dimenstional
+     * iteration space.
+     *
+     * \tparam F callable type.
+     * \tparam dim dimension of the Box.
+     *
+     * \param box Box
+     * \param f callable object returning \c Result_t for reduction. Its signature is
+     *          either \c Result_t(int,int,int) or \c Result_t(IntVectND<dim>).
+     */
     template <typename F, int dim>
     std::enable_if_t<IsCallable<F, int, int, int>::value ||
                      IsCallable<F, IntVectND<dim>>::value>
@@ -1628,6 +1643,21 @@ public:
         this->m_reduce_op.eval(box, this->m_reduce_data, std::forward<F>(f));
     }
 
+    /**
+     * \brief Reduction over a Box plus component index.
+     *
+     * This loops over all integer indices in \p box and over compoents \c n in
+     * \c [0,ncomp), i.e., a \c (dim+1)-dimenstional iteration space.
+     *
+     * \tparam F callable type.
+     * \tparam dim dimension of the Box.
+     *
+     * \param box Box
+     * \param ncomp number of components
+     * \param f callable object returning \c Result_t for reduction. Its signature is
+     *          either \c Result_t(int,int,int,int) or \c Result_t(IntVectND<dim>,int),
+     *          with the last argument the component index in both versions.
+     */
     template <typename F, int dim>
     std::enable_if_t<IsCallable<F, int, int, int, int>::value ||
                      IsCallable<F, IntVectND<dim>, int>::value>
@@ -1636,6 +1666,25 @@ public:
         this->m_reduce_op.eval(box, ncomp, this->m_reduce_data, std::forward<F>(f));
     }
 
+    /**
+     * \brief Reduction over a MultiFab-like object.
+     *
+     * This loops over the valid region of a MultiFab-like object plus \p nghost layers
+     * of ghost cells.
+     *
+     * The MultiFab-like object \p mf is used only to define the iteration
+     * space. The values participating in the reduction are provided by the
+     * user-supplied callable \p f.
+     *
+     * \tparam MF MultiFab-like type.
+     * \tparam F callable type.
+     *
+     * \param mf MultiFab-like object for providing the iteration space.
+     * \param nghost number of ghost-cell layers included in the iteration space.
+     * \param f callable object returning \c Result_t for reduction. Its signature is
+     *          \c Result_t(int,int,int,int), where the arguments correspond to the
+     *          local box index in \c mf and the \f$(i,j,k)\f$ cell indices.
+     */
     template <typename MF, typename F>
     std::enable_if_t<IsFabArray<MF>::value &&
                      IsCallable<F, int, int, int, int>::value>
@@ -1644,6 +1693,28 @@ public:
         this->m_reduce_op.eval(mf, nghost, this->m_reduce_data, std::forward<F>(f));
     }
 
+    /**
+     * \brief Reduction over a MultiFab-like object.
+     *
+     * This loops over the valid region of a MultiFab-like object plus \p nghost layers
+     * of ghost cells and over components, i.e., a \c (AMREX_SPACEDIM+1)-dimensional
+     * iteration space.
+     *
+     * The MultiFab-like object \p mf is used only to define the iteration
+     * space. The values participating in the reduction are provided by the
+     * user-supplied callable \p f.
+     *
+     * \tparam MF MultiFab-like type.
+     * \tparam F callable type.
+     *
+     * \param mf MultiFab-like object for providing the iteration space.
+     * \param nghost number of ghost-cell layers included in the iteration space.
+     * \param ncomp number of components.
+     * \param f callable object returning \c Result_t for reduction. Its signature is
+     *          \c Result_t(int,int,int,int,int), where the arguments correspond to the
+     *          local box index in \c mf, the \f$(i,j,k)\f$ cell indices, and the
+     *          component index.
+     */
     template <typename MF, typename F>
     std::enable_if_t<IsFabArray<MF>::value &&
                      IsCallable<F, int, int, int, int, int>::value>
@@ -1652,6 +1723,18 @@ public:
         this->m_reduce_op.eval(mf, nghost, ncomp, this->m_reduce_data, std::forward<F>(f));
     }
 
+    /**
+     * \brief Reduction over a 1D index range
+     *
+     * This loops over \c [0,n).
+     *
+     * \tparam N integral index type
+     * \tparam F callable type.
+     *
+     * \param n exclusive upper bound of the 1d loop.
+     * \param f callable object returning \c Result_t for reduction. It must be
+     *          invocable as \c Result_t(N).
+     */
     template <typename N, typename F>
     std::enable_if_t<IsCallable<F, N>::value>
     eval (N n, F && f)
@@ -1659,6 +1742,16 @@ public:
         this->m_reduce_op.eval(n, this->m_reduce_data, std::forward<F>(f));
     }
 
+    /**
+     * \brief Get the final reduction result.
+     *
+     * The return data type is \c Result_t (i.e., amrex::GpuTuple). Indvidual elements
+     * can be accessed using \c amrex::get<I>(). If all underlying value types are
+     * the same, the result can also be converted to an \c amrex::GpuArray via
+     * \c amrex::tupleToArray() and then accessed using \c opearator[].
+     *
+     * \return reduction result as \c Result_t.
+     */
     [[nodiscard]] Result_t getResult ()
     {
         return this->m_reduce_data.value(this->m_reduce_op);
