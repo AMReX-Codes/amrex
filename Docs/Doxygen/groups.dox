@@ -126,6 +126,7 @@
  * \brief Box-based data containers representing values on a single \ref amrex::Box.
  *
  * Central types include:
+ * - \ref amrex::Array4 and amrex::ArrayND
  * - \ref amrex::BaseFab
  * - \ref amrex::FArrayBox
  * - \ref amrex::IArrayBox
