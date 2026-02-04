@@ -2,6 +2,8 @@
 #define AMREX_GPU_LAUNCH_FUNCTS_C_H_
 #include <AMReX_Config.H>
 
+#include <vector>
+
 namespace amrex {
 
 /** Helper type to store/access the SIMD width in ParallelForSIMD lambdas
@@ -178,22 +180,22 @@ template<int MT, typename T, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
 {
     static_assert(MT == 1);
-    T smem[shared_mem_elements];
+    std::vector<T> smem(shared_mem_elements);
     if constexpr(dim == 1) {
         for (int bx=0; bx < nblocks[0]; ++bx) {
-            f(Gpu::LaunchHandler<MT, void, dim>{{bx}, nblocks, &smem});
+            f(Gpu::LaunchHandler<MT, void, dim>{{bx}, nblocks, smem.data()});
         }
     } else if constexpr(dim == 2) {
         for (int by=0; by < nblocks[1]; ++by) {
             for (int bx=0; bx < nblocks[0]; ++bx) {
-                f(Gpu::LaunchHandler<MT, void, dim>{{bx, by}, nblocks, &smem});
+                f(Gpu::LaunchHandler<MT, void, dim>{{bx, by}, nblocks, smem.data()});
             }
         }
     } else {
         for (int bz=0; bz < nblocks[2]; ++bz) {
             for (int by=0; by < nblocks[1]; ++by) {
                 for (int bx=0; bx < nblocks[0]; ++bx) {
-                    f(Gpu::LaunchHandler<MT, void, dim>{{bx, by, bz}, nblocks, &smem});
+                    f(Gpu::LaunchHandler<MT, void, dim>{{bx, by, bz}, nblocks, smem.data()});
                 }
             }
         }

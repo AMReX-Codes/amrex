@@ -111,10 +111,10 @@ struct LaunchHandler
     LaunchHandler() = default;
 #elif defined(AMREX_USE_SYCL)
     LaunchHandler(sycl::nd_item<dim> const* a_item, T * a_shared_mem)
-        : m_item{a_item}, m_shared_mem{a_shared_mem} {};
+        : m_item{a_item}, m_shared_mem{a_shared_mem} {}
 #else
     LaunchHandler(IntVectND<dim> a_blockid, IntVectND<dim> a_griddim, T * a_shared_mem)
-        : m_blockid{a_blockid}, m_griddim{a_griddim}, m_shared_mem{a_shared_mem} {};
+        : m_blockid{a_blockid}, m_griddim{a_griddim}, m_shared_mem{a_shared_mem} {}
 #endif
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
