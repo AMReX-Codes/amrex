@@ -178,7 +178,9 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
             [=] (sycl::nd_item<1> item)
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                f(Gpu::Handler{&item,
+                    shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get()
+                });
             });
         });
     } catch (sycl::exception const& ex) {
@@ -224,7 +226,9 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
             [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                f(Gpu::Handler{&item,
+                    shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get()
+                });
             });
         });
     } catch (sycl::exception const& ex) {
@@ -302,8 +306,9 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
                          i < std::size_t(n); i += stride) {
                         int n_active_threads = amrex::min(std::size_t(n)-i+item.get_local_id(0),
                                                           item.get_local_range(0));
-                        detail::call_f_scalar_handler(f, T(i), Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
-                                                          n_active_threads});
+                        detail::call_f_scalar_handler(f, T(i), Gpu::Handler{&item,
+                            shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get(),
+                            n_active_threads});
                     }
                 });
             });
@@ -352,8 +357,9 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
                         auto iv = indexer.intVect(icell);
                         int n_active_threads = amrex::min(indexer.numPts()-icell+std::uint64_t(item.get_local_id(0)),
                                                           std::uint64_t(item.get_local_range(0)));
-                        detail::call_f_intvect_handler(f, iv, Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
-                                                                n_active_threads});
+                        detail::call_f_intvect_handler(f, iv, Gpu::Handler{&item,
+                            shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get(),
+                            n_active_threads});
                     }
                 });
             });
@@ -403,9 +409,9 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
                         auto iv = indexer.intVect(icell);
                         int n_active_threads = amrex::min(indexer.numPts()-icell+std::uint64_t(item.get_local_id(0)),
                                                           std::uint64_t(item.get_local_range(0)));
-                        detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
-                                       Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
-                                                    n_active_threads});
+                        detail::call_f_intvect_ncomp_handler(f, iv, ncomp, Gpu::Handler{&item,
+                            shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get(),
+                            n_active_threads});
                     }
                 });
             });
@@ -761,7 +767,7 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
                 {
                     f(Gpu::LaunchHandler<MT, T, dim>{
                         &item,
-                        shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()
+                        shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get()
                     });
                 });
         });
