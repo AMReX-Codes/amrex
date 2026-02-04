@@ -202,7 +202,7 @@ bool AnyOf (N n, T const* v, P const& pred);
  * \tparam P callable type
  * \tparam dim dimension of the box
  * \param box index region for the loop
- * \param pred callable object with the signaure of \c bool(int,int,int).
+ * \param pred callable object with the signature of \c bool(int,int,int).
  * \return the test result.
  */
 template <typename P, int dim>
@@ -1586,7 +1586,7 @@ protected:
  * Multiple variants of the \c eval function are provided for looping over \c Box,
  * \c Box plus component, 1D index ranges, and fused loops over \c MultiFab like objects.
  *
- * User defined types are supported as long as they provide the opearations required by
+ * User defined types are supported as long as they provide the operations required by
  * the reduction operators. \c amrex::ValLocPair is such an example of a custom type that
  * supports \c ReduceOpMin and \c ReduceOpMax.
  *
