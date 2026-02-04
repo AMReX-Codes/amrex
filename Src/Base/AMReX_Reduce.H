@@ -1646,7 +1646,7 @@ public:
     /**
      * \brief Reduction over a Box plus component index.
      *
-     * This loops over all integer indices in \p box and over compoents \c n in
+     * This loops over all integer indices in \p box and over components \c n in
      * \c [0,ncomp), i.e., a \c (dim+1)-dimenstional iteration space.
      *
      * \tparam F callable type.
@@ -1745,10 +1745,10 @@ public:
     /**
      * \brief Get the final reduction result.
      *
-     * The return data type is \c Result_t (i.e., amrex::GpuTuple). Indvidual elements
+     * The return data type is \c Result_t (i.e., amrex::GpuTuple). Individual elements
      * can be accessed using \c amrex::get<I>(). If all underlying value types are
      * the same, the result can also be converted to an \c amrex::GpuArray via
-     * \c amrex::tupleToArray() and then accessed using \c opearator[].
+     * \c amrex::tupleToArray() and then accessed using \c operator[].
      *
      * \return reduction result as \c Result_t.
      */
