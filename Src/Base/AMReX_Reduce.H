@@ -1538,8 +1538,70 @@ protected:
 };
 /// \endcond
 
-/// \ingroup amrex_collectives
-/// Note that this cannot be reused.
+/**
+ * \ingroup amrex_collectives
+ * \class Reducer
+ * \brief Class for local reductions (e.g., sum, min and max).
+ *
+ * This class wraps \c ReduceOps and \c ReduceData to provide support for
+ * local reductions. A typical usage is:
+ * \code{.cpp}
+ *   Reducer<TypeList<ReduceOpMin, ReduceOpMax, ReduceOpMax, ReduceOpSum>,
+ *           TypeList<int,         Real,        Real,        Real>> reducer{};
+ *   using Result_t = typename decltype(reducer)::Result_t;
+ *   // In the code below, mf is a MulitFab and imf is an iMultiFab.
+ * #ifdef AMREX_USE_OMP
+ * #pragma omp parallel if (Gpu::notInLaunchRegion())
+ * #endif
+ *   for (MFIter mfi(mf,TilingIfNotGpu()); mfi.isValid(); ++mfi) {
+ *     Box const& box = mfi.tilebox();
+ *     Array4<Real const> const& ar =  mf.const_array(mfi);
+ *     Array4<int  const> const& ai = imf.const_array(mfi);
+ *     reducer.eval(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) -> Result_t
+ *     {
+ *       auto vr = ar(i,j,k);
+ *       auto vi = ai(i,j,k);
+ *       return {vi,vr,std::abs(vr),vr*vr};
+ *     });
+ *   }
+ *   auto result = reducer.getResult();
+ * \endcode
+ * The code above performs a sum reduction on an \c iMultiFab, and on a \c MultiFab,
+ * it computes the maximum, the maximum of the absolute value, and the sum of squares.
+ * The data type of \c result is \c GpuTuple<int,Real,Real,Real>.
+ *
+ * If the type list is long, \c amrex::TypeMultiplier can be used to reduce verbosity.
+ * For example, the equvalient definition of \c Reducer above is
+ * \code{.cpp}
+ *   Reducer<TypeMultiplier<TypeList,RedcueOpMin,ReduceOpMax[2],ReduceOpSum>,
+ *           TypeMultiplier<TypeList,int,Real[3]>> reducer{};
+ * \endcode
+ *
+ * If there is only a single reduction operator, the use of \c TypeList may be omitted.
+ * For example,
+ * \code{.cpp}
+ *   Reducer<ReduceOpSum, amrex::Long> reducer{};
+ * \endcode
+ *
+ * Multiple variants of the \c eval function are provided for looping over \c Box,
+ * \c Box plus component, 1D index ranges, and fused loops over \c MultiFab like objects.
+ *
+ * User defined types are supported as long as they provide the opearations required by
+ * the reduction operators. \c amrex::ValLocPair is such an example of a custom type that
+ * supports \c ReduceOpMin and \c ReduceOpMax.
+ *
+ * \note This is a local reduction and does not involve MPI communication.
+ *       For a global reduction across ranks, reduce the local result with MPI.
+ *
+ * \note A \c Reducer instance is intended to be used as an ephemeral object.
+ *       Create a new instance for a new reduction rather than reusing one
+ *       across unrelated loops.
+ *
+ * \tparam Ops Reduction operator type(s). May be a single operator (e.g.,
+ *         \c ReduceOpSum) or a \c TypeList of operators.
+ * \tparam Ts  Value type(s) corresponding to \p Ops. May be a single type or a
+ *         \c TypeList of types.
+ */
 template <typename Ops, typename Ts>
 class Reducer
     : public ReducerImpl<ToTypeList_t<Ops>, ToTypeList_t<Ts>>
