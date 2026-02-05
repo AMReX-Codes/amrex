@@ -224,6 +224,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_GpuLaunchMacrosC.nolint.H
        AMReX_GpuLaunchFunctsG.H
        AMReX_GpuLaunchFunctsC.H
+       AMReX_GpuLaunchFunctsSIMD.H
        AMReX_GpuError.H
        AMReX_GpuDevice.H
        AMReX_GpuDevice.cpp
