@@ -991,7 +991,7 @@ namespace amrex
      * referenced objects remains with the caller, while still allowing the
      * callee to modify their contents. Using pointer arrays also makes the
      * APIs usable in more situations, since the caller may not store their
-     * objects in a \c std::array<T,AMREX_SPACEDIM>. By consturcting a
+     * objects in a \c std::array<T,AMREX_SPACEDIM>. By constructing a
      * temporary pointer array, caller-owned objects from other container
      * types or layouts can still be passed to these APIs.
      *
@@ -1014,7 +1014,7 @@ namespace amrex
      * referenced objects remains with the caller, while still allowing the
      * callee to modify their contents. Using pointer arrays also makes the
      * APIs usable in more situations, since the caller may not store their
-     * objects in a \c std::array<T,AMREX_SPACEDIM>. By consturcting a
+     * objects in a \c std::array<T,AMREX_SPACEDIM>. By constructing a
      * temporary pointer array, caller-owned objects from other container
      * types or layouts can still be passed to these APIs.
      *
@@ -1037,7 +1037,7 @@ namespace amrex
      * the referenced objects remains with the caller and the objects will
      * not be modified. Using pointer arrays also makes the APIs usable in
      * more situations, since the caller may not store their objects in a \c
-     * std::array<T,AMREX_SPACEDIM>. By consturcting a temporary pointer
+     * std::array<T,AMREX_SPACEDIM>. By constructing a temporary pointer
      * array, caller-owned objects from other container types or layouts can
      * still be passed to these APIs.
      *
@@ -1073,7 +1073,7 @@ namespace amrex
      * the referenced objects remains with the caller and the objects will
      * not be modified. Using pointer arrays also makes the APIs usable in
      * more situations, since the caller may not store their objects in a \c
-     * std::array<T,AMREX_SPACEDIM>. By consturcting a temporary pointer
+     * std::array<T,AMREX_SPACEDIM>. By constructing a temporary pointer
      * array, caller-owned objects from other container types or layouts can
      * still be passed to these APIs.
      *
