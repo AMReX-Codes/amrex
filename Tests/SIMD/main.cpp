@@ -1,6 +1,6 @@
 // Test coverage for AMReX SIMD single-source design:
 //   SIMDindex, ParallelForSIMD, load_1d, store_1d,
-//   SIMDInt, Vectorized, is_vectorized, is_nth_arg_non_const
+//   Vectorized, is_vectorized, is_nth_arg_non_const
 //
 // Compiles and runs with AMReX_SIMD=OFF (scalar fallback, GPU) and ON (CPU SIMD).
 
@@ -14,6 +14,8 @@
 #include <numeric>
 #include <type_traits>
 
+#include "AMReX_GpuContainers.H"
+
 using namespace amrex;
 
 // ---------------------------------------------------------------------------
@@ -24,6 +26,7 @@ using namespace amrex;
 struct ScalarCompute
 {
     template <typename T_Real>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void
     operator() (T_Real& AMREX_RESTRICT x,
                 T_Real const& AMREX_RESTRICT y) const
@@ -36,6 +39,7 @@ struct ScalarCompute
 struct VectorizedCompute : public simd::Vectorized<>
 {
     template <typename T_Real>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void
     operator() (T_Real& AMREX_RESTRICT x,
                 T_Real const& AMREX_RESTRICT y) const
@@ -112,6 +116,7 @@ int main (int argc, char* argv[])
             Print() << "is_nth_arg_non_const: PASSED\n";
         }
 
+#ifdef AMREX_USE_SIMD
         // ================================================================
         // Test 4: ParallelForSIMD<WIDTH=1> (explicit width 1, scalar)
         // ================================================================
@@ -120,7 +125,7 @@ int main (int argc, char* argv[])
             Vector<ParticleReal> data(n, ParticleReal(0));
             auto* ptr = data.data();
 
-            ParallelForSIMD<1>(n, [ptr](auto si) {
+            ParallelForSIMD<1>(n, [=] AMREX_GPU_DEVICE (auto si) {
                 ptr[si.index] = static_cast<ParticleReal>(si.index + 1);
             });
 
@@ -144,7 +149,7 @@ int main (int argc, char* argv[])
             auto* ptr  = data.data();
             auto* wptr = widths.data();
 
-            ParallelForSIMD<WIDTH>(n, [ptr, wptr](auto si) {
+            ParallelForSIMD<WIDTH>(n, [ptr, wptr] AMREX_GPU_DEVICE (auto si) {
                 for (int lane = 0; lane < si.width; ++lane) {
                     ptr[si.index + lane] =
                         static_cast<ParticleReal>(si.index + lane + 1);
@@ -164,19 +169,21 @@ int main (int argc, char* argv[])
             Print() << "ParallelForSIMD<4> (remainder): "
                     << (err == 0 ? "PASSED" : "FAILED") << "\n";
         }
+#endif // AMREX_USE_SIMD
 
         // ================================================================
         // Test 7: ParallelForSIMD<T> with non-Vectorized type (fallback)
         // ================================================================
         {
             constexpr int n = 50;
-            Vector<ParticleReal> data(n, ParticleReal(0));
+            Gpu::ManagedVector<ParticleReal> data(n, ParticleReal(0));
             auto* ptr = data.data();
 
             // ScalarCompute is NOT Vectorized → falls back to ParallelFor
-            ParallelForSIMD<ScalarCompute>(n, [ptr](int i) {
+            ParallelForSIMD<ScalarCompute>(n, [ptr] AMREX_GPU_DEVICE (int i) {
                 ptr[i] = static_cast<ParticleReal>(i * 2);
             });
+            amrex::Gpu::streamSynchronize();
 
             int err = 0;
             for (int i = 0; i < n; ++i) {
@@ -255,8 +262,8 @@ int main (int argc, char* argv[])
         // ================================================================
         {
             constexpr int n = 64;
-            Vector<ParticleReal> x_data(n);
-            Vector<ParticleReal> y_data(n);
+            Gpu::ManagedVector<ParticleReal> x_data(n);
+            Gpu::ManagedVector<ParticleReal> y_data(n);
             std::iota(x_data.begin(), x_data.end(), ParticleReal(0));
             std::fill(y_data.begin(), y_data.end(), ParticleReal(100));
 
@@ -266,7 +273,7 @@ int main (int argc, char* argv[])
             VectorizedCompute vc;
 
             ParallelForSIMD<VectorizedCompute>(n,
-                [&vc, x_ptr, y_ptr](auto i)
+                [=] AMREX_GPU_DEVICE (auto i)
             {
                 decltype(auto) x = simd::load_1d(x_ptr, i);
                 decltype(auto) y = simd::load_1d(y_ptr, i);
@@ -279,6 +286,7 @@ int main (int argc, char* argv[])
                 simd::store_1d<method, 0>(x, x_ptr, i);
                 simd::store_1d<method, 1>(y, y_ptr, i);
             });
+            Gpu::streamSynchronize();
 
             int err = 0;
             for (int i = 0; i < n; ++i) {
@@ -310,8 +318,8 @@ int main (int argc, char* argv[])
             constexpr int n = WIDTH * 4 + 3;  // ensure remainder
             Print() << "  (native SIMD width: " << WIDTH << ", n=" << n << ")\n";
 
-            Vector<ParticleReal> x_data(n);
-            Vector<ParticleReal> y_data(n);
+            Gpu::ManagedVector<ParticleReal> x_data(n);
+            Gpu::ManagedVector<ParticleReal> y_data(n);
             std::iota(x_data.begin(), x_data.end(), ParticleReal(0));
             std::fill(y_data.begin(), y_data.end(), ParticleReal(10));
 
@@ -321,7 +329,7 @@ int main (int argc, char* argv[])
             VectorizedCompute vc;
 
             ParallelForSIMD<VectorizedCompute>(n,
-                [&vc, x_ptr, y_ptr](auto si)
+                [=] AMREX_GPU_DEVICE (auto si)
             {
                 decltype(auto) x = simd::load_1d(x_ptr, si);
                 decltype(auto) y = simd::load_1d(y_ptr, si);
@@ -334,6 +342,7 @@ int main (int argc, char* argv[])
                 simd::store_1d<method, 0>(x, x_ptr, si);
                 simd::store_1d<method, 1>(y, y_ptr, si);
             });
+            Gpu::streamSynchronize();
 
             int err = 0;
             for (int i = 0; i < n; ++i) {
@@ -366,8 +375,8 @@ int main (int argc, char* argv[])
         {
             constexpr int n = 67;  // prime, stresses remainder handling
 
-            Vector<ParticleReal> x_data(n);
-            Vector<ParticleReal> y_data(n);
+            Gpu::ManagedVector<ParticleReal> x_data(n);
+            Gpu::ManagedVector<ParticleReal> y_data(n);
             for (int i = 0; i < n; ++i) {
                 x_data[i] = static_cast<ParticleReal>(i + 1);  // x[i] = i+1
                 y_data[i] = static_cast<ParticleReal>(n - i);  // y[i] = n-i
@@ -379,7 +388,7 @@ int main (int argc, char* argv[])
             VectorizedCompute vc;
 
             ParallelForSIMD<VectorizedCompute>(n,
-                [vc, x_ptr, y_ptr](auto i) AMREX_GPU_DEVICE
+                [=] AMREX_GPU_DEVICE (auto i)
             {
                 decltype(auto) x = simd::load_1d(x_ptr, i);
                 decltype(auto) y = simd::load_1d(y_ptr, i);
@@ -392,6 +401,7 @@ int main (int argc, char* argv[])
                 simd::store_1d<method, 0>(x, x_ptr, i);
                 simd::store_1d<method, 1>(y, y_ptr, i);
             });
+            Gpu::streamSynchronize();
 
             int err = 0;
             for (int i = 0; i < n; ++i) {
@@ -419,6 +429,7 @@ int main (int argc, char* argv[])
         // Final report
         // ================================================================
         if (nerrors > 0) {
+            amrex::Finalize();
             Abort("SIMD test FAILED with "
                   + std::to_string(nerrors) + " error(s)");
         }
