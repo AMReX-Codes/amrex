@@ -167,7 +167,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
     : Level(is, geom)
 {
-    if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
+    if (std::is_same_v<typename G::FunctionType, AllRegularIF>) {
         m_allregular = true;
         m_ok = true;
         return;

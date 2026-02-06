@@ -11,6 +11,7 @@
 
 #include <iosfwd>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -101,7 +102,7 @@ struct BARef
     void updateMemoryUsage_hash (int s);
 #endif
 
-    [[nodiscard]] inline bool HasHashMap () const {
+    [[nodiscard]] bool HasHashMap () const {
         bool r;
 #ifdef AMREX_USE_OMP
 #pragma omp atomic read
@@ -288,7 +289,7 @@ struct BATbndryReg
 /// \cond DOXYGEN_IGNORE
 struct BATransformer
 {
-    enum struct BATType { null, indexType, coarsenRatio, indexType_coarsenRatio, bndryReg};
+    enum struct BATType : std::int8_t { null, indexType, coarsenRatio, indexType_coarsenRatio, bndryReg};
 
     union BATOp {
         BATOp () noexcept
