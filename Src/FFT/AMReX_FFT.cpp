@@ -21,7 +21,7 @@ void Initialize ()
     {
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
-#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
+#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_MULTI_THREADED_FFTW)
         fftw_init_threads();
         fftwf_init_threads();
         fftw_plan_with_nthreads(amrex::OpenMP::get_max_threads());
