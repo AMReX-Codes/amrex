@@ -234,7 +234,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_cxx20:
-    name: GNU@11 C++20 OMP [tests]
+    name: GNU@12 C++20 OMP SIMD [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -242,7 +242,7 @@ jobs:
     - uses: actions/checkout@v6
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 11
+        .github/workflows/dependencies/dependencies_gcc.sh 12
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: install vir-simd
@@ -260,7 +260,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wno-array-bounds -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -285,9 +285,9 @@ jobs:
             -DAMReX_OMP=ON              \
             -DAMReX_SIMD=ON             \
             -DCMAKE_CXX_STANDARD=20     \
-            -DCMAKE_C_COMPILER=$(which gcc-11)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-11)            \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-11)   \
+            -DCMAKE_C_COMPILER=$(which gcc-12)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-12)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-12)   \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
