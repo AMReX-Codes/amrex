@@ -234,7 +234,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_cxx20:
-    name: GNU@13 C++20 OMP SIMD [tests]
+    name: GNU@14 C++20 OMP SIMD [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -242,7 +242,7 @@ jobs:
     - uses: actions/checkout@v6
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 13
+        .github/workflows/dependencies/dependencies_gcc.sh 14
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: install vir-simd
@@ -285,9 +285,9 @@ jobs:
             -DAMReX_OMP=ON              \
             -DAMReX_SIMD=ON             \
             -DCMAKE_CXX_STANDARD=20     \
-            -DCMAKE_C_COMPILER=$(which gcc-13)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-13)            \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-13)   \
+            -DCMAKE_C_COMPILER=$(which gcc-14)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-14)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-14)   \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
