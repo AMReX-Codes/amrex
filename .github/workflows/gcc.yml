@@ -245,6 +245,13 @@ jobs:
         .github/workflows/dependencies/dependencies_gcc.sh 10
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
         .github/workflows/dependencies/dependencies_ccache.sh
+    - name: install vir-simd
+      run: |
+        wget https://github.com/mattkretz/vir-simd/archive/refs/tags/v0.4.4.tar.gz
+        tar -xvf v0.4.4.tar.gz
+        rm -rf v0.4.4.tar.gz
+        cmake -S vir-simd-0.4.4 -B vir-simd-build
+        sudo cmake --build vir-simd-build --target install
     - name: Set Up Cache
       uses: actions/cache@v5
       with:
@@ -253,7 +260,7 @@ jobs:
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -276,6 +283,7 @@ jobs:
             -DAMReX_FPE=ON              \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
+            -DAMReX_SIMD=ON             \
             -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-10)              \
             -DCMAKE_CXX_COMPILER=$(which g++-10)            \
