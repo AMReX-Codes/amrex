@@ -402,6 +402,12 @@ packIODataCpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         if (write_int_comp[i]) { ++num_output_int; }
     }
 
+    if (np <= 0) {
+        idata.clear();
+        rdata.clear();
+        return;
+    }
+
     const Long iChunkSize = 2 + num_output_int;
     idata.resize(np*iChunkSize);
 
