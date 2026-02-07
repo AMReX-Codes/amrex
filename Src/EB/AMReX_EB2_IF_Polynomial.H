@@ -41,7 +41,7 @@ public:
           m_sign( a_inside ? 1.0_rt : -1.0_rt )
     {}
 
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         Real retval = 0.0_rt;
@@ -53,7 +53,7 @@ public:
         return m_sign*retval;
     }
 
-    inline Real operator() (const RealArray& p) const noexcept {
+    AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
 
@@ -81,7 +81,7 @@ public:
     PolynomialIF& operator= (const PolynomialIF& rhs) = delete;
     PolynomialIF& operator= (PolynomialIF&& rhs) = delete;
 
-    [[nodiscard]] inline
+    [[nodiscard]] AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         Real retval = 0.0_rt;
@@ -93,7 +93,7 @@ public:
         return m_sign*retval;
     }
 
-    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept {
+    [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
 

@@ -515,7 +515,7 @@ struct std::tuple_element<std::size_t{0}, amrex::GpuTuple<T, Ts...>> {
 
 template<std::size_t s, typename T, typename... Ts>
 struct std::tuple_element<s, amrex::GpuTuple<T, Ts...>> {
-    using type = typename std::tuple_element<s-1, amrex::GpuTuple<Ts...>>::type;
+    using type = typename std::tuple_element_t<s-1, amrex::GpuTuple<Ts...>>;
 };
 
 #endif /*AMREX_TUPLE_H_*/

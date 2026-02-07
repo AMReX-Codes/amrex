@@ -1474,7 +1474,7 @@ public:
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
-public:
+public: // NOLINT(readability-redundant-access-specifiers)
     /** Overwrite the default names for the compile-time SoA components */
     void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
 

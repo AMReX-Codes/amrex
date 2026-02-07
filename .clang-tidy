@@ -1,9 +1,12 @@
 Checks: >
     '-*,
      bugprone-*,
+       -bugprone-branch-clone,
        -bugprone-casting-through-void,
+       -bugprone-easily-swappable-parameters,
        -bugprone-exception-escape,
        -bugprone-implicit-widening-of-multiplication-result,
+       -bugprone-multi-level-implicit-pointer-conversion,
      clang-analyzer-*,
        -clang-analyzer-optin.mpi.MPI-Checker,
      clang-diagnostic-*,
@@ -20,6 +23,7 @@ Checks: >
        -cppcoreguidelines-non-private-member-variables-in-classes,
        -cppcoreguidelines-owning-memory,
        -cppcoreguidelines-pro-*,
+       -cppcoreguidelines-use-enum-class,
      google-build-explicit-make-pair,
      google-build-namespaces,
      google-global-names-in-headers,
@@ -32,10 +36,15 @@ Checks: >
        -modernize-avoid-c-arrays,
        -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
+       -modernize-use-constraints,
+       -modernize-use-designated-initializers,
        -modernize-use-trailing-return-type,
      performance-*,
+       -performance-enum-size,
      portability-*,
+       -portability-template-virtual-member-function,
      readability-*,
+       -readability-avoid-nested-conditional-operator,
        -readability-avoid-unconditional-preprocessor-if,
        -readability-else-after-return,
        -readability-function-cognitive-complexity,
@@ -46,6 +55,8 @@ Checks: >
        -readability-magic-numbers,
        -readability-math-missing-parentheses,
        -readability-named-parameter,
+       -readability-redundant-casting,
+       -readability-static-accessed-through-instance,
        -readability-simplify-boolean-expr,
        -readability-use-concise-preprocessor-directives,
      mpi-*
@@ -56,3 +67,7 @@ HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'
 
 # Only available in clang-tidy >= 17
 HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
+
+# We will try to modernize this after switching to C++20
+# -modernize-use-constraints
+# -modernize-use-designated-initializers

@@ -1665,7 +1665,7 @@ public:
     */
     static void Initialize (int argc, char** argv, const char* parfile);
     static void Initialize (int argc, char** argv, const std::string& parfile) {
-        return Initialize(argc, argv, parfile.c_str());
+        Initialize(argc, argv, parfile.c_str());
     }
     /**
     * \brief The destructor.  The internal static table will only be deleted
