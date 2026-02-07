@@ -27,21 +27,23 @@ void chop_boxes (Box* bxv, const Box& bx, int nboxes)
     {
         int longdir;
         int longlen = bx.longside(longdir);
-        int chop_pnt = bx.smallEnd(longdir) + longlen/2;
-        Box bxleft = bx;
-        Box bxright = bxleft.chop(longdir, chop_pnt);
+        if (longdir >= 0 && longdir < AMREX_SPACEDIM) {
+            int chop_pnt = bx.smallEnd(longdir) + longlen/2;
+            Box bxleft = bx;
+            Box bxright = bxleft.chop(longdir, chop_pnt);
 
-        int nleft = nboxes / 2;
-        chop_boxes(bxv, bxleft, nleft);
+            int nleft = nboxes / 2;
+            chop_boxes(bxv, bxleft, nleft);
 
-        int nright = nboxes - nleft;
-        chop_boxes(bxv+nleft, bxright, nright);
+            int nright = nboxes - nleft;
+            chop_boxes(bxv+nleft, bxright, nright);
+        }
     }
 }
 
 void chop_boxes_dir (Box* bxv, const Box& bx, int nboxes, int idir)
 {
-    if (nboxes == 1)
+    if (nboxes == 1 || idir < 0 || idir >= AMREX_SPACEDIM)
     {
         *bxv = bx;
     }
@@ -227,7 +229,7 @@ BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
     int idir = static_cast<int>(dir);
 
     AMREX_ASSERT(nboxes > 0);
-    AMREX_ASSERT(bx.length(idir) >= nboxes);
+    AMREX_ASSERT((idir >= 0 && idir < AMREX_SPACEDIM) && bx.length(idir) >= nboxes);
 
     m_lbox.resize(nboxes);
     chop_boxes_dir(m_lbox.data(), bx, nboxes, idir);
@@ -564,9 +566,11 @@ BoxList::accrete (const IntVect& sz)
 BoxList&
 BoxList::shift (int dir, int nzones)
 {
-    for (auto& bx : m_lbox)
-    {
-        bx.shift(dir, nzones);
+    if (dir >= 0 && dir < AMREX_SPACEDIM) {
+        for (auto& bx : m_lbox)
+        {
+            bx.shift(dir, nzones);
+        }
     }
     return *this;
 }
@@ -574,9 +578,11 @@ BoxList::shift (int dir, int nzones)
 BoxList&
 BoxList::shiftHalf (int dir, int num_halfs)
 {
-    for (auto& bx : m_lbox)
-    {
-        bx.shiftHalf(dir, num_halfs);
+    if (dir >= 0 && dir < AMREX_SPACEDIM) {
+        for (auto& bx : m_lbox)
+        {
+            bx.shiftHalf(dir, num_halfs);
+        }
     }
     return *this;
 }

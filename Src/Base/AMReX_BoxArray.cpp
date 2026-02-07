@@ -733,49 +733,52 @@ BoxArray::grow (const IntVect& iv)
 }
 
 BoxArray&
-BoxArray::grow (int dir,
-                int n_cell)
+BoxArray::grow (int dir, int n_cell)
 {
-    uniqify();
+    if (dir >= 0 && dir < AMREX_SPACEDIM) {
+        uniqify();
 
-    const int N = static_cast<int>(m_ref->m_abox.size());
+        const int N = static_cast<int>(m_ref->m_abox.size());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++) {
-        m_ref->m_abox[i].grow(dir, n_cell);
+        for (int i = 0; i < N; i++) {
+            m_ref->m_abox[i].grow(dir, n_cell);
+        }
     }
     return *this;
 }
 
 BoxArray&
-BoxArray::growLo (int dir,
-                  int n_cell)
+BoxArray::growLo (int dir, int n_cell)
 {
-    uniqify();
+    if (dir >= 0 && dir < AMREX_SPACEDIM) {
+        uniqify();
 
-    const int N = static_cast<int>(m_ref->m_abox.size());
+        const int N = static_cast<int>(m_ref->m_abox.size());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++) {
-        m_ref->m_abox[i].growLo(dir, n_cell);
+        for (int i = 0; i < N; i++) {
+            m_ref->m_abox[i].growLo(dir, n_cell);
+        }
     }
     return *this;
 }
 
 BoxArray&
-BoxArray::growHi (int dir,
-                  int n_cell)
+BoxArray::growHi (int dir, int n_cell)
 {
-    uniqify();
+    if (dir >= 0 && dir < AMREX_SPACEDIM) {
+        uniqify();
 
-    const int N = static_cast<int>(m_ref->m_abox.size());
+        const int N = static_cast<int>(m_ref->m_abox.size());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++) {
-        m_ref->m_abox[i].growHi(dir, n_cell);
+        for (int i = 0; i < N; i++) {
+            m_ref->m_abox[i].growHi(dir, n_cell);
+        }
     }
     return *this;
 }
@@ -844,17 +847,18 @@ BoxArray::convert (Box (*fp)(const Box&))
 }
 
 BoxArray&
-BoxArray::shift (int dir,
-                 int nzones)
+BoxArray::shift (int dir, int nzones)
 {
-    uniqify();
+    if (dir >= 0 && dir < AMREX_SPACEDIM) {
+        uniqify();
 
-    const int N = static_cast<int>(m_ref->m_abox.size());
+        const int N = static_cast<int>(m_ref->m_abox.size());
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
 #endif
-    for (int i = 0; i < N; i++) {
-        m_ref->m_abox[i].shift(dir, nzones);
+        for (int i = 0; i < N; i++) {
+            m_ref->m_abox[i].shift(dir, nzones);
+        }
     }
     return *this;
 }

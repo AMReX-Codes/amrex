@@ -206,6 +206,8 @@ struct BATindexType_coarsenRatio
 /// \cond DOXYGEN_IGNORE
 struct BATbndryReg
 {
+    BATbndryReg () = delete;
+
     BATbndryReg (Orientation a_face, IndexType a_typ,
                  int a_in_rad, int a_out_rad, int a_extent_rad)
         : m_face(a_face), m_typ(a_typ), m_crse_ratio(1)
@@ -252,11 +254,19 @@ struct BATbndryReg
         IntVect lo = amrex::coarsen(a_bx.smallEnd(), m_crse_ratio);
         IntVect hi = amrex::coarsen(a_bx.bigEnd(), m_crse_ratio);
         const int d = m_face.coordDir();
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
+#endif
+        // GCC assumes that m_face might be default initialized and thus d is -1.
         if (m_face.isLow()) {
             hi[d] = lo[d];
         } else {
             lo[d] = hi[d];
         }
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
         lo += m_loshft;
         hi += m_hishft;
         return Box(lo,hi,m_typ);
