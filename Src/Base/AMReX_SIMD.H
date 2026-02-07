@@ -179,7 +179,7 @@ namespace amrex::simd
      * @return a reference to the (scalar) data OR a new SIMD variable (register) loaded with data
      */
     template <typename T, typename IndexType>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     decltype(auto) load_1d (T* ptr, IndexType const i)
     {
         if constexpr (std::is_integral_v<IndexType>) {
@@ -228,7 +228,7 @@ namespace amrex::simd
      * @param i index or SIMD index
      */
     template <auto P_Method, int N, typename T, typename IndexType, typename ValType>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void store_1d (
         ValType const & AMREX_RESTRICT val,
         T * const AMREX_RESTRICT ptr,
