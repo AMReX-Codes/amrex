@@ -89,11 +89,11 @@ std::string pp_to_string (std::string const& name,
     return ss.str();
 }
 
-enum PType
+enum class PType
 {
-    pDefn,
-    pEQ_sign,
-    pValue,
+    Defn,
+    EQ_sign,
+    Value,
     pEOF
 };
 
@@ -194,7 +194,7 @@ template <class T> const char* tok_name(std::vector<T>&) { return tok_name(T());
 // Simple lexical analyser.
 //
 
-enum lexState
+enum class lexState
 {
     START,
     STRING,
@@ -271,12 +271,12 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
    //
    if ( *str == 0 )
    {
-       return pEOF;
+       return PType::pEOF;
    }
    //
    // Start token scan.
    //
-   lexState state = START;
+   lexState state = lexState::START;
    int      pcnt  = 0; // Tracks nested parens
    int      cbcnt = 0; // Tracks nested curly braces
    while (true)
@@ -288,54 +288,54 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
        }
        switch (state)
        {
-       case START:
+       case lexState::START:
            if ( ch == '=' )
            {
                ostr += ch; str++;
-               return pEQ_sign;
+               return PType::EQ_sign;
            }
            else if ( ch == '"' )
            {
                str++;
-               state = QUOTED_STRING;
+               state = lexState::QUOTED_STRING;
            }
            else if ( ch == '(' )
            {
                ostr += ch; str++; pcnt = 1;
-               state = LIST;
+               state = lexState::LIST;
            }
            else if ( ch == '{' )
            {
                ostr += ch; str++; cbcnt = 1;
-               state = INITIALIZER;
+               state = lexState::INITIALIZER;
            }
            else if ( std::isalpha(ch) )
            {
                ostr += ch; str++;
-               state = IDENTIFIER;
+               state = lexState::IDENTIFIER;
            }
            else
            {
                ostr += ch; str++;
-               state = STRING;
+               state = lexState::STRING;
            }
            break;
-       case IDENTIFIER:
+       case lexState::IDENTIFIER:
            if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
            {
                ostr += ch; str++;
            }
            else if ( std::isspace(ch) || ch == '=' )
            {
-               return pDefn;
+               return PType::Defn;
            }
            else
            {
                ostr += ch; str++;
-               state = STRING;
+               state = lexState::STRING;
            }
            break;
-       case LIST:
+       case lexState::LIST:
            eat_comment(str);
            ch = *str;
            if ( ch == '(' )
@@ -347,7 +347,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++; pcnt--;
                if ( pcnt == 0 && cbcnt == 0 )
                {
-                   return pValue;
+                   return PType::Value;
                }
            }
            else
@@ -355,7 +355,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++;
            }
            break;
-       case INITIALIZER:
+       case lexState::INITIALIZER:
            eat_garbage(str);
            ch = *str;
            if ( ch == '{' )
@@ -367,7 +367,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++; cbcnt--;
                if ( cbcnt == 0 && pcnt == 0 )
                {
-                   return pValue;
+                   return PType::Value;
                }
            }
            else
@@ -375,21 +375,21 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++;
            }
            break;
-       case STRING:
+       case lexState::STRING:
            if ( std::isspace(ch) || ch == '=' )
            {
-               return pValue;
+               return PType::Value;
            }
            else
            {
                ostr += ch; str++;
            }
            break;
-       case QUOTED_STRING:
+       case lexState::QUOTED_STRING:
            if ( ch == '"' )
            {
                str++;
-               return pValue;
+               return PType::Value;
            }
            else
            {
@@ -637,7 +637,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
 
         switch (token)
         {
-        case pEOF:
+        case PType::pEOF:
         {
             if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
             {
@@ -652,7 +652,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
             addDefn(cur_name,cur_list,tab);
             return;
         }
-        case pEQ_sign:
+        case PType::EQ_sign:
         {
             if ( !cur_list.empty() )
             {
@@ -678,7 +678,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
             cur_linefeeds.clear();
             break;
         }
-        case pDefn:
+        case PType::Defn:
         {
             if ( cur_name.empty() )
             {
@@ -690,7 +690,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
             //
             AMREX_FALLTHROUGH;
         }
-        case pValue:
+        case PType::Value:
         {
             cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);

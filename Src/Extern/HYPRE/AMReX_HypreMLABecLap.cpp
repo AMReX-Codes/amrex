@@ -318,7 +318,7 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             Gpu::streamSynchronize();
 #endif
             AMREX_ASSERT(c2f_total_to < Long(std::numeric_limits<int>::max()));
-            m_c2f_total_from[clev][mfi] = int(c2f_total_from);
+            m_c2f_total_from[clev][mfi] = c2f_total_from;
             m_c2f_total_to[clev][mfi] = int(c2f_total_to);
         }
 
@@ -1184,7 +1184,7 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
             {
                 IntVect ivm(AMREX_D_DECL(i,j,k));
                 ivm[idim] -= 1;
-                int is_cf = (fmask_a(i,j,k) != fmask_a(ivm));
+                bool is_cf = (fmask_a(i,j,k) != fmask_a(ivm));
                 int psum = tot;
                 tot += int(is_cf);
                 offset_a(i,j,k) = is_cf ? psum*nfaces : -1;
