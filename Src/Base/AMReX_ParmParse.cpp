@@ -30,6 +30,7 @@ namespace {
     bool initialized = false;
     ParmParse::Table g_table;
     std::vector<std::set<std::string>> g_parser_recursive_symbols(1);
+    std::string g_toml_table_key;
     /// \cond DOXYGEN_IGNORE
     namespace pp_detail {
         int verbose = -1;
@@ -199,9 +200,11 @@ enum lexState
     START,
     STRING,
     QUOTED_STRING,
+    TRIPLY_QUOTED_STRING,
     IDENTIFIER,
     LIST,
-    INITIALIZER
+    INITIALIZER,
+    ARRAY
 };
 
 int
@@ -279,6 +282,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
    lexState state = START;
    int      pcnt  = 0; // Tracks nested parens
    int      cbcnt = 0; // Tracks nested curly braces
+   int      sbcnt = 0; // Tracks nested square brackets
    while (true)
    {
        char ch = *str;
@@ -296,8 +300,18 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            }
            else if ( ch == '"' )
            {
-               str++;
-               state = QUOTED_STRING;
+               if (*(str+1) == '"' && *(str+2) == '"') {
+                   str += 3;
+                   if ((*str) == '\n') {
+                       // A newline immediately following the opening
+                       // delimiter will be trimmed.
+                       ++str;
+                   }
+                   state = TRIPLY_QUOTED_STRING;
+               } else {
+                   str++;
+                   state = QUOTED_STRING;
+               }
            }
            else if ( ch == '(' )
            {
@@ -308,6 +322,12 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            {
                ostr += ch; str++; cbcnt = 1;
                state = INITIALIZER;
+           }
+           else if ( ch == '[' )
+           {
+               ostr += "ARRAY[";
+               str++; sbcnt = 1;
+               state = ARRAY;
            }
            else if ( std::isalpha(ch) )
            {
@@ -345,7 +365,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            else if ( ch == ')' )
            {
                ostr += ch; str++; pcnt--;
-               if ( pcnt == 0 && cbcnt == 0 )
+               if ( pcnt == 0 && cbcnt == 0 && sbcnt == 0 )
                {
                    return pValue;
                }
@@ -365,7 +385,27 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            else if ( ch == '}' )
            {
                ostr += ch; str++; cbcnt--;
-               if ( cbcnt == 0 && pcnt == 0 )
+               if ( cbcnt == 0 && pcnt == 0 && sbcnt == 0 )
+               {
+                   return pValue;
+               }
+           }
+           else
+           {
+               ostr += ch; str++;
+           }
+           break;
+       case ARRAY:
+           eat_garbage(str);
+           ch = *str;
+           if ( ch == '[' )
+           {
+               ostr += ch; str++; sbcnt++;
+           }
+           else if ( ch == ']' )
+           {
+               ostr += ch; str++; sbcnt--;
+               if ( sbcnt == 0 && pcnt == 0 && cbcnt == 0)
                {
                    return pValue;
                }
@@ -378,6 +418,17 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
        case STRING:
            if ( std::isspace(ch) || ch == '=' )
            {
+               return pValue;
+           }
+           else
+           {
+               ostr += ch; str++;
+           }
+           break;
+       case TRIPLY_QUOTED_STRING:
+           if ( (ch == '"') && (*(str+1) == '"') && (*(str+2) == '"') )
+           {
+               str += 3;
                return pValue;
            }
            else
@@ -404,6 +455,20 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            amrex::Abort();
        }
    }
+}
+
+std::string is_valid_table_key (std::string const& str)
+{
+    if (str.size() >= 8 && str.substr(0,6) == "ARRAY[" && str.back() == ']') {
+        auto key = str.substr(6, str.size()-7);
+        bool r = std::isalpha(key[0]);
+        for (std::size_t i = 1; i < key.size() && r; ++i) {
+            char ch = key[i];
+            r = std::isalnum(ch) || ch == '_' || ch == '.' || ch == '-' || ch == '"';
+        }
+        if (r) { return key; }
+    }
+    return {};
 }
 
 //
@@ -448,6 +513,8 @@ bool isTrue(std::smatch const& sm)
         return AMREX_SPACEDIM <= dim;
     } else if (op == ">=") {
         return AMREX_SPACEDIM >= dim;
+    } else if (op == "!=") {
+        return AMREX_SPACEDIM != dim;
     } else {
         return false;
     }
@@ -488,8 +555,8 @@ read_file (const char* fname, ParmParse::Table& tab)
         std::ostringstream os_cxx(std::ios_base::out);
         std::ostringstream os_fortran(std::ios_base::out);
         bool fortran_namelist = false;
-        std::regex if_regex("^\\s*#\\s*if\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=)\\s*([1-3])\\s*\\)?\\s*$"); // NOLINT
-        std::regex elif_regex("^\\s*#\\s*elif\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=)\\s*([1-3])\\s*\\)?\\s*$"); // NOLINT
+        std::regex if_regex("^\\s*#\\s*if\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=|!=)\\s*([1-3])\\s*\\)?\\s*$"); // NOLINT
+        std::regex elif_regex("^\\s*#\\s*elif\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=|!=)\\s*([1-3])\\s*\\)?\\s*$"); // NOLINT
         std::regex else_regex("^\\s*#\\s*else\\s*$"); // NOLINT
         std::regex endif_regex("^\\s*#\\s*endif\\s*$"); // NOLINT
         std::regex if_gpu_regex("^\\s*#\\s*ifdef\\s+AMREX_USE_GPU\\s*$"); // NOLINT
@@ -605,51 +672,58 @@ addDefn (std::string& def, std::vector<std::string>& val, ParmParse::Table& tab)
     //
     if ( def == ParmParse::FileKeyword && val.size() == 1 )
     {
+        // We need to provide a clean environment for included file.
+        auto prev_toml_table_key = std::exchange(g_toml_table_key, std::string{});
         //
         // Read file and add to this table.
         //
         const char* fname = val.front().c_str();
         read_file(fname, tab);
+        g_toml_table_key = std::move(prev_toml_table_key);
     }
     else
     {
-        tab[def].m_vals.push_back(val);
+        std::string key;
+        if (g_toml_table_key.empty()) {
+            key = def;
+        } else {
+            key.append(g_toml_table_key).append(".").append(def);
+        }
+        tab[key].m_vals.push_back(val);
     }
     val.clear();
-    if ( def != ParmParse::FileKeyword ) {
-        def = std::string();
-    }
+    def = std::string();
 }
 
 void
 bldTable (const char*& str, ParmParse::Table& tab)
 {
-    std::string              cur_name;
+    std::string              cur_value;
     std::vector<std::string> cur_list;
     std::vector<int>         cur_linefeeds;
 
     for (;;)
     {
-        std::string tokname;
+        std::string tokvalue;
         int num_linefeeds;
 
-        PType token = getToken(str, tokname, num_linefeeds);
+        PType toktype = getToken(str, tokvalue, num_linefeeds);
 
-        switch (token)
+        switch (toktype)
         {
         case pEOF:
         {
             if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
             {
                 std::string error_message("ParmParse: Multiple lines in ");
-                error_message.append(cur_name).append(" =");
+                error_message.append(cur_value).append(" =");
                 for (auto const& x : cur_list) {
                     error_message.append(" ").append(x);
                 }
                 error_message.append(". Must use \\ for line continuation.");
                 amrex::Abort(error_message);
             }
-            addDefn(cur_name,cur_list,tab);
+            addDefn(cur_value,cur_list,tab);
             return;
         }
         case pEQ_sign:
@@ -665,24 +739,24 @@ bldTable (const char*& str, ParmParse::Table& tab)
                 if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
                 {
                     std::string error_message("ParmParse: Multiple lines in ");
-                    error_message.append(cur_name).append(" =");
+                    error_message.append(cur_value).append(" =");
                     for (auto const& x : cur_list) {
                         error_message.append(" ").append(x);
                     }
                     error_message.append(". Must use \\ for line continuation.");
                     amrex::Abort(error_message);
                 }
-                addDefn(cur_name,cur_list,tab);
-                cur_name = std::move(tmp_str);
+                addDefn(cur_value,cur_list,tab);
+                cur_value = std::move(tmp_str);
             }
             cur_linefeeds.clear();
             break;
         }
         case pDefn:
         {
-            if ( cur_name.empty() )
+            if ( cur_value.empty() )
             {
-                cur_name = std::move(tokname);
+                cur_value = std::move(tokvalue);
                 break;
             }
             //
@@ -692,11 +766,19 @@ bldTable (const char*& str, ParmParse::Table& tab)
         }
         case pValue:
         {
-            cur_list.push_back(std::move(tokname));
-            cur_linefeeds.push_back(num_linefeeds);
+            auto table_key = is_valid_table_key(tokvalue);
+            if (cur_value.empty() && cur_list.empty() && !table_key.empty()) {
+                g_toml_table_key = table_key;
+            } else if (num_linefeeds > 0 && !cur_list.empty() && !table_key.empty()) {
+                addDefn(cur_value,cur_list,tab);
+                g_toml_table_key = table_key;
+            } else {
+                cur_list.push_back(std::move(tokvalue));
+                cur_linefeeds.push_back(num_linefeeds);
+            }
             break;
         }
-        } // switch (token)
+        } // switch (toktype)
     }
 }
 
@@ -717,6 +799,115 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
         }
         entry.m_last_vals[ival] = ref;
         if (parsed) { entry.m_parsed = true; }
+    }
+}
+
+template <typename T>
+void read_array_1d (std::vector<T>& ref, std::string const& str)
+{
+    std::istringstream is(str);
+    T v{};
+    is.ignore(100000, '[');
+    is >> v;
+    ref.push_back(v);
+    while (true) {
+        is >> std::ws;
+        auto nc = is.peek();
+        if (nc == ',') {
+            is.ignore(1, ',');
+            is >> std::ws;
+            nc = is.peek();
+            if (nc == ']') { return; }
+            is >> v;
+            ref.push_back(v);
+            continue;
+        } else {
+            break;
+        }
+    }
+}
+
+bool is_escaped_quote (std::string const& str, std::string::size_type pos)
+{
+    // An odd number of backslashes means `"` is escaped.
+    std::string::size_type bs = 0;
+    for (auto i = pos; i > 0 && str[i-1] == '\\'; --i) { ++bs; }
+    return (bs % 2) == 1;
+}
+
+void read_array_1d (std::vector<std::string>& ref, std::string const& str)
+{
+    ref.clear();
+    std::string::size_type pos = str.find('[');
+    if (pos == std::string::npos) { return; }
+    while (true) {
+        pos = str.find('"', pos+1);
+        if (pos != std::string::npos) {
+            auto open_pos = pos;
+            while (true) {
+                pos = str.find('"', pos+1);
+                if (pos != std::string::npos) {
+                    if (!is_escaped_quote(str, pos)) {
+                        ref.push_back(str.substr(open_pos+1, pos-(open_pos+1)));
+                        break;
+                    }
+                } else {
+                    amrex::ErrorStream() << "ParmParse: unmatched quotes in string array\n";
+                    amrex::Abort();
+                    return;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+}
+
+bool balanced_brackets (std::string const& str, std::string::size_type ib,
+                        std::string::size_type ie)
+{
+    if (ie-ib >= 3) {
+        if (str[ib] == '[' && str[ib+1] == '"' &&
+            str[ie] == ']' && str[ie-1] == '"') {
+            return !is_escaped_quote(str, ie-1);
+        } else {
+            return false;
+        }
+    } else {
+        return false;
+    }
+}
+
+template <typename T>
+void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
+{
+    ref.clear();
+    std::string::size_type pos = str.find('[');
+    if (pos == std::string::npos) { return; }
+    for (int row_index = 0; row_index < 1000000; ++row_index) {
+        pos = str.find('[', pos+1);
+        if (pos != std::string::npos) {
+            auto open_pos = pos;
+            while (true) {
+                pos = str.find(']', pos+1);
+                if (pos != std::string::npos) {
+                    if constexpr (std::is_same_v<T,std::string>) {
+                        if (!balanced_brackets(str, open_pos, pos)) {
+                            continue; // continue the searching for ']'
+                        }
+                    }
+                    ref.resize(row_index+1);
+                    read_array_1d(ref[row_index], str.substr(open_pos, pos-open_pos+1));
+                    break;
+                } else {
+                    amrex::ErrorStream() << "ParmParse: unmatched [] in nested arrays\n";
+                    amrex::Abort();
+                    return;
+                }
+            }
+        } else {
+            break;
+        }
     }
 }
 
@@ -856,6 +1047,11 @@ squeryarr (const ParmParse::Table& table,
     if ( def == nullptr )
     {
         return false;
+    }
+
+    if ((def->size() == 1) && ((*def)[0].find("ARRAY[") == 0) && ((*def)[0].back() == ']')) {
+        read_array_1d(ref, (*def)[0]);
+        return true;
     }
 
     auto const& entry = table.at(name);
@@ -1007,6 +1203,8 @@ saddarr (const std::string& name, const std::vector<T>& ref)
 void
 ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
 {
+    g_toml_table_key.clear();
+
     // Check environment first
     if (char const* env = std::getenv("AMREX_DEFAULT_INIT")) {
         std::string env_s = std::string(env) + '\n';
@@ -1018,6 +1216,8 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
     {
         read_file(parfile, table);
     }
+
+    g_toml_table_key.clear();
 
     if ( argc > 0 )
     {
@@ -1214,10 +1414,14 @@ ParmParse::addfile (std::string const& filename) {
         );
     }
 
+    g_toml_table_key.clear();
+
     // add the file
     auto file = FileKeyword;
     std::vector<std::string> val{{filename}};
     addDefn(file, val, g_table);
+
+    g_toml_table_key.clear();
 }
 
 void
@@ -2503,7 +2707,7 @@ std::vector<T> read_table_row (std::istream& is)
 }
 
 template <typename T>
-void read_table (std::vector<std::vector<T>>& ref, std::string const& str)
+void read_table_2d (std::vector<std::vector<T>>& ref, std::string const& str)
 {
     std::istringstream is(str);
     is >> std::ws;
@@ -2528,10 +2732,10 @@ void read_table (std::vector<std::vector<T>>& ref, std::string const& str)
         }
         is.ignore(100000,  '}');
     } else {
-        amrex::Error("ParmParse::querytable: read_table expected \'{\'");
+        amrex::Error("ParmParse::querytable: read_table_2d expected \'{\'");
     }
     if (is.fail()) {
-        amrex::Error("ParmParse::querytable read_table failed to read table");
+        amrex::Error("ParmParse::querytable read_table_2d failed to read table");
     }
 }
 }
@@ -2541,7 +2745,7 @@ int ParmParse::querytable (std::string_view name, std::vector<std::vector<double
     std::string table_s;
     int r = query(name, table_s);
     if (r) {
-        read_table(ref, table_s);
+        read_table_2d(ref, table_s);
     }
     return r;
 }
@@ -2551,7 +2755,7 @@ int ParmParse::querytable (std::string_view name, std::vector<std::vector<float>
     std::string table_s;
     int r = query(name, table_s);
     if (r) {
-        read_table(ref, table_s);
+        read_table_2d(ref, table_s);
     }
     return r;
 }
@@ -2561,7 +2765,47 @@ int ParmParse::querytable (std::string_view name, std::vector<std::vector<int>>&
     std::string table_s;
     int r = query(name, table_s);
     if (r) {
-        read_table(ref, table_s);
+        read_table_2d(ref, table_s);
+    }
+    return r;
+}
+
+int ParmParse::queryarr (std::string_view name, std::vector<std::vector<double>>& ref) const
+{
+    std::string arr_s;
+    int r = query(name, arr_s);
+    if (r) {
+        read_array_2d(ref, arr_s);
+    }
+    return r;
+}
+
+int ParmParse::queryarr (std::string_view name, std::vector<std::vector<float>>& ref) const
+{
+    std::string arr_s;
+    int r = query(name, arr_s);
+    if (r) {
+        read_array_2d(ref, arr_s);
+    }
+    return r;
+}
+
+int ParmParse::queryarr (std::string_view name, std::vector<std::vector<int>>& ref) const
+{
+    std::string arr_s;
+    int r = query(name, arr_s);
+    if (r) {
+        read_array_2d(ref, arr_s);
+    }
+    return r;
+}
+
+int ParmParse::queryarr (std::string_view name, std::vector<std::vector<std::string>>& ref) const
+{
+    std::string arr_s;
+    int r = query(name, arr_s);
+    if (r) {
+        read_array_2d(ref, arr_s);
     }
     return r;
 }

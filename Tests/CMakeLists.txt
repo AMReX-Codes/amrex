@@ -127,7 +127,8 @@ else()
    #
    set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut CallNoinline CLZ CommType CTOParFor DeviceGlobal
                             Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser
-                            Parser2 ParserUserFn Reducer Reinit RoundoffDomain SIMD SmallMatrix SumBoundary)
+                            Parser2 ParserUserFn Reducer Reinit RoundoffDomain SIMD SmallMatrix SumBoundary
+                            TOML )
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)

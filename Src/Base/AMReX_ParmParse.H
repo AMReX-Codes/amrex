@@ -1657,6 +1657,31 @@ public:
     }
 
     /**
+     * \brief Query vector of vector. The return value indicates whether
+     * it's found. The vector of vector is in the format of
+     * `[[a00, a01, a02...], [a10, a11, a12...], ...]`.
+     */
+    int queryarr (std::string_view name, std::vector<std::vector<double>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<float>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<int>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<std::string>>& ref) const;
+
+    /**
+     * \brief Get vector of vector. It's an error if it is not found.  The
+     * vector of vector is in the format of `[[a00, a01, a02...], [a10, a11, a12...], ...]`.
+     */
+    template <typename T>
+    void getarr (std::string_view name, std::vector<std::vector<T>>& ref) const
+    {
+        if (this->queryarr(name, ref) == 0) {
+            amrex::ErrorStream() << "ParmParse::getarr: " << name
+                                 << " not found in database\n";
+            ParmParse::dumpTable(amrex::ErrorStream());
+            amrex::Abort();
+        }
+    }
+
+    /**
     * \brief Construct an initial ParmParse object from the argc and argv
     * passed in to main().  An error will be signalled if another
     * ParmParse object currently exists.  If parfile is specified,
