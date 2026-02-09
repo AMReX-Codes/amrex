@@ -204,15 +204,6 @@ struct LaunchHandler
         return threads_per_block;
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    unsigned int blockDim1Drt () const {
-        return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
-            blockDim.x,
-            threads_per_block,
-            threads_per_block
-        ));
-    }
-
     template<int ...nd_block_size>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVectND<dim> blockDimND () {
