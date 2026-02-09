@@ -107,6 +107,8 @@ struct Handler {};
 template<unsigned int threads_per_block, typename T, int dim>
 struct LaunchHandler
 {
+    static_assert(dim >= 1 && dim <= 3);
+
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     LaunchHandler() = default;
 #elif defined(AMREX_USE_SYCL)
@@ -244,6 +246,17 @@ struct LaunchHandler
     }
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto handler () const {
+#if defined(AMREX_USE_SYCL)
+        return Gpu::Handler(m_item, reinterpret_cast<void*>(m_shared_mem), threads_per_block);
+#elif defined(AMREX_USE_GPU)
+        return Gpu::Handler(threads_per_block);
+#else
+        return 0;
+#endif
+    }
+
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto sycl_item () const {
 #if defined(AMREX_USE_SYCL)
         return m_item;
@@ -257,16 +270,12 @@ private:
 #if defined(AMREX_USE_SYCL)
     sycl::nd_item<dim> const* m_item;
     T * m_shared_mem;
-#endif
-
-#if !defined(AMREX_USE_GPU)
+#elif !defined(AMREX_USE_GPU)
     IntVectND<dim> m_blockid;
     IntVectND<dim> m_griddim;
     T * m_shared_mem;
 #endif
 };
-
-
 
 }
 

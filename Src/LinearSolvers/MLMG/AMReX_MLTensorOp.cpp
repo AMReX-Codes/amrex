@@ -408,20 +408,12 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(reada
         // only edge vals used in 3D stencil
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
-            amrex::launch<64>(12, Gpu::gpuStream(),
-#ifdef AMREX_USE_SYCL
+            amrex::LaunchRaw<64>(amrex::IntVectND<1>{12},
             [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item)
             {
-                int bid = item.get_group_linear_id();
-                int tid = item.get_local_linear_id();
-                int bdim = item.get_local_range(0);
-#else
-            [=] AMREX_GPU_DEVICE ()
-            {
-                int bid = blockIdx.x;
-                int tid = threadIdx.x;
-                int bdim = blockDim.x;
-#endif
+                int bid = lh.blockIdx1D();
+                int tid = lh.threadIdx1D();
+                int bdim = lh.blockDim1D();
                 mltensor_fill_edges(bid, tid, bdim, vbx, velfab,
                                     mxlo, mylo, mzlo, mxhi, myhi, mzhi,
                                     bvxlo, bvylo, bvzlo, bvxhi, bvyhi, bvzhi,

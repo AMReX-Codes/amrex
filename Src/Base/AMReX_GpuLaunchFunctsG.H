@@ -726,7 +726,6 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 
     try {
         q.submit([&] (sycl::handler& h) {
-
             h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
                 [=] (sycl::nd_item<dim> item)
                 [[sycl::reqd_work_group_size(1, 1, MT)]]
@@ -759,7 +758,6 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
     try {
         q.submit([&] (sycl::handler& h) {
             sycl::local_accessor<T> shared_data(sycl::range<1>(shared_mem_elements), h);
-
             h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
                 [=] (sycl::nd_item<dim> item)
                 [[sycl::reqd_work_group_size(1, 1, MT)]]

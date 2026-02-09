@@ -295,25 +295,16 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
     auto const* pntags = d_ntags.data();
     auto const nblocks = int(h_ntags.size()-1);
     constexpr auto nthreads = 256;
-    amrex::launch<nthreads>(nblocks, Gpu::gpuStream(),
-#ifdef AMREX_USE_SYCL
-        [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item) noexcept
-        [[sycl::reqd_work_group_size(nthreads)]]
-#else
-        [=] AMREX_GPU_DEVICE () noexcept
-#endif
-    {
-#ifdef AMREX_USE_SYCL
-        Dim1 blockIdx{item.get_group_linear_id()};
-        Dim1 threadIdx{item.get_local_linear_id()};
-#endif
 
-        for (unsigned int itag = pntags[blockIdx.x]; itag < pntags[blockIdx.x+1]; ++itag) {
+    amrex::LaunchRaw<nthreads>(amrex::IntVectND<1>{nblocks},
+    [=] AMREX_GPU_DEVICE (auto lh) noexcept
+    {
+        for (unsigned int itag = pntags[lh.blockIdx1D()]; itag < pntags[lh.blockIdx1D()+1]; ++itag) {
             auto const tag = ptag[itag];
             auto ncells = int(tag.dbox.numPts());
             const auto len = amrex::length(tag.dbox);
             const auto lo  = amrex::lbound(tag.dbox);
-            for (int icell = int(threadIdx.x); icell < ncells; icell += nthreads) {
+            for (int icell = int(lh.threadIdx1D()); icell < ncells; icell += nthreads) {
                 int k =  icell /   (len.x*len.y);
                 int j = (icell - k*(len.x*len.y)) /   len.x;
                 int i = (icell - k*(len.x*len.y)) - j*len.x;
@@ -328,12 +319,8 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
                 }
             }
 
-            if (itag+1 < pntags[blockIdx.x+1]) {
-#ifdef AMREX_USE_SYCL
-                sycl::group_barrier(item.get_group());
-#else
-                __syncthreads();
-#endif
+            if (itag+1 < pntags[lh.blockIdx1D()+1]) {
+                lh.syncthreads();
             }
         }
     });

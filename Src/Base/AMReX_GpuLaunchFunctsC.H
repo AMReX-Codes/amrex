@@ -165,19 +165,19 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
     std::vector<T> smem(shared_mem_elements);
     if constexpr(dim == 1) {
         for (int bx=0; bx < nblocks[0]; ++bx) {
-            f(Gpu::LaunchHandler<MT, void, dim>{{bx}, nblocks, smem.data()});
+            f(Gpu::LaunchHandler<MT, T, dim>{{bx}, nblocks, smem.data()});
         }
     } else if constexpr(dim == 2) {
         for (int by=0; by < nblocks[1]; ++by) {
             for (int bx=0; bx < nblocks[0]; ++bx) {
-                f(Gpu::LaunchHandler<MT, void, dim>{{bx, by}, nblocks, smem.data()});
+                f(Gpu::LaunchHandler<MT, T, dim>{{bx, by}, nblocks, smem.data()});
             }
         }
     } else {
         for (int bz=0; bz < nblocks[2]; ++bz) {
             for (int by=0; by < nblocks[1]; ++by) {
                 for (int bx=0; bx < nblocks[0]; ++bx) {
-                    f(Gpu::LaunchHandler<MT, void, dim>{{bx, by, bz}, nblocks, smem.data()});
+                    f(Gpu::LaunchHandler<MT, T, dim>{{bx, by, bz}, nblocks, smem.data()});
                 }
             }
         }
