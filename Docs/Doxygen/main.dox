@@ -103,7 +103,8 @@
 
   - \ref amrex_data_containers
     This topic covers AMReX data containers, from linear containers such as
-    \ref amrex::Vector to box-based and distributed field data containers
+    \ref amrex::Vector, to box-based Fortran-like arrays such as \ref amrex::FArrayBox
+    and \ref amrex::Array4, and to distributed field data containers
     such as \ref amrex::MultiFab.
   \par
 

@@ -105,7 +105,13 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr const T& Clamp (const T& v, const T& lo, const T& hi)
     {
-        return (v < lo) ? lo : (hi < v) ? hi : v;
+        if (v < lo) {
+            return lo;
+        } else if (hi < v) {
+            return hi;
+        } else {
+            return v;
+        }
     }
 
     //! Return if the difference between two values are small as measured by

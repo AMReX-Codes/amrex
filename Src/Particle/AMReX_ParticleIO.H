@@ -616,7 +616,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         which[grid] = fnum;
         where[grid] = VisMF::FileOffset(ofs);
 
-        if (count[grid] == 0) { continue; }
+        if (count[grid] <= 0) { continue; }
 
         Vector<int> istuff;
         Vector<ParticleReal> rstuff;

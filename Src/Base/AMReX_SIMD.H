@@ -3,6 +3,7 @@
 
 #include <AMReX_Config.H>
 
+#include <AMReX.H>  // amrex::ignore_unused
 #include <AMReX_REAL.H>
 
 #ifdef AMREX_USE_SIMD
@@ -51,7 +52,11 @@ namespace amrex::simd
     template<int SIMD_WIDTH = native_simd_size_particlereal>
     using SIMDParticleReal = stdx::fixed_size_simd<amrex::ParticleReal, SIMD_WIDTH>;
 
-    // Type that has the same amount of IdCpu SIMD elements as the SIMDParticleReal type
+    // Type that has the same number of int SIMD elements as the SIMDParticleReal type
+    template<typename T_ParticleReal = SIMDParticleReal<>>
+    using SIMDInt = stdx::rebind_simd_t<int, T_ParticleReal>;
+
+    // Type that has the same number of IdCpu SIMD elements as the SIMDParticleReal type
     template<typename T_ParticleReal = SIMDParticleReal<>>
     using SIMDIdCpu = stdx::rebind_simd_t<std::uint64_t, T_ParticleReal>;
 #else
@@ -64,7 +69,11 @@ namespace amrex::simd
     template<int SIMD_WIDTH = native_simd_size_particlereal>
     using SIMDParticleReal = amrex::ParticleReal;
 
-    // Type that has the same amount of IdCpu SIMD elements as the SIMDParticleReal type
+    // Type that has the same number of int SIMD elements as the SIMDParticleReal type
+    template<typename T_ParticleReal = SIMDParticleReal<>>
+    using SIMDInt = int;
+
+    // Type that has the same number of IdCpu SIMD elements as the SIMDParticleReal type
     template<typename T_ParticleReal = SIMDParticleReal<>>
     using SIMDIdCpu = std::uint64_t;
 #endif
@@ -154,6 +163,93 @@ namespace amrex::simd
     {
         constexpr bool val_arr[sizeof...(Args)] {!std::is_const_v<std::remove_reference_t<Args>>...};
         return val_arr[n];
+    }
+
+    /** Load 1D contiguous data from array pointers
+     *
+     * On GPU and CPU w/o SIMD, this dereferences a 1D array element at the
+     * index position i.
+     * On CPU with SIMD, this loads a SIMD register at the IndexType::width
+     * SIMD-wide index position i.
+     *
+     * @tparam T data type (amrex::ParticleReal or int or uint64_t)
+     * @tparam IndexType int or amrex::SIMDindex<SIMD_WIDTH, int>
+     * @param ptr pointer to the array data
+     * @param i index or SIMD index
+     * @return a reference to the (scalar) data OR a new SIMD variable (register) loaded with data
+     */
+    template <typename T, typename IndexType>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    decltype(auto) load_1d (T* ptr, IndexType const i)
+    {
+        if constexpr (std::is_integral_v<IndexType>) {
+            return ptr[i];
+        } else if constexpr (IndexType::width == 1) {
+            return ptr[i.index];
+        } else {
+#ifdef AMREX_USE_SIMD
+            using DataType = stdx::fixed_size_simd<std::decay_t<T>, IndexType::width>;
+
+            // initialize vector register
+            // TODO stdx::vector_aligned needs alignment guarantees
+            //      https://github.com/AMReX-Codes/amrex/issues/4592
+            //      https://en.cppreference.com/w/cpp/experimental/simd/simd/copy_from
+            DataType val;
+            val.copy_from(&ptr[i.index], stdx::element_aligned);
+            return val;
+
+#else
+            static_assert(IndexType::width == 1, "SIMD width must be 1 for non-SIMD builds");
+            return ptr[i.index];
+#endif
+        }
+    }
+
+    /** Store SIMD register data back to a 1D contiguous array in RAM
+     *
+     * On GPU and CPU without SIMD, this does nothing because we already
+     * modified the (global) RAM directly via pointer.
+     *
+     * On CPU with SIMD, this performs a conditional writeback of a SIMD register
+     * to RAM (index in pointer array), but only if the argument was not passed
+     * as const and thus was likely changed.
+     *
+     * Good optimizing compilers can eliminate writebacks of unchanged values
+     * themselves, but we better help a little for robustness. Background:
+     * https://github.com/AMReX-Codes/amrex/pull/4520#issuecomment-3064064215
+     *
+     * @tparam P_Method pointer to the method that used the data (for is_nth_arg_non_const)
+     * @tparam N the argument index (for is_nth_arg_non_const)
+     * @tparam T data type
+     * @tparam IndexType int or SIMD index
+     * @tparam ValType the type of the value to store
+     * @param val the value to store
+     * @param ptr pointer to contiguous 1D array data
+     * @param i index or SIMD index
+     */
+    template <auto P_Method, int N, typename T, typename IndexType, typename ValType>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void store_1d (
+        ValType const & AMREX_RESTRICT val,
+        T * const AMREX_RESTRICT ptr,
+        IndexType const i
+    )
+    {
+        // SIMD uses special vector register types in ValType that need to be copied back to RAM array type T
+        if constexpr (!std::is_same_v<ValType, T>) {
+            if constexpr (amrex::simd::is_nth_arg_non_const(P_Method, N)) {
+#ifdef AMREX_USE_SIMD
+                // write back to memory
+                // TODO stdx::vector_aligned needs alignment guarantees
+                //      https://github.com/AMReX-Codes/amrex/issues/4592
+                //      https://en.cppreference.com/w/cpp/experimental/simd/simd/copy_from
+                val.copy_to(&ptr[i.index], amrex::simd::stdx::element_aligned);
+#else
+                amrex::Abort("store_1d: ValType val must alias T ptr data (to make this a no-OP).");
+#endif
+            }
+        }
+        amrex::ignore_unused(val, ptr, i);
     }
 
 } // namespace amrex::simd

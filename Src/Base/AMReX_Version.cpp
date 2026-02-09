@@ -6,7 +6,7 @@
 
 namespace amrex
 {
-    std::string Version ()
+    std::string Version () // NOLINT(misc-use-internal-linkage)
     {
 #ifdef AMREX_GIT_VERSION
         return std::string(AMREX_GIT_VERSION);

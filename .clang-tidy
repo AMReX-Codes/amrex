@@ -1,8 +1,7 @@
 Checks: >
     '-*,
      bugprone-*,
-       -bugprone-branch-clone,
-       -bugprone-easily-swappable-parameters,
+       -bugprone-casting-through-void,
        -bugprone-exception-escape,
        -bugprone-implicit-widening-of-multiplication-result,
      clang-analyzer-*,
@@ -15,6 +14,7 @@ Checks: >
        -cppcoreguidelines-avoid-non-const-global-variables,
        -cppcoreguidelines-init-variables,
        -cppcoreguidelines-interfaces-global-init,
+       -cppcoreguidelines-macro-to-enum,
        -cppcoreguidelines-macro-usage,
        -cppcoreguidelines-no-malloc,
        -cppcoreguidelines-non-private-member-variables-in-classes,
@@ -44,8 +44,10 @@ Checks: >
        -readability-implicit-bool-conversion,
        -readability-isolate-declaration,
        -readability-magic-numbers,
+       -readability-math-missing-parentheses,
        -readability-named-parameter,
        -readability-simplify-boolean-expr,
+       -readability-use-concise-preprocessor-directives,
      mpi-*
     '
 

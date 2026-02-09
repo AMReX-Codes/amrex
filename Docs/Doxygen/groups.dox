@@ -126,6 +126,7 @@
  * \brief Box-based data containers representing values on a single \ref amrex::Box.
  *
  * Central types include:
+ * - \ref amrex::Array4 and amrex::ArrayND
  * - \ref amrex::BaseFab
  * - \ref amrex::FArrayBox
  * - \ref amrex::IArrayBox
@@ -198,6 +199,7 @@
  * GPUs. They do not use MPI and operate on data local to the process.
  *
  * Key functions and classes include:
+ * - \ref amrex::Reducer
  * - \ref amrex::ReduceOpSum
  * - \ref amrex::ReduceOpMin
  * - \ref amrex::ReduceOpMax

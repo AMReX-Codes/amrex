@@ -281,7 +281,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
             // sum within this chunk.
             T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             T tmp_out = sum_prev_warp + sum_prev_chunk +
-                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+                (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ? x : x-x0);
             sum_prev_chunk += shared2[nwarps-1];
 
             if (offset < iend) {
@@ -395,8 +395,8 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -490,7 +490,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
             offset += threadIdxx;
             T x0 = (offset < iend) ? fin(offset) : 0;
-            if  (std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value && offset == n-1) {
+            if  (std::is_same_v<std::decay_t<TYPE>,Type::Exclusive> && offset == n-1) {
                 *totalsum_p += x0;
             }
             T x = x0;
@@ -530,7 +530,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
             // sum within this chunk.
             T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             tmp_out[ichunk] = sum_prev_warp + sum_prev_chunk +
-                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+                (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ? x : x-x0);
             sum_prev_chunk += shared2[nwarps-1];
         }
 
@@ -638,8 +638,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -742,7 +742,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         __syncthreads();
 
-        constexpr bool is_exclusive = std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value;
+        constexpr bool is_exclusive = std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>;
 
         if (virtual_block_id == 0) {
             T block_agg;
@@ -807,8 +807,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -893,7 +893,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         __syncthreads();
 
-        constexpr bool is_exclusive = std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value;
+        constexpr bool is_exclusive = std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>;
 
         if (virtual_block_id == 0) {
             T block_agg;
@@ -958,8 +958,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 /// \ingroup amrex_collectives
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1042,7 +1042,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
             offset += threadIdx.x;
             T x0 = (offset < iend) ? fin(offset) : 0;
-            if  (std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value && offset == n-1) {
+            if  (std::is_same_v<std::decay_t<TYPE>,Type::Exclusive> && offset == n-1) {
                 *totalsum_p += x0;
             }
             T x = x0;
@@ -1100,7 +1100,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
             // sum within this chunk.
             T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             tmp_out[ichunk] = sum_prev_warp + sum_prev_chunk +
-                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+                (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ? x : x-x0);
             sum_prev_chunk += shared2[nwarps-1];
         }
 

@@ -153,8 +153,8 @@ template<typename T = uint64_t>
 struct ParticleIDWrapper
 {
     /*
-    static_assert(std::is_same<T, uint64_t>::value ||
-                  std::is_same<T, simd::SIMDIdCpu<>>::value,  // note: this one will not work because users can change the SIMDIdCpu width
+    static_assert(std::is_same_v<T, uint64_t> ||
+                  std::is_same_v<T, simd::SIMDIdCpu<>>,  // note: this one will not work because users can change the SIMDIdCpu width
                   "ParticleIDWrapper only supports uint64_t or SIMD thereof"
     );
     */
