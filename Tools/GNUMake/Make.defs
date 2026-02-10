@@ -635,6 +635,7 @@ ifeq ($(USE_FFT),TRUE)
       LIBRARIES += -Wl,-rpath,$(FFTW_HOME)/lib
     endif
     ifeq ($(USE_OMP),TRUE)
+      CPPFLAGS += -DAMREX_USE_MULTI_THREADED_FFTW
       LIBRARIES += -lfftw3f_omp -lfftw3_omp
     endif
     LIBRARIES += -lfftw3f -lfftw3
