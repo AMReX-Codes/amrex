@@ -330,13 +330,6 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     return x;
 }
 
-template <int warpSize, typename T, typename WARPREDUCE>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const&)
-{
-    return blockReduce<warpSize>(x, warp_reduce, x0);
-}
-
 template <int warpSize, typename T, typename WARPREDUCE, typename ATOMICOP>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && atomic_op,

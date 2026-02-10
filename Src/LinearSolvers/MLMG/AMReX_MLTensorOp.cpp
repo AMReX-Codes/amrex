@@ -409,7 +409,7 @@ MLTensorOp::applyBCTensor (int amrlev, int mglev, MultiFab& vel, // NOLINT(reada
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             amrex::LaunchRaw<64>(amrex::IntVectND<1>{12},
-            [=] AMREX_GPU_DEVICE (sycl::nd_item<1> const& item)
+            [=] AMREX_GPU_DEVICE (auto lh)
             {
                 int bid = lh.blockIdx1D();
                 int tid = lh.threadIdx1D();
