@@ -153,7 +153,7 @@ struct LaunchHandler
         if constexpr (dim == 1) {
             return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 blockIdx.x,
-                m_item->get_group_id(0),
+                m_item->get_group(0),
                 m_blockid[0]
             ));
         } else if constexpr (dim == 2) {
@@ -177,15 +177,15 @@ struct LaunchHandler
         if constexpr (dim == 1) {
             return AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 IntVectND<dim>(static_cast<int>(blockIdx.x)),
-                IntVectND<dim>(static_cast<int>(m_item->get_group_id(0))),
+                IntVectND<dim>(static_cast<int>(m_item->get_group(0))),
                 m_blockid
             );
         } else if constexpr (dim == 2) {
             return AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 IntVectND<dim>(static_cast<int>(blockIdx.x),
                                static_cast<int>(blockIdx.y)),
-                IntVectND<dim>(static_cast<int>(m_item->get_group_id(1)),
-                               static_cast<int>(m_item->get_group_id(0))),
+                IntVectND<dim>(static_cast<int>(m_item->get_group(1)),
+                               static_cast<int>(m_item->get_group(0))),
                 m_blockid
             );
         } else {
@@ -193,9 +193,9 @@ struct LaunchHandler
                 IntVectND<dim>(static_cast<int>(blockIdx.x),
                                static_cast<int>(blockIdx.y),
                                static_cast<int>(blockIdx.z)),
-                IntVectND<dim>(static_cast<int>(m_item->get_group_id(2)),
-                               static_cast<int>(m_item->get_group_id(1)),
-                               static_cast<int>(m_item->get_group_id(0))),
+                IntVectND<dim>(static_cast<int>(m_item->get_group(2)),
+                               static_cast<int>(m_item->get_group(1)),
+                               static_cast<int>(m_item->get_group(0))),
                 m_blockid
             );
         }
