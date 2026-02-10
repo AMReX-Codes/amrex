@@ -620,7 +620,7 @@ public:
             {
                 ReduceTuple r;
                 Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
-                ReduceTuple& dst = pdst[blockIdx.x];
+                ReduceTuple& dst = pdst[lh.blockIdx1D()];
                 if (lh.threadIdx1D() == 0) {
                     dst = r;
                 }
@@ -815,7 +815,6 @@ public:
         }
 
         using ReduceTuple = typename D::Type;
-        auto const& stream = Gpu::gpuStream();
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
 #if defined(AMREX_USE_SYCL)
@@ -1019,7 +1018,7 @@ bool AnyOf (N n, T const* v, P const& pred)
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0
                 AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
-            if (threadIdx.x == 0 && r) *dp = 1;
+            if (lh.threadIdx1D() == 0 && r) *dp = 1;
         }
     });
     return ds.dataValue();
