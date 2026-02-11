@@ -280,7 +280,7 @@ ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
     int rank   = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();
 
-    using MyParConstIter = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt>;
+    using MyParConstIter = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 
     //
     // blueprint expects unique ids for each domain published
