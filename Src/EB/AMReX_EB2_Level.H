@@ -11,7 +11,9 @@
 #include <AMReX_Array.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
-#include <AMReX_MarchingCubes.H>
+#if (AMREX_SPACEDIM == 3)
+#  include <AMReX_MarchingCubes.H>
+#endif
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
 #include <AMReX_EB2_IF_AllRegular.H>
@@ -91,7 +93,9 @@ protected:
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiFab m_sdf;
+#if (AMREX_SPACEDIM == 3)
     std::map<int,std::unique_ptr<MC::MCFab>> m_marching_cubes;
+#endif
     MultiGFab m_mgf;
     MultiFab m_levelset;
     FabArray<EBCellFlagFab> m_cellflag;
