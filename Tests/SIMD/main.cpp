@@ -240,7 +240,7 @@ int main (int argc, char* argv[])
             constexpr int n = 10;
             Vector<ParticleReal> data(n, ParticleReal(42));
             auto* ptr = data.data();
-            ParticleReal val = ParticleReal(99);
+            auto val = ParticleReal(99);
 
             // ValType (ParticleReal) == T (ParticleReal) → must be a no-op
             simd::store_1d<&func_mc, 0>(val, ptr, 0);

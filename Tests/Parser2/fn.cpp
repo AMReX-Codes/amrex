@@ -1,6 +1,8 @@
 #include <AMReX.H>
 #include <cmath>
 
+// NOLINTBEGIN
+
 // This is intentional. Cannot have std:: in amrex::Parser expressions.
 using std::sin;
 using std::atan2;
@@ -223,3 +225,5 @@ double f (int icase, double x, double y, double z)
         return 0.0;
     }
 }
+
+// NOLINTEND

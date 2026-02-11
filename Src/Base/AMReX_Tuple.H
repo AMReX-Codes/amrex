@@ -281,6 +281,7 @@ namespace detail {
         using type = typename tuple_cat_result<GpuTuple<T1s..., T2s...>, TPs...>::type;
     };
 
+    // NOLINTNEXTLINE(misc-confusable-identifiers)
     template <typename R, typename TP1, typename TP2, std::size_t... N1, std::size_t... N2>
     AMREX_GPU_HOST_DEVICE constexpr R
     make_tuple (TP1 const& a, TP2 const& b,

@@ -472,7 +472,7 @@ struct alignas(sizeof(double)) Particle
     RealType& rdata (int index) &
     {
         AMREX_ASSERT(index < NReal);
-        return this->m_rdata[index];
+        return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>

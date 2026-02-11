@@ -59,6 +59,7 @@ Checks: >
        -readability-math-missing-parentheses,
        -readability-named-parameter,
        -readability-redundant-casting,
+       -readability-redundant-member-init,
        -readability-static-accessed-through-instance,
        -readability-simplify-boolean-expr,
        -readability-use-concise-preprocessor-directives,
