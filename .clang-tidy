@@ -62,6 +62,7 @@ Checks: >
        -readability-static-accessed-through-instance,
        -readability-simplify-boolean-expr,
        -readability-use-concise-preprocessor-directives,
+       -readability-use-std-min-max,
      mpi-*
     '
 
