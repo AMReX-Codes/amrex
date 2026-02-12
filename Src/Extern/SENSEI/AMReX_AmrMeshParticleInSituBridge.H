@@ -46,7 +46,7 @@ public:
     const std::map<std::string, int> & particles_iArrays = {});
 };
 
-template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int AmrMeshParticleInSituBridge::update(
   long step, double time,
   amrex::AmrMesh *mesh,

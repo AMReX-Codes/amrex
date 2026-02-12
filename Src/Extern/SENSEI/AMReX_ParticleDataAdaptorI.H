@@ -18,7 +18,7 @@
 namespace amrex
 {
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>*
 ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::New()
 {
@@ -29,7 +29,7 @@ ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::New()
 // senseiNewMacro(ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>);
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::SetDataSource(
     amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> * particles,
     const std::map<std::string, std::vector<int>> & rStructs,
@@ -52,7 +52,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::SetData
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::SetArrayNames(
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
@@ -143,7 +143,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::SetArra
   return 0;
 }
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetNumberOfMeshes(unsigned int &numMeshes)
 {
   numMeshes = 1;
@@ -152,7 +152,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetNumb
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshName(
   unsigned int id, std::string &meshName)
 {
@@ -163,7 +163,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshHasGhostNodes(
   const std::string &meshName,
   int &nLayers)
@@ -175,7 +175,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshHasGhostCells(
   const std::string &meshName,
   int &nLayers)
@@ -187,7 +187,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetNumberOfArrays(
   const std::string &meshName,
   int association,
@@ -206,7 +206,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetNumb
 #endif
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR < 3
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetArrayName(
   const std::string &meshName,
   int association,
@@ -249,7 +249,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetArra
 #endif
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh(
   const std::string &meshName,
   bool structureOnly,
@@ -284,7 +284,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddGhostNodesArray(
   svtkDataObject*,
   const std::string &meshName)
@@ -298,7 +298,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddGhos
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddGhostCellsArray(
   svtkDataObject*,
   const std::string &meshName)
@@ -312,7 +312,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddGhos
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddArray(
   svtkDataObject* mesh,
   const std::string &meshName,
@@ -356,7 +356,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddArra
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::ReleaseData()
 {
   this->m_particles = nullptr;
@@ -365,7 +365,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::Release
 
 //-----------------------------------------------------------------------------
 #if SENSEI_VERSION_MAJOR >= 3
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshMetadata(
   unsigned int id,
   sensei::MeshMetadataPtr &metadata)
@@ -645,7 +645,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh
 #endif
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::BuildParticles()
 {
   // return particle data pd
@@ -729,7 +729,7 @@ svtkPolyData* ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddParticlesIDArray(
   svtkDataObject* mesh)
 {
@@ -773,7 +773,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddParticlesCPUArray(
   svtkDataObject* mesh)
 {
@@ -816,7 +816,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddParticlesSOARealArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
@@ -903,7 +903,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddParticlesSOAIntArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
@@ -974,7 +974,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddParticlesAOSRealArray(
   const std::string &arrayName,
   svtkDataObject* mesh)
@@ -1064,7 +1064,7 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddPart
 }
 
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddParticlesAOSIntArray(
   const std::string &arrayName,
   svtkDataObject* mesh)

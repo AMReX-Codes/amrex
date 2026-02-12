@@ -39,7 +39,7 @@ public:
     const std::map<std::string, int> & particles_iArrays = {});
 };
 
-template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int ParticleInSituBridge::update(
   const double time,
   const int time_step,
