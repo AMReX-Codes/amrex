@@ -3,22 +3,22 @@
 namespace amrex
 {
 //-----------------------------------------------------------------------------
-template <typename ParticleType, int NArrayReal, int NArrayInt>
-AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>*
-AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New()
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>*
+AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::New()
 {
-  auto result = new AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>;
+  auto result = new AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>;
   result->InitializeObjectBase();
   return result;
 }
 
 //-----------------------------------------------------------------------------
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetDataSource(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::SetDataSource(
   AmrMesh *mesh,
   const std::vector<amrex::Vector<amrex::MultiFab>*> &mesh_states,
   const std::vector<std::vector<std::string>> &mesh_names,
-  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> * particles,
   const std::map<std::string, std::vector<int>> & rStructs,
   const std::map<std::string, int> & iStructs,
   const std::map<std::string, std::vector<int>> & rArrays,
@@ -31,8 +31,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::SetDataSour
 
 // SENSEI API
 #if SENSEI_VERSION_MAJOR >= 3
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMetadata(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshMetadata(
   unsigned int id,
   sensei::MeshMetadataPtr &metadata)
 {
@@ -49,8 +49,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshMeta
 }
 
 #else
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshName(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshName(
   unsigned int id,
   std::string &meshName)
 {
@@ -66,8 +66,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshName
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostNodes(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshHasGhostNodes(
   const std::string &meshName, int &nLayers)
 {
   if(id == 0)
@@ -82,8 +82,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasG
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasGhostCells(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMeshHasGhostCells(
   const std::string &meshName, int &nLayers)
 {
   if(id == 0)
@@ -98,8 +98,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMeshHasG
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfArrays(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetNumberOfArrays(
   const std::string &meshName,
   int association,
   unsigned int &numberOfArrays)
@@ -116,8 +116,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOf
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetArrayName(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetArrayName(
   const std::string &meshName,
   int association,
   unsigned int index,
@@ -136,16 +136,16 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetArrayNam
 }
 #endif
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetNumberOfMeshes(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetNumberOfMeshes(
   unsigned int &numMeshes)
 {
   numMeshes = 2;
   return 0;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMesh(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::GetMesh(
   const std::string &meshName,
   bool structureOnly,
   svtkDataObject *&mesh)
@@ -162,8 +162,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::GetMesh(
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostNodesArray(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddGhostNodesArray(
   svtkDataObject* mesh,
   const std::string &meshName)
 {
@@ -179,8 +179,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostNod
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostCellsArray(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddGhostCellsArray(
   svtkDataObject* mesh,
   const std::string &meshName)
 {
@@ -196,8 +196,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddGhostCel
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddArray(
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddArray(
   svtkDataObject* mesh,
   const std::string &meshName,
   int association,
@@ -215,8 +215,8 @@ int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::AddArray(
   return -1;
 }
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
-int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::ReleaseData()
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
+int AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::ReleaseData()
 {
   this->m_particleAdaptor->ReleaseData();
   this->m_meshAdaptor->ReleaseData();
