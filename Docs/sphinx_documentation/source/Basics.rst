@@ -500,7 +500,7 @@ TOML-Like Features
 Our :cpp:`ParmParse` format is somewhat similar to TOML. A subset of TOML
 can be processed by :cpp:`ParmParse`. For a key/value pair, the key starts
 with an alphabetical letter (a-zA-Z) followed by zero or more allowed
-characters (alphabetical letters, numbers, `_`, `-`, and `.`).
+characters (alphabetical letters, numbers, ``_``, ``-``, and ``.``).
 
 In TOML, the same key cannot appear more than once. In :cpp:`ParmParse`,
 this is allowed and the last one will overwrite previous ones.
@@ -513,7 +513,7 @@ this is allowed and the last one will overwrite previous ones.
    a = 1
    a = 2
 
-In :cpp:`ParmParse`, quotes (`"`) are optional for strings, whereas in TOML
+In :cpp:`ParmParse`, quotes (``"``) are optional for strings, whereas in TOML
 they are required. In :cpp:`ParmParse`, a basic string is a raw string. For
 compatibility, you should avoid special escape sequences in strings. UTF-8
 strings are allowed, but it might be better to avoid them unless it's
@@ -522,9 +522,18 @@ absolutely necessary.
 In TOML, arrays are values inside square brackets and they can be
 nested. :cpp:`ParmParse` supports TOML-like arrays and arrays of arrays, but
 not more deeply nested arrays. :cpp:`ParmParse` also does not support mixed
-types in an array.
+types in an array. Although math expressions are allowed in
+:cpp:`ParmParse`'s native array format, they are not allowed in arrays
+started by square brackets.
 
-Table in TOML are started by headers (e.g., `[amr]` in a line). By default,
+.. highlight:: python
+
+::
+
+  a = [3+4, 5+6] # Not allowed
+  b = 3+4  5+6  # Allowed in ParmParse, but not in TOML. Same as b = [7,11].
+
+Table in TOML are started by headers (e.g., ``[amr]`` in a line). By default,
 an entry before the table header is in the nameless top level table. Once a
 table header is defined, it will continue until another one is introduced.
 
