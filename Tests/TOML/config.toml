@@ -106,7 +106,7 @@ v = 2
 
 # In TOML, this defines x.FILE = "config-2.toml". In ParmParse, FILE is a
 # special keyword. It will include "config-2.toml". The current table
-# environment is not affect in any way by the inclusion.
+# environment is not affected in any way by the inclusion.
 FILE = "config-2.toml"
 
 [fruit]
