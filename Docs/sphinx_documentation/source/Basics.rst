@@ -590,6 +590,15 @@ in :cpp:`ParmParse`. If you want compatibility with TOML, you should avoid it.
    [a]
    b = 2
 
+Including Another File
+----------------------
+
+In :cpp:`ParmParse`, you can use ``FILE = another_file`` to add the contents
+in another file into the :cpp:`ParmParse` database of key/value pairs. Note
+that TOML-like table headers defined in the included file have no effect on
+the current environment. Likewise, the included file also does not inherit
+the active table header from the including file.
+
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
 
