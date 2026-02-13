@@ -9,9 +9,9 @@
 
 #if (AMREX_SPACEDIM != 2)
 
-# The purpose of the macro here is we that can test the case with [table-1]
+# The purpose of the macro here is that we can test the case with [table-1]
 # as the first entry. TOML will treat the CPP macros as comments. So it's
-# okay to have it here.
+# okay to have it here for ParmParse only.
 
 ### Keys
 
@@ -38,8 +38,9 @@ a.str2 = "Roses are red\nViolets are blue"
 # string above is treated as a raw string. So str and str2 are not exactly
 # the same.
 
-# In TOML, an unescaped backslash (\) as the last character of a line has
-# a special meaning. This is not supported in ParmParse.
+# In TOML, an unescaped backslash (\) as the last character of a line has a
+# special meaning in multi-line strings started by `"""`. This is not
+# supported in ParmParse.
 
 # You can write a quotation mark, or two adjacent quotation marks, anywhere
 # inside a multi-line basic string
@@ -60,7 +61,7 @@ integers = [ 1, 2, 3 ]
 colors = [ "red", "yellow", "green" ]
 # If [] is used for an array of strings, quotes must be used even though
 # ParmParse does allow
-# colors = red yellow green # ParmParse only format
+# colors = red yellow green # ParmParse-only format
 
 # Arrays can be nested. ParmParse only supports array of array, not more
 # deeply nested arrays, and the strings in the array cannot have '[' or

@@ -522,9 +522,23 @@ absolutely necessary.
 In TOML, arrays are values inside square brackets and they can be
 nested. :cpp:`ParmParse` supports TOML-like arrays and arrays of arrays, but
 not more deeply nested arrays. :cpp:`ParmParse` also does not support mixed
-types in an array. Although math expressions are allowed in
-:cpp:`ParmParse`'s native array format, they are not allowed in arrays
-started by square brackets.
+types in an array. For arrays of strings using the ``[]`` syntax, you should
+avoid ``[`` or ``]`` as part of the strings. If, however, this is a desired
+feature, we could try to support it in the future.
+
+.. highlight:: python
+
+::
+
+  # valid in TOML, but not in ParmParse because of [] in the string
+  a = ["x[y]z", "123"]
+
+  # valid in ParmParse, but not in TOML
+  a = x[y]z 123
+  b = "x[y]z" "123"
+
+Although math expressions are allowed in :cpp:`ParmParse`'s native array
+format, they are not allowed in arrays started by square brackets.
 
 .. highlight:: python
 
