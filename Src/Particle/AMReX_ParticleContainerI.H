@@ -2563,7 +2563,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         lev_max = finestLevel();
     }
 
-    return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+    return (m_dummy_mf.size() >= lev_max+1 && numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
