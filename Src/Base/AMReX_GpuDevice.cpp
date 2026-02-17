@@ -164,6 +164,10 @@ StreamManager::sync () {
     try {
         m_stream.queue->wait_and_throw();
     } catch (sycl::exception const& ex) {
+        for (auto [arena, mem] : new_empty_wait_list) {
+            arena->free(mem);
+        }
+        new_empty_wait_list.clear();
         amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
     }
 #else
