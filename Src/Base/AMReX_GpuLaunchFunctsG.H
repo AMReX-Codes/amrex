@@ -151,10 +151,18 @@ namespace detail {
 template <typename L>
 void single_task (gpuStream_t stream, L const& f) noexcept
 {
+    detail::SyclKernelDevPtr<L> skdp(f, stream);
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     auto& q = *(stream.queue);
     try {
         q.submit([&] (sycl::handler& h) {
-            h.single_task(f);
+            if constexpr (detail::is_big_kernel<L>()) {
+                h.single_task(*pf);
+            } else {
+                h.single_task(f);
+            }
         });
     } catch (sycl::exception const& ex) {
         amrex::Abort(std::string("single_task: ")+ex.what()+"!!!!!");
@@ -165,6 +173,10 @@ template<typename L>
 void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
              gpuStream_t stream, L const& f) noexcept
 {
+    detail::SyclKernelDevPtr<L> skdp(f, stream);
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto nthreads_total = std::size_t(nthreads_per_block) * nblocks;
     const std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
         / sizeof(unsigned long long);
@@ -178,7 +190,11 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
             [=] (sycl::nd_item<1> item)
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                if constexpr (detail::is_big_kernel<L>()) {
+                    (*pf)(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                } else {
+                    f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                }
             });
         });
     } catch (sycl::exception const& ex) {
@@ -189,6 +205,10 @@ void launch (int nblocks, int nthreads_per_block, std::size_t shared_mem_bytes,
 template<typename L>
 void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L const& f) noexcept
 {
+    detail::SyclKernelDevPtr<L> skdp(f, stream);
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto nthreads_total = std::size_t(nthreads_per_block) * nblocks;
     auto& q = *(stream.queue);
     try {
@@ -198,7 +218,11 @@ void launch (int nblocks, int nthreads_per_block, gpuStream_t stream, L const& f
             [=] (sycl::nd_item<1> item)
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(item);
+                if constexpr (detail::is_big_kernel<L>()) {
+                    (*pf)(item);
+                } else {
+                    f(item);
+                }
             });
         });
     } catch (sycl::exception const& ex) {
@@ -210,6 +234,10 @@ template <int MT, typename L>
 void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
              L const& f) noexcept
 {
+    detail::SyclKernelDevPtr<L> skdp(f, stream);
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto nthreads_total = MT * std::size_t(nblocks);
     const std::size_t shared_mem_numull = (shared_mem_bytes+sizeof(unsigned long long)-1)
         / sizeof(unsigned long long);
@@ -224,7 +252,11 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
             [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                if constexpr (detail::is_big_kernel<L>()) {
+                    (*pf)(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                } else {
+                    f(Gpu::Handler{&item,shared_data.get_multi_ptr<sycl::access::decorated::yes>().get()});
+                }
             });
         });
     } catch (sycl::exception const& ex) {
@@ -235,6 +267,10 @@ void launch (int nblocks, std::size_t shared_mem_bytes, gpuStream_t stream,
 template <int MT, typename L>
 void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
 {
+    detail::SyclKernelDevPtr<L> skdp(f, stream);
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto nthreads_total = MT * std::size_t(nblocks);
     auto& q = *(stream.queue);
     try {
@@ -245,7 +281,11 @@ void launch (int nblocks, gpuStream_t stream, L const& f) noexcept
             [[sycl::reqd_work_group_size(MT)]]
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
-                f(item);
+                if constexpr (detail::is_big_kernel<L>()) {
+                    (*pf)(item);
+                } else {
+                    f(item);
+                }
             });
         });
     } catch (sycl::exception const& ex) {
@@ -257,6 +297,11 @@ template<int MT, typename T, typename L>
 void launch (T const& n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * ec.numBlocks.x;
@@ -270,7 +315,11 @@ void launch (T const& n, L const& f) noexcept
             [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
             {
                 for (auto const i : Gpu::Range(n,item.get_global_id(0),item.get_global_range(0))) {
-                    f(i);
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        (*pf)(i);
+                    } else {
+                        f(i);
+                    }
                 }
             });
         });
@@ -283,6 +332,11 @@ template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_in
 void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto ec = Gpu::makeExecutionConfig<MT>(n);
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * ec.numBlocks.x;
@@ -302,8 +356,15 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
                          i < std::size_t(n); i += stride) {
                         int n_active_threads = amrex::min(std::size_t(n)-i+item.get_local_id(0),
                                                           item.get_local_range(0));
-                        detail::call_f_scalar_handler(f, T(i), Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
+                        if constexpr (detail::is_big_kernel<L>()) {
+                            detail::call_f_scalar_handler(*pf, T(i),
+                                                          Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
                                                           n_active_threads});
+                        } else {
+                            detail::call_f_scalar_handler(f, T(i),
+                                                          Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
+                                                          n_active_threads});
+                        }
                     }
                 });
             });
@@ -317,7 +378,11 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L const& f) noexcept
                 {
                     for (std::size_t i = item.get_global_id(0), stride = item.get_global_range(0);
                          i < std::size_t(n); i += stride) {
-                        detail::call_f_scalar_handler(f, T(i), Gpu::Handler{&item});
+                        if constexpr (detail::is_big_kernel<L>()) {
+                            detail::call_f_scalar_handler(*pf, T(i), Gpu::Handler{&item});
+                        } else {
+                            detail::call_f_scalar_handler(f, T(i), Gpu::Handler{&item});
+                        }
                     }
                 });
             });
@@ -331,6 +396,11 @@ template <int MT, typename L, int dim>
 void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const BoxIndexerND<dim> indexer(box);
     const auto ec = Gpu::makeExecutionConfig<MT>(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
@@ -352,8 +422,17 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
                         auto iv = indexer.intVect(icell);
                         int n_active_threads = amrex::min(indexer.numPts()-icell+std::uint64_t(item.get_local_id(0)),
                                                           std::uint64_t(item.get_local_range(0)));
-                        detail::call_f_intvect_handler(f, iv, Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
-                                                                n_active_threads});
+                        if constexpr (detail::is_big_kernel<L>()) {
+                            detail::call_f_intvect_handler(*pf,
+                                                           iv, Gpu::Handler{&item,
+                                                               shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
+                                                               n_active_threads});
+                        } else {
+                            detail::call_f_intvect_handler(f,
+                                                           iv, Gpu::Handler{&item,
+                                                               shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
+                                                               n_active_threads});
+                        }
                     }
                 });
             });
@@ -368,7 +447,11 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L const& f
                     for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < indexer.numPts(); icell += stride) {
                         auto iv = indexer.intVect(icell);
-                        detail::call_f_intvect_handler(f,iv,Gpu::Handler{&item});
+                        if constexpr (detail::is_big_kernel<L>()) {
+                            detail::call_f_intvect_handler(*pf,iv,Gpu::Handler{&item});
+                        } else {
+                            detail::call_f_intvect_handler(f,iv,Gpu::Handler{&item});
+                        }
                     }
                 });
             });
@@ -382,6 +465,11 @@ template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<s
 void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const BoxIndexerND<dim> indexer(box);
     const auto ec = Gpu::makeExecutionConfig<MT>(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
@@ -403,9 +491,15 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
                         auto iv = indexer.intVect(icell);
                         int n_active_threads = amrex::min(indexer.numPts()-icell+std::uint64_t(item.get_local_id(0)),
                                                           std::uint64_t(item.get_local_range(0)));
-                        detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
-                                       Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
-                                                    n_active_threads});
+                        if constexpr (detail::is_big_kernel<L>()) {
+                            detail::call_f_intvect_ncomp_handler(*pf, iv, ncomp,
+                                                                 Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
+                                                                     n_active_threads});
+                        } else {
+                            detail::call_f_intvect_ncomp_handler(f, iv, ncomp,
+                                                                 Gpu::Handler{&item, shared_data.get_multi_ptr<sycl::access::decorated::yes>().get(),
+                                                                     n_active_threads});
+                        }
                     }
                 });
             });
@@ -420,7 +514,11 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
                     for (std::uint64_t icell = item.get_global_id(0), stride = item.get_global_range(0);
                          icell < indexer.numPts(); icell += stride) {
                         auto iv = indexer.intVect(icell);
-                        detail::call_f_intvect_ncomp_handler(f,iv,ncomp,Gpu::Handler{&item});
+                        if constexpr (detail::is_big_kernel<L>()) {
+                            detail::call_f_intvect_ncomp_handler(*pf,iv,ncomp,Gpu::Handler{&item});
+                        } else {
+                            detail::call_f_intvect_ncomp_handler(f,iv,ncomp,Gpu::Handler{&item});
+                        }
                     }
                 });
             });
@@ -434,6 +532,11 @@ template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v
 void ParallelForRNG (T n, L const& f) noexcept
 {
     if (amrex::isEmpty(n)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const auto ec = Gpu::ExecutionConfig(n);
     const auto nthreads_per_block = ec.numThreads.x;
     const auto nthreads_total = std::size_t(nthreads_per_block) * amrex::min(ec.numBlocks.x,Gpu::Device::maxBlocksPerLaunch());
@@ -452,7 +555,11 @@ void ParallelForRNG (T n, L const& f) noexcept
                 auto engine = engine_acc.load(tid);
                 RandomEngine rand_eng{&engine};
                 for (std::size_t i = tid, stride = item.get_global_range(0); i < std::size_t(n); i += stride) {
-                    f(T(i),rand_eng);
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        (*pf)(T(i),rand_eng);
+                    } else {
+                        f(T(i),rand_eng);
+                    }
                 }
                 engine_acc.store(engine, tid);
             });
@@ -467,6 +574,11 @@ template <typename L, int dim>
 void ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const BoxIndexerND<dim> indexer(box);
     const auto ec = Gpu::ExecutionConfig(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
@@ -488,7 +600,11 @@ void ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
                 for (std::uint64_t icell = tid, stride = item.get_global_range(0);
                      icell < indexer.numPts(); icell += stride) {
                     auto iv = indexer.intVect(icell);
-                    detail::call_f_intvect_engine(f,iv,rand_eng);
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        detail::call_f_intvect_engine(*pf,iv,rand_eng);
+                    } else {
+                        detail::call_f_intvect_engine(f,iv,rand_eng);
+                    }
                 }
                 engine_acc.store(engine, tid);
             });
@@ -503,6 +619,11 @@ template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_i
 void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
 {
     if (amrex::isEmpty(box)) { return; }
+
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     const BoxIndexerND<dim> indexer(box);
     const auto ec = Gpu::ExecutionConfig(box.numPts());
     const auto nthreads_per_block = ec.numThreads.x;
@@ -524,7 +645,11 @@ void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
                 for (std::uint64_t icell = tid, stride = item.get_global_range(0);
                      icell < indexer.numPts(); icell += stride) {
                     auto iv = indexer.intVect(icell);
-                    detail::call_f_intvect_ncomp_engine(f,iv,ncomp,rand_eng);
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        detail::call_f_intvect_ncomp_engine(*pf,iv,ncomp,rand_eng);
+                    } else {
+                        detail::call_f_intvect_ncomp_engine(f,iv,ncomp,rand_eng);
+                    }
                 }
                 engine_acc.store(engine, tid);
             });
@@ -536,9 +661,15 @@ void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
 }
 
 template <int MT, typename L1, typename L2, int dim>
-void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2) noexcept
+void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND<dim> const& box2, L1 const& f1, L2 const& f2) noexcept
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
+
+    detail::SyclKernelDevPtr<L1,L2> skdp(f1, f2, Gpu::gpuStream());
+    L1 const* pf1 = skdp.template get<0>();
+    L2 const* pf2 = skdp.template get<1>();
+    amrex::ignore_unused(pf1,pf2);
+
     const BoxIndexerND<dim> indexer1(box1);
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(), box2.numPts()));
@@ -558,11 +689,19 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        detail::call_f_intvect(f1,iv);
+                        if constexpr (detail::is_big_kernel<L1,L2>()) {
+                            detail::call_f_intvect(*pf1,iv);
+                        } else {
+                            detail::call_f_intvect(f1,iv);
+                        }
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        detail::call_f_intvect(f2,iv);
+                        if constexpr (detail::is_big_kernel<L1,L2>()) {
+                            detail::call_f_intvect(*pf2,iv);
+                        } else {
+                            detail::call_f_intvect(f2,iv);
+                        }
                     }
                 }
             });
@@ -575,9 +714,16 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/, BoxND<dim> const& box1, BoxND
 template <int MT, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
-                  L1&& f1, L2&& f2, L3&& f3) noexcept
+                  L1 const& f1, L2 const& f2, L3 const& f3) noexcept
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
+
+    detail::SyclKernelDevPtr<L1,L2,L3> skdp(f1, f2, f3, Gpu::gpuStream());
+    L1 const* pf1 = skdp.template get<0>();
+    L2 const* pf2 = skdp.template get<1>();
+    L3 const* pf3 = skdp.template get<2>();
+    amrex::ignore_unused(pf1,pf2,pf3);
+
     const BoxIndexerND<dim> indexer1(box1);
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
@@ -598,15 +744,27 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        detail::call_f_intvect(f1,iv);
+                        if constexpr (detail::is_big_kernel<L1,L2,L3>()) {
+                            detail::call_f_intvect(*pf1,iv);
+                        } else {
+                            detail::call_f_intvect(f1,iv);
+                        }
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        detail::call_f_intvect(f2,iv);
+                        if constexpr (detail::is_big_kernel<L1,L2,L3>()) {
+                            detail::call_f_intvect(*pf2,iv);
+                        } else {
+                            detail::call_f_intvect(f2,iv);
+                        }
                     }
                     if (icell < indexer3.numPts()) {
                         auto iv = indexer3.intVect(icell);
-                        detail::call_f_intvect(f3,iv);
+                        if constexpr (detail::is_big_kernel<L1,L2,L3>()) {
+                            detail::call_f_intvect(*pf3,iv);
+                        } else {
+                            detail::call_f_intvect(f3,iv);
+                        }
                     }
                 }
             });
@@ -620,10 +778,16 @@ template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
           typename M1=std::enable_if_t<std::is_integral_v<T1>>,
           typename M2=std::enable_if_t<std::is_integral_v<T2>> >
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
-                  BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
-                  BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
+                  BoxND<dim> const& box1, T1 ncomp1, L1 const& f1,
+                  BoxND<dim> const& box2, T2 ncomp2, L2 const& f2) noexcept
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
+
+    detail::SyclKernelDevPtr<L1,L2> skdp(f1, f2, Gpu::gpuStream());
+    L1 const* pf1 = skdp.template get<0>();
+    L2 const* pf2 = skdp.template get<1>();
+    amrex::ignore_unused(pf1,pf2);
+
     const BoxIndexerND<dim> indexer1(box1);
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(),box2.numPts()));
@@ -643,11 +807,19 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        detail::call_f_intvect_ncomp(f1,iv,ncomp1);
+                        if constexpr (detail::is_big_kernel<L1,L2>()) {
+                            detail::call_f_intvect_ncomp(*pf1,iv,ncomp1);
+                        } else {
+                            detail::call_f_intvect_ncomp(f1,iv,ncomp1);
+                        }
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        detail::call_f_intvect_ncomp(f2,iv,ncomp2);
+                        if constexpr (detail::is_big_kernel<L1,L2>()) {
+                            detail::call_f_intvect_ncomp(*pf2,iv,ncomp2);
+                        } else {
+                            detail::call_f_intvect_ncomp(f2,iv,ncomp2);
+                        }
                     }
                 }
             });
@@ -662,11 +834,18 @@ template <int MT, typename T1, typename T2, typename T3, typename L1, typename L
           typename M2=std::enable_if_t<std::is_integral_v<T2>>,
           typename M3=std::enable_if_t<std::is_integral_v<T3>> >
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
-                  BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
-                  BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
-                  BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
+                  BoxND<dim> const& box1, T1 ncomp1, L1 const& f1,
+                  BoxND<dim> const& box2, T2 ncomp2, L2 const& f2,
+                  BoxND<dim> const& box3, T3 ncomp3, L3 const& f3) noexcept
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
+
+    detail::SyclKernelDevPtr<L1,L2,L3> skdp(f1, f2, f3, Gpu::gpuStream());
+    L1 const* pf1 = skdp.template get<0>();
+    L2 const* pf2 = skdp.template get<1>();
+    L3 const* pf3 = skdp.template get<2>();
+    amrex::ignore_unused(pf1,pf2,pf3);
+
     const BoxIndexerND<dim> indexer1(box1);
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
@@ -687,15 +866,27 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
                      icell < ncells; icell += stride) {
                     if (icell < indexer1.numPts()) {
                         auto iv = indexer1.intVect(icell);
-                        detail::call_f_intvect_ncomp(f1,iv,ncomp1);
+                        if constexpr (detail::is_big_kernel<L1,L2,L3>()) {
+                            detail::call_f_intvect_ncomp(*pf1,iv,ncomp1);
+                        } else {
+                            detail::call_f_intvect_ncomp(f1,iv,ncomp1);
+                        }
                     }
                     if (icell < indexer2.numPts()) {
                         auto iv = indexer2.intVect(icell);
-                        detail::call_f_intvect_ncomp(f2,iv,ncomp2);
+                        if constexpr (detail::is_big_kernel<L1,L2,L3>()) {
+                            detail::call_f_intvect_ncomp(*pf2,iv,ncomp2);
+                        } else {
+                            detail::call_f_intvect_ncomp(f2,iv,ncomp2);
+                        }
                     }
                     if (icell < indexer3.numPts()) {
                         auto iv = indexer3.intVect(icell);
-                        detail::call_f_intvect_ncomp(f3,iv,ncomp3);
+                        if constexpr (detail::is_big_kernel<L1,L2,L3>()) {
+                            detail::call_f_intvect_ncomp(*pf3,iv,ncomp3);
+                        } else {
+                            detail::call_f_intvect_ncomp(f3,iv,ncomp3);
+                        }
                     }
                 }
             });

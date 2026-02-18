@@ -11,6 +11,7 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuMemory.H>
 #include <AMReX_GpuReduce.H>
+#include <AMReX_Arena.H>
 #include <AMReX_Tuple.H>
 #include <AMReX_Box.H>
 #include <AMReX_Loop.H>
@@ -212,6 +213,80 @@ namespace Gpu {
 
 }
 }
+
+#ifdef AMREX_USE_SYCL
+/// \cond DOXYGEN_IGNORE
+namespace amrex::detail {
+
+    template <typename... L> constexpr bool is_big_kernel () {
+        return (sizeof(L) + ... + 0) > 1792;
+    }
+
+    template <typename... L>
+    struct SyclKernelDevPtr
+    {
+        using Ls = GpuTuple<L...>;
+        Ls* m_dp = nullptr;
+        Ls* m_hp = nullptr;
+        gpuStream_t m_stream;
+
+        SyclKernelDevPtr (L const&... f, gpuStream_t const& stream)
+            : m_stream(stream)
+        {
+            if constexpr (is_big_kernel<L...>()) {
+                std::size_t sz = sizeof(Ls);
+                m_dp = (Ls*)The_Arena()->alloc(sz);
+                m_hp = (Ls*)The_Pinned_Arena()->alloc(sz);
+                new (m_hp) Ls(f...);
+                auto* l_hp = (void const*)m_hp;
+                auto* l_dp = (void*)m_dp;
+                stream.queue->submit([&] (sycl::handler& h) {
+                    h.memcpy(l_dp, l_hp, sz);
+                });
+            } else {
+                amrex::ignore_unused(f...);
+            }
+        }
+
+        ~SyclKernelDevPtr ()
+        {
+            if constexpr (is_big_kernel<Ls>()) {
+                try {
+                    m_stream.queue->wait_and_throw();
+                } catch (sycl::exception const& ex) {
+                    The_Arena()->free((void*)m_dp);
+                    m_hp->~Ls();
+                    The_Pinned_Arena()->free((void*)m_hp);
+                    m_dp = nullptr;
+                    m_hp = nullptr;
+                    amrex::Abort(std::string("~SyclKernelDevPtr: ")+ex.what());
+                }
+                if (m_dp) {
+                    The_Arena()->free((void*)m_dp);
+                }
+                if (m_hp) {
+                    The_Pinned_Arena()->free((void*)m_hp);
+                }
+            }
+        }
+
+        template <int N>
+        auto get () const
+        {
+            using pointer_t = std::add_pointer_t<
+                std::add_const_t<typename std::tuple_element<N, Ls>::type>>;
+            if (m_hp && m_dp) {
+                std::ptrdiff_t offset = (char*)(&(amrex::get<N>(*m_hp))) - (char*)m_hp;
+                return pointer_t((char const*)m_dp + offset);
+            } else {
+                return pointer_t(nullptr);
+            }
+        }
+    };
+
+}
+/// \endcond
+#endif
 
 
 #ifdef AMREX_USE_GPU
