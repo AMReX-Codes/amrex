@@ -122,9 +122,8 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             adjust_singular_matrix(ncols, cols, rows, mat);
         }
 
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        // Must sync before host API uses device-written data (rows, cols, mat).
+        Gpu::streamSynchronize();
         HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
             Gpu::hypreSynchronize();
         }
@@ -325,9 +324,8 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             });
         }
 
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();
-        }
+        // Must sync before host API uses device-written data (bvec).
+        Gpu::streamSynchronize();
         HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
             Gpu::hypreSynchronize();
         }

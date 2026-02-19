@@ -1505,17 +1505,15 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                          dcomp,
                                          m_scomp,
                                          m_ncomp);
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();  // In case this runs on GPU
-        }
+        // Must be unconditional: user kernels may write to fab (e.g. pinned); host may read.
+        Gpu::streamSynchronize();  // In case this runs on GPU
     }
 
     if (m_FixUpCorners)
     {
         FixUpPhysCorners(fab,*m_amrlevel,m_index,m_time,m_scomp,dcomp,m_ncomp);
-        if (!Gpu::inNoSyncRegion()) {
-            Gpu::streamSynchronize();  // In case this runs on GPU
-        }
+        // Must be unconditional: same as above.
+        Gpu::streamSynchronize();  // In case this runs on GPU
     }
 }
 

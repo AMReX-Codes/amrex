@@ -743,9 +743,8 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
             }
 
             if (need_sync) {
-                if (!Gpu::inNoSyncRegion()) {
-                    Gpu::streamSynchronize();
-                }
+                // Sync required: matfab.dataPtr() is passed to HYPRE host API below
+                Gpu::streamSynchronize();
             }
 
             HYPRE_Int vbxlo[] = {AMREX_D_DECL(vbx.smallEnd(0), vbx.smallEnd(1), vbx.smallEnd(2))};
@@ -946,9 +945,8 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                     tmp.resize(vbx, ncomp);
                     psol = tmp.dataPtr();
                     solsrc.template copyToMem<RunOn::Device>(vbx, 0, ncomp, psol);
-                    if (!Gpu::inNoSyncRegion()) {
-                        Gpu::streamSynchronize();
-                    }
+                    // Must sync before host API uses device-written data (psol).
+                    Gpu::streamSynchronize();
                 } else {
                     psol = solsrc.dataPtr();
                 }
@@ -973,9 +971,8 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 {
                     hypmlabeclap_rhs(i, j, k, boxlo, boxhi, rhs1, rhs0, bcmsk, bcrhs);
                 });
-                if (!Gpu::inNoSyncRegion()) {
-                    Gpu::streamSynchronize();
-                }
+                // Must sync before host API uses device-written data (prhs).
+                Gpu::streamSynchronize();
                 HYPRE_SStructVectorSetBoxValues(m_ss_b, ilev, vbxlo, vbxhi, ivar, prhs);
                 Gpu::hypreSynchronize();
             }
