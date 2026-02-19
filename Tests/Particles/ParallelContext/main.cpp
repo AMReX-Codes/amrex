@@ -222,6 +222,32 @@ public:
 #endif
                     });
                 }
+
+                amrex::ParallelFor(np,
+                    [=] AMREX_GPU_DEVICE (size_t i) noexcept
+                    {
+                        ParticleType& p = pstruct[i];
+                        auto old_id = p.id();
+                        auto new_id = 5000 + p.id();
+                        p.atomicSetID(new_id);
+#ifndef AMREX_USE_GPU
+                        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p.id() == new_id,
+                                                         "atomicSetID failed: expected " +
+                                                         std::to_string(new_id) + " but got " +
+                                                         std::to_string(p.id()));
+#else
+                        AMREX_ALWAYS_ASSERT(p.id() == new_id);
+#endif
+                        p.atomicSetID(new_id - 5000);
+#ifndef AMREX_USE_GPU
+                        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p.id() == old_id,
+                                                         "atomicSetID failed: expected " +
+                                                         std::to_string(old_id) + " but got " +
+                                                         std::to_string(p.id()));
+#else
+                        AMREX_ALWAYS_ASSERT(p.id() == old_id);
+#endif
+                    });
             }
         }
     }
@@ -244,7 +270,7 @@ public:
                 int gid = mfi.index();
                 int tid = mfi.LocalTileIndex();
                 const auto& ptile = plev.at(std::make_pair(gid, tid));
-                const auto ptd = ptile.getConstParticleTileData();
+                const auto& ptd = ptile.getConstParticleTileData();
                 const size_t np = ptile.numParticles();
 
                 AMREX_FOR_1D ( np, i,

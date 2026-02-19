@@ -254,13 +254,13 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, bool sort=false);
+    void buildNeighborList (CheckPair const& check_pair, bool sort=false);
 
     ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair, class OtherPCType>
-    void buildNeighborList (CheckPair&& check_pair, OtherPCType& other,
+    void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                             Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
 
@@ -268,11 +268,11 @@ public:
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair>
-    void buildNeighborList (CheckPair&& check_pair, int type_ind, int* ref_ratio,
+    void buildNeighborList (CheckPair const& check_pair, int type_ind, int* ref_ratio,
                             int num_bin_types=1, bool sort=false);
 
     template <class CheckPair>
-    void selectActualNeighbors (CheckPair&& check_pair, int num_cells=1);
+    void selectActualNeighbors (CheckPair const& check_pair, int num_cells=1);
 
     void printNeighborList ();
 
@@ -290,7 +290,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
@@ -300,7 +300,7 @@ public:
     }
 
     template <typename T,
-              typename std::enable_if<std::is_same<T,bool>::value,int>::type=0>
+              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
@@ -309,21 +309,22 @@ public:
         calcCommSize();
     }
 
-    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0)
+    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0,
+                       bool remove_negative=true)
     {
         clearNeighbors();
         ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-            ::Redistribute(lev_min, lev_max, nGrow, local);
+            ::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
-    void RedistributeLocal ()
+    void RedistributeLocal (bool remove_negative=true)
     {
         const int lev_min = 0;
         const int lev_max = 0;
         const int nGrow = 0;
         const int local = 1;
         clearNeighbors();
-        this->Redistribute(lev_min, lev_max, nGrow, local);
+        this->Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
 #ifdef AMREX_USE_GPU
@@ -401,7 +402,7 @@ protected:
     Vector<std::map<PairIndex, Vector<InverseCopyTag> > > inverse_tags;
     Vector<std::map<PairIndex, ParticleTile> > neighbors;
     Vector<std::map<PairIndex, IntVector> >      neighbor_list;
-    const size_t pdata_size = sizeof(ParticleType);
+    static constexpr size_t pdata_size = sizeof(ParticleType);
 
     static constexpr int num_mask_comps = 3;  //!< grid, tile, level
     size_t cdata_size;
@@ -467,7 +468,7 @@ protected:
     ParticleCopyPlan neighbor_copy_plan;
 
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
-    amrex::Gpu::DeviceVector<char> rcv_buffer;
+    amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
 
     Gpu::PinnedVector<char> pinned_snd_buffer;
     Gpu::PinnedVector<char> pinned_rcv_buffer;
@@ -482,6 +483,8 @@ protected:
     bool m_has_neighbors = false;
 };
 
+}
+
 #include "AMReX_NeighborParticlesI.H"
 
 #ifdef AMREX_USE_GPU
@@ -489,7 +492,5 @@ protected:
 #else
 #include "AMReX_NeighborParticlesCPUImpl.H"
 #endif
-
-}
 
 #endif // _NEIGHBORPARTICLES_H_

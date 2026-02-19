@@ -13,13 +13,13 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
     AMREX_ASSERT(OK(lev, lev, umac[0].nGrow()-1));
     AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
 
-    AMREX_D_TERM(AMREX_ASSERT(umac[0].nGrow() >= 1);,
-                 AMREX_ASSERT(umac[1].nGrow() >= 1);,
-                 AMREX_ASSERT(umac[2].nGrow() >= 1););
+    AMREX_ASSERT(AMREX_D_TERM(umac[0].nGrowVect().allGE(1),
+                           && umac[1].nGrowVect().allGE(1),
+                           && umac[2].nGrowVect().allGE(1)));
 
-    AMREX_D_TERM(AMREX_ASSERT(!umac[0].contains_nan());,
-                 AMREX_ASSERT(!umac[1].contains_nan());,
-                 AMREX_ASSERT(!umac[2].contains_nan()););
+    AMREX_ASSERT(AMREX_D_TERM(!umac[0].contains_nan(),
+                           && !umac[1].contains_nan(),
+                           && !umac[2].contains_nan()));
 
     const auto      strttime = amrex::second();
     const Geometry& geom     = m_gdb->Geom(lev);
@@ -73,7 +73,7 @@ TracerParticleContainer::AdvectWithUmac (MultiFab* umac, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p = p_pbox[i];
-                if (p.id() <= 0) { return; }
+                if (!p.id().is_valid()) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
                 mac_interpolate(p, plo, dxi, umacarr, v);
                 if (ipass == 0)
@@ -120,7 +120,7 @@ void
 TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
 {
     BL_PROFILE("TracerParticleContainer::AdvectWithUcc()");
-    AMREX_ASSERT(Ucc.nGrow() > 0);
+    AMREX_ASSERT(Ucc.nGrowVect().allGT(0));
     AMREX_ASSERT(OK(lev, lev, Ucc.nGrow()-1));
     AMREX_ASSERT(lev >= 0 && lev < GetParticles().size());
     AMREX_ASSERT(!Ucc.contains_nan());
@@ -151,7 +151,7 @@ TracerParticleContainer::AdvectWithUcc (const MultiFab& Ucc, int lev, Real dt)
                                [=] AMREX_GPU_DEVICE (int i)
             {
                 ParticleType& p  = p_pbox[i];
-                if (p.id() <= 0) { return; }
+                if (!p.id().is_valid()) { return; }
                 ParticleReal v[AMREX_SPACEDIM];
 
                 cic_interpolate(p, plo, dxi, uccarr, v);
@@ -223,7 +223,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
     // We'll spread the output over this many files.
     int nOutFiles(64);
     ParmParse pp("particles");
-    pp.queryAdd("particles_nfiles",nOutFiles);
+    pp.query("particles_nfiles",nOutFiles);
     if(nOutFiles == -1) {
       nOutFiles = NProcs;
     }
@@ -282,7 +282,6 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                   const FArrayBox& fab  = mf[grid];
                   auto uccarr = fab.array();
 
-                  amrex::Array4<amrex::Real const>* uccarr_ptr = &uccarr;
 #ifdef AMREX_USE_GPU
                   std::unique_ptr<FArrayBox> hostfab;
                   {
@@ -291,8 +290,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                       Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
                                              fab.size()*sizeof(Real));
                       Gpu::streamSynchronize();
-                      auto hostarr = hostfab->const_array();
-                      uccarr_ptr = &hostarr;
+                      uccarr = hostfab->const_array();
                   }
 #endif
 
@@ -300,7 +298,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                     {
                       const ParticleType& p = pbox[k];
 
-                      if (p.id() <= 0) { continue; }
+                      if (!p.id().is_valid()) { continue; }
 
                       const IntVect& iv = Index(p,lev);
 
@@ -322,7 +320,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                       if (M > 0)
                         {
-                          cic_interpolate(p, plo, dxi, *uccarr_ptr, vals.data(), M);
+                          cic_interpolate(p, plo, dxi, uccarr, vals.data(), M);
 
                           for (int i = 0; i < M; i++)
                             {

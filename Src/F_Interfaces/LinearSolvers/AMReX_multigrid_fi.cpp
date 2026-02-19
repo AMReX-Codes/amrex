@@ -103,7 +103,11 @@
 
      void amrex_fi_multigrid_set_always_use_bnorm (MLMG* mlmg, int f)
      {
-         mlmg->setAlwaysUseBNorm(f);
+         if (f != 0) {
+            mlmg->setConvergenceNormType(MLMGNormType::bnorm);
+         } else {
+            mlmg->setConvergenceNormType(MLMGNormType::greater);
+         }
      }
 
      void amrex_fi_multigrid_set_final_fill_bc (MLMG* mlmg, int f)

@@ -107,7 +107,9 @@ while ( false )
     void Initialize ();
     void Finalize ();
 
-    extern AMREX_EXPORT int use_gpu_aware_mpi;
+    /// \cond DOXYGEN_IGNORE
+    extern AMREX_EXPORT bool use_gpu_aware_mpi;
+    /// \endcond
     inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
@@ -120,12 +122,14 @@ while ( false )
     */
     void EndParallel ();
 
+    /// \ingroup amrex_mpi
     //! return the rank number local to the current Parallel Context
     inline int
     MyProc () noexcept
     {
         return ParallelContext::MyProcAll();
     }
+    /// \ingroup amrex_mpi
     inline int
     MyProc (MPI_Comm comm) noexcept
     {
@@ -189,6 +193,7 @@ while ( false )
         [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
         [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
+        /// \cond DOXYGEN_IGNORE
         int    m_numTeams;
         int    m_size;
         int    m_color;
@@ -198,46 +203,53 @@ while ( false )
 
         MPI_Comm  m_team_comm;
         MPI_Comm  m_lead_comm;
+        /// \endcond
     };
 
+    /// \cond DOXYGEN_IGNORE
     extern AMREX_EXPORT ProcessTeam m_Team;
-
     extern AMREX_EXPORT int m_MinTag, m_MaxTag;
+    extern AMREX_EXPORT MPI_Comm m_comm;
+    extern AMREX_EXPORT int m_nprocs_per_node;
+    extern AMREX_EXPORT int m_rank_in_node;
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    extern AMREX_EXPORT int m_rank_in_processor;
+    extern AMREX_EXPORT const int ioProcessor;
+    /// \endcond
+
     inline int MinTag () noexcept { return m_MinTag; }
     inline int MaxTag () noexcept { return m_MaxTag; }
 
-    extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
-    extern AMREX_EXPORT int m_nprocs_per_node;
     //! Return the number of MPI ranks per node as defined by
     //! MPI_COMM_TYPE_SHARED. This might be the same or different from
     //! NProcsPerProcessor based on MPI_Get_processor_name.
     inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
 
-    extern AMREX_EXPORT int m_rank_in_node;
     //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
     //! might be the same or different from MyRankInProcessor based on
     //! MPI_Get_processor_name.
     inline int MyRankInNode () noexcept { return m_rank_in_node; }
 
-    extern AMREX_EXPORT int m_nprocs_per_processor;
     //! Return the number of MPI ranks per node as defined by
     //! MPI_Get_processor_name. This might be the same or different from
     //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
     inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
 
-    extern AMREX_EXPORT int m_rank_in_processor;
     //! Return the rank in a node defined by MPI_Get_processor_name. This
     //! might be the same or different from MyRankInNode based on
     //! MPI_COMM_TYPE_SHARED.
     inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
 
 #ifdef AMREX_USE_MPI
-    extern Vector<MPI_Datatype*> m_mpi_types;
-    extern Vector<MPI_Op*> m_mpi_ops;
+    /// \cond DOXYGEN_IGNORE
+    extern AMREX_EXPORT Vector<MPI_Datatype*> m_mpi_types;
+    extern AMREX_EXPORT Vector<MPI_Op*> m_mpi_ops;
+    /// \endcond
 #endif
 
+    /// \ingroup amrex_mpi
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
     NProcs () noexcept
@@ -245,6 +257,7 @@ while ( false )
         return ParallelContext::NProcsAll();
     }
 
+    /// \ingroup amrex_mpi
     inline int
     NProcs (MPI_Comm comm) noexcept
     {
@@ -258,16 +271,17 @@ while ( false )
 #endif
     }
     /**
+    * \ingroup amrex_mpi
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
     * This rank is usually used to write to stdout.
     */
-    extern AMREX_EXPORT const int ioProcessor;
     inline int
     IOProcessorNumber () noexcept
     {
         return ioProcessor;
     }
     /**
+    * \ingroup amrex_mpi
     * \brief Is this CPU the I/O Processor?
     * To get the rank number, call IOProcessorNumber()
     */
@@ -277,12 +291,14 @@ while ( false )
          return MyProc() == IOProcessorNumber();
     }
 
+    /// \ingroup amrex_mpi
     inline int
     IOProcessorNumber (MPI_Comm comm) noexcept
     {
         return (comm == ParallelDescriptor::Communicator()) ? ioProcessor : 0;
     }
 
+    /// \ingroup amrex_mpi
     inline bool
     IOProcessor (MPI_Comm comm) noexcept
     {
@@ -419,7 +435,9 @@ while ( false )
         }
     }
 
+    /// \ingroup amrex_mpi
     void Barrier (const std::string& message = Unnamed);
+    /// \ingroup amrex_mpi
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
     Message Abarrier ();
     Message Abarrier (const MPI_Comm &comm);
@@ -435,175 +453,240 @@ while ( false )
     //! Returns wall-clock seconds since start of execution.
     double second () noexcept;
 
+    /// \ingroup amrex_mpi
     //! And-wise boolean reduction.
     void ReduceBoolAnd (bool& rvar);
+    /// \ingroup amrex_mpi
     //! And-wise boolean reduction to specified cpu.
     void ReduceBoolAnd (bool& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Or-wise boolean reduction.
     void ReduceBoolOr  (bool& rvar);
+    /// \ingroup amrex_mpi
     //! Or-wise boolean reduction to specified cpu.
     void ReduceBoolOr  (bool& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Real sum reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar);
 
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt);
 
     // Having this for backward compatibility
-    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar);
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar);
 
+    /// \ingroup amrex_mpi
     //! Real sum reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
-    void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar, int cpu);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Real max reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar);
 
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt);
 
     // Having this for backward compatibility
-    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar);
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar);
 
+    /// \ingroup amrex_mpi
     //! Real max reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
-    void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar, int cpu);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Real min reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar);
 
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt);
 
     // Having this for backward compatibility
-    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar);
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar);
 
+    /// \ingroup amrex_mpi
     //! Real min reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt, int cpu);
 
     // Having this for backward compatibility
-    void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu);
+    void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar, int cpu);
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Integer sum reduction.
     void ReduceIntSum (int& rvar);
+    /// \ingroup amrex_mpi
     void ReduceIntSum (int* rvar, int cnt);
-    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Integer sum reduction to specified cpu.
     void ReduceIntSum (int& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntSum (int* rvar, int cnt, int cpu);
-    void ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Integer max reduction.
     void ReduceIntMax (int& rvar);
+    /// \ingroup amrex_mpi
     void ReduceIntMax (int* rvar, int cnt);
-    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Integer max reduction to specified cpu.
     void ReduceIntMax (int& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntMax (int* rvar, int cnt, int cpu);
-    void ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Integer min reduction.
     void ReduceIntMin (int& rvar);
+    /// \ingroup amrex_mpi
     void ReduceIntMin (int* rvar, int cnt);
-    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Integer min reduction to specified cpu.
     void ReduceIntMin (int& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntMin (int* rvar, int cnt, int cpu);
-    void ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long sum reduction.
     void ReduceLongSum (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongSum (Long* rvar, int cnt);
-    void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long sum reduction to specified cpu.
     void ReduceLongSum (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongSum (Long* rvar, int cnt, int cpu);
-    void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long max reduction.
     void ReduceLongMax (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongMax (Long* rvar, int cnt);
-    void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long max reduction to specified cpu.
     void ReduceLongMax (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongMax (Long* rvar, int cnt, int cpu);
-    void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long min reduction.
     void ReduceLongMin (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongMin (Long* rvar, int cnt);
-    void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long min reduction to specified cpu.
     void ReduceLongMin (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongMin (Long* rvar, int cnt, int cpu);
-    void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long and-wise reduction.
     void ReduceLongAnd (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongAnd (Long* rvar, int cnt);
-    void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar);
+    /// \ingroup amrex_mpi
+    void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long and-wise reduction to specified cpu.
     void ReduceLongAnd (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongAnd (Long* rvar, int cnt, int cpu);
-    void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar, int cpu);
+    /// \ingroup amrex_mpi
+    void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Parallel gather.
     void Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root);
     /**
@@ -612,9 +695,9 @@ while ( false )
     */
     inline int SeqNum () noexcept { return ParallelContext::get_inc_mpi_tag(); }
 
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag);
-    template <class T> Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
-    template <class T> Message Asend(const std::vector<T>& buf, int pid, int tag);
+    template <class T> [[nodiscard]] Message Asend(const T*, size_t n, int pid, int tag);
+    template <class T> [[nodiscard]] Message Asend(const T*, size_t n, int pid, int tag, MPI_Comm comm);
+    template <class T> [[nodiscard]] Message Asend(const std::vector<T>& buf, int pid, int tag);
 
     template <class T> Message Arecv(T*, size_t n, int pid, int tag);
     template <class T> Message Arecv(T*, size_t n, int pid, int tag, MPI_Comm comm);
@@ -651,6 +734,7 @@ while ( false )
     void Waitany  (Vector<MPI_Request>& reqs, int &index, MPI_Status& status);
     void Waitsome (Vector<MPI_Request>&, int&, Vector<int>&, Vector<MPI_Status>&);
 
+    /// \ingroup amrex_mpi
     void ReadAndBcastFile(const std::string &filename, Vector<char> &charBuf,
                           bool bExitOnError = true,
                           const MPI_Comm &comm = Communicator() );
@@ -674,7 +758,7 @@ while ( false )
 
 #ifdef BL_USE_MPI
     int select_comm_data_type (std::size_t nbytes);
-    std::size_t alignof_comm_data (std::size_t nbytes);
+    std::size_t sizeof_selected_comm_data_type (std::size_t nbytes);
 #endif
 }
 }
@@ -699,7 +783,7 @@ template <class T>
 Message
 Asend (const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Asend: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Asend: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Asend(TsiiM)", T);
     BL_COMM_PROFILE(BLProfiler::AsendTsiiM, n * sizeof(T), dst_pid, tag);
@@ -740,7 +824,7 @@ template <class T>
 Message
 Send (const T* buf, size_t n, int dst_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Send: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Send: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Send(Tsii)", T);
 
@@ -788,7 +872,7 @@ template <class T>
 Message
 Arecv (T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Arecv: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Arecv: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Arecv(TsiiM)", T);
     BL_COMM_PROFILE(BLProfiler::ArecvTsiiM, n * sizeof(T), src_pid, tag);
@@ -829,7 +913,7 @@ template <class T>
 Message
 Recv (T* buf, size_t n, int src_pid, int tag, MPI_Comm comm)
 {
-    static_assert(!std::is_same<char,T>::value, "Recv: char version has been specialized");
+    static_assert(!std::is_same_v<char,T>, "Recv: char version has been specialized");
 
     BL_PROFILE_T_S("ParallelDescriptor::Recv(Tsii)", T);
     BL_COMM_PROFILE(BLProfiler::RecvTsii, BLProfiler::BeforeCall(), src_pid, tag);
@@ -996,9 +1080,9 @@ ParallelDescriptor::GatherLayoutDataToVector (const LayoutData<T>& sendbuf,
     Vector<int> recvcount(nprocs, 0);
     recvbuf.resize(sendbuf.size());
     const Vector<int>& old_pmap = sendbuf.DistributionMap().ProcessorMap();
-    for (int i=0; i<old_pmap.size(); ++i)
+    for (int i : old_pmap)
     {
-        ++recvcount[old_pmap[i]];
+        ++recvcount[i];
     }
 
     // Make a map from post-gather to pre-gather index
@@ -1231,6 +1315,7 @@ namespace ParallelDescriptor {
 
 #ifdef AMREX_USE_MPI
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template<typename T>
@@ -1268,23 +1353,24 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 }
 
 }
+/// \endcond
 
     //! Real sum reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_SUM,1);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_SUM,cnt);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1296,20 +1382,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real sum reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_SUM,1,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_SUM,cnt,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&& rvar, int cpu)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1321,20 +1407,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real max reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_MAX,1);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_MAX,cnt);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1346,20 +1432,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real max reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_MAX,1,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_MAX,cnt,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&& rvar, int cpu)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1371,20 +1457,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real min reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar) {
         detail::DoAllReduce<T>(&rvar,MPI_MIN,1);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt) {
         detail::DoAllReduce<T>(rvar,MPI_MIN,cnt);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1396,20 +1482,20 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real min reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar, int cpu) {
         detail::DoReduce<T>(&rvar,MPI_MIN,1,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt, int cpu) {
         detail::DoReduce<T>(rvar,MPI_MIN,cnt,cpu);
     }
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&& rvar, int cpu)
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu)
     {
         int cnt = rvar.size();
         Vector<T> tmp{std::begin(rvar), std::end(rvar)};
@@ -1423,81 +1509,81 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 
     //! Real sum reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& ) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T*, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&&) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real sum reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T&, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T*, int, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealSum (Vector<std::reference_wrapper<T> >&&, int) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealSum (Vector<std::reference_wrapper<T> > const&, int) {}
 
     //! Real max reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T&) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T*, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&&) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real max reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T&, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T*, int, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMax (Vector<std::reference_wrapper<T> >&&, int) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMax (Vector<std::reference_wrapper<T> > const&, int) {}
 
     //! Real min reduction.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T&) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T*, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&&) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const&) {}
 
     //! Real min reduction to specified cpu.
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T&, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
+    std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T*, int, int) {}
 
     template <typename T>
-    typename std::enable_if<std::is_floating_point<T>::value>::type
-    ReduceRealMin (Vector<std::reference_wrapper<T> >&&, int) {}
+    std::enable_if_t<std::is_floating_point_v<T>>
+    ReduceRealMin (Vector<std::reference_wrapper<T> > const&, int) {}
 
 #endif
 }
@@ -1529,9 +1615,9 @@ struct Mpi_typemap<ValLocPair<TV,TI>>
         static MPI_Datatype mpi_type = MPI_DATATYPE_NULL;
         if (mpi_type == MPI_DATATYPE_NULL) {
             using T = ValLocPair<TV,TI>;
-            static_assert(std::is_trivially_copyable<T>::value,
+            static_assert(std::is_trivially_copyable_v<T>,
                           "To communicate with MPI, ValLocPair must be trivially copyable.");
-            static_assert(std::is_standard_layout<T>::value,
+            static_assert(std::is_standard_layout_v<T>,
                           "To communicate with MPI, ValLocPair must be standard layout");
 
             T vlp[2];

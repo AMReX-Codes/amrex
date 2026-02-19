@@ -24,13 +24,13 @@ class AmrInSituBridge;
 #endif
 
 /**
+* \ingroup amrex_amrlevel
 * \brief Manage hierarchy of levels for time-dependent AMR computations.
 *
 * The Amr class is designed to manage parts of the computation  which do
 * not belong on a single level, like establishing and updating the hierarchy
 * of levels, global timestepping, and managing the different AmrLevels
 */
-
 class Amr
     : public AmrCore
 {
@@ -122,6 +122,8 @@ public:
     Real plotPer () const noexcept { return plot_per; }
     //! Spacing in log10(time) of logarithmically spaced plot files
     Real plotLogPer () const noexcept { return plot_log_per; }
+    //! Maximum level to plot
+    int plotMaxLevel () const noexcept { return plot_max_level; }
     //! Number of time steps between small plot files.
     int smallplotInt () const noexcept { return small_plot_int; }
     //! Time between plot files.
@@ -180,7 +182,7 @@ public:
     static void fillDerivePlotVarList ();
     static void fillDeriveSmallPlotVarList ();
 
-    static void setComputeNewDtOnRegrid (int flag) { compute_new_dt_on_regrid = flag; }
+    static void setComputeNewDtOnRegrid (bool flag) { compute_new_dt_on_regrid = flag; }
 
     static void Initialize ();
     static void Finalize ();
@@ -221,6 +223,16 @@ public:
                                       Real           time,
                                       int            lev,
                                       int            ngrow);
+    //! Compute derived data on all levels and store in the dcompth component of
+    //! each Multifab in mf
+    void derive (const std::string&       name,
+                 Real                     time,
+                 const Vector<MultiFab*>& mf,
+                 int                      dcomp);
+    //! Compute derived data on all levels and return as a vector of MultiFab pointers
+    Vector<std::unique_ptr<MultiFab>> derive (const std::string& name,
+                                              amrex::Real        time,
+                                              int                ngrow);
     //! Name of the restart chkpoint file.
     const std::string& theRestartFile () const noexcept { return restart_chkfile; }
     //! Name of the restart plotfile.
@@ -244,12 +256,14 @@ public:
                                           const Real* est_work,
                                           const int*  cycle_max);
 
+    /// \ingroup amrex_io
     //! Write the plot file to be used for visualization.
     virtual void writePlotFile ();
     int stepOfLastPlotFile () const noexcept {return last_plotfile;}
     //! Write the small plot file to be used for visualization.
     virtual void writeSmallPlotFile ();
     int stepOfLastSmallPlotFile () const noexcept {return last_smallplotfile;}
+    /// \ingroup amrex_io
     //! Write current state into a chk* file.
     virtual void checkPoint ();
     int stepOfLastCheckPoint () const noexcept {return last_checkpoint;}
@@ -378,6 +392,7 @@ protected:
     void ClearLevel (int /*lev*/) override
         { amrex::Abort("How did we get here!"); }
 
+    bool checkPointNow () noexcept;
     //! Whether to write a plotfile now
     bool writePlotNow () noexcept;
     bool writeSmallPlotNow () noexcept;
@@ -425,10 +440,11 @@ protected:
     int              plot_int;        //!< How often plotfile (# of time steps)
     Real             plot_per;        //!< How often plotfile (in units of time)
     Real             plot_log_per;    //!< How often plotfile (in units of log10(time))
+    int              plot_max_level;  //!< Maximum AMR level to write to a plotfile
     int              small_plot_int;  //!< How often small plotfile (# of time steps)
     Real             small_plot_per;  //!< How often small plotfile (in units of time)
     Real             small_plot_log_per;  //!< How often small plotfile (in units of log10(time))
-    int              write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
+    bool             write_plotfile_with_checkpoint;  //!< Write out a plotfile whenever we checkpoint
     int              file_name_digits; //!< How many digits to use in the plotfile and checkpoint names
     int              message_int;     //!< How often checking messages touched by user, such as "stop_run"
     std::string      plot_file_root;  //!< Root name of plotfile.
@@ -471,7 +487,7 @@ protected:
     static Vector<BoxArray> initial_ba;
     //! Array of BoxArrays read in to externally define grid hierarchy at each regrid
     static Vector<BoxArray> regrid_ba;
-    static int compute_new_dt_on_regrid;
+    static bool compute_new_dt_on_regrid;
 
 #if defined(AMREX_USE_SENSEI_INSITU) && !defined(AMREX_NO_SENSEI_AMR_INST)
     static AmrInSituBridge *insitu_bridge;

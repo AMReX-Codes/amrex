@@ -20,6 +20,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_EBMultiFabUtil.cpp
        AMReX_EBCellFlag.H
        AMReX_EBCellFlag.cpp
+       AMReX_EBData.H
        AMReX_EBDataCollection.H
        AMReX_EBDataCollection.cpp
        AMReX_MultiCutFab.H
@@ -109,6 +110,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_WriteEBSurface.H
        AMReX_EBToPVD.H
        AMReX_EBToPVD.cpp
+       AMReX_mc_jgt_table.H
+       AMReX_MarchingCubes.H
+       AMReX_MarchingCubes.cpp
        )
     endif ()
 

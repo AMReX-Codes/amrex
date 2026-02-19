@@ -68,7 +68,6 @@ namespace amrex {
  * See AmrLevel::RK for an example of using the RungeKutta functions and
  * FillPatcher together.
  */
-
 template <class MF = MultiFab>
 class FillPatcher
 {
@@ -106,10 +105,10 @@ public:
      * \param nghost      number of ghost cells to fill. This must be <= what's
      *                    provided to the constructor
      * \param time        time associated with the destination
-     * \param crse_data   coarse level data
-     * \param crse_time   time associated with the coarse data
-     * \param fine_data   fine level data
-     * \param fine_time   time associated with the fine data
+     * \param cmf         coarse level data
+     * \param ct          time associated with the coarse data
+     * \param fmf         fine level data
+     * \param ft          time associated with the fine data
      * \param scomp       starting component of the source
      * \param dcomp       starting component of the destination
      * \param ncomp       the number of components to fill
@@ -141,8 +140,8 @@ public:
      * \param nghost      number of ghost cells to fill. This must be <= what's
      *                    provided to the constructor
      * \param time        time associated with the destination
-     * \param crse_data   coarse level data
-     * \param crse_time   time associated with the coarse data
+     * \param cmf         coarse level data
+     * \param ct          time associated with the coarse data
      * \param scomp       starting component of the source
      * \param dcomp       starting component of the destination
      * \param ncomp       the number of components to fill
@@ -188,6 +187,8 @@ public:
      *                  denoting the first and second substep, respectively.
      * \param ncycle    number of subcyling steps.  It's usually 2 or 4.
      *                  Without subcycling, this will be 1.
+     * \param mf        destination MF
+     * \param time      time associated with the coarse data
      * \param cbc       filling physical boundary on coarse level
      * \param fbc       filling physical boundary on fine level
      * \param bcs       physical BC types
@@ -309,7 +310,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
     {
         if (m_cf_fine_data == nullptr) {
             m_cf_fine_data = std::make_unique<MF>
-                (make_mf_fine_patch<MF>(fpc, m_ncomp));
+                (detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
         }
 
         int ncmfs = cmf.size();
@@ -321,7 +322,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
                                    });
 
             if (it == std::end(m_cf_crse_data)) {
-                MF mf_crse_patch = make_mf_crse_patch<MF>(fpc, m_ncomp);
+                MF mf_crse_patch = detail::make_mf_crse_patch<MF>(fpc, m_ncomp);
                 mf_crse_patch.ParallelCopy(*cmf[icmf], m_cgeom.periodicity());
 
                 std::pair<Real,std::unique_ptr<MF>> tmp;
@@ -333,7 +334,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 
         if (m_cf_crse_data_tmp == nullptr) {
             m_cf_crse_data_tmp = std::make_unique<MF>
-                (make_mf_crse_patch<MF>(fpc, m_ncomp));
+                (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
         }
 
         int const ng_space_interp = 8; // Need to be big enough
@@ -391,7 +392,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         }
         Gpu::streamSynchronize();
 
-        cbc(*m_cf_crse_data_tmp, 0, ncomp, nghost, time, cbccomp);
+        cbc(*m_cf_crse_data_tmp, 0, ncomp, m_cf_crse_data_tmp->nGrowVect(), time, cbccomp);
 
         detail::call_interp_hook(pre_interp, *m_cf_crse_data_tmp, 0, ncomp);
 
@@ -420,7 +421,7 @@ void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old
 
     for (auto& tmf : m_cf_crse_data) {
         tmf.first = std::numeric_limits<Real>::lowest(); // because we don't need it
-        tmf.second = std::make_unique<MF>(make_mf_crse_patch<MF>(fpc, m_ncomp));
+        tmf.second = std::make_unique<MF>(detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
     m_cf_crse_data[0].second->ParallelCopy(S_old, m_cgeom.periodicity());
     for (std::size_t i = 0; i < order; ++i) {
@@ -445,7 +446,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     auto const& fpc = getFPinfo();
     if (m_cf_crse_data_tmp == nullptr) {
         m_cf_crse_data_tmp = std::make_unique<MF>
-            (make_mf_crse_patch<MF>(fpc, m_ncomp));
+            (detail::make_mf_crse_patch<MF>(fpc, m_ncomp));
     }
 
     auto const& u = m_cf_crse_data_tmp->arrays();
@@ -594,10 +595,10 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
     }
     Gpu::streamSynchronize();
 
-    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_nghost, time, 0);
+    cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_cf_crse_data_tmp->nGrowVect(), time, 0);
 
     if (m_cf_fine_data == nullptr) {
-        m_cf_fine_data = std::make_unique<MF>(make_mf_fine_patch<MF>(fpc, m_ncomp));
+        m_cf_fine_data = std::make_unique<MF>(detail::make_mf_fine_patch<MF>(fpc, m_ncomp));
     }
 
     FillPatchInterp(*m_cf_fine_data, 0, *m_cf_crse_data_tmp, 0,

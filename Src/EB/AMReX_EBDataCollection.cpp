@@ -3,9 +3,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MultiCutFab.H>
-
 #include <AMReX_EB2_Level.H>
-#include <algorithm>
+#include <AMReX_Algorithm.H>
 #include <utility>
 
 namespace amrex {
@@ -24,6 +23,8 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support >= EBSupport::basic)
     {
+        AMREX_ALWAYS_ASSERT(!m_ngrow.empty());
+
         m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
         a_level.fillEBCellFlag(*m_cellflags, m_geom);
@@ -34,7 +35,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support >= EBSupport::volume)
     {
-        AMREX_ALWAYS_ASSERT(m_ngrow[1] <= m_ngrow[0]);
+        AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 2) && (m_ngrow[1] <= m_ngrow[0]));
 
         m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
         a_level.fillVolFrac(*m_volfrac, m_geom);
@@ -45,7 +46,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     if (m_support == EBSupport::full)
     {
-        AMREX_ALWAYS_ASSERT(m_ngrow[2] <= m_ngrow[0]);
+        AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 3) && (m_ngrow[2] <= m_ngrow[0]));
 
         const int ng = m_ngrow[2];
 
@@ -128,13 +129,13 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
             amrex::ParallelFor(nbx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (! level_nodal_domain.contains(i,j,k)) {
-                    int ii = std::clamp(i, level_nodal_domain.smallEnd(0),
-                                           level_nodal_domain.bigEnd(0));
-                    int jj = std::clamp(j, level_nodal_domain.smallEnd(1),
-                                           level_nodal_domain.bigEnd(1));
+                    int ii = amrex::Clamp(i, level_nodal_domain.smallEnd(0),
+                                             level_nodal_domain.bigEnd  (0));
+                    int jj = amrex::Clamp(j, level_nodal_domain.smallEnd(1),
+                                             level_nodal_domain.bigEnd  (1));
 #if (AMREX_SPACEDIM > 2)
-                    int kk = std::clamp(k, level_nodal_domain.smallEnd(2),
-                                           level_nodal_domain.bigEnd(2));
+                    int kk = amrex::Clamp(k, level_nodal_domain.smallEnd(2),
+                                             level_nodal_domain.bigEnd  (2));
 #else
                     int kk = 0;
 #endif
@@ -145,13 +146,13 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
             {
                 if (! level_domain.contains(i,j,k)) {
                     EBCellFlag flag;
-                    int ii = std::clamp(i, level_domain.smallEnd(0),
-                                           level_domain.bigEnd(0));
-                    int jj = std::clamp(j, level_domain.smallEnd(1),
-                                           level_domain.bigEnd(1));
+                    int ii = amrex::Clamp(i, level_domain.smallEnd(0),
+                                             level_domain.bigEnd  (0));
+                    int jj = amrex::Clamp(j, level_domain.smallEnd(1),
+                                             level_domain.bigEnd  (1));
 #if (AMREX_SPACEDIM > 2)
-                    int kk = std::clamp(k, level_domain.smallEnd(2),
-                                           level_domain.bigEnd(2));
+                    int kk = amrex::Clamp(k, level_domain.smallEnd(2),
+                                             level_domain.bigEnd  (2));
 #else
                     int kk = 0;
 #endif
@@ -208,8 +209,8 @@ void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
                     if (apbx.bigEnd(idim) == nbx.bigEnd(idim)) {
                         apbx.growHi(idim,-1);
                     }
-                    auto lev_apidim_domain = lev_ap_domain[idim];
-                    Dim3 off = IntVect::TheDimensionVector(idim).dim3();
+                    auto const& lev_apidim_domain = lev_ap_domain[idim];
+                    Dim3 const& off = IntVect::TheDimensionVector(idim).dim3();
                     amrex::ParallelFor(apbx,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k)
                     {

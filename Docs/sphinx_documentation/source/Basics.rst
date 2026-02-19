@@ -208,7 +208,7 @@ ParmParse
 
 :cpp:`ParmParse` in AMReX_ParmParse.H is a class providing a database for the
 storage and retrieval of command-line and input-file arguments. When
-:cpp:`amrex::Initialize(int& argc, char**& argv)` is called, the first command-line
+:cpp:`amrex::Initialize(int& argc, char**& argv, ...)` is called, the first command-line
 argument after the executable name (if there is one, and it does not contain the character
 '=' or start with '\-') is taken
 to be the inputs file, and the contents of the file are used to initialize the
@@ -219,22 +219,44 @@ command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ).
 Inputs File
 -----------
 
-The format of the inputs
-file is a series of
-definitions in the form of ``prefix.name = value value ....`` For each line,
-text after # are comments. Here is an example inputs file.
+The format of the inputs file is a series of definitions in the form of
+``prefix.name = value value ...``. For each line, text after # are
+comments. For values spanning multiple lines except for table, one must use
+``\`` at the end of a line for continuation, otherwise it's a runtime
+error. Note that there must be at least one space before the continuation
+character ``\``.  Multiple lines inside a pair of double quotes are
+considered a single string containing ``\n``\ s. Here is an example inputs
+file.
 
-    .. highlight:: python
+.. highlight:: python
 
-    ::
+::
 
-        nsteps    = 100               # integer
-        nsteps    = 1000              # nsteps appears a second time
-        dt        = 0.03              # floating point number
-        ncells    = 128 64 32         # a list of 3 ints
-        xrange    = -0.5 0.5          # a list of 2 reals
-        title     = "Three Kingdoms"  # a string
-        hydro.cfl = 0.8               # with prefix, hydro
+    nsteps    = 100               # integer
+    nsteps    = 1000              # nsteps appears a second time
+    dt        = 0.03              # floating point number
+    ncells    = 128 64 32         # a list of 3 ints
+    xrange    = -0.5 0.5          # a list of 2 reals
+    title     = "Three Kingdoms"  # a string
+    hydro.cfl = 0.8               # with prefix, hydro
+    my_2d_table = \
+           # col 1      2      3
+             {{ 11.0,  12.0,  13.0 }   # row 1
+              { 21.0,  22.0,  23.0 }   # row 2
+              { 31.0,  32.0,  33.0 }   # row 3
+              { 41.0,  42.0,  43.0 } } # row 4
+    # or
+    my_2d_table = # col 1    2    3
+                    {{ 11,  12,  13 }   # row 1
+                     { 21,  22,  23 }   # row 2
+                     { 31,  32,  33 }   # row 3
+                     { 41,  42,  43 } } # row 4
+    # or
+    my_2d_table = # col 1    2    3
+                    {{ 11,  12,  13 },   # row 1
+                     { 21,  22,  23 },   # row 2
+                     { 31,  32,  33 },   # row 3
+                     { 41,  42,  43 }  } # row 4
 
 The following code shows how to use :cpp:`ParmParse` to get/query the values.
 
@@ -269,11 +291,208 @@ The following code shows how to use :cpp:`ParmParse` to get/query the values.
      Real cfl;
      pph.get("cfl", cfl);    // get parameter with prefix
 
+     std::vector<std::vector<double>> my_2d_table;
+     pp.gettable("my_2d_table", my_2d_table);
+
 Note that when there are multiple definitions for a parameter :cpp:`ParmParse`
 by default returns the last one. The difference between :cpp:`query` and
 :cpp:`get` should also be noted. It is a runtime error if :cpp:`get` fails to
 get the value, whereas :cpp:`query` returns an error code without generating a
 runtime error that will abort the run.
+
+Math Expressions
+----------------
+
+.. versionadded:: 24.08
+   Math expression support in :cpp:`ParmParse`.
+
+:cpp:`ParmParse` supports math expressions for integers and floating point
+numbers. For example,
+
+.. highlight:: python
+
+::
+
+    # three numbers. whitespaces inside `""` are okay.
+    f = 3+4  99  "5 + 6"
+
+    # two numbers. `\` is for continuation
+    g = 3.1+4.1 \
+        5.0+6.6
+
+    # two numbers unless using [query|get]WithParser
+    w = 1 -2
+
+    my_constants.alpha = 5.
+    amrex.c = c
+
+    # must use [query|get]WithParser
+    amrex.foo = sin( pi/2 ) + alpha + -amrex.c**2/c^2
+
+    # either [query|get] or [query|get]WithParser is okay
+    amrex.bar = sin(pi/2)+alpha+-amrex.c**2/c^2
+
+    geom.prob_lo = 2*sin(pi/4)/sqrt(2)  sin(pi/2)+cos(pi/2)  -(sin(pi*3/2)+cos(pi*3/2))
+
+    # three numbers. `\` is for continuation
+    geom.prob_hi =  "2*sin(pi/4)/sqrt(2)" \
+                    "sin(pi/2) + cos(pi/2)" \
+                    -(sin(pi*3/2)+cos(pi*3/2))
+
+can be processed by
+
+.. highlight:: c++
+
+::
+
+    {
+        ParmParse::SetParserPrefix("physical_constants");
+        ParmParse pp("physical_constants");
+        pp.add("c", 299792458.);
+        pp.add("pi", 3.14159265358979323846);
+    }
+    {
+        ParmParse pp;
+
+        double f0 = -1;
+        pp.query("f", f0);
+        std::cout << " double f = " << f0 << '\n';
+
+        std::vector<int> f;
+        pp.queryarr("f", f);
+        std::cout << " int f[3] = {" << f[0] << ", " << f[1] << ", "
+                  << f[2] << "}\n";
+
+        std::vector<double> g;
+        pp.queryarr("g", g);
+        std::cout << " double g[] = " << g[0] << " " << g[1] << '\n';
+
+        double w;
+        pp.query("w", w);
+        std::cout << " w = " << w << " with query\n";
+        pp.queryWithParser("w", w);
+        std::cout << " w = " << w << " with queryParser\n";
+    }
+    {
+        ParmParse pp("amrex", "my_constants");
+        double foo = -1, bar;
+        pp.getWithParser("foo", foo);
+        pp.get("bar", bar);
+        std::cout << " foo = " << foo << ", bar = " << bar << '\n';
+    }
+    {
+        ParmParse pp;
+        std::array<double,3> prob_lo, prob_hi;
+        pp.get("geom.prob_lo", prob_lo);
+        pp.get("geom.prob_hi", prob_hi);
+        std::cout << " double prob_lo[] = {" << prob_lo[0] << ", "
+                  << prob_lo[1] << ", " << prob_lo[2] << "}\n"
+                  << " double prob_hi[] = {" << prob_hi[0] << ", "
+                  << prob_hi[1] << ", " << prob_hi[2] << "}\n";
+    }
+
+The results will be
+
+.. highlight:: console
+
+::
+
+    double f = 7
+    int f[3] = {7, 99, 11}
+    double g[] = 7.2 11.6
+    w = 1 with query
+    w = -1 with queryParser
+    foo = 5, bar = 5
+    double prob_lo[] = {1, 1, 1}
+    double prob_hi[] = {1, 1, 1}
+
+Note that the empty spaces are significant for math expressions unless they
+are inside a pair of ``"`` or explicitly parsed by
+:cpp:`ParmParse::queryWithParser` or :cpp:`ParmParse::getWithParser`. If the
+expression contains another variable, it will be looked up by
+:cpp:`ParmParse`. :cpp:`ParmParse`'s constructor accepts an optional second
+argument, ``parser_prefix``. When a variable in a math expression is being
+looked up, it will first try to find it by using the exact name of the
+variable. If this attempt fails and the :cpp:`ParmParse` object has a
+non-empty non-static member ``parser_prefix``, it will try again, this time
+looking up the variable by prefixing its name with the value of
+``parser_prefix`` followed by a ``.``. If this attempt also fails and the
+:cpp:`ParmParse` class has a non-empty static member ``ParserPrefix`` (which
+can be set by :cpp:`ParmParse::SetParserPrefix`), it will try again, this
+time looking up the variable by prefixing its name with the value of
+``ParserPrefix`` followed by a ``.``.
+
+The variables in :cpp:`ParmParse` math expressions are not evaluated until
+they are referenced. If a variable is defined multiple times, the last
+occurrence will override previous ones even if it appears after the variable
+has been referenced. This behavior is demonstrated in the following example.
+
+.. highlight:: python
+
+::
+
+    foo.a = 1
+    foo.b = foo.a
+    foo.a = 2
+
+will become
+
+.. highlight:: python
+
+::
+
+    foo.a = 2
+    foo.b = 2
+
+Enum Class
+----------
+
+.. versionadded:: 24.09
+   Enum class support in :cpp:`ParmParse`.
+
+AMReX provides a macro :cpp:`AMREX_ENUM` for defining :cpp:`enum class` that
+supports reflection. For example,
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, red, green, blue);
+
+   void f ()
+   {
+       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
+       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
+       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
+       // names = {"red", "green", "blue"};
+       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
+   }
+
+This allows us to read :cpp:`ParmParse` parameters into enum class objects.
+
+.. highlight:: python
+
+::
+
+   color1 = red
+   color2 = BLue
+
+The following code shows how to query the enumerators.
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, none, red, green, blue);
+
+   void f (MyColor& c1, MyColor& c2)
+   {
+       ParmParse pp;
+       pp.query("color1", c1); // c1 becomes MyColor::red
+       pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
+       MyColor default_color; // MyColor::none
+       pp.query("color3", default_color); // Still MyColor::none
+   }
 
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
@@ -290,6 +509,32 @@ run with:
 ::
 
         myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
+
+
+Setting Default Via Environment Variable
+----------------------------------------
+
+You can specify default parameter values using the environment variable
+`AMREX_DEFAULT_INIT`. This method has lower precedence than settings
+provided in the inputs file or via command-line arguments. Here is an
+example of how to use it.
+
+.. highlight:: console
+
+::
+
+   export AMREX_DEFAULT_INIT="amrex.envfoo=0 amrex.envbar=1 amrex.envabc=1 2 3 amrex.envstr=\"a b c\""
+
+This is equivalent to setting the following in the inputs file.
+
+.. highlight:: python
+
+::
+
+    amrex.envfoo = 0
+    amrex.envbar = 1
+    amrex.envabc = 1 2 3
+    amrex.envstr = "a b c"
 
 
 Setting Parameter Values Inside Functions
@@ -334,7 +579,7 @@ In the example above the function was called ``add_par``, and therefore we write
 
 .. code-block:: cpp
 
-   amrex::Initialize(argc, argv, true, MPI_COMM_WORLD, add_par);
+   amrex::Initialize(argc, argv, add_par);
 
 Now AMReX will use the user defined function to appropriately set the desired values.
 
@@ -395,17 +640,19 @@ AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to eva
 expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
 ``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
 ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``, ``sinh``, ``cosh``,
-``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil`` and ``fmod``.
-The minimum and maximum of two
+``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil``, ``fmod``,
+and ``erf``. The minimum and maximum of two
 numbers can be computed with ``min`` and ``max``, respectively.  It supports
 the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
 ``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
 It supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``. Complete elliptic integrals of the first and second kind, ``comp_ellint_1`` and ``comp_ellint_2``,
-are supported only for gcc and CPUs.
+``jn(n,x)``, and the Bessel function of the second kind of order ``n`` ``yn(n,x)``.
+Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` and ``comp_ellint_2(k)``,
+are supported.
 There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
 ``a``.  A number of comparison operators are supported, including ``<``,
-``>``, ``==``, ``!=``, ``<=``, and ``>=``.  The Boolean results from
+``>``, ``==``, ``!=``, ``<=``, and ``>=``, and they can be chained.
+The Boolean results from
 comparison can be combined by ``and`` and ``or``, and they hold the value ``1``
 for true and ``0`` for false.  The precedence of the operators follows the
 convention of the C and C++ programming languages.  Here is an example of using
@@ -415,19 +662,20 @@ the parser.
 
 ::
 
-   Parser parser("if(x>a and x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
-   parser.setConstant(a, ...);
-   parser.setConstant(b, ...);
-   parser.setConstant(c, ...);
+   Parser parser("if(a<x<b, sin(x)*cos(y)*if(z<0, 1.0, exp(-z)), .3*c**2)");
+   parser.setConstant("a", ...);
+   parser.setConstant("b", ...);
+   parser.setConstant("c", ...);
    parser.registerVariables({"x","y","z"});
    auto f = parser.compile<3>();  // 3 because there are three variables.
 
-   // f can be used in both host and device code.  It takes 3 arguments in
-   // this example.  The parser object must be alive for f to be valid.
+   // ParserExecutor<3> f is thread-safe, and can be used in both host and
+   // device code. It takes 3 arguments in this example. The parser object
+   // must be alive for f to be valid.
    for (int k = 0; ...) {
      for (int j = 0; ...) {
        for (int i = 0; ...) {
-         a(i,j,k) = f(i*dx, j*dy, k*dz);
+         my_array(i,j,k) = f(i*dx, j*dy, k*dz);
        }
      }
    }
@@ -438,8 +686,8 @@ Local automatic variables can be defined in the expression.  For example,
 
 ::
 
-   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)"
-   parser.setConstant(a, ...);
+   Parser parser("r2=x*x+y*y; r=sqrt(r2); cos(a+r2)*log(r)");
+   parser.setConstant("a", ...);
    parser.registerVariables({"x","y"});
    auto f = parser.compile<2>();  // 2 because there are two variables.
 
@@ -453,7 +701,14 @@ Besides :cpp:`amrex::Parser` for floating point numbers, AMReX also provides
 similarity, but floating point number specific functions (e.g., ``sqrt``,
 ``sin``, etc.) are not supported in ``IParser``.  In addition to ``/`` whose
 result truncates towards zero, the integer parser also supports ``//`` whose
-result truncates towards negative infinity.
+result truncates towards negative infinity. Single quotes ``'`` are allowed
+as a separator for :cpp:`IParser` numbers just like C++ integer
+literals. Additionally, a floating point like number with a positive
+exponent may be accepted as an integer if it is reasonable to do so. For
+example, it's okay to have ``1.234e3``, but ``1.234e2`` is an error.
+
+  .. versionadded:: 24.08
+     Support for ``'`` and ``e`` in :cpp:`IParser` integers.
 
 .. _sec:basics:initialize:
 
@@ -463,7 +718,7 @@ Initialize and Finalize
 As we have mentioned, :cpp:`Initialize` must be called to initialize
 the execution environment for AMReX and :cpp:`Finalize` must be paired
 with :cpp:`Initialize` to release the resources used by AMReX.  There
-are two versions of :cpp:`Initialize`.
+are three versions of :cpp:`Initialize`.
 
 .. highlight:: c++
 
@@ -472,38 +727,63 @@ are two versions of :cpp:`Initialize`.
     void Initialize (MPI_Comm mpi_comm,
                      std::ostream& a_osout = std::cout,
                      std::ostream& a_oserr = std::cerr,
-                     ErrorHandler a_errhandler = nullptr);
+                     ErrorHandler a_errhandler = nullptr,
+                     int a_device_id = -1);
+
+    AMReX* Initialize (int& argc, char**& argv,
+                       const std::function<void()>& func_parm_parse,
+                       std::ostream& a_osout = std::cout,
+                       std::ostream& a_oserr = std::cerr,
+                       ErrorHandler a_errhandler = nullptr,
+                       int a_device_id = -1);
 
     void Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                      MPI_Comm mpi_comm = MPI_COMM_WORLD,
                      const std::function<void()>& func_parm_parse = {},
                      std::ostream& a_osout = std::cout,
                      std::ostream& a_oserr = std::cerr,
-                     ErrorHandler a_errhandler = nullptr);
+                     ErrorHandler a_errhandler = nullptr,
+                     int a_device_id = -1);
 
-:cpp:`Initialize` tests if MPI has been initialized.  If MPI has been
-initialized, AMReX will duplicate the ``MPI_Comm`` argument.  If not,
-AMReX will initialize MPI and ignore the ``MPI_Comm`` argument.
+:cpp:`Initialize` checks if MPI has been initialized.  If it has, AMReX will
+duplicate the ``MPI_Comm`` argument provided by the users in the first and
+third versions or ``MPI_COMM_WORLD`` in the second version.  If not, AMReX
+will initialize MPI and ignore the ``MPI_Comm`` argument. Since AMReX 25.06,
+MPI types are no longer placed in the global namespace in non-MPI builds to
+avoid potential conflicts with other libraries. If you want to use MPI types
+in non-MPI builds for convenience (e.g., calling
+:cpp:`amrex::Initialize(MPI_COMM_WORLD)`), you could add :cpp:`using
+namespace amrex::mpidatatypes;`.
 
-Both versions have two optional :cpp:`std::ostream` parameters, one
-for standard output in :cpp:`Print` (section :ref:`sec:basics:print`)
-and the other for standard error, and they can be accessed with
-functions :cpp:`OutStream()` and :cpp:`ErrorStream()`.  Both versions
-can also take an optional error handler function.  If it is provided
-by the user, AMReX will use it to handle errors and signals.
-Otherwise, AMReX will use its own function for error and signal
-handling.
+All three versions accept two optional :cpp:`std::ostream` parameters, one
+for standard output in :cpp:`Print` (section :ref:`sec:basics:print`) and
+the other for standard error. These streams can be accessed via functions
+:cpp:`OutStream()` and :cpp:`ErrorStream()`. Each version can also take an
+optional error handler function.  If provided, AMReX will use it to handle
+errors and signals; otherwise, it will use its own function for error and
+signal handling.
 
 The first version of :cpp:`Initialize` does not parse the command line
-options, whereas the second version will build ParmParse database
-(section :ref:`sec:basics:parmparse`) unless ``build_parm_parse``
-parameter is :cpp:`false`.  In the second version, one can pass a
-function that adds ParmParse parameters to the database instead of
-reading from command line or input file.
+options. The second version builds ParmParse database (section
+:ref:`sec:basics:parmparse`), and the third version does so as well unless
+the ``build_parm_parse`` parameter is set to :cpp:`false`. In both the
+second and third versions, the user may also pass a function that adds
+parameters to the ParmParse database instead of reading from command line or
+input file.
+
+The last optional parameter, :cpp:`int a_device_id = -1`, applies to
+GPU builds only. By default, when multiple GPU devices are visible, AMReX
+automatically selects one for you. In most cases, you should rely on this
+default behavior and omit the optional argument. However, if another library
+has already been initialized and assigned processes to specific devices, you
+may need AMReX to use a particular GPU. In that case, you can pass the
+desired device ID to :cpp:`amrex::Initialize`. Conversely, if you want
+another library to use the device selected by AMReX, you can obtain the
+device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after
-:cpp:`amrex:Finalize` is called, it's best to put the codes between
+:cpp:`amrex::Finalize` is called, it's best to put the codes between
 :cpp:`amrex::Initialize` and :cpp:`amrex::Finalize` into its scope
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.
@@ -912,7 +1192,7 @@ an :cpp:`int` pointer or array specifying periodicity. If a :cpp:`RealBox` is no
 given in the first constructor, AMReX  will construct one based on :cpp:`ParmParse` parameters,
 ``geometry.prob_lo`` / ``geometry.prob_hi`` / ``geometry.prob_extent``,
 where each of the parameter is an array of ``AMREX_SPACEDIM`` real numbers.
-See the section on :ref:`sec:inputs:pd` for more details about how to specify these.
+See the section on :ref:`sec:inputs:geom` for more details about how to specify these.
 
 The argument for coordinate system is an integer type with
 valid values being 0 (Cartesian), or 1 (cylindrical), or 2 (spherical). If it
@@ -1942,7 +2222,8 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
 
-Dynamic tiling, which runs one box per OpenMP thread, is also available.
+Dynamic tiling, which runs one box per OpenMP thread, either with or without
+tiling the box, is also available.
 This is useful when the underlying work cannot benefit from thread
 parallelization.  Dynamic tiling is implemented using the :cpp:`MFItInfo`
 object and requires the :cpp:`MFIter` loop to be defined in an OpenMP
@@ -1981,9 +2262,13 @@ Dynamic tiling also allows explicit definition of a tile size:
           ...
       }
 
-Usually :cpp:`MFIter` is used for accessing multiple MultiFabs like the second
-example, in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
-:cpp:`operator[]`. These different MultiFabs may have different BoxArrays. For
+Note that :cpp:`EnableTiling()`, with no argument, will use the default tile size.
+
+Usually :cpp:`MFIter` is used for accessing multiple MultiFabs, like
+the second example in the previous section on :ref:`sec:basics:mfiter:notiling`
+in which two MultiFabs, :cpp:`U` and :cpp:`F`, use :cpp:`MFIter` via
+:cpp:`array()` and :cpp:`const_array()` functions. These different MultiFabs
+may have different BoxArrays. For
 example, :cpp:`U` might be cell-centered, whereas :cpp:`F` might be nodal in
 :math:`x`-direction and cell in other directions. The :cpp:`MFIter::validbox`
 and :cpp:`tilebox` functions return Boxes of the same type as the
@@ -2662,6 +2947,18 @@ owners overriding non-owners.
     auto mask = amrex::OwnerMask(mf, geom.periodicity());
     mf.OverrideSync(*mask, geom.periodicity());
 
+This version of :cpp:`OverrideSync` offers the flexibility of providing a custom mask.
+However, when a custom mask is not needed, we can synchronize the data also with
+
+.. highlight:: c++
+
+::
+
+    MultiFab mf(...); // non-cell-centered
+    mf.OverrideSync(geom.periodicity());
+
+This version of :cpp:`OverrideSync` has better performance than the previous one.
+
 To compute the dot product of two nodal :cpp:`MultiFab`\ s, we can use a
 mask to avoid double counting.
 
@@ -2730,10 +3027,26 @@ covered by fine level grids.
 Memory Allocation
 =================
 
-Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take
-an :cpp:`Arena` argument for memory allocation.  This is usually not
-important for CPU codes, but very important for GPU codes.  We will
-present more details in :ref:`sec:gpu:memory` in Chapter GPU.
+Some constructors of :cpp:`MultiFab`, :cpp:`FArrayBox`, etc. can take an
+:cpp:`Arena` argument for memory allocation.  Some constructors of
+:cpp:`MultiFab` can take an optional argument :cpp:`MFInfo`, which can be
+used to set the arena.  This is usually not important for CPU codes, but
+very important for GPU codes.  We will present more details about memory
+arenas in :ref:`sec:gpu:memory` in Chapter GPU.
+
+Every :cpp:`FArrayBox` in a :cpp:`MultiFab` has a contiguous chunk of memory
+for floating point data, whereas by default :cpp:`MultiFab` as a collection
+of multiple :cpp:`FArrayBox`\ s does not store all floating point data in
+contiguous chunk of memory. This behavior can be changed for all
+:cpp:`MultiFab`\ s with the :cpp:`ParmParse` parameter,
+``amrex.mf.alloc_single_chunk=1``, or for a specific :cpp:`MultiFab` by
+passing a :cpp:`MFInfo` object (e.g.,
+``MFInfo().SetAllocSingleChunk(true)``) to the constructor. One can call
+:cpp:`MultiFab::singleChunkPtr()` to obtain a pointer to the single chunk
+memory. Note that the function returns a null pointer if the :cpp:`MultiFab`
+does not use a single contiguous chunk of memory. One can also call
+:cpp:`MultiFab::singleChunkSize()` to obtain the size in bytes of the single
+chunk memory.
 
 AMReX has a Fortran module, :fortran:`amrex_mempool_module` that can be used to
 allocate memory for Fortran pointers. The reason that such a module exists in

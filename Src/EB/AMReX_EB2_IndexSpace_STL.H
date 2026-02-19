@@ -19,7 +19,8 @@ public:
                   const Geometry& geom, int required_coarsening_level,
                   int max_coarsening_level, int ngrow,
                   bool build_coarse_level_by_coarsening,
-                  bool extend_domain_face, int num_coarsen_opt);
+                  bool extend_domain_face, int num_coarsen_opt,
+                  bool bvh_optimization, bool support_mvmc);
 
     IndexSpaceSTL (IndexSpaceSTL const&) = delete;
     IndexSpaceSTL (IndexSpaceSTL &&) = delete;
@@ -35,6 +36,8 @@ public:
     }
     void addFineLevels (int num_new_fine_levels) final;
     void addRegularCoarseLevels (int num_new_coarse_levels) final;
+
+    void setShift (int direction, int ncells) override;
 
 private:
 

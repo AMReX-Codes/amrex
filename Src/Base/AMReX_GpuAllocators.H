@@ -108,36 +108,42 @@ namespace amrex {
         Arena* m_arena = nullptr;
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class ArenaAllocator
         : public ArenaAllocatorBase<T,ArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class DeviceArenaAllocator
         : public ArenaAllocatorBase<T,DeviceArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class PinnedArenaAllocator
         : public ArenaAllocatorBase<T,PinnedArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class ManagedArenaAllocator
         : public ArenaAllocatorBase<T,ManagedArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class AsyncArenaAllocator
         : public ArenaAllocatorBase<T,AsyncArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class PolymorphicArenaAllocator
         : public ArenaAllocatorBase<T,PolymorphicArenaWrapper>
@@ -162,14 +168,17 @@ namespace amrex {
     //
     template <class T>
     struct IsArenaAllocator
-                <T,std::enable_if_t<std::is_base_of
+                <T,std::enable_if_t<std::is_base_of_v
                                     <ArenaAllocatorBase<typename T::value_type,
                                                         typename T::arena_wrapper_type>,
-                                     T>::value>>
+                                     T>>>
         : std::true_type {};
 
     template <typename T>
     struct IsPolymorphicArenaAllocator : std::false_type {};
+
+    template <typename T>
+    struct IsPolymorphicArenaAllocator<PolymorphicArenaAllocator<T> > : std::true_type {};
 
 #ifdef AMREX_USE_GPU
     template <typename T>
@@ -183,10 +192,6 @@ namespace amrex {
 
     template <typename T>
     struct RunOnGpu<AsyncArenaAllocator<T> > : std::true_type {};
-
-    template <typename T>
-    struct IsPolymorphicArenaAllocator<PolymorphicArenaAllocator<T> > : std::true_type {};
-
 #endif // AMREX_USE_GPU
 
 #ifdef AMREX_USE_GPU

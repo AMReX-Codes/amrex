@@ -745,7 +745,7 @@ void OpenBCSolver::compute_potential (Gpu::DeviceVector<openbc::Moments> const& 
                              lenxy,lenx);
         amrex::Abort("xxxxx SYCL todo: openbc compute_potential");
 #else
-        amrex::launch(b.numPts(), AMREX_GPU_MAX_THREADS, Gpu::gpuStream(),
+        amrex::launch<AMREX_GPU_MAX_THREADS>(b.numPts(), Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
         {
             int icell = blockIdx.x;

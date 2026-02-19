@@ -72,12 +72,18 @@ public:
         }
     }
 
+    //! Returns whether the contained type is the same as the type used for
+    //! the instantiation of this function.
     template <typename MF>
     [[nodiscard]] bool is () const { return Type() == typeid(MF); }
 
+    //! Returns whether the object contains a value.
     [[nodiscard]] bool hasValue () const { return m_ptr != nullptr; }
 
 private:
+
+    /// \cond DOXYGEN_IGNORE
+
     struct innards_base // NOLINT(cppcoreguidelines-special-member-functions)
     {
         [[nodiscard]] virtual const std::type_info& Type () const = 0;
@@ -88,7 +94,7 @@ private:
     struct innards final : innards_base // NOLINT(cppcoreguidelines-special-member-functions)
     {
         innards (MF && mf)
-            : m_mf(std::forward<MF>(mf))
+            : m_mf(std::move(mf))
             {}
 
         ~innards () final = default;
@@ -99,6 +105,8 @@ private:
 
         MF m_mf;
     };
+
+    /// \endcond
 
     std::unique_ptr<innards_base> m_ptr;
 };

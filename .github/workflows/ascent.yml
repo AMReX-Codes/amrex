@@ -1,6 +1,10 @@
 name: 🐧 Ascent
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-insituvis
@@ -9,16 +13,16 @@ concurrency:
 jobs:
   ascent:
     name: Ascent
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     if: github.event.pull_request.draft == false
     env:
       CXX: g++
       CC: gcc
       CMAKE_PREFIX_PATH: /ascent/install/lib/cmake/
     container:
-      image: alpinedav/ascent:0.9.2
+      image: alpinedav/ascent:0.9.3
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Configure
       run: |
         . /ascent_docker_setup_env.sh
@@ -31,5 +35,5 @@ jobs:
     - name: Build
       run: |
         . /ascent_docker_setup_env.sh
-        cmake --build build -j 2
+        cmake --build build -j 4
 

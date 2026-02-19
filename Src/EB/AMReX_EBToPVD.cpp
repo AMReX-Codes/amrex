@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <limits>
 
+namespace amrex {
+
 namespace {
 amrex::Real dot_product(const std::array<amrex::Real,3>& a, const std::array<amrex::Real,3>& b)
 {
@@ -21,8 +23,6 @@ bool intersects(amrex::Real val)
 }
 
 }
-
-namespace amrex {
 
 void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
       const Box & bx, Array4<EBCellFlag const> const& flag,
@@ -54,15 +54,19 @@ void EBToPVD::EBToPolygon(const Real* problo, const Real* dx,
                Real azm = apz(i  ,j  ,k  );
                Real azp = apz(i  ,j  ,k+1);
 
-               Real apnorm = std::sqrt((axm-axp)*(axm-axp) + (aym-ayp)*(aym-ayp) + (azm-azp)*(azm-azp));
+               Real adx = (axm-axp) * dx[1] * dx[2];
+               Real ady = (aym-ayp) * dx[0] * dx[2];
+               Real adz = (azm-azp) * dx[0] * dx[1];
+
+               Real apnorm = std::sqrt(adx*adx + ady*ady + adz*adz);
                Real apnorminv = Real(1.0)/apnorm;
 
                std::array<Real,3> normal, centroid;
                std::array<std::array<Real,3>,8> vertex;
 
-               normal[0] = (axp-axm) * apnorminv;
-               normal[1] = (ayp-aym) * apnorminv;
-               normal[2] = (azp-azm) * apnorminv;
+               normal[0] = adx * apnorminv;
+               normal[1] = ady * apnorminv;
+               normal[2] = adz * apnorminv;
 
                // convert bcent to global coordinate system centered at plo
                centroid[0] = problo[0] + bcent(i,j,k,0)*dx[0] + (static_cast<Real>(i) + Real(0.5))*dx[0];

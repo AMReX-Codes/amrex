@@ -10,6 +10,7 @@ namespace amrex::VectorGrowthStrategy
     constexpr Real min_factor = 1.001_rt;
     constexpr Real max_factor = 4._rt;
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail
     {
         void ValidateUserInput() {
@@ -30,6 +31,7 @@ namespace amrex::VectorGrowthStrategy
             }
         }
     }
+    /// \endcond
 
     void Initialize () {
         ParmParse pp("amrex");

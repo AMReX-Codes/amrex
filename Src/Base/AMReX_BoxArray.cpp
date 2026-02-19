@@ -12,9 +12,14 @@
 
 #include <AMReX_OpenMP.H>
 
+#include <algorithm>
+#include <cstdlib>
+#include <functional>
 #include <iostream>
 
 namespace amrex {
+
+/// \cond DOXYGEN_IGNORE
 
 #ifdef AMREX_MEM_PROFILING
 int  BARef::numboxarrays         = 0;
@@ -26,11 +31,14 @@ Long BARef::total_hash_bytes_hwm = 0L;
 #endif
 
 bool    BARef::initialized = false;
+/// \endcond
 bool BoxArray::initialized = false;
 
 namespace {
     const int bl_ignore_max = 100000;
 }
+
+/// \cond DOXYGEN_IGNORE
 
 BARef::BARef () // NOLINT(modernize-use-equals-default)
 {
@@ -61,7 +69,7 @@ BARef::BARef (const BoxList& bl)
 }
 
 BARef::BARef (BoxList&& bl) noexcept
-    : m_abox(std::move(bl.data()))
+    : m_abox(std::move(std::move(bl).data()))
 {
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
@@ -170,7 +178,7 @@ BARef::define (BoxList&& bl) noexcept
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(-1);
 #endif
-    m_abox = std::move(bl.data());
+    m_abox = std::move(std::move(bl).data());
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
@@ -256,6 +264,8 @@ BARef::Finalize ()
 {
     initialized = false;
 }
+
+/// \endcond
 
 void
 BoxArray::Initialize ()
@@ -555,12 +565,27 @@ BoxArray::maxSize (const IntVect& block_size)
     blst.maxSize(block_size);
     const int N = static_cast<int>(blst.size());
     if (size() != N) { // If size doesn't change, do nothing.
-        BoxList bak = (m_simplified_list) ? *m_simplified_list : BoxList();
+        std::shared_ptr<BoxList> bak;
+        bak.swap(m_simplified_list);
         define(std::move(blst));
-        if (bak.isNotEmpty()) {
-            m_simplified_list = std::make_shared<BoxList>(std::move(bak));
-        }
+        m_simplified_list = std::move(bak);
     }
+    return *this;
+}
+
+BoxArray&
+BoxArray::minmaxSize (const IntVect& min_size, const IntVect& max_size)
+{
+    AMREX_ASSERT(this->coarsenable(min_size) &&
+                 (max_size/min_size)*min_size == max_size);
+    std::shared_ptr<BoxList> bak;
+    if (m_bat.is_simple() && crseRatio() == IntVect::TheUnitVector()) {
+        bak.swap(m_simplified_list);
+    }
+    this->coarsen(min_size);
+    this->maxSize(max_size/min_size);
+    this->refine(min_size);
+    m_simplified_list = std::move(bak);
     return *this;
 }
 
@@ -1010,6 +1035,34 @@ BoxArray::contains (const BoxArray& ba, bool assume_disjoint_ba, const IntVect& 
     return true;
 }
 
+bool
+BoxArray::contains (const BoxArray& ba, Periodicity const& period) const
+{
+    if (size() == 0) { return false; }
+
+    if (! period.isAnyPeriodic()) { return contains(ba); }
+
+    auto const& pshifts = period.shiftIntVect();
+
+    std::vector< std::pair<int,Box> > isects;
+    BoxList bl(ba.ixType());
+
+    for (int i = 0, N = static_cast<int>(ba.size()); i < N; ++i) {
+        Box const& b = ba[i];
+        bl.clear();
+        for (auto const& pit: pshifts) {
+            intersections(b+pit, isects);
+            for (auto const& is : isects) {
+                bl.push_back(is.second - pit);
+            }
+        }
+        BoxList const& left = amrex::complementIn(b, bl);
+        if (left.isNotEmpty()) { return false; }
+    }
+
+    return true;
+}
+
 Box
 BoxArray::minimalBox () const
 {
@@ -1265,6 +1318,33 @@ BoxArray::complementIn (const Box& bx) const
     return bl;
 }
 
+BoxList
+BoxArray::complementIn (const Box& bx, const Periodicity& period) const
+{
+    BoxList bl(bx.ixType());
+    BoxList bl2(bx.ixType());
+    BoxList bltmp(bx.ixType());
+    complementIn(bl, bx);
+    auto const& pshifts = period.shiftIntVect();
+    for (auto const& pit : pshifts) {
+        if (bl.isEmpty()) { break; }
+        if (pit != 0) {
+            bl2.clear();
+            for (auto const& b : bl) {
+                complementIn(bltmp, amrex::shift(b, pit));
+                if (bltmp.isNotEmpty()) {
+                    for (auto& btmp : bltmp) {
+                        btmp -= pit;
+                    }
+                    bl2.join(bltmp);
+                }
+            }
+            std::swap(bl, bl2);
+        }
+    }
+    return bl;
+}
+
 void
 BoxArray::complementIn (BoxList& bl, const Box& bx) const
 {
@@ -1477,6 +1557,7 @@ BoxArray::getDoiHi () const noexcept
     return m_bat.doiHi();
 }
 
+/// \cond DOXYGEN_IGNORE
 BARef::HashType&
 BoxArray::getHashMap () const
 {
@@ -1530,6 +1611,7 @@ BoxArray::getHashMap () const
 
     return BoxHashMap;
 }
+/// \endcond
 
 void
 BoxArray::uniqify ()
@@ -1575,6 +1657,24 @@ BATransformer const&
 BoxArray::transformer () const
 {
     return m_bat;
+}
+
+std::weak_ptr<BARef>
+BoxArray::getWeakRef () const
+{
+    return std::weak_ptr<BARef>{m_ref};
+}
+
+std::shared_ptr<BARef> const&
+BoxArray::getSharedRef () const
+{
+    return m_ref;
+}
+
+std::shared_ptr<BARef>&
+BoxArray::getSharedRef ()
+{
+    return m_ref;
 }
 
 std::ostream&
@@ -1842,6 +1942,188 @@ bool match (const BoxArray& x, const BoxArray& y)
         }
         return m;
     }
+}
+
+BoxArray decompose (Box const& domain, int nboxes,
+                    Array<bool,AMREX_SPACEDIM> const& decomp, bool no_overlap)
+{
+    auto ndecomp = std::count(decomp.begin(), decomp.end(), true);
+
+    if (nboxes <= 1 || ndecomp == 0) {
+        return BoxArray(domain);
+    }
+
+    Box const& ccdomain = amrex::enclosedCells(domain);
+    IntVect const& ncells = ccdomain.length();
+    IntVect nprocs(1);
+
+    if (ndecomp == 1) {
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (decomp[idim]) {
+                nprocs[idim] = nboxes;
+            }
+        }
+    } else {
+        // Factorization of nboxes
+        Vector<int> factors;
+        {
+            int x = 2;
+            int n = nboxes;
+            while (x*x <= n) {
+                std::div_t dv = std::div(n, x);
+                if (dv.rem == 0) {
+                    factors.push_back(x);
+                    n = dv.quot;
+                } else {
+                    ++x;
+                }
+            }
+            if (n != 1) {
+                factors.push_back(n);
+            }
+            AMREX_ALWAYS_ASSERT(nboxes == std::accumulate(factors.begin(), factors.end(),
+                                                          1, std::multiplies<>()));
+        }
+
+        struct ProcDim
+        {
+            int nproc;
+            int idim;
+            Vector<int> procs;
+            ProcDim (int np, int dim) : nproc(np), idim(dim) {}
+        };
+
+        Vector<ProcDim> procdim;
+        procdim.reserve(AMREX_SPACEDIM);
+
+        Array<Long,AMREX_SPACEDIM> nblocks;
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (decomp[idim]) {
+                nblocks[idim] = ncells[idim];
+                procdim.emplace_back(1,idim);
+            } else {
+                nblocks[idim] = 0;  // This dimension will not be decomposed.
+            }
+        }
+
+        auto comp = [&] (ProcDim const& a, ProcDim const& b) {
+                          if (nblocks[a.idim]*b.nproc <
+                              nblocks[b.idim]*a.nproc) {
+                              return true;
+                          } else if (nblocks[a.idim]*b.nproc >
+                                     nblocks[b.idim]*a.nproc) {
+                              return false;
+                          } else {
+                              return a.procs.size() > b.procs.size();
+                          }
+                      };
+
+        int nprocs_tot = 1;
+        while (!factors.empty()) {
+            std::sort(procdim.begin(), procdim.end(), comp);
+            auto f = factors.back();
+            factors.pop_back();
+            procdim.back().nproc *= f;
+            procdim.back().procs.push_back(f);
+            nprocs_tot *= f;
+            if (nprocs_tot == nboxes) {
+                break;
+            }
+        }
+
+        // swap to see if the decomposition can be improved.
+        while (true)
+        {
+            std::sort(procdim.begin(), procdim.end(), comp);
+            auto fit = std::find_if(procdim.begin(),procdim.end(),
+                                    [] (ProcDim const& x) { return x.nproc > 1; });
+            if (fit == procdim.end()) { break; } // This should not actually happen.
+            auto& light = *fit;
+            auto& heavy = procdim.back();
+            Long w0 = nblocks[light.idim] * heavy.nproc;
+            Long w1 = nblocks[heavy.idim] * light.nproc;
+            if (w0 >= w1) { break; }
+            bool swapped = false;
+            for (auto& f0 : light.procs) {
+                for (auto& f1 : heavy.procs) {
+                    if ((f0 > f1) && (w0*f0 < w1*f1)) {
+                        light.nproc /= f0;
+                        light.nproc *= f1;
+                        heavy.nproc /= f1;
+                        heavy.nproc *= f0;
+                        std::swap(f0,f1);
+                        swapped = true;
+                        break;
+                    }
+                }
+                if (swapped) { break;}
+            }
+            if (!swapped) { break; }
+        }
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            if (!decomp[idim]) {
+                procdim.emplace_back(1,idim);
+            }
+        }
+        for (auto const& pd : procdim) {
+            nprocs[pd.idim] = pd.nproc;
+        }
+    }
+
+    AMREX_ALWAYS_ASSERT(AMREX_D_TERM(nprocs[0],*nprocs[1],*nprocs[2]) == nboxes);
+
+    IntVect const domlo = ccdomain.smallEnd();
+    IntVect const sz = ncells / nprocs;
+    IntVect const extra = ncells - sz*nprocs;
+    auto ixtyp = domain.ixType();
+    BoxList bl(ixtyp);
+#if (AMREX_SPACEDIM == 3)
+    for (int k = 0; k < nprocs[2]; ++k) {
+        // The first extra[2] blocks get one extra cell with a total of
+        // sz[2]+1.  The rest get sz[2] cells.  The decomposition in y
+        // and x directions are similar.
+        int klo = (k < extra[2]) ? k*(sz[2]+1) : (k*sz[2]+extra[2]);
+        int khi = (k < extra[2]) ? klo+(sz[2]+1)-1 : klo+sz[2]-1;
+        klo += domlo[2];
+        khi += domlo[2];
+#endif
+#if (AMREX_SPACEDIM >= 2)
+        for (int j = 0; j < nprocs[1]; ++j) {
+            int jlo = (j < extra[1]) ? j*(sz[1]+1) : (j*sz[1]+extra[1]);
+            int jhi = (j < extra[1]) ? jlo+(sz[1]+1)-1 : jlo+sz[1]-1;
+            jlo += domlo[1];
+            jhi += domlo[1];
+#endif
+            for (int i = 0; i < nprocs[0]; ++i) {
+                int ilo = (i < extra[0]) ? i*(sz[0]+1) : (i*sz[0]+extra[0]);
+                int ihi = (i < extra[0]) ? ilo+(sz[0]+1)-1 : ilo+sz[0]-1;
+                ilo += domlo[0];
+                ihi += domlo[0];
+                Box b{IntVect(AMREX_D_DECL(ilo,jlo,klo)),
+                      IntVect(AMREX_D_DECL(ihi,jhi,khi)), ixtyp};
+                if (b.ok()) {
+                    if (no_overlap) {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            if (ixtyp.nodeCentered(idim) &&
+                                b.bigEnd(idim) == ccdomain.bigEnd(idim))
+                            {
+                                b.growHi(idim, 1);
+                            }
+                        }
+                    } else {
+                        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                            if (ixtyp.nodeCentered(idim)) {
+                                b.growHi(idim, 1);
+                            }
+                        }
+                    }
+                    bl.push_back(b);
+                }
+    AMREX_D_TERM(},},})
+
+    return BoxArray(std::move(bl));
 }
 
 std::ostream&

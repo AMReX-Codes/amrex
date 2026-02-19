@@ -4,6 +4,7 @@
 
 #include <AMReX_MLLinOp.H>
 #include <AMReX_iMultiFab.H>
+#include <AMReX_MultiFab.H>
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 #include <AMReX_HypreNodeLap.H>
@@ -38,30 +39,19 @@ public:
     }
 
     void setLevelBC (int /*amrlev*/, const MultiFab* /*levelbcdata*/,
-                             const MultiFab* = nullptr, const MultiFab* = nullptr,
-                             const MultiFab* = nullptr) final {}
+                     const MultiFab* = nullptr, const MultiFab* = nullptr,
+                     const MultiFab* = nullptr) final {}
 
     void apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndry* bndry=nullptr) const final;
 
     void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
-                         bool skip_fillboundary=false) const override;
+                 bool skip_fillboundary, int niter) const override;
 
     void solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                    const MultiFab* crse_bcdata=nullptr) override;
     void correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
                                      BCMode bc_mode, const MultiFab* crse_bcdata=nullptr) override;
-    void compFlux (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*fluxes*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const final {
-        amrex::Abort("AMReX_MLNodeLinOp::compFlux::How did we get here?");
-    }
-    void compGrad (int /*amrlev*/, const Array<MultiFab*,AMREX_SPACEDIM>& /*grad*/,
-                           MultiFab& /*sol*/, Location /*loc*/) const override {
-        amrex::Abort("AMReX_MLNodeLinOp::compGrad::How did we get here?");
-    }
-
-    void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final {}
-    void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MultiFab& /*rhs*/) const final {}
 
     Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
                                                MultiFab const& rhs) const override;
@@ -70,11 +60,20 @@ public:
 
     void prepareForSolve () override;
 
+    void preparePrecond () override;
+
+    void setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const override;
+
     bool isSingular (int amrlev) const override
         { return (amrlev == 0) ? m_is_bottom_singular : false; }
     bool isBottomSingular () const override { return m_is_bottom_singular; }
 
     Real xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const final;
+
+    Real dotProductPrecond (Vector<MultiFab const*> const& x,
+                            Vector<MultiFab const*> const& y) const final;
+
+    Real norm2Precond (Vector<MultiFab const*> const& x) const final;
 
     virtual void applyBC (int amrlev, int mglev, MultiFab& phi, BCMode bc_mode, StateMode state_mode,
                           bool skip_fillboundary=false) const;
@@ -83,11 +82,6 @@ public:
     virtual void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const = 0;
 
     void nodalSync (int amrlev, int mglev, MultiFab& mf) const;
-
-    std::unique_ptr<MLLinOp> makeNLinOp (int /*grid_size*/) const final {
-        amrex::Abort("MLNodeLinOp::makeNLinOp: N-Solve not supported");
-        return std::unique_ptr<MLLinOp>{};
-    }
 
     static std::unique_ptr<iMultiFab> makeOwnerMask (const BoxArray& ba,
                                                      const DistributionMapping& dm,
@@ -147,6 +141,7 @@ protected:
     Vector<std::unique_ptr<LayoutData<int> > > m_has_fine_bndry; // does this fab contain c/f boundary?
     MultiFab m_bottom_dot_mask;
     MultiFab m_coarse_dot_mask;
+    Vector<MultiFab> m_precond_weight_mask;
 
     Vector<std::unique_ptr<iMultiFab> > m_norm_fine_mask;
 

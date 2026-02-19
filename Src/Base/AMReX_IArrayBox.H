@@ -22,6 +22,8 @@ public:
 };
 
 /**
+* \class amrex::IArrayBox
+* \ingroup amrex_fab_containers
 * \brief  A Fortran Array of ints
 
 *  iFortran Array Box's (generally called iFAB's) are objects constructed
@@ -41,7 +43,6 @@ public:
 
 *  This class does NOT provide a copy constructor or assignment operator.
 */
-
 class IArrayBox
     :
     public BaseFab<int>
@@ -95,7 +96,6 @@ public:
 
     void readFrom (std::istream& is);
 
-    //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();
     static void Finalize ();
 

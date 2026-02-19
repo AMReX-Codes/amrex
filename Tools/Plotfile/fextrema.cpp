@@ -37,7 +37,7 @@ void main_main()
                        << "\n"
                        << "   -v names    : output information only for specified variables, given\n"
                        << "                 as a space-spearated string\n"
-                       << std::endl;
+                       << '\n';
         return;
     }
 
@@ -119,12 +119,12 @@ void main_main()
                     << " " << std::setw(22) << std::right << vvmax[i]
                     << "\n";
             }
-            amrex::Print() << std::endl;
+            amrex::Print() << '\n';
         } else {
             if (f == 0) {
                 amrex::Print() << "# " << std::setw(23) << std::right << "time ";
-                for (int i = 0; i < var_names.size(); ++i) {
-                    amrex::Print() << "|" << std::setw(44) << std::left << var_names[i];
+                for (auto const& var_name : var_names) {
+                    amrex::Print() << "|" << std::setw(44) << std::left << var_name;
                 }
                 amrex::Print() << "|\n";
                 amrex::Print() << "# " << std::setw(23) << " ";

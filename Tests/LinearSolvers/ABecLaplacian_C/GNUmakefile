@@ -6,6 +6,11 @@ USE_OMP  = FALSE
 USE_HYPRE = FALSE
 USE_PETSC = FALSE
 
+USE_HYPRE_SSAMG = FALSE
+ifeq ($(USE_HYPRE_SSAMG),TRUE)
+  DEFINES += -DAMREX_FEATURE_HYPRE_SSAMG
+endif
+
 COMP = gnu
 
 DIM = 3
@@ -16,7 +21,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ./Make.package
 
-Pdirs 	:= Base Boundary LinearSolvers/MLMG
+Pdirs 	:= Base Boundary LinearSolvers
 
 Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 

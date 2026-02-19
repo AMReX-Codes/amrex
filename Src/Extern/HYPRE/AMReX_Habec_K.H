@@ -6,6 +6,7 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_IArrayBox.H>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void comp_bf (Real& bf1, Real& bf2, Real sb, Real h, int bct, Real bcl, int bho)
@@ -55,8 +56,11 @@ namespace amrex::detail {
         }
     }
 }
+/// \endcond
 
-#if (AMREX_SPACEDIM == 2)
+#if (AMREX_SPACEDIM == 1)
+#include <AMReX_Habec_1D_K.H>
+#elif (AMREX_SPACEDIM == 2)
 #include <AMReX_Habec_2D_K.H>
 #elif (AMREX_SPACEDIM == 3)
 #include <AMReX_Habec_3D_K.H>

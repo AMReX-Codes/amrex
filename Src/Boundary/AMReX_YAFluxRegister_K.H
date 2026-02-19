@@ -2,12 +2,10 @@
 #define AMREX_YAFLUXREGISTER_K_H_
 #include <AMReX_Config.H>
 
-namespace {
-    // must be same as in AMReX_YAFluxRegister.H
-    constexpr int amrex_yafluxreg_crse_cell = 0;
-    constexpr int amrex_yafluxreg_crse_fine_boundary_cell = 1;
-    constexpr int amrex_yafluxreg_fine_cell = 2;
-}
+// must be same as in AMReX_YAFluxRegister.H
+constexpr int amrex_yafluxreg_crse_cell = 0;
+constexpr int amrex_yafluxreg_crse_fine_boundary_cell = 1;
+constexpr int amrex_yafluxreg_fine_cell = 2;
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_YAFluxRegister_1D_K.H>

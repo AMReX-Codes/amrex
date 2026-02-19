@@ -78,7 +78,9 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 {
     ParmParse pp("amr");
 
-    pp.queryAdd("v",verbose);
+    if (! pp.query("verbose", "v", verbose)) {
+        pp.add("verbose", verbose);
+    }
 
     if (max_level_in == -1) {
        pp.get("max_level", max_level);
@@ -89,27 +91,16 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
 
     int nlev = max_level + 1;
 
-    blocking_factor.resize(nlev);
-    max_grid_size.resize(nlev);
-    n_error_buf.resize(nlev);
+    AmrInfo def_amr_info;
+
+    blocking_factor.resize(nlev, def_amr_info.blocking_factor.back());
+    max_grid_size.resize  (nlev, def_amr_info.max_grid_size.back());
+    n_error_buf.resize    (nlev, def_amr_info.n_error_buf.back());
+    ref_ratio.resize      (nlev, def_amr_info.ref_ratio.back());
 
     geom.resize(nlev);
     dmap.resize(nlev);
     grids.resize(nlev);
-
-    for (int i = 0; i < nlev; ++i) {
-        n_error_buf[i]     = IntVect{AMREX_D_DECL(1,1,1)};
-        blocking_factor[i] = IntVect{AMREX_D_DECL(8,8,8)};
-        max_grid_size[i]   = (AMREX_SPACEDIM == 2) ? IntVect{AMREX_D_DECL(128,128,128)}
-                                                   : IntVect{AMREX_D_DECL(32,32,32)};
-    }
-
-    // Make the default ref_ratio = 2 for all levels.
-    ref_ratio.resize(max_level);
-    for (int i = 0; i < max_level; ++i)
-    {
-      ref_ratio[i] = 2 * IntVect::TheUnitVector();
-    }
 
     pp.queryAdd("n_proper",n_proper);
     pp.queryAdd("grid_eff",grid_eff);
@@ -371,15 +362,20 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     {
         pp.queryAdd("refine_grid_layout", refine_grid_layout);
 
-        refine_grid_layout_dims = IntVect(refine_grid_layout);
-        AMREX_D_TERM(pp.queryAdd("refine_grid_layout_x", refine_grid_layout_dims[0]);,
-                     pp.queryAdd("refine_grid_layout_y", refine_grid_layout_dims[1]);,
-                     pp.queryAdd("refine_grid_layout_z", refine_grid_layout_dims[2]));
-
+        std::array<bool,AMREX_SPACEDIM> tmp{AMREX_D_DECL(refine_grid_layout,
+                                                         refine_grid_layout,
+                                                         refine_grid_layout)};
+        AMREX_D_TERM(pp.query("refine_grid_layout_x", tmp[0]);,
+                     pp.query("refine_grid_layout_y", tmp[1]);,
+                     pp.query("refine_grid_layout_z", tmp[2]));
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            refine_grid_layout_dims[idim] = tmp[idim];
+        }
         refine_grid_layout = refine_grid_layout_dims != 0;
     }
 
     pp.queryAdd("check_input", check_input);
+    pp.queryAdd("max_grid_iterations", max_grid_iterations);
 
     finest_level = -1;
 
@@ -421,9 +417,9 @@ AmrMesh::SetGeometry (int lev, const Geometry& geom_in) noexcept
 }
 
 int
-AmrMesh::GetLevel (Box const& domain) noexcept
+AmrMesh::GetLevel (Box const& domain) const noexcept
 {
-    Box ccdomain = amrex::enclosedCells(domain);
+    Box const& ccdomain = amrex::enclosedCells(domain);
     for (int lev = 0; lev < geom.size(); ++lev) {
         if (geom[lev].Domain() == ccdomain) { return lev; }
     }
@@ -443,7 +439,7 @@ AmrMesh::ClearBoxArray (int lev) noexcept
 }
 
 bool
-AmrMesh::LevelDefined (int lev) noexcept
+AmrMesh::LevelDefined (int lev) const noexcept
 {
     return lev <= max_level && !grids[lev].empty() && !dmap[lev].empty();
 }
@@ -476,6 +472,9 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
     IntVect chunk = max_grid_size[lev];
     chunk.min(Geom(lev).Domain().length());
 
+    // Note that ba already satisfies the max_grid_size requirement and it's
+    // coarsenable if it's a fine level BoxArray.
+
     while (ba.size() < target_size)
     {
         IntVect chunk_prev = chunk;
@@ -490,11 +489,24 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             int idim = chunk_dir[idx].second;
             if (refine_grid_layout_dims[idim]) {
                 int new_chunk_size = chunk[idim] / 2;
+                int rr = (lev > 0) ? ref_ratio[lev-1][idim] : 1;
+                if (rr > 1) {
+                    new_chunk_size = (new_chunk_size/rr) * rr;
+                }
                 if (new_chunk_size != 0 &&
                     new_chunk_size%blocking_factor[lev][idim] == 0)
                 {
                     chunk[idim] = new_chunk_size;
-                    ba.maxSize(chunk);
+                    if (rr == 1) {
+                        ba.maxSize(chunk);
+                    } else {
+                        IntVect bf(1);
+                        bf[idim] = rr;
+                        // Note that only idim-direction will be chopped by
+                        // minmaxSize because the sizes in other directions
+                        // are already smaller than chunk.
+                        ba.minmaxSize(bf, chunk);
+                    }
                     break;
                 }
             }
@@ -763,13 +775,47 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
                 }
                 new_bx.Bcast();  // Broadcast the new BoxList to other processes
 
-                //
-                // Refine up to levf.
-                //
-                new_bx.refine(ref_ratio[levc]);
-                BL_ASSERT(new_bx.isDisjoint());
+                bool odd_ref_ratio = false;
+                for (auto const& rr : ref_ratio[levc]) {
+                    if (rr != 1 && (rr%2 != 0)) {
+                        odd_ref_ratio = true;
+                    }
+                }
 
-                new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+                if (odd_ref_ratio)
+                {
+                    // This approach imposes max_grid_size (suitably scaled) before
+                    //     refining so as to ensure fine grids align with coarse grids
+
+                    //
+                    // Impose max_grid_size (suitably coarsened)
+                    //
+                    AMREX_ASSERT(max_grid_size[levf].allGE(ref_ratio[levc]));
+                    new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]/ref_ratio[levc]);
+
+                    //
+                    // Refine up to levf.
+                    //
+                    new_grids[levf].refine(ref_ratio[levc]);
+                }
+                else
+                {
+                    // This approach imposes max_grid_size after refining.
+                    // For ref_ratio = 3 this can create fine grids that do not correctly divide by 3,
+                    //     but we leave it here so as not to change the gridding in
+                    //     existing ref_ratio = 2 or 4 applications
+
+                    //
+                    // Refine up to levf.
+                    //
+                    new_bx.refine(ref_ratio[levc]);
+
+                    //
+                    // Impose max_grid_size
+                    //
+                    new_grids[levf] = BoxArray(std::move(new_bx), max_grid_size[levf]);
+                }
+                BL_ASSERT(new_grids[levf].isDisjoint());
             }
         }
     }
@@ -965,7 +1011,7 @@ AmrMesh::MakeNewGrids (Real time)
         // Iterate grids to ensure fine grids encompass all interesting junk.
         if (iterate_on_new_grids)
         {
-            for (int it=0; it<4; ++it)  // try at most 4 times
+            for (int it=0; it<max_grid_iterations; ++it)  // try at most max_grid_iterations times
             {
                 for (int i = 1; i <= finest_level; ++i) {
                     new_grids[i] = grids[i];
@@ -1082,7 +1128,7 @@ AmrMesh::checkInput ()
     for (int i = 0; i < max_level; i++)
     {
         if (MaxRefRatio(i) < 2) {
-            amrex::Error("Amr::checkInput: bad ref_ratios");
+            amrex::Warning("Amr::checkInput: ref_ratios all equal to one!");
         }
     }
 
@@ -1099,12 +1145,12 @@ AmrMesh::checkInput ()
     {
         int len = domain.length(idim);
         if (blocking_factor[0][idim] <= max_grid_size[0][idim]) {
-           if (len%blocking_factor[0][idim] != 0)
-           {
-              amrex::Print() << "domain size in direction " << idim << " is " << len << std::endl;
-              amrex::Print() << "blocking_factor is " << blocking_factor[0][idim] << std::endl;
-              amrex::Error("domain size not divisible by blocking_factor");
-           }
+            if (len%blocking_factor[0][idim] != 0)
+            {
+                amrex::Print() << "domain size in direction " << idim << " is " << len << '\n'
+                               << "blocking_factor is " << blocking_factor[0][idim] << '\n';
+                amrex::Error("domain size not divisible by blocking_factor");
+            }
         }
     }
 
@@ -1134,7 +1180,7 @@ AmrMesh::checkInput ()
             amrex::Print() << "Blocking factors on levels " << i << " and " << i+1
                            << " are " << blocking_factor[i] << " " << blocking_factor[i+1]
                            << ". Ref ratio is " << ref_ratio[i]
-                           << ".  They vary too much between levels." << std::endl;
+                           << ".  They vary too much between levels." << '\n';
             amrex::Error("Blocking factors vary too much between levels");
         }
     }
@@ -1149,8 +1195,8 @@ AmrMesh::checkInput ()
             if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
                 if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
                     amrex::Print() << "max_grid_size in direction " << idim
-                                   << " is " << max_grid_size[i][idim] << std::endl;
-                    amrex::Print() << "blocking_factor is " << blocking_factor[i][idim] << std::endl;
+                                   << " is " << max_grid_size[i][idim] << '\n'
+                                   << "blocking_factor is " << blocking_factor[i][idim] << '\n';
                     amrex::Error("max_grid_size not divisible by blocking_factor");
                 }
             }
@@ -1167,7 +1213,7 @@ AmrMesh::checkInput ()
                                << " max_grid_size is " << max_grid_size[i][idim]
                                << " blocking factor is " << blocking_factor[i][idim] << "\n"
                                << "On level " << i+1 << " in direction " << idim
-                               << " blocking_factor is " << blocking_factor[i+1][idim] << std::endl;
+                               << " blocking_factor is " << blocking_factor[i+1][idim] << '\n';
                 amrex::Error("Coarse level blocking factor not a multiple of fine level blocking factor divided by ref ratio");
             }
         }
@@ -1182,8 +1228,8 @@ AmrMesh::checkInput ()
     }
 }
 
-long
-AmrMesh::CountCells (int lev) noexcept
+Long
+AmrMesh::CountCells (int lev) const noexcept
 {
     return grids[lev].numPts();
 }
@@ -1212,6 +1258,7 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
+    os << "  max_grid_iterations = " << amr_mesh.max_grid_iterations << "\n";
     return os;
 }
 

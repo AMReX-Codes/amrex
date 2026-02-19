@@ -43,7 +43,6 @@ include(AMReXParallelBackends)
 # Add definitions
 #
 include(AMReXSetDefines)
-
 #
 # Find and link third party libraries if needed
 #
@@ -80,12 +79,24 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           )
     endif ()
 
+    if (AMReX_FASTMATH)
+        target_link_libraries(amrex_${D}d PUBLIC AMReX::Flags_FASTMATH)
+    endif ()
+
     if (AMReX_FPE)
        target_link_libraries(amrex_${D}d
           PUBLIC
           $<BUILD_INTERFACE:Flags_FPE>
           )
     endif ()
+
+    if (NOT AMReX_COMPILER_DEFAULT_INLINE)
+       target_link_libraries(amrex_${D}d
+          PUBLIC
+          $<BUILD_INTERFACE:Flags_INLINE>
+          )
+    endif ()
+
 endforeach()
 
 # General configuration
@@ -127,6 +138,10 @@ endif ()
 
 if (AMReX_PARTICLES)
    add_subdirectory(Particle)
+endif ()
+
+if (AMReX_FFT)
+   add_subdirectory(FFT)
 endif ()
 
 #
@@ -180,7 +195,7 @@ if (AMReX_SENSEI)
    add_subdirectory(Extern/SENSEI)
 endif ()
 
-if (AMReX_CONDUIT OR AMReX_ASCENT)
+if (AMReX_CONDUIT OR AMReX_ASCENT OR AMReX_CATALYST)
    add_subdirectory(Extern/Conduit)
 endif ()
 

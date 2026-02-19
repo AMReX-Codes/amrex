@@ -149,7 +149,10 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
     {
-#if defined(AMREX_USE_SYCL)
+#if defined(_WIN32)
+        AMREX_IF_ON_DEVICE((return m != m;))
+        AMREX_IF_ON_HOST((return std::isnan(m);))
+#elif defined(AMREX_USE_SYCL)
         return sycl::isnan(m);
 #else
         return std::isnan(m);
@@ -160,7 +163,10 @@ namespace Gpu {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
     {
-#if defined(AMREX_USE_SYCL)
+#if defined(_WIN32)
+        AMREX_IF_ON_DEVICE((return (2*m == m) && (m != 0);))
+        AMREX_IF_ON_HOST((return std::isinf(m);))
+#elif defined(AMREX_USE_SYCL)
         return sycl::isinf(m);
 #else
         return std::isinf(m);
@@ -230,5 +236,20 @@ using Gpu::isnan;
 using Gpu::isinf;
 
 } // namespace amrex
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+/* Somehow I cannot get cudaMemcpyFromSymbol to work. */
+#define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) \
+    [] () { \
+        auto* amrex_i_hp = (FP_t*) amrex::The_Pinned_Arena()->alloc(sizeof(FP_t)); \
+        amrex::single_task([=] AMREX_GPU_DEVICE () { *amrex_i_hp = sym; }); \
+        amrex::Gpu::streamSynchronize(); \
+        auto amrex_i_r = *amrex_i_hp; \
+        amrex::The_Pinned_Arena()->free(amrex_i_hp); \
+        return amrex_i_r; \
+    } ()
+#elif !defined(AMREX_USE_SYCL)
+#define AMREX_GET_DEVICE_FUNC_PTR(FP_t, sym) sym
+#endif
 
 #endif

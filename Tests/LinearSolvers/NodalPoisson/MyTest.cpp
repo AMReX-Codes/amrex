@@ -1,5 +1,6 @@
 #include "MyTest.H"
 
+#include <AMReX_GMRES_MLMG.H>
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_FillPatchUtil.H>
@@ -58,7 +59,13 @@ MyTest::solve ()
             solution[ilev].setVal(0.0, interior, 0, 1, 0);
         }
 
-        mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        if (use_gmres) {
+            GMRESMLMG gmsolver(mlmg);
+            gmsolver.setVerbose(verbose);
+            gmsolver.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        } else {
+            mlmg.solve(GetVecOfPtrs(solution), GetVecOfConstPtrs(rhs), reltol, 0.0);
+        }
     }
     else // solve level by level
     {
@@ -112,7 +119,13 @@ MyTest::solve ()
                                              bcrec, 0);
             }
 
-            mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, reltol, 0.0);
+            if (use_gmres) {
+                GMRESMLMG gmsolver(mlmg);
+                gmsolver.setVerbose(verbose);
+                gmsolver.solve(solution[ilev], rhs[ilev], reltol, 0.0);
+            } else {
+                mlmg.solve({&solution[ilev]}, {&rhs[ilev]}, reltol, 0.0);
+            }
         }
     }
 }
@@ -143,14 +156,19 @@ MyTest::readParameters ()
     pp.query("ref_ratio", ref_ratio);
     pp.query("n_cell", n_cell);
     pp.query("max_grid_size", max_grid_size);
+    pp.query("domain_ratio", domain_ratio);
 
     pp.query("composite_solve", composite_solve);
+    pp.query("use_gmres", use_gmres);
 
     pp.query("verbose", verbose);
     pp.query("bottom_verbose", bottom_verbose);
     pp.query("max_iter", max_iter);
     pp.query("max_fmg_iter", max_fmg_iter);
     pp.query("reltol", reltol);
+#ifdef AMREX_USE_FLOAT
+        reltol = std::max(reltol, 1.e-5F);
+#endif
 
     pp.query("gpu_regtest", gpu_regtest);
 
@@ -190,7 +208,7 @@ MyTest::initData ()
     exact_solution.resize(nlevels);
     sigma.resize(nlevels);
 
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,domain_ratio,1.)});
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain0(IntVect{AMREX_D_DECL(0,0,0)}, IntVect{AMREX_D_DECL(n_cell-1,n_cell-1,n_cell-1)});
@@ -239,8 +257,16 @@ MyTest::initData ()
                 constexpr Real fac = tpi*tpi*AMREX_SPACEDIM;
 
                 Real x = i*dx[0];
+#if (AMREX_SPACEDIM > 1)
                 Real y = j*dx[1];
+#else
+                Real y = Real(0.0);
+#endif
+#if (AMREX_SPACEDIM > 2)
                 Real z = k*dx[2];
+#else
+                Real z = Real(0.0);
+#endif
 
                 phi(i,j,k) = (std::cos(tpi*x) * std::cos(tpi*y) * std::cos(tpi*z))
                     + 0.25 * (std::cos(fpi*x) * std::cos(fpi*y) * std::cos(fpi*z));
@@ -253,4 +279,3 @@ MyTest::initData ()
         sigma[ilev].setVal(1.0);
     }
 }
-

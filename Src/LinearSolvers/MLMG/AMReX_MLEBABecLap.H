@@ -9,8 +9,12 @@
 
 namespace amrex {
 
+template <typename T>
+struct MLMGABCEBTag;
+
 // (alpha * a - beta * (del dot b grad)) phi
 
+/// \ingroup amrex_eb
 class MLEBABecLap
     : public MLCellABecLap
 {
@@ -120,7 +124,7 @@ public:
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
@@ -128,6 +132,9 @@ public:
     Real m_b_scalar = std::numeric_limits<Real>::quiet_NaN();
     Vector<Vector<MultiFab> > m_a_coeffs;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_b_coeffs;
+
+    bool m_scalars_set = false;
+    bool m_acoef_set = false;
 
 protected:
 
@@ -159,7 +166,32 @@ protected:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+
+    mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
 };
+
+/// \cond DOXYGEN_IGNORE
+
+// Tag for applyBC EB version
+template <typename T>
+struct MLMGABCEBTag {
+    amrex::Array4<int const> mask;
+    amrex::Array4<T const> area;
+    T bcloc;
+    amrex::Box bx;
+    amrex::BoundCond bctype;
+    int blen;
+    int comp;
+    int dir;
+    int is_eb;
+    int side;
+    int local_index;
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    amrex::Box const& box() const noexcept { return bx; }
+};
+
+/// \endcond
 
 }
 

@@ -5,7 +5,6 @@
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
-#include <AMReX_Scan.H>
 #include <type_traits>
 
 #include <numeric>
@@ -16,6 +15,7 @@ namespace amrex::Gpu {
 #ifdef AMREX_USE_GPU
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the standard memory Arena.
      * Note that the memory might or might not be managed depending
      * on the amrex.the_arena_is_managed ParmParse parameter.
@@ -24,6 +24,7 @@ namespace amrex::Gpu {
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the non-managed device memory arena.
      *
      */
@@ -31,6 +32,7 @@ namespace amrex::Gpu {
     using NonManagedDeviceVector = PODVector<T, DeviceArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the managed memory arena.
      *
      */
@@ -38,6 +40,7 @@ namespace amrex::Gpu {
     using ManagedVector = PODVector<T, ManagedArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the pinned memory arena.
      *
      */
@@ -45,6 +48,7 @@ namespace amrex::Gpu {
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the async memory arena.
      *        Maybe useful for temporary vectors inside MFIters
      *        that are accessed on the device.
@@ -54,6 +58,7 @@ namespace amrex::Gpu {
     using AsyncVector = PODVector<T, AsyncArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
      * For a vector class that uses std::allocator by default, see amrex::Vector.
      *
@@ -62,6 +67,7 @@ namespace amrex::Gpu {
     using HostVector = PinnedVector<T>;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector
      * form is deprecated and will be removed in a future release.
      *
@@ -109,14 +115,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param HostToDevice A tag indicating that the copy is from the host to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copy(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copy (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -130,11 +136,7 @@ namespace amrex::Gpu {
 
         auto size = std::distance(begin, end);
         if (size == 0) { return; }
-#ifdef AMREX_USE_GPU
         htod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#else
-        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif
     }
 
     /**
@@ -146,14 +148,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToHost A tag indicating that the copy is from the device to the host
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copy(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copy (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
@@ -167,11 +169,7 @@ namespace amrex::Gpu {
 
         auto size = std::distance(begin, end);
         if (size == 0) { return; }
-#ifdef AMREX_USE_GPU
         dtoh_memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#else
-        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif
     }
 
     /**
@@ -183,14 +181,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToDevice A tag indicating that the copy is from the device to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copy(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copy (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -204,11 +202,7 @@ namespace amrex::Gpu {
 
         auto size = std::distance(begin, end);
         if (size == 0) { return; }
-#ifdef AMREX_USE_GPU
         dtod_memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#else
-        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif
     }
 
     /**
@@ -221,14 +215,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param HostToDevice A tag indicating that the copy is from the host to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copyAsync(Gpu::hostToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copyAsync (HostToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -242,11 +236,7 @@ namespace amrex::Gpu {
 
         auto size = std::distance(begin, end);
         if (size == 0) { return; }
-#ifdef AMREX_USE_GPU
         htod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
-#else
-        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif
     }
 
     /**
@@ -259,14 +249,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToHost A tag indicating that the copy is from the device to the host
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copyAsync(Gpu::deviceToHost, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToHost, InIter begin, InIter end, OutIter result) noexcept
@@ -280,11 +270,7 @@ namespace amrex::Gpu {
 
         auto size = std::distance(begin, end);
         if (size == 0) { return; }
-#ifdef AMREX_USE_GPU
         dtoh_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
-#else
-        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif
     }
 
     /**
@@ -297,14 +283,14 @@ namespace amrex::Gpu {
      *
      * \tparam InIter  The input iterator type
      * \tparam OutIter The output iterator type
-     * \param DeviceToDevice A tag indicating that the copy is from the device to the device
      * \param begin Where in the input to start reading
      * \param end Where in the input to stop reading
      * \param result Where in the output to start writing
      *
      * Example usage:
-     *
+     * \code{.cpp}
      *    Gpu::copyAsync(Gpu::deviceToDevice, a.begin(), a.end(), b.begin());
+     * \endcode
      */
     template<class InIter, class OutIter>
     void copyAsync (DeviceToDevice, InIter begin, InIter end, OutIter result) noexcept
@@ -318,11 +304,7 @@ namespace amrex::Gpu {
 
         auto size = std::distance(begin, end);
         if (size == 0) { return; }
-#ifdef AMREX_USE_GPU
         dtod_memcpy_async(&(*result), &(*begin), size*sizeof(value_type));
-#else
-        std::memcpy(&(*result), &(*begin), size*sizeof(value_type));
-#endif
     }
 
     /**
@@ -345,10 +327,20 @@ namespace amrex::Gpu {
         // Currently only implemented for CUDA.
 #if defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = cudaCpuDeviceId;
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
+                                                      size*sizeof(value_type),
+                                                      location, 0,
+                                                      Gpu::gpuStream()));
+#else
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
                                                       size*sizeof(value_type),
                                                       cudaCpuDeviceId,
                                                       Gpu::gpuStream()));
+#endif
         }
 #endif
 #endif
@@ -376,10 +368,20 @@ namespace amrex::Gpu {
         // Currently only implemented for CUDA.
 #if defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = Gpu::Device::deviceId();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
+                                                      size*sizeof(value_type),
+                                                      location, 0,
+                                                      Gpu::gpuStream()));
+#else
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
                                                       size*sizeof(value_type),
                                                       Gpu::Device::deviceId(),
                                                       Gpu::gpuStream()));
+#endif
         }
 #endif
 #endif
@@ -408,7 +410,7 @@ namespace amrex::Gpu {
                                std::is_trivially_copyable_v<T> &&
                                amrex::IsCallable<F, T&, Long>::value,
                                int> FOO = 0>
-    void fillAsync (IT first, IT last, F&& f) noexcept
+    void fillAsync (IT first, IT last, F const& f) noexcept
     {
         auto N = static_cast<Long>(std::distance(first, last));
         if (N <= 0) { return; }
@@ -434,11 +436,11 @@ namespace amrex::Gpu {
                                          unsigned long long, unsigned int>;
             constexpr Long nU = sizeof(T) / sizeof(U);
             auto pu = reinterpret_cast<U*>(p);
-            int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
+            constexpr int nthreads_per_block = (sizeof(T) <= 64) ? 256 : 128;
             int nblocks = static_cast<int>((N+nthreads_per_block-1)/nthreads_per_block);
             std::size_t shared_mem_bytes = nthreads_per_block * sizeof(T);
 #ifdef AMREX_USE_SYCL
-            amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+            amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
             [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
             {
                 Long i = handler.globalIdx();
@@ -459,7 +461,7 @@ namespace amrex::Gpu {
                 }
             });
 #else
-            amrex::launch(nblocks, nthreads_per_block, shared_mem_bytes, Gpu::gpuStream(),
+            amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
                           [=] AMREX_GPU_DEVICE () noexcept
             {
                 Long blockDimx = blockDim.x;

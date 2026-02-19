@@ -34,7 +34,7 @@ public:
         return *this;
     }
 
-    void append (Elixir && rhs) noexcept
+    void append (Elixir rhs) noexcept
     {
         m_pa.insert(m_pa.end(), rhs.m_pa.begin(), rhs.m_pa.end());
         rhs.m_pa.clear();

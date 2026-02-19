@@ -148,7 +148,8 @@ Cluster::minBox () noexcept
 // Finds best cut location in histogram.
 //
 
-static
+namespace {
+
 int
 FindCut (const int* hist,
          int        lo,
@@ -236,7 +237,6 @@ FindCut (const int* hist,
     return lo + cutpoint;
 }
 
-namespace {
 //
 // Predicate in call to std::partition() in Cluster::chop().
 //

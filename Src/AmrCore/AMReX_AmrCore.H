@@ -14,13 +14,13 @@ class AmrParGDB;
 #endif
 
 /**
+ * \ingroup amrex_amrcore
  * \brief Provide basic functionalities to set up an AMR hierarchy
  *
  * Because it does not own any floating point data, AmrCore used
  * virtual functions to allocate, initialize and delete data.  It also
  * requires the derived class to tag cells for refinement.
  */
-
 class AmrCore
     : public AmrMesh
 {

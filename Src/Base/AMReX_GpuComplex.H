@@ -16,13 +16,17 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T norm (const GpuComplex<T>& a_z) noexcept;
 
 /**
+ * \ingroup amrex_arithmetic_types
  * \brief A host / device complex number type, because std::complex doesn't
  *  work in device code with Cuda yet.
  *
  *  Should be bit-wise compatible with std::complex.
+ *
+ *  GpuComplex is aligned to its size (stricter than std::complex) to allow for
+ *  coalesced memory accesses with nvidia GPUs.
  */
 template <typename T>
-struct GpuComplex
+struct alignas(2*sizeof(T)) GpuComplex
 {
     using value_type = T;
 
@@ -38,20 +42,21 @@ struct GpuComplex
     /**
      * \brief Return the real part.
      */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr T real () const noexcept { return m_real; }
 
     /**
      * \brief Return the imaginary part.
      */
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr T imag () const noexcept { return m_imag; }
 
-   /**
+    /**
      * \brief Add a real number to this complex number.
      */
+    template <typename U>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    GpuComplex<T>& operator+= (const T& a_t) noexcept
+    GpuComplex<T>& operator+= (const U& a_t) noexcept
     {
         m_real += a_t;
         return *this;
@@ -60,8 +65,9 @@ struct GpuComplex
    /**
      * \brief Subtract a real number from this complex number.
      */
+    template <typename U>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    GpuComplex<T>& operator-= (const T& a_t) noexcept
+    GpuComplex<T>& operator-= (const U& a_t) noexcept
     {
         m_real -= a_t;
         return *this;
@@ -70,8 +76,9 @@ struct GpuComplex
     /**
      * \brief Multiply this complex number by a real.
      */
+    template <typename U>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    GpuComplex<T>& operator*= (const T& a_t) noexcept
+    GpuComplex<T>& operator*= (const U& a_t) noexcept
     {
         m_real *= a_t;
         m_imag *= a_t;
@@ -81,8 +88,9 @@ struct GpuComplex
     /**
      * \brief Divide this complex number by a real.
      */
+    template <typename U>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    GpuComplex<T>& operator/= (const T& a_t) noexcept
+    GpuComplex<T>& operator/= (const U& a_t) noexcept
     {
         m_real /= a_t;
         m_imag /= a_t;
@@ -244,9 +252,9 @@ GpuComplex<T> operator+ (const T& a_x, const GpuComplex<T>& a_y) noexcept
 /**
  * \brief Multiply two complex numbers.
  */
-template <typename T>
+template <typename T, typename U>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-GpuComplex<T> operator* (const GpuComplex<T>& a_x, const GpuComplex<T>& a_y) noexcept
+GpuComplex<T> operator* (const GpuComplex<T>& a_x, const GpuComplex<U>& a_y) noexcept
 {
     GpuComplex<T> r = a_x;
     r *= a_y;
@@ -256,9 +264,9 @@ GpuComplex<T> operator* (const GpuComplex<T>& a_x, const GpuComplex<T>& a_y) noe
 /**
  * \brief Multiply a complex number by a real one.
  */
-template <typename T>
+template <typename T, typename U>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-GpuComplex<T> operator* (const GpuComplex<T>& a_x, const T& a_y) noexcept
+GpuComplex<T> operator* (const GpuComplex<T>& a_x, const U& a_y) noexcept
 {
     GpuComplex<T> r = a_x;
     r *= a_y;
@@ -422,6 +430,7 @@ GpuComplex<T> pow (const GpuComplex<T>& a_z, const T& a_y) noexcept
     return amrex::polar<T>(std::exp(a_y * t.real()), a_y * t.imag());
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename T>
@@ -441,6 +450,7 @@ namespace detail
         return y;
     }
 }
+/// \endcond
 
 /**
  * \brief Raise a complex number to an integer power.

@@ -300,6 +300,8 @@ To open a plotfile (for example, you could run the
    In the later case, Paraview will load the plotfiles as a time series.
    ParaView will ask you about the file type -- choose "AMReX/BoxLib Grid Reader" or
    "AMReX/BoxLib Particles Reader".
+   Note that if your ploftile prefix is not ``plt`` or any other type supported by default,
+   then in ``Files of type`` you need to first select ``All files (*)``.
 
 #. Under the "Cell Arrays" field, select a variable (e.g., "phi") and click
    "Apply". Note that the default number of refinement levels loaded and visualized is 1.
@@ -330,6 +332,62 @@ To open a plotfile (for example, you could run the
 .. raw:: latex
 
    \end{center}
+
+
+Creating and Loading ``.series`` Files
+--------------------------------------
+
+Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file
+(similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists
+the plotfiles in a JSON format as below.
+
+.. highlight:: console
+
+::
+
+{ "file-series-version": "1.0", "files": [
+{ "name": "plt00000", "time": 0},
+{ "name": "plt00100", "time": 1},
+{ "name": "plt00200", "time": 2},
+{ "name": "plt00300", "time": 3},
+{ "name": "plt00400", "time": 4},
+{ "name": "plt00500", "time": 5},
+{ "name": "plt00600", "time": 6},
+{ "name": "plt00700", "time": 7},
+{ "name": "plt00800", "time": 8},
+{ "name": "plt00900", "time": 9},
+{ "name": "plt01000", "time": 10},] }
+
+:download:`write_series_file.sh </Visualization/write_series_file.sh>` is a bash script
+that can generate such a ``.series`` file. Navigate to the directory with the plotfiles and
+save this script. Then run the bash script by executing the following command in the terminal.
+
+.. highlight:: console
+
+::
+
+    bash write_series_file.sh
+
+This will generate a file ``plot_files.series`` which indexes the time variable based on the order of the plotfile numbers.
+Note that if your ploftile prefix is not ``plt``, you can manually edit
+``write_series_file.sh`` accordingly.
+
+To make a ``.series`` file which reads the time out of the plotfile header, use :download:`write_series_file_timestamp.sh </Visualization/write_series_file_timestamp.sh>`.
+
+Open ParaView, and then select
+"File" :math:`\rightarrow` "Open". In the "Files of Type" dropdown menu (see :numref:`fig:ParaView_filegroup`)
+choose the option ``All Files (*)``. Then choose ``plot_files.series`` and click "OK". Now the plotfiles have been
+loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow the steps 2 to 7 in the section
+:ref:`section-1` to plot. As new plotfiles are generated, just re-run the bash script to re-generate the
+``plot_files.series`` file, right-click on ``plot_files.series`` in the ParaView menu, and click on
+"Reload Files" (see :numref:`fig:ParaView_series_reload`).
+
+.. _fig:ParaView_series_reload:
+
+.. figure:: ./Visualization/ParaView_series_reload.png
+   :width: 3.0in
+
+   : File dialog in ParaView showing how to reload a series file
 
 Building an Iso-surface
 -----------------------
@@ -412,14 +470,32 @@ Plot a Vector Field
 
 Paraview can be used to plot a vector field from AMR plotfile data. In this example
 we will assume a single vector has been stored as three separate variables,
-``V_x``, ``V_y`` and ``V_z``. The steps below outline a basic construction:
+``V_x``, ``V_y`` and ``V_z``.
 
-#. Open a plotfile or plotfile group, using ``File`` :math:`\rightarrow` ``Open``.
+The easiest way to create a vector ``V`` from the components is to
+first download the python file
+:download:`makevector.py </Visualization/makevector.py>`.
+
+If you are running paraview remotely, put ``makevector.py`` in the location
+of the plotfiles you will open under the heading ``Remote Plugins``.
+
+#. Now open a plotfile or plotfile group, using ``File`` :math:`\rightarrow` ``Open``.
    A pop-up will appear, select "AMReX/Boxlib Grid Reader".
 
 #. Select the plotfile or group in the Pipeline Browser. The Cell Array Status
    window of the Properties should populate with the values ``V_x``, ``V_y``
    and ``V_z``. Select these values and click apply.
+
+#. Select ``Tools``  :math:`\rightarrow` ``Manage Plugins...`` then choose
+   ``Load New...``.   Select ``makevector.py``; after you load it you will see
+   ``makevector`` in the list of plugins.
+
+#. Select the MakeVector filter from ``Filters`` :math:`\rightarrow` ``Alphabetical``
+   :math:`\rightarrow` ``MakeVector`` and apply.  You will now have the vector ``V``
+   listed with your other variables.
+
+Alternatively, if you prefer not to use the python plugin, you can follow the
+steps below:
 
 #. Select the Cell Centers filter from ``Filters`` :math:`\rightarrow` ``Alphabetical``
    :math:`\rightarrow` ``Cell Centers`` and apply.
@@ -433,7 +509,9 @@ we will assume a single vector has been stored as three separate variables,
    Note that, the values ``V_x``, ``V_y`` and ``V_z``, should be selectable
    from the dropdown Scalars menu. Apply the filter.
 
-#. To plot the arrows, select the Glyph filter,
+To plot the arrows corresponding to this vector field
+
+#. Select the Glyph filter,
    ``Filters`` :math:`\rightarrow` ``Alphabetical`` :math:`\rightarrow` ``Glyph``.
    Under the heading, Glyph Source, select ``Arrow``. Under Orientation, select
    the name of the vector value created in the last step. The default name is
@@ -450,6 +528,121 @@ we will assume a single vector has been stored as three separate variables,
    :width: 3.1in
 
    Vector Field generated with ParaView
+
+Saving and Loading State Files
+------------------------------
+
+Paraview allows users to save the *state* of their visualization, viz. variable mappings,
+filters, color maps, etc. The same display style can then be applied to different datasets.
+See also the Paraview documentation at `section 10`__ and `section 8.4`__.
+
+__ https://docs.paraview.org/en/latest/Tutorials/ClassroomTutorials/advancedStateManagement.html
+__ https://docs.paraview.org/en/v5.8/UsersGuide/savingResults.html#saving-state
+
+There are two file formats available for saving and loading state: ``.pvsm`` (XML) and ``.py`` (Python).
+Examples of both methods are given below. For these examples, we will be working with the data stored
+in the folder ``plt..`` that results from running ``HeatEquation_EX1_C`` in 3D, as in the example at the
+`beginning of this section`__.
+
+__ https://amrex-codes.github.io/amrex/docs_html/Visualization.html#paraview
+
+To save the state of this example, go to ``File > Save State...``, and select the format, location, and name
+of the state file you want to save. In order to later reload the state you've saved, see below.
+
+Note that the ``Save State`` option will write state files containing the absolute path to the data files you have loaded.
+This can cause issues if you're using state files saved on another machine, have moved your data files, or
+if Paraview doesn't know which directory to look in. When loading state from a ``pvsm`` file, there are menu
+options available to navigate to the data source directory. When running a Python script to load data, this can
+cause an error or crash. We outline the way to avoid this below.
+
+For demonstration purposes, we have also included state files in both formats:
+:download:`slice_state1.pvsm </Visualization/slice_state1.pvsm>` and :download:`slice_state1.py </Visualization/slice_state1.py>`
+
+
+Loading from a Paraview state file (.pvsm)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+#. Go to ``File > Load State``, navigate to ``slice_state1.pvsm`` in the file browser and click ``OK``. A new window labeled ``Load State Options`` appears with a drop-down menu.
+
+#. Select ``Search files under specified directory``, and click the ``...`` button to the right of the ``Data Directory`` line.
+
+#. Navigate to ``amrex-tutorials/ExampleCodes/Basic/HeatEquation_EX1_C/Exec`` and click ``OK``. This is where the plotfiles will have been saved by default if you've built and run the example code ``HeatEquation_EX1_C``.
+
+What you see displayed should be a 2D slice of the solution to the 3D equation.
+
+In general, you can use the load state menu options to navigate to whichever data files you wish to load using your saved ``pvsm`` state.
+
+
+Loading from a Python state file (.py)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to load state from a ``.py`` file, you must execute the file as a script from the Python Shell within Paraview.
+
+#. If the Python Shell is not displayed, click the checkbox in ``View > Python Shell``.
+
+#. Click the ``Run Script`` button to the bottom right of the Python shell, navigate to the file ``amrex/Docs/sphinx_documentation/source/Visualization/slice_state1.py`` in the file navigator, and click ``OK``.
+
+You should see a 2D slice of the solution to the 3D heat equation. If Paraview reports
+an error or crashes, see below.
+
+Aside: Working directory in the Paraview Python shell
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+When you load a state from a Python script in Paraview, it will look in the current working directory of the Python shell to
+resolve the paths to the data files provided in the Python script.
+
+By default, the current working directory of the Paraview Python shell will be the directory from which you launched Paraview.
+
+.. warning:: If your Python script makes direct reference to a set of files that can't be found from your current working directory, then running that script will result in an error, and potentially cause Paraview to crash. This can be addressed by changing the cwd of your Python shell to the proper location.
+
+
+To check the cwd of the Paraview Python shell, run
+
+.. code-block:: python
+
+   >>> import os
+   >>> os.getcwd()
+
+and make sure that your cwd contains the folder you want to search in so that Python can resolve the path. To change the cwd, run
+
+.. code-block:: python
+
+   >>> os.chdir('path/to/folder/containing/your/plotfiles')
+
+Modifying a State File to Work with Different Data
+++++++++++++++++++++++++++++++++++++++++++++++++++
+
+As noted above, a Python state file exported from Paraview will save the path to the data files you used, if any, from your working directory.
+In order to use such a file with different data, you can modify your Python state file to use the `glob`__ package to create a list
+of potential data file names to search in your current path. The steps are outlined below, including the line numbers in the file
+``slice_state1.py``.
+
+__ https://docs.python.org/3/library/glob.html
+
+#. Import the glob package
+
+   .. code-block:: python
+
+      4: import glob
+
+
+#. Create a variable that will hold the list of names to search for. Following the AMReX convention for naming plotfiles, use
+
+   .. code-block:: python
+
+      62: PlotFiles = sorted(glob.glob("plt" + "[0-9]" * 5))
+
+#. In the code section that builds an ``AMReX/BoxLib Grid Reader``, replace the list of data paths with the variable ``PlotFiles``
+
+   .. code-block:: python
+
+      65: plt00000 = AMReXBoxLibGridReader(registrationName="plt00000*", FileNames=PlotFiles)
+
+#. Change the cwd of your Python shell, as outlined above, to a directory containing the other plotfiles you wish to view.
+
+#. Click ``Run Script`` and navigate to the Python state file you wish to run in the pop-up file navigator.
+
+You should now be able to view a new data set with the same filters, color mappings, etc. that you saved to your state file.
 
 ParaView HDF5 Format
 --------------------
@@ -472,6 +665,10 @@ we describe how to use on both a local workstation, as well as at the NERSC
 HPC facility for high-throughput visualization of large data sets.
 
 Note - AMReX datasets require yt version 3.4 or greater.
+
+We also note that there is active development of an xarray-like interface
+for AMReX simulation data via yt; see the `xamr docs <https://xamr.readthedocs.io/>`_
+for more details.
 
 Using on a local workstation
 -----------------------------

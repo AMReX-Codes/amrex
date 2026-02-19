@@ -9,6 +9,7 @@
 
 #include <AMReX_AmrCore.H>
 #include <AMReX_BCRec.H>
+#include <AMReX_ErrorList.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FillPatcher.H>
 
@@ -87,7 +88,7 @@ public:
     amrex::Real EstTimeStep (int lev, amrex::Real time);
 
 #ifdef AMREX_PARTICLES
-    static amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
+    amrex::AmrTracerParticleContainer* theTracerPC () { return TracerPC.get(); }
 #endif
 
 
@@ -215,10 +216,13 @@ private:
     //number of ghost cells on facevel
     int nghost = 2;
 
+    std::string error_fn;
+    amrex::Vector<amrex::AMRErrorTag> error_tag;
+
 #ifdef AMREX_PARTICLES
     void init_particles ();
-    static int       do_tracers;
-    static std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
+    int       do_tracers = 0;
+    std::unique_ptr<amrex::AmrTracerParticleContainer> TracerPC;
 #endif
 };
 

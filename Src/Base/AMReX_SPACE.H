@@ -65,16 +65,19 @@ namespace amrex
  * depends on AMREX_SPACEDIM.
  *
  * For example:
- *
+ * \code{.cpp}
  *    AMREX_D_EXPR(vect[0] *= s, vect[1] *= s, vect[2] *= s);
+ * \endcode
  *
  * More explicitly, this macro evaluates to one of
  *
+ * \code{.cpp}
  *    ((void)((a),0))
  *
  *    ((void)((a),(b),0))
  *
  *    ((void)((a),(b),(c),0))
+ * \endcode
  *
  * corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
  */
@@ -88,16 +91,19 @@ namespace amrex
  * to the value of AMREX_SPACEDIM.
  *
  * For example:
- *
+ * \code{.cpp}
  *    return IntVect(AMREX_D_DECL(p[0] + s, p[1] + s, p[2] + s));
+ * \endcode
  *
  * More explicitly, this macro evaluates to one of
  *
+ * \code{.cpp}
  *    a
  *
  *    a,b
  *
  *    a,b,c
+ * \endcode
  *
  * corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
  */
@@ -113,16 +119,19 @@ namespace amrex
  * the value of AMREX_SPACEDIM.
  *
  * For example:
- *
+ * \code{.cpp}
  *    return AMREX_D_TERM(len[0], *len[1], *len[2]);
+ * \endcode
  *
  * More explicitly, this macro evaluates to one of
  *
+ * \code{.cpp}
  *    a
  *
  *    a b
  *
  *    a b c
+ * \endcode
  *
  * corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
  */
@@ -135,16 +144,19 @@ namespace amrex
  * that depend on the value of AMREX_SPACEDIM.
  *
  * For example:
- *
+ * \code{.cpp}
  *     maxsize = AMREX_D_PICK(1024, 128, 32);
+ * \endcode
  *
  *  More explicitly, this macro evaluates to one of
  *
+ * \code{.cpp}
  *     maxsize = 1024;
  *
  *     maxsize = 128;
  *
  *     maxsize = 32;
+ * \endcode
  *
  *  corresponding to AMREX_SPACEDIM values of 1, 2, or 3.
  */
@@ -160,29 +172,6 @@ namespace amrex
 #  define AMREX_D_TERM(a,b,c) a b c
 #  define AMREX_D_PICK(a,b,c) c
 #endif
-
-#ifndef AMREX_XSDK
-
-/* for backward compatibility */
-#if (AMREX_SPACEDIM == 1)
-#  define D_DECL(a,b,c) a
-#  define D_EXPR(a,b,c) ((void)((a),0))
-#  define D_PICK(a,b,c) a
-#  define D_TERM(a,b,c) a
-#elif (AMREX_SPACEDIM == 2)
-#  define D_DECL(a,b,c) a,b
-#  define D_EXPR(a,b,c) ((void)((a),(b),0))
-#  define D_PICK(a,b,c) b
-#  define D_TERM(a,b,c) a b
-#elif (AMREX_SPACEDIM == 3)
-#  define D_DECL(a,b,c) a,b,c
-#  define D_EXPR(a,b,c) ((void)((a),(b),(c),0))
-#  define D_PICK(a,b,c) c
-#  define D_TERM(a,b,c) a b c
-#endif
-
-#endif
-
 
 #if (AMREX_SPACEDIM == 1)
 #  define AMREX_1D_ONLY(a) a

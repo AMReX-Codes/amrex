@@ -207,7 +207,7 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
-        ParticleToMesh(pc, mf_part[lev], lev, f, zero_out_input);
+        ParticleToMesh(pc, mf_part[lev], lev, f, true); // always zero out input on temp level
         if (vol_weight) {
             const Real* dx = pc.Geom(lev).CellSize();
             const Real vol = AMREX_D_TERM(dx[0], *dx[1], *dx[2]);
@@ -245,7 +245,11 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
     for (int lev = lev_min; lev <= lev_max; lev++)
     {
+      if (zero_out_input) {
         mf[lev]->ParallelCopy(mf_part[lev],0,0,mf_part[lev].nComp(),0,0);
+      } else { // do not zero out input
+        mf[lev]->ParallelAdd(mf_part[lev],0,0,mf_part[lev].nComp(),0,0);
+      }
     }
 }
 

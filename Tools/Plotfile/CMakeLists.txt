@@ -26,6 +26,8 @@ foreach( _exe IN LISTS _exe_names)
    target_link_libraries(${_exe} PRIVATE amrex)
    if (AMReX_CUDA)
       set_source_files_properties(${_exe}.cpp PROPERTIES LANGUAGE CUDA)
+      set_cuda_architectures(AMReX_CUDA_ARCH)
+      set_target_properties(${_exe} PROPERTIES CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}")
    endif()
 
     # Add prefix to each tool's name to make them unique when installed.

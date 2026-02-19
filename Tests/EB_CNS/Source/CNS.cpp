@@ -413,9 +413,9 @@ CNS::read_params ()
 
     int irefbox = 0;
     Vector<Real> refboxlo, refboxhi;
-    while (pp.queryarr(("refine_box_lo_"+std::to_string(irefbox)).c_str(), refboxlo))
+    while (pp.queryarr("refine_box_lo_"+std::to_string(irefbox), refboxlo))
     {
-        pp.getarr(("refine_box_hi_"+std::to_string(irefbox)).c_str(), refboxhi);
+        pp.getarr("refine_box_hi_"+std::to_string(irefbox), refboxhi);
         refine_boxes.emplace_back(refboxlo.data(), refboxhi.data());
         ++irefbox;
     }

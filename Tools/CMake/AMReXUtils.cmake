@@ -24,9 +24,9 @@ function (get_amrex_version)
       endif ()
    endif()
 
-   # Grep first line from file CHANGES if cannot find version from Git
+   # Grep first line from file CHANGES.md if cannot find version from Git
    if (NOT _tmp)
-      file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES ALL_VERSIONS REGEX "#")
+      file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/CHANGES.md ALL_VERSIONS REGEX "#")
       list(GET ALL_VERSIONS 0 _tmp)
       string(REPLACE "#" "" _tmp "${_tmp}")
       string(STRIP "${_tmp}" _tmp )
@@ -222,15 +222,22 @@ endfunction ()
 function (convert_cuda_archs  _cuda_archs)
 
    foreach (_item IN LISTS ${_cuda_archs})
+      # remove -real suffixes
+      string(REGEX REPLACE "\\-real$" "" _item "${_item}")
+
       string(REGEX MATCH "\\." _has_decimal "${_item}")
       string(REGEX MATCH "[0-9]+" _is_number "${_item}")
 
       if (NOT _has_decimal AND _is_number)
          math(EXPR _int "${_item}/10" OUTPUT_FORMAT DECIMAL)
          math(EXPR _mod "${_item}%10" OUTPUT_FORMAT DECIMAL)
-         list(APPEND _tmp "${_int}.${_mod}")
+         if(_int LESS 10)  # CMake 3.30 does not support SM 10.0+ in cuda_select_nvcc_arch_flags
+             list(APPEND _tmp "${_int}.${_mod}")
+         endif()
       else ()
-         list(APPEND _tmp ${_item})
+         if(_item LESS 10)  # CMake 3.30 does not support SM 10.0+ in cuda_select_nvcc_arch_flags
+            list(APPEND _tmp ${_item})
+        endif()
       endif()
    endforeach ()
 

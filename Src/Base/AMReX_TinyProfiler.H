@@ -5,14 +5,6 @@
 #include <AMReX_INT.H>
 #include <AMReX_REAL.H>
 
-#ifdef AMREX_USE_CUDA
-#include <nvToolsExt.h>
-#endif
-
-#if defined(AMREX_USE_HIP) && defined(AMREX_USE_ROCTX)
-#include <roctracer/roctx.h>
-#endif
-
 #include <array>
 #include <deque>
 #include <iosfwd>
@@ -39,9 +31,9 @@ class TinyProfiler
 {
 public:
     explicit TinyProfiler (std::string funcname) noexcept;
-    TinyProfiler (std::string funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (std::string funcname, bool start_) noexcept;
     explicit TinyProfiler (const char* funcname) noexcept;
-    TinyProfiler (const char* funcname, bool start_, bool useCUPTI=false) noexcept;
+    TinyProfiler (const char* funcname, bool start_) noexcept;
     ~TinyProfiler ();
 
     TinyProfiler (TinyProfiler const&) = delete;
@@ -51,10 +43,6 @@ public:
 
     void start () noexcept;
     void stop () noexcept;
-#ifdef AMREX_USE_CUPTI
-    void stop (unsigned boxUintID) noexcept;
-#endif // AMREX_USE_CUPTI
-
 
     void memory_start () const noexcept;
     void memory_stop () const noexcept;
@@ -63,13 +51,13 @@ public:
                                   std::map<std::string, MemStat>& memstats) noexcept;
     static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
 
-    static void Initialize () noexcept;
+    static void Initialize ();
     static void Finalize (bool bFlushing = false) noexcept;
 
-    static void MemoryInitialize () noexcept;
+    static void MemoryInitialize ();
     static void MemoryFinalize (bool bFlushing = false) noexcept;
 
-    static void RegisterArena (const std::string& memory_name,
+    static bool RegisterArena (const std::string& memory_name,
                                std::map<std::string, MemStat>& memstats) noexcept;
 
     static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
@@ -78,6 +66,7 @@ public:
     static void StopRegion (const std::string& regname) noexcept;
 
     static void PrintCallStack (std::ostream& os);
+    static void PrintMemoryUsage (std::ostream* os, bool only_local) noexcept;
 
 private:
     struct Stats
@@ -87,8 +76,6 @@ private:
         Long n{0L};         //!< number of calls
         double dtin{0.0};    //!< inclusive dt
         double dtex{0.0};    //!< exclusive dt
-        bool usesCUPTI{false}; //!< uses CUPTI
-        Long nk{0};        //!< number of kernel calls
     };
 
     //! stats across processes
@@ -101,7 +88,7 @@ private:
         double dtinavg{0.0}, dtinmax{0.0};
         double dtexmin{std::numeric_limits<double>::max()};
         double dtexavg{0.0}, dtexmax{0.0};
-        bool usesCUPTI{false};
+        bool do_print{true};
         std::string fname;
         static bool compex (const ProcStats& lhs, const ProcStats& rhs) {
             return lhs.dtexmax > rhs.dtexmax;
@@ -115,6 +102,7 @@ private:
     {
         Long nalloc = 0;
         Long nfree = 0;
+        Long curmem_max = 0;
         Long avgmem_min = std::numeric_limits<Long>::max();
         Long avgmem_avg = 0;
         Long avgmem_max = 0;
@@ -128,7 +116,6 @@ private:
     };
 
     std::string fname;
-    bool uCUPTI = false;
     bool in_parallel_region = false;
     int global_depth = -1;
     std::vector<Stats*> stats;
@@ -150,14 +137,21 @@ private:
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
-    static int device_synchronize_around_region;
+    static double t_memory_init;
+    static bool device_synchronize_around_region;
     static int n_print_tabs;
     static int verbose;
+    static double print_threshold;
+    static bool enabled;
+    static bool memprof_enabled;
+    static std::string output_file;
 
-    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max);
+    static std::string const& get_output_file ();
+    static void PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
+                            std::ostream* os);
     static void PrintMemStats (std::map<std::string, MemStat>& memstats,
                                std::string const& memname, double dt_max,
-                               double t_final);
+                               double t_final, std::ostream* os, bool only_local);
 };
 
 class TinyProfileRegion

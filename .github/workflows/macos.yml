@@ -1,24 +1,33 @@
 name: macos
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-macos
   cancel-in-progress: true
 
 jobs:
+  check_changes:
+    uses: ./.github/workflows/check_changes.yml
+
   # Build libamrex and all tests
   tests-macos-universal-nompi:
     name: AppleClang Universal w/o MPI [tests-universal]
     runs-on: macos-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
-        path: /Users/runner/Library/Caches/ccache
+        path: ~/Library/Caches/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -31,8 +40,10 @@ jobs:
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
-        export CCACHE_MAXSIZE=30M
+        export CCACHE_MAXSIZE=50M
+        export CCACHE_SLOPPINESS=time_macros
         ccache -z
+        ccache --version
 
         cmake -S . -B build             \
             -DBUILD_SHARED_LIBS=ON      \
@@ -46,20 +57,23 @@ jobs:
 
         ctest --test-dir build --output-on-failure
 
+        du -hs ~/Library/Caches/ccache
         ccache -s
 
   # Build libamrex and all tests
   tests-macos:
     name: AppleClang@11.0 GFortran@9.3 [tests]
     runs-on: macos-latest
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: .github/workflows/dependencies/dependencies_mac.sh
     - name: Set Up Cache
-      uses: actions/cache@v3
+      uses: actions/cache@v5
       with:
-        path: /Users/runner/Library/Caches/ccache
+        path: ~/Library/Caches/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
@@ -71,7 +85,9 @@ jobs:
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
         export CCACHE_MAXSIZE=160M
+        export CCACHE_SLOPPINESS=time_macros
         ccache -z
+        ccache --version
 
         cmake -S . -B build             \
             -DCMAKE_BUILD_TYPE=Debug    \
@@ -84,19 +100,5 @@ jobs:
 
         ctest --test-dir build --output-on-failure
 
+        du -hs ~/Library/Caches/ccache
         ccache -s
-
-  save_pr_number:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Save PR number
-        env:
-          PR_NUMBER: ${{ github.event.number }}
-        run: |
-          echo $PR_NUMBER > pr_number.txt
-      - uses: actions/upload-artifact@v3
-        with:
-          name: pr_number
-          path: pr_number.txt
-          retention-days: 1

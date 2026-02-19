@@ -7,6 +7,7 @@
 
 namespace amrex {
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLCellABecLapT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLCellLinOpT<MF>
@@ -50,6 +51,8 @@ public:
 
     void prepareForSolve () override;
 
+    void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
+
     void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MF*>& a_sol,
                             Location a_loc) const final;
@@ -75,7 +78,7 @@ public:
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 
@@ -204,7 +207,9 @@ MLCellABecLapT<MF>::define (const Vector<Geometry>& a_geom,
                 {
                     coarsen_overset_mask(i,j,k, crsema[box_no], finema[box_no]);
                 });
-                Gpu::streamSynchronize();
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             } else
 #endif
             {
@@ -249,6 +254,26 @@ MLCellABecLapT<MF>::prepareForSolve ()
 
 template <typename MF>
 void
+MLCellABecLapT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const
+{
+    auto const* omask = this->getOversetMask(amrlev, mglev);
+    if (omask) {
+        const int ncomp = this->getNComp();
+        auto const& mskma = omask->const_arrays();
+        auto const& ma = mf.arrays();
+        ParallelFor(mf, IntVect(0), ncomp,
+        [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
+        {
+            if (mskma[bno](i,j,k) == 0) { ma[bno](i,j,k,n) = RT(0.0); }
+        });
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+    }
+}
+
+template <typename MF>
+void
 MLCellABecLapT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                                const Vector<MF*>& a_sol,
                                Location a_loc) const
@@ -261,12 +286,14 @@ MLCellABecLapT<MF>::getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
     for (int alev = 0; alev < nlevs; ++alev) {
         this->compFlux(alev, a_flux[alev], *a_sol[alev], a_loc);
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
             if (betainv != RT(1.0)) {
                 a_flux[alev][idim]->mult(betainv, 0, ncomp);
             }
         }
         this->addInhomogNeumannFlux(alev, a_flux[alev], *a_sol[alev], true);
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            this->unapplyMetricTerm(alev, 0, *a_flux[alev][idim]);
+        }
     }
 }
 
@@ -542,8 +569,8 @@ MLCellABecLapT<MF>::addInhomogNeumannFlux (
             if (! domain.contains(ccb)) {
                 for (int icomp = 0; icomp < ncomp; ++icomp) {
                     auto const& phi = sol.const_array(mfi,icomp);
-                    auto const bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
-                    auto const bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
+                    auto const& bv = bndry.bndryValues(ori).multiFab().const_array(mfi,icomp);
+                    auto const& bc = bcoef[idim] ? bcoef[idim]->const_array(mfi,icomp)
                         : Array4<RT const>{};
                     auto const& f = grad[idim]->array(mfi,icomp);
                     if (ori.isLow()) {
@@ -619,7 +646,9 @@ MLCellABecLapT<MF>::applyOverset (int amrlev, MF& rhs) const
                     rhsa[box_no](i,j,k,n) = RT(0.0);
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -698,7 +727,7 @@ MLCellABecLapT<MF>::makeHypre (Hypre::Interface hypre_interface) const
 }
 #endif
 
-#ifdef AMREX_USE_PETSC
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
 std::unique_ptr<PETScABecLap>
 MLCellABecLapT<MF>::makePETSc () const
@@ -753,6 +782,7 @@ MLCellABecLapT<MF>::makePETSc () const
 
 extern template class MLCellABecLapT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLCellABecLap = MLCellABecLapT<MultiFab>;
 
 }

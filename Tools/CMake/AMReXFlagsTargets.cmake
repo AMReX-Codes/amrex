@@ -4,7 +4,9 @@
 #
 #   Flags_CXX                 --> Optional flags for C++ code
 #   Flags_Fortran             --> Optional flags for Fortran code
+#   Flags_FASTMATH            --> Optional flags for fast-math (floating-point)
 #   Flags_FPE                 --> Floating-Point Exception flags for both C++ and Fortran
+#   Flags_INLINE              --> Optional flags for inlining
 #
 # These INTERFACE targets can be added to the AMReX export set.
 #
@@ -20,15 +22,15 @@ include_guard(GLOBAL)
 #
 # for every combination of
 #
-#     <lang> = cxx,fortran
-#     <id>   = gnu,intel,pgi,cray,clang,appleclang,intelllvm,msvc
+#     <lang> = cxx,fortran,cuda
+#     <id>   = gnu,intel,pgi,cray,clang,appleclang,crayclang,ibmclang,intelllvm,msvc,nvidia,nvhpc,xlclang
 #
 if (CMAKE_VERSION VERSION_LESS 3.20)
-   foreach (_language CXX Fortran )
+   foreach (_language CXX Fortran CUDA )
       set(_comp_lang   "$<COMPILE_LANGUAGE:${_language}>")
       string(TOLOWER "${_language}" _lang)
 
-      foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
+      foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
          string(TOLOWER "${_comp}" _id)
          # Define variables
          set(_comp_id              "$<${_language}_COMPILER_ID:${_comp}>")
@@ -43,10 +45,10 @@ if (CMAKE_VERSION VERSION_LESS 3.20)
       unset(_lang)
    endforeach ()
 else ()
-   foreach (_language CXX Fortran )
+   foreach (_language CXX Fortran CUDA )
       string(TOLOWER "${_language}" _lang)
 
-      foreach (_comp GNU Intel PGI Cray Clang AppleClang IntelLLVM MSVC )
+      foreach (_comp GNU Intel PGI Cray Clang AppleClang CrayClang IBMClang IntelLLVM MSVC NVIDIA NVHPC XLClang )
          string(TOLOWER "${_comp}" _id)
          # Define variables
          set(_${_lang}_${_id}      "$<COMPILE_LANG_AND_ID:${_language},${_comp}>")
@@ -67,6 +69,7 @@ endif ()
 add_library(Flags_CXX INTERFACE)
 add_library(AMReX::Flags_CXX ALIAS Flags_CXX)
 
+if (NOT AMReX_HIP)
 target_compile_options( Flags_CXX
    INTERFACE
    $<${_cxx_gnu_dbg}:-O0 -ggdb -Wall -Wno-sign-compare -Wno-unused-but-set-variable -Werror=return-type>
@@ -89,9 +92,21 @@ target_compile_options( Flags_CXX
    $<${_cxx_appleclang_rwdbg}:>
    $<${_cxx_appleclang_rel}:>
    $<${_cxx_intelllvm_dbg}:-O0 -Wall -Wextra -Wno-sign-compare -Wno-unused-parameter -Wno-unused-variable>
-   $<${_cxx_intelllvm_rwdbg}:-g1>
+   $<${_cxx_intelllvm_rwdbg}:-gline-tables-only -fdebug-info-for-profiling> # recommended by Intel VTune
    $<${_cxx_intelllvm_rel}:>
    )
+endif()
+
+add_library(Flags_INLINE INTERFACE)
+add_library(AMReX::Flags_INLINE ALIAS Flags_INLINE)
+
+if (NOT AMReX_COMPILER_DEFAULT_INLINE)
+   target_compile_options( Flags_INLINE
+      INTERFACE
+      $<${_cxx_gnu_rwdbg}:-finline-limit=${AMReX_INLINE_LIMIT}>
+      $<${_cxx_gnu_rel}:-finline-limit=${AMReX_INLINE_LIMIT}>
+      )
+endif ()
 
 #
 # Fortran flags
@@ -114,11 +129,41 @@ target_compile_options( Flags_Fortran
 
 
 #
+# Fast-Math (for floating point)
+#
+add_library(Flags_FASTMATH INTERFACE)
+add_library(AMReX::Flags_FASTMATH ALIAS Flags_FASTMATH)
+
+target_compile_options( Flags_FASTMATH
+   INTERFACE
+      $<${_cuda_nvidia}:--use_fast_math>
+      $<${_cuda_nvhpc}:-fast>
+      $<${_fortran_gnu}:-ffast-math>
+      $<${_cxx_gnu}:-ffast-math>
+      $<${_fortran_intel}:-ffast-math>
+      $<${_cxx_intel}:-ffast-math>
+      $<${_fortran_pgi}:-ffast-math>
+      $<${_cxx_pgi}:-ffast-math>
+      $<${_fortran_cray}:-ffast-math>
+      $<${_cxx_cray}:-ffast-math>
+      $<${_fortran_clang}:-ffast-math>
+      $<${_cxx_clang}:-ffast-math>
+      $<${_cxx_appleclang}:-ffast-math>
+      $<${_cxx_crayclang}:-ffast-math>
+      $<${_cxx_ibmclang}:-ffast-math>
+      $<${_cxx_intelllvm}:-ffast-math>
+      $<${_cxx_xlclang}:-ffast-math>
+      $<${_cxx_msvc}:/fp:fast>
+)
+
+
+#
 # Floating point exceptions
 #
 add_library(Flags_FPE INTERFACE)
 add_library(AMReX::Flags_FPE ALIAS Flags_FPE)
 
+if (NOT AMReX_HIP)
 target_compile_options ( Flags_FPE
    INTERFACE
    $<${_fortran_gnu}:-ffpe-trap=invalid,zero -ftrapv>
@@ -133,6 +178,7 @@ target_compile_options ( Flags_FPE
    $<${_cxx_clang}:-ftrapv>
    $<${_cxx_appleclang}:-ftrapv>	
    )
+endif()
 
 #
 # Unset all the variables defined in this module

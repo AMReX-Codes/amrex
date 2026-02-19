@@ -78,7 +78,7 @@ public:
                    int dcomp, int numcomp,
                    Geometry const& geom, Real time,
                    const Vector<BCRec>& bcr, int bcomp,
-                   int orig_comp, FF&& fillfunc);
+                   int orig_comp, FF const& fillfunc);
 
     void nddoit (Box const& bx, FArrayBox& dest,
                  int dcomp, int numcomp,
@@ -123,6 +123,56 @@ public:
                      Real /*time*/, int /*bccomp*/) {}
 };
 
+class PhysBCFunctUseCoarseGhost
+{
+public:
+
+    PhysBCFunctUseCoarseGhost (IntVect const& a_fp1_src_ghost)
+        : fp1_src_ghost(a_fp1_src_ghost) {}
+
+    template <typename MF, typename Interp>
+    PhysBCFunctUseCoarseGhost (MF const& cmf, IntVect const& a_nghost,
+                               IntVect const& a_nghost_outside_domain,
+                               IntVect const& ratio, Interp* mapper)
+        : nghost(a_nghost),
+          nghost_outside_domain(a_nghost_outside_domain),
+          cghost(cmf.nGrowVect())
+    {
+        IndexType typ = cmf.ixType();
+
+        const auto& coarsener = mapper->BoxCoarsener(ratio);
+        Box tmp(-nghost, IntVect(32), typ);
+        Box tmp2 = coarsener.doit(tmp);
+        src_ghost = -tmp2.smallEnd();
+
+        tmp = Box(-nghost_outside_domain, IntVect(32), typ);
+        tmp2 = coarsener.doit(tmp);
+        src_ghost_outside_domain = -tmp2.smallEnd();
+
+        cghost.min(src_ghost);
+        AMREX_ALWAYS_ASSERT(cghost.allGE(src_ghost_outside_domain));
+    }
+
+    void operator() (MultiFab& /*mf*/, int /*dcomp*/, int /*ncomp*/, IntVect const& /*nghost*/,
+                     Real /*time*/, int /*bccomp*/) {}
+
+    IntVect nghost; // # of fine ghosts inside domain to be filled
+
+    IntVect nghost_outside_domain; // # of fine ghosts outside domain to be filled
+
+    // This is the number of coarse ghost cells needed to interpolate fine
+    // ghost cells inside the domain
+    IntVect src_ghost;
+
+    // This is the number of coarse ghost cells needed to interpolate
+    // nghost_outside_domain fine ghost cells outside the domain
+    IntVect src_ghost_outside_domain;
+
+    // This is the minimum number of ghost cells needed in coarse MF
+    IntVect cghost;
+
+    IntVect fp1_src_ghost; // Used to pass information into FillPatchSingleLevel
+};
 
 template <class F>
 class PhysBCFunct
@@ -153,6 +203,8 @@ public:
 
         BL_PROFILE("PhysBCFunct::()");
 
+        AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
+
         //! create a grown domain box containing valid + periodic cells
         const Box& domain = m_geom.Domain();
         Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
@@ -170,7 +222,7 @@ public:
             for (MFIter mfi(mf); mfi.isValid(); ++mfi)
             {
                 FArrayBox& dest = mf[mfi];
-                const Box& bx = mfi.fabbox();
+                const Box& bx = grow(mfi.validbox(),nghost);
 
                 //! if there are cells not in the valid + periodic grown box
                 //! we need to fill them here
@@ -213,7 +265,7 @@ GpuBndryFuncFab<F>::operator() (Box const& bx, FArrayBox& dest,
     // without instantiating this function.  The following is to work around
     // the issue.  Now the compiler is not allowed to reject the code unless
     // GpuBndryFuncFab::operator() is instantiated.
-    static_assert(std::is_same<F,int>::value,
+    static_assert(std::is_same_v<F,int>,
                   "CUDA 11.6 bug: https://github.com/AMReX-Codes/amrex/issues/2607");
 #endif
     if (bx.ixType().cellCentered()) {
@@ -355,7 +407,7 @@ GpuBndryFuncFab<F>::ccfcdoit (Box const& bx, FArrayBox& dest,
                               int dcomp, int numcomp,
                               Geometry const& geom, Real time,
                               const Vector<BCRec>& bcr, int bcomp,
-                              int orig_comp, FF&& fillfunc)
+                              int orig_comp, FF const& fillfunc)
 {
     const IntVect& len = bx.length();
 

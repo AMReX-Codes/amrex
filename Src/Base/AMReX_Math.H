@@ -4,8 +4,12 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
+#include <AMReX_INT.H>
+#include <AMReX_SIMD.H>
+#include <AMReX_REAL.H>
 #include <cmath>
 #include <cstdlib>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -13,7 +17,9 @@
 #  include <sycl/sycl.hpp>
 #endif
 
-namespace amrex { inline namespace disabled {
+namespace amrex {
+/// \cond DOXYGEN_IGNORE
+inline namespace disabled {
     // If it is inside namespace amrex, or amrex namespace is imported with using namespace amrex or
     // amrex::disabled, unqualified abs functions are disabled with a compile time error such as,
     // call of overload abs(int&) is ambiguous, or a link time error such as, undefined reference to
@@ -26,7 +32,9 @@ namespace amrex { inline namespace disabled {
     AMREX_GPU_HOST_DEVICE int abs (int);
     AMREX_GPU_HOST_DEVICE long abs (long);
     AMREX_GPU_HOST_DEVICE long long abs (long long);
-}}
+}
+/// \endcond
+}
 
 namespace amrex::Math {
 
@@ -57,7 +65,7 @@ using std::isinf;
 #endif
 
 template <typename T>
-constexpr std::enable_if_t<std::is_floating_point<T>::value,T> pi ()
+constexpr std::enable_if_t<std::is_floating_point_v<T>,T> pi ()
 {
     return T(3.1415926535897932384626433832795029L);
 }
@@ -110,6 +118,7 @@ float sinpi (float x)
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     AMREX_FORCE_INLINE void sincos (double x, double* sinx, double* cosx) {
 #if defined(_GNU_SOURCE) && !defined(__APPLE__)
@@ -129,6 +138,22 @@ namespace detail {
 #endif
     }
 }
+/// \endcond
+
+#ifdef AMREX_USE_SIMD
+//! Return sine and cosine of given number
+template<typename T_Real,
+         std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincos (T_Real x)
+{
+    using namespace amrex::simd::stdx;
+    std::pair<T_Real,T_Real> r;
+    r.first = sin(x);
+    r.second = cos(x);
+    return r;
+}
+#endif
 
 //! Return sine and cosine of given number
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -157,6 +182,22 @@ std::pair<float,float> sincos (float x)
 #endif
     return r;
 }
+
+#ifdef AMREX_USE_SIMD
+//! Return sin(pi*x) and cos(pi*x) given x
+template<typename T_Real,
+         std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::pair<T_Real,T_Real> sincospi (T_Real x)
+{
+    using namespace amrex::simd::stdx;
+    T_Real const px = pi<typename T_Real::value_type>() * x;
+    std::pair<T_Real,T_Real> r;
+    r.first = sin(px);
+    r.second = cos(px);
+    return r;
+}
+#endif
 
 //! Return sin(pi*x) and cos(pi*x) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -188,7 +229,7 @@ std::pair<float,float> sincospi (float x)
 
 //! Return pow(x, Power), where Power is an integer known at compile time
 template <int Power, typename T,
-    typename = typename std::enable_if<!std::is_integral<T>() || Power>=0>::type>
+    typename = std::enable_if_t<!std::is_integral<T>() || Power>=0>>
 AMREX_FORCE_INLINE
 constexpr T powi (T x) noexcept
 {
@@ -207,6 +248,286 @@ constexpr T powi (T x) noexcept
         return x*powi<Power-1>(x);
     }
 }
+
+#if defined(AMREX_INT128_SUPPORTED)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
+{
+#if defined(AMREX_USE_SYCL)
+    return sycl::mul_hi(a,b);
+#else
+    AMREX_IF_ON_DEVICE(( return __umul64hi(a, b); ))
+    AMREX_IF_ON_HOST((
+        auto tmp = amrex::UInt128_t(a) * amrex::UInt128_t(b);
+        return std::uint64_t(tmp >> 64);
+    ))
+#endif
+}
+#endif
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T comp_ellint_1 (T k)
+{
+    // Computing K based on DLMF
+    // https://dlmf.nist.gov/19.8
+    T tol = std::numeric_limits<T>::epsilon();
+
+    T a0 = 1.0;
+    T g0 = std::sqrt(1.0 - k*k);
+    T a = a0;
+    T g = g0;
+
+    // Find Arithmetic Geometric mean
+    while(std::abs(a0 - g0) > tol) {
+        a = 0.5*(a0 + g0);
+        g = std::sqrt(a0 * g0);
+
+        a0 = a;
+        g0 = g;
+    }
+
+    return 0.5*pi<T>()/a;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+T comp_ellint_2 (T k)
+{
+    // Computing E based on DLMF
+    // https://dlmf.nist.gov/19.8
+    T Kcomp = amrex::Math::comp_ellint_1<T>(k);
+    T tol = std::numeric_limits<T>::epsilon();
+
+    // Step Zero
+    T a0 = 1.0;
+    T g0 = std::sqrt(1.0 - k*k);
+    T cn = std::sqrt(a0*a0 - g0*g0);
+
+    // Step 1
+    int n = 1;
+    T a = 0.5 * (a0 + g0);
+    T g = std::sqrt(a0*g0);
+    cn = 0.25*cn*cn/a;
+
+    T sum_val = a*a;
+    a0 = a;
+    g0 = g;
+
+    while(std::abs(cn*cn) > tol) {
+        // Compute coefficients for this iteration
+        a = 0.5 * (a0 + g0);
+        g = std::sqrt(a0*g0);
+        cn = 0.25*cn*cn/a;
+
+        n++;
+        sum_val -= std::pow(2,n-1)*cn*cn;
+
+        // Save a and g for next iteration
+        a0 = a;
+        g0 = g;
+    }
+
+    return Kcomp*sum_val;
+}
+
+//! Return inverse square root of x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double rsqrt (double x)
+{
+    double r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::rsqrt(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = 1. / std::sqrt(x); ))
+    return r;
+}
+
+//! Return inverse square root of x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+float rsqrt (float x)
+{
+    float r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::rsqrtf(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = 1.F / std::sqrt(x); ))
+    return r;
+}
+
+//! Return 10**x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double exp10 (double x)
+{
+    double r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::exp10(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::exp10(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = std::pow(10.0, x); ))
+    return r;
+}
+
+//! Return 10**x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+float exp10 (float x)
+{
+    float r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::exp10(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::exp10f(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = std::pow(10.0F, x); ))
+    return r;
+}
+
+/***************************************************************************************************
+ * Copyright (c) 2017 - 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ * contributors may be used to endorse or promote products derived from
+ * this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ **************************************************************************************************/
+
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Object to encapsulate the fast division+modulus operation for 64b integer division.
+///
+/// Example:
+///
+///
+///   uint64_t quotient, remainder, dividend, divisor;
+///
+///   FastDivmodU64 divmod(divisor);
+///
+///   divmod(quotient, remainder, dividend);
+///
+///   // quotient = (dividend / divisor)
+///   // remainder = (dividend % divisor)
+///
+struct FastDivmodU64
+{
+    std::uint64_t divisor = 0;
+
+#ifdef AMREX_INT128_SUPPORTED
+    std::uint64_t multiplier = 1U;
+    unsigned int shift_right = 0;
+    unsigned int round_up = 0;
+
+    //
+    // Static methods
+    //
+
+    /// Computes b, where 2^b is the greatest power of two that is less than or equal to x
+    static std::uint32_t integer_log2 (std::uint64_t x)
+    {
+        std::uint32_t n = 0;
+        while (x >>= 1) {
+            ++n;
+        }
+        return n;
+    }
+
+    /// Construct the FastDivmod object, in host code only
+    ///
+    /// This precomputes some values based on the divisor and is computationally expensive.
+    FastDivmodU64 (std::uint64_t divisor_)
+        : divisor(divisor_)
+    {
+        if (divisor) {
+            shift_right = integer_log2(divisor);
+
+            if ((divisor & (divisor - 1)) == 0) {
+                multiplier = 0;
+            }
+            else {
+                std::uint64_t power_of_two = (std::uint64_t(1) << shift_right);
+                auto n = amrex::UInt128_t(power_of_two) << 64;
+                std::uint64_t multiplier_lo = n / divisor;
+                n += power_of_two;
+                multiplier = n / divisor;
+                round_up = (multiplier_lo == multiplier ? 1 : 0);
+            }
+        }
+    }
+
+#else
+
+    FastDivmodU64 (std::uint64_t divisor_) : divisor(divisor_) {}
+
+#endif
+
+    /// Default construct an invalid FastDivmodU64
+    FastDivmodU64 () = default;
+
+    /// Returns the quotient of floor(dividend / divisor)
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::uint64_t divide (std::uint64_t dividend) const
+    {
+#if defined(AMREX_INT128_SUPPORTED)
+        auto x = dividend;
+        if (multiplier) {
+            x = amrex::Math::umulhi(dividend + round_up, multiplier);
+        }
+        return (x >> shift_right);
+#else
+        return dividend / divisor;
+#endif
+    }
+
+    /// Computes the remainder given a computed quotient and dividend
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::uint64_t modulus (std::uint64_t quotient, std::uint64_t dividend) const
+    {
+        return dividend - quotient * divisor;
+    }
+
+    /// Returns the quotient of floor(dividend / divisor) and computes the remainder
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE
+    std::uint64_t divmod (std::uint64_t &remainder, std::uint64_t dividend) const
+    {
+        auto quotient = divide(dividend);
+        remainder = modulus(quotient, dividend);
+        return quotient;
+    }
+
+    /// Computes integer division and modulus using precomputed values. This is computationally
+    /// inexpensive.
+    AMREX_GPU_HOST_DEVICE
+    void operator() (std::uint64_t &quotient, std::uint64_t &remainder, std::uint64_t dividend) const
+    {
+        quotient = divmod(remainder, dividend);
+    }
+};
 
 }
 

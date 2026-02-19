@@ -17,6 +17,8 @@
 #include "H5Z_SZ.h"
 #endif
 
+namespace amrex {
+
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -64,9 +66,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           tmp_real_comp_names, tmp_int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i) -> int
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           }, true);
 }
 
@@ -100,9 +102,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p) -> int
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i) -> int
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -136,9 +138,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -164,9 +166,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -198,9 +200,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                           write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const ParticleType& p)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -236,9 +238,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
@@ -259,15 +261,15 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                           write_real_comp, write_int_comp,
                           real_comp_names, int_comp_names,
                           compression,
-                          [=] AMREX_GPU_HOST_DEVICE (const SuperParticleType& p)
+                          [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, int i)
                           {
-                              return p.id() > 0;
+                              return ptd.id(i).is_valid();
                           });
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
+template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -325,7 +327,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type*>
+template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -459,7 +461,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             const auto& aos = kv.second.GetArrayOfStructs();
             for (int k = 0; k < aos.numParticles(); ++k) {
                 const ParticleType& p = aos[k];
-                if (p.id() > 0) {
+                if (p.id().is_valid()) {
                     //
                     // Only count (and checkpoint) valid particles.
                     //
@@ -504,7 +506,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         return;
     }
 
-    BL_PROFILE("ParticleContainer::CheckpointPost()");
+    BL_PROFILE("ParticleContainer::CheckpointPostHDF5()");
 
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
     std::ofstream HdrFile;
@@ -545,7 +547,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         HdrFile.flush();
         HdrFile.close();
         if( ! HdrFile.good()) {
-            amrex::Abort("ParticleContainer::CheckpointPost(): problem writing HdrFile");
+            amrex::Abort("ParticleContainer::CheckpointPostHDF5(): problem writing HdrFile");
         }
     }
 }
@@ -575,7 +577,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WriteParticlesHDF5 (int lev, hid_t grp,
-                      Vector<int>& which, Vector<int>& count, Vector<Long>& where,
+                      Vector<int>& /*which*/, Vector<int>& count, Vector<Long>& /*where*/,
                       const Vector<int>& write_real_comp,
                       const Vector<int>& write_int_comp,
                       const std::string& compression,
@@ -597,23 +599,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     dcpl_int  = H5Pcreate(H5P_DATASET_CREATE);
     dcpl_real = H5Pcreate(H5P_DATASET_CREATE);
 
-#if (defined AMREX_USE_HDF5_ZFP) || (defined AMREX_USE_HDF5_SZ)
-    const char *chunk_env = NULL;
     std::string mode_env, value_env;
     double comp_value = -1.0;
-    hsize_t chunk_dim = 1024;
-
-    chunk_env = getenv("HDF5_CHUNK_SIZE");
-    if (chunk_env != NULL) {
-        chunk_dim = atoi(chunk_env);
-    }
-
-    H5Pset_chunk(dcpl_int, 1, &chunk_dim);
-    H5Pset_chunk(dcpl_real, 1, &chunk_dim);
-
-    H5Pset_alloc_time(dcpl_int, H5D_ALLOC_TIME_LATE);
-    H5Pset_alloc_time(dcpl_real, H5D_ALLOC_TIME_LATE);
-
     std::string::size_type pos = compression.find('@');
     if (pos != std::string::npos) {
         mode_env = compression.substr(0, pos);
@@ -623,30 +610,43 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
-#ifdef AMREX_USE_HDF5_ZFP
-    pos = compression.find("ZFP");
-    if (pos != std::string::npos) {
-        ret = H5Z_zfp_initialize();
-        if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
-    }
-#endif
-
-#ifdef AMREX_USE_HDF5_SZ
-    pos = compression.find("SZ");
-    if (pos != std::string::npos) {
-        ret = H5Z_SZ_Init((char*)value_env.c_str());
-        if (ret < 0) {
-            std::cout << "SZ config file:" << value_env.c_str() << std::endl;
-            amrex::Abort("SZ initialize failed, check SZ config file!");
-        }
-    }
-#endif
+    H5Pset_alloc_time(dcpl_int, H5D_ALLOC_TIME_LATE);
+    H5Pset_alloc_time(dcpl_real, H5D_ALLOC_TIME_LATE);
 
     if (!mode_env.empty() && mode_env != "None") {
+        const char *chunk_env = NULL;
+        hsize_t chunk_dim = 1024;
+        chunk_env = getenv("HDF5_CHUNK_SIZE");
+        if (chunk_env != NULL) {
+            chunk_dim = atoi(chunk_env);
+        }
+
+        H5Pset_chunk(dcpl_int, 1, &chunk_dim);
+        H5Pset_chunk(dcpl_real, 1, &chunk_dim);
+
+#ifdef AMREX_USE_HDF5_ZFP
+        pos = mode_env.find("ZFP");
+        if (pos != std::string::npos) {
+            ret = H5Z_zfp_initialize();
+            if (ret < 0) { amrex::Abort("ZFP initialize failed!"); }
+        }
+#endif
+
         if (mode_env == "ZLIB") {
+            H5Pset_shuffle(dcpl_int);
+            H5Pset_shuffle(dcpl_real);
             H5Pset_deflate(dcpl_int, (int)comp_value);
             H5Pset_deflate(dcpl_real, (int)comp_value);
         }
+#ifdef AMREX_USE_HDF5_SZ
+        else if (mode_env == "SZ") {
+            ret = H5Z_SZ_Init((char*)value_env.c_str());
+            if (ret < 0) {
+                std::cout << "SZ config file:" << value_env.c_str() << std::endl;
+                amrex::Abort("SZ initialize failed, check SZ config file!");
+            }
+        }
+#endif
 #ifdef AMREX_USE_HDF5_ZFP
         else if (mode_env == "ZFP_RATE") {
             H5Pset_zfp_rate(dcpl_int, comp_value);
@@ -664,18 +664,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             H5Pset_zfp_reversible(dcpl_int);
             H5Pset_zfp_reversible(dcpl_real);
         }
-        else if (mode_env == "ZLIB") {
-            H5Pset_deflate(dcpl_int, (int)comp_value);
-            H5Pset_deflate(dcpl_real, (int)comp_value);
-        }
 #endif
         if (ParallelDescriptor::MyProc() == 0) {
             std::cout << "\nHDF5 particle checkpoint using " << mode_env << ", " <<
                 value_env << ", " << chunk_dim << std::endl;
         }
     }
-#endif
-
 
     for (const auto& kv : m_particles[lev])
     {
@@ -705,19 +699,32 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     hsize_t        total_mfi = 0, total_real_size = 0, total_int_size = 0, real_file_offset = 0, int_file_offset = 0;
     hsize_t        my_int_offset, my_int_count, my_real_offset, my_real_count;
 
+    // Count total number of components written
+    int real_comp_count = AMREX_SPACEDIM; // position values
+
+    for (int i = 0; i < NStructReal + NumRealComps(); ++i ) {
+        if (write_real_comp[i]) { ++real_comp_count; }
+    }
+
+    int int_comp_count = 2; // cpu and id values
+
+    for (int i = 0; i < NStructInt + NumIntComps(); ++i ) {
+        if (write_int_comp[i]) { ++int_comp_count; }
+    }
+
     // Get the size for each mf so we know the amount of data from each rank
     for (MFIter mfi(state); mfi.isValid(); ++mfi) {
         const int grid = mfi.index();
         if (count[grid] == 0)
             continue;
 
-        int_size  = count[grid] * (2 + NStructInt + NumIntComps());
+        int_size = count[grid] * int_comp_count;
         my_mfi_int_size.push_back(int_size);
         my_nparticles.push_back(count[grid]);
         my_mfi_int_total_size += int_size;
 
 
-        real_size = count[grid] * (AMREX_SPACEDIM + NStructReal + NumRealComps());
+        real_size = count[grid] * real_comp_count;
         my_mfi_real_size.push_back(real_size);
         my_mfi_real_total_size += real_size;
         my_mfi_cnt++;
@@ -759,6 +766,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 /*     } */
 /* #endif */
 
+    hsize_t chunk_size;
+    if (H5Pget_layout(dcpl_int) == H5D_CHUNKED) {
+        if (H5Pget_chunk(dcpl_int, 1, &chunk_size) > -1) {
+            if (chunk_size > total_int_size) {
+                H5Pset_chunk(dcpl_int, 1, &total_int_size);
+            }
+        }
+    }
+
     int_dset_space = H5Screate_simple(1, &total_int_size, NULL);
 #ifdef AMREX_USE_HDF5_ASYNC
     int_dset_id  = H5Dcreate_async(grp, "data:datatype=0", H5T_NATIVE_INT, int_dset_space, H5P_DEFAULT, dcpl_int, H5P_DEFAULT, es_par_g);
@@ -795,6 +811,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 #endif
 
+    if (H5Pget_layout(dcpl_real) == H5D_CHUNKED) {
+        if (H5Pget_chunk(dcpl_real, 1, &chunk_size) > -1) {
+            if (chunk_size > total_real_size) {
+                H5Pset_chunk(dcpl_real, 1, &total_real_size);
+            }
+        }
+    }
+
     real_dset_space = H5Screate_simple(1, &total_real_size, NULL);
     if (sizeof(typename ParticleType::RealType) == 4) {
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -824,7 +848,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     my_real_count  = 0;
 
     int max_mfi_count = 0, write_count = 0;
-    for (int i = 0; i < ParallelDescriptor::MyProc(); i++) {
+    for (int i = 0; i < ParallelDescriptor::NProcs(); i++) {
         if (max_mfi_count < all_mfi_cnt[i]) {
             max_mfi_count = all_mfi_cnt[i];
         }
@@ -1200,7 +1224,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         /* particle_box_arrays[lev].readFrom(phdr_file); */
         particle_box_arrays[lev] = ParticleBoxArray(lev);
         for (int i = 0; i < (int)ngrid; i++) {
-            Box tmp ({AMREX_D_DECL(boxes[i*AMREX_SPACEDIM], boxes[i*AMREX_SPACEDIM+1], boxes[i*AMREX_SPACEDIM+2])}, {AMREX_D_DECL(boxes[i*AMREX_SPACEDIM*2], boxes[i*AMREX_SPACEDIM*2+1], boxes[i*AMREX_SPACEDIM*2+2])});
+            Box tmp (IntVect{AMREX_D_DECL(boxes[i*AMREX_SPACEDIM], boxes[i*AMREX_SPACEDIM+1], boxes[i*AMREX_SPACEDIM+2])},
+                     IntVect{AMREX_D_DECL(boxes[i*AMREX_SPACEDIM*2], boxes[i*AMREX_SPACEDIM*2+1], boxes[i*AMREX_SPACEDIM*2+2])});
             particle_box_arrays[lev][i] = tmp;
         }
 
@@ -1440,7 +1465,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ++iptr;
         }
 
-        AMREX_ASSERT(p.id() > 0);
+        AMREX_ASSERT(p.id().is_valid());
 
         AMREX_D_TERM(p.pos(0) = ParticleReal(rptr[0]);,
                      p.pos(1) = ParticleReal(rptr[1]);,
@@ -1509,6 +1534,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
       }
 
     Gpu::streamSynchronize();
+}
+
 }
 
 #endif /*AMREX_USE_HDF5*/

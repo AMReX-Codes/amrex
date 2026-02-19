@@ -25,7 +25,6 @@ ErrorRec::ErrorFunc::clone () const
     return new ErrorFunc(*this);
 }
 
-// \cond CODEGEN
 void
 ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2),
                                   AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2),
@@ -63,7 +62,6 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
              AMREX_ARLIM_3D(domain_lo),AMREX_ARLIM_3D(domain_hi),
              AMREX_ZFILL(dx),AMREX_ZFILL(xlo),AMREX_ZFILL(prob_lo),time,level);
 }
-// \endcond
 
 ErrorRec::ErrorFunc2::ErrorFunc2 () = default;
 
@@ -194,7 +192,9 @@ ErrorList::operator[] (int k) const noexcept
     return *vec[k];
 }
 
-static const char* err_name[] = { "Special", "Standard", "UseAverage" };
+namespace {
+    const char* err_name[] = { "Special", "Standard", "UseAverage" };
+}
 
 std::ostream&
 operator << (std::ostream&    os,
@@ -212,12 +212,21 @@ operator << (std::ostream&    os,
     return os;
 }
 
+AMRErrorTag::AMRErrorTag (Parser parser, const AMRErrorTagInfo& info)
+    : m_test(PARSER),
+      m_parser(std::make_unique<Parser>(std::move(parser))),
+      m_parser_exe(m_parser->compile<4>()),
+      m_info(info)
+{}
+
 int
 AMRErrorTag::SetNGrow () const noexcept
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_test != USER, "Do not call SetNGrow with USER test");
-    static std::map<TEST,int> ng = { {GRAD,1}, {RELGRAD,1}, {LESS,0}, {GREATER,0}, {VORT,0}, {BOX,0} };
-    return ng[m_test];
+    if (m_test == GRAD || m_test == RELGRAD) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 void
@@ -256,9 +265,9 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
             auto const& tagma = tba.arrays();
             if (m_test == BOX)
             {
-                const auto plo = geom.ProbLoArray();
-                const auto dx  = geom.CellSizeArray();
-                const auto tag_rb = m_info.m_realbox;
+                const auto& plo = geom.ProbLoArray();
+                const auto& dx  = geom.CellSizeArray();
+                const auto& tag_rb = m_info.m_realbox;
                 ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
                 {
                     GpuArray<Real,AMREX_SPACEDIM> pt
@@ -270,12 +279,36 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                     }
                 });
             }
+            else if (m_test == PARSER)
+            {
+                const auto& plo = geom.ProbLoArray();
+                const auto& dx  = geom.CellSizeArray();
+                auto tag_update = m_info.m_derefine ? clearval : tagval;
+                auto fn = m_parser_exe;
+                ParallelFor(tba, [=] AMREX_GPU_DEVICE (int bi, int i, int j, int k) noexcept
+                {
+                    auto x = plo[0]+(Real(i)+Real(0.5))*dx[0];
+#if (AMREX_SPACEDIM > 1)
+                    auto y = plo[1]+(Real(j)+Real(0.5))*dx[1];
+#else
+                    auto y = Real(0);
+#endif
+#if (AMREX_SPACEDIM == 3)
+                    auto z = plo[2]+(Real(k)+Real(0.5))*dx[2];
+#else
+                    auto z = Real(0);
+#endif
+                    if (fn(x,y,z,time) > 0) {
+                        tagma[bi](i,j,k) = tag_update;
+                    }
+                });
+            }
             else
             {
                 auto const& datma   = mf->const_arrays();
                 auto threshold = m_value[level];
                 auto const volume_weighting = m_info.m_volume_weighting;
-                auto geomdata = geom.data();
+                auto const& geomdata = geom.data();
                 auto tag_update = tagval;
                 if (m_info.m_derefine) {
                     tag_update = clearval;

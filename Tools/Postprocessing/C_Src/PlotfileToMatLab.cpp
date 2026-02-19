@@ -8,6 +8,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <list>
 
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
@@ -323,4 +324,3 @@ main (int   argc,
   }
   Finalize();
 }
-

@@ -13,12 +13,16 @@ bool test_parser(int icase, std::string const& expr)
     double x = 1.23, y = 2.34, z = 3.45;
     auto result_native = f(icase, x, y, z);
 
+    amrex::Print() << "\ncase " << icase << ": " << expr << "\n";
+
     Parser parser(expr);
     parser.registerVariables({"x","y","z"});
+
+    parser.print();
+
     auto const exe = parser.compile<3>();
     auto result_parser = exe(x,y,z);
 
-    amrex::Print() << "\ncase " << icase << ": " << expr << "\n";
     parser.printExe();
 
     return amrex::almostEqual(result_native, result_parser, 10);
@@ -67,6 +71,31 @@ int main (int argc, char* argv[])
             for (auto const& ie : failed_tests) {
                 amrex::Print() << "  case " << ie.first << ": " << ie.second << "\n";
             }
+        }
+    }
+
+    {
+        std::string expr("x / max(y,0.8)");
+        Parser parser(expr);
+        parser.registerVariables({"x", "y"});
+        auto exe = parser.compile<2>();
+        auto r1 = exe(2.2, 3.3);
+        auto r2 = 2.2 / 3.3;
+        if (! amrex::almostEqual(r1, r2, 10)) {
+            amrex::Abort("Expression " + expr + " failed");
+        }
+    }
+
+
+    {
+        std::string expr("pow(x,0.6) / min(x,0.8)");
+        Parser parser(expr);
+        parser.registerVariables({"x"});
+        auto exe = parser.compile<1>();
+        auto r1 = exe(2.2);
+        auto r2 = std::pow(2.2,0.6) / 0.8;
+        if (! amrex::almostEqual(r1, r2, 10)) {
+            amrex::Abort("Expression " + expr + " failed");
         }
     }
 

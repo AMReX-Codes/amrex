@@ -26,7 +26,6 @@ class FArrayBox;
 * primarily for FArrayBox implementers; i.e. user's shouldn't
 * call any of the member functions in this class directly.
 */
-
 class FABio // NOLINT(cppcoreguidelines-special-member-functions)
 {
 public:
@@ -190,6 +189,8 @@ private:
 };
 
 /**
+* \class amrex::FArrayBox
+* \ingroup amrex_fab_containers
 * \brief  A Fortran Array of REALs
 *
 *  Fortran Array Box's (generally called FAB's) are objects constructed
@@ -224,7 +225,6 @@ private:
 *  This class does NOT provide a copy constructor or assignment operator,
 *  but it has a move constructor.
 */
-
 class FArrayBox
     :
     public BaseFab<Real>
@@ -274,11 +274,7 @@ public:
     FArrayBox& operator= (const FArrayBox&) = delete;
 
     //! Set the fab to the value r.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     FArrayBox& operator= (Real v) noexcept;
 
     /**
@@ -286,70 +282,38 @@ public:
     * This may return false, even if the FAB contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_nan () const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of a NaN if there is one.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_nan (IntVect& where) const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
     /**
     * \brief Are there any Infs in the FAB?
     * This may return false, even if the FAB contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_inf () const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
     /**
     * \brief These versions return the cell index (though not the component) of
     * the first location of an Inf if there is one.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_inf (IntVect& where) const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
@@ -564,16 +528,10 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp) const noexcept
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isnan(a(i,j,k,n))) {
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isnan(a(iv, n))) {
+                    return true;
                 }
             }
         }
@@ -629,17 +587,11 @@ FArrayBox::contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) co
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isnan(a(i,j,k,n))) {
-                            where = IntVect(AMREX_D_DECL(i,j,k));
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isnan(a(iv, n))) {
+                    where = iv;
+                    return true;
                 }
             }
         }
@@ -708,16 +660,10 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp) const noexcept
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isinf(a(i,j,k,n))) {
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isinf(a(iv, n))) {
+                    return true;
                 }
             }
         }
@@ -773,17 +719,11 @@ FArrayBox::contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) co
     } else
 #endif
     {
-        const auto lo = amrex::lbound(bx);
-        const auto hi = amrex::ubound(bx);
         for (int n = scomp; n < scomp+ncomp; ++n) {
-            for         (int k = lo.z; k <= hi.z; ++k) {
-                for     (int j = lo.y; j <= hi.y; ++j) {
-                    for (int i = lo.x; i <= hi.x; ++i) {
-                        if (amrex::isinf(a(i,j,k,n))) {
-                            where = IntVect(AMREX_D_DECL(i,j,k));
-                            return true;
-                        }
-                    }
+            for (IntVect iv : bx.iterator()) {
+                if (amrex::isinf(a(iv, n))) {
+                    where = iv;
+                    return true;
                 }
             }
         }

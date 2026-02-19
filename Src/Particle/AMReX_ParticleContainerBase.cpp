@@ -5,11 +5,12 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_iMultiFab.H>
 
-using namespace amrex;
+namespace amrex {
 
 bool    ParticleContainerBase::do_tiling = false;
 IntVect ParticleContainerBase::tile_size { AMREX_D_DECL(1024000,8,8) };
 bool    ParticleContainerBase::memEfficientSort = true;
+bool    ParticleContainerBase::use_comms_arena = false;
 
 void ParticleContainerBase::Define (const Geometry            & geom,
                                     const DistributionMapping & dmap,
@@ -198,7 +199,7 @@ int ParticleContainerBase::MaxReaders ()
         first = false;
         ParmParse pp("particles");
         Max_Readers = Max_Readers_def;
-        pp.queryAdd("nreaders", Max_Readers);
+        pp.query("nreaders", Max_Readers);
         Max_Readers = std::min(ParallelDescriptor::NProcs(),Max_Readers);
         if (Max_Readers <= 0)
         {
@@ -224,7 +225,7 @@ Long ParticleContainerBase::MaxParticlesPerRead ()
         first = false;
         ParmParse pp("particles");
         Max_Particles_Per_Read = Max_Particles_Per_Read_def;
-        pp.queryAdd("nparts_per_read", Max_Particles_Per_Read);
+        pp.query("nparts_per_read", Max_Particles_Per_Read);
         if (Max_Particles_Per_Read <= 0)
         {
             amrex::Abort("particles.nparts_per_read must be positive");
@@ -244,7 +245,7 @@ const std::string& ParticleContainerBase::AggregationType ()
         first = false;
         aggregation_type = "None";
         ParmParse pp("particles");
-        pp.queryAdd("aggregation_type", aggregation_type);
+        pp.query("aggregation_type", aggregation_type);
         if (!(aggregation_type == "None" || aggregation_type == "Cell"))
         {
             amrex::Abort("particles.aggregation_type not implemented.");
@@ -264,7 +265,7 @@ int ParticleContainerBase::AggregationBuffer ()
         first = false;
         aggregation_buffer = 2;
         ParmParse pp("particles");
-        pp.queryAdd("aggregation_buffer", aggregation_buffer);
+        pp.query("aggregation_buffer", aggregation_buffer);
         if (aggregation_buffer <= 0)
         {
             amrex::Abort("particles.aggregation_buffer must be positive");
@@ -327,4 +328,6 @@ void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
         }
         RemoveDuplicates(neighbor_procs);
     }
+}
+
 }

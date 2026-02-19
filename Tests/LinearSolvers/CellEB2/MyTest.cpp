@@ -28,6 +28,14 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    if (use_hypre || use_petsc) {
+        if (factory[0]->isAllRegular()) {
+            linop_maxorder = std::min(3,linop_maxorder);
+        } else {
+            linop_maxorder = 2;
+        }
+    }
+
     if (verbose > 0) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
@@ -35,7 +43,7 @@ MyTest::solve ()
                        MFInfo(), *factory[ilev]);
             MultiFab::Copy(v, vfrc, 0, 0, 1, 0);
             amrex::EB_set_covered(v, 1.0);
-            amrex::Print() << "Level " << ilev << ": vfrc min = " << v.min(0) << std::endl;
+            amrex::Print() << "Level " << ilev << ": vfrc min = " << v.min(0) << '\n';
         }
     }
 
@@ -163,7 +171,7 @@ MyTest::solve ()
 
             Real norminf = mf.norm0();
             Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
-            amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << std::endl;
+            amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << '\n';
         }
     }
 }

@@ -30,6 +30,11 @@ private:
     void solveABecLaplacian ();
     void solveABecLaplacianInhomNeumann ();
     void solveNodeABecLaplacian ();
+    void solveABecLaplacianGMRES ();
+
+#ifdef AMREX_USE_HYPRE
+    void solveMLHypre ();
+#endif
 
     int max_level = 1;
     int ref_ratio = 2;
@@ -42,6 +47,9 @@ private:
     // 4. NodeABecLaplacian
     int prob_type = 1;
 
+    bool use_mlhypre = false; // use multi-level hypre solver
+    bool use_hypre_ssamg = false; // this option is for mlhypre only
+
     // For MLMG solver
     int verbose = 2;
     int bottom_verbose = 0;
@@ -50,11 +58,16 @@ private:
     int linop_maxorder = 2;
     bool agglomeration = true;
     bool consolidation = true;
+    bool deterministic = false;
     bool semicoarsening = false;
     int max_coarsening_level = 30;
     int max_semicoarsening_level = 0;
+    bool use_gauss_seidel = true; // true: red-black, false: jacobi
     bool use_hypre = false;
     bool use_petsc = false;
+
+    // GMRES
+    bool use_gmres = false;
 
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij

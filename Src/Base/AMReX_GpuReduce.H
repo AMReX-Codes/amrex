@@ -16,6 +16,9 @@
 
 #if defined(AMREX_USE_CUB)
 #include <cub/cub.cuh>
+#if defined(CCCL_MAJOR_VERSION) && (CCCL_MAJOR_VERSION >= 3)
+#define AMREX_CUDA_CCCL_VER_GE_3 1
+#endif
 #elif defined(AMREX_USE_HIP)
 #include <rocprim/rocprim.hpp>
 #endif
@@ -250,6 +253,7 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexc
 
 #elif defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <typename T>
@@ -276,6 +280,7 @@ T multi_shuffle_down (T x, int offset) noexcept
 }
 
 }
+/// \endcond
 
 template <int warpSize, typename T, typename F>
 struct warpReduce
@@ -419,7 +424,12 @@ T blockReduceMin (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
+
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
+    return BlockReduce(temp_storage).Reduce(source, cuda::minimum<T>{});
+#else
     return BlockReduce(temp_storage).Reduce(source, cub::Min());
+#endif
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
@@ -469,7 +479,11 @@ T blockReduceMax (T source) noexcept
     // and since we don't know how many times the user is calling it,
     // we do it always to be safe.
     __syncthreads();
+#ifdef AMREX_CUDA_CCCL_VER_GE_3
+    return BlockReduce(temp_storage).Reduce(source, cuda::maximum<T>());
+#else
     return BlockReduce(temp_storage).Reduce(source, cub::Max());
+#endif
 #elif defined(AMREX_USE_HIP)
     using BlockReduce = rocprim::block_reduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::storage_type temp_storage;
@@ -488,8 +502,6 @@ void deviceReduceMax_full (T * dest, T source) noexcept
     T aggregate = blockReduceMax<BLOCKDIMX>(source);
     if (threadIdx.x == 0) { Gpu::Atomic::Max(dest, aggregate); }
 }
-
-// \cond CODEGEN
 
 // Compute the block-wide reduction for thread0
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -586,8 +598,6 @@ void deviceReduceLogicalOr_full (int * dest, int source) noexcept
     int aggregate = blockReduceLogicalOr<BLOCKDIMX>(source);
     if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
-
-// \endcond
 
 template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE

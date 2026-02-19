@@ -2,6 +2,8 @@
 #define AMREX_PARTICLEINIT_H
 #include <AMReX_Config.H>
 
+namespace amrex {
+
 /*
   \brief Initialize particles from an Ascii file in the following format:
 
@@ -873,7 +875,7 @@ InitFromBinaryFile (const std::string& file,
             auto& pmap     = m_particles[lev];
             auto& tmp_pmap = tmp_particles[lev];
 
-            for (auto kv : pmap) {
+            for (auto& kv : pmap) {
                 auto& aos = kv.second.GetArrayOfStructs()();
                 auto& tmp_aos = tmp_pmap[kv.first].GetArrayOfStructs()();
 
@@ -1062,6 +1064,10 @@ InitRandom (Long                    icount,
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
 
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
+        host_idcpu.reserve(15);
+        host_idcpu.resize(finestLevel()+1);
+
         for (Long j = 0; j < icount; j++)
         {
             Particle<0, 0> ptest;
@@ -1117,8 +1123,9 @@ InitRandom (Long                    icount,
                         host_real_attribs[pld.m_lev][ind][i].push_back(pos[j*AMREX_SPACEDIM+i]);
                     }
 
-                    host_int_attribs[pld.m_lev][ind][0].push_back(ParticleType::NextID());
-                    host_int_attribs[pld.m_lev][ind][1].push_back(MyProc);
+                    host_idcpu[pld.m_lev][ind].push_back(0);
+                    ParticleIDWrapper(host_idcpu[pld.m_lev][ind].back()) = ParticleType::NextID();
+                    ParticleCPUWrapper(host_idcpu[pld.m_lev][ind].back()) = ParallelDescriptor::MyProc();
 
                     host_particles[pld.m_lev][ind];
 
@@ -1157,6 +1164,11 @@ InitRandom (Long                    icount,
                 {
                     Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                    dst_tile.GetArrayOfStructs().begin() + old_size);
+                } else {
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_idcpu[host_lev][std::make_pair(grid,tile)].begin(),
+                                   host_idcpu[host_lev][std::make_pair(grid,tile)].end(),
+                                   dst_tile.GetStructOfArrays().GetIdCPUData().begin() + old_size);
                 }
 
                 for (int i = 0; i < NArrayReal; ++i) { // NOLINT(readability-misleading-indentation)
@@ -1200,6 +1212,10 @@ InitRandom (Long                    icount,
         Vector<std::map<std::pair<int, int>, std::array<Gpu::HostVector<int>, NArrayInt > > > host_int_attribs;
         host_int_attribs.reserve(15);
         host_int_attribs.resize(finestLevel()+1);
+
+        Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
+        host_idcpu.reserve(15);
+        host_idcpu.resize(finestLevel()+1);
 
         for (Long icnt = 0; icnt < M; icnt++) {
             Particle<0, 0> ptest;
@@ -1261,8 +1277,9 @@ InitRandom (Long                    icount,
                     host_real_attribs[pld.m_lev][ind][i].push_back(ptest.pos(i));
                 }
 
-                host_int_attribs[pld.m_lev][ind][0].push_back(ptest.id());
-                host_int_attribs[pld.m_lev][ind][1].push_back(ptest.cpu());
+                host_idcpu[pld.m_lev][ind].push_back(0);
+                ParticleIDWrapper(host_idcpu[pld.m_lev][ind].back()) = ParticleType::NextID();
+                ParticleCPUWrapper(host_idcpu[pld.m_lev][ind].back()) = ParallelDescriptor::MyProc();
 
                 host_particles[pld.m_lev][ind];
 
@@ -1300,6 +1317,11 @@ InitRandom (Long                    icount,
                 {
                     Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                    dst_tile.GetArrayOfStructs().begin() + old_size);
+                } else {
+                    Gpu::copyAsync(Gpu::hostToDevice,
+                                   host_idcpu[host_lev][std::make_pair(grid,tile)].begin(),
+                                   host_idcpu[host_lev][std::make_pair(grid,tile)].end(),
+                                   dst_tile.GetStructOfArrays().GetIdCPUData().begin() + old_size);
                 }
 
                 for (int i = 0; i < NArrayReal; ++i) { // NOLINT(readability-misleading-indentation)
@@ -1663,4 +1685,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
     Gpu::streamSynchronize();
 }
+
+}
+
 #endif /*AMREX_PARTICLEINIT_H*/

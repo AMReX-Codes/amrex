@@ -24,24 +24,47 @@ type of components that the particles carry. The first template parameter is the
 number of extra :cpp:`Real` variables this particle will have (either single or
 double precision [1]_), while the second is the number of extra integer
 variables.  It is important to note that this is the number of *extra* real and
-integer variables; a particle will always have at least :cpp:`BL_SPACEDIM` real
-components that store the particle's position and 2 integer components that
-store the particle's :cpp:`id` and :cpp:`cpu` numbers. [2]_
+integer variables; a particle will always have at least :cpp:`AMREX_SPACEDIM` real
+components that store the particle's position and one 64-bit integer component that
+stores a combination of the particle's unique `id` and `cpu` numbers.
 
-The particle struct is designed to store these variables in a way that
-minimizes padding, which in practice means that the :cpp:`Real` components
-always come first, and the integer components second. Additionally, the
-required particle variables are stored before the optional ones, for both the
-real and the integer components. For example, say we want to define a particle
-type that stores a mass, three velocity components, and two extra integer
-flags. Our particle struct would be set up like:
+The particle struct is stored such that the :cpp:`Real` components come first
+and the integer component second. Additionally, the required particle variables
+are stored before the optional ones, for both the real and the integer components.
+For example, say we want to define a particle type that stores a mass, three velocity
+components, and two extra integer flags. Our particle struct would be declared like:
 
 ::
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3):
-:cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
+and the order of the particle components in would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
+:cpp:`x y z m vx vy vz idcpu flag1 flag2`.  [2]_
+
+The `idcpu` variable stores a combination of the MPI process a particle was generated on
+(the `cpu`) and an identification number that is specific to that process (the `id`).
+The combination of these numbers is unique across processes. This is done to facilitate
+the creation of particle initial conditions in parallel. In storing these
+identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550 billion
+possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
+unique (MPI) processes.
+
+One bit is devoted to mark a particle valid or invalid. This is often used to remove particles from a
+simulation. During :cpp:`Redistribute()`, particles with
+invalid ids are removed from the simulation by default, although this behavior is customizable. Particles
+with invalid ids are also not written out during plotfile writes or checkpoint / restart operations.
+The allowed values for :cpp:`p.id()` are `0` to `2**39 - 1`, and the allowed values for :cpp:`p.cpu()` are
+`0` to `2**24 - 1`.
+
+To pack and unpack these numbers, one uses the following syntax:
+
+::
+
+       Particle <0, 0> p;
+       p.id() = 1;
+       p.cpu() = 0;
+       amrex::Print() << p.m_idcpu << "\n"; // 9223372036871553024
+       amrex::Print() << p.id() << " " << p.cpu() << "\n"; // 1 0
 
 Setting Particle data
 ---------------------
@@ -86,7 +109,8 @@ tracked as the particle positions change. To do this, we provide the
 
 ::
 
-      ParticleContainer<3, 2, 4, 4> mypc;
+      using MyParticleContainer = ParticleContainer<3, 2, 4, 4>;
+      MyParticleContainer mypc;
 
 Like the :cpp:`Particle` class itself, the :cpp:`ParticleContainer`
 class is templated. The first two template parameters have the same meaning as
@@ -134,24 +158,15 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
 
    \end{center}
 
-To see why the distinction between AoS and SoA data is important, consider the
-following extreme case. Say you have particles that carry 100 different
-components, but that most of the time, you only need to do calculations
-involving 3 of them (say, the particle positions) at once. In this case,
-storing all 100 particle variables in the particle struct is clearly
-inefficient, since most of the time you are reading 97 extra variables into
-cache that you will never use. By splitting up the particle variables into
-stuff that gets used all the time (stored in the AoS) and stuff that only gets
-used infrequently (stored in the SoA), you can in principle achieve much better
-cache reuse. Of course, the usage pattern of your application likely won't be
-so clear-cut. Flexibility in how the particle data is stored also makes it
-easier to interface between AMReX and already-existing Fortran subroutines.
+.. attention::
 
-Note that while "extra" particle data can be stored in either the SoA or AoS
-style, the particle positions and id numbers are **always** stored in the
-particle structs. This is because these particle variables are special and used
-internally by AMReX to assign the particles to grids and to mark particles as
-valid or invalid, respectively.
+   The ability to store particle data in AoS form is provided for backward
+   compatibility and convenience; however, for performance reasons, whether
+   targeting CPU or GPU execution, we recommend storing extra particle variables in SoA form.
+   Additionally, starting in AMReX version 23.05, the ability to store *all* particle
+   data, including the particle positions and `idcpu` numbers, is provided via the
+   :cpp:`amrex::ParticleContainerPureSoA` class. Details on using pure SoA particles
+   are provided in the Section on :ref:`sec:Particles:PureSoA`.
 
 Constructing ParticleContainers
 -------------------------------
@@ -308,6 +323,18 @@ particles, if the processes generate particles they don't own (for example, if
 the particle positions are perturbed from the cell centers and thus end up
 outside their parent grid).
 
+.. note::
+
+   The above code snippet, which successively calls :cpp:`push_back` on the particle
+   vectors, assumes you have compiled AMReX for CPU execution.
+   For GPU codes, one can either generate particles on the host and copy them
+   to the device, or generate the particles directly on the GPU. For the first
+   approach, please see the sample code `here <https://github.com/AMReX-Codes/amrex/blob/development/Tests/Particles/Redistribute/main.cpp#L81>`__.
+   For an example of generating a variable number of particles in each cell
+   directly on the GPU, please see
+   `this <https://github.com/AMReX-Codes/amrex-tutorials/blob/main/ExampleCodes/Particles/ElectromagneticPIC/Source/EMParticleContainerInit.cpp#L48>`__
+   Electromagnetic Particle-in-Cell tutorial
+
 .. _sec:Particles:Runtime:
 
 Adding particle components at runtime
@@ -375,8 +402,8 @@ example, to iterate over all the AoS data:
 ::
 
 
-    using MyParIter = ConstParIter<2*BL_SPACEDIM>;
-    for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
+    using MyParConstIter = MyParticleContainer::ParConstIterType;
+    for (MyParConstIter pti(pc, lev); pti.isValid(); ++pti) {
         const auto& particles = pti.GetArrayOfStructs();
         for (const auto& p : particles) {
             // do stuff with p...
@@ -392,7 +419,7 @@ skipped. You can also access the SoA data using the :math:`ParIter` as follows:
 ::
 
 
-    using MyParIter = ParIter<0, 0, 2, 2>;
+    using MyParIter = MyParticleContainer::ParIterType;
     for (MyParIter pti(pc, lev); pti.isValid(); ++pti) {
         auto& particle_attributes = pti.GetStructOfArrays();
         RealVector& real_comp0 = particle_attributes.GetRealData(0);
@@ -427,8 +454,7 @@ example:
            real(amrex_particle_real) :: pos(3)
            real(amrex_particle_real) :: vel(3)
            real(amrex_particle_real) :: acc(3)
-           integer(c_int)   :: id
-           integer(c_int)   :: cpu
+           integer(c_int64_t) :: idcpu
         end type particle_t
 
 is equivalent to a particle struct you get with :cpp:`Particle<6, 0>`. Here,
@@ -437,6 +463,41 @@ on whether ``USE_SINGLE_PRECISION_PARTICLES`` is ``TRUE`` or not. We recommend
 always using this type in Fortran routines that work on particle data to avoid
 hard-to-debug incompatibilities between floating point types.
 
+.. _sec:Particles:PureSoA:
+
+Pure Struct-of-Array Particles
+------------------------------
+
+Beginning with AMReX version 24.05, the requirement that the particle positions
+and ids be stored in AoS form has been lifted. Users can now use the class
+:cpp:`amrex::ParticleContainerPureSoA`, which stores all components in SoA form.
+When using data layout, it is assumed that the first :cpp:`AMREX_SPACEDIM` :cpp:`Real`
+components store the particle position variables, which are used internally to map
+particle coordinates to grids and cells.
+
+For the most part, functions that work on the standard :cpp:`ParticleContainer` will
+also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to access
+the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
+particlularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
+allows the same code to work with both AoS and pure SoA particles. For example, within
+a ``ParIter`` loop, one can do:
+
+.. highlight:: c++
+
+::
+
+    // Iterating over SoA Particles
+    ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData();
+
+    ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
+    {
+        ParticleType p = ptd[ip];  // p will be a different type for AoS and pure SoA
+        // use p.pos(0), p.id(), etc.
+    }
+
+In this way, code can be written that is agnostic as to the data layout. For more examples
+of pure SoA particles, please see the SOA tests in :cpp:`amrex/Tests/Particles/`, or refer
+to `WarpX <https://github.com/BLAST-WarpX/warpx>`_, `Hipace++ <https://github.com/Hi-PACE/hipace>`_, or `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_, which use this type of particle container.
 
 .. _sec:Particles:Interacting:
 
@@ -446,47 +507,43 @@ Interacting with Mesh Data
 It is common to want to have the mesh communicate information to the particles
 and vice versa. For example, in Particle-in-Cell calculations, the particles
 deposit their charges onto the mesh, and later, the electric fields computed on
-the mesh are interpolated back to the particles. Below, we show examples of
-both these sorts of operations.
+the mesh are interpolated back to the particles.
+
+To help perform these sorts of operations, we provide the :cpp:`ParticleToMesh`
+and :cpp:`MeshToParticles` functions. These functions operate on an entire
+:cpp:`ParticleContainer` at once, interpolating data back and forth between
+an input :cpp:`MultiFab`. A user-provided lambda function is passed in that
+specifies the kind of interpolation to perform. Any needed parallel communication
+(from particles that contribute some of their weight to guard cells, for example)
+is performed internally. Additionally, these methods support both a single-grid
+(the particles and the mesh use the same boxes and distribution mappings) and dual-grid
+(the particles and mesh have different layouts) formalism. In the latter case,
+the needed parallel communication is also performed internally.
+
+We show examples of these types of operations below. The first snippet shows
+how to deposit a particle quantiy from the first real component of the particle
+data to the first component of a :cpp:`MultiFab` using linear interpolation.
 
 .. highlight:: c++
 
 ::
 
 
-    Ex.FillBoundary(gm.periodicity());
-    Ey.FillBoundary(gm.periodicity());
-    Ez.FillBoundary(gm.periodicity());
-    for (MyParIter pti(MyPC, lev); pti.isValid(); ++pti) {
-        const Box& box = pti.validbox();
+  const auto plo = geom.ProbLoArray();
+  const auto dxi = geom.InvCellSizeArray();
+  amrex::ParticleToMesh(myPC, partMF, 0,
+                        [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleTileType::ConstParticleTileDataType& ptd, int i,
+                                              amrex::Array4<amrex::Real> const& rho)
+      {
+          auto p = ptd[i];
+          ParticleInterpolator::Linear interp(p, plo, dxi);
 
-        const auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;
-        const long np  = pti.numParticles();
-
-        const FArrayBox& exfab = Ex[pti];
-        const FArrayBox& eyfab = Ey[pti];
-        const FArrayBox& ezfab = Ex[pti];
-
-        interpolate_cic(particles.data(), nstride, np,
-                        exfab.dataPtr(), eyfab.dataPtr(), ezfab.dataPtr(),
-                        box.loVect(), box.hiVect(), plo, dx, &ng);
-        }
-
-Here, :fortran:`interpolate_cic` is a Fortran subroutine that actually performs
-the interpolation on a single box. :cpp:`Ex`, :cpp:`Ey`, and :cpp:`Ez` are
-MultiFabs that contain the electric field data. These MultiFabs must be defined
-with the correct number of ghost cells to perform the desired type of
-interpolation, and we call :cpp:`FillBoundary` prior to the Fortran call so
-that those ghost cells will be up-to-date.
-
-In this example, we have assumed that the :cpp:`ParticleContainer MyPC` has
-been defined on the same grids as the electric field MultiFabs, so that we use
-the :cpp:`ParIter` to index into the MultiFabs to get the data associated with
-current tile. If this is not the case, then an additional copy will need to be
-performed. However, if the particles are distributed in an extremely uneven
-fashion, it is possible that the load balancing improvements associated with
-the two-grid approach are worth the cost of the extra copy.
+          interp.ParticleToMesh(p, rho, 0, 0, 1,
+                      [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& part, int comp)
+                      {
+                          return part.rdata(comp);
+                      });
+      });
 
 The inverse operation, in which the particles communicate data *to* the mesh,
 is quite similar:
@@ -496,33 +553,56 @@ is quite similar:
 ::
 
 
-    rho.setVal(0.0, ng);
-    for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
-        const Box& box = pti.validbox();
+  amrex::MeshToParticle(myPC, acceleration, 0,
+      [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& p,
+                            amrex::Array4<const amrex::Real> const& acc)
+      {
+          ParticleInterpolator::Linear interp(p, plo, dxi);
 
-        const auto& particles = pti.GetArrayOfStructs();
-        int nstride = particles.dataShape().first;
-        const long np  = pti.numParticles();
+          interp.MeshToParticle(p, acc, 0, 1+AMREX_SPACEDIM, AMREX_SPACEDIM,
+                  [=] AMREX_GPU_DEVICE (amrex::Array4<const amrex::Real> const& arr,
+                                        int i, int j, int k, int comp)
+                  {
+                      return arr(i, j, k, comp);  // no weighting
+                  },
+                  [=] AMREX_GPU_DEVICE (MyParticleContainer::ParticleType& part,
+                                        int comp, amrex::Real val)
+                  {
+                      part.rdata(comp) += ParticleReal(val);
+                  });
+      });
 
-        FArrayBox& rhofab = (*rho[lev])[pti];
+In this case, we linearly interpolate `AMREX_SPACEDIM` values starting from the 0th
+component of the input :cpp:`MultiFab` to the particles, writing them starting at
+particle component 1. Note that :cpp:`ParticleInterpolator::MeshToParticle` takes *two*
+lambda functions, one that generates the particle quantity to interpolate and another
+that shows how to update the mesh value.
 
-        deposit_cic(particles.data(), nstride, np, rhofab.dataPtr(),
-                    box.loVect(), box.hiVect(), plo, dx);
-        }
+Finally, the snippet below shows how to use this function to simply count the number
+of particles in each cell (i.e. to deposit using "nearest neighbor" interpolation)
 
-    rho.SumBoundary(gm.periodicity());
+.. highlight:: c++
 
-As before, we loop over all our particles, calling a Fortran routine that
-deposits them on to the appropriate :cpp:`FArrayBox rhofab`. The :cpp:`rhofab`
-must have enough ghost cells to cover the support of all the particles
-associated with them. Note that we call :cpp:`SumBoundary` instead of
-:cpp:`FillBoundary` after performing the deposition, to add up the charge in
-the ghost cells surrounding each Fab into the corresponding valid cells.
+::
 
-For a complete example of an electrostatic PIC calculation that includes static
-mesh refinement, please see the `Electrostatic PIC tutorial`.
+     amrex::ParticleToMesh(myPC, partiMF, 0,
+      [=] AMREX_GPU_DEVICE (const MyParticleContainer::SuperParticleType& p,
+                            amrex::Array4<int> const& count)
+      {
+          ParticleInterpolator::Nearest interp(p, plo, dxi);
 
-.. _`Electrostatic PIC tutorial`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#electrostaticpic
+          interp.ParticleToMesh(p, count, 0, 0, 1,
+              [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& /*p*/, int /*comp*/) -> int
+              {
+                  return 1;  // just count the particles per cell
+              });
+      });
+
+For more complex examples of interacting with mesh data, we refer readers to
+our `Electromagnetic PIC tutorial <https://github.com/AMReX-Codes/amrex-tutorials/tree/main/ExampleCodes/Particles/ElectromagneticPIC>`_
+
+Or, for a complete example of an electrostatic PIC calculation that includes static
+mesh refinement, please see the `Electrostatic PIC tutorial <https://github.com/AMReX-Codes/amrex-tutorials/tree/main/ExampleCodes/Particles/ElectrostaticPIC>`_.
 
 .. _sec:Particles:ShortRange:
 
@@ -694,9 +774,7 @@ mesh data IO. For example:
 
 will create a plot file called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is currently readable by :cpp:`yt`. In additional, there is a Python conversion script in
-``amrex/Tools/Py_util/amrex_particles_to_vtp`` that can convert both the ASCII and the binary particle files to a
-format readable by Paraview. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
+The binary file format is readable by either :cpp:`yt` or :cpp:`Paraview`. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
 Inputs parameters
 =================
@@ -759,16 +837,10 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
 |                   | boundary in which no aggregation should be performed.                 |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
-Finally, the `amrex.use_gpu_aware_mpi` switch can also affect the behavior of the particle communication routines when
-running on GPU platforms like Summit. We recommend leaving it off.
-
 .. [1]
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
 .. [2]
-   Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one it's currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
-
-.. [3]
    Note that for the extra particle components, which component refers to which
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please

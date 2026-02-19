@@ -29,7 +29,6 @@ class StateDataPhysBCFunct;
 *
 * StateData holds state data on a level for the current and previous time step.
 */
-
 class StateData
 {
     friend class StateDataPhysBCFunct;
@@ -164,7 +163,7 @@ public:
     /**
     * \brief Sets time of old and new data.
     *
-    * \param t_new
+    * \param time
     * \param dt_old
     * \param dt_new
     */
@@ -174,15 +173,11 @@ public:
 
     /**
     * \brief Sets time of old data.
-    *
-    * \param t_old
     */
     void setOldTimeLevel (Real time);
 
     /**
     * \brief Sets time of new data.
-    *
-    * \param t_new
     */
     void setNewTimeLevel (Real time);
 
@@ -262,9 +257,9 @@ public:
     * \param p_domain
     * \param grds
     * \param dm
-    * \param factroy
+    * \param factory
     * \param d
-    * \param restart_file
+    * \param chkfile
     */
     void restart (std::istream&          is,
                   const Box&             p_domain,
@@ -298,6 +293,8 @@ public:
     */
     const BoxArray& boxArray () const noexcept { return grids; }
 
+    void setBoxArray (BoxArray const& a_grids) noexcept { grids = a_grids; }
+
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
 
     /**
@@ -307,6 +304,10 @@ public:
     void setDistributionMap ( DistributionMapping& new_dmap ) noexcept { dmap = new_dmap; }
 
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
+
+    void setFactory (FabFactory<FArrayBox> const& a_factory) {
+        m_factory.reset(a_factory.clone());
+    }
 
     /**
     * \brief Returns the current time.
@@ -471,7 +472,7 @@ public:
 private:
     StateData* statedata;
     int src_comp;
-    const Geometry& geom;
+    const Geometry* geom;
 
 };
 

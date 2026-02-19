@@ -48,7 +48,7 @@ Here is a simple example of initialize the database for an embedded sphere.
     EB2::Build(shop, geom, 0, 0);
 
 Alternatively, the EB information can be initialized from an STL file
-specified by a :cpp:`ParmParse` parameter ``eb2.stl_file``.  The
+specified by a :cpp:`ParmParse` parameter ``eb2.stl_file``. (This also requires setting ``eb2.geom_type = stl``.) The
 initialization is done by calling
 
 .. highlight:: c++
@@ -141,9 +141,12 @@ Given an implicit function object, say :cpp:`f`, we can make a
 :cpp:`EB2::IndexSpace`
 ----------------------
 
-We build :cpp:`EB2::IndexSpace` with a template function
+We build :cpp:`EB2::IndexSpace` with one of several functions depending
+on the application needs.
 
-.. highlight: c++
+**Standard Build with Automatic Coarsening**
+
+.. highlight:: c++
 
 ::
 
@@ -151,7 +154,10 @@ We build :cpp:`EB2::IndexSpace` with a template function
     void EB2::Build (const G& gshop, const Geometry& geom,
                      int required_coarsening_level,
                      int max_coarsening_level,
-                     int ngrow = 4);
+                     int ngrow = 4,
+                     bool build_coarse_level_by_coarsening = true,
+                     bool extend_domain_face = ExtendDomainFace(),
+                     int num_coarsen_opt = NumCoarsenOpt());
 
 Here the template parameter is a :cpp:`EB2::GeometryShop`. :cpp:`Geometry` (see
 section :ref:`sec:basics:geom`) describes the rectangular problem domain and the
@@ -173,12 +179,58 @@ ngrow` parameter specifies the number of ghost cells outside the domain on
 required levels. For levels coarser than the required level, no EB data are
 generated for ghost cells outside the domain.
 
-The newly built :cpp:`EB2::IndexSpace` is pushed on to a stack. Static function
+**Build with Explicit Multi-Level Geometry**
+
+For applications requiring explicit control over the geometry at each AMR level:
+
+.. highlight:: c++
+
+::
+
+    template <typename G>
+    void EB2::Build (const G& gshop, Vector<Geometry> geom,
+                     int ngrow = 4,
+                     bool extend_domain_face = ExtendDomainFace(),
+                     int num_coarsen_opt = NumCoarsenOpt());
+
+This version takes a :cpp:`Vector<Geometry>` where each element corresponds to
+the geometry of a specific AMR level. The Vector can be unordered, as it will be
+sorted based on :cpp:`numPts`.
+Unlike the standard :cpp:`Build` function, coarse level EB data is generated
+directly from the provided geometries rather than through automatic coarsening.
+This is useful when coarse level domains are not simple coarsenings of the fine
+level, or when you need precise control over the domain and mesh spacing at each
+level.
+
+**Build from STL File**
+
+As mentioned earlier, the EB information can alternatively be initialized from
+an STL file using:
+
+.. highlight:: c++
+
+::
+
+   void EB2::Build (const Geometry& geom,
+                    int required_coarsening_level,
+                    int max_coarsening_level,
+                    int ngrow = 4,
+                    bool build_coarse_level_by_coarsening = true,
+                    bool extend_domain_face = ExtendDomainFace(),
+                    int num_coarsen_opt = NumCoarsenOpt());
+
+This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
+``eb2.stl_file`` to specify the STL file path.
+
+**Managing IndexSpace Objects**
+
+Regardless of which :cpp:`Build` variant is used, the newly built
+:cpp:`EB2::IndexSpace` is pushed on to a stack. Static function
 :cpp:`EB2::IndexSpace::top()` returns a :cpp:`const &` to the new
 :cpp:`EB2::IndexSpace` object. We usually only need to build one
 :cpp:`EB2::IndexSpace` object. However, if your application needs multiple
 :cpp:`EB2::IndexSpace` objects, you can save the pointers for later use. For
-simplicity, we assume there is only one `EB2::IndexSpace` object for the rest of
+simplicity, we assume there is only one :cpp:`EB2::IndexSpace` object for the rest of
 this chapter.
 
 EBFArrayBoxFactory
@@ -271,6 +323,12 @@ following data:
     // embedded boundary centroid
     const MultiCutFab& getBndryCent () const;
 
+    // embedded boundary normal direction
+    const MultiCutFab& getBndryNormal () const;
+
+    // embedded boundary surface area
+    const MultiCutFab& getBndryArea () const;
+
     // area fractions
     Array<const MultiCutFab*,AMREX_SPACEDIM> getAreaFrac () const;
 
@@ -291,9 +349,16 @@ following data:
   of the data is in the range of :math:`[-0.5,0.5]`, based on each
   cell's local coordinates with respect to the regular cell's center.
 
-- **Face centroid** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components.
-  Each component of the data is in the range of :math:`[-0.5,0.5]`, based on
-  each cell's local coordinates with respect to the embedded boundary.
+- **Boundary normal** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
+  components representing the unit vector pointing toward the covered part.
+
+- **Boundary area** is in a :cpp:`MultiCutFab` with a single component
+  representing the dimensionless boundary area. When the cell is isotropic
+  (i.e., :math:`\Delta x = \Delta y = \Delta z`), it's trivial to convert it
+  to physical units. If the cell size is anisotropic, the conversion
+  requires multiplying by a factor of :math:`\sqrt{(n_x \Delta y \Delta
+  z)^2 + (n_y \Delta x \Delta z)^2 + (n_z \Delta x \Delta y)^2}`, where
+  :math:`n` is the boundary normal vector.
 
 - **Area fractions** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
   pointers. For each direction, area fraction is for the face of that direction.
@@ -385,6 +450,9 @@ testing cell types and getting neighbor information. For example
             end do
         end do
     end do
+
+
+.. _sec:EB:redistribution:
 
 Small Cell Problem and Redistribution
 =====================================

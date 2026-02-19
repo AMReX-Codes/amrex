@@ -430,12 +430,15 @@ through the ``--nvtx``, ``--nvtx-include`` and ``--nvtx-exclude`` flags. For exa
 
 ::
 
-    ncu --nvtx --nvtx-include "Hydro()" --nvtx-exclude "StencilA(),StencilC()" -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
+    ncu --nvtx --nvtx-include "Hydro()/" --nvtx-exclude "StencilA(),StencilC()" -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
 will return a file named ``kernels`` which contains an analysis of the CUDA kernels launched inside
 the ``Hydro()`` region, ignoring any kernels launched inside ``StencilA()`` and ``StencilC()``.
 When using the NVTX regions built into AMReX's TinyProfiler, be aware that the application must be built
 with ``TINY_PROFILE=TRUE`` and the NVTX region names are identical to the TinyProfiler timer names.
+Note that the ``/`` must be appended to the TinyProfiler timer name specified with ``--nvtx--include``
+because TinyProfiler sets NVTX push/pop regions, as described in the Nsight Compute official documentation on
+`NVTX Filtering <https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html#nvtx-filtering>`_.
 
 Another helpful flag for selecting a reasonable subset of kernels for analysis is the ``-c`` option. This
 flag specifies the total number of kernels to be analyzed. For example:
@@ -444,13 +447,12 @@ flag specifies the total number of kernels to be analyzed. For example:
 
 ::
 
-    ncu --nvtx --nvtx-include "GravitySolve()" -c 10 -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
+    ncu --nvtx --nvtx-include "GravitySolve()/" -c 10 -o kernels ${EXE} ${INPUTS} amrex.fpe_trap_invalid=0
 
 will only analyze the first ten kernels inside of the ``GravitySolve()`` NVTX region.
 
 For further details on how to choose a subset of CUDA kernels to analyze, or to run a more detailed
-analysis, including CUDA hardware counters, refer to the Nsight Compute official documentation on
-`NVTX Filtering <https://docs.nvidia.com/nsight-compute/NsightComputeCli/index.html#nvtx-filtering>`_.
+analysis, including CUDA hardware counters, refer to the Nsight Compute official documentation.
 
 
 Roofline

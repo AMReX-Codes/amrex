@@ -17,6 +17,8 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+
 struct amrex_KSP
 {
     amrex_KSP () = default;
@@ -50,6 +52,8 @@ struct amrex_Vec
     Vec a = nullptr;
 };
 
+/// \endcond
+
 std::unique_ptr<PETScABecLap>
 makePetsc (const BoxArray& grids, const DistributionMapping& dmap,
            const Geometry& geom, MPI_Comm comm_)
@@ -63,8 +67,7 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
     : comm(comm_),
       geom(geom_)
 {
-    static_assert(AMREX_SPACEDIM > 1, "PETScABecLap: 1D not supported");
-    static_assert(std::is_same<Real, PetscScalar>::value, "amrex::Real != PetscScalar");
+    static_assert(std::is_same_v<Real, PetscScalar>, "amrex::Real != PetscScalar");
 
     const int ncomp = 1;
     int ngrow = 0;
@@ -168,7 +171,7 @@ PETScABecLap::solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real /*a
         Real res;
         KSPGetIterationNumber(solver->a, &niters);
         KSPGetResidualNorm(solver->a, &res);
-        amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << std::endl;
+        amrex::Print() <<"\n" <<  niters << " PETSc Iterations, Residual Norm " << res << '\n';
     }
 
     getSolution(soln);
@@ -192,7 +195,7 @@ PETScABecLap::prepareSolver ()
     }
 #endif
 
-    static_assert(std::is_signed<PetscInt>::value, "PetscInt is assumed to be signed");
+    static_assert(std::is_signed_v<PetscInt>, "PetscInt is assumed to be signed");
 
     // how many non-covered cells do we have?
     ncells_grid.define(ba,dm);

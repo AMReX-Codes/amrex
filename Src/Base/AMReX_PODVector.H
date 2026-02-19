@@ -2,12 +2,16 @@
 #define AMREX_PODVECTOR_H_
 #include <AMReX_Config.H>
 
+#include <AMReX.H>
 #include <AMReX_Arena.H>
+#include <AMReX_Enum.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_GpuDevice.H>
+#include <AMReX_MemPool.H>
 #include <AMReX_TypeTraits.H>
 
+#include <cmath>
 #include <iterator>
 #include <type_traits>
 #include <utility>
@@ -16,6 +20,7 @@
 
 namespace amrex
 {
+    /// \cond DOXYGEN_IGNORE
     namespace detail
     {
         template <typename T, typename Size, template<class> class Allocator>
@@ -45,7 +50,11 @@ namespace amrex
                                      [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
+#ifdef _WIN32
+            if           (RunOnGpu<Allocator<T>>::value)
+#else
             if constexpr (RunOnGpu<Allocator<T>>::value)
+#endif
             {
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                     data[i] = value;
@@ -53,7 +62,11 @@ namespace amrex
                 Gpu::streamSynchronize();
                 return;
             }
+#ifdef _WIN32
+            else if           (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#else
             else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#endif
             {
                 if (allocator.arena()->isManaged() ||
                     allocator.arena()->isDevice())
@@ -101,7 +114,11 @@ namespace amrex
                              [[maybe_unused]] Allocator<T> const& allocator)
         {
 #ifdef AMREX_USE_GPU
+#ifdef _WIN32
+            if           (RunOnGpu<Allocator<T>>::value)
+#else
             if constexpr (RunOnGpu<Allocator<T>>::value)
+#endif
             {
                 amrex::ParallelFor(count, [=] AMREX_GPU_DEVICE (Size i) noexcept {
                     dst[i] = src[i];
@@ -109,7 +126,11 @@ namespace amrex
                 Gpu::Device::streamSynchronize();
                 return;
             }
+#ifdef _WIN32
+            else if           (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#else
             else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value)
+#endif
             {
                 if (allocator.arena()->isManaged() ||
                     allocator.arena()->isDevice())
@@ -196,7 +217,37 @@ namespace amrex
 #endif
             std::memmove(dst, src, count);
         }
+
+        template <typename T, typename Size, template<class> class Allocator>
+        void maybe_init_snan (T* data, Size count, Allocator<T> const& allocator)
+        {
+            amrex::ignore_unused(data, count, allocator);
+            if constexpr (std::is_same_v<float,  std::remove_cv_t<T>> ||
+                          std::is_same_v<double, std::remove_cv_t<T>>) {
+                if (amrex::InitSNaN()) {
+#ifdef AMREX_USE_GPU
+                   if constexpr (RunOnGpu<Allocator<T>>::value) {
+                       amrex::fill_snan<RunOn::Device>(data, count);
+                       Gpu::streamSynchronize();
+                       return;
+                   } else if constexpr (IsPolymorphicArenaAllocator<Allocator<T>>::value) {
+                       if (allocator.arena()->isManaged() ||
+                           allocator.arena()->isDevice())
+                       {
+                           amrex::fill_snan<RunOn::Device>(data, count);
+                           Gpu::streamSynchronize();
+                           return;
+                       }
+                   }
+#endif
+                   amrex::fill_snan<RunOn::Host>(data, count);
+                }
+            }
+        }
     }
+    /// \endcond
+
+    AMREX_ENUM(GrowthStrategy, Poisson, Exact, Geometric);
 
     namespace VectorGrowthStrategy
     {
@@ -204,14 +255,54 @@ namespace amrex
         inline Real GetGrowthFactor () { return growth_factor; }
         inline void SetGrowthFactor (Real a_factor);
 
+        /// \cond DOXYGEN_IGNORE
         namespace detail
         {
             void ValidateUserInput ();
         }
+        /// \endcond
 
         void Initialize ();
     }
 
+    inline std::size_t grow_podvector_capacity (GrowthStrategy strategy, std::size_t new_size,
+                                                std::size_t old_capacity, std::size_t sizeof_T)
+    {
+        switch (strategy) {
+            case GrowthStrategy::Poisson:
+                if (new_size <= 900) {
+                    // 3*sqrt(900) = 900/10. Note that we don't need to be precise
+                    // here. Even if later we change the else block to
+                    // 4*std::sqrt(s), it's not really an issue to still use 900
+                    // here.
+                    return new_size + new_size/10;
+                } else {
+                    return new_size + std::size_t(3*std::sqrt(new_size));
+                }
+            case GrowthStrategy::Exact:
+                return new_size;
+            case GrowthStrategy::Geometric:
+                if (old_capacity == 0) {
+                    return std::max(64/sizeof_T, new_size);
+                } else {
+                    Real const gf = VectorGrowthStrategy::GetGrowthFactor();
+                    if (amrex::almostEqual(gf, Real(1.5))) {
+                        return std::max((old_capacity*3+1)/2, new_size);
+                    } else {
+                        return std::max(std::size_t(gf*Real(old_capacity+1)), new_size);
+                    }
+                }
+        }
+        return 0; // unreachable
+    }
+
+    /**
+     * \class amrex::PODVector
+     * \ingroup amrex_linear_containers
+     * \brief Dynamically allocated vector for trivially copyable data.
+     *
+     * Unlike std::vector, the data in PODVector are uninitialized by default.
+     */
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {
@@ -250,21 +341,28 @@ namespace amrex
         {}
 
         explicit PODVector (size_type a_size)
-            : m_size(a_size), m_capacity(a_size)
+            : m_size(a_size),
+              m_capacity(grow_podvector_capacity(GrowthStrategy::Poisson, a_size, 0, sizeof(T)))
         {
-            if (a_size != 0) {
-                m_data = allocate(m_size);
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+                if (a_size != 0) {
+                    detail::maybe_init_snan(m_data, m_size, (Allocator const&)(*this));
+                }
             }
         }
 
         PODVector (size_type a_size, const value_type& a_value,
                    const allocator_type& a_allocator = Allocator())
-            : Allocator(a_allocator), m_size(a_size), m_capacity(a_size)
+            : Allocator(a_allocator), m_size(a_size),
+              m_capacity(grow_podvector_capacity(GrowthStrategy::Poisson, a_size, 0, sizeof(T)))
         {
-            if (a_size != 0) {
-                m_data = allocate(m_size);
-                detail::uninitializedFillNImpl(m_data, a_size, a_value,
-                                               (Allocator const&)(*this));
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+                if (a_size != 0) {
+                    detail::uninitializedFillNImpl(m_data, a_size, a_value,
+                                                   (Allocator const&)(*this));
+                }
             }
         }
 
@@ -272,25 +370,30 @@ namespace amrex
                    const allocator_type& a_allocator = Allocator())
             : Allocator(a_allocator),
               m_size    (a_initializer_list.size()),
-              m_capacity(a_initializer_list.size())
+              m_capacity(grow_podvector_capacity(
+                GrowthStrategy::Poisson, a_initializer_list.size(), 0, sizeof(T)))
         {
-            if (a_initializer_list.size() != 0) {
-                m_data = allocate(m_size);
-                detail::initFromListImpl(m_data, a_initializer_list,
-                                         (Allocator const&)(*this));
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+                if (a_initializer_list.size() != 0) {
+                    detail::initFromListImpl(m_data, a_initializer_list,
+                                             (Allocator const&)(*this));
+                }
             }
         }
 
         PODVector (const PODVector<T, Allocator>& a_vector)
             : Allocator(a_vector),
               m_size    (a_vector.size()),
-              m_capacity(a_vector.size())
+              m_capacity(a_vector.capacity())
         {
-            if (a_vector.size() != 0) {
-                m_data = allocate(m_size);
-                detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
-                                    (Allocator const&)(*this),
-                                    (Allocator const&)a_vector);
+            if (m_capacity != 0) {
+                m_data = allocate(m_capacity);
+                if (a_vector.size() != 0) {
+                    detail::memCopyImpl(m_data, a_vector.m_data, a_vector.nBytes(),
+                                        (Allocator const&)(*this),
+                                        (Allocator const&)a_vector);
+                }
             }
         }
 
@@ -308,7 +411,7 @@ namespace amrex
         ~PODVector ()
         {
             // let's not worry about other allocators
-            static_assert(std::is_same<Allocator,std::allocator<T>>::value ||
+            static_assert(std::is_same_v<Allocator,std::allocator<T>> ||
                           IsArenaAllocator<Allocator>::value);
             if (m_data != nullptr) {
                 deallocate(m_data, capacity());
@@ -332,7 +435,7 @@ namespace amrex
             const auto other_size = a_vector.size();
             if ( other_size > m_capacity ) {
                 clear();
-                reserve(other_size);
+                reserve_doit(other_size);
             }
 
             m_size = other_size;
@@ -366,7 +469,7 @@ namespace amrex
             else
             {
                 // if the allocators are not the same we give up and copy
-                *this = a_vector;
+                *this = a_vector; // must copy instead of move
             }
 
             return *this;
@@ -423,7 +526,7 @@ namespace amrex
         iterator insert (const_iterator a_pos, T&& a_item)
         {
             // This is *POD* vector after all
-            return insert(a_pos, 1, a_item);
+            return insert(a_pos, 1, std::move(a_item));
         }
 
         iterator insert (const_iterator a_pos,
@@ -512,6 +615,15 @@ namespace amrex
                                    (Allocator const&)(*this));
         }
 
+        /** Set the same value to every element of the vector
+         *
+         * @param a_value the value to assign
+         */
+        void assign (const T& a_value)
+        {
+            assign(m_size, a_value);
+        }
+
         [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }
 
         void push_back (const T& a_value)
@@ -537,7 +649,7 @@ namespace amrex
 
         [[nodiscard]] size_type capacity () const noexcept { return m_capacity; }
 
-        [[nodiscard]] bool empty () const noexcept { return m_size == 0; }
+        [[nodiscard]] bool empty () const noexcept { return m_size == 0 || m_data == nullptr; } // test m_data to avoid compiler warning
 
         [[nodiscard]] T& operator[] (size_type a_index) noexcept { return m_data[a_index]; }
 
@@ -583,18 +695,82 @@ namespace amrex
 
         [[nodiscard]] const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
 
-        void resize (size_type a_new_size)
+        /** Resizes the PODVector to a_new_size elements. New elements are either uninitialized or,
+         * if amrex.init_snan is set to true, initialized to NaN.
+         * To minimize reallocations, the capacity of the vector may be increased to a value larger
+         * than the requested size. This behavior can be controlled using the strategy parameter.
+         * Available strategies are:
+         *
+         * - GrowthStrategy::Poisson (Default)
+         *      Sets the new capacity to a_new_size + 3*sqrt(a_new_size).
+         *      This is useful for vectors that store particle data, with particles moving between
+         *      tiles due to a thermal process. In this case the expected number of particles
+         *      per tile follows a Poisson distribution, which has a standard deviation of sqrt(n).
+         *      Adding three sigma to the size greatly minimizes reallocations in Redistribute()
+         *      of successive timesteps.
+         *
+         * - GrowthStrategy::Exact
+         *      Sets the new capacity exactly to the requested size.
+         *      Can be used if the PODVector will never be resized to a bigger size.
+         *
+         * - GrowthStrategy::Geometric
+         *      Sets the new capacity to max(growth_factor * old_capacity, a_new_size),
+         *      where growth_factor is 1.5 by default and can be adjusted with
+         *      amrex.vector_growth_factor. This strategy is needed to guarantee O(n) runtime
+         *      if the PODVector is resized in a loop to consecutively increasing sizes up to n.
+         *      In contrast, the Poisson and Exact strategies would have O(n*sqrt(n)) and O(n^2)
+         *      runtimes, respectively. However, it is not recommended to use a PODVector this way.
+         *      Instead, the reserve function should be used once upfront.
+         *
+         * \param[in] a_new_size the new size of the PODVector
+         * \param[in] strategy the growth strategy to set the new capacity
+         */
+        void resize (size_type a_new_size,
+                     GrowthStrategy strategy = GrowthStrategy::Poisson)
         {
-            if (m_capacity < a_new_size) {
-                reserve(a_new_size);
+            auto old_size = m_size;
+            resize_without_init_snan(a_new_size, strategy);
+            if (old_size < a_new_size) {
+                detail::maybe_init_snan(m_data + old_size,
+                                        m_size - old_size, (Allocator const&)(*this));
             }
-            m_size = a_new_size;
         }
 
-        void resize (size_type a_new_size, const T& a_val)
+        /** Resizes the PODVector to a_new_size elements. New elements are set to a_val.
+         * To minimize reallocations, the capacity of the vector may be increased to a value larger
+         * than the requested size. This behavior can be controlled using the strategy parameter.
+         * Available strategies are:
+         *
+         * - GrowthStrategy::Poisson (Default)
+         *      Sets the new capacity to a_new_size + 3*sqrt(a_new_size).
+         *      This is useful for vectors that store particle data, with particles moving between
+         *      tiles due to a thermal process. In this case the expected number of particles
+         *      per tile follows a Poisson distribution, which has a standard deviation of sqrt(n).
+         *      Adding three sigma to the size greatly minimizes reallocations in Redistribute()
+         *      of successive timesteps.
+         *
+         * - GrowthStrategy::Exact
+         *      Sets the new capacity exactly to the requested size.
+         *      Can be used if the PODVector will never be resized to a bigger size.
+         *
+         * - GrowthStrategy::Geometric
+         *      Sets the new capacity to max(growth_factor * old_capacity, a_new_size),
+         *      where growth_factor is 1.5 by default and can be adjusted with
+         *      amrex.vector_growth_factor. This strategy is needed to guarantee O(n) runtime
+         *      if the PODVector is resized in a loop to consecutively increasing sizes up to n.
+         *      In contrast, the Poisson and Exact strategies would have O(n*sqrt(n)) and O(n^2)
+         *      runtimes, respectively. However, it is not recommended to use a PODVector this way.
+         *      Instead, the reserve function should be used once upfront.
+         *
+         * \param[in] a_new_size the new size of the PODVector
+         * \param[in] a_val the value of the new elements
+         * \param[in] strategy the growth strategy to set the new capacity
+         */
+        void resize (size_type a_new_size, const T& a_val,
+                     GrowthStrategy strategy = GrowthStrategy::Poisson)
         {
             size_type old_size = m_size;
-            resize(a_new_size);
+            resize_without_init_snan(a_new_size, strategy);
             if (old_size < a_new_size)
             {
                 detail::uninitializedFillNImpl(m_data + old_size,
@@ -603,12 +779,39 @@ namespace amrex
             }
         }
 
-        void reserve (size_type a_capacity)
+        /** Sets the capacity of the PODVector to at least a_capacity without changing the size.
+         * To minimize reallocations, the capacity of the vector may be increased to a value larger
+         * than the requested one. This behavior can be controlled using the strategy parameter.
+         * Available strategies are:
+         *
+         * - GrowthStrategy::Poisson (Default)
+         *      Sets the new capacity to a_capacity + 3*sqrt(a_capacity).
+         *      This is useful for vectors that store particle data, with particles moving between
+         *      tiles due to a thermal process. In this case the expected number of particles
+         *      per tile follows a Poisson distribution, which has a standard deviation of sqrt(n).
+         *      Adding three sigma to the size greatly minimizes reallocations in Redistribute()
+         *      of successive timesteps.
+         *
+         * - GrowthStrategy::Exact
+         *      Sets the new capacity exactly to the requested a_capacity.
+         *      Can be used if the PODVector will never be resized to a bigger size.
+         *
+         * - GrowthStrategy::Geometric
+         *      Sets the new capacity to max(growth_factor * old_capacity, a_capacity),
+         *      where growth_factor is 1.5 by default and can be adjusted with
+         *      amrex.vector_growth_factor. This strategy is needed to guarantee O(n) runtime
+         *      if the PODVector is resized in a loop to consecutively increasing sizes up to n.
+         *      In contrast, the Poisson and Exact strategies would have O(n*sqrt(n)) and O(n^2)
+         *      runtimes, respectively. However, it is not recommended to use a PODVector this way.
+         *      Instead, the reserve function should be used once upfront.
+         *
+         * \param[in] a_capacity the new minimum capacity of the PODVector
+         * \param[in] strategy the growth strategy to set the new capacity
+         */
+        void reserve (size_type a_capacity, GrowthStrategy strategy = GrowthStrategy::Poisson)
         {
             if (m_capacity < a_capacity) {
-                auto fp = detail::allocate_in_place(m_data, a_capacity, a_capacity,
-                                                    (Allocator&)(*this));
-                UpdateDataPtr(fp);
+                reserve_doit(grow_podvector_capacity(strategy, a_capacity, m_capacity, sizeof(T)));
             }
         }
 
@@ -628,6 +831,7 @@ namespace amrex
                                             (Allocator const&)(*this));
                         deallocate(m_data, m_capacity);
                     }
+                    m_data = new_data;
                     m_capacity = m_size;
                 }
             }
@@ -641,7 +845,34 @@ namespace amrex
             std::swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
         }
 
+        /** Deallocate the memory of the PODVector using amrex::Gpu::freeAsync.
+         * Memory deallocated in this way is held in a pool and will not be reused until the next
+         * amrex::Gpu::streamSynchronize(). GPU kernels that were already launched on the currently
+         * active stream can still continue to use the memory after this function is called.
+         */
+        void free_async () noexcept
+        {
+            if (m_data != nullptr) {
+                if constexpr (IsArenaAllocator<Allocator>::value) {
+                    Gpu::freeAsync(Allocator::arena(), m_data);
+                } else {
+                    deallocate(m_data, capacity());
+                }
+                m_data = nullptr;
+                m_size = 0;
+                m_capacity = 0;
+            }
+        }
+
     private:
+
+        void reserve_doit (size_type a_capacity) {
+            if (m_capacity < a_capacity) {
+                auto fp = detail::allocate_in_place(m_data, a_capacity, a_capacity,
+                                                    (Allocator&)(*this));
+                UpdateDataPtr(fp);
+            }
+        }
 
         [[nodiscard]] size_type nBytes () const noexcept
         {
@@ -651,16 +882,8 @@ namespace amrex
         // this is where we would change the growth strategy for push_back
         [[nodiscard]] size_type GetNewCapacityForPush () const noexcept
         {
-            if (m_capacity == 0) {
-                return std::max(64/sizeof(T), size_type(1));
-            } else {
-                Real const gf = VectorGrowthStrategy::GetGrowthFactor();
-                if (amrex::almostEqual(gf, Real(1.5))) {
-                    return (m_capacity*3+1)/2;
-                } else {
-                    return size_type(gf*Real(m_capacity+1));
-                }
-            }
+            return grow_podvector_capacity(GrowthStrategy::Geometric, m_capacity + 1,
+                                           m_capacity, sizeof(T));
         }
 
         void UpdateDataPtr (FatPtr<T> const& fp)
@@ -728,6 +951,14 @@ namespace amrex
             m_data = new_data;
             m_size = new_size;
             m_capacity = new_capacity;
+        }
+
+        void resize_without_init_snan (size_type a_new_size, GrowthStrategy strategy)
+        {
+            if (m_capacity < a_new_size) {
+                reserve(a_new_size, strategy);
+            }
+            m_size = a_new_size;
         }
     };
 }

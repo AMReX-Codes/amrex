@@ -17,7 +17,7 @@
 #include <AMReX_BLFort.H>
 
 extern "C" {
-  void fliprowsy(amrex_real* u, ARLIM_P(ulo), ARLIM_P(uhi));
+  void fliprowsy(amrex_real* u, AMREX_ARLIM_P(ulo), AMREX_ARLIM_P(uhi));
 }
 
 using namespace amrex;

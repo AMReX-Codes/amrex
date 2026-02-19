@@ -48,7 +48,7 @@ struct FilccCell
                         q(i,j,k,n) = q(ilo,j,k,n);
                     }
                     // i == ilo-1
-                    else if (ilo+2 <= amrex::min(q.end.x-1,ihi))
+                    else if (ilo+2 <= amrex::min(q.end[0]-1,ihi))
                     {
                         q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i+1,j,k,n) - Real(10.)*q(i+2,j,k,n) + Real(3.)*q(i+3,j,k,n));
                     }
@@ -73,6 +73,7 @@ struct FilccCell
                     q(i,j,k,n) = -q(2*ilo-i-1,j,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (i > ihi)
@@ -90,7 +91,7 @@ struct FilccCell
                         q(i,j,k,n) = q(ihi,j,k,n);
                     }
                     // i == ihi+1
-                    else if (ihi-2 >= amrex::max(q.begin.x,ilo))
+                    else if (ihi-2 >= amrex::max(q.begin[0],ilo))
                     {
                         q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i-1,j,k,n) - Real(10.)*q(i-2,j,k,n) + Real(3.)*q(i-3,j,k,n));
                     }
@@ -115,6 +116,7 @@ struct FilccCell
                     q(i,j,k,n) = -q(2*ihi-i+1,j,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
 
@@ -133,7 +135,7 @@ struct FilccCell
                         q(i,j,k,n) = q(i,jlo,k,n);
                     }
                     // j == jlo-1
-                    else if (jlo+2 <= amrex::min(q.end.y-1,jhi))
+                    else if (jlo+2 <= amrex::min(q.end[1]-1,jhi))
                     {
                         q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j+1,k,n) - Real(10.)*q(i,j+2,k,n) + Real(3.)*q(i,j+3,k,n));
                     }
@@ -158,6 +160,7 @@ struct FilccCell
                     q(i,j,k,n) = -q(i,2*jlo-j-1,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (j > jhi)
@@ -175,7 +178,7 @@ struct FilccCell
                         q(i,j,k,n) = q(i,jhi,k,n);
                     }
                     // j == jhi+1
-                    else if (jhi-2 >= amrex::max(q.begin.y,jlo))
+                    else if (jhi-2 >= amrex::max(q.begin[1],jlo))
                     {
                         q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j-1,k,n) - Real(10.)*q(i,j-2,k,n) + Real(3.)*q(i,j-3,k,n));
                     }
@@ -200,6 +203,7 @@ struct FilccCell
                     q(i,j,k,n) = -q(i,2*jhi-j+1,k,n);
                     break;
                 }
+                default: { break; }
                 }
             }
 
@@ -218,7 +222,7 @@ struct FilccCell
                         q(i,j,k,n) = q(i,j,klo,n);
                     }
                     // k == klo-1
-                    else if (klo+2 <= amrex::min(q.end.z-1,khi))
+                    else if (klo+2 <= amrex::min(q.end[2]-1,khi))
                     {
                         q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j,k+1,n) - Real(10.)*q(i,j,k+2,n) + Real(3.)*q(i,j,k+3,n));
                     }
@@ -243,6 +247,7 @@ struct FilccCell
                     q(i,j,k,n) = -q(i,j,2*klo-k-1,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (k > khi)
@@ -260,7 +265,7 @@ struct FilccCell
                         q(i,j,k,n) = q(i,j,khi,n);
                     }
                     // k == khi+1
-                    else if (khi-2 >= amrex::max(q.begin.z,klo))
+                    else if (khi-2 >= amrex::max(q.begin[2],klo))
                     {
                         q(i,j,k,n) = Real(0.125)*(Real(15.)*q(i,j,k-1,n) - Real(10.)*q(i,j,k-2,n) + Real(3.)*q(i,j,k-3,n));
                     }
@@ -285,6 +290,7 @@ struct FilccCell
                     q(i,j,k,n) = -q(i,j,2*khi-k+1,n);
                     break;
                 }
+                default: { break; }
                 }
             }
         }

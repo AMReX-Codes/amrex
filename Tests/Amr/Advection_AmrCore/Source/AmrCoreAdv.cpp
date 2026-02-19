@@ -15,14 +15,6 @@
 
 using namespace amrex;
 
-
-
-#ifdef AMREX_PARTICLES
-std::unique_ptr<AmrTracerParticleContainer> AmrCoreAdv::TracerPC =  nullptr;
-int AmrCoreAdv::do_tracers = 0;
-#endif
-
-
 // constructor - reads in parameters from inputs file
 //             - sizes multilevel arrays and data structures
 //             - initializes BCRec boundary condition object
@@ -60,8 +52,8 @@ AmrCoreAdv::AmrCoreAdv ()
 
 /*
     // walls (Neumann)
-    int bc_lo[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
-    int bc_hi[] = {FOEXTRAP, FOEXTRAP, FOEXTRAP};
+    int bc_lo[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
+    int bc_hi[] = {amrex::BCType::foextrap, amrex::BCType::foextrap, amrex::BCType::foextrap};
 */
 
     bcs.resize(1);     // Setup 1-component
@@ -98,6 +90,14 @@ AmrCoreAdv::AmrCoreAdv ()
     // fillpatcher[lev] is for filling data on level lev using the data on
     // lev-1 and lev.
     fillpatcher.resize(nlevs_max+1);
+
+    // amrex::AMRErrorTag supports a number of common tagging
+    // approaches. Here we set it up to use amrex::Parser.
+    if (! error_fn.empty()) {
+        amrex::Parser parser(error_fn);
+        parser.registerVariables({"x","y","z","t"});
+        error_tag.emplace_back(std::move(parser));
+    }
 }
 
 AmrCoreAdv::~AmrCoreAdv () = default;
@@ -109,9 +109,26 @@ AmrCoreAdv::Evolve ()
     Real cur_time = t_new[0];
     int last_plot_file_step = 0;
 
+    int levmean = max_level;
+    MultiFab mfmean;
+    int test_fillpatchnlevels = 0;
+    {
+        ParmParse pp;
+        pp.query("test_fillpatchnlevels", test_fillpatchnlevels);
+    }
+    if (test_fillpatchnlevels) {
+        Box bxmean = geom[levmean].Domain();
+        IntVect shrink = geom[levmean].Domain().length() / 4;
+        bxmean.grow(-shrink);
+        BoxArray bamean(bxmean);
+        bamean.maxSize(32);
+        mfmean.define(bamean,DistributionMapping{bamean},1,0);
+        mfmean.setVal(0.0);
+    }
+
     for (int step = istep[0]; step < max_step && cur_time < stop_time; ++step)
     {
-        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << std::endl;
+        amrex::Print() << "\nCoarse STEP " << step+1 << " starts ..." << '\n';
 
         ComputeDt();
 
@@ -129,7 +146,7 @@ AmrCoreAdv::Evolve ()
         Real sum_phi = phi_new[0].sum();
 
         amrex::Print() << "Coarse STEP " << step+1 << " ends." << " TIME = " << cur_time
-                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi << std::endl;
+                       << " DT = " << dt[0] << " Sum(Phi) = " << sum_phi << '\n';
 
         // sync up time
         for (lev = 0; lev <= finest_level; ++lev) {
@@ -154,6 +171,34 @@ AmrCoreAdv::Evolve ()
 #endif
 
         if (cur_time >= stop_time - 1.e-6*dt[0]) { break; }
+
+        if (test_fillpatchnlevels)
+        {
+            MultiFab mftmp(mfmean.boxArray(), mfmean.DistributionMap(), 1, 0);
+
+            CpuBndryFuncFab bndry_func(nullptr);
+            Vector<PhysBCFunct<CpuBndryFuncFab>> physbcs;
+            for (int ilev = 0; ilev <= max_level; ++ilev) {
+                physbcs.emplace_back(geom[ilev],bcs,bndry_func);
+            }
+            Vector<Vector<MultiFab*>> smf(finest_level+1);
+            Vector<Vector<Real>> st(finest_level+1);
+            for (int ilev = 0; ilev <= finest_level; ++ilev) {
+                smf[ilev].push_back(&phi_new[ilev]);
+                st[ilev].push_back(0.0);
+            }
+            FillPatchNLevels(mftmp, levmean, IntVect(0), 0.0, smf, st, 0, 0, 1, geom,
+                             physbcs, 0, refRatio(), &cell_cons_interp, bcs, 0);
+            MultiFab::Add(mfmean, mftmp, 0, 0, 1, 0);
+        }
+    }
+
+    if (test_fillpatchnlevels) {
+        if (mfmean.is_finite()) {
+            amrex::Print() << "\namrex::FillPatchNLevels test passed\n\n";
+        } else {
+            amrex::Abort("amrex::FillPatchNLevels test failed");
+        }
     }
 
     if (plot_int > 0 && istep[0] > last_plot_file_step) {
@@ -301,10 +346,10 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         Array4<Real> fab = state[mfi].array();
         const Box& box = mfi.tilebox();
 
-        amrex::launch(box,
-        [=] AMREX_GPU_DEVICE (Box const& tbx)
+        amrex::ParallelFor(box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            initdata(tbx, fab, problo, dx);
+            initdata(i, j, k, fab, problo, dx);
         });
     }
 }
@@ -312,7 +357,7 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
 // tag all cells for refinement
 // overrides the pure virtual function in AmrCore
 void
-AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
+AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real time, int /*ngrow*/)
 {
     static bool first = true;
     static Vector<Real> phierr;
@@ -333,18 +378,16 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
         }
     }
 
-    if (lev >= phierr.size()) { return; }
-
-//    const int clearval = TagBox::CLEAR;
+    const int clearval = TagBox::CLEAR;
     const int   tagval = TagBox::SET;
 
-    const MultiFab& state = phi_new[lev];
+    if (lev < phierr.size())
+    {
+        const MultiFab& state = phi_new[lev];
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if(Gpu::notInLaunchRegion())
 #endif
-    {
-
         for (MFIter mfi(state,TilingIfNotGPU()); mfi.isValid(); ++mfi)
         {
             const Box& bx  = mfi.tilebox();
@@ -358,6 +401,10 @@ AmrCoreAdv::ErrorEst (int lev, TagBoxArray& tags, Real /*time*/, int /*ngrow*/)
                 state_error(i, j, k, tagfab, statefab, phierror, tagval);
             });
         }
+    }
+
+    for (auto const& etag : error_tag) {
+        etag(tags, nullptr, clearval, tagval, time, lev, geom[lev]);
     }
 }
 
@@ -388,6 +435,7 @@ AmrCoreAdv::ReadParameters ()
         pp.query("cfl", cfl);
         pp.query("do_reflux", do_reflux);
         pp.query("do_subcycle", do_subcycle);
+        pp.query("errfn", error_fn);
     }
 
 #ifdef AMREX_PARTICLES
@@ -611,7 +659,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     if (Verbose()) {
         amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
         amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                       << " dt = " << dt[lev] << std::endl;
+                       << " dt = " << dt[lev] << '\n';
     }
 
     // Advance a single level for a single time step, and update flux registers
@@ -636,7 +684,7 @@ AmrCoreAdv::timeStepWithSubcycling (int lev, Real time, int iteration)
     if (Verbose())
     {
         amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
-        amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
+        amrex::Print() << "Advanced " << CountCells(lev) << " cells" << '\n';
     }
 
     if (lev < finest_level)
@@ -699,7 +747,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         {
            amrex::Print() << "[Level " << lev << " step " << istep[lev]+1 << "] ";
            amrex::Print() << "ADVANCE with time = " << t_new[lev]
-                          << " dt = " << dt[0] << std::endl;
+                          << " dt = " << dt[0] << '\n';
         }
     }
 
@@ -732,7 +780,7 @@ AmrCoreAdv::timeStepNoSubcycling (Real time, int iteration)
         for (int lev = 0; lev <= finest_level; lev++)
         {
             amrex::Print() << "[Level " << lev << " step " << istep[lev] << "] ";
-            amrex::Print() << "Advanced " << CountCells(lev) << " cells" << std::endl;
+            amrex::Print() << "Advanced " << CountCells(lev) << " cells" << '\n';
         }
     }
 }
@@ -895,20 +943,20 @@ AmrCoreAdv::WriteCheckpointFile () const
        HeaderFile << finest_level << "\n";
 
        // write out array of istep
-       for (int i = 0; i < istep.size(); ++i) {
-           HeaderFile << istep[i] << " ";
+       for (auto s : istep) {
+           HeaderFile << s << " ";
        }
        HeaderFile << "\n";
 
        // write out array of dt
-       for (int i = 0; i < dt.size(); ++i) {
-           HeaderFile << dt[i] << " ";
+       for (auto dti : dt) {
+           HeaderFile << dti << " ";
        }
        HeaderFile << "\n";
 
        // write out array of t_new
-       for (int i = 0; i < t_new.size(); ++i) {
-           HeaderFile << t_new[i] << " ";
+       for (auto t_new_i : t_new) {
+           HeaderFile << t_new_i << " ";
        }
        HeaderFile << "\n";
 

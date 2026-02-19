@@ -25,7 +25,6 @@ public:
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
-     * \param fid The HDF5 file ID
      * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
     void CheckpointHDF5 (const std::string& dir, const std::string& name,
@@ -91,6 +90,7 @@ public:
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression) const;
 
@@ -103,18 +103,20 @@ public:
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
@@ -129,9 +131,10 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>
@@ -145,8 +148,9 @@ public:
      * the names of the components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
@@ -161,11 +165,12 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param real_comp_names for each real component, a name to label the data with
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, typename std::enable_if<!std::is_same<F, Vector<std::string>>::value>::type* = nullptr>
+    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
                             const std::string& compression, F&& f) const;
@@ -175,9 +180,10 @@ public:
      * in a vector of ints that toggle on / off the writing of specific components.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
     void WritePlotFileHDF5 (const std::string& dir,
                             const std::string& name,
@@ -194,9 +200,10 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>
@@ -213,11 +220,12 @@ public:
      * they are written or not.
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      */
     void WritePlotFileHDF5 (const std::string& dir,
                             const std::string& name,
@@ -238,11 +246,12 @@ public:
      * \tparam F function type
      *
      * \param dir The base directory into which to write (i.e. "plt00000")
-     * \param file The name of the sub-directory for this particle type (i.e. "Tracer")
+     * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param write_real_comp for each real component, whether to include that comp in the file
      * \param write_int_comp for each integer component, whether to include that comp in the file
      * \param real_comp_names for each real component, a name to label the data with
      * \param int_comp_names for each integer component, a name to label the data with
+     * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>

@@ -30,11 +30,11 @@ class TagBox;
 class TagBoxArray;
 
 /**
+* \ingroup amrex_amrlevel
 * \brief Virtual base class for managing individual levels.
 * AmrLevel functions both as a container for state data on a level
 * and also manages the advancement of data in time.
 */
-
 class AmrLevel
 {
     friend class Amr;
@@ -371,6 +371,8 @@ public:
     */
     TimeLevel which_time (int  state_indx, Real time) const noexcept;
 
+    virtual bool checkPointNow ();
+
     //! Does the AmrLevel want Amr to write a plotfile now?
     virtual bool writePlotNow ();
 
@@ -554,8 +556,8 @@ private:
     //
     // The data.
     //
-    AmrLevel&                         m_amrlevel;
-    MultiFab&                         m_leveldata;
+    AmrLevel*                         m_amrlevel;
+    MultiFab*                         m_leveldata;
     std::vector< std::pair<int,int> > m_range;
     MultiFab                          m_fabs;
     int                               m_ncomp;
@@ -592,8 +594,8 @@ private:
     //
     // The data.
     //
-    AmrLevel&                  m_amrlevel;
-    MultiFab&                  m_leveldata;
+    AmrLevel*                  m_amrlevel;
+    MultiFab*                  m_leveldata;
     MultiFabCopyDescriptor     m_mfcd;
     Vector< Vector<MultiFabId> > m_mfid;     // [level][oldnew]
     Interpolater*              m_map = nullptr;
@@ -620,9 +622,6 @@ void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
 
     MultiFab& S_old = get_old_data(state_type);
     MultiFab& S_new = get_new_data(state_type);
-    const Real t_old = state[state_type].prevTime();
-    const Real t_new = state[state_type].curTime();
-    AMREX_ALWAYS_ASSERT(amrex::almostEqual(time,t_old,10) && amrex::almostEqual(time+dt,t_new,10));
 
     if (order == 2) {
         RungeKutta::RK2(S_old, S_new, time, dt, std::forward<F>(f),

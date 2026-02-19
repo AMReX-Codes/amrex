@@ -2,20 +2,19 @@
 #define AMREX_PARTICLE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
 #include <AMReX_FArrayBox.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_RealVect.H>
-#include <AMReX_ParmParse.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_ParmParse.H>
+#include <AMReX_REAL.H>
+#include <AMReX_RealVect.H>
 
-#include <string>
+#include <type_traits>
+
 
 namespace amrex {
 
-namespace
-{
-    /** Used for 64bit Long particle Ids as in AoS layout */
+    /** Special flags used for 64-bit Long particle Ids */
     namespace LongParticleIds {
         constexpr Long GhostParticleID = 549755813887L; // 2**39-1
         constexpr Long VirtualParticleID = GhostParticleID - 1;
@@ -24,27 +23,149 @@ namespace
         constexpr Long NoSplitParticleID = GhostParticleID - 4;
     }
 
-    /** Used for 32bit int particle Ids, as in pure SoA layout */
-    namespace IntParticleIds {
-        constexpr int GhostParticleID = 2147483647; // 2**31-1
-        constexpr int VirtualParticleID = GhostParticleID - 1;
-        constexpr int LastParticleID = GhostParticleID - 2;
-        constexpr int DoSplitParticleID = GhostParticleID - 3;
-        constexpr int NoSplitParticleID = GhostParticleID - 4;
+    using namespace LongParticleIds;
+
+    /** Flags used to set the entire uint64_t idcpu
+        to special values at once.
+     */
+    namespace ParticleIdCpus {
+        constexpr std::uint64_t Invalid = 16777216; // corresponds to id = -1, cpu = 0
     }
 
-    using namespace LongParticleIds;
-}
+    using namespace ParticleIdCpus;
 
+    namespace particle_impl {
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Long unpack_id (const uint64_t idcpu) noexcept {
+        Long r = 0;
+
+        uint64_t sign = idcpu >> 63;  // extract leftmost sign bit
+        uint64_t val  = ((idcpu >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
+
+        Long lval = static_cast<Long>(val);  // bc we take -
+        r = (sign) ? lval : -lval;
+        return r;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int unpack_cpu (const uint64_t idcpu) noexcept {
+        return static_cast<int>(idcpu & 0x00FFFFFF);
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void pack_id (uint64_t& idcpu, const Long id) noexcept {
+        // zero out the 40 leftmost bits, which store the sign and the abs of the id;
+        idcpu &= 0x00FFFFFF;
+
+        uint64_t val;
+        uint64_t sign = id >= 0;
+        if (sign)
+        {
+            // 2**39-1, the max value representable in this fashion
+            AMREX_ASSERT(id <= 549755813887L);
+            val = id;
+        }
+        else
+        {
+            // -2**39-1, the min value representable in this fashion
+            AMREX_ASSERT(id >= -549755813887L);
+            val = -id;
+        }
+
+        (idcpu) |= (sign << 63);  // put the sign in the leftmost bit
+        (idcpu) |= (val << 24);   // put the val in the next 39
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void pack_cpu (uint64_t& idcpu, const int cpu) noexcept {
+        // zero out the first 24 bits, which are used to store the cpu number
+        idcpu &= (~ 0x00FFFFFF);
+
+        AMREX_ASSERT(cpu >= 0);
+        AMREX_ASSERT(cpu <= 16777215);  // 2**24-1, the max representable number
+
+        idcpu |= cpu;
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid (uint64_t& idcpu) noexcept {
+        // RHS mask: 0111...
+        idcpu &= ~(uint64_t(1) << 63);
+    }
+
+    template<typename T_SIMD, typename T_Mask>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid (T_SIMD & idcpu, T_Mask const & mask) noexcept {
+        // RHS mask: 0111...
+        if constexpr (std::is_same_v<T_Mask, bool>) {
+            // scalar
+            static_assert(std::is_same_v<T_SIMD, uint64_t>, "make_invalid: forgot template on wrapper?");
+            if (mask) { make_invalid(idcpu); }
+        } else {
+#ifdef AMREX_USE_SIMD
+            // SIMD
+            static_assert(!std::is_same_v<T_SIMD, uint64_t>, "make_invalid: forgot template on wrapper?");
+            // cvt / .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41#issuecomment-3185164952
+            // see also https://github.com/mattkretz/vir-simd/issues/45
+            simd::stdx::where(simd::stdx::cvt(mask), idcpu) &= ~(T_SIMD{1} << 63);
+#else
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
+#endif
+        }
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid (uint64_t& idcpu) noexcept {
+        // RHS mask: 1000...
+        idcpu |= uint64_t(1) << 63;
+    }
+
+    template<typename T_SIMD, typename T_Mask>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid (T_SIMD & idcpu, T_Mask const & mask) noexcept {
+        // RHS mask: 1000...
+        if constexpr (std::is_same_v<T_Mask, bool>) {
+            // scalar
+            static_assert(std::is_same_v<T_SIMD, uint64_t>, "make_valid: forgot template on wrapper?");
+            if (mask) { make_valid(idcpu); }
+        } else {
+#ifdef AMREX_USE_SIMD
+            // SIMD
+            static_assert(!std::is_same_v<T_SIMD, uint64_t>, "make_valid: forgot template on wrapper?");
+            // cvt / .__cvt() because of: https://github.com/VcDevel/std-simd/issues/41#issuecomment-3185164952
+            // see also https://github.com/mattkretz/vir-simd/issues/45
+            simd::stdx::where(simd::stdx::cvt(mask), idcpu) |= T_SIMD{1} << 63;
+#else
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
+#endif
+        }
+    }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid (const uint64_t idcpu) noexcept {
+        // the leftmost bit is our id's valid sign
+        return idcpu >> 63;
+    }
+    } // namespace particle_impl
+
+template<typename T = uint64_t>
 struct ParticleIDWrapper
 {
-    uint64_t& m_idata;
+    /*
+    static_assert(std::is_same_v<T, uint64_t> ||
+                  std::is_same_v<T, simd::SIMDIdCpu<>>,  // note: this one will not work because users can change the SIMDIdCpu width
+                  "ParticleIDWrapper only supports uint64_t or SIMD thereof"
+    );
+    */
+
+    T* m_idata;
 
     ~ParticleIDWrapper () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper (uint64_t& idata) noexcept
-        : m_idata(idata)
+    ParticleIDWrapper (T& idata) noexcept
+        : m_idata(&idata)
     {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -67,52 +188,82 @@ struct ParticleIDWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleIDWrapper& operator= (const Long id) noexcept
     {
-        // zero out the 40 leftmost bits, which store the sign and the abs of the id;
-        m_idata &= 0x00FFFFFF;
-
-        uint64_t val;
-        uint64_t sign = id >= 0;
-        if (sign)
-        {
-            // 2**39-1, the max value representable in this fashion
-            AMREX_ASSERT(id <= 549755813887L);
-            val = id;
-        }
-        else
-        {
-            // -2**39-1, the min value representable in this fashion
-            AMREX_ASSERT(id >= -549755813887L);
-            val = -id;
-        }
-
-        m_idata |= (sign << 63);  // put the sign in the leftmost bit
-        m_idata |= (val << 24);   // put the val in the next 39
+        particle_impl::pack_id(*m_idata, id);
         return *this;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
-        Long r = 0;
+        return particle_impl::unpack_id(*m_idata);
+    }
 
-        uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
-        uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
+    /** Mark the particle as invalid
+     *
+     * Swaps the is_valid (sign) bit to invalid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_valid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid () const noexcept
+    {
+        particle_impl::make_invalid(*m_idata);
+    }
 
-        Long lval = static_cast<Long>(val);  // bc we take -
-        r = (sign) ? lval : -lval;
-        return r;
+    /** Mark the particle as invalid
+     *
+     * Swaps the is_valid (sign) bit to invalid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_valid().
+     */
+    template<typename T_Bool>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_invalid (T_Bool const & mask) const noexcept
+    {
+        particle_impl::make_invalid(*m_idata, mask);
+    }
+
+    /** Mark the particle as valid
+     *
+     * Swaps the is_valid (sign) bit to valid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_invalid().
+     */
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid () const noexcept
+    {
+        particle_impl::make_valid(*m_idata);
+    }
+
+    /** Mark the particle as valid
+     *
+     * Swaps the is_valid (sign) bit to valid.
+     * This is NOT identical to id = -id, but it is equally reversible via make_invalid().
+     */
+    template<typename T_Bool>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void make_valid (T_Bool const & mask) const noexcept
+    {
+        particle_impl::make_valid(*m_idata, mask);
+    }
+
+    /** Check the particle is valid, via the sign of the id.
+     *
+     * Returns true if the particle is valid (the id is positive), otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        return particle_impl::is_valid(*m_idata);
     }
 };
 
 struct ParticleCPUWrapper
 {
-    uint64_t& m_idata;
+    uint64_t* m_idata;
 
     ~ParticleCPUWrapper () noexcept = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper (uint64_t& idata) noexcept
-        : m_idata(idata)
+        : m_idata(&idata)
     {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -135,59 +286,70 @@ struct ParticleCPUWrapper
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper& operator= (const int cpu) noexcept
     {
-        // zero out the first 24 bits, which are used to store the cpu number
-        m_idata &= (~ 0x00FFFFFF);
-
-        AMREX_ASSERT(cpu >= 0);
-        AMREX_ASSERT(cpu <= 16777215);  // 2**24-1, the max representable number
-
-        m_idata |= cpu;
+        particle_impl::pack_cpu(*m_idata, cpu);
         return *this;
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator int () const noexcept
     {
-        return static_cast<int>(m_idata & 0x00FFFFFF);
+        return particle_impl::unpack_cpu(*m_idata);
     }
 };
 
 struct ConstParticleIDWrapper
 {
-    const uint64_t& m_idata;
+    const uint64_t* m_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleIDWrapper (const uint64_t& idata) noexcept
-        : m_idata(idata)
+        : m_idata(&idata)
     {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     operator Long () const noexcept
     {
-        Long r = 0;
+        return particle_impl::unpack_id(*m_idata);
+    }
 
-        uint64_t sign = m_idata >> 63;  // extract leftmost sign bit
-        uint64_t val  = ((m_idata >> 24) & 0x7FFFFFFFFF);  // extract next 39 id bits
-
-        Long lval = static_cast<Long>(val);  // bc we take -
-        r = (sign) ? lval : -lval;
-        return r;
+    /** Check the sign of the id.
+     *
+     * Returns true if the id is positive, otherwise false (invalid particle).
+     */
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    bool is_valid () const noexcept
+    {
+        return particle_impl::is_valid(*m_idata);
     }
 };
 
 struct ConstParticleCPUWrapper
 {
-    const uint64_t& m_idata;
+    const uint64_t* m_idata;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleCPUWrapper (const uint64_t& idata) noexcept
-        : m_idata(idata)
+        : m_idata(&idata)
     {}
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    operator int () const noexcept { return static_cast<int>(m_idata & 0x00FFFFFF); }
+    operator int () const noexcept {
+        return particle_impl::unpack_cpu(*m_idata);
+    }
 };
 
+/** Set the idcpu value at once, based on a particle id and cpuid
+ *
+ * This can be used in initialization and assignments,
+ * to avoid writing twice into the same memory bank.
+ */
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+std::uint64_t SetParticleIDandCPU (Long id, int cpu) noexcept{
+    std::uint64_t idcpu = 0;
+    ParticleIDWrapper{idcpu} = id;
+    ParticleCPUWrapper{idcpu} = cpu;
+    return idcpu;
+}
 
 template <typename T, int NReal, int NInt>
 struct ParticleBase
@@ -229,13 +391,15 @@ struct SoAParticleBase
     static constexpr bool is_soa_particle = true;
 };
 
-/** \brief The struct used to store particles.
+/**
+ * \ingroup amrex_particles
+ * \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
  * \tparam T_NInt The number of extra integer components
  */
 template <int T_NReal, int T_NInt=0>
-struct Particle
+struct alignas(sizeof(double)) Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     static constexpr bool is_soa_particle = false;
@@ -250,6 +414,7 @@ struct Particle
 
     //! The floating point type used for the particles.
     using RealType = ParticleReal;
+    using IntType = int;
 
     static Long the_next_id;
 
@@ -257,7 +422,7 @@ struct Particle
     ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_idcpu); }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    ParticleIDWrapper id () & { return ParticleIDWrapper(this->m_idcpu); }
+    ParticleIDWrapper<> id () & { return ParticleIDWrapper(this->m_idcpu); }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ConstParticleCPUWrapper cpu () const & { return ConstParticleCPUWrapper(this->m_idcpu); }
@@ -272,12 +437,18 @@ struct Particle
         wrapper = id;
 #if defined(AMREX_USE_OMP)
 #pragma omp atomic write
-        this->m_idcpu = wrapper.m_idata;
+        this->m_idcpu = *(wrapper.m_idata);
 #else
         auto *old_ptr = reinterpret_cast<unsigned long long*>(&(this->m_idcpu));
-        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) wrapper.m_idata);
+        amrex::Gpu::Atomic::Exch(old_ptr, (unsigned long long) (*wrapper.m_idata));
 #endif
     }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    uint64_t& idcpu () & { return this->m_idcpu; }
+
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    const uint64_t& idcpu () const & { return this->m_idcpu; }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect pos () const & {return RealVect(AMREX_D_DECL(this->m_pos[0], this->m_pos[1], this->m_pos[2]));}
@@ -296,7 +467,7 @@ struct Particle
         return this->m_pos[index];
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType& rdata (int index) &
     {
@@ -304,7 +475,7 @@ struct Particle
         return this->m_rdata[index];
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType& rdata (int /*index*/) &
     {
@@ -312,7 +483,7 @@ struct Particle
         return this->pos(0);  // bc we must return something
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const RealType& rdata (int index) const &
     {
@@ -320,7 +491,7 @@ struct Particle
         return this->m_rdata[index];
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType rdata (int /*index*/) const &
     {
@@ -331,7 +502,7 @@ struct Particle
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType rdata (int /*index*/) && = delete;
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
     {
@@ -341,7 +512,7 @@ struct Particle
                                      this->m_rdata[indz]));
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
     {
@@ -349,17 +520,17 @@ struct Particle
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
-    template <int U = T_NReal, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (const IntVect& indices) const &
     {
-        AMREX_ASSERT(indices.max() < NReal);
+        AMREX_ASSERT(indices.allLT(NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indices[0]],
                                      this->m_rdata[indices[1]],
                                      this->m_rdata[indices[2]]));
     }
 
-    template <int U = T_NReal, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (const IntVect& /*indices*/) const &
     {
@@ -367,7 +538,7 @@ struct Particle
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
-    template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int& idata (int index) &
     {
@@ -375,7 +546,7 @@ struct Particle
         return this->m_idata[index];
     }
 
-    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     uint64_t& idata (int /*index*/) &
     {
@@ -383,7 +554,7 @@ struct Particle
         return this->m_idcpu;  //bc we must return something
     }
 
-    template <int U = T_NInt, typename std::enable_if<U != 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int& idata (int index) const &
     {
@@ -391,7 +562,7 @@ struct Particle
         return this->m_idata[index];
     }
 
-    template <int U = T_NInt, typename std::enable_if<U == 0, int>::type = 0>
+    template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int idata (int /*index*/) const &
     {

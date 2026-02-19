@@ -25,10 +25,10 @@ struct FilccCell
         const int jlo = domain_lo[1];
         const int ihi = domain_hi[0];
         const int jhi = domain_hi[1];
-        const int is = amrex::max(q.begin.x,ilo);
-        const int js = amrex::max(q.begin.y,jlo);
-        const int ie = amrex::min(q.end.x-1,ihi);
-        const int je = amrex::min(q.end.y-1,jhi);
+        const int is = amrex::max(q.begin[0],ilo);
+        const int js = amrex::max(q.begin[1],jlo);
+        const int ie = amrex::min(q.end[0]-1,ihi);
+        const int je = amrex::min(q.end[1]-1,jhi);
 
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {
@@ -74,6 +74,7 @@ struct FilccCell
                     q(i,j,0,n) = -q(2*ilo-i-1,j,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (i > ihi)
@@ -116,6 +117,7 @@ struct FilccCell
                     q(i,j,0,n) = -q(2*ihi-i+1,j,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
 
@@ -159,6 +161,7 @@ struct FilccCell
                     q(i,j,0,n) = -q(i,2*jlo-j-1,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
             else if (j > jhi)
@@ -201,6 +204,7 @@ struct FilccCell
                     q(i,j,0,n) = -q(i,2*jhi-j+1,0,n);
                     break;
                 }
+                default: { break; }
                 }
             }
         }

@@ -12,7 +12,11 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Array.H
        AMReX_BlockMutex.H
        AMReX_BlockMutex.cpp
+       AMReX_Enum.H
        AMReX_GpuComplex.H
+       AMReX_Order.H
+       AMReX_SmallMatrix.H
+       AMReX_ConstexprFor.H
        AMReX_Vector.H
        AMReX_TableData.H
        AMReX_Tuple.H
@@ -30,6 +34,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
        AMReX_Functional.H
+       AMReX_Stack.H
+       AMReX_String.H
+       AMReX_String.cpp
        AMReX_Utility.H
        AMReX_Utility.cpp
        AMReX_FileSystem.H
@@ -74,6 +81,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_CArena.cpp
        AMReX_PArena.H
        AMReX_PArena.cpp
+       AMReX_SArena.H
+       AMReX_SArena.cpp
        AMReX_DataAllocator.H
        AMReX_BLProfiler.H
        AMReX_BLBackTrace.H
@@ -94,11 +103,11 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Print.H
        AMReX_IntConv.H
        AMReX_IntConv.cpp
+       AMReX_IOFormat.H
        # Index space -------------------------------------------------------------
        AMReX_Box.H
        AMReX_Box.cpp
        AMReX_BoxIterator.H
-       AMReX_BoxIterator.cpp
        AMReX_Dim3.H
        AMReX_IntVect.H
        AMReX_IntVect.cpp
@@ -132,6 +141,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Array4.H
        AMReX_MakeType.H
        AMReX_TypeTraits.H
+       AMReX_FabDataType.H
        AMReX_FabFactory.H
        AMReX_BaseFabUtility.H
        # Fortran data defined on unions of rectangles ----------------------------
@@ -214,6 +224,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_GpuLaunchMacrosC.nolint.H
        AMReX_GpuLaunchFunctsG.H
        AMReX_GpuLaunchFunctsC.H
+       AMReX_GpuLaunchFunctsSIMD.H
        AMReX_GpuError.H
        AMReX_GpuDevice.H
        AMReX_GpuDevice.cpp
@@ -233,6 +244,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_MFParallelFor.H
        AMReX_MFParallelForC.H
        AMReX_MFParallelForG.H
+       AMReX_SIMD.H
        AMReX_TagParallelFor.H
        AMReX_CTOParallelForImpl.H
        AMReX_ParReduce.H
@@ -269,6 +281,8 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Parser/amrex_iparser.tab.cpp
        Parser/amrex_iparser.tab.nolint.H
        Parser/amrex_iparser.tab.h
+       # Dense linear algebra solver using LU decomposition
+       AMReX_LUSolver.H
        # AMReX Hydro -----------------------------------------------------
        AMReX_Slopes_K.H
        # Forward declaration -----------------------------------------------------
@@ -292,7 +306,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_filcc_f.H
           AMReX_BLutil_F.F90
           AMReX_BLProfiler_F.F90
-          AMReX_FILCC_${D}D.F90
           AMReX_filcc_mod.F90
           AMReX_omp_mod.F90
           AMReX_acc_mod.F90

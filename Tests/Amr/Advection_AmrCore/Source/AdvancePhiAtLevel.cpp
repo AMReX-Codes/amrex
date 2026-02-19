@@ -80,16 +80,16 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
             Array4<Real> phix = tmpfab.array(itmp++);
             Array4<Real const> phix_c = phix;
 
-            amrex::launch(amrex::grow(gbx,Direction::x,1),
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(amrex::grow(gbx,Direction::x,1),
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                slopex2(tbx, slope2, statein);
+                slopex2(i, j, k, slope2, statein);
             });
 
-            amrex::launch(gbx,
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(gbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                slopex4(tbx, slope4, statein, slope2_c);
+                slopex4(i, j, k, slope4, statein, slope2_c);
             });
 
             Box b = gbx;
@@ -103,16 +103,16 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
             Array4<Real> phiy = tmpfab.array(itmp++);
             Array4<Real const> phiy_c = phiy;
 
-            amrex::launch(amrex::grow(gbx,Direction::y,1),
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(amrex::grow(gbx,Direction::y,1),
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                slopey2(tbx, slope2, statein);
+                slopey2(i, j, k, slope2, statein);
             });
 
-            amrex::launch(gbx,
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(gbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                slopey4(tbx, slope4, statein, slope2_c);
+                slopey4(i, j, k, slope4, statein, slope2_c);
             });
 
             b = gbx;
@@ -127,16 +127,16 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
             Array4<Real> phiz = tmpfab.array(itmp++);
             Array4<Real const> phiz_c = phiz;
 
-            amrex::launch(amrex::grow(gbx,Direction::z,1),
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(amrex::grow(gbx,Direction::z,1),
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                slopez2(tbx, slope2, statein);
+                slopez2(i, j, k, slope2, statein);
             });
 
-            amrex::launch(gbx,
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(gbx,
+            [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
-                slopez4(tbx, slope4, statein, slope2_c);
+                slopez4(i, j, k, slope4, statein, slope2_c);
             });
 
             b = gbx;
@@ -349,10 +349,10 @@ AmrCoreAdv::AdvancePhiAtLevel (int lev, Real time, Real dt_lev, int /*iteration*
     {
 #if (AMREX_SPACEDIM > 2)
         amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax << ", wmax = " << wmax
-                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << std::endl;
+                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << '\n';
 #else
         amrex::AllPrint() << "umax = " << umax << ", vmax = " << vmax
-                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << std::endl;
+                          << ", dt = " << dt_lev << " dx = " << dx << " " << dy << " " << dz << '\n';
 #endif
         amrex::Abort("CFL violation. use smaller adv.cfl.");
     }

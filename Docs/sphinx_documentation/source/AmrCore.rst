@@ -95,25 +95,27 @@ Their usage is described in the section on :ref:`sec:grid_creation`
 
 .. table:: AmrCore parameters
 
-   +------------------------+-------+---------------------+
-   | Variable               | Value | Default             |
-   +========================+=======+=====================+
-   | amr.verbose            | int   | 0                   |
-   +------------------------+-------+---------------------+
-   | amr.max_level          | int   | none                |
-   +------------------------+-------+---------------------+
-   | amr.max_grid_size      | ints  | 32 in 3D, 128 in 2D |
-   +------------------------+-------+---------------------+
-   | amr.n_proper           | int   | 1                   |
-   +------------------------+-------+---------------------+
-   | amr.grid_eff           | Real  | 0.7                 |
-   +------------------------+-------+---------------------+
-   | amr.n_error_buf        | int   | 1                   |
-   +------------------------+-------+---------------------+
-   | amr.blocking_factor    | int   | 8                   |
-   +------------------------+-------+---------------------+
-   | amr.refine_grid_layout | int   | true                |
-   +------------------------+-------+---------------------+
+   +-------------------------+-------+---------------------+
+   | Variable                | Value | Default             |
+   +=========================+=======+=====================+
+   | amr.verbose             | int   | 0                   |
+   +-------------------------+-------+---------------------+
+   | amr.max_level           | int   | none                |
+   +-------------------------+-------+---------------------+
+   | amr.max_grid_size       | ints  | 32 in 3D, 128 in 2D |
+   +-------------------------+-------+---------------------+
+   | amr.n_proper            | int   | 1                   |
+   +-------------------------+-------+---------------------+
+   | amr.grid_eff            | Real  | 0.7                 |
+   +-------------------------+-------+---------------------+
+   | amr.n_error_buf         | int   | 1                   |
+   +-------------------------+-------+---------------------+
+   | amr.blocking_factor     | int   | 8                   |
+   +-------------------------+-------+---------------------+
+   | amr.refine_grid_layout  | int   | true                |
+   +-------------------------+-------+---------------------+
+   | amr.max_grid_iterations | int   | 4                   |
+   +-------------------------+-------+---------------------+
 
 .. raw:: latex
 
@@ -648,11 +650,11 @@ interface to a Fortran routine that tags cells (in this case, :fortran:`state_er
             const int*  thi     = tilebox.hiVect();
 
                 // tag cells for refinement
-            state_error(tptr,  ARLIM_3D(tlo), ARLIM_3D(thi),
+            state_error(tptr,  AMREX_ARLIM_3D(tlo), AMREX_ARLIM_3D(thi),
                 BL_TO_FORTRAN_3D(state[mfi]),
                 &tagval, &clearval,
-                ARLIM_3D(tilebox.loVect()), ARLIM_3D(tilebox.hiVect()),
-                ZFILL(dx), ZFILL(prob_lo), &time, &phierr[lev]);
+                AMREX_ARLIM_3D(tilebox.loVect()), AMREX_ARLIM_3D(tilebox.hiVect()),
+                AMREX_ZFILL(dx), AMREX_ZFILL(prob_lo), &time, &phierr[lev]);
             //
             // Now update the tags in the TagBox in the tilebox region
                 // to be equal to itags

@@ -30,6 +30,18 @@ endif ()
 
 #
 #
+#  VIR-SIMD
+#
+#
+if (AMReX_SIMD)
+   find_package(vir-simd REQUIRED)
+   foreach(D IN LISTS AMReX_SPACEDIM)
+       target_link_libraries(amrex_${D}d PUBLIC vir-simd::vir-simd)
+   endforeach()
+endif ()
+
+#
+#
 #  OpenMP
 #
 #
@@ -66,10 +78,16 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    foreach(D IN LISTS AMReX_SPACEDIM)
        target_link_libraries(amrex_${D}d PUBLIC CUDA::curand)
 
-        # nvToolsExt: if tiny profiler or base profiler are on.
-        if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-            target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
-        endif ()
+       if (AMReX_LINEAR_SOLVERS)
+           target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
+       endif ()
+
+       if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.2)
+           # nvToolsExt: if tiny profiler or base profiler are on.
+           if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
+               target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
+           endif ()
+       endif ()
    endforeach()
 
    # Check cuda compiler and host compiler
@@ -139,6 +157,11 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    if (AMReX_CUDA_KEEP_FILES)
       make_directory("${PROJECT_BINARY_DIR}/nvcc_tmp")
       list(APPEND _cuda_flags --keep "SHELL:--keep-dir ${PROJECT_BINARY_DIR}/nvcc_tmp")
+   endif ()
+
+   # place intermediate files in object file folder
+   if (AMReX_CUDA_OBJDIR_AS_TEMPDIR)
+      list(APPEND _cuda_flags --objdir-as-tempdir)
    endif ()
 
    # compilation timings
@@ -272,7 +295,7 @@ if (AMReX_HIP)
           )
        endforeach()
    endif()
-   
+
    # Debug issues with -O0: internal compiler errors
    # work-around for
    #   https://github.com/AMReX-Codes/amrex/pull/3311
@@ -286,23 +309,24 @@ if (AMReX_HIP)
    find_package(rocrand REQUIRED CONFIG)
    find_package(rocprim REQUIRED CONFIG)
    find_package(hiprand REQUIRED CONFIG)
+   if (AMReX_LINEAR_SOLVERS)
+      find_package(rocsparse REQUIRED CONFIG)
+   endif()
+
    if(AMReX_ROCTX)
+       find_package(rocprofiler-sdk-roctx REQUIRED CONFIG)
        foreach(D IN LISTS AMReX_SPACEDIM)
-          # To be modernized in the future, please see:
-          # https://github.com/ROCm-Developer-Tools/roctracer/issues/56
-          target_include_directories(amrex_${D}d SYSTEM PUBLIC
-              ${HIP_PATH}/../roctracer/include
-              ${HIP_PATH}/../rocprofiler/include
-          )
-          target_link_libraries(amrex_${D}d PUBLIC
-              "-L${HIP_PATH}/../roctracer/lib -lroctracer64"
-              "-L${HIP_PATH}/../roctracer/lib -lroctx64"
-          )
+          target_link_libraries(amrex_${D}d PUBLIC rocprofiler-sdk-roctx::rocprofiler-sdk-roctx)
       endforeach()
    endif()
    foreach(D IN LISTS AMReX_SPACEDIM)
       target_link_libraries(amrex_${D}d PUBLIC hip::hiprand roc::rocrand roc::rocprim)
    endforeach()
+   if (AMReX_LINEAR_SOLVERS)
+      foreach(D IN LISTS AMReX_SPACEDIM)
+         target_link_libraries(amrex_${D}d PUBLIC roc::rocsparse)
+      endforeach()
+   endif()
 
    # avoid forcing the rocm LLVM flags on a gfortran
    # https://github.com/ROCm-Developer-Tools/HIP/issues/2275
@@ -342,10 +366,8 @@ if (AMReX_HIP)
        # 
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
 
-       # ROCm 5.5: forgets to enforce C++17 (default seems lower)
-       # https://github.com/AMReX-Codes/amrex/issues/3337
-       #
-       target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
+       # Ensure ROCm builds enable at least C++17 without overriding higher standards
+       target_compile_features(amrex_${D}d PUBLIC cxx_std_17)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`

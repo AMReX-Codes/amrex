@@ -24,10 +24,10 @@ struct HypreOptParse
     template <typename F>
     void operator() (const std::string& key, F&& func)
     {
-        if (pp.contains(key.c_str())) {
+        if (pp.contains(key)) {
             int val;
-            pp.query(key.c_str(), val);
-            func(solver, val);
+            pp.query(key, val);
+            std::forward<F>(func)(solver, val);
         }
     }
 
@@ -35,25 +35,25 @@ struct HypreOptParse
     void operator() (const std::string& key, F&& func, T default_val)
     {
         T val = default_val;
-        pp.queryAdd(key.c_str(), val);
-        func(solver, val);
+        pp.queryAdd(key, val);
+        std::forward<F>(func)(solver, val);
     }
 
     template <typename F, typename T>
     void operator() (const std::string& key, F&& func, T default_val, int index)
     {
         T val = default_val;
-        pp.queryAdd(key.c_str(), val);
-        func(solver, val, index);
+        pp.queryAdd(key, val);
+        std::forward<F>(func)(solver, val, index);
     }
 
     template <typename T, typename F>
     void set (const std::string& key, F&& func)
     {
-        if (pp.contains(key.c_str())) {
+        if (pp.contains(key)) {
             T val;
-            pp.query(key.c_str(), val);
-            func(solver, val);
+            pp.query(key, val);
+            std::forward<F>(func)(solver, val);
         }
     }
 };
@@ -165,7 +165,7 @@ void HypreIJIface::solve (
         amrex::Print() << "HYPRE " << m_solver_name
                        << ": Num. iterations = " << m_num_iterations
                        << "; Relative residual = " << m_final_res_norm
-                       << std::endl;
+                       << '\n';
     }
 }
 
@@ -183,7 +183,7 @@ void HypreIJIface::parse_inputs (const std::string& prefix)
     if (m_verbose > 2) {
         amrex::Print() << "HYPRE: solver = " << m_solver_name
                        << "; preconditioner = " << m_preconditioner_name
-                       << std::endl;
+                       << '\n';
     }
 
     if (m_preconditioner_name == "none") {
@@ -203,6 +203,8 @@ void HypreIJIface::init_preconditioner (
         boomeramg_precond_configure(prefix);
     } else if (name == "euclid") {
         euclid_precond_configure(prefix);
+    } else if (name == "ILU") {
+        ilu_precond_configure(prefix);
     } else {
         amrex::Abort("Invalid HYPRE preconditioner specified: " + name);
     }
@@ -235,7 +237,7 @@ void HypreIJIface::init_solver (
 void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 {
     if (m_verbose > 2) {
-        amrex::Print() << "Creating BoomerAMG preconditioner" << std::endl;
+        amrex::Print() << "Creating BoomerAMG preconditioner" << '\n';
     }
     HYPRE_BoomerAMGCreate(&m_precond);
 
@@ -324,6 +326,10 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
             hpp("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
             hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
+            hpp("bamg_ilu_iterative_algorithm_type", HYPRE_BoomerAMGSetILUIterSetupType);
+            hpp("bamg_ilu_iterative_setup_type", HYPRE_BoomerAMGSetILUIterSetupOption);
+            hpp("bamg_ilu_iterative_max_iter", HYPRE_BoomerAMGSetILUIterSetupMaxIter);
+            hpp("bamg_ilu_iterative_tolerance", HYPRE_BoomerAMGSetILUIterSetupTolerance);
             hpp("bamg_ilu_reordering_type", HYPRE_BoomerAMGSetILULocalReordering);
             hpp("bamg_ilu_tri_solve", HYPRE_BoomerAMGSetILUTriSolve);
             hpp("bamg_ilu_lower_jacobi_iters", HYPRE_BoomerAMGSetILULowerJacobiIters);
@@ -371,6 +377,46 @@ void HypreIJIface::euclid_precond_configure (const std::string& prefix)
     hpp("euclid_stats", HYPRE_EuclidSetStats, 0);
     // Flag indicating whether to print out memory diagnostic
     hpp("euclid_mem", HYPRE_EuclidSetMem, 0);
+}
+
+void HypreIJIface::ilu_precond_configure (const std::string& prefix)
+{
+    if (m_verbose > 2) {
+        amrex::Print() << "Creating ILU preconditioner" << '\n';
+    }
+    HYPRE_ILUCreate(&m_precond);
+
+    // Setup the pointers
+    m_precondDestroyPtr = &HYPRE_ILUDestroy;
+    m_precondSetupPtr = &HYPRE_ILUSetup;
+    m_precondSolvePtr = &HYPRE_ILUSolve;
+
+
+    HypreOptParse hpp(prefix, m_precond);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
+    // Process ILU smoother parameters
+    // ParILUK
+    hpp("ilu_type", HYPRE_ILUSetType);
+    hpp("ilu_max_iter", HYPRE_ILUSetMaxIter);
+    hpp("ilu_tolerance", HYPRE_ILUSetTol);
+    hpp("ilu_reordering_type", HYPRE_ILUSetLocalReordering);
+    hpp("ilu_print_level", HYPRE_ILUSetPrintLevel);
+
+    // ILUK
+    hpp("ilu_fill", HYPRE_ILUSetLevelOfFill);
+    // ILUT
+    hpp("ilu_max_nnz_per_row", HYPRE_ILUSetMaxNnzPerRow);
+    hpp("ilu_drop_threshold", HYPRE_ILUSetDropThreshold);
+#if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
+    hpp("ilu_iterative_algorithm_type", HYPRE_ILUSetIterativeSetupType);
+    hpp("ilu_iterative_setup_type", HYPRE_ILUSetIterativeSetupOption);
+    hpp("ilu_iterative_max_iter", HYPRE_ILUSetIterativeSetupMaxIter);
+    hpp("ilu_iterative_tolerance", HYPRE_ILUSetIterativeSetupTolerance);
+    hpp("ilu_tri_solve", HYPRE_ILUSetTriSolve);
+    hpp("ilu_lower_jacobi_iters", HYPRE_ILUSetLowerJacobiIters);
+    hpp("ilu_upper_jacobi_iters", HYPRE_ILUSetUpperJacobiIters);
+#endif
+#endif
 }
 
 void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
@@ -433,7 +479,7 @@ void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
 void HypreIJIface::gmres_solver_configure (const std::string& prefix)
 {
     if (m_verbose > 2) {
-        amrex::Print() << "Creating GMRES solver" << std::endl;
+        amrex::Print() << "Creating GMRES solver" << '\n';
     }
     HYPRE_ParCSRGMRESCreate(m_comm, &m_solver);
 

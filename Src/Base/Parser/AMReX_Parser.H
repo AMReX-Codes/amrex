@@ -8,16 +8,18 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
+#include <map>
 #include <memory>
 #include <string>
 #include <set>
+#include <utility>
 
 namespace amrex {
 
 template <int N>
 struct ParserExecutor
 {
-    template <int M=N, typename std::enable_if_t<M==0,int> = 0>
+    template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() () const noexcept
     {
@@ -64,6 +66,7 @@ struct ParserExecutor
 #endif
 };
 
+/// \ingroup amrex_utilities
 class Parser
 {
 public:
@@ -77,6 +80,15 @@ public:
 
     void registerVariables (Vector<std::string> const& vars);
 
+    //! Register user defined host and functions with one argument
+    void registerUserFn1 (std::string const& name, ParserUserFn1 fh, ParserUserFn1 fd);
+    //! Register user defined host and functions with two arguments
+    void registerUserFn2 (std::string const& name, ParserUserFn2 fh, ParserUserFn2 fd);
+    //! Register user defined host and functions with three arguments
+    void registerUserFn3 (std::string const& name, ParserUserFn3 fh, ParserUserFn3 fd);
+    //! Register user defined host and functions with four arguments
+    void registerUserFn4 (std::string const& name, ParserUserFn4 fh, ParserUserFn4 fd);
+
     void print () const;
     void printExe () const;
 
@@ -87,6 +99,9 @@ public:
 
     [[nodiscard]] std::set<std::string> symbols () const;
 
+    //! User defined functions in std::map<name, # of args>
+    [[nodiscard]] std::map<std::string,int> const& userFunctions () const;
+
     //! This compiles for both GPU and CPU
     template <int N> [[nodiscard]] ParserExecutor<N> compile () const;
 
@@ -95,17 +110,22 @@ public:
 
 private:
 
+    template <int argc, typename F>
+    void register_user_fn (std::string const& name, F fh, F fd);
+
+    /// \cond DOXYGEN_IGNORE
     struct Data {
         std::string m_expression;
         struct amrex_parser* m_parser = nullptr;
         int m_nvars = 0;
-        mutable char* m_host_executor = nullptr;
+        bool m_use_arena = true;
+        char* m_host_executor = nullptr;
 #ifdef AMREX_USE_GPU
-        mutable char* m_device_executor = nullptr;
+        char* m_device_executor = nullptr;
 #endif
-        mutable int m_max_stack_size = 0;
-        mutable int m_exe_size = 0;
-        mutable Vector<char const*> m_locals;
+        int m_max_stack_size = 0;
+        int m_exe_size = 0;
+        Vector<char const*> m_locals;
         Data () = default;
         ~Data ();
         Data (Data const&) = delete;
@@ -113,8 +133,11 @@ private:
         Data& operator= (Data const&) = delete;
         Data& operator= (Data &&) = delete;
     };
+    /// \endcond
 
     std::shared_ptr<Data> m_data;
+    std::map<std::string,int> m_ufs;
+    std::map<std::string,std::pair<void*,void*>> m_uf_ptrs;
     Vector<std::string> m_vars;
 };
 
@@ -123,7 +146,16 @@ ParserExecutor<N>
 Parser::compileHost () const
 {
     if (m_data && m_data->m_parser) {
-        AMREX_ASSERT(N == m_data->m_nvars);
+        AMREX_ALWAYS_ASSERT(N == m_data->m_nvars);
+
+        // Make sure all user functions have been registered.
+        for (auto const& [ufname, nargs] : m_ufs) {
+            if (m_uf_ptrs.find(ufname) == m_uf_ptrs.cend()) {
+                amrex::Abort("amrex::Parser: Unknown user function "+ufname
+                             + " in " + m_data->m_expression);
+            }
+            amrex::ignore_unused(nargs);
+        }
 
         if (!(m_data->m_host_executor)) {
             int stack_size;
@@ -142,9 +174,13 @@ Parser::compileHost () const
             }
 
             m_data->m_host_executor = (char*)The_Pinned_Arena()->alloc(m_data->m_exe_size);
+            if (m_data->m_host_executor == nullptr) { // Arena is not ready yet
+                m_data->m_host_executor = (char*) std::malloc(m_data->m_exe_size);
+                m_data->m_use_arena = false;
+            }
 
             try {
-                m_data->m_locals = parser_compile(m_data->m_parser,
+                m_data->m_locals = parser_compile(m_data->m_parser, m_uf_ptrs,
                                                   m_data->m_host_executor);
             } catch (const std::runtime_error& e) {
                 throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
@@ -169,7 +205,9 @@ Parser::compile () const
     auto exe = compileHost<N>();
 
 #ifdef AMREX_USE_GPU
-    if (m_data && m_data->m_parser && !(m_data->m_device_executor)) {
+    if (m_data && m_data->m_parser && !(m_data->m_device_executor)
+        && m_data->m_use_arena)
+    {
         m_data->m_device_executor = (char*)The_Arena()->alloc(m_data->m_exe_size);
         Gpu::htod_memcpy_async(m_data->m_device_executor, m_data->m_host_executor,
                                m_data->m_exe_size);
@@ -179,6 +217,27 @@ Parser::compile () const
 #endif
 
     return exe;
+}
+
+template <int argc, typename F>
+void
+Parser::register_user_fn (std::string const& name, F fh, F fd)
+{
+#if !defined(AMREX_USE_GPU)
+    // For pure CPU builds, we allow the user to pass the function pointer with either fh or fd
+    if (fh == nullptr) { std::swap(fh, fd); }
+#endif
+
+    auto it = m_ufs.find(name);
+    if (it != m_ufs.end()) {
+        if (it->second == argc) {
+            m_uf_ptrs[name] = std::make_pair((void*)fh, (void*)fd);
+        } else {
+            amrex::Abort("Parser::registerUserFn: incorrect no. of arguments in "+name);
+        }
+    } else {
+        amrex::Abort("Parser::registerUserFn: unknown user define function "+name);
+    }
 }
 
 }

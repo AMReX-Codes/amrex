@@ -19,11 +19,11 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_Scan.H>
 #include <AMReX_Math.H>
-
-#ifdef AMREX_USE_OMP
-#include <omp.h>
-#endif
+#include <AMReX_OpenMP.H>
+#include <AMReX_MemPool.H>
+#include <AMReX_TypeTraits.H>
 
 #include <cmath>
 #include <cstdlib>
@@ -39,6 +39,8 @@
 namespace amrex
 {
 
+/// \cond DOXYGEN_IGNORE
+
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs;
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm;
 extern std::atomic<Long> atomic_total_cells_allocated_in_fabs;
@@ -53,6 +55,8 @@ extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs)
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
 #endif
+
+/// \endcond
 
 Long TotalBytesAllocatedInFabs () noexcept;
 Long TotalBytesAllocatedInFabsHWM () noexcept;
@@ -90,62 +94,14 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
-/**
-*  \brief A Fortran Array-like Object
-*  BaseFab emulates the Fortran array concept.
-*  Useful operations can be performed upon
-*  BaseFabs in C++, and they provide a convenient interface to
-*  Fortran when it is necessary to retreat into that language.
-
-*  BaseFab is a template class.  Through use of the
-*  template, a BaseFab may be based upon any class.  So far at least,
-*  most applications have been based upon simple types like integers,
-*  real*4s, or real*8s.  Most applications do not use BaseFabs
-*  directly, but utilize specialized classes derived from BaseFab.
-
-*  Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
-*  Mask, EBFArrayBox, EBCellFlag and CutFab.
-
-*  BaseFab objects depend on the dimensionality of space
-*  (indirectly through the DOMAIN Box member).  It is
-*  typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
-*  the dimension of space.  See the discussion of class Box for more
-*  information.  A BaseFab contains a Box DOMAIN, which indicates the
-*  integer indexing space over which the array is defined.  A BaseFab
-*  also has NVAR components.  By components, we mean that for each
-*  point in the rectangular indexing space, there are NVAR values
-*  associated with that point.  A Fortran array corresponding to a
-*  BaseFab would have (SPACEDIM+1) dimensions.
-
-*  By design, the array layout in a BaseFab mirrors that of a
-*  Fortran array.  The first index (x direction for example) varies
-*  most rapidly, the next index (y direction), if any, varies next
-*  fastest. The component index varies last, after all the spatial
-*  indices.
-
-*  It is sometimes convenient to be able to treat a sub-array within an
-*  existing BaseFab as a BaseFab in its own right.  This is often
-*  referred to as aliasing the BaseFab.  Note that when aliasing is
-*  used, the BaseFabs domain will not, in general, be the same as the
-*  parent BaseFabs domain, nor will the number of components.
-*  BaseFab is a dimension dependent class, so SPACEDIM must be
-*  defined as either 1, 2, or 3 when compiling.
-
-*  This is NOT a polymorphic class.
-
-*  It does NOT provide a copy constructor or assignment operator.
-
-*  T MUST have a default constructor and an assignment operator.
-*/
-
 template <typename T>
-typename std::enable_if<std::is_arithmetic<T>::value>::type
+std::enable_if_t<std::is_arithmetic_v<T>>
 placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-std::enable_if_t<std::is_trivially_default_constructible<T>::value
-                 && !std::is_arithmetic<T>::value>
+std::enable_if_t<std::is_trivially_default_constructible_v<T>
+                 && !std::is_arithmetic_v<T>>
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -154,7 +110,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-std::enable_if_t<!std::is_trivially_default_constructible<T>::value>
+std::enable_if_t<!std::is_trivially_default_constructible_v<T>>
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -164,12 +120,12 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-typename std::enable_if<std::is_trivially_destructible<T>::value>::type
+std::enable_if_t<std::is_trivially_destructible_v<T>>
 placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-typename std::enable_if<!std::is_trivially_destructible<T>::value>::type
+std::enable_if_t<!std::is_trivially_destructible_v<T>>
 placementDelete (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D (n, i,
@@ -178,6 +134,56 @@ placementDelete (T* const ptr, Long n)
     });
 }
 
+/**
+ * \class amrex::BaseFab
+ * \ingroup amrex_fab_containers
+ * \brief A FortranArrayBox(FAB)-like object
+ *
+ * BaseFab emulates the Fortran array concept.
+ * Useful operations can be performed upon
+ * BaseFabs in C++, and they provide a convenient interface to
+ * Fortran when it is necessary to retreat into that language.
+ *
+ * BaseFab is a template class.  Through use of the
+ * template, a BaseFab may be based upon any class.  So far at least,
+ * most applications have been based upon simple types like integers,
+ * real*4s, or real*8s.  Most applications do not use BaseFabs
+ * directly, but utilize specialized classes derived from BaseFab.
+ *
+ * Classes derived from BaseFab include FArrayBox, IArrayBox, TagBox,
+ * Mask, EBFArrayBox, EBCellFlag and CutFab.
+ *
+ * BaseFab objects depend on the dimensionality of space
+ * (indirectly through the DOMAIN Box member).  It is
+ * typical to define the macro SPACEDIM to be 1, 2, or 3 to indicate
+ * the dimension of space.  See the discussion of class Box for more
+ * information.  A BaseFab contains a Box DOMAIN, which indicates the
+ * integer indexing space over which the array is defined.  A BaseFab
+ * also has NVAR components.  By components, we mean that for each
+ * point in the rectangular indexing space, there are NVAR values
+ * associated with that point.  A Fortran array corresponding to a
+ * BaseFab would have (SPACEDIM+1) dimensions.
+ *
+ * By design, the array layout in a BaseFab mirrors that of a
+ * Fortran array.  The first index (x direction for example) varies
+ * most rapidly, the next index (y direction), if any, varies next
+ * fastest. The component index varies last, after all the spatial
+ * indices.
+ *
+ * It is sometimes convenient to be able to treat a sub-array within an
+ * existing BaseFab as a BaseFab in its own right.  This is often
+ * referred to as aliasing the BaseFab.  Note that when aliasing is
+ * used, the BaseFabs domain will not, in general, be the same as the
+ * parent BaseFabs domain, nor will the number of components.
+ * BaseFab is a dimension dependent class, so SPACEDIM must be
+ * defined as either 1, 2, or 3 when compiling.
+ *
+ * This is NOT a polymorphic class.
+ *
+ * It does NOT provide a copy constructor or assignment operator.
+ *
+ * \tparam T MUST have a default constructor and an assignment operator.
+ */
 template <class T>
 class BaseFab
     : public DataAllocator
@@ -226,11 +232,7 @@ public:
     BaseFab (BaseFab<T>&& rhs) noexcept;
     BaseFab<T>& operator= (BaseFab<T>&& rhs) noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab& operator= (T const&) noexcept;
 
     static void Initialize();
@@ -251,7 +253,7 @@ public:
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    template <class U=T, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type = 0>
+    template <class U=T, std::enable_if_t<std::is_trivially_destructible_v<U>,int> = 0>
     [[nodiscard]] Elixir elixir () noexcept;
 
     /**
@@ -458,38 +460,27 @@ public:
     void getVal (T* data, const IntVect& pos, int N, int numcomp) const noexcept;
     //! Same as above, except that starts at component 0 and copies all comps.
     void getVal (T* data, const IntVect& pos) const noexcept;
+
+    template <RunOn run_on AMREX_DEFAULT_RUNON,
+              class U=T, std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>,int> FOO = 0>
+    void fill_snan () noexcept;
+
     /**
     * \brief The setVal functions set sub-regions in the BaseFab to a
     * constant value.  This most general form specifies the sub-box,
     * the starting component number, and the number of components
     * to be set.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int dcomp, int ncomp) noexcept;
     //! Same as above, except the number of modified components is one. N is the component to be modified.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int N = 0) noexcept;
     //! Same as above, except the sub-box defaults to the entire domain.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, int N) noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setValIfNot (T const& val, const Box& bx, const BaseFab<int>& mask, int nstart, int num) noexcept;
 
     /**
@@ -497,11 +488,7 @@ public:
     * setVal above, except that instead of setting values on the
     * Box b, values are set on the complement of b in the domain.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setComplement (T const& x, const Box& b, int ns, int num) noexcept;
 
     /**
@@ -520,11 +507,7 @@ public:
     * destcomp. The results are UNDEFINED if the src and dest are the
     * same and the srcbox and destbox overlap.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
                       const Box& destbox, int destcomp, int numcomp) noexcept;
 
@@ -534,50 +517,30 @@ public:
     * of the intersecting region is performed.
     * class.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& copy (const BaseFab<T>& src, int srccomp, int destcomp,
                       int numcomp = 1) noexcept;
     /**
     * \brief As above, except that the destination Box is specified,
-    * but the source Box is taken to the equal to the source
+    * but the source Box is taken to the equal to the destination
     * Box, and all components of the destination BaseFab are
     * copied.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& copy (const BaseFab<T>& src, const Box& destbox) noexcept;
 
     //! Copy from the srcbox of this Fab to raw memory and return the number of bytes copied
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     std::size_t copyToMem (const Box& srcbox, int srccomp,
                            int numcomp, void* dst) const noexcept;
 
     //! Copy from raw memory to the dstbox of this Fab and return the number of bytes copied
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on, typename BUF = T>
-#else
-    template <RunOn run_on=RunOn::Host, typename BUF = T>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON, typename BUF = T>
     std::size_t copyFromMem (const Box& dstbox, int dstcomp,
                              int numcomp, const void* src) noexcept;
 
     //! Add from raw memory to the dstbox of this Fab and return the number of bytes copied
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on, typename BUF = T>
-#else
-    template <RunOn run_on=RunOn::Host, typename BUF = T>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON, typename BUF = T>
     std::size_t addFromMem (const Box& dstbox, int dstcomp,
                             int numcomp, const void* src) noexcept;
 
@@ -606,11 +569,7 @@ public:
     */
     BaseFab<T>& shiftHalf (const IntVect& v) noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norminfmask (const Box& subbox, const BaseFab<int>& mask, int scomp=0, int ncomp=1) const noexcept;
 
     /**
@@ -619,184 +578,104 @@ public:
     *   p = 0  -> infinity norm (max norm)
     *   p = 1  -> sum of ABS(FAB)
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const noexcept;
 
     //! Same as above except only on given subbox.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const noexcept;
     //!Compute absolute value for all components of this FAB.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs () noexcept;
     //! Same as above except only for components (comp: comp+numcomp-1)
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs (int comp, int numcomp=1) noexcept;
     /**
     * \brief Calculate abs() on subbox for given component range.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs (const Box& subbox, int comp = 0, int numcomp=1) noexcept;
     /**
     * \return Minimum value of given component.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T min (int comp = 0) const noexcept;
     /**
     * \return Minimum value of given component in given subbox.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T min (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum value of given component.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T max (int comp = 0) const noexcept;
     /**
     * \return Maximum value of given component in given subbox.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T max (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Minimum and Maximum of given component
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] std::pair<T,T> minmax (int comp = 0) const noexcept;
     /**
     * \return Minimum and Maximum of given component in given subbox.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] std::pair<T,T> minmax (const Box& subbox, int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T maxabs (int comp = 0) const noexcept;
     /**
     * \return Maximum of the absolute value of given component in given subbox.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T maxabs (const Box& subbox, int comp = 0) const noexcept;
 
     /*(
     * \return location of given value
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect indexFromValue (const Box& subbox, int comp, T const& value) const noexcept;
 
     /**
     * \return location of minimum value in given component.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect minIndex (int comp = 0) const noexcept;
     /**
     * \return location of minimum value in given component in
     * given subbox.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect minIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return minimum value and location to allow
+    * \brief Compute minimum value and location to allow
     * efficient looping over multiple boxes.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void  minIndex (const Box& subbox, Real& min_val, IntVect& min_idx, int comp = 0) const noexcept;
 
     /**
     * \return location of maximum value in given component.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect maxIndex (int comp = 0) const noexcept;
     /**
     * \return location of maximum value in given component in given
     * subbox.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] IntVect maxIndex (const Box& subbox, int comp = 0) const noexcept;
     /**
-    * \return return maximum value and location to allow
+    * \brief Compute maximum value and location to allow
     * efficient looping over multiple boxes.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void  maxIndex (const Box& subbox, Real& max_value, IntVect& max_idx, int comp = 0) const noexcept;
 
     /**
@@ -805,101 +684,49 @@ public:
     * mask is resized by this function.
     * The number of cells marked with 1 returned.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value less than or equal to val.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Same as above except mark cells with value equal to val.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskEQ (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than val.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
     //! Same as above except mark cells with value greater than or equal to val.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Returns sum of given component of FAB state vector.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (int comp, int numcomp = 1) const noexcept;
     //! Compute sum of given component of FAB state vector in given subbox.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (const Box& subbox, int comp, int numcomp = 1) const noexcept;
 
     //! Most general version, specify subbox and which components.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
     //! As above except on entire domain.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, int comp, int numcomp=1) noexcept;
 
     //! Negate BaseFab, most general.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (const Box& b, int comp=0, int numcomp=1) noexcept;
     //! As above, except on entire domain.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (int comp, int numcomp=1) noexcept;
 
     //! Scalar addition (a[i] <- a[i] + r), most general.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
     //! As above, except on entire domain.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, int comp, int numcomp=1) noexcept;
 
     /**
@@ -907,41 +734,25 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except addition is restricted to intersection
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! Atomic FAB addition (a[i] <- a[i] + b[i]).
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& atomicAdd (const BaseFab<T>& x) noexcept;
 
     /**
@@ -949,67 +760,48 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except addition is restricted to intersection
     * of subbox and src FAB. NOTE: subbox must be contained in this
     * FAB.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                            int numcomp=1) noexcept;
     /**
     * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
     * The srcbox and destbox must be same size.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                            int srccomp, int destcomp, int numcomp=1) noexcept;
 
+    /**
+    * \brief Atomically add srcbox region of src FAB to destbox region of this FAB.
+    * The srcbox and destbox must be same size. When OMP is on, this uses OMP locks
+    * in the implementation and it's usually faster than atomicAdd.
+    */
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
+    BaseFab<T>& lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept;
+
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
     //! FAB SAXPY (y[i] <- y[i] + a * x[i]), in place.  All components.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& saxpy (T a, const BaseFab<T>& x) noexcept;
 
     //! FAB XPAY (y[i] <- x[i] + a * y[i])
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& xpay (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! y[i] <- y[i] + x1[i] * x2[i])
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& addproduct (const Box& destbox, int destcomp, int numcomp,
                             const BaseFab<T>& src1, int comp1,
                             const BaseFab<T>& src2, int comp2) noexcept;
@@ -1019,51 +811,31 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1) where
     * the two FABs intersect.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except subtraction is restricted to intersection
     * of subbox and src FAB.  NOTE: subbox must be contained in
     * this FAB.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                        int numcomp=1) noexcept;
     /**
     * \brief Subtract srcbox region of src FAB from destbox region
     * of this FAB. srcbox and destbox must be same size.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! Scalar multiplication, except control which components are multiplied.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, int comp, int numcomp=1) noexcept;
     /**
     * \brief As above, except specify sub-box.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
     /**
@@ -1071,11 +843,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1) where
     * the two FABs intersect.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
 
     /**
@@ -1083,11 +851,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                       int numcomp=1) noexcept;
 
@@ -1095,28 +859,16 @@ public:
     * \brief Multiply srcbox region of src FAB with destbox region
     * of this FAB. The srcbox and destbox must be same size.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
     //! As above except specify which components.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, int comp, int numcomp=1) noexcept;
 
     //! As above except specify sub-box.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
     /**
@@ -1125,43 +877,27 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Same as above except division is restricted to
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                         int numcomp=1) noexcept;
     /**
     * \brief destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                         int srccomp, int destcomp, int numcomp=1) noexcept;
     /**
     * \brief Divide wherever "src" is "true" or "non-zero".
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& protected_divide (const BaseFab<T>& src) noexcept;
 
     /**
@@ -1171,11 +907,7 @@ public:
     * this FABs components (destcomp:destcomp+numcomp-1)
     * where the two FABs intersect.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& protected_divide (const BaseFab<T>& src, int srccomp, int destcomp, int numcomp=1) noexcept;
 
     /**
@@ -1184,11 +916,7 @@ public:
     * intersection of subbox and src FAB.  NOTE: subbox must be
     * contained in this FAB.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& protected_divide (const BaseFab<T>& src, const Box& subbox, int srccomp, int destcomp,
                                   int numcomp=1) noexcept;
 
@@ -1197,11 +925,7 @@ public:
     * destbox region of this FAB is numerator. srcbox regions of
     * src FAB is denominator. srcbox and destbox must be same size.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& protected_divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                                   int srccomp, int destcomp, int numcomp=1) noexcept;
 
@@ -1215,22 +939,14 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& linInterp (const BaseFab<T>& f1, const Box& b1, int comp1,
                            const BaseFab<T>& f2, const Box& b2, int comp2,
                            Real t1, Real t2, Real t,
                            const Box& b, int comp, int numcomp = 1) noexcept;
 
     //! Version of linInterp() in which b, b1, & b2 are the same.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& linInterp (const BaseFab<T>& f1, int comp1,
                            const BaseFab<T>& f2, int comp2,
                            Real t1, Real t2, Real t,
@@ -1245,30 +961,18 @@ public:
     * and stored in component comp of this FAB.
     * This FAB is returned as a reference for chaining.
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
                          const BaseFab<T>& f2, const Box& b2, int comp2,
                          Real alpha, Real beta, const Box& b,
                          int comp, int numcomp = 1) noexcept;
 
     //! Dot product of x (i.e.,this) and y
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T dot (const Box& xbx, int xcomp, const BaseFab<T>& y, const Box& ybx, int ycomp,
            int numcomp = 1) const noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
                const BaseFab<T>& y, const Box& ybx, int ycomp,
                int numcomp) const noexcept;
@@ -1281,57 +985,29 @@ public:
     //
 
     //! Set value on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setValIf (T const& val, const BaseFab<int>& mask) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setValIf (T const& val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setValIfNot (T const& val, const BaseFab<int>& mask) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setValIfNot (T const& val, Box const& bx, const BaseFab<int>& mask, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! setVal on the complement of bx in the fab's domain
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setComplement (T const& x, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     /**
@@ -1339,285 +1015,145 @@ public:
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& copy (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& copy (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar addition on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& val) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator+= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab addition is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (const BaseFab<T>& src) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator+= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar subtraction on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (T const& val) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator-= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab subtraction is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (const BaseFab<T>& src) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator-= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& minus (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar multiplication on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& val) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator*= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab multiplication is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (const BaseFab<T>& src) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator*= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Scalar division on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& val) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator/= (T const& val) noexcept;
     //
     //! Do nothing if bx is empty.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab division is performed on the intersection of dest and src fabs.
     * All components of dest fab are copied. src fab must have enough
     * components (more is OK).
     */
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (const BaseFab<T>& src) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& operator/= (const BaseFab<T>& src) noexcept;
     //
     //! Do nothing if bx does not intersect with src fab.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (const BaseFab<T>& src, Box bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate () noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Fab <- Fab/r on the whole domain and all components
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r) noexcept;
     //
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
     //! Sum
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Dot product of two Fabs
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T dot (const BaseFab<T>& src, const Box& bx, SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Int wrapper for dot.
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T dot (const Box& bx, int destcomp, int numcomp) const noexcept;
 
     //! Dot product
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T dot (const Box& bx, DestComp dcomp, NumComps ncomp) const noexcept;
 
     //! Dot product of two Fabs with mask
-#if defined(AMREX_USE_GPU)
-    template <RunOn run_on>
-#else
-    template <RunOn run_on=RunOn::Host>
-#endif
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T dotmask (const BaseFab<T>& src, const Box& bx, const BaseFab<int>& mask,
                SrcComp scomp, DestComp dcomp, NumComps ncomp) const noexcept;
 
@@ -1631,6 +1167,9 @@ protected:
     Long truesize = 0L;         //!< nvar*numpts that was allocated on heap.
     bool ptr_owner = false;     //!< Owner of T*?
     bool shared_memory = false; //!< Is the memory allocated in shared memory?
+#ifdef AMREX_USE_GPU
+    gpuStream_t alloc_stream{};
+#endif
 };
 
 template <class T>
@@ -1673,9 +1212,17 @@ BaseFab<T>::prefetchToHost () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = cudaCpuDeviceId;
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
+                                                      Gpu::gpuStream()));
+#else
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                                       cudaCpuDeviceId,
                                                       Gpu::gpuStream()));
+#endif
         }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported
@@ -1697,9 +1244,17 @@ BaseFab<T>::prefetchToDevice () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
+#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+            cudaMemLocation location = {};
+            location.type = cudaMemLocationTypeDevice;
+            location.id = Gpu::Device::deviceId();
+            AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
+                                                      Gpu::gpuStream()));
+#else
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s,
                                                       Gpu::Device::deviceId(),
                                                       Gpu::gpuStream()));
+#endif
         }
 #elif defined(AMREX_USE_HIP)
         // xxxxx HIP FIX HERE after managed memory is supported
@@ -1815,6 +1370,15 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
+template <RunOn run_on, class U,
+          std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>, int> FOO>
+void
+BaseFab<T>::fill_snan () noexcept
+{
+    amrex::fill_snan<run_on>(this->dptr, this->truesize);
+}
+
+template <class T>
 template <RunOn run_on>
 void
 BaseFab<T>::setVal (T const& x, const Box& bx, int n) noexcept
@@ -1902,10 +1466,27 @@ BaseFab<T>::define ()
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
     this->dptr = static_cast<T*>(this->alloc(this->truesize*sizeof(T)));
+#ifdef AMREX_USE_GPU
+    this->alloc_stream = Gpu::gpuStream();
+#endif
 
     placementNew(this->dptr, this->truesize);
 
     amrex::update_fab_stats(this->domain.numPts(), this->truesize, sizeof(T));
+
+    if constexpr (std::is_same_v<T,float> || std::is_same_v<T,double>) {
+        if (amrex::InitSNaN() && this->truesize > 0) {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion() && arena()->isDeviceAccessible()) {
+                this->template fill_snan<RunOn::Device>();
+                Gpu::streamSynchronize();
+            } else
+#endif
+            {
+                this->template fill_snan<RunOn::Host>();
+            }
+        }
+    }
 }
 
 template <class T>
@@ -1962,33 +1543,33 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T const* p)
 template<class T>
 BaseFab<T>::BaseFab (Array4<T> const& a) noexcept
     : dptr(a.p),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1))),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T> const& a, IndexType t) noexcept
     : dptr(a.p),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1)), t),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T const> const& a) noexcept
     : dptr(const_cast<T*>(a.p)),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1))),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
     : dptr(const_cast<T*>(a.p)),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1)), t),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template <class T>
@@ -2003,6 +1584,9 @@ BaseFab<T>::BaseFab (BaseFab<T>&& rhs) noexcept
       dptr(rhs.dptr), domain(rhs.domain),
       nvar(rhs.nvar), truesize(rhs.truesize),
       ptr_owner(rhs.ptr_owner), shared_memory(rhs.shared_memory)
+#ifdef AMREX_USE_GPU
+      , alloc_stream(rhs.alloc_stream)
+#endif
 {
     rhs.dptr = nullptr;
     rhs.ptr_owner = false;
@@ -2021,6 +1605,9 @@ BaseFab<T>::operator= (BaseFab<T>&& rhs) noexcept
         truesize = rhs.truesize;
         ptr_owner = rhs.ptr_owner;
         shared_memory = rhs.shared_memory;
+#ifdef AMREX_USE_GPU
+        alloc_stream = rhs.alloc_stream;
+#endif
 
         rhs.dptr = nullptr;
         rhs.ptr_owner = false;
@@ -2062,7 +1649,11 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
         this->dptr = nullptr;
         define();
     }
-    else if (this->nvar*this->domain.numPts() > this->truesize)
+    else if (this->nvar*this->domain.numPts() > this->truesize
+#ifdef AMREX_USE_GPU
+             || (arena()->isStreamOrderedArena() && alloc_stream != Gpu::gpuStream())
+#endif
+             )
     {
         if (this->shared_memory) {
             amrex::Abort("BaseFab::resize: BaseFab in shared memory cannot increase size");
@@ -2075,7 +1666,7 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 }
 
 template <class T>
-template <class U, typename std::enable_if<std::is_trivially_destructible<U>::value,int>::type>
+template <class U, std::enable_if_t<std::is_trivially_destructible_v<U>,int>>
 Elixir
 BaseFab<T>::elixir () noexcept
 {
@@ -2114,7 +1705,14 @@ BaseFab<T>::clear () noexcept
 
             placementDelete(this->dptr, this->truesize);
 
+#ifdef AMREX_USE_GPU
+            auto current_stream = Gpu::Device::gpuStream();
+            Gpu::Device::setStream(alloc_stream);
+#endif
             this->free(this->dptr);
+#ifdef AMREX_USE_GPU
+            Gpu::Device::setStream(current_stream);
+#endif
 
             if (this->nvar > 1) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
@@ -3250,6 +2848,39 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     return *this;
 }
 
+namespace detail
+{
+
+template <RunOn run_on, typename T,
+          std::enable_if_t<HasAtomicAdd<T>::value,int> FOO = 0>
+void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
+                         const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept
+{
+    Array4<T> const& d = dfab.array();
+    Array4<T const> const& s = sfab.const_array();
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
+    {
+        T* p = d.ptr(i,j,k,n+destcomp);
+        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
+    });
+}
+
+template <RunOn run_on, typename T,
+          std::enable_if_t<! HasAtomicAdd<T>::value,int> FOO = 0>
+void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
+                         const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept
+{
+    amrex::ignore_unused(dfab, sfab, srcbox, destbox, srccomp, destcomp, numcomp);
+    amrex::Abort("BaseFab: atomicAdd not supported");
+}
+
+}
+
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&
@@ -3263,18 +2894,114 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    Array4<T> const& d = this->array();
-    Array4<T const> const& s = src.const_array();
-    const auto dlo = amrex::lbound(destbox);
-    const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
-    {
-        T* p = d.ptr(i,j,k,n+destcomp);
-        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
-    });
+    detail::basefab_atomic_add<run_on>(*this, src, srcbox, destbox,
+                                       srccomp, destcomp, numcomp);
 
     return *this;
+}
+
+template <class T>
+template <RunOn run_on>
+BaseFab<T>&
+BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
+                     int srccomp, int destcomp, int numcomp) noexcept
+{
+#if defined(AMREX_USE_OMP) && (AMREX_SPACEDIM > 1)
+#if defined(AMREX_USE_GPU)
+    if (run_on == RunOn::Host || Gpu::notInLaunchRegion()) {
+#endif
+        BL_ASSERT(destbox.ok());
+        BL_ASSERT(src.box().contains(srcbox));
+        BL_ASSERT(box().contains(destbox));
+        BL_ASSERT(destbox.sameSize(srcbox));
+        BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
+        BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
+
+        Array4<T> const& d = this->array();
+        Array4<T const> const& s = src.const_array();
+        auto const& dlo = amrex::lbound(destbox);
+        auto const& dhi = amrex::ubound(destbox);
+        auto const& len = amrex::length(destbox);
+        auto const& slo = amrex::lbound(srcbox);
+        Dim3 const offset{slo.x-dlo.x, slo.y-dlo.y, slo.z-dlo.z};
+
+        int planedim;
+        int nplanes;
+        int plo;
+        if (len.z == 1) {
+            planedim = 1;
+            nplanes = len.y;
+            plo = dlo.y;
+        } else {
+            planedim = 2;
+            nplanes = len.z;
+            plo = dlo.z;
+        }
+
+        auto* mask = (bool*) amrex_mempool_alloc(sizeof(bool)*nplanes);
+        for (int ip = 0; ip < nplanes; ++ip) {
+            mask[ip] = false;
+        }
+
+        int mm = 0;
+        int planes_left = nplanes;
+        while (planes_left > 0) {
+            AMREX_ASSERT(mm < nplanes);
+            auto const m = mm + plo;
+            auto* lock = OpenMP::get_lock(m);
+            if (omp_test_lock(lock))
+            {
+                auto lo = dlo;
+                auto hi = dhi;
+                if (planedim == 1) {
+                    lo.y = m;
+                    hi.y = m;
+                } else {
+                    lo.z = m;
+                    hi.z = m;
+                }
+
+                for (int n = 0; n < numcomp; ++n) {
+                    for     (int k = lo.z; k <= hi.z; ++k) {
+                        for (int j = lo.y; j <= hi.y; ++j) {
+                            auto      * pdst = d.ptr(dlo.x,j         ,k         ,n+destcomp);
+                            auto const* psrc = s.ptr(slo.x,j+offset.y,k+offset.z,n+ srccomp);
+#pragma omp simd
+                            for (int ii = 0; ii < len.x; ++ii) {
+                                pdst[ii] += psrc[ii];
+                            }
+                        }
+                    }
+                }
+
+                mask[mm] = true;
+                --planes_left;
+                omp_unset_lock(lock);
+                if (planes_left == 0) { break; }
+            }
+
+            ++mm;
+            for (int ip = 0; ip < nplanes; ++ip) {
+                int new_mm = (mm+ip) % nplanes;
+                if ( ! mask[new_mm] ) {
+                    mm = new_mm;
+                    break;
+                }
+            }
+        }
+
+        amrex_mempool_free(mask);
+
+        return *this;
+
+#if defined(AMREX_USE_GPU)
+    } else {
+        return this->template atomicAdd<run_on>(src, srcbox, destbox, srccomp, destcomp, numcomp);
+    }
+#endif
+#else
+    return this->template atomicAdd<run_on>(src, srcbox, destbox, srccomp, destcomp, numcomp);
+#endif
 }
 
 template <class T>
@@ -3505,7 +3232,6 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
 * and stored in component comp of this FAB.
 * This fab is returned as a reference for chaining.
 */
-
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&

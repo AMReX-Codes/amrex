@@ -2,6 +2,7 @@
 #define AMREX_EB_MULTIFAB_UTIL_C_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_BCRec.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 

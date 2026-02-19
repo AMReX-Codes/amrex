@@ -156,7 +156,7 @@ Currently supported compression libraries include `SZ`_ and `ZFP`_.
 To enable HDF5 output, AMReX must be compiled and linked to an HDF5 library
 with parallel I/O support, by adding ``USE_HDF5=TRUE`` and
 ``HDF5_HOME=/path/to/hdf5/install/dir`` to the GNUMakefile.
-many HPC systems have an HDF5 module available that can be loaded with
+Many HPC systems have an HDF5 module available that can be loaded with
 ``module load hdf5`` or ``module load cray-hdf5-parallel``. To download
 and compile HDF5 from source code, please go to `HDF5 Download`_ webpage
 and follow the instructions (latest version is recommended and remember
@@ -199,7 +199,7 @@ chapter on :ref:`Chap:Visualization`)
 
 HDF5 Plotfile Compression
 -------------------------
-To enable data compression on the HDF5 datasets, the corresponding compression
+To enable SZ or ZFP data compression on the HDF5 datasets, the corresponding compression
 library and its HDF5 plugin must be available. To compile `SZ`_ or `ZFP`_ plugin,
 please refer to their documentation: `H5Z-SZ`_ and `H5Z-ZFP`_, and adding
 ``USE_HDF5_SZ=TRUE``, ``SZ_HOME=``, or ``USE_HDF5_ZFP=TRUE``, ``ZFP_HOME=``,
@@ -210,12 +210,18 @@ please refer to their documentation: `H5Z-SZ`_ and `H5Z-ZFP`_, and adding
 .. _`H5Z-SZ`: https://github.com/szcompressor/SZ/tree/master/hdf5-filter/H5Z-SZ
 .. _`H5Z-ZFP`: https://github.com/LLNL/H5Z-ZFP
 
+ZLIB compression is available without external libraries or other make flags.
+Different compression levels (at the cost of read/write time) can be used, just
+like GZIP.
+
 The string argument :cpp:`compression` in the above two functions controls
 whether to enable data compression and its parameters. Currently supported
 options include:
 
 * No compression
     * ``None@0``
+* ZLIB compression
+    * ``ZLIB@compression_level``
 * SZ compression
     * ``SZ@/path/to/sz.config``
 * ZFP compression
@@ -224,6 +230,9 @@ options include:
     * ``ZFP_ACCURACY@accuracy``
     * ``ZFP_REVERSIBLE@reversible``
 
+Using compression requires data to be stored in a chunked format. The size of these
+chunks can (and generally should) be configured by changing the ``HDF5_CHUNK_SIZE``
+environment variable, with a default value of 1024 elements provided.
 
 HDF5 Asynchronous Output
 ------------------------

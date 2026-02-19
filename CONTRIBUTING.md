@@ -213,42 +213,46 @@ commits have been saved in `new_branch` branch.
 
 AMReX developers should adhere to the following coding guidelines:
   * Indentations should use 4 spaces, not tabs.
+  * Trailing whitespaces at the end of a line are not allowed.
   * Use curly braces for single statement blocks. For example:
-```cpp
-       for (int n=0; n<10; ++n) {
-           Print() << "Like this!";
-       }
-```
-  or
-```cpp
-       for (int n=0; n<10; ++n) { Print() << "Like this!"; }
-```
-  but not
-```cpp
-
-       for (int n=0; n<10; ++n) Print() << "Not like this.";
-```
-  or
-```cpp
-       for (int n=0; n<10; ++n)
-          Print() << "Not like this.";
-```
+    ```cpp
+    for (int n=0; n<10; ++n) {
+        Print() << "Like this!";
+    }
+    ```
+    or
+    ```cpp
+    for (int n=0; n<10; ++n) { Print() << "Like this!"; }
+    ```
+    but not
+    ```cpp
+    for (int n=0; n<10; ++n) Print() << "Not like this.";
+    ```
+    or
+    ```cpp
+    for (int n=0; n<10; ++n)
+       Print() << "Not like this.";
+    ```
   * When declaring and defining a function, add a space after the function name and before the
 parenthesis of the parameter list (but not when simply calling the function). For example:
-```cpp
-        void CorrectFunctionDec (int input)
-```
-  Not
-```cpp
-        void IncorrectFunctionDec(int input)
-```
-  This makes it easy to find where functions are defined with grep.
+    ```cpp
+    void CorrectFunctionDec (int input)
+    ```
+    Not
+    ```cpp
+    void IncorrectFunctionDec(int input)
+    ```
+    This makes it easy to find where functions are defined with grep.
   * Member variables should be prefixed with `m_`. For example:
-```cpp
-       amrex::Real m_variable;
-```
+    ```cpp
+    amrex::Real m_variable;
+    ```
 These guidelines should be adhered to in new contributions to AMReX, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.
+
+To help developers follow the idententation and whitespace guidelines, an
+[EditorConfig](https://editorconfig.org/) file is provided at
+[.editorconfig](.editorconfig).
 
 ### API Documentation Using Doxygen
 
@@ -257,55 +261,18 @@ to maximize the efficiency of a search-and-find style of locating information.
 Doxygen style comment blocks should proceed the namespace, class, function, etc.
 to be documented where appropriate. For example:
 ```cpp
-   /**
-    * \brief A one line description.
-    *
-    * \param[in] variable A short description of the variable.
-    * \param[inout] data The value of data is read and changed.
-    *
-    * A longer description can be included here.
-    */
+/**
+ * \brief A one line description.
+ *
+ * \param[in] variable A short description of the variable.
+ * \param[inout] data The value of data is read and changed.
+ *
+ * A longer description can be included here.
+ */
 
-    void MyFunction (int variable, MultiFab& data){
-    ...
+void MyFunction (int variable, MultiFab& data)
+{
+}
 ```
 Additional information regarding Doxygen comment formatting can be found
 in the [Doxygen Manual](https://www.doxygen.nl/manual/).
-
-
-
-
-## Core Developers
-
-People who make a number of substantive contributions will be named
-"core developers" of AMReX.  The criteria for becoming a core
-developer are flexible, but generally involve one of the following:
-
-  * 100 non-trivial commits to `amrex/Src/`  *and/or*
-
-  * addition of a new algorithm / module  *and/or*
-
-  * substantial input into the code design process or testing
-
-If a core developer is inactive for multiple years, we may reassess their
-status as a core developer.
-
-The current list of core developers is:
-Ann Almgren (LBNL),
-Vince Beckner,
-John Bell (LBNL),
-Johannes Blaschke (LBNL),
-Cy Chan (LBNL),
-Marcus Day (LBNL),
-Brian Friesen (NERSC),
-Kevin Gott (NERSC),
-Daniel Graves (LBNL),
-Axel Huebl (LBNL),
-Max Katz (NVIDIA),
-Andrew Myers (LBNL),
-Tan Nguyen (LBNL),
-Andrew Nonaka (LBNL),
-Michele Rosso (LBNL),
-Sam Williams (LBNL),
-Weiqun Zhang (LBNL),
-Michael Zingale (Stony Brook University).

@@ -10,27 +10,30 @@
 
 namespace amrex {
 
-template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
+template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 bool isEmpty (T n) noexcept { return n <= 0; }
 
-AMREX_FORCE_INLINE bool isEmpty (Box const& b) noexcept { return b.isEmpty(); }
+template<int dim>
+AMREX_FORCE_INLINE bool isEmpty (BoxND<dim> const& b) noexcept { return b.isEmpty(); }
 
 namespace Gpu {
 
+/// \cond DOXYGEN_IGNORE
 namespace range_detail {
 
 //! integer version
-template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
+template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 AMREX_GPU_HOST_DEVICE
 Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
-template <typename T, typename std::enable_if<std::is_integral<T>::value,int>::type = 0>
+template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 AMREX_GPU_HOST_DEVICE
 Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 
-//! Box version
+//! BoxND version
+template<int dim>
 AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE Long size (Box const& b) noexcept
+AMREX_FORCE_INLINE Long size (BoxND<dim> const& b) noexcept
 {
     AMREX_IF_ON_DEVICE((return b.numPts();))
     AMREX_IF_ON_HOST((
@@ -39,19 +42,13 @@ AMREX_FORCE_INLINE Long size (Box const& b) noexcept
     ))
 }
 
+template<int dim>
 AMREX_GPU_HOST_DEVICE
-AMREX_FORCE_INLINE Box at (Box const& b, Long offset) noexcept
+AMREX_FORCE_INLINE BoxND<dim> at (BoxND<dim> const& b, Long offset) noexcept
 {
     AMREX_IF_ON_DEVICE((
-        auto len = b.length3d();
-        Long k = offset / (len[0]*len[1]);
-        Long j = (offset - k*(len[0]*len[1])) / len[0];
-        Long i = (offset - k*(len[0]*len[1])) - j*len[0];
-        IntVect iv{AMREX_D_DECL(static_cast<int>(i),
-                                static_cast<int>(j),
-                                static_cast<int>(k))};
-        iv += b.smallEnd();
-        return Box(iv,iv,b.type());
+        auto iv = b.atOffset(offset);
+        return BoxND<dim>(iv,iv,b.ixType());
     ))
     AMREX_IF_ON_HOST((
         amrex::ignore_unused(offset);
@@ -73,7 +70,7 @@ struct range_impl
     struct iterator
     {
         AMREX_GPU_HOST_DEVICE
-        iterator (T const& b, Long i, Long s) noexcept : mi_b(b), mi_i(i), mi_s(s)  {}
+        iterator (T const& b, Long i, Long s) noexcept : mi_b(&b), mi_i(i), mi_s(s)  {}
 
         AMREX_GPU_HOST_DEVICE
         void operator++ () noexcept { mi_i += mi_s; }
@@ -82,10 +79,10 @@ struct range_impl
         bool operator!= (iterator const& rhs) const noexcept { return mi_i < rhs.mi_i; }
 
         AMREX_GPU_HOST_DEVICE
-        T operator* () const noexcept { return range_detail::at(mi_b,mi_i); }
+        T operator* () const noexcept { return range_detail::at(*mi_b,mi_i); }
 
     private:
-        T const& mi_b;
+        T const* mi_b;
         Long mi_i;
         Long mi_s;
     };
@@ -116,6 +113,7 @@ private:
 #endif
 };
 }
+/// \endcond
 
 #ifdef AMREX_USE_SYCL
 template <typename T>

@@ -190,6 +190,81 @@ void mlpoisson_gsrb_m (int i, int, int, Array4<T> const& phi, Array4<T const> co
 
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_jacobi (int i, int, int, Array4<T> const& phi, Array4<T const> const& rhs,
+                       Array4<T const> const& Ax, T dhx,
+                       Array4<T const> const& f0, Array4<int const> const& m0,
+                       Array4<T const> const& f1, Array4<int const> const& m1,
+                       Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T gamma = -dhx*T(2.0);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+        ? f0(vlo.x,0,0) : T(0.0);
+    T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+        ? f1(vhi.x,0,0) : T(0.0);
+
+    T g_m_d = gamma + dhx*(cf0+cf1);
+
+    phi(i,0,0) += T(2.0/3.0) * (rhs(i,0,0) - Ax(i,0,0)) / g_m_d;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_jacobi_os (int i, int, int, Array4<T> const& phi, Array4<T const> const& rhs,
+                          Array4<T const> const& Ax, Array4<int const> const& osm, T dhx,
+                          Array4<T const> const& f0, Array4<int const> const& m0,
+                          Array4<T const> const& f1, Array4<int const> const& m1,
+                          Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    if (osm(i,0,0) == 0) {
+        phi(i,0,0) = T(0.0);
+    } else {
+        T cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+            ? f0(vlo.x,0,0) : T(0.0);
+        T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+            ? f1(vhi.x,0,0) : T(0.0);
+
+        T gamma = -dhx*T(2.0);
+        T g_m_d = gamma + dhx*(cf0+cf1);
+
+        phi(i,0,0) += T(2.0/3.0) * (rhs(i,0,0) - Ax(i,0,0)) / g_m_d;
+    }
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_jacobi_m (int i, int, int, Array4<T> const& phi, Array4<T const> const& rhs,
+                         Array4<T const> const& Ax, T dhx,
+                         Array4<T const> const& f0, Array4<int const> const& m0,
+                         Array4<T const> const& f1, Array4<int const> const& m1,
+                         Box const& vbox, T dx, T probxlo) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,0,0) > 0)
+        ? f0(vlo.x,0,0) : T(0.0);
+    T cf1 = (i == vhi.x && m1(vhi.x+1,0,0) > 0)
+        ? f1(vhi.x,0,0) : T(0.0);
+
+    T rel = (probxlo + i   *dx) * (probxlo + i   *dx);
+    T rer = (probxlo +(i+1)*dx) * (probxlo +(i+1)*dx);
+
+    T gamma = -dhx*(rel+rer);
+
+    T g_m_d = gamma + dhx*(rel*cf0+rer*cf1);
+
+    phi(i,0,0) += T(2.0/3.0) * (rhs(i,0,0) - Ax(i,0,0)) / g_m_d;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlpoisson_normalize (int i, int, int, Array4<T> const& x,
                           T dhx, T dx, T probxlo) noexcept
 {

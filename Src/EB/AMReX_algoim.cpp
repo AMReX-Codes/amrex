@@ -66,8 +66,16 @@ compute_integrals (MultiFab& intgmf, IntVect nghost)
 
             if (Gpu::inLaunchRegion())
             {
+#if defined(AMREX_USE_CUDA)
+                // It appears that there is a nvcc bug. We have to use the
+                // 4D ParallelFor here, even though ncomp is 1.
+                int ncomp = fg.nComp();
+                amrex::ParallelFor(bx, ncomp,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k, int) noexcept
+#else
                 amrex::ParallelFor(bx,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+#endif
                 {
                     const auto ebflag = fg(i,j,k);
                     if (ebflag.isRegular()) {

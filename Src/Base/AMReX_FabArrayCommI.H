@@ -2,13 +2,17 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
+namespace amrex {
+
 template <class FAB>
-template <typename BUF, class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
+template <typename BUF, class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
                             bool enforce_periodicity_only,
-                            bool override_sync)
+                            bool override_sync,
+                            IntVect const& sumboundary_src_nghost,
+                            bool deterministic) // so far the deterministic is for sumboundary only
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
@@ -16,17 +20,21 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     AMREX_ASSERT_WITH_MESSAGE(!fbd, "FillBoundary_nowait() called when comm operation already in progress.");
     AMREX_ASSERT(!enforce_periodicity_only || !override_sync);
 
+    bool sumboundary = sumboundary_src_nghost.allGE(0);
+
     bool work_to_do;
     if (enforce_periodicity_only) {
         work_to_do = period.isAnyPeriodic();
     } else if (override_sync) {
         work_to_do = (nghost.max() > 0) || !is_cell_centered();
+    } else if (sumboundary) {
+        work_to_do = true;
     } else {
         work_to_do = nghost.max() > 0;
     }
     if (!work_to_do) { return; }
 
-    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, override_sync);
+    const FB& TheFB = getFB(nghost, period, cross, enforce_periodicity_only, override_sync, sumboundary_src_nghost);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -39,20 +47,39 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion())
+            if (Gpu::inGraphRegion() && !sumboundary)
             {
                 FB_local_copy_cuda_graph_1(TheFB, scomp, ncomp);
             }
             else
 #endif
             {
-                FB_local_copy_gpu(TheFB, scomp, ncomp);
+                if (sumboundary) {
+                    if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
+                    } else {
+                        amrex::Abort("SumBoundary requires operator+=");
+                    }
+                } else {
+                    FB_local_copy_gpu(TheFB, scomp, ncomp);
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
+                }
             }
         }
         else
 #endif
         {
-            FB_local_copy_cpu(TheFB, scomp, ncomp);
+            if (sumboundary) {
+                if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                    FB_local_add_cpu(TheFB, scomp, ncomp);
+                } else {
+                    amrex::Abort("SumBoundary requires operator+=");
+                }
+            } else {
+                FB_local_copy_cpu(TheFB, scomp, ncomp);
+            }
         }
 
         return;
@@ -80,6 +107,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
     fbd->scomp = scomp;
     fbd->ncomp = ncomp;
     fbd->tag   = SeqNum;
+    fbd->deterministic = deterministic;
 
     //
     // Post rcvs. Allocate one chunk of space to hold'm all.
@@ -117,7 +145,7 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
             else
 #endif
             {
-                pack_send_buffer_gpu<BUF>(*this, scomp, ncomp, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu<BUF>(*this, scomp, ncomp, send_data, send_size, send_cctc, TheFB.m_id);
             }
         }
         else
@@ -141,29 +169,52 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion()) {
+            if (Gpu::inGraphRegion() && !sumboundary) {
                 FB_local_copy_cuda_graph_n(TheFB, scomp, ncomp);
             }
             else
 #endif
             {
-                FB_local_copy_gpu(TheFB, scomp, ncomp);
+                if (sumboundary) {
+                    if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                        FB_local_add_gpu(TheFB, scomp, ncomp, deterministic);
+                    } else {
+                        amrex::Abort("SumBoundary requires operator+=");
+                    }
+                } else {
+                    FB_local_copy_gpu(TheFB, scomp, ncomp);
+                    if (!Gpu::inNoSyncRegion() && N_rcvs == 0) {
+                        Gpu::streamSynchronize();
+                    }
+                }
             }
         }
         else
 #endif
         {
-            FB_local_copy_cpu(TheFB, scomp, ncomp);
+            if (sumboundary) {
+                if constexpr (amrex::IsAddAssignable<value_type>::value) {
+                    FB_local_add_cpu(TheFB, scomp, ncomp);
+                } else {
+                    amrex::Abort("SumBoundary requires operator+=");
+                }
+            } else {
+                FB_local_copy_cpu(TheFB, scomp, ncomp);
+            }
         }
 
         FillBoundary_test();
     }
 
 #endif /*BL_USE_MPI*/
+
+#ifndef AMREX_USE_GPU
+    amrex::ignore_unused(deterministic);
+#endif
 }
 
 template <class FAB>
-template <typename BUF, class F, typename std::enable_if<IsBaseFab<F>::value,int>::type Z>
+template <typename BUF, class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
 void
 FabArray<FAB>::FillBoundary_finish ()
 {
@@ -175,6 +226,7 @@ FabArray<FAB>::FillBoundary_finish ()
     if (!fbd) { n_filled = IntVect::TheZeroVector(); return; }
 
     const FB* TheFB = fbd->fb;
+    bool sumboundary = TheFB->m_sb_snghost.allGE(0);
     const auto N_rcvs = static_cast<int>(TheFB->m_RcvTags->size());
     if (N_rcvs > 0)
     {
@@ -201,12 +253,13 @@ FabArray<FAB>::FillBoundary_finish ()
         }
 
         bool is_thread_safe = TheFB->m_threadsafe_rcv;
+        auto op = sumboundary ? FabArrayBase::ADD : FabArrayBase::COPY;
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
 #if defined(__CUDACC__) && defined(AMREX_USE_CUDA)
-            if (Gpu::inGraphRegion())
+            if (Gpu::inGraphRegion() && !sumboundary)
             {
                 FB_unpack_recv_buffer_cuda_graph(*TheFB, fbd->scomp, fbd->ncomp,
                                                  fbd->recv_data, fbd->recv_size,
@@ -215,15 +268,16 @@ FabArray<FAB>::FillBoundary_finish ()
             else
 #endif
             {
+                bool deterministic = fbd->deterministic;
                 unpack_recv_buffer_gpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                            recv_cctc, FabArrayBase::COPY, is_thread_safe);
+                                            recv_cctc, op, is_thread_safe, TheFB->m_id, deterministic);
             }
         }
         else
 #endif
         {
             unpack_recv_buffer_cpu<BUF>(*this, fbd->scomp, fbd->ncomp, fbd->recv_data, fbd->recv_size,
-                                        recv_cctc, FabArrayBase::COPY, is_thread_safe);
+                                        recv_cctc, op, is_thread_safe);
         }
 
         if (fbd->the_recv_data)
@@ -246,7 +300,6 @@ FabArray<FAB>::FillBoundary_finish ()
 #endif
 }
 
-// \cond CODEGEN
 template <class FAB>
 void
 FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
@@ -257,11 +310,38 @@ FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src,
                              const IntVect&       dnghost,
                              const Periodicity&   period,
                              CpOp                 op,
-                             const FabArrayBase::CPC * a_cpc)
+                             const FabArrayBase::CPC * a_cpc,
+                             bool                 deterministic)
 {
     BL_PROFILE("FabArray::ParallelCopy()");
 
-    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc);
+    ParallelCopy_nowait(src, scomp, dcomp, ncomp, snghost, dnghost, period, op, a_cpc,
+                        false, deterministic);
+    ParallelCopy_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopy (const FabArray<FAB>& src, int src_comp, int dest_comp,
+                             int num_comp, const IntVect& snghost, const IntVect& dnghost,
+                             const IntVect& offset, const Periodicity& period)
+{
+    BL_PROFILE("FabArray::ParallelCopy()");
+
+    ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,snghost,dnghost,offset,period);
+    ParallelCopy_finish();
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelAdd (const FabArray<FAB>& src, int src_comp, int dest_comp,
+                             int num_comp, const IntVect& snghost, const IntVect& dnghost,
+                             const IntVect& offset, const Periodicity& period)
+{
+    BL_PROFILE("FabArray::ParallelAdd()");
+
+    ParallelCopy_nowait(src,src_comp,dest_comp,num_comp,snghost,dnghost,offset,period,
+                        FabArray::ADD);
     ParallelCopy_finish();
 }
 
@@ -315,7 +395,27 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
                                     const Periodicity&   period,
                                     CpOp                 op,
                                     const FabArrayBase::CPC * a_cpc,
-                                    bool                 to_ghost_cells_only)
+                                    bool                 to_ghost_cells_only,
+                                    bool                 deterministic)
+{
+    ParallelCopy_nowait(src,scomp,dcomp,ncomp,snghost,dnghost,IntVect(0),period,op,a_cpc,
+                        to_ghost_cells_only, deterministic);
+}
+
+template <class FAB>
+void
+FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
+                                    int                  scomp,
+                                    int                  dcomp,
+                                    int                  ncomp,
+                                    const IntVect&       snghost,
+                                    const IntVect&       dnghost,
+                                    const IntVect&       offset,
+                                    const Periodicity&   period,
+                                    CpOp                 op,
+                                    const FabArrayBase::CPC * a_cpc,
+                                    bool                 to_ghost_cells_only,
+                                    bool                 deterministic)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: PC");
     BL_PROFILE("FabArray::ParallelCopy_nowait()");
@@ -333,11 +433,77 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 
     n_filled = dnghost;
 
+    if ((ParallelDescriptor::NProcs() == 1) &&
+        (this->size() == 1) &&  (src.size() == 1) &&
+        !period.isAnyPeriodic() && !to_ghost_cells_only && (offset == 0))
+    {
+        if (this != &src) { // avoid self copy or plus
+            auto const& da = this->array(0, dcomp);
+            auto const& sa = src.const_array(0, scomp);
+            Box box = amrex::grow(src.box(0),snghost)
+                &     amrex::grow(this->box(0),dnghost);
+            if (op == FabArrayBase::COPY) {
+#ifdef AMREX_USE_GPU
+                if (Gpu::inLaunchRegion()) {
+                    ParallelFor(box, ncomp,
+                            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
+                                da(i,j,k,n) = sa(i,j,k,n);
+                            });
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
+                } else
+#endif
+                {
+                    auto const& lo = amrex::lbound(box);
+                    auto const& hi = amrex::ubound(box);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for collapse(3)
+#endif
+                    for (int n = 0; n < ncomp; ++n) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                    AMREX_PRAGMA_SIMD
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        da(i,j,k,n) = sa(i,j,k,n);
+                    }}}}
+                }
+            } else {
+#ifdef AMREX_USE_GPU
+                if (Gpu::inLaunchRegion()) {
+                    ParallelFor(box, ncomp,
+                            [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) {
+                                da(i,j,k,n) += sa(i,j,k,n);
+                            });
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
+                } else
+#endif
+                {
+                    auto const& lo = amrex::lbound(box);
+                    auto const& hi = amrex::ubound(box);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for collapse(3)
+#endif
+                    for (int n = 0; n < ncomp; ++n) {
+                    for (int k = lo.z; k <= hi.z; ++k) {
+                    for (int j = lo.y; j <= hi.y; ++j) {
+                    AMREX_PRAGMA_SIMD
+                    for (int i = lo.x; i <= hi.x; ++i) {
+                        da(i,j,k,n) += sa(i,j,k,n);
+                    }}}}
+                }
+            }
+        }
+        return;
+    }
+
     if ((src.boxArray().ixType().cellCentered() || op == FabArrayBase::COPY) &&
         (boxarray == src.boxarray && distributionMap == src.distributionMap) &&
         snghost == IntVect::TheZeroVector() &&
         dnghost == IntVect::TheZeroVector() &&
-        !period.isAnyPeriodic() && !to_ghost_cells_only)
+        !period.isAnyPeriodic() && !to_ghost_cells_only && (offset == 0))
     {
         //
         // Short-circuit full intersection code if we're doing copy()s or if
@@ -354,7 +520,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         return;
     }
 
-    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period, to_ghost_cells_only);
+    const CPC& thecpc = (a_cpc) ? *a_cpc : getCPC(dnghost, src, snghost, period,
+                                                  to_ghost_cells_only,offset);
 
     if (ParallelContext::NProcsSub() == 1)
     {
@@ -367,7 +534,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op);
+            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op, deterministic);
         }
         else
 #endif
@@ -447,7 +614,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc);
+                pack_send_buffer_gpu(src, SC, NC, send_data, send_size, send_cctc, thecpc.m_id);
             }
             else
 #endif
@@ -467,7 +634,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, SC, DC, NC, op);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op, deterministic);
             }
             else
 #endif
@@ -489,6 +656,10 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
     }
 
 #endif /*BL_USE_MPI*/
+
+#ifndef AMREX_USE_GPU
+    amrex::ignore_unused(deterministic);
+#endif
 }
 
 template <class FAB>
@@ -537,7 +708,7 @@ FabArray<FAB>::ParallelCopy_finish ()
         if (Gpu::inLaunchRegion())
         {
             unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe);
+                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id, false);
         }
         else
 #endif
@@ -611,7 +782,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
     }
 #endif
 }
-// \endcond
+
 #ifdef BL_USE_MPI
 template <class FAB>
 template <typename BUF>
@@ -622,7 +793,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<int>&                         send_rank,
                                    Vector<MPI_Request>&                 send_reqs,
                                    Vector<const CopyComTagsContainer*>& send_cctc,
-                                   int                                  ncomp) const
+                                   int                                  ncomp)
 {
     char* pointer = nullptr;
     PrepareSendBuffers<BUF>(SndTags, pointer, send_data, send_size, send_rank, send_reqs, send_cctc, ncomp);
@@ -639,7 +810,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<int>&                         send_rank,
                                    Vector<MPI_Request>&                 send_reqs,
                                    Vector<const CopyComTagsContainer*>& send_cctc,
-                                   int                                  ncomp) const
+                                   int                                  ncomp)
 {
     send_data.clear();
     send_size.clear();
@@ -666,7 +837,7 @@ FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
             nbytes += cct.sbox.numPts() * ncomp * sizeof(BUF);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
         // Also need to align the offset properly
@@ -723,7 +894,7 @@ TheFaArenaPointer FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&     
                    Vector<int>&                           recv_from,
                    Vector<MPI_Request>&                   recv_reqs,
                    int                                    ncomp,
-                   int                                    SeqNum) const
+                   int                                    SeqNum)
 {
     char* pointer = nullptr;
     PostRcvs(RcvTags, pointer, recv_data, recv_size, recv_from, recv_reqs, ncomp, SeqNum);
@@ -740,7 +911,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
                          Vector<int>&                      recv_from,
                          Vector<MPI_Request>&              recv_reqs,
                          int                               ncomp,
-                         int                               SeqNum) const
+                         int                               SeqNum)
 {
     recv_data.clear();
     recv_size.clear();
@@ -757,7 +928,7 @@ FabArray<FAB>::PostRcvs (const MapOfCopyComTagContainers&  RcvTags,
             nbytes += cct.dbox.numPts() * ncomp * sizeof(BUF);
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly
@@ -838,6 +1009,7 @@ FabArray<FAB>::FillBoundary_test ()
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <class TagT>
 void fbv_copy (Vector<TagT> const& tags)
@@ -871,6 +1043,7 @@ void fbv_copy (Vector<TagT> const& tags)
     }
 }
 }
+/// \endcond
 
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
@@ -992,7 +1165,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                 }
             }
 
-            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             nbytes = amrex::aligned_size(acd, nbytes); // so that nbytes are aligned
 
             // Also need to align the offset properly
@@ -1065,7 +1238,7 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                 }
             }
 
-            std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+            std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
             nbytes = amrex::aligned_size(acd, nbytes); // so that bytes are aligned
 
             // Also need to align the offset properly
@@ -1141,4 +1314,6 @@ FillBoundary (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::
         nghost.push_back(x->nGrowVect());
     }
     FillBoundary(mf, scomp, ncomp, nghost, period);
+}
+
 }

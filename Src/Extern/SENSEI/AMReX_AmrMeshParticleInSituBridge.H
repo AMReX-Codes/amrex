@@ -33,26 +33,26 @@ public:
 
   // invoke the in situ analysis with data from an AmrMesh and ParticleContainer
   // instance.
-  template<typename ParticleType, int NArrayReal, int NArrayInt>
+  template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
   int update(
     long step, double time,
     amrex::AmrMesh *mesh,
     const std::vector<amrex::Vector<amrex::MultiFab>*> &mesh_states,
     const std::vector<std::vector<std::string>> &mesh_names,
-    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> * particles,
     const std::map<std::string, std::vector<int>> & particles_rStructs = {},
     const std::map<std::string, int> & particles_iStructs = {},
     const std::map<std::string, std::vector<int>> & particles_rArrays = {},
     const std::map<std::string, int> & particles_iArrays = {});
 };
 
-template<typename ParticleType, int NArrayReal, int NArrayInt>
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator>
 int AmrMeshParticleInSituBridge::update(
   long step, double time,
   amrex::AmrMesh *mesh,
   const std::vector<amrex::Vector<amrex::MultiFab>*> &mesh_states,
   const std::vector<std::vector<std::string>> &mesh_names,
-  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
+  amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> * particles,
   const std::map<std::string, std::vector<int>> & particles_rStructs,
   const std::map<std::string, int> & particles_iStructs,
   const std::map<std::string, std::vector<int>> & particles_rArrays,
@@ -73,8 +73,8 @@ int AmrMeshParticleInSituBridge::update(
       return -1;
     }
 
-    amrex::AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt> *data_adaptor
-      = amrex::AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New();
+    amrex::AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator> *data_adaptor
+      = amrex::AmrMeshParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::New();
 
     if (comm != MPI_COMM_NULL)
       data_adaptor->SetCommunicator(comm);

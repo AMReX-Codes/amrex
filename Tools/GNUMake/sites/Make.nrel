@@ -1,51 +1,91 @@
-ifneq ($(which_computer),$(filter $(which_computer),kestrel eagle))
+ifneq ($(which_computer),$(filter $(which_computer),kestrel))
   $(error Unknown NREL computer, $(which_computer))
 endif
 
-ifeq ($(which_computer), kestrel)
-  CXX := CC
-  CC  := cc
-  FC  := ftn
-  F90 := ftn
-endif
-
-# Eagle is homogeneous at the moment
-# so we can be very specific about arch.
-# We are not accommodating older compilers
-# that will fail with these flags.
-ifeq ($(which_computer), eagle)
-  ifeq ($(COMP), intel)
-    CXXFLAGS += -xSKYLAKE-AVX512
-    CFLAGS   += -xSKYLAKE-AVX512
-    FFLAGS   += -xSKYLAKE-AVX512
-    F90FLAGS += -xSKYLAKE-AVX512
-  else ifeq ($(COMP), $(filter $(COMP),gnu gcc llvm))
-    # CUDA fails with "machine" redefinition error with these flags
-    ifneq ($(USE_CUDA), TRUE)
-      CXXFLAGS += -march=skylake-avx512 -mtune=skylake-avx512
-      CFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
-      FFLAGS   += -march=skylake-avx512 -mtune=skylake-avx512
-      F90FLAGS += -march=skylake-avx512 -mtune=skylake-avx512
-    endif
-  endif
+ifeq ($(which_computer),$(filter $(which_computer),kestrel))
   ifeq ($(USE_CUDA),TRUE)
-    ifneq ($(CUDA_HOME),)
-      SYSTEM_CUDA_PATH := $(CUDA_HOME)
-      COMPILE_CUDA_PATH := $(CUDA_HOME)
+    ifdef MPICH_ROOT
+      CFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))'
+      CXXFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))'
+    else
+      CFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))'
+      CXXFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))'
     endif
-    CUDA_ARCH = 70
+  else ifeq ($(USE_MPI),FALSE)
+    CFLAGS += $(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))
+    CXXFLAGS += $(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))
   endif
+
+  ifeq ($(USE_CUDA),TRUE)
+    ifdef NPE_VERSION
+      CFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicc -show 2> /dev/null)))'
+      CXXFLAGS += -Xcompiler='$(filter-out -Wl%, $(wordlist 2,1024,$(shell mpicxx -show 2> /dev/null)))'
+    else
+      CFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))'
+      CXXFLAGS += -Xcompiler='$(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))'
+    endif
+  else ifeq ($(USE_MPI),FALSE)
+    CFLAGS += $(wordlist 2,1024,$(shell cc -craype-verbose 2> /dev/null))
+    CXXFLAGS += $(wordlist 2,1024,$(shell CC -craype-verbose 2> /dev/null))
+  endif
+
   ifeq ($(USE_MPI),TRUE)
-    # Always assume HPE MPT on Eagle
-    LIBRARIES += -lmpi
-    CXX := mpicxx
-    CC  := mpicc
-    FC  := mpif90
-    F90 := mpif90
-    ifeq ($(COMP), intel)
-      export MPICXX_CXX := icpc
-      export MPICC_CC   := icc
-      export MPIF90_F90 := ifort
+    ifneq ($(USE_CUDA),TRUE)
+      CC  = cc
+      CXX = CC
+      FC  = ftn
+      F90 = ftn
+      LIBRARIES += -lmpichf90
+    endif
+
+    ifndef NPE_VERSION
+      includes += $(shell CC --cray-print-opts=cflags)
+    endif
+  endif
+
+  ifeq ($(USE_CUDA),TRUE)
+    CUDA_ARCH = 90
+
+    ifeq ($(USE_MPI), FALSE)
+      includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
+    endif
+
+    ifdef NPE_VERSION
+      includes += $(CRAY_CUDATOOLKIT_INCLUDE_OPTS)
+    endif
+
+    comm := ,
+    ifneq ($(BL_NO_FORT),TRUE)
+      ifdef MPICH_ROOT
+#       Set to mpicxx to avoid this warning:
+#       cc1plus: warning: command-line option '-fallow-argument-mismatch' is valid for Fortran but not for C++
+#       Can just be filtered out, or is cxx fine?
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
+      else
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell ftn --cray-print-opts=libs))
+      endif
+    else
+      ifdef MPICH_ROOT
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(wordlist 2,1024,$(shell mpicxx -show)))
+      else
+        LIBRARIES += $(subst -Wl$(comm),-Xlinker=,$(shell CC --cray-print-opts=libs))
+      endif
+    endif
+
+    ifneq ($(CUDA_ROOT),)
+        SYSTEM_CUDA_PATH := $(CUDA_ROOT)
+        COMPILE_CUDA_PATH := $(CUDA_ROOT)
+    else ifneq ($(CUDA_HOME),)
+        SYSTEM_CUDA_PATH := $(CUDA_HOME)
+        COMPILE_CUDA_PATH := $(CUDA_HOME)
+    else ifneq ($(CUDA_PATH),)
+        SYSTEM_CUDA_PATH := $(CUDA_PATH)
+        COMPILE_CUDA_PATH := $(CUDA_PATH)
+    else ifneq ($(NVIDIA_PATH),)
+        SYSTEM_CUDA_PATH := $(NVIDIA_PATH)/cuda
+        COMPILE_CUDA_PATH := $(NVIDIA_PATH)/cuda
+    else
+        $(error No CUDA_ROOT nor CUDA_HOME nor CUDA_PATH found. Please load a cuda module.)
     endif
   endif
 endif

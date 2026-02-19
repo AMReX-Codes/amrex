@@ -1,0 +1,391 @@
+
+/**
+ * \defgroup amrex_arithmetic_types Arithmetic Types
+ *
+ * \brief Fundamental scalar arithmetic types used throughout AMReX.
+ *
+ * These types define the default real, long integer, and complex number
+ * representations used by AMReX.
+ *
+ * Central types include:
+ * - \ref amrex::Real
+ * - \ref amrex::ParticleReal
+ * - \ref amrex::Long
+ * - \ref amrex::ULong
+ * - \ref amrex::GpuComplex
+ */
+
+/**
+ * \defgroup amrex_index_space Integer Index Space
+ *
+ * \brief Types and operations for discrete integer index space in AMReX.
+ *
+ * These types define the integer space on which AMReX data structures are
+ * defined. They are independent of physical coordinates and units.
+ *
+ * Central types include:
+ * - \ref amrex::IndexType
+ * - \ref amrex::IntVect
+ * - \ref amrex::Box
+ *
+ * Common operations include:
+ * - \ref amrex::coarsen
+ * - \ref amrex::grow
+ * - \ref amrex::refine
+ */
+
+/**
+ * \defgroup amrex_real_space Real Space
+ *
+ * \brief Types and operations for real space coordinates and geometry in AMReX.
+ *
+ * These abstractions define physical coordinates, bounding boxes and
+ * geometric information associated with the computational domain.
+ *
+ * Central types include:
+ * - \ref amrex::RealVect
+ * - \ref amrex::RealBox
+ * - \ref amrex::Geometry
+ */
+
+/**
+ * \defgroup amrex_domain_decomposition Domain Decomposition
+ *
+ * \brief Types and utilities for describing and managing the decomposition
+ * of computational domains.
+ *
+ * These abstractions define how index-space regions are partitioned into
+ * boxes and how those boxes are distributed across parallel processes.
+ *
+ * Central types include:
+ * - \ref amrex::BoxArray
+ * - \ref amrex::DistributionMapping
+ */
+
+/**
+ * \defgroup amrex_memory Memory Arenas and Allocators
+ *
+ * \brief Memory arenas and allocators.
+ *
+ * AMReX provides a number of memory arenas and allocators:
+ * - \ref amrex::The_Arena
+ * - \ref amrex::The_Device_Arena
+ * - \ref amrex::The_Managed_Arena
+ * - \ref amrex::The_Async_Arena
+ * - \ref amrex::The_Pinned_Arena
+ * - \ref amrex::The_Cpu_Arena
+ * - \ref amrex::ArenaAllocator
+ * - \ref amrex::DeviceArenaAllocator
+ * - \ref amrex::ManagedArenaAllocator
+ * - \ref amrex::AsyncArenaAllocator
+ * - \ref amrex::PinnedArenaAllocator
+ * - \ref amrex::PolymorphicArenaAllocator
+ * - \ref amrex::Arena
+ * - \ref amrex::CArena
+ * - \ref amrex::SArena
+ */
+
+/**
+ * \defgroup amrex_data_containers Data Containers
+ *
+ * \brief Container types for storing AMReX data, from linear arrays to
+ * box-based and distributed box-based field data.
+ *
+ * Subtopics:
+ * - \ref amrex_linear_containers
+ * - \ref amrex_fab_containers
+ * - \ref amrex_multifab_containers
+ */
+
+/**
+ * \defgroup amrex_linear_containers Linear Containers
+ * \ingroup amrex_data_containers
+ *
+ * \brief One-dimensional and small fixed-size containers used throughout
+ * AMReX.
+ *
+ * Central types include:
+ * - \ref amrex::Vector
+ * - \ref amrex::Array
+ * - \ref amrex::GpuArray
+ * - \ref amrex::GpuTuple
+ * - \ref amrex::PODVector
+ * - \ref amrex::Gpu::DeviceVector
+ * - \ref amrex::Gpu::NonManagedDeviceVector
+ * - \ref amrex::Gpu::ManagedVector
+ * - \ref amrex::Gpu::ManagedDeviceVector
+ * - \ref amrex::Gpu::HostVector
+ * - \ref amrex::Gpu::PinnedVector
+ * - \ref amrex::Gpu::AsyncVector
+ */
+
+/**
+ * \defgroup amrex_fab_containers Fab Data
+ * \ingroup amrex_data_containers
+ *
+ * \brief Box-based data containers representing values on a single \ref amrex::Box.
+ *
+ * Central types include:
+ * - \ref amrex::Array4 and amrex::ArrayND
+ * - \ref amrex::BaseFab
+ * - \ref amrex::FArrayBox
+ * - \ref amrex::IArrayBox
+ */
+
+/**
+ * \defgroup amrex_multifab_containers Distributed Fab Data
+ * \ingroup amrex_data_containers
+ *
+ * \brief Distributed box-based data containers defined on a \ref
+ * amrex::BoxArray and distributed with a \ref amrex::DistributionMapping.
+ *
+ * Central types include:
+ * - \ref amrex::FabArray
+ * - \ref amrex::MultiFab
+ * - \ref amrex::iMultiFab
+ * - \ref amrex::MFIter
+ */
+
+/**
+ * \defgroup amrex_fabarray_communication Communication for Distributed Fab Data
+ * \ingroup amrex_multifab_containers
+ *
+ * \brief MPI data movement operations for \ref amrex::FabArray based containers.
+ *
+ * These operations may use MPI when AMReX is built with MPI support.
+ * Central interfaces include:
+ * - \ref amrex::FabArray::FillBoundary
+ * - \ref amrex::FabArray::FillBoundaryAndSync
+ * - \ref amrex::FabArray::ParallelCopy
+ * - \ref amrex::FabArray::ParallelAdd
+ * - \ref amrex::FabArray::SumBoundary
+ * - \ref amrex::FabArray::OverrideSync
+ * - \ref amrex::FabArray::EnforcePeriodicity
+ * - \ref amrex::FabArray::norminf
+ * - \ref amrex::MultiFab::norminf
+ * - \ref amrex::MultiFab::norm1
+ * - \ref amrex::MultiFab::norm2
+ * - \ref amrex::MultiFab::sum
+ * - \ref amrex::MultiFab::sum_unique
+ * - \ref amrex::MultiFab::max
+ * - \ref amrex::MultiFab::min
+ * - \ref amrex::MultiFab::Dot
+ * - \ref amrex::MultiFab::minIndex
+ * - \ref amrex::MultiFab::maxIndex
+ */
+
+/**
+ * \defgroup amrex_execution Execution and Kernel Launch
+ *
+ * \brief Facilities for expressing parallel computation and launching
+ * performance-portable kernels in AMReX.
+ *
+ * These interfaces provide a unified way to execute computational kernels
+ * on CPUs and GPUs without exposing backend-specific programming models.
+ *
+ * Key functions and classes include:
+ * - \ref amrex::ParallelFor
+ * - \ref amrex::ParallelForOMP
+ * - \ref amrex::ParallelForRNG
+ */
+
+/**
+ * \defgroup amrex_collectives Reductions and Scans
+ *
+ * \brief Performance-portable reduction and scan operations in AMReX
+ *
+ * These interfaces provide reductions (e.g., sum, min, max) and scan
+ * operations (prefix sums) over index spaces and ranges on both CPUs and
+ * GPUs. They do not use MPI and operate on data local to the process.
+ *
+ * Key functions and classes include:
+ * - \ref amrex::Reducer
+ * - \ref amrex::ReduceOpSum
+ * - \ref amrex::ReduceOpMin
+ * - \ref amrex::ReduceOpMax
+ * - \ref amrex::ReduceOpLogicalAnd
+ * - \ref amrex::ReduceOpLogicalOr
+ * - \ref amrex::ReduceOps
+ * - \ref amrex::ReduceData
+ * - \ref amrex::Reduce::Sum
+ * - \ref amrex::Reduce::Min
+ * - \ref amrex::Reduce::Max
+ * - \ref amrex::Reduce::MinMax
+ * - \ref amrex::Reduce::AnyOf
+ * - \ref amrex::Scan::PrefixSum
+ * - \ref amrex::Scan::InclusiveSum
+ * - \ref amrex::Scan::ExclusiveSum
+ * - \ref amrex::Gpu::inclusive_scan
+ * - \ref amrex::Gpu::exclusive_scan
+ */
+
+/**
+ * \defgroup amrex_mpi MPI Communication
+ *
+ * \brief MPI-based communication capabilities in AMReX.
+ *
+ * This topic documents the MPI-facing API, such as \ref
+ * amrex::ParallelDescriptor. amrex::FabArray operations that may use MPI
+ * (e.g., ghost exchange and parallel copies) are documented under \ref
+ * amrex_fabarray_communication.
+ */
+
+/**
+ * \defgroup amrex_amr Adaptive Mesh Refinement
+ *
+ * \brief Interfaces for managing adaptive mesh refinement (AMR) hierarchies in AMReX.
+ *
+ * Subtopics:
+ * - \ref amrex_amrcore
+ * - \ref amrex_amrlevel
+ */
+
+/**
+ * \defgroup amrex_amrcore AmrCore-based AMR
+ * \ingroup amrex_amr
+ *
+ * \brief AMR infrastructure based on the \ref amrex::AmrCore class.
+ *
+ * This provides core AMR functionality such as grid generation, while
+ * allowing applications to define their own time integration and data
+ * management.
+ *
+ * Central types include:
+ * - \ref amrex::AmrCore
+ * - \ref amrex::AmrMesh
+ */
+
+/**
+ * \defgroup amrex_amrlevel AmrLevel-based AMR
+ * \ingroup amrex_amr
+ *
+ * \brief \ref amrex::Amr and \ref amrex::AmrLevel classes.
+ *
+ * This provides a higher-level AMR driver that manages time stepping,
+ * subcycling, and level advancement through user-defined \ref
+ * amrex::AmrLevel subclasses.
+ *
+ * Central types include:
+ * - \ref amrex::Amr
+ * - \ref amrex::AmrLevel
+ */
+
+/**
+ * \defgroup amrex_linear_solvers Linear System Solvers
+ *
+ * \brief Interfaces for solving linear systems in AMReX.
+ *
+ * This topic documents the multigrid solver amrex::MLMG and the GMRES
+ * solver amrex::GMRES.
+ *
+ * Subtopics:
+ * - \ref amrex_solver_mlmg
+ * - \ref amrex_solver_gmres
+ */
+
+/**
+ * \defgroup amrex_solver_mlmg Multigrid Solvers
+ * \ingroup amrex_linear_solvers
+ *
+ * \brief Multigrid solvers for common partial differential equation (PDE) systems
+ *
+ * Central types include:
+ * - \ref amrex::MLMG
+ * - \ref amrex::MLLinOp
+ * - \ref amrex::MLPoisson
+ * - \ref amrex::MLABecLaplacian
+ */
+
+/**
+ * \defgroup amrex_solver_gmres GMRES Solver
+ * \ingroup amrex_linear_solvers
+ *
+ * \brief GMRES solver
+ *
+ * This topic is on the GMRES solver, which can also use amrex::MLMG as a
+ * preconditioner.
+ *
+ * Central types include:
+ * - \ref amrex::GMRES
+ * - \ref amrex::GMRESMLMG
+ */
+
+/**
+ * \defgroup amrex_particles Particles
+ *
+ * \brief Particle data structures in AMReX
+ *
+ * Central types include:
+ * - \ref amrex::ParticleContainer
+ * - \ref amrex::Particle
+ * - \ref amrex::ParticleTileData
+ * - \ref amrex::ParIter
+ */
+
+/**
+ * \defgroup amrex_eb Embedded Boundary
+ *
+ * \brief Interfaces for embedded boundary capabilities in AMReX.
+ *
+ * EB support provides geometry generation from implicit functions or STL
+ * files, data structures for EB information, and solvers.
+ *
+ * Central types include:
+ * - \ref amrex::EBFArrayBoxFactory
+ */
+
+/**
+ * \defgroup amrex_fft Fast Fourier Transform (FFT)
+ *
+ * \brief Interfaces for performing parallel FFT in AMReX.
+ *
+ * Central types include:
+ * - \ref amrex::FFT::R2C
+ * - \ref amrex::FFT::R2X
+ * - \ref amrex::FFT::LocalR2C
+ * - \ref amrex::FFT::Poisson
+ * - \ref amrex::FFT::PoissonOpenBC
+ * - \ref amrex::FFT::PoissonHybrid
+ */
+
+/**
+ * \defgroup amrex_io Input/Output
+ *
+ * \brief AMReX I/O interfaces.
+ *
+ * This covers I/O related topics.
+ *
+ * Central utility functions and classes include:
+ * - amrex::WriteMultiLevelPlotfile
+ * - amrex::VisMF
+ * - amrex::PlotFileData
+ * - amrex::ParticleContainer::WritePlotFile
+ * - amrex::ParticleContainer::Checkpoint
+ * - amrex::Amr::writePlotFile
+ * - amrex::Amr::checkPoint
+ */
+
+/**
+ * \defgroup amrex_utilities Utilities
+ *
+ * \brief General purpose utilities
+ *
+ * This topic covers general purpose utilities used throughout AMReX and
+ * AMReX applications.
+ *
+ * Central capabilities include:
+ * - \ref amrex::ParmParse
+ * - \ref amrex::Parser
+ * - \ref amrex::IParser
+ * - \ref AMREX_ENUM
+ * - \ref amrex::Random
+ * - \ref amrex::Random_int
+ * - \ref amrex::Random_long
+ * - \ref amrex::RandomNormal
+ * - \ref amrex::RandomPoisson
+ * - \ref amrex::RandomGamma
+ * - \ref amrex::FillRandom
+ * - \ref amrex::FillRandomNormal
+ * - \ref amrex::InitRandom
+ * - \ref amrex::ResetRandomSeed
+ */

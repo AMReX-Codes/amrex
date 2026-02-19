@@ -135,13 +135,28 @@ endfunction ()
 # _amrex_root is the amrex installation dir
 #
 macro( add_test_install_target _dir _amrex_root )
+   # Multi-Config generators such as Visual Studio or Ninja Multi-Config
+   # select the build type at build time. Others (GNUmake, Ninja, ...) select
+   # the build type at configure time.
+   get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+   set(_select_config)
+   set(_select_bldtype)
+   if(isMultiConfig)
+      set(_select_config "--config $<CONFIG>")
+   else()
+      set(_select_bldtype "-DCMAKE_BUILD_TYPE=$<CONFIG>")
+   endif()
 
+   # Fortran compiler used?
    get_filename_component( _dirname ${_dir} NAME )
    set(_builddir  ${CMAKE_CURRENT_BINARY_DIR}/${_dirname})
    set(_enable_fortran)
    if(AMReX_FORTRAN)
       set(_enable_fortran -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER})
    endif()
+
+   # Configure and Build
+   # A registered POST_BUILD target in Tests/CMakeTestInstall will then also run the test.
    add_custom_target(test_install
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
@@ -150,9 +165,9 @@ macro( add_test_install_target _dir _amrex_root )
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E make_directory ${_builddir}
       COMMAND ${CMAKE_COMMAND} -E echo "Configuring test project"
-      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${_enable_fortran}
+      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} ${_select_bldtype} -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${_enable_fortran}
       COMMAND ${CMAKE_COMMAND} -E echo "Building test project"
-      COMMAND ${CMAKE_COMMAND} --build ${_builddir}
+      COMMAND ${CMAKE_COMMAND} --build ${_builddir} ${_select_config}
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
       COMMAND ${CMAKE_COMMAND} -E echo "   AMReX is installed correctly"

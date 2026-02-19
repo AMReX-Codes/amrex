@@ -443,6 +443,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BUILD_SHARED_LIBS      |  Build as shared C++ library                    | NO (unless xSDK)        | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)          | YES, NO              |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PRECISION              |  Set the precision of reals                     | DOUBLE                  | DOUBLE, SINGLE        |
@@ -452,6 +454,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_IPO                    |  Interprocedural optimization (IPO/LTO)         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_MPI                    |  Build with MPI support                         | YES                     | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_SIMD                   |  Enable SIMD Primitives (using vir::stdx::simd) | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_OMP                    |  Build with OpenMP support                      | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -463,11 +467,19 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_LINEAR_SOLVERS         |  Build AMReX linear solvers                     | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS_INCFLO  |  Build AMReX linear solvers for incompressible  | YES                     | YES, NO               |
+   |                              |  flow                                           |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_LINEAR_SOLVERS_EM      |  Build AMReX linear solvers for electromagnetic | YES                     | YES, NO               |
+   |                              |  solvers                                        |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRDATA                |  Build data services                            | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_AMRLEVEL               |  Build AmrLevel class                           | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_EB                     |  Build Embedded Boundary support                | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FFT                    |  Build FFT support                              | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PARTICLES              |  Build particle classes                         | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -508,6 +520,8 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_CONDUIT                |  Enable Conduit support                         | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_CATALYST               |  Enable Catalyst support                        | NO                      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_ASCENT                 |  Enable Ascent support                          | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_HYPRE                  |  Enable HYPRE interfaces                        | NO                      | YES, NO               |
@@ -531,6 +545,15 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    | AMReX_INSTALL                |  Generate Install Targets                       | YES                     | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_PROBINIT               |  Enable support for probin file                 | Platform dependent      | YES, NO               |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_FLATTEN_FOR            |  Enable flattening of ParallelFor and similar   | NO                      | YES, NO               |
+   |                              |  functions for host code                        |                         |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_COMPILER_DEFAULT_INLINE|  Use default inline behavior of compiler,       | NO for GCC              | YES, NO               |
+   |                              |  so far relevant for GCC Only                   | YES otherwise           |                       |
+   +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
+   | AMReX_INLINE_LIMIT           |  Inline limit. Relevant only when               | 43210                   | Non-negative number   |
+   |                              |  AMReX_COMPILER_DEFAULT_INLINE is NO.           |                         |                       |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
 .. raw:: latex
 
@@ -662,6 +685,8 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_MPI                    | MPI             |
    +------------------------------+-----------------+
+   | AMReX_SIMD                   | SIMD            |
+   +------------------------------+-----------------+
    | AMReX_OMP                    | OMP             |
    +------------------------------+-----------------+
    | AMReX_GPU_BACKEND            | CUDA, HIP, SYCL |
@@ -670,11 +695,17 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_LINEAR_SOLVERS         | LSOLVERS        |
    +------------------------------+-----------------+
+   | AMReX_LINEAR_SOLVERS_INCFLO  | LSOLVERS_INCFLO |
+   +------------------------------+-----------------+
+   | AMReX_LINEAR_SOLVERS_EM      | LSOLVERS_EM     |
+   +------------------------------+-----------------+
    | AMReX_AMRDATA                | AMRDATA         |
    +------------------------------+-----------------+
    | AMReX_AMRLEVEL               | AMRLEVEL        |
    +------------------------------+-----------------+
    | AMReX_EB                     | EB              |
+   +------------------------------+-----------------+
+   | AMReX_FFT                    | FFT             |
    +------------------------------+-----------------+
    | AMReX_PARTICLES              | PARTICLES       |
    +------------------------------+-----------------+

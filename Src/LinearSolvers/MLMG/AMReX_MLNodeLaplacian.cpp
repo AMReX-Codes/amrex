@@ -367,7 +367,9 @@ MLNodeLaplacian::fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
                             rhs_ma[box_no](i,j,k) -= offset * scale;
                         });
         }
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else {
         rhs.plus(-offset, 0, 1);
     }
@@ -442,7 +444,7 @@ MLNodeLaplacian::fixUpResidualMask (int amrlev, iMultiFab& resmsk)
         Array4<int const> const& fmsk = cfmask.const_array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
         {
-            if (fmsk(i,j,k) == crse_fine_node) { rmsk(i,j,k) = 1; }
+            if (fmsk(i,j,k) == nodelap_detail::crse_fine_node) { rmsk(i,j,k) = 1; }
         });
     }
 }
@@ -490,7 +492,7 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
     int idir = 0;
 #else
     int idir = 2;
-    if (cmglev > 0) {
+    if (amrlev == 0) {
         regular_coarsening = mg_coarsen_ratio_vec[cmglev-1] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[cmglev-1];
         if (ratio[1] == 1) {
@@ -532,7 +534,9 @@ MLNodeLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& 
                 mlndlap_restriction_rap(i,j,k,pcrse_ma[box_no],fine_ma[box_no],st_ma[box_no],msk_ma[box_no]);
             });
         }
-        Gpu::streamSynchronize();
+        if (cfine.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -603,7 +607,7 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
     int idir = 0;
 #else
     int idir = 2;
-    if (fmglev > 0) {
+    if (amrlev == 0) {
         regular_coarsening = mg_coarsen_ratio_vec[fmglev] == mg_coarsen_ratio;
         IntVect ratio = mg_coarsen_ratio_vec[fmglev];
         if (ratio[1] == 1) {
@@ -665,7 +669,9 @@ MLNodeLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine, const Mu
                 mlndlap_semi_interpadd_aa(i, j, k, fine_ma[box_no], crse_ma[box_no], sig_ma[box_no], msk_ma[box_no], idir);
             });
         }
-        Gpu::streamSynchronize();
+        if (cfine.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -750,7 +756,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
 
     MultiFab* frhs = nullptr;
     std::unique_ptr<MultiFab> mf;
-    if (a_frhs.nGrowVect().allGE(IntVect(amrrr-1)))
+    if (a_frhs.nGrowVect().allGE(amrrr-1))
     {
         frhs = &a_frhs;
     }
@@ -829,7 +835,7 @@ MLNodeLaplacian::restrictInteriorNodes (int camrlev, MultiFab& crhs, MultiFab& a
             Array4<int const> const& mfab = c_nd_mask.const_array(mfi);
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D ( bx, i, j, k,
             {
-                if (mfab(i,j,k) == fine_node) { dfab(i,j,k) = sfab(i,j,k); }
+                if (mfab(i,j,k) == nodelap_detail::fine_node) { dfab(i,j,k) = sfab(i,j,k); }
             });
         }
     }
@@ -883,7 +889,9 @@ MLNodeLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
                 mlndlap_normalize_aa(i,j,k,ma[box_no],sx_ma[box_no],dmsk_ma[box_no],dxinv);
             });
         }
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

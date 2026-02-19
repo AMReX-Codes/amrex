@@ -80,7 +80,7 @@ namespace amrex
 
             // and record the siblings group
             // (assumes: ascending and unique sets per cpuIndex)
-            uniqueThreadSets.insert(siblings);
+            uniqueThreadSets.insert(std::move(siblings));
             cpuIndex++;
         }
 
@@ -135,16 +135,29 @@ namespace amrex
 #ifdef AMREX_USE_OMP
 namespace amrex::OpenMP
 {
-    void init_threads ()
+    namespace {
+        constexpr int nlocks = 128;
+#if defined(_WIN32)
+        void* omp_locks[nlocks];
+#else
+        omp_lock_t omp_locks[nlocks];
+#endif
+        unsigned int initialized = 0;
+    }
+
+    void Initialize ()
     {
+        if (initialized) {
+            ++initialized;
+            return;
+        }
+
         amrex::ParmParse pp("amrex");
         std::string omp_threads = "system";
         pp.queryAdd("omp_threads", omp_threads);
 
         auto to_int = [](std::string const & str_omp_threads) {
-            std::optional<int> num;
-            try { num = std::stoi(str_omp_threads); }
-            catch (...) { /* nothing */ }
+            std::optional<int> num = std::stoi(str_omp_threads);
             return num;
         };
 
@@ -152,16 +165,17 @@ namespace amrex::OpenMP
             // default or OMP_NUM_THREADS environment variable
         } else if (omp_threads == "nosmt") {
             char const *env_omp_num_threads = std::getenv("OMP_NUM_THREADS");
-            if (env_omp_num_threads != nullptr && amrex::system::verbose > 1) {
+            if (env_omp_num_threads == nullptr) {
+                omp_set_num_threads(numUniquePhysicalCores());
+            }
+            else if (amrex::system::verbose > 1) {
                 amrex::Print() << "amrex.omp_threads was set to nosmt,"
                                << "but OMP_NUM_THREADS was set. Will keep "
                                << "OMP_NUM_THREADS=" << env_omp_num_threads << ".\n";
-            } else {
-                omp_set_num_threads(numUniquePhysicalCores());
             }
         } else {
             std::optional<int> num_omp_threads = to_int(omp_threads);
-            if (num_omp_threads.has_value()) {
+            if (num_omp_threads.has_value() && num_omp_threads.value() > 0) {
                 omp_set_num_threads(num_omp_threads.value());
             }
             else {
@@ -172,6 +186,52 @@ namespace amrex::OpenMP
                 }
             }
         }
+
+#if defined(_WIN32)
+        for (auto& vp : omp_locks) {
+            auto* p = new omp_lock_t;
+            omp_init_lock(p);
+            vp = (void*) p;
+        }
+#else
+        for (auto& lck : omp_locks) {
+            omp_init_lock(&lck);
+        }
+#endif
+
+        ++initialized;
     }
+
+    void Finalize ()
+    {
+        if (initialized) {
+            --initialized;
+            if (initialized == 0) {
+#if defined(_WIN32)
+                for (auto vp : omp_locks) {
+                    auto* p = (omp_lock_t*)vp;
+                    omp_destroy_lock(p);
+                    delete p;
+                }
+#else
+                for (auto& lck : omp_locks) {
+                    omp_destroy_lock(&lck);
+                }
+#endif
+            }
+        }
+    }
+
+#if defined(_WIN32)
+    void** get_lock_impl(int ilock)
+#else
+    omp_lock_t* get_lock (int ilock)
+#endif
+    {
+        ilock = ilock % nlocks;
+        if (ilock < 0) { ilock += nlocks; }
+        return omp_locks + ilock;
+    }
+
 } // namespace amrex::OpenMP
 #endif // AMREX_USE_OMP

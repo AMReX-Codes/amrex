@@ -4,15 +4,12 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_BaseFab.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_NonLocalBC.H>
-
-#ifdef AMREX_USE_EB
-#include <AMReX_EBMultiFabUtil.H>
-#endif
 
 #include <cstdint>
 
@@ -24,16 +21,19 @@ using fMultiFab = FabArray<BaseFab<float> >;
 class iMultiFab;
 
 /**
- * \brief
- * A collection (stored as an array) of FArrayBox objects.
+ * \class amrex::MultiFab
+ * \ingroup amrex_multifab_containers
+ * \brief A collection (stored as an array) of FArrayBox objects.
+ *
  * This class is useful for storing floating point data on a domain defined by
  * a union of rectangular regions embedded in a uniform index space.
  * MultiFab class extends the function of the underlying FabArray class just
  * as the FArrayBox class extends the function of BaseFab<Real>.
- * Additional member functions are defined for I/O and simple arithmetic operations on these aggregate objects.
+ * Additional member functions are defined for I/O and simple arithmetic
+ * operations on these aggregate objects.
+ *
  * This class does NOT provide a copy constructor or assignment operator.
  */
-
 class MultiFab
     :
     public FabArray<FArrayBox>
@@ -41,34 +41,37 @@ class MultiFab
 public:
 
     /**
-    * \brief Constructs an empty MultiFab.  Data can be defined at a later
-    * time using the define member functions inherited
-    * from FabArray.
+    * \brief Constructs an empty MultiFab.
+    *
+    * Data can be defined at a later time using the define member functions
+    * inherited from FabArray.
     */
     MultiFab () noexcept;
 
     /**
-    * \brief Constructs an empty MultiFab.  Data can be defined at a later
-    * time using the define member functions inherited from FabArray.  If
-    * `define` is called later with a nullptr as MFInfo's arena, the default
-    * Arena `a` will be used.  If the arena in MFInfo is not a nullptr, the
-    * MFInfo's arena will be used.
+    * \brief Constructs an empty MultiFab.
+    *
+    * Data can be defined at a later time using the define member functions.
+    * If `define` is called later with a nullptr as MFInfo's arena, the
+    * default Arena `a` will be used.  If the arena in MFInfo is not a
+    * nullptr, the MFInfo's arena will be used.
     */
     explicit MultiFab (Arena* a) noexcept;
 
     /**
-    * \brief
-    * Constructs a MultiFab
-    * \param bs a valid region
+    * \brief Constructs a MultiFab
+    *
+    * The size of the FArrayBox is given by the Box grown by \p ngrow, and
+    * the number of components is given by \p ncomp. If \p info is set to
+    * not allocating memory, then no FArrayBoxes are allocated at
+    * this time but can be defined later.
+    *
+    * \param bxs a valid region
     * \param dm a DistributionMapping
     * \param ncomp number of components
     * \param ngrow number of cells the region grows
     * \param info MFInfo
-
-    * The size of the FArrayBox is given by the Box grown by ngrow, and
-    * the number of components is given by ncomp. If info is set to
-    * not allocating memory, then no FArrayBoxes are allocated at
-    * this time but can be defined later.
+    * \param factory Fab factory
     */
     MultiFab (const BoxArray&            bxs,
               const DistributionMapping& dm,
@@ -95,10 +98,11 @@ public:
 #endif
 
     /**
-     * \brief Make an alias MultiFab. maketype must be
-     * amrex::make_alias.  scomp is the starting component of the
-     * alias and ncomp is the number of components in the new aliasing
-     * MultiFab.
+     * \brief Make an alias MultiFab.
+     *
+     * Note that \p maketype must be `amrex::make_alias`,
+     * \p scomp is the starting component of the alias, and
+     * \p ncomp is the number of components in the new aliasing MultiFab.
      */
     MultiFab (const MultiFab& rhs, MakeType maketype, int scomp, int ncomp);
 
@@ -135,11 +139,13 @@ public:
 #endif
 
     MultiFab& operator= (Real r);
-    //
+
     /**
-    * \brief Returns the minimum value contained in component comp of the
-    * MultiFab.  The parameter nghost determines the number of
-    * boundary cells to search for the minimum.  The default is to
+    * \brief Returns the minimum value contained in component \p comp of the
+    * MultiFab.
+    *
+    * The parameter \p nghost determines the number of
+    * boundary cells to search for the minimum. The default is to
     * search only the valid regions of the FArrayBoxes.
     */
     [[nodiscard]] Real min (int comp,
@@ -154,16 +160,18 @@ public:
               int        nghost = 0,
               bool       local = false) const;
     /**
-    * \brief Returns the maximum value contained in component comp of the
-    * MultiFab.  The parameter nghost determines the number of
-    * boundary cells to search for the maximum.  The default is to
+    * \brief Returns the maximum value contained in component \p comp of the
+    * MultiFab.
+    *
+    * The parameter \p nghost determines the number of
+    * boundary cells to search for the maximum. The default is to
     * search only the valid regions of the FArrayBoxes.
     */
     [[nodiscard]] Real max (int comp,
               int nghost = 0,
               bool local = false) const;
     /**
-    * \brief Identical to the previous max() function, but confines its
+    * \brief Identical to the previous `max()` function, but confines its
     * search to intersection of Box b and the MultiFab.
     */
     [[nodiscard]] Real max (const Box& region,
@@ -175,11 +183,13 @@ public:
     * component comp of the MultiFab.
     */
     [[nodiscard]] Real norm0 (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Real norminf (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const {
         return norm0(comp,nghost,local,ignore_covered);
     }
 
     [[nodiscard]] Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
         return norm0(mask,comp,nghost,local);
     }
@@ -191,61 +201,89 @@ public:
 
     /**
     * \brief Returns the maximum *absolute* values contained in
-    * each component of "comps" of the MultiFab.  "nghost" ghost cells are used.
+    * each component of \p comps of the MultiFab. \p nghost ghost cells are used.
     */
     [[nodiscard]] Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Vector<Real> norminf (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false) const {
         return norm0(comps,nghost,local,ignore_covered);
     }
 
     /**
-    * \brief Returns the L1 norm of component "comp" over the MultiFab.
+    * \brief Returns the L1 norm of component \p comp over the MultiFab.
+    *
     * No ghost cells are used.  This version has no double counting for nodal data.
     */
     [[nodiscard]] Real norm1 (int comp, const Periodicity& period, bool ignore_covered = false) const;
     /**
-    * \brief Returns the L1 norm of component "comp" over the MultiFab.
-    * ngrow ghost cells are used.
+    * \ingroup amrex_fabarray_communication
+    * \brief Returns the L1 norm of component \p comp over the MultiFab.
+    * \p ngrow ghost cells are used.
     */
     [[nodiscard]] Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L1 norm of each component of "comps" over the MultiFab.
     * ngrow ghost cells are used.
     */
     [[nodiscard]] Vector<Real> norm1 (const Vector<int>& comps, int ngrow = 0, bool local = false) const;
     /**
-    * \brief Returns the L2 norm of component "comp" over the MultiFab.
+    * \ingroup amrex_fabarray_communication
+    * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used.
     */
     [[nodiscard]] Real norm2 (int comp = 0) const;
     /**
-    * \brief Returns the L2 norm of component "comp" over the MultiFab.
+    * \ingroup amrex_fabarray_communication
+    * \brief Returns the L2 norm of \p numcomp components starting from \p comp component over the MultiFab.
+    * No ghost cells are used.
+    */
+    [[nodiscard]] Real norm2 (int comp, int numcomp) const;
+    /**
+    * \ingroup amrex_fabarray_communication
+    * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used. This version has no double counting for nodal data.
     */
     [[nodiscard]] Real norm2 (int comp, const Periodicity& period) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
     */
     [[nodiscard]] Vector<Real> norm2 (const Vector<int>& comps) const;
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
     */
     [[nodiscard]] Real sum (int comp = 0, bool local = false) const;
+    /**
+    * \ingroup amrex_fabarray_communication
+    * \brief Returns the sum of component "comp" in the given "region". -- no ghost cells are included.
+    */
+    [[nodiscard]] Real sum (Box const& region, int comp = 0, bool local = false) const;
 
     using FabArray<FArrayBox>::sum;
 
     /**
-    * \brief Same as sum with local=false, but for non-cell-centered data, this
-    *        skips non-unique points that are owned by multiple boxes.
+    * \ingroup amrex_fabarray_communication
+    * \brief Same as sum with \p local =false, but for non-cell-centered data, this
+    * only adds non-unique points that are owned by multiple boxes once.
     */
     [[nodiscard]] Real sum_unique (int comp = 0,
                      bool local = false,
                      const Periodicity& period = Periodicity::NonPeriodic()) const;
     /**
-    * \brief Adds the scalar value val to the value of each cell in the
-    * specified subregion of the MultiFab.  The subregion consists
-    * of the num_comp components starting at component comp.
+    * \brief Returns the unique sum of component "comp" in the given
+    * region. Non-unique points owned by multiple boxes in the MultiFab are
+    * only added once. No ghost cells are included. This function does not take
+    * periodicity into account in the determination of uniqueness of points.
+    */
+    [[nodiscard]] Real sum_unique (Box const& region, int comp = 0, bool local = false) const;
+    /**
+    * \brief Adds the scalar value \p val to the value of each cell in the
+    * specified subregion of the MultiFab.
+    *
+    * The subregion consists of the \p num_comp components starting at component \p comp.
     * The value of nghost specifies the number of cells in the
     * boundary region of each FArrayBox in the subregion that should
     * be modified.
@@ -400,9 +438,11 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] IntVect minIndex (int comp,
                       int nghost = 0) const;
 
+    /// \ingroup amrex_fabarray_communication
     [[nodiscard]] IntVect maxIndex (int comp,
                       int nghost = 0) const;
     /**
@@ -446,6 +486,7 @@ public:
                  int             num_comp,
                  int             nghost);
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the dot product of two MultiFabs.
     */
     static Real Dot (const MultiFab& x, int xcomp,
@@ -453,11 +494,13 @@ public:
                      int numcomp, int nghost, bool local = false);
 
     /**
+    * \ingroup amrex_fabarray_communication
     * \brief Returns the dot product of a MultiFab with itself.
     */
     static Real Dot (const MultiFab& x, int xcomp,
                      int numcomp, int nghost, bool local = false);
 
+    /// \ingroup amrex_fabarray_communication
     static Real Dot (const iMultiFab& mask,
                      const MultiFab& x, int xcomp,
                      const MultiFab& y, int ycomp,
@@ -479,6 +522,14 @@ public:
                      int             dstcomp,
                      int             numcomp,
                      const IntVect&  nghost);
+
+    /** Create a deep copy of this MultiFab and its data.
+     *
+     * This uses the same arena and factory in the copy and copies
+     * all data.
+     */
+    [[nodiscard]] MultiFab deepCopy () const;
+
     /**
     * \brief Copy from src to dst including nghost ghost cells.
     * The two MultiFabs MUST have the same underlying BoxArray.
@@ -632,6 +683,17 @@ public:
                             const IntVect&  nghost);
 
     /**
+    * \brief Are the numbers in the MF finite (i.e., neither nan nor inf)?
+    * This may return true, even if the MF contains NaNs or Infs, if the
+    * machine doesn't support the appropriate NaN and Inf testing functions.
+    *
+    * This version checks all components and grow cells.
+    */
+    [[nodiscard]] bool is_finite (bool local=false) const;
+    [[nodiscard]] bool is_finite (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
+    [[nodiscard]] bool is_finite (int scomp, int ncomp, const IntVect& ngrow, bool local=false) const;
+
+    /**
     * \brief Are there any NaNs in the MF?
     * This may return false, even if the MF contains NaNs, if the machine
     * doesn't support the appropriate NaN testing functions.
@@ -662,7 +724,23 @@ public:
     void AverageSync (const Periodicity& period = Periodicity::NonPeriodic());
     //! Sync up nodal data with weights
     void WeightedSync (const MultiFab& wgt, const Periodicity& period = Periodicity::NonPeriodic());
-    //! Sync up nodal data with owners overriding non-owners
+    /**
+     * \brief Synchronize nodal data.  The synchronization will override
+     * valid regions by the intersecting valid regions with a higher
+     * precedence, according to the owner mask provided as input.
+     *
+     * Example: Suppose there is a valid point that is shared by 4 boxes.
+     * Some operation assigns values a, b, c, and d to the 4 points in the 4 boxes.
+     * We then call SumBoundary to add the 4 values and store the result in the 4 boxes.
+     * The value in box 0 might be the result of a+b+c+d, the value in box 1 might be
+     * the result of b+c+d+a, etc. The resulting data could be out of sync across
+     * boxes due to roundoff errors.
+     * OverrideSync synchronizes the data by overriding all values with one value
+     * (e.g., the value from box 0).
+     *
+     * \param msk    owner mask
+     * \param period periodic length if it's non-zero
+     */
     void OverrideSync (const iMultiFab& msk, const Periodicity& period = Periodicity::NonPeriodic());
 
     using FabArray<FArrayBox>::OverrideSync;

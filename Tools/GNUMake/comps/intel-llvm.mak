@@ -25,17 +25,17 @@ COMP_VERSION = $(intel_version)
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 -ftrapv
-  CFLAGS   += -g -O0 -ftrapv
-  FFLAGS   += -g -O0 -ftrapuv -check bounds,pointers,uninit -traceback
-  F90FLAGS += -g -O0 -ftrapuv -check bounds,pointers,uninit -traceback
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -ftrapv
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ftrapv
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ftrapuv -check bounds,pointers,uninit -traceback
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ftrapuv -check bounds,pointers,uninit -traceback
 
 else
 
   CXXFLAGS += -g1 -O3
   CFLAGS   += -g1 -O3
-  FFLAGS   += -g -O3
-  F90FLAGS += -g -O3
+  FFLAGS   += -g1 -O3
+  F90FLAGS += -g1 -O3
 
 endif
 

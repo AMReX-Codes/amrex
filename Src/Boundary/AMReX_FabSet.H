@@ -3,6 +3,7 @@
 #define AMREX_FABSET_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_FabDataType.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
@@ -40,15 +41,14 @@ namespace amrex {
         FabSets are used primarily as a data storage mechanism, and are
         manipulated by more sophisticated control classes.
 */
-
 template <typename MF>
 class FabSetT
 {
     friend class FabSetIter;
     friend class FluxRegister;
 public:
-    using value_type = typename MF::value_type;
-    using FAB = typename MF::fab_type;
+    using value_type = typename FabDataType<MF>::value_type;
+    using FAB        = typename FabDataType<MF>::fab_type;
 
     //
     //! The default constructor -- you must later call define().
@@ -109,7 +109,8 @@ public:
     FabSetT<MF>& plusFrom (const FabSetT<MF>& src, int scomp, int dcomp, int ncomp);
 
     FabSetT<MF>& plusFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
-                           const Periodicity& period = Periodicity::NonPeriodic());
+                           const Periodicity& period = Periodicity::NonPeriodic(),
+                           bool deterministic = false);
 
     void copyTo (MF& dest, int ngrow, int scomp, int dcomp, int ncomp,
                  const Periodicity& period = Periodicity::NonPeriodic()) const;
@@ -224,10 +225,11 @@ FabSetT<MF>::plusFrom (const FabSetT<MF>& src, int scomp, int dcomp, int ncomp)
 template <typename MF>
 FabSetT<MF>&
 FabSetT<MF>::plusFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
-                       const Periodicity& period)
+                       const Periodicity& period, bool deterministic)
 {
     BL_ASSERT(boxArray() != src.boxArray());
-    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,ngrow,0,period,FabArrayBase::ADD);
+    m_mf.ParallelCopy(src,scomp,dcomp,ncomp,IntVect(ngrow),IntVect(0),period,
+                      FabArrayBase::ADD,nullptr,deterministic);
     return *this;
 }
 
@@ -318,8 +320,7 @@ FabSetT<MF>::linComb (value_type a, const MF& mfa, int a_comp,
                       int dcomp, int ncomp, int ngrow)
 {
     BL_PROFILE("FabSetT<MF>::linComb()");
-    BL_ASSERT(ngrow <= mfa.nGrow());
-    BL_ASSERT(ngrow <= mfb.nGrow());
+    BL_ASSERT(mfa.nGrowVect().allGE(ngrow) && mfb.nGrowVect().allGE(ngrow));
     BL_ASSERT(mfa.boxArray() == mfb.boxArray());
     BL_ASSERT(boxArray() != mfa.boxArray());
 

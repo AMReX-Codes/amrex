@@ -31,7 +31,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
     for (int i = 0; i < m_ncomp; ++i) {
         std::string tmp;
         std::getline(is, tmp);
-        m_var_names[i] = amrex::trim(tmp);
+        m_var_names[i] = amrex::trim(std::move(tmp));
     }
 
     is >> m_spacedim >> m_time >> m_finest_level;

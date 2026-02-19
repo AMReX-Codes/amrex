@@ -60,8 +60,14 @@ int main(int argc, char* argv[])
         if (ngrow > mf2.nGrow()) {
             Abort(" ngrow bigger than infile2's ngrow! ");
         }
-        if (mf1.boxArray() != mf2.boxArray()) {
-            Abort("The two multifabs have different BoxArray");
+        bool same_boxarray = mf1.boxArray() == mf2.boxArray();
+        if (! same_boxarray) {
+            if (ParallelDescriptor::IOProcessor()) {
+                Warning("The two multifabs have different BoxArrays.");
+            }
+            AMREX_ALWAYS_ASSERT(mf1.boxArray().ixType() == mf2.boxArray().ixType() &&
+                                mf1.boxArray().contains(mf2.boxArray()) &&
+                                mf2.boxArray().contains(mf1.boxArray()));
         }
 
         const int ncomp = mf1.nComp();
@@ -78,16 +84,23 @@ int main(int argc, char* argv[])
             mf2_max[icomp] = mf2.max(icomp,ngrow);
         }
 
-        MultiFab mfdiff(mf1.boxArray(), mf2.DistributionMap(), ncomp, ngrow);
+        MultiFab mfdiff;
+        if (same_boxarray) {
+            mfdiff.define(mf1.boxArray(), mf2.DistributionMap(), ncomp, ngrow);
 #ifdef AMREX_USE_MPI
-        {
-            MultiFab tmp(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
-            MultiFab::Copy(tmp, mf1, 0, 0, ncomp, ngrow);
-            mfdiff.Redistribute(tmp, 0, 0, ncomp, IntVect(ngrow));
-        }
+            {
+                MultiFab tmp(mf1.boxArray(), mf1.DistributionMap(), ncomp, ngrow);
+                MultiFab::Copy(tmp, mf1, 0, 0, ncomp, ngrow);
+                mfdiff.Redistribute(tmp, 0, 0, ncomp, IntVect(ngrow));
+            }
 #else
-        MultiFab::Copy(mfdiff, mf1, 0, 0, ncomp, ngrow);
+            MultiFab::Copy(mfdiff, mf1, 0, 0, ncomp, ngrow);
 #endif
+        } else {
+            mfdiff.define(mf2.boxArray(), mf2.DistributionMap(), ncomp, ngrow);
+            mfdiff.ParallelCopy(mf1, 0, 0, ncomp, ngrow, ngrow);
+        }
+
         MultiFab::Subtract(mfdiff, mf2, 0, 0, ncomp, ngrow);
 
         for (int icomp = 0; icomp < ncomp; ++icomp) {

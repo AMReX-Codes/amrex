@@ -97,7 +97,7 @@ void main_main()
             << "\n"
             << " If a job_info file is present in the plotfile, that information is made\n"
             << " available at the end of the slice file (commented out), for reference.\n"
-            << std::endl;
+            << '\n';
         return;
     }
 
@@ -351,10 +351,10 @@ void main_main()
               ofs << ", " <<  std::setw(24) << std::left << vname;
            }
            ofs << "\n";
-           for (int i = 0; i < posidx.size(); ++i) {
-              ofs << std::setw(25) << std::left << std::setprecision(17) << posidx[i].first;
-              for (int j = 0; j < var_names.size(); ++j) {
-                  ofs << ", " << std::setw(25) << std::left << std::setprecision(17) << data[j][posidx[i].second];
+           for (auto const& pos_idx : posidx) {
+              ofs << std::setw(25) << std::left << std::setprecision(17) << pos_idx.first;
+              for (auto const& vr : data) {
+                  ofs << ", " << std::setw(25) << std::left << std::setprecision(17) << vr[pos_idx.second];
               }
               ofs << "\n";
            }
@@ -370,11 +370,11 @@ void main_main()
            }
            ofs << "\n";
 
-           for (int i = 0; i < posidx.size(); ++i) {
-             ofs << std::setw(25) << std::right << std::setprecision(precision) << posidx[i].first;
-             for (int j = 0; j < var_names.size(); ++j) {
-               if (std::abs(data[j][posidx[i].second])< tolerance ) { data[j][posidx[i].second] = 0.; }
-               ofs << std::setw(25) << std::right << std::setprecision(precision) << data[j][posidx[i].second];
+           for (auto const& pos_idx : posidx) {
+             ofs << std::setw(25) << std::right << std::setprecision(precision) << pos_idx.first;
+             for (auto& vr : data) {
+               if (std::abs(vr[pos_idx.second])< tolerance ) { vr[pos_idx.second] = 0.; }
+               ofs << std::setw(25) << std::right << std::setprecision(precision) << vr[pos_idx.second];
              }
              ofs << "\n";
            }

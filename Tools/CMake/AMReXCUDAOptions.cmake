@@ -26,7 +26,7 @@ if(DEFINED ENV{AMREX_CUDA_ARCH})
 endif()
 set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
 
-option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)
+option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)  # Note: inconsistent with AMReX_FASTMATH defaults
 cuda_print_option( AMReX_CUDA_FASTMATH )
 
 set(AMReX_CUDA_MAXREGCOUNT "255" CACHE STRING
@@ -102,3 +102,6 @@ cuda_print_option(AMReX_CUDA_BACKTRACE)
 
 option(AMReX_CUDA_KEEP_FILES "Keep intermediately generated files (folder: nvcc_tmp)" OFF)
 cuda_print_option(AMReX_CUDA_KEEP_FILES)
+
+option(AMReX_CUDA_OBJDIR_AS_TEMPDIR "Place intermediate files in object file folder" OFF)
+cuda_print_option(AMReX_CUDA_OBJDIR_AS_TEMPDIR)

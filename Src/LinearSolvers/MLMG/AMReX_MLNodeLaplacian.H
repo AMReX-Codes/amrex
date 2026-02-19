@@ -2,13 +2,17 @@
 #define AMREX_ML_NODE_LAPLACIAN_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_iMultiFab.H>
 #include <AMReX_MLNodeLinOp.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Vector.H>
 
 namespace amrex {
 
 // del dot (sigma grad phi) = rhs
 // where phi and rhs are nodal, and sigma is cell-centered.
 
+/// \ingroup amrex_eb
 class MLNodeLaplacian
     : public MLNodeLinOp
 {

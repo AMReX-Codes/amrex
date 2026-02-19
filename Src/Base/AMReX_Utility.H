@@ -15,6 +15,8 @@
 #include <AMReX_Random.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_FileSystem.H>
+#include <AMReX_String.H>
+#include <AMReX_TypeTraits.H>
 
 #include <cfloat>
 #include <chrono>
@@ -23,10 +25,14 @@
 #include <iostream>
 #include <limits>
 #include <map>
+#include <ostream>
 #include <sstream>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <typeinfo>
 #include <type_traits>
+#include <utility>
 
 namespace amrex
 {
@@ -44,17 +50,6 @@ namespace amrex
     const std::vector<std::string>& Tokenize (const std::string& instr,
                                               const std::string& separators);
 
-    //! Converts all characters of the string into lower or uppercase based on std::locale
-    std::string toLower (std::string s);
-    std::string toUpper (std::string s);
-
-    //! Trim leading and trailing white space
-    std::string trim (std::string s, std::string const& space = " \t");
-
-    //! Returns rootNNNN where NNNN == num.
-    std::string Concatenate (const std::string& root,
-                             int                num,
-                             int                mindigits = 5);
     /**
     *  \brief Creates the specified directories.  path may be either a full pathname
     *  or a relative pathname.  It will create all the directories in the
@@ -99,11 +94,7 @@ namespace amrex
     void UtilCreateCleanDirectory (const std::string &path,
                                    bool callbarrier = true);
 
-    ///
-    /**
-       Create a new directory, removing old one if it exists.
-       This will only work on unix systems, as it has a system call.
-     */
+    //! Create a new directory, removing old one if it exists.
     void UtilCreateDirectoryDestructive(const std::string &path,
                                         bool callbarrier = true);
 
@@ -132,16 +123,6 @@ namespace amrex
     *  WWW URL:     http://www.math.uio.no/~jacklam
 
     *  "p" MUST be in the open interval (0,1).
-
-    *  Entry points for Fortran:
-
-    *    REAL_T val
-    *    call blinvnormdist(val)
-
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDist (double p);
     /**
@@ -165,16 +146,6 @@ namespace amrex
     *  is roughly 30% more costly than InvNormDist() above.
     *
     *  "p" MUST be in the open interval (0,1).
-    *
-    *  Entry points for Fortran:
-    *
-    *    REAL_T val
-    *    call blinvnormdistbest(val)
-    *
-    *  Internally, the Fortran entry point calls a static Mersenne Twister
-    *  object (the same one called by blutilrand()) to get a random number in
-    *  the open interval (0,1), and then sets "val" to the result of calling
-    *  amrex::InvNormDist() with that random number.
     */
     double InvNormDistBest (double p);
 
@@ -211,7 +182,7 @@ namespace amrex
         int tries, maxTries;
         bool abortOnRetryFailure = true;
         std::string fileName;
-        std::ostream &sros;
+        std::ostream *sros;
         std::ostream::pos_type spos;
         std::string suffix;
 
@@ -228,9 +199,11 @@ namespace amrex
     //
     // For gcc, there are extra 32 bytes for each map node.
     // For others, this number may be different.
+    /// \cond DOXYGEN_IGNORE
     static const Long gcc_map_node_extra_bytes = 32L;
-    template <typename T> Long bytesOf (const std::vector<T>& v);
-    template <typename Key, typename T, class Compare> Long bytesOf (const std::map<Key,T,Compare>& m);
+    /// \endcond
+    template <typename T> amrex::Long bytesOf (const std::vector<T>& v);
+    template <typename Key, typename T, class Compare> amrex::Long bytesOf (const std::map<Key,T,Compare>& m);
 
     void BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm);
 
@@ -242,14 +215,45 @@ namespace amrex
     void Sleep (double sleepsec);  // Sleep for sleepsec seconds
 
 
-    using MaxResSteadyClock = std::conditional<std::chrono::high_resolution_clock::is_steady,
+    using MaxResSteadyClock = std::conditional_t<std::chrono::high_resolution_clock::is_steady,
                                                std::chrono::high_resolution_clock,
-                                               std::chrono::steady_clock>::type;
+                                               std::chrono::steady_clock>;
     double second () noexcept;
 
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
     template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF) noexcept;
 
+    template <class T>
+    std::ostream& ToString(std::ostream& os,
+                           const T& t,
+                           const char* symbol_begin = "[",
+                           const char* symbol_delim = ", ",
+                           const char* symbol_end = "]",
+                           const char* symbol_str = "\"",
+                           int limit = 100);
+
+    template <class T>
+    std::string ToString(const T& t,
+                         const char* symbol_begin = "[",
+                         const char* symbol_delim = ", ",
+                         const char* symbol_end = "]",
+                         const char* symbol_str = "\"",
+                         int limit = 100,
+                         std::ostringstream ss = std::ostringstream{});
+
+    /**
+     * \brief Call given function without inline.
+     *
+     * This works on lambdas, functors, normal functions. But it does not
+     * work with overloaded functions like std::sin. If needed, one could
+     * however wrap functions like std::sin inside a lambda function. It
+     * also does not work with normal functions for SYCL and one would have
+     * to wrap it inside a lambda.
+     */
+    template <typename F, typename... T>
+    AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+    auto callNoinline (F const& f, T&&... arg)
+        -> decltype(std::declval<F>()(std::declval<T>()...)); // needed for nvcc
 }
 
 template <typename T>
@@ -346,7 +350,6 @@ template<class T> void amrex::BroadcastArray(Vector<T> &aT, int myLocalId, int r
 */
 #define BL_IGNORE_MAX 100000
 
-// \cond CODEGEN
 template <typename T>
 amrex::Long
 amrex::bytesOf (const std::vector<T>& v)
@@ -360,7 +363,6 @@ amrex::bytesOf (const std::map<Key,T,Compare>& m)
 {
     return sizeof(m) + m.size()*(sizeof(Key)+sizeof(T)+gcc_map_node_extra_bytes);
 }
-// \endcond
 
 extern "C" {
     void* amrex_malloc (std::size_t size);
@@ -408,6 +410,124 @@ amrex::hash_vector (const Vector<T> & vec, uint64_t seed) noexcept
         hash_combine(seed, x);
     }
     return seed;
+}
+
+/// \cond DOXYGEN_IGNORE
+namespace amrex::detail {
+
+    // Determine if type has .begin() and .end() member functions
+    template <class T>
+    constexpr decltype((std::declval<T>().begin(), std::declval<T>().end(), true)) HasBeginEnd() {
+        return true;
+    }
+    template <class T, class... Args>
+    constexpr bool HasBeginEnd(Args...) {
+        return false;
+    }
+
+    // Determine if type has a specialization for std::tuple_size
+    template <class T>
+    constexpr decltype((std::tuple_size<T>::value, true)) HasTupleSize() {
+        return true;
+    }
+    template <class T, class... Args>
+    constexpr bool HasTupleSize(Args...) {
+        return false;
+    }
+
+    // Helper for tuple unpacking
+    template <class T, std::size_t... idx>
+    void ToStringTupleImp(std::index_sequence<idx...>, std::ostream& os, const T& t,
+                          const char* symbol_begin, const char* symbol_delim,
+                          const char* symbol_end, const char* symbol_str, int limit) {
+        os << symbol_begin;
+        Long count = 0;
+        auto op = [&](auto& value) {
+            if (count > 0 && (count <= limit || limit < 0)) {
+                os << symbol_delim;
+            }
+            if (count < limit || limit < 0) {
+                ToString(os, value, symbol_begin, symbol_delim, symbol_end,
+                        symbol_str, limit);
+            } else if (count == limit) {
+                os << "...";
+            }
+            ++count;
+        };
+        (op(std::get<idx>(t)), ...);
+        os << symbol_end;
+    }
+}
+/// \endcond
+
+template <class T>
+std::ostream& amrex::ToString(std::ostream& os, const T& t, const char* symbol_begin,
+                              const char* symbol_delim, const char* symbol_end,
+                              const char* symbol_str, int limit)
+{
+    if constexpr (std::is_same_v<std::string, T> ||
+                  std::is_same_v<std::string_view, T> ||
+                  std::is_same_v<char*, std::decay_t<T>> ||
+                  std::is_same_v<const char*, T>) {
+        // String-like types
+        os << symbol_str << t << symbol_str;
+    } else if constexpr (std::is_same_v<signed char, T> ||
+                         std::is_same_v<unsigned char, T>) {
+        // Buffer-like types, don't print as char
+        os << static_cast<int>(t);
+    } else if constexpr (std::is_pointer_v<T>) {
+        // Pointer types, don't print char* as string
+        os << static_cast<const void*>(t);
+    } else if constexpr (detail::HasBeginEnd<T>() || std::is_array_v<T>) {
+        // Array-like types
+        os << symbol_begin;
+        Long count = 0;
+        for (auto& value : t) {
+            if (count > 0) {
+                os << symbol_delim;
+            }
+            if (count < limit || limit < 0) {
+                ToString(os, value, symbol_begin, symbol_delim, symbol_end,
+                         symbol_str, limit);
+            } else if (count == limit) {
+                os << "...";
+                break;
+            }
+            ++count;
+        }
+        os << symbol_end;
+    } else if constexpr (detail::HasTupleSize<T>()) {
+        // Tuple-like types
+        detail::ToStringTupleImp(std::make_index_sequence<std::tuple_size_v<T>>{},
+                                 os, t, symbol_begin, symbol_delim, symbol_end,
+                                 symbol_str, limit);
+    } else {
+        // Scalar types
+        os << t;
+    }
+    return os;
+}
+
+template <class T>
+std::string amrex::ToString(const T& t, const char* symbol_begin, const char* symbol_delim,
+                            const char* symbol_end, const char* symbol_str,
+                            int limit, std::ostringstream ss)
+{
+    ToString(ss, t, symbol_begin, symbol_delim, symbol_end, symbol_str, limit);
+    return ss.str();
+}
+
+template <typename F, typename... T>
+AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
+auto amrex::callNoinline (F const& f, T&&... arg)
+    -> decltype(std::declval<F>()(std::declval<T>()...)) // needed for nvcc
+{
+    AMREX_IF_ON_HOST((
+        if constexpr (!amrex::DefinitelyNotHostRunnable<F>::value) {
+            return f(std::forward<T>(arg)...);
+        }
+    ))
+    AMREX_IF_ON_DEVICE(( return f(std::forward<T>(arg)...); ))
 }
 
 #endif /*BL_UTILITY_H*/

@@ -20,13 +20,8 @@ module amrex_parmparse_module
      generic :: assignment(=) => amrex_parmparse_assign  ! shallow copy
      generic :: get           => get_int, get_real, get_logical, get_string
      generic :: query         => query_int, query_real, query_logical, query_string
-#if defined(__GFORTRAN__) && (__GNUC__ <= 4)
-     generic :: getarr        => get_intarr, get_realarr
-     generic :: queryarr      => query_intarr, query_realarr
-#else
      generic :: getarr        => get_intarr, get_realarr, get_stringarr
      generic :: queryarr      => query_intarr, query_realarr, query_stringarr
-#endif
      generic :: add           => add_int, add_real, add_logical, add_string
      generic :: addarr        => add_intarr, add_realarr, add_stringarr
      procedure, private :: amrex_parmparse_assign
@@ -51,9 +46,7 @@ module amrex_parmparse_module
      procedure, private :: add_intarr
      procedure, private :: add_realarr
      procedure, private :: add_stringarr
-#if (!defined(__GFORTRAN__) || (__GNUC__ > 4)) && (!defined(__ibmxl__))
      final :: amrex_parmparse_destroy
-#endif
   end type amrex_parmparse
 
   ! interfaces to cpp functions
@@ -240,6 +233,10 @@ module amrex_parmparse_module
        character(kind=c_char), intent(in) :: v(*)
      end subroutine amrex_parmparse_add_stringarr
   end interface
+
+  interface amrex_parmparse_destroy
+     module procedure amrex_parmparse_destroy
+  end interface amrex_parmparse_destroy
 
 contains
 

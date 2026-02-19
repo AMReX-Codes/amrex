@@ -1,5 +1,6 @@
 #include "AMReX_NonLocalBC.H"
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::NonLocalBC::detail {
 void split_boxes (BoxList& bl, Box const& domain)
 {
@@ -33,6 +34,7 @@ void split_boxes (BoxList& bl, Box const& domain)
     }
 }
 }
+/// \endcond
 
 namespace amrex::NonLocalBC {
 
@@ -49,6 +51,8 @@ void PrepareCommBuffers(CommData& comm,
     comm.offset.clear();
     comm.cctc.clear();
     comm.stats.clear();
+
+    comm.id = FabArrayBase::getNextCommMetaDataId();
 
     const auto N_comms = static_cast<int>(cctc.size());
     if (N_comms == 0) { return; }
@@ -73,7 +77,7 @@ void PrepareCommBuffers(CommData& comm,
             nbytes += cct.sbox.numPts() * object_size * n_components;
         }
 
-        std::size_t acd = ParallelDescriptor::alignof_comm_data(nbytes);
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
         nbytes = amrex::aligned_size(acd, nbytes);  // so that nbytes are aligned
 
         // Also need to align the offset properly

@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Gpu.H>
+#include <AMReX_Scan.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BinIterator.H>
@@ -29,12 +30,12 @@ namespace BinPolicy
 template <typename T>
 struct DenseBinIteratorFactory
 {
-    using index_type = unsigned int;
+    using index_type = int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
     DenseBinIteratorFactory (const Gpu::DeviceVector<index_type>& offsets,
                              const Gpu::DeviceVector<index_type>& permutation,
@@ -77,17 +78,17 @@ class DenseBins
 public:
 
     using BinIteratorFactory = DenseBinIteratorFactory<T>;
-    using index_type = unsigned int;
+    using index_type = int;
 
-    using const_pointer_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_type = std::conditional_t<IsParticleTileData<T>(),
         T,
         const T*
-    >::type;
+    >;
 
-    using const_pointer_input_type = typename std::conditional<IsParticleTileData<T>(),
+    using const_pointer_input_type = std::conditional_t<IsParticleTileData<T>(),
         const T&,
         const T*
-    >::type;
+    >;
 
 private:
 
@@ -181,7 +182,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F const& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -222,7 +223,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_input_type v, int nbins, F&& f)
+    void build (BinPolicy::GPUBinPolicy, N nitems, const_pointer_input_type v, int nbins, F const& f)
     {
         BL_PROFILE("DenseBins<T>::buildGPU");
 
@@ -285,7 +286,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F const& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -327,9 +328,11 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_input_type v, int nbins, F&& f)
+    void build (BinPolicy::OpenMPBinPolicy, N nitems, const_pointer_input_type v, int nbins, F const& f)
     {
         BL_PROFILE("DenseBins<T>::buildOpenMP");
+
+        if (nbins <= 0) { return; }
 
         m_items = v;
 
@@ -424,7 +427,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_input_type v, const Box& bx, F const& f)
     {
         const auto lo = lbound(bx);
         const auto hi = ubound(bx);
@@ -466,7 +469,7 @@ public:
      * \param f a function object that maps items to bins
      */
     template <typename N, typename F>
-    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_input_type v, int nbins, F&& f)
+    void build (BinPolicy::SerialBinPolicy, N nitems, const_pointer_input_type v, int nbins, F const& f)
     {
         BL_PROFILE("DenseBins<T>::buildSerial");
 
@@ -481,7 +484,7 @@ public:
         m_offsets.resize(0);
         m_offsets.resize(nbins+1);
 
-        for (int i = 0; i < nitems; ++i) {
+        for (N i = 0; i < nitems; ++i) {
             m_bins[i] = call_f(f,v,i);
             ++m_counts[m_bins[i]];
         }
@@ -490,7 +493,7 @@ public:
 
         Gpu::copy(Gpu::deviceToDevice, m_offsets.begin(), m_offsets.end(), m_counts.begin());
 
-        for (int i = 0; i < nitems; ++i) {
+        for (N i = 0; i < nitems; ++i) {
             index_type index = m_counts[m_bins[i]]++;
             m_perm[index] = i;
         }

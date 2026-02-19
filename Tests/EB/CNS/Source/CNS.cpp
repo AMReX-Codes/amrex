@@ -324,9 +324,8 @@ CNS::errorEst (TagBoxArray& tags, int, int, Real time, int, int)
         {
             auto& fab = tags[mfi];
             const Box& bx = fab.box();
-            for (BoxIterator bi(bx); bi.ok(); ++bi)
+            for (IntVect cell : bx.iterator())
             {
-                const IntVect& cell = bi();
                 RealVect pos {AMREX_D_DECL((cell[0]+0.5)*dx[0]+problo[0],
                                            (cell[1]+0.5)*dx[1]+problo[1],
                                            (cell[2]+0.5)*dx[2]+problo[2])};
@@ -405,9 +404,9 @@ CNS::read_params ()
 
     int irefbox = 0;
     Vector<Real> refboxlo, refboxhi;
-    while (pp.queryarr(("refine_box_lo_"+std::to_string(irefbox)).c_str(), refboxlo))
+    while (pp.queryarr("refine_box_lo_"+std::to_string(irefbox), refboxlo))
     {
-        pp.getarr(("refine_box_hi_"+std::to_string(irefbox)).c_str(), refboxhi);
+        pp.getarr("refine_box_hi_"+std::to_string(irefbox), refboxhi);
         refine_boxes.emplace_back(refboxlo.data(), refboxhi.data());
         ++irefbox;
     }

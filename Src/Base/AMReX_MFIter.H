@@ -20,8 +20,10 @@ struct MFItInfo
 {
     bool do_tiling{false};
     bool dynamic{false};
-    bool device_sync;
-    int  num_streams;
+    bool device_sync = true;
+    bool device_sync_pre = true;
+    bool device_sync_post = true;
+    int  num_streams = 1;
     IntVect tilesize;
     MFItInfo () noexcept
         :  device_sync(!Gpu::inNoSyncRegion()), num_streams(Gpu::numGpuStreams()),
@@ -29,6 +31,10 @@ struct MFItInfo
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
         tilesize = ts;
+        return *this;
+    }
+    MFItInfo& SetTiling (bool f) noexcept {
+        do_tiling = f;
         return *this;
     }
     MFItInfo& SetDynamic (bool f) noexcept {
@@ -43,6 +49,22 @@ struct MFItInfo
         device_sync = f;
         return *this;
     }
+    MFItInfo& DisableDeviceSyncPre () noexcept {
+        device_sync_pre = false;
+        return *this;
+    }
+    MFItInfo& SetDeviceSyncPre (bool f) noexcept {
+        device_sync_pre = f;
+        return *this;
+    }
+    MFItInfo& DisableDeviceSyncPost () noexcept {
+        device_sync_post = false;
+        return *this;
+    }
+    MFItInfo& SetDeviceSyncPost (bool f) noexcept {
+        device_sync_post = f;
+        return *this;
+    }
     MFItInfo& SetNumStreams (int n) noexcept {
         num_streams = n;
         return *this;
@@ -53,6 +75,12 @@ struct MFItInfo
     }
 };
 
+/**
+ * \class amrex::MFIter
+ * \ingroup amrex_multifab_containers
+ * \brief Iterator for looping ever tiles and boxes of \ref amrex::FabArray
+ * based containers.
+ */
 class MFIter
 {
 public:
@@ -129,10 +157,10 @@ public:
     [[nodiscard]] Box grownnodaltilebox (int dir, const IntVect& ng) const noexcept;
 
     //! Return the valid Box in which the current tile resides.
-    [[nodiscard]] Box validbox () const noexcept { return fabArray.box((*index_map)[currentIndex]); }
+    [[nodiscard]] Box validbox () const noexcept { return fabArray->box((*index_map)[currentIndex]); }
 
     //! Return the Box of the FAB at which we currently point.
-    [[nodiscard]] Box fabbox () const noexcept { return fabArray.fabbox((*index_map)[currentIndex]); }
+    [[nodiscard]] Box fabbox () const noexcept { return fabArray->fabbox((*index_map)[currentIndex]); }
 
     //! Increment iterator to the next tile we own.
     void operator++ () noexcept;
@@ -159,13 +187,15 @@ public:
     [[nodiscard]] int LocalIndex () const noexcept { return local_index_map ? (*local_index_map)[currentIndex] : currentIndex; }
 
     //! Constant reference to FabArray over which we're iterating.
-    [[nodiscard]] const FabArrayBase& theFabArrayBase () const noexcept { return fabArray; }
+    [[nodiscard]] const FabArrayBase& theFabArrayBase () const noexcept { return *fabArray; }
 
     [[nodiscard]] int tileIndex () const noexcept {return currentIndex;}
 
-    [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept { return fabArray.DistributionMap(); }
+    [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept { return fabArray->DistributionMap(); }
 
     static int allowMultipleMFIters (int allow);
+
+    static int currentDepth ();
 
     void Finalize ();
 
@@ -173,7 +203,7 @@ protected:
 
     std::unique_ptr<FabArrayBase> m_fa;  //!< This must be the first member!
 
-    const FabArrayBase& fabArray;
+    const FabArrayBase* fabArray;
 
     IntVect tile_size;
 
@@ -198,6 +228,8 @@ protected:
         bool flag = true;
     };
     DeviceSync device_sync;
+    DeviceSync device_sync_pre{true};
+    DeviceSync device_sync_post{true};
 
     const Vector<int>* index_map;
     const Vector<int>* local_index_map;

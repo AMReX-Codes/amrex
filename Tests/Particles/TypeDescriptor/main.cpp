@@ -255,7 +255,7 @@ int main(int argc, char* argv[])
     testDoubleIO(FPC::Ieee32NormalRealDescriptor());
     testDoubleIO(FPC::Ieee64NormalRealDescriptor());
 
-    amrex::Print() << "passed!" << std::endl;
+    amrex::Print() << "passed!" << '\n';
 
     amrex::Finalize();
 }

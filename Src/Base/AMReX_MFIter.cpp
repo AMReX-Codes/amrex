@@ -17,10 +17,21 @@ MFIter::allowMultipleMFIters (int allow)
     return allow;
 }
 
+int
+MFIter::currentDepth ()
+{
+    int r;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic read
+#endif
+    r = MFIter::depth;
+    return r;
+}
+
 MFIter::MFIter (const FabArrayBase& fabarray_,
                 unsigned char       flags_)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     streams(Gpu::numGpuStreams()),
@@ -38,7 +49,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 MFIter::MFIter (const FabArrayBase& fabarray_,
                 bool                do_tiling_)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     streams(Gpu::numGpuStreams()),
@@ -57,7 +68,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
                 const IntVect&      tilesize_,
                 unsigned char       flags_)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     streams(Gpu::numGpuStreams()),
@@ -75,7 +86,7 @@ MFIter::MFIter (const FabArrayBase& fabarray_,
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_)
     :
     m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size((flags_ & Tiling) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(flags_),
     streams(Gpu::numGpuStreams()),
@@ -99,7 +110,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling_)
     :
     m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size((do_tiling_) ? FabArrayBase::mfiter_tile_size : IntVect::TheZeroVector()),
     flags(do_tiling_ ? Tiling : 0),
     streams(Gpu::numGpuStreams()),
@@ -125,7 +136,7 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
                 const IntVect& tilesize_, unsigned char flags_)
     :
     m_fa(std::make_unique<FabArrayBase>(ba,dm,1,0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size(tilesize_),
     flags(flags_ | Tiling),
     streams(Gpu::numGpuStreams()),
@@ -150,12 +161,14 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm,
 MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info)
     :
     m_fa(std::make_unique<FabArrayBase>(ba, dm, 1, 0)),
-    fabArray(*m_fa),
+    fabArray(m_fa.get()),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
     streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
+    device_sync_pre(info.device_sync_pre),
+    device_sync_post(info.device_sync_post),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -182,12 +195,14 @@ MFIter::MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInf
 
 MFIter::MFIter (const FabArrayBase& fabarray_, const MFItInfo& info)
     :
-    fabArray(fabarray_),
+    fabArray(&fabarray_),
     tile_size(info.tilesize),
     flags(info.do_tiling ? Tiling : 0),
     streams(std::max(1,std::min(Gpu::numGpuStreams(),info.num_streams))),
     dynamic(info.dynamic && (OpenMP::get_num_threads() > 1)),
     device_sync(info.device_sync),
+    device_sync_pre(info.device_sync_pre),
+    device_sync_post(info.device_sync_post),
     index_map(nullptr),
     local_index_map(nullptr),
     tile_array(nullptr),
@@ -222,20 +237,13 @@ MFIter::Finalize ()
     // mark as invalid
     currentIndex = endIndex;
 
-#ifdef AMREX_USE_OMP
-#pragma omp master
-#endif
-    {
-        depth = 0;
-    }
-
 #ifdef BL_USE_TEAM
     if ( ! (flags & NoTeamBarrier) )
         ParallelDescriptor::MyTeam().MemoryBarrier();
 #endif
 
 #ifdef AMREX_USE_GPU
-    if (device_sync) {
+    if (device_sync && device_sync_post) {
         const int nstreams = std::min(endIndex, streams);
         for (int i = 0; i < nstreams; ++i) {
             Gpu::Device::setStreamIndex(i);
@@ -257,6 +265,13 @@ MFIter::Finalize ()
     if (m_fa) {
         m_fa.reset(nullptr);
     }
+
+#ifdef AMREX_USE_OMP
+#pragma omp master
+#endif
+    {
+        depth = 0;
+    }
 }
 
 void
@@ -268,28 +283,19 @@ MFIter::Initialize ()
     {
         ++depth;
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(depth == 1 || MFIter::allow_multiple_mfiters,
-            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)".);
+            "Nested or multiple active MFIters is not supported by default.  This can be changed by calling MFIter::allowMultipleMFIters(true)");
     }
-
-#ifdef AMREX_USE_GPU
-    if (device_sync) {
-#ifdef AMREX_USE_OMP
-#pragma omp single
-#endif
-        Gpu::streamSynchronize();
-    }
-#endif
 
     if (flags & AllBoxes)  // a very special case
     {
-        index_map    = &(fabArray.IndexArray());
+        index_map    = &(fabArray->IndexArray());
         currentIndex = 0;
         beginIndex   = 0;
         endIndex     = static_cast<int>(index_map->size());
     }
     else
     {
-        const FabArrayBase::TileArray* pta = fabArray.getTileArray(tile_size);
+        const FabArrayBase::TileArray* pta = fabArray->getTileArray(tile_size);
 
         index_map            = &(pta->indexMap);
         local_index_map      = &(pta->localIndexMap);
@@ -363,10 +369,19 @@ MFIter::Initialize ()
         currentIndex = beginIndex;
 
 #ifdef AMREX_USE_GPU
+        if (Gpu::inLaunchRegion() && device_sync && device_sync_pre &&
+            streams > 1 && (index_map->size() > 1)) {
+            // No need to call streamSynchronize when there is only single
+            // stream or only one box/tile.
+#ifdef AMREX_USE_OMP
+#pragma omp single
+#endif
+            Gpu::streamSynchronize();
+        }
         Gpu::Device::setStreamIndex(currentIndex%streams);
 #endif
 
-        typ = fabArray.boxArray().ixType();
+        typ = fabArray->boxArray().ixType();
     }
 }
 
@@ -462,7 +477,7 @@ MFIter::growntilebox (int a_ng) const noexcept
 {
     Box bx = tilebox();
     IntVect ngv{a_ng};
-    if (a_ng < -100) { ngv = fabArray.nGrowVect(); }
+    if (a_ng < -100) { ngv = fabArray->nGrowVect(); }
     const Box& vbx = validbox();
     for (int d=0; d<AMREX_SPACEDIM; ++d) {
         if (bx.smallEnd(d) == vbx.smallEnd(d)) {
@@ -495,7 +510,7 @@ Box
 MFIter::grownnodaltilebox (int dir, int a_ng) const noexcept
 {
     IntVect ngv(a_ng);
-    if (a_ng < -100) { ngv = fabArray.nGrowVect(); }
+    if (a_ng < -100) { ngv = fabArray->nGrowVect(); }
     return grownnodaltilebox(dir, ngv);
 }
 
@@ -524,7 +539,6 @@ MFIter::operator++ () noexcept
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             Gpu::Device::setStreamIndex(currentIndex%streams);
-            AMREX_GPU_ERROR_CHECK();
 #ifdef AMREX_DEBUG
 //            Gpu::synchronize();
 #endif

@@ -170,7 +170,7 @@ RealDescriptor::clone () const
 // This exists solely to support reading "old" FABs.
 //
 
-static
+namespace {
 const int*
 selectOrdering (int prec,
                 int ordering)
@@ -208,6 +208,7 @@ selectOrdering (int prec,
     }
     return nullptr;
 }
+}
 
 //
 // This is here solely to support reading "old" FABs.
@@ -243,6 +244,8 @@ RealDescriptor::newRealDescriptor (int fmt, int prec, const char* /*sys*/,
     rd = new RealDescriptor;
     return rd;
 }
+
+namespace {
 
 inline
 void
@@ -293,7 +296,6 @@ _pd_get_bit (char const* base,
 // for longer fields
 //
 
-static
 Long
 _pd_extract_field (char const* in,
                    int         offs,
@@ -367,7 +369,6 @@ _pd_extract_field (char const* in,
 //
 
 template <int NB>
-static
 void
 _pd_btrvout (char* out, Long  nitems)
 {
@@ -387,8 +388,8 @@ _pd_btrvout (char* out, Long  nitems)
     }
 }
 
-const int BitsMax       = 8*sizeof(Long);
-const int REVERSE_ORDER = 2;
+constexpr int BitsMax       = 8*sizeof(Long);
+constexpr int REVERSE_ORDER = 2;
 
 //
 // Copy the least significant NB bits from the given Long into the byte array
@@ -487,7 +488,6 @@ _pd_set_bit (char* base, int offs)
 // on input.
 //
 
-static
 void
 _pd_reorder (char*      arr,
              Long       nitems,
@@ -512,7 +512,6 @@ _pd_reorder (char*      arr,
 // from inord to outord.
 //
 
-static
 void
 permute_real_word_order (void*       out,
                          const void* in,
@@ -786,7 +785,6 @@ PD_fconvert (void*       out,
     _pd_reorder((char*)out, nitems, outbytes, outord);
 }
 
-static
 void
 PD_fixdenormals (void*       out,
                  Long        nitems,
@@ -816,13 +814,15 @@ PD_fixdenormals (void*       out,
     }
 }
 
+}
+
 //
 // It's really sad that I need to do this ...
 //
 
 #undef  GETARRAY
+namespace {
 #define GETARRAY(TYPE)                                             \
-static                                                             \
 void                                                               \
 getarray (std::istream&  is,                                       \
           Vector< TYPE >& ar)                                       \
@@ -852,11 +852,12 @@ getarray (std::istream&  is,                                       \
 }
 GETARRAY(int)
 GETARRAY(Long)
+}
 #undef GETARRAY
 
 #undef  PUTARRAY
+namespace {
 #define PUTARRAY(TYPE)                 \
-static                                 \
 void                                   \
 putarray (std::ostream&        os,     \
           const Vector< TYPE >& ar)     \
@@ -874,6 +875,7 @@ putarray (std::ostream&        os,     \
 }
 PUTARRAY(int)
 PUTARRAY(Long)
+}
 #undef PUTARRAY
 
 std::ostream&
@@ -917,7 +919,7 @@ operator>> (std::istream&   is,
     return is;
 }
 
-static
+namespace {
 void
 PD_convert (void*                 out,
             const void*           in,
@@ -959,6 +961,7 @@ PD_convert (void*                 out,
                     onescmp);
         PD_fixdenormals(out, nitems, ord.format(), ord.order());
     }
+}
 }
 
 //

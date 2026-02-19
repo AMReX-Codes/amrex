@@ -2,6 +2,7 @@
 #define AMREX_TYPELIST_H_
 #include <AMReX_Config.H>
 
+#include <type_traits>
 #include <utility>
 
 namespace amrex {
@@ -14,6 +15,7 @@ struct TypeList
     static constexpr std::size_t size () noexcept { return sizeof...(Ts); }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <std::size_t I, typename T> struct TypeListGet;
 
@@ -26,52 +28,55 @@ namespace detail {
         using type = Head;
     };
 }
+/// \endcond
 
 //! Type at position I of a TypeList
 template <std::size_t I, typename T>
 using TypeAt = typename detail::TypeListGet<I,T>::type;
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename TL, typename F, std::size_t...N>
-    constexpr void for_each_impl (F&&f, std::index_sequence<N...>)
+    constexpr void for_each_impl (F const&f, std::index_sequence<N...>)
     {
         (f(TypeAt<N,TL>{}), ...);
     }
 
     template <typename TL, typename F, std::size_t...N>
-    constexpr bool for_each_until_impl (F&&f, std::index_sequence<N...>)
+    constexpr bool for_each_until_impl (F const&f, std::index_sequence<N...>)
     {
         return (f(TypeAt<N,TL>{}) || ...);
     }
 }
+/// \endcond
 
 /**
  * \brief For each type t in TypeList, call f(t)
  *
  * For example, instead of
- \verbatim
-     int order = ...;
-     if (order == 1) {
-         interp<1>(...);
-     } else if (order == 2) {
-         interp<2>(...);
-     } else if (order == 4) {
-         interp<4>(...);
-     }
- \endverbatim
+ * \code{.cpp}
+ *     int order = ...;
+ *     if (order == 1) {
+ *         interp<1>(...);
+ *     } else if (order == 2) {
+ *         interp<2>(...);
+ *     } else if (order == 4) {
+ *         interp<4>(...);
+ *     }
+ * \endcode
  * we could have
- \verbatim
-     int order = ...;
-     ForEach(TypeList<std::integral_constant<int,1>,
-                      std::integral_constant<int,2>,
-                      std::integral_constant<int,4>>{},
-             [&] (auto order_const) {
-                 if (order_const() == order) {
-                     interp<order_const()>(...);
-                 }
-             });
- \endverbatim
+ * \code{.cpp}
+ *     int order = ...;
+ *     ForEach(TypeList<std::integral_constant<int,1>,
+ *                      std::integral_constant<int,2>,
+ *                      std::integral_constant<int,4>>{},
+ *             [&] (auto order_const) {
+ *                 if (order_const() == order) {
+ *                     interp<order_const()>(...);
+ *                 }
+ *             });
+ * \endcode
  */
 template <typename... Ts, typename F>
 constexpr void
@@ -88,27 +93,27 @@ ForEach (TypeList<Ts...>, F&& f)
  * shor-circuting occurs for the || operators.
  *
  * An example,
- \verbatim
-     void AnyF (Any& dst, Any const& src) {
-         // dst and src are either MultiFab or fMultiFab
-         auto tt = CartesianProduct(TypeList<MultiFab,fMultiFab>{},
-                                    TypeList<MultiFab,fMultiFab>{});
-         bool r = ForEachUtil(tt, [&] (auto t) -> bool
-         {
-             using MF0 = TypeAt<0,decltype(t)>;
-             using MF1 = TypeAt<1,decltype(t)>;
-             if (dst.is<MF0>() && src.is<MF1>()) {
-                 MF0      & dmf = dst.get<MF0>();
-                 MF1 const& smf = src.get<MF1>();
-                 f(dmf, smf);
-                 return true;
-             } else {
-                 return false;
-             }
-         });
-         if (!r) { amrex::Abort("Unsupported types"); }
-     }
- \endverbatim
+ * \code{.cpp}
+ *     void AnyF (Any& dst, Any const& src) {
+ *         // dst and src are either MultiFab or fMultiFab
+ *         auto tt = CartesianProduct(TypeList<MultiFab,fMultiFab>{},
+ *                                    TypeList<MultiFab,fMultiFab>{});
+ *         bool r = ForEachUntil(tt, [&] (auto t) -> bool
+ *         {
+ *             using MF0 = TypeAt<0,decltype(t)>;
+ *             using MF1 = TypeAt<1,decltype(t)>;
+ *             if (dst.is<MF0>() && src.is<MF1>()) {
+ *                 MF0      & dmf = dst.get<MF0>();
+ *                 MF1 const& smf = src.get<MF1>();
+ *                 f(dmf, smf);
+ *                 return true;
+ *             } else {
+ *                 return false;
+ *             }
+ *         });
+ *         if (!r) { amrex::Abort("Unsupported types"); }
+ *     }
+ * \endcode
  */
 template <typename... Ts, typename F>
 constexpr bool
@@ -138,18 +143,98 @@ constexpr auto operator* (LLs, TypeList<As...>) {
  * \brief Cartesian Product of TypeLists.
  *
  * For example,
- \verbatim
-     CartesianProduct(TypeList<std::integral_constant<int,0>,
-                               std::integral_constant<int,1>>{},
-                      TypeList<std::integral_constant<int,2>,
-                               std::integral_constant<int,3>>{});
- \endverbatim
+ * \code{.cpp}
+ *     CartesianProduct(TypeList<std::integral_constant<int,0>,
+ *                               std::integral_constant<int,1>>{},
+ *                      TypeList<std::integral_constant<int,2>,
+ *                               std::integral_constant<int,3>>{});
+ * \endcode
  * returns TypeList of TypeList of integral_constants {{0,2},{1,2},{0,3},{1,3}}.
  */
 template <typename... Ls>
 constexpr auto CartesianProduct (Ls...) {
     return (TypeList<TypeList<>>{} * ... * Ls{});
 }
+
+template <class T, std::size_t N>
+struct TypeArray {
+    using Type = T;
+    static constexpr std::size_t size () noexcept { return N; }
+};
+
+/// \cond DOXYGEN_IGNORE
+namespace detail {
+    // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
+    template <class T, std::size_t N>
+    constexpr auto SingleTypeMultiplier_impl () {
+        if constexpr (N == 0) {
+            return TypeList<>{};
+        } else if constexpr (N == 1) {
+            return TypeList<T>{};
+        } else if constexpr (N % 2 == 0) {
+            return SingleTypeMultiplier_impl<T, N / 2>() + SingleTypeMultiplier_impl<T, N / 2>();
+        } else {
+            return SingleTypeMultiplier_impl<T, N - 1>() + TypeList<T>{};
+        }
+    }
+
+    // overload of SingleTypeMultiplier for multiple types:
+    // convert T[N] to  T, T, T, T, ... (N times with N >= 1)
+    template <class T, std::size_t N>
+    constexpr auto SingleTypeMultiplier (const T (&)[N]) {
+        return SingleTypeMultiplier_impl<T, N>();
+    }
+
+    // overload of SingleTypeMultiplier for multiple types:
+    // convert TypeArray<T,N> to  T, T, T, T, ... (N times with N >= 0)
+    // Note that only this overload works with N = 0
+    template <class T, std::size_t N>
+    constexpr auto SingleTypeMultiplier (TypeArray<T, N>) {
+        return SingleTypeMultiplier_impl<T, N>();
+    }
+
+    // overload of SingleTypeMultiplier for one regular type
+    template <class T>
+    constexpr auto SingleTypeMultiplier (T) {
+        return TypeList<T>{};
+    }
+
+    // apply the types of the input TypeList as template arguments to TParam
+    template <template <class...> class TParam, class... Args>
+    constexpr auto TApply (TypeList<Args...>) {
+        return TypeList<TParam<Args...>>{};
+    }
+}
+/// \endcond
+
+/**
+ * \brief Return the first template argument with the later arguments applied to it.
+ * Types of the form T[N] are expanded to T, T, T, T, ... (N times with N >= 1).
+ * Types of the form TypeArray<T,N> are expanded to T, T, T, T, ... (N times with N >= 0).
+ *
+ * For example, TypeMultiplier<ReduceData, Real[4], int[2], Long>
+ * is an alias to the type ReduceData<Real, Real, Real, Real, int, int, Long>.
+ */
+template <template <class...> class TParam, class... Types>
+using TypeMultiplier = TypeAt<0, decltype(detail::TApply<TParam>(
+    (TypeList<>{} + ... + detail::SingleTypeMultiplier(std::declval<Types>()))
+))>;
+
+/**
+ * \brief Wrap non-TypeList into TypeList
+ */
+template <typename T>
+struct ToTypeList { using type = TypeList<T>; };
+
+template <typename... Ts>
+struct ToTypeList<TypeList<Ts...>> { using type = TypeList<Ts...>; };
+
+template <typename T>
+using ToTypeList_t = typename ToTypeList<T>::type;
+
+template <typename T> struct IsTypeList : std::false_type {};
+template <typename... Ts> struct IsTypeList<TypeList<Ts...>> : std::true_type {};
+template <typename T> inline constexpr bool IsTypeList_v = IsTypeList<T>::value;
 
 }
 

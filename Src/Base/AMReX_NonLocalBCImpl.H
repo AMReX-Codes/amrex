@@ -439,19 +439,19 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
     handler.mpi_tag = SeqNum;
 
     if (N_rcvs > 0) {
-        handler.recv.the_data = mf.PostRcvs(*cmd.m_RcvTags, handler.recv.data, handler.recv.size,
+        handler.recv.the_data = FabArray<FAB>::PostRcvs(*cmd.m_RcvTags, handler.recv.data, handler.recv.size,
                                             handler.recv.rank, handler.recv.request, ncomp, SeqNum);
     }
 
     if (N_snds > 0) {
         handler.send.the_data =
-            mf.PrepareSendBuffers(*cmd.m_SndTags, handler.send.data, handler.send.size,
+            FabArray<FAB>::PrepareSendBuffers(*cmd.m_SndTags, handler.send.data, handler.send.size,
                                   handler.send.rank, handler.send.request, handler.send.cctc, ncomp);
 
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion()) {
             FabArray<FAB>::pack_send_buffer_gpu(mf, scomp, ncomp, handler.send.data,
-                                                handler.send.size, handler.send.cctc);
+                                                handler.send.size, handler.send.cctc, handler.send.id);
         } else
 #endif
         {
@@ -781,9 +781,11 @@ Box get_dst_subbox (DTOS const& dtos, std::pair<Box,Box> const& sdboxes,
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     void split_boxes (BoxList& bl, Box const& domain);
 }
+/// \endcond
 
 template <typename FAB, typename DTOS>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3,DTOS,Dim3>(),

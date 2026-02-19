@@ -14,7 +14,6 @@ namespace amrex {
 *
 * Stores and manipulates fluxes at coarse-fine interfaces.
 */
-
 class FluxRegister
     :
     public BndryRegister
@@ -239,6 +238,7 @@ public:
     * \param destcomp
     * \param numcomp
     * \param mult
+    * \param runon
     */
     void FineAdd (const FArrayBox& flux,
                   int              dir,
@@ -260,6 +260,7 @@ public:
     * \param destcomp
     * \param numcomp
     * \param mult
+    * \param runon
     */
     void FineAdd (const FArrayBox& flux,
                   const FArrayBox& area,
@@ -280,6 +281,7 @@ public:
     * \param destcomp
     * \param numcomp
     * \param val
+    * \param runon
     */
     void FineSetVal (int              dir,
                      int              boxno,
@@ -294,9 +296,9 @@ public:
     * \param mf
     * \param volume
     * \param scale
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param scomp
+    * \param dcomp
+    * \param nc
     * \param crse_geom
     */
     void Reflux (MultiFab&       mf,
@@ -321,9 +323,9 @@ public:
     *
     * \param mf
     * \param scale
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param scomp
+    * \param dcomp
+    * \param nc
     * \param crse_geom
     */
     void Reflux (MultiFab&       mf,
@@ -347,6 +349,7 @@ public:
      *
      * \param crse_fluxes MultiFab pointers to coarse fluxes.
      * \param scale       scaling factor by which the fine flux is multiplied.
+     * \param srccomp     starting component in fine flux in the FluxRegister
      * \param destcomp    starting component in coarse flux MultiFab
      * \param numcomp     number of components
      * \param crse_geom   coarse Geometry

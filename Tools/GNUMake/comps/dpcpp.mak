@@ -9,6 +9,9 @@ F90 = ifx
 amrex_oneapi_version = $(shell $(CXX) --version | head -1)
 $(info oneAPI version: $(amrex_oneapi_version))
 
+amrex_oneapi_version_major = $(shell $(CXX) --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 | cut -d. -f1)
+amrex_oneapi_version_minor = $(shell $(CXX) --version | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 | cut -d. -f2)
+
 CXXFLAGS =
 CFLAGS   =
 FFLAGS   =
@@ -24,11 +27,11 @@ endif
 
 ifeq ($(DEBUG),TRUE)
 
-  CXXFLAGS += -g -O0 #-ftrapv
-  CFLAGS   += -g -O0 #-ftrapv
+  CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) #-ftrapv
+  CFLAGS   += -g -O$(DEBUG_OPT_LEVEL) #-ftrapv
 
-  FFLAGS   += -g -O0 -traceback -check bounds,uninit,pointers
-  F90FLAGS += -g -O0 -traceback -check bounds,uninit,pointers
+  FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -traceback -check bounds,uninit,pointers
+  F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -traceback -check bounds,uninit,pointers
 
 else
 
@@ -44,6 +47,14 @@ ifeq ($(WARN_ALL),TRUE)
   warning_flags += -Wfloat-conversion -Wextra-semi
 
   warning_flags += -Wpedantic
+
+  # /tmp/icpx-2d34de0e47/global_vars-header-4390fb.h:25:36: error: zero size arrays are an extension [-Werror,-Wzero-length-array]
+  #    25 | const char* const kernel_names[] = {
+  #       |                                    ^
+  # 1 error generated.
+  #
+  # Seen in oneapi 2024.2.0 after adding Test/DeviceGlobal
+  warning_flags += -Wno-zero-length-array
 
   ifneq ($(WARN_SHADOW),FALSE)
     warning_flags += -Wshadow
@@ -123,7 +134,24 @@ ifneq ($(BL_NO_FORT),TRUE)
   endif
 endif
 
-LDFLAGS += -qmkl=sequential -fsycl-device-lib=libc,libm-fp32,libm-fp64
+LDFLAGS += -qmkl=sequential
+
+amrex_oneapi_major_lt_2025 = $(shell expr $(amrex_oneapi_version_major) \< 2025)
+amrex_oneapi_minor_le_2    = $(shell expr $(amrex_oneapi_version_minor) \<= 2)
+
+ifeq ($(amrex_oneapi_major_lt_2025),1)
+  amrex_add_sycl_device_lib = 1
+endif
+
+ifeq ($(amrex_oneapi_version_major),2025)
+ifeq ($(amrex_oneapi_minor_le_2),1)
+  amrex_add_sycl_device_lib = 1
+endif
+endif
+
+ifeq ($(amrex_add_sycl_device_lib),1)
+  LDFLAGS += -fsycl-device-lib=libc,libm-fp32,libm-fp64
+endif
 
 ifdef SYCL_PARALLEL_LINK_JOBS
 LDFLAGS += -fsycl-max-parallel-link-jobs=$(SYCL_PARALLEL_LINK_JOBS)
@@ -158,7 +186,7 @@ endif
 
 ifeq ($(DEBUG),TRUE)
   # This might be needed for linking device code larger than 2GB.
-  LDFLAGS += -fsycl-link-huge-device-code
+  LDFLAGS += -flink-huge-device-code
 endif
 
 ifeq ($(FSANITIZER),TRUE)

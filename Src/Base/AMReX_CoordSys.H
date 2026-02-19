@@ -20,7 +20,6 @@ class FArrayBox;
 *
 * Routines for mapping between physical coordinate system and index space.
 */
-
 class CoordSys
 {
 public:
@@ -242,9 +241,9 @@ protected:
 
     Real dx[AMREX_SPACEDIM] = {AMREX_D_DECL(0.,0.,0.)};
     Real inv_dx[AMREX_SPACEDIM]
-        = {AMREX_D_DECL(std::numeric_limits<Real>::infinity(),
-                        std::numeric_limits<Real>::infinity(),
-                        std::numeric_limits<Real>::infinity())};
+        = {AMREX_D_DECL(std::numeric_limits<Real>::max(),
+                        std::numeric_limits<Real>::max(),
+                        std::numeric_limits<Real>::max())};
     bool ok = false;
 };
 

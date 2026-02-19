@@ -19,9 +19,15 @@ namespace
 namespace amrex {
 #ifdef AMREX_USE_SYCL
     sycl_rng_descr* rand_engine_descr = nullptr;
-    oneapi::mkl::rng::philox4x32x10* gpu_rand_generator = nullptr;
 #else
     amrex::randState_t* gpu_rand_state = nullptr;
+#endif
+}
+
+namespace {
+#ifdef AMREX_USE_SYCL
+    oneapi::mkl::rng::philox4x32x10* gpu_rand_generator = nullptr;
+#else
     amrex::randGenerator_t gpu_rand_generator = nullptr;
 #endif
 }
@@ -128,6 +134,13 @@ unsigned int RandomPoisson (Real lambda)
     return distribution(generators[tid]);
 }
 
+Real RandomGamma (Real alpha, Real beta)
+{
+    std::gamma_distribution<Real> distribution(alpha, beta);
+    int tid = OpenMP::get_thread_num();
+    return distribution(generators[tid]);
+}
+
 unsigned int Random_int (unsigned int n)
 {
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
@@ -181,18 +194,17 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
     Abort("**** Error in UniqueRandomSubset:  setSize > poolSize.");
   }
   std::set<int> copySet;
-  Vector<int> uSetTemp;
+  uSet.clear();
   while(static_cast<int>(copySet.size()) < setSize) {
     int r = static_cast<int>(Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);
-      uSetTemp.push_back(r);
+      uSet.push_back(r);
     }
   }
-  uSet = uSetTemp;
   if(printSet) {
     for(int i(0); i < uSet.size(); ++i) {
-        AllPrint() << "uSet[" << i << "]  = " << uSet[i] << std::endl;
+        AllPrint() << "uSet[" << i << "]  = " << uSet[i] << '\n';
     }
   }
 }
@@ -273,23 +285,34 @@ void FillRandom (Real* p, Long N)
 
 void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 {
+    if (N <= 0) { return; }
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (N == 1) {
+        auto r = amrex::RandomNormal(mean, stddev);
+        Gpu::htod_memcpy_async(p, &r, sizeof(Real));
+        Gpu::streamSynchronize();
+        return;
+    }
+    // The length passed to [cu|hip]randGenerateNormal must be even
+    Long Neven =  (N%2 == 0) ? N : N-1;
+#endif
+
 #if defined(AMREX_USE_CUDA)
 
 #  ifdef BL_USE_FLOAT
-    AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormal(gpu_rand_generator, p, Neven, mean, stddev));
 #  else
-    AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_CURAND_SAFE_CALL(curandGenerateNormalDouble(gpu_rand_generator, p, Neven, mean, stddev));
 #  endif
-    Gpu::synchronize();
 
 #elif defined(AMREX_USE_HIP)
 
 #  ifdef BL_USE_FLOAT
-    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormal(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormal(gpu_rand_generator, p, Neven, mean, stddev));
 #  else
-    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormalDouble(gpu_rand_generator, p, N, mean, stddev));
+    AMREX_HIPRAND_SAFE_CALL(hiprandGenerateNormalDouble(gpu_rand_generator, p, Neven, mean, stddev));
 #  endif
-    Gpu::synchronize();
 
 #elif defined(AMREX_USE_SYCL)
 
@@ -306,33 +329,17 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
     }
 
 #endif
+
+#if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+    if (Neven < N) {
+        auto r = amrex::RandomNormal(mean, stddev);
+        Gpu::htod_memcpy_async(p+(N-1), &r, sizeof(Real));
+    }
+    Gpu::synchronize();
+#endif
 }
 
 } // namespace amrex
-
-
-//
-// Fortran entry points for amrex::Random().
-//
-
-#if !defined(AMREX_XSDK) && !defined(BL_NO_FORT)
-BL_FORT_PROC_DECL(BLUTILINITRAND,blutilinitrand)(const int* sd)
-{
-    amrex::ULong seed = *sd;
-    amrex::InitRandom(seed);
-}
-
-BL_FORT_PROC_DECL(BLINITRAND,blinitrand)(const int* sd)
-{
-    amrex::ULong seed = *sd;
-    amrex::InitRandom(seed);
-}
-
-BL_FORT_PROC_DECL(BLUTILRAND,blutilrand)(amrex::Real* rn)
-{
-    *rn = amrex::Random();
-}
-#endif
 
 extern "C" {
     double amrex_random ()

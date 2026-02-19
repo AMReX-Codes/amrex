@@ -20,7 +20,7 @@ find . -type d \( -name .git \
                     -a ! -name "*.lex.h" -a ! -name "*.lex.nolint.H" \) \
                \) \
     -exec grep -Iq . {} \; \
-    -exec sed -i 's/[[:blank:]]\+$//g' {} +
+    -exec perl -i -pe's/[[:blank:]]+$//g' {} +
 
 gitdiff=`git diff`
 
@@ -32,5 +32,6 @@ else
     echo -e "  ${0}\n"
     git --no-pager diff
     echo ""
+    echo "We recommend using EditorConfig to avoid trailing whitespaces: https://editorconfig.org/"
     exit 1
 fi

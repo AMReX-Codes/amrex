@@ -1,43 +1,62 @@
 #include <AMReX_RealVect.H>
 #include <iostream>
 
-namespace amrex
+/// \cond DOXYGEN_IGNORE
+namespace amrex::detail {
+
+std::ostream&
+real_vector_write (std::ostream& os, const Real* p, int dim)
 {
+    os << '(' << p[0];
+    for (int i=1; i<dim; ++i) {
+        os << ',' << p[i];
+    }
+    os << ')';
+    if (os.fail()) {
+        amrex::Error("operator<<(ostream&,RealVect&) failed");
+    }
+    return os;
+}
 
-  const RealVect RealVect::Zero = RealVect::TheZeroVector();
-  const RealVect RealVect::Unit = RealVect::TheUnitVector();
+#define BL_IGNORE_MAX 100000
 
-  std::ostream&
-  operator<< (std::ostream& ostr, const RealVect& p)
-  {
-    ostr << "(" << AMREX_D_TERM ( p[0] ,<< "," << p[1], << "," << p[2]) << ")" ;
-    return ostr;
-  }
-
-  std::istream&
-  operator>> (std::istream& is,
-              RealVect&      iv)
-  {
+std::istream&
+real_vector_read (std::istream& is, Real* p, int dim)
+{
     is >> std::ws;
     char c;
     is >> c;
 
+    for (int i=0; i<dim; ++i) {
+        p[i] = 0;
+    }
+
     if (c == '(')
     {
-        AMREX_D_EXPR(is >> iv[0],
-               is.ignore(BL_IGNORE_MAX, ',') >> iv[1],
-               is.ignore(BL_IGNORE_MAX, ',') >> iv[2]);
+        is >> p[0];
+        for (int i=1; i<dim; ++i) {
+            is >> std::ws;
+            int ic = is.peek();
+            if (ic == static_cast<int>(',')) {
+                is.ignore(BL_IGNORE_MAX, ',');
+                is >> p[i];
+                continue;
+            }
+            break;
+        }
         is.ignore(BL_IGNORE_MAX, ')');
     }
     else
     {
-        amrex::Error("operator>>(istream&,IntVect&): expected \'(\'");
+        amrex::Error("operator>>(istream&,RealVect&): expected \'(\'");
     }
 
     if (is.fail()) {
-        amrex::Error("operator>>(istream&,IntVect&) failed");
+        amrex::Error("operator>>(istream&,RealVect&) failed");
     }
 
     return is;
 }
-} //namespace amrex
+
+} //namespace amrex::detail
+/// \endcond

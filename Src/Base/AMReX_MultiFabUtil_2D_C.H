@@ -120,6 +120,7 @@ void amrex_avgdown_faces (Box const& bx, Array4<T> const& crse,
         }
         break;
     }
+    default: { break; }
     }
 }
 
@@ -157,6 +158,7 @@ void amrex_avgdown_faces (int i, int j, int, int n, Array4<T> const& crse,
         crse(i,j,0,n+ccomp) = c * facInv;
         break;
     }
+    default: { break; }
     }
 }
 
@@ -206,6 +208,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
         }
         break;
     }
+    default: { break; }
     }
 }
 
@@ -242,6 +245,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
         crse(i,j,0,n+ccomp) = c * facInv;
         break;
     }
+    default: { break; }
     }
 }
 
@@ -355,7 +359,7 @@ void amrex_compute_divergence (Box const& bx, Array4<Real> const& divu,
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
 
-    for     (int n = 0; n < divu.ncomp; ++n) {
+    for     (int n = 0; n < divu.nComp(); ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
@@ -401,7 +405,7 @@ void amrex_compute_convective_difference (Box const& bx, Array4<amrex::Real> con
     const Real dxi = dxinv[0];
     const Real dyi = dxinv[1];
 
-    for         (int n = 0; n <  diff.ncomp; ++n) {
+    for         (int n = 0; n <  diff.nComp(); ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
@@ -426,7 +430,7 @@ void amrex_compute_divergence_rz (Box const& bx, Array4<Real> const& divu,
     const auto lo = lbound(bx);
     const auto hi = ubound(bx);
 
-    for     (int n = 0; n < divu.ncomp; ++n) {
+    for     (int n = 0; n < divu.nComp(); ++n) {
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {

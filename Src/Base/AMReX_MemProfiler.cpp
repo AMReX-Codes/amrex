@@ -321,7 +321,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
         }
 #endif
 
-        memlog << std::endl;
+        memlog << '\n';
 
         memlog.close();
     }

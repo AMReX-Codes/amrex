@@ -190,7 +190,7 @@ void testNeighborList ()
 
     IntVect nppc(params.num_ppc);
 
-    amrex::PrintToFile("neighbor_test") << "About to initialize particles" << std::endl;
+    amrex::PrintToFile("neighbor_test") << "About to initialize particles" << '\n';
 
     pc.InitParticles(nppc, 1.0, 0.0);
     pc.fillNeighbors();

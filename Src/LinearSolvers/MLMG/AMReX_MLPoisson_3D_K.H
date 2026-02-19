@@ -245,6 +245,84 @@ void mlpoisson_gsrb_os (int i, int j, int k, Array4<T> const& phi,
     }
 }
 
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_jacobi (int i, int j, int k, Array4<T> const& phi,
+                       Array4<T const> const& rhs, Array4<T const> const& Ax,
+                       T dhx, T dhy, T dhz,
+                       Array4<T const> const& f0, Array4<int const> const& m0,
+                       Array4<T const> const& f1, Array4<int const> const& m1,
+                       Array4<T const> const& f2, Array4<int const> const& m2,
+                       Array4<T const> const& f3, Array4<int const> const& m3,
+                       Array4<T const> const& f4, Array4<int const> const& m4,
+                       Array4<T const> const& f5, Array4<int const> const& m5,
+                       Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    const T gamma = T(-2.)*(dhx+dhy+dhz);
+
+    T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+        ? f0(vlo.x,j,k) : T(0.0);
+    T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+        ? f1(i,vlo.y,k) : T(0.0);
+    T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+        ? f2(i,j,vlo.z) : T(0.0);
+    T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+        ? f3(vhi.x,j,k) : T(0.0);
+    T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+        ? f4(i,vhi.y,k) : T(0.0);
+    T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+        ? f5(i,j,vhi.z) : T(0.0);
+
+    T g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5);
+
+    phi(i,j,k) += T(2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k)) / g_m_d;
+}
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlpoisson_jacobi_os (int i, int j, int k, Array4<T> const& phi,
+                          Array4<T const> const& rhs,
+                          Array4<T const> const& Ax,
+                          Array4<int const> const& osm,
+                          T dhx, T dhy, T dhz,
+                          Array4<T const> const& f0, Array4<int const> const& m0,
+                          Array4<T const> const& f1, Array4<int const> const& m1,
+                          Array4<T const> const& f2, Array4<int const> const& m2,
+                          Array4<T const> const& f3, Array4<int const> const& m3,
+                          Array4<T const> const& f4, Array4<int const> const& m4,
+                          Array4<T const> const& f5, Array4<int const> const& m5,
+                          Box const& vbox) noexcept
+{
+    const auto vlo = amrex::lbound(vbox);
+    const auto vhi = amrex::ubound(vbox);
+
+    const T gamma = T(-2.)*(dhx+dhy+dhz);
+
+    if (osm(i,j,k) == 0) {
+        phi(i,j,k) = T(0.0);
+    } else {
+        T cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+            ? f0(vlo.x,j,k) : T(0.0);
+        T cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+            ? f1(i,vlo.y,k) : T(0.0);
+        T cf2 = (k == vlo.z && m2(i,j,vlo.z-1) > 0)
+            ? f2(i,j,vlo.z) : T(0.0);
+        T cf3 = (i == vhi.x && m3(vhi.x+1,j,k) > 0)
+            ? f3(vhi.x,j,k) : T(0.0);
+        T cf4 = (j == vhi.y && m4(i,vhi.y+1,k) > 0)
+            ? f4(i,vhi.y,k) : T(0.0);
+        T cf5 = (k == vhi.z && m5(i,j,vhi.z+1) > 0)
+            ? f5(i,j,vhi.z) : T(0.0);
+
+        T g_m_d = gamma + dhx*(cf0+cf3) + dhy*(cf1+cf4) + dhz*(cf2+cf5);
+
+        phi(i,j,k) += T(2.0/3.0) * (rhs(i,j,k) - Ax(i,j,k)) / g_m_d;
+    }
+}
+
 }
 
 #endif

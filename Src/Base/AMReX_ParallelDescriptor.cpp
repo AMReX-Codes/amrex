@@ -5,11 +5,15 @@
 #include <AMReX_BLFort.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
+#include <AMReX_RealVect.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Arena.H>
 
 #ifdef BL_USE_MPI
 #include <AMReX_ccse-mpi.H>
+#if __has_include(<mpi-ext.h>) && defined(OPEN_MPI)
+#         include <mpi-ext.h>
+#endif
 #endif
 
 #ifdef AMREX_PMI
@@ -41,6 +45,7 @@ namespace
 {
     int call_mpi_finalize = 0;
     int num_startparallel_called = 0;
+    MPI_Datatype mpi_type_realvect  = MPI_DATATYPE_NULL;
     MPI_Datatype mpi_type_intvect   = MPI_DATATYPE_NULL;
     MPI_Datatype mpi_type_indextype = MPI_DATATYPE_NULL;
     MPI_Datatype mpi_type_box       = MPI_DATATYPE_NULL;
@@ -51,15 +56,18 @@ namespace
 namespace amrex::ParallelDescriptor {
 
 #ifdef AMREX_USE_MPI
+    template <> MPI_Datatype Mpi_typemap<RealVect>::type();
     template <> MPI_Datatype Mpi_typemap<IntVect>::type();
     template <> MPI_Datatype Mpi_typemap<IndexType>::type();
     template <> MPI_Datatype Mpi_typemap<Box>::type();
 #endif
 
+    /// \cond DOXYGEN_IGNORE
+
 #ifdef AMREX_USE_GPU
-    int use_gpu_aware_mpi = false;
+    bool use_gpu_aware_mpi = false;
 #else
-    int use_gpu_aware_mpi = false;
+    bool use_gpu_aware_mpi = false;
 #endif
 
     ProcessTeam m_Team;
@@ -80,6 +88,8 @@ namespace amrex::ParallelDescriptor {
     int m_MinTag = 1000, m_MaxTag = -1;
 
     const int ioProcessor = 0;
+
+    /// \endcond
 
 #ifdef AMREX_PMI
     void PMI_Initialize()
@@ -157,7 +167,7 @@ namespace amrex::ParallelDescriptor {
                  ParallelDescriptor::IOProcessorNumber(),
                  ParallelDescriptor::Communicator());
 
-      amrex::Print() << "PMI statistics:" << std::endl;
+      amrex::Print() << "PMI statistics:" << '\n';
 
       std::vector<unsigned short> PMI_x_meshcoord(all_x_meshcoords, all_x_meshcoords + ParallelDescriptor::NProcs());
       std::vector<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcs());
@@ -168,13 +178,13 @@ namespace amrex::ParallelDescriptor {
       std::sort(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
 
       auto last = std::unique(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << '\n';
 
       last = std::unique(PMI_y_meshcoord.begin(), PMI_y_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_y_meshcoord.begin(), last) << '\n';
 
       last = std::unique(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
-      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << std::endl;
+      amrex::Print() << "# of unique groups: " << std::distance(PMI_z_meshcoord.begin(), last) << '\n';
     }
 #endif
 
@@ -323,7 +333,7 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
         {
             auto f = ParallelDescriptor::mpi_level_to_string;
             std::cout << "MPI provided < requested: " << f(provided) << " < "
-                      << f(requested) << std::endl;;
+                      << f(requested) << '\n';;
             std::abort();
         }
     }
@@ -374,11 +384,12 @@ StartParallel (int* argc, char*** argv, MPI_Comm a_mpi_comm)
     }
 
     // Create these types outside OMP parallel region
+    auto t0 = Mpi_typemap<RealVect>::type(); // NOLINT
     auto t1 = Mpi_typemap<IntVect>::type(); // NOLINT
     auto t2 = Mpi_typemap<IndexType>::type(); // NOLINT
     auto t3 = Mpi_typemap<Box>::type(); // NOLINT
     auto t4 = Mpi_typemap<ParallelDescriptor::lull_t>::type(); // NOLINT
-    amrex::ignore_unused(t1,t2,t3,t4);
+    amrex::ignore_unused(t0,t1,t2,t3,t4);
 
     // ---- find the maximum value for a tag
     int flag(0), *p;
@@ -408,6 +419,7 @@ EndParallel ()
 {
     --num_startparallel_called;
     if (num_startparallel_called == 0) {
+        BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_realvect) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_intvect) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_indextype) );
         BL_MPI_REQUIRE( MPI_Type_free(&mpi_type_box) );
@@ -420,6 +432,7 @@ EndParallel ()
             BL_MPI_REQUIRE( MPI_Op_free(op) );
             *op = MPI_OP_NULL;
         }
+        mpi_type_realvect  = MPI_DATATYPE_NULL;
         mpi_type_intvect   = MPI_DATATYPE_NULL;
         mpi_type_indextype = MPI_DATATYPE_NULL;
         mpi_type_box       = MPI_DATATYPE_NULL;
@@ -551,39 +564,39 @@ Comm_dup (MPI_Comm comm, MPI_Comm& newcomm)
 }
 
 void
-ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar)
 {
-    ReduceRealSum<Real>(std::move(rvar));
+    ReduceRealSum<Real>(rvar);
 }
 
 void
-ReduceRealSum (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar, int cpu)
 {
-    ReduceRealSum<Real>(std::move(rvar), cpu);
+    ReduceRealSum<Real>(rvar, cpu);
 }
 
 void
-ReduceRealMax (Vector<std::reference_wrapper<Real> > && rvar)
+ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar)
 {
-    ReduceRealMax<Real>(std::move(rvar));
+    ReduceRealMax<Real>(rvar);
 }
 
 void
-ReduceRealMax (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar, int cpu)
 {
-    ReduceRealMax<Real>(std::move(rvar), cpu);
+    ReduceRealMax<Real>(rvar, cpu);
 }
 
 void
-ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar)
+ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar)
 {
-    ReduceRealMin<Real>(std::move(rvar));
+    ReduceRealMin<Real>(rvar);
 }
 
 void
-ReduceRealMin (Vector<std::reference_wrapper<Real> >&& rvar, int cpu)
+ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar, int cpu)
 {
-    ReduceRealMin<Real>(std::move(rvar), cpu);
+    ReduceRealMin<Real>(rvar, cpu);
 }
 
 void
@@ -643,7 +656,7 @@ ReduceIntSum (int* r, int cnt)
 }
 
 void
-ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -666,7 +679,7 @@ ReduceIntSum (int* r, int cnt, int cpu)
 }
 
 void
-ReduceIntSum (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -689,7 +702,7 @@ ReduceIntMax (int* r, int cnt)
 }
 
 void
-ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -712,7 +725,7 @@ ReduceIntMax (int* r, int cnt, int cpu)
 }
 
 void
-ReduceIntMax (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -735,7 +748,7 @@ ReduceIntMin (int* r, int cnt)
 }
 
 void
-ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar)
+ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -758,7 +771,7 @@ ReduceIntMin (int* r, int cnt, int cpu)
 }
 
 void
-ReduceIntMin (Vector<std::reference_wrapper<int> >&& rvar, int cpu)
+ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<int> tmp{std::begin(rvar), std::end(rvar)};
@@ -781,7 +794,7 @@ ReduceLongSum (Long* r, int cnt)
 }
 
 void
-ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -804,7 +817,7 @@ ReduceLongSum (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongSum (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -827,7 +840,7 @@ ReduceLongMax (Long* r, int cnt)
 }
 
 void
-ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -850,7 +863,7 @@ ReduceLongMax (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongMax (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -873,7 +886,7 @@ ReduceLongMin (Long* r, int cnt)
 }
 
 void
-ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -896,7 +909,7 @@ ReduceLongMin (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongMin (Vector<std::reference_wrapper<Long> >&& rvar, int cpu)
+ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar, int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -919,7 +932,7 @@ ReduceLongAnd (Long* r, int cnt)
 }
 
 void
-ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar)
+ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -942,7 +955,7 @@ ReduceLongAnd (Long* r, int cnt, int cpu)
 }
 
 void
-ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& rvar,int cpu)
+ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar,int cpu)
 {
     auto cnt = static_cast<int>(rvar.size());
     Vector<Long> tmp{std::begin(rvar), std::end(rvar)};
@@ -1211,13 +1224,13 @@ void IProbe (int, int, MPI_Comm, int&, MPI_Status&) {}
 
 void Comm_dup (MPI_Comm, MPI_Comm&) {}
 
-void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
-void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
-void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/) {}
+void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& /*rvar*/) {}
+void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& /*rvar*/) {}
+void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& /*rvar*/) {}
 
-void ReduceRealSum (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceRealMax (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceRealMin (Vector<std::reference_wrapper<Real> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& /*rvar*/, int /*cpu*/) {}
 
 void ReduceLongAnd (Long&) {}
 void ReduceLongSum (Long&) {}
@@ -1239,15 +1252,15 @@ void ReduceLongSum (Long*,int,int) {}
 void ReduceLongMax (Long*,int,int) {}
 void ReduceLongMin (Long*,int,int) {}
 
-void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
-void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/) {}
+void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
+void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
+void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
+void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& /*rvar*/) {}
 
-void ReduceLongAnd (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceLongSum (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceLongMax (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceLongMin (Vector<std::reference_wrapper<Long> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& /*rvar*/, int /*cpu*/) {}
 
 void ReduceIntSum (int&) {}
 void ReduceIntMax (int&) {}
@@ -1265,13 +1278,13 @@ void ReduceIntSum (int*,int,int) {}
 void ReduceIntMax (int*,int,int) {}
 void ReduceIntMin (int*,int,int) {}
 
-void ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
-void ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
-void ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/) {}
+void ReduceIntSum (Vector<std::reference_wrapper<int> > const& /*rvar*/) {}
+void ReduceIntMax (Vector<std::reference_wrapper<int> > const& /*rvar*/) {}
+void ReduceIntMin (Vector<std::reference_wrapper<int> > const& /*rvar*/) {}
 
-void ReduceIntSum (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceIntMax (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
-void ReduceIntMin (Vector<std::reference_wrapper<int> >&& /*rvar*/, int /*cpu*/) {}
+void ReduceIntSum (Vector<std::reference_wrapper<int> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceIntMax (Vector<std::reference_wrapper<int> > const& /*rvar*/, int /*cpu*/) {}
+void ReduceIntMin (Vector<std::reference_wrapper<int> > const& /*rvar*/, int /*cpu*/) {}
 
 void ReduceBoolAnd (bool&) {}
 void ReduceBoolOr  (bool&) {}
@@ -1374,10 +1387,33 @@ BL_FORT_PROC_DECL(BL_PD_ABORT,bl_pd_abort)()
 #endif
 
 #if defined(BL_USE_MPI) && !defined(BL_AMRPROF)
+template <> MPI_Datatype Mpi_typemap<RealVect>::type()
+{
+    static_assert(std::is_trivially_copyable_v<RealVect>, "RealVect must be trivially copyable");
+    static_assert(std::is_standard_layout_v<RealVect>, "RealVect must be standard layout");
+
+    if ( mpi_type_realvect == MPI_DATATYPE_NULL )
+    {
+        MPI_Datatype types[] = { Mpi_typemap<Real>::type() };
+        int blocklens[] = { AMREX_SPACEDIM };
+        MPI_Aint disp[] = { 0 };
+        BL_MPI_REQUIRE( MPI_Type_create_struct(1, blocklens, disp, types, &mpi_type_realvect) );
+        MPI_Aint lb, extent;
+        BL_MPI_REQUIRE( MPI_Type_get_extent(mpi_type_realvect, &lb, &extent) );
+        if (extent != sizeof(RealVect)) {
+            MPI_Datatype tmp = mpi_type_realvect;
+            BL_MPI_REQUIRE( MPI_Type_create_resized(tmp, 0, sizeof(RealVect), &mpi_type_realvect) );
+            BL_MPI_REQUIRE( MPI_Type_free(&tmp) );
+        }
+        BL_MPI_REQUIRE( MPI_Type_commit( &mpi_type_realvect ) );
+    }
+    return mpi_type_realvect;
+}
+
 template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 {
-    static_assert(std::is_trivially_copyable<IntVect>::value, "IntVect must be trivially copyable");
-    static_assert(std::is_standard_layout<IntVect>::value, "IntVect must be standard layout");
+    static_assert(std::is_trivially_copyable_v<IntVect>, "IntVect must be trivially copyable");
+    static_assert(std::is_standard_layout_v<IntVect>, "IntVect must be standard layout");
 
     if ( mpi_type_intvect == MPI_DATATYPE_NULL )
     {
@@ -1399,8 +1435,8 @@ template <> MPI_Datatype Mpi_typemap<IntVect>::type()
 
 template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 {
-    static_assert(std::is_trivially_copyable<IndexType>::value, "IndexType must be trivially copyable");
-    static_assert(std::is_standard_layout<IndexType>::value, "IndexType must be standard layout");
+    static_assert(std::is_trivially_copyable_v<IndexType>, "IndexType must be trivially copyable");
+    static_assert(std::is_standard_layout_v<IndexType>, "IndexType must be standard layout");
 
     if ( mpi_type_indextype == MPI_DATATYPE_NULL )
     {
@@ -1422,8 +1458,8 @@ template <> MPI_Datatype Mpi_typemap<IndexType>::type()
 
 template <> MPI_Datatype Mpi_typemap<Box>::type()
 {
-    static_assert(std::is_trivially_copyable<Box>::value, "Box must be trivially copyable");
-    static_assert(std::is_standard_layout<Box>::value, "Box must be standard layout");
+    static_assert(std::is_trivially_copyable_v<Box>, "Box must be trivially copyable");
+    static_assert(std::is_standard_layout_v<Box>, "Box must be standard layout");
 
     if ( mpi_type_box == MPI_DATATYPE_NULL )
     {
@@ -1510,6 +1546,39 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
 void
 Initialize ()
 {
+#if defined(AMREX_USE_CUDA)
+
+#if defined(OMPI_HAVE_MPI_EXT_CUDA) && OMPI_HAVE_MPI_EXT_CUDA
+    use_gpu_aware_mpi = (bool) MPIX_Query_cuda_support();
+#elif defined(MPICH) && defined(MPIX_GPU_SUPPORT_CUDA)
+    int is_supported = 0;
+    if (MPIX_GPU_query_support(MPIX_GPU_SUPPORT_CUDA, &is_supported) == MPI_SUCCESS) {
+        use_gpu_aware_mpi = (bool) is_supported;
+    }
+#endif
+
+#elif defined(AMREX_USE_HIP)
+
+#if defined(OMPI_HAVE_MPI_EXT_ROCM) && OMPI_HAVE_MPI_EXT_ROCM
+    use_gpu_aware_mpi = (bool) MPIX_Query_rocm_support();
+#elif defined(MPICH) && defined(MPIX_GPU_SUPPORT_HIP)
+    int is_supported = 0;
+    if (MPIX_GPU_query_support(MPIX_GPU_SUPPORT_HIP, &is_supported) == MPI_SUCCESS) {
+        use_gpu_aware_mpi = (bool) is_supported;
+    }
+#endif
+
+#elif defined(AMREX_USE_SYCL)
+
+#if defined(MPICH) && defined(MPIX_GPU_SUPPORT_ZE)
+    int is_supported = 0;
+    if (MPIX_GPU_query_support(MPIX_GPU_SUPPORT_ZE, &is_supported) == MPI_SUCCESS) {
+        use_gpu_aware_mpi = (bool) is_supported;
+    }
+#endif
+
+#endif
+
 #ifndef BL_AMRPROF
     ParmParse pp("amrex");
     pp.queryAdd("use_gpu_aware_mpi", use_gpu_aware_mpi);
@@ -1537,9 +1606,9 @@ StartTeams ()
     int do_team_reduce = 0;
 
 #if defined(BL_USE_MPI3)
-    ParmParse pp("team");
-    pp.queryAdd("size", team_size);
-    pp.queryAdd("reduce", do_team_reduce);
+    ParmParse pp("amrex.team");
+    pp.query("size", team_size);
+    pp.query("reduce", do_team_reduce);
     if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
     }
@@ -1630,7 +1699,7 @@ select_comm_data_type (std::size_t nbytes)
 }
 
 std::size_t
-alignof_comm_data (std::size_t nbytes)
+sizeof_selected_comm_data_type (std::size_t nbytes)
 {
     const int t = select_comm_data_type(nbytes);
     if (t == 1) {

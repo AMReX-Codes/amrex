@@ -15,7 +15,9 @@
 
 namespace amrex::EB2 {
 
+/// \cond DOXYGEN_IGNORE
 extern AMREX_EXPORT int max_grid_size;
+/// \endcond
 
 void useEB2 (bool);
 
@@ -39,12 +41,14 @@ public:
     // moved to the top.
     static void push (IndexSpace* ispace);
 
+    static void push (std::unique_ptr<IndexSpace> ispace);
+
     // This erases `ispace` from the stack.
     static void erase (IndexSpace* ispace);
 
     static void pop () noexcept { m_instance.pop_back(); }
     static void clear () noexcept { m_instance.clear(); }
-    static const IndexSpace& top () {
+    static IndexSpace& top () {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_instance.empty(),
                                          "Have you forgot to call EB2::build? It's required even if the geometry is all regular.");
         return *(m_instance.back());
@@ -57,6 +61,10 @@ public:
     [[nodiscard]] virtual const Box& coarsestDomain () const = 0;
     virtual void addFineLevels (int num_new_fine_levels) = 0;
     virtual void addRegularCoarseLevels (int num_new_coarse_levels) = 0;
+
+    virtual void setShift (int, int) {
+        amrex::Abort("IndexSpace::setShift: not supported");
+    }
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
@@ -76,6 +84,10 @@ public:
                    int ngrow, bool build_coarse_level_by_coarsening,
                    bool extend_domain_face, int num_coarsen_opt);
 
+    IndexSpaceImp (const G& gshop, const Vector<Geometry>& geom,
+                   int ngrow,
+                   bool extend_domain_face, int num_coarsen_opt);
+
     IndexSpaceImp (IndexSpaceImp<G> const&) = delete;
     IndexSpaceImp (IndexSpaceImp<G> &&) = delete;
     void operator= (IndexSpaceImp<G> const&) = delete;
@@ -90,6 +102,8 @@ public:
     }
     void addFineLevels (int num_new_fine_levels) final;
     void addRegularCoarseLevels (int num_new_coarse_levels) final;
+
+    void setShift (int direction, int ncells) override;
 
     using F = typename G::FunctionType;
 
@@ -111,6 +125,7 @@ private:
 bool ExtendDomainFace ();
 int NumCoarsenOpt ();
 
+/// \ingroup amrex_eb
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
@@ -120,21 +135,43 @@ Build (const G& gshop, const Geometry& geom,
        int num_coarsen_opt = NumCoarsenOpt())
 {
     BL_PROFILE("EB2::Initialize()");
-    IndexSpace::push(new IndexSpaceImp<G>(gshop, geom,
-                                          required_coarsening_level,
-                                          max_coarsening_level,
-                                          ngrow, build_coarse_level_by_coarsening,
-                                          extend_domain_face,
-                                          num_coarsen_opt));
-} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+    IndexSpace::push(std::make_unique<IndexSpaceImp<G>>
+                     (gshop, geom, required_coarsening_level, max_coarsening_level,
+                      ngrow, build_coarse_level_by_coarsening,extend_domain_face,
+                      num_coarsen_opt));
+}
 
+/// \ingroup amrex_eb
+template <typename G>
+void
+Build (const G& gshop, Vector<Geometry> geom,
+       int ngrow = 4,
+       bool extend_domain_face = ExtendDomainFace(),
+       int num_coarsen_opt = NumCoarsenOpt())
+{
+    BL_PROFILE("EB2::Initialize()");
+    std::sort(geom.begin(), geom.end(), [] (Geometry const& a, Geometry const& b) { return a.Domain().numPts() > b.Domain().numPts(); });
+    IndexSpace::push(std::make_unique<IndexSpaceImp<G>>
+                     (gshop, geom, ngrow, extend_domain_face, num_coarsen_opt));
+}
+
+/// \ingroup amrex_eb
 void Build (const Geometry& geom,
             int required_coarsening_level,
             int max_coarsening_level,
             int ngrow = 4,
             bool build_coarse_level_by_coarsening = true,
             bool extend_domain_face = ExtendDomainFace(),
-            int num_coarsen_opt = NumCoarsenOpt());
+            int num_coarsen_opt = NumCoarsenOpt(),
+            bool support_mvmc = false);
+
+void BuildMultiValuedMultiCut (const Geometry& geom,
+                               int required_coarsening_level,
+                               int max_coarsening_level,
+                               int ngrow = 4,
+                               bool build_coarse_level_by_coarsening = true,
+                               bool extend_domain_face = ExtendDomainFace(),
+                               int num_coarsen_opt = NumCoarsenOpt());
 
 void BuildFromChkptFile (std::string const& fname,
                          const Geometry& geom,

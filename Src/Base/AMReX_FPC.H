@@ -15,7 +15,6 @@ namespace amrex {
 * namespaces, and we don't like global constants, we make them static
 * constant data members of this class.
 */
-
 class FPC
 {
 public:

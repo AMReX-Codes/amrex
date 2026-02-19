@@ -3,6 +3,7 @@
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
+#include "AMReX_FabArrayUtility.H"
 #include "AMReX_Particles.H"
 #include "AMReX_PlotFileUtil.H"
 #include <AMReX_AmrParticles.H>
@@ -19,6 +20,7 @@ struct TestParams {
     int nlevs;
     int max_grid_size;
     int nppc;
+    bool zero_out_input;
     bool verbose;
 };
 
@@ -63,11 +65,14 @@ void testParticleMesh (TestParams& parms)
         domain.refine(2);
     }
 
+    Vector<MultiFab> const_mf(parms.nlevs);
     Vector<MultiFab> density1(parms.nlevs);
     Vector<MultiFab> density2(parms.nlevs);
     for (int lev = 0; lev < parms.nlevs; lev++) {
+        const_mf[lev].define(ba[lev], dm[lev], 1, 1);
+        const_mf[lev].setVal(-2.0e8);
         density1[lev].define(ba[lev], dm[lev], 1, 1);
-        density1[lev].setVal(0.0);
+        density1[lev].setVal(-2.0e8);
         density2[lev].define(ba[lev], dm[lev], 1, 1);
         density2[lev].setVal(0.0);
     }
@@ -88,6 +93,7 @@ void testParticleMesh (TestParams& parms)
     //
     // Here we provide an example of one way to call ParticleToMesh
     //
+
     amrex::ParticleToMesh(myPC, GetVecOfPtrs(density1), 0, parms.nlevs-1,
         [=] AMREX_GPU_DEVICE (const MyParticleContainer::ParticleType& p,
                               amrex::Array4<amrex::Real> const& rho,
@@ -101,7 +107,18 @@ void testParticleMesh (TestParams& parms)
                 {
                     return part.rdata(comp);  // no weighting
                 });
-        });
+        }, parms.zero_out_input);
+
+    //
+    // Subtract initial value if input was not zeroed-out.
+    // (Plotfiles will only agree to machine precision in this case.)
+    //
+
+    if (!parms.zero_out_input) {
+        for (int lev = 0; lev < parms.nlevs; ++lev) {
+            amrex::Subtract(density1[lev], const_mf[lev], 0, 0, 1, 1);
+        }
+    }
 
     //
     // Here we provide an example of another way to call ParticleToMesh
@@ -166,15 +183,18 @@ int main(int argc, char* argv[])
     amrex::Abort("Must specify at least one particle per cell");
   }
 
+  parms.zero_out_input = true;
+  pp.query("zero_out_input", parms.zero_out_input);
+
   parms.verbose = false;
   pp.query("verbose", parms.verbose);
 
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of particles per cell : ";
-    std::cout << parms.nppc  << std::endl;
+    std::cout << parms.nppc  << '\n';
     std::cout << "Size of domain               : ";
-    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
+    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << '\n';
   }
 
   testParticleMesh(parms);

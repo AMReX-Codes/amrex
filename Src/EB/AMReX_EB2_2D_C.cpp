@@ -13,11 +13,11 @@ void set_eb_data (const int i, const int j,
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real almostone = 1.0_rt-1.e-6_rt;
-    constexpr Real small = 1.e-5_rt;
+    constexpr Real sml = 1.e-5_rt;
     constexpr Real tiny = 1.e-6_rt;
 #else
     constexpr Real almostone = 1.0-1.e-15;
-    constexpr Real small = 1.e-14;
+    constexpr Real sml = 1.e-14;
     constexpr Real tiny = 1.e-15;
 #endif
 
@@ -30,8 +30,7 @@ void set_eb_data (const int i, const int j,
     const Real apnorm = std::hypot(daxp,dayp) + 1.e-30_rt*std::sqrt(dx[0]*dx[1]);
     const Real nx = daxp * (1.0_rt/apnorm);
     const Real ny = dayp * (1.0_rt/apnorm);
-    const Real bareascaling = std::sqrt( (nx*dx[0])*(nx*dx[0]) +
-            (ny*dx[1])*(ny*dx[1]) );
+    const Real bareascaling = std::sqrt(Math::powi<2>(nx*dx[1]) + Math::powi<2>(ny*dx[0]));
 
     const Real nxabs = std::abs(nx);
     const Real nyabs = std::abs(ny);
@@ -118,11 +117,11 @@ void set_eb_data (const int i, const int j,
 
         vfrac(i,j,0) = 0.5_rt*(af1+af2)/(dx[0]*dx[1]);
 
-        if (vfrac(i,j,0) > 1.0_rt-small) {
+        if (vfrac(i,j,0) > 1.0_rt-sml) {
             vfrac(i,j,0) = 1.0_rt;
             vcent(i,j,0,0) = 0.0_rt;
             vcent(i,j,0,1) = 0.0_rt;
-        } else if (vfrac(i,j,0) < small) {
+        } else if (vfrac(i,j,0) < sml) {
             vfrac(i,j,0) = 0.0_rt;
             vcent(i,j,0,0) = 0.0_rt;
             vcent(i,j,0,1) = 0.0_rt;
@@ -207,9 +206,9 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  bool cover_multiple_cuts, int& nsmallfaces) noexcept
 {
 #ifdef AMREX_USE_FLOAT
-    constexpr Real small = 1.e-5_rt;
+    constexpr Real sml = 1.e-5_rt;
 #else
-    constexpr Real small = 1.e-14;
+    constexpr Real sml = 1.e-14;
 #endif
     const Real dxinv = 1.0_rt/dx[0];
     const Real dyinv = 1.0_rt/dx[1];
@@ -237,11 +236,11 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                     fcx(i,j,0) = 0.5_rt - 0.5_rt*apx(i,j,0);
                 }
 
-                if (apx(i,j,0) > 1.0_rt-small) {
+                if (apx(i,j,0) > 1.0_rt-sml) {
                     apx(i,j,0) = 1.0_rt;
                     fcx(i,j,0) = 0.0_rt;
                     fx(i,j,0) = Type::regular;
-                } else if (apx(i,j,0) < small) {
+                } else if (apx(i,j,0) < sml) {
                     apx(i,j,0) = 0.0_rt;
                     fcx(i,j,0) = 0.0_rt;
                     fx(i,j,0) = Type::covered;
@@ -270,11 +269,11 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                     fcy(i,j,0) = 0.5_rt - 0.5_rt*apy(i,j,0);
                 }
 
-                if (apy(i,j,0) > 1.0_rt-small) {
+                if (apy(i,j,0) > 1.0_rt-sml) {
                     apy(i,j,0) = 1.0_rt;
                     fcy(i,j,0) = 0.0_rt;
                     fy(i,j,0) = Type::regular;
-                } else if (apy(i,j,0) < small) {
+                } else if (apy(i,j,0) < sml) {
                     apy(i,j,0) = 0.0_rt;
                     fcy(i,j,0) = 0.0_rt;
                     fy(i,j,0) = Type::covered;
@@ -343,7 +342,8 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
     nsmallfaces += *(hp+1);
 
     if (*hp > 0 && !cover_multiple_cuts) {
-        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported");
+        amrex::Abort("amrex::EB2::build_faces: more than 2 cuts not supported. "
+                     "You can try to fix it by using runtime parameter eb2.cover_multiple_cuts=1.");
     }
 
     return *hp;

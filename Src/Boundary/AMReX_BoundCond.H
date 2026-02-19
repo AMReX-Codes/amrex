@@ -16,7 +16,6 @@ namespace amrex {
    boundary conditions are specified via an integer identifier.
    This class maintains that integer.
 */
-
 class BoundCond
 {
 public:

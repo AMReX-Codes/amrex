@@ -30,23 +30,34 @@ Parser::define (std::string const& func_body)
         try {
             amrex_parserparse();
         } catch (const std::runtime_error& e) {
+            amrex_parser_delete_buffer(buffer); // delete buffer allocated by bison
+            amrex_parser_delete_ptrs();         // delete ptrs allocated by amrex
             throw std::runtime_error(std::string(e.what()) + " in Parser expression \""
                                      + m_data->m_expression + "\"");
         }
         m_data->m_parser = amrex_parser_new();
         amrex_parser_delete_buffer(buffer);
+        m_ufs = parser_get_user_functions(m_data->m_parser);
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 Parser::Data::~Data ()
 {
     m_expression.clear();
     if (m_parser) { amrex_parser_delete(m_parser); }
-    if (m_host_executor) { The_Pinned_Arena()->free(m_host_executor); }
+    if (m_host_executor) {
+        if (m_use_arena) {
+            The_Pinned_Arena()->free(m_host_executor);
+        } else {
+            std::free(m_host_executor);
+        }
+    }
 #ifdef AMREX_USE_GPU
     if (m_device_executor) { The_Arena()->free(m_device_executor); }
 #endif
 }
+/// \endcond
 
 Parser::operator bool () const
 {
@@ -71,6 +82,30 @@ Parser::registerVariables (Vector<std::string> const& vars)
             parser_regvar(m_data->m_parser, vars[i].c_str(), i);
         }
     }
+}
+
+void
+Parser::registerUserFn1 (std::string const& name, ParserUserFn1 fh, ParserUserFn1 fd)
+{
+    register_user_fn<1>(name,fh,fd);
+}
+
+void
+Parser::registerUserFn2 (std::string const& name, ParserUserFn2 fh, ParserUserFn2 fd)
+{
+    register_user_fn<2>(name,fh,fd);
+}
+
+void
+Parser::registerUserFn3 (std::string const& name, ParserUserFn3 fh, ParserUserFn3 fd)
+{
+    register_user_fn<3>(name,fh,fd);
+}
+
+void
+Parser::registerUserFn4 (std::string const& name, ParserUserFn4 fh, ParserUserFn4 fd)
+{
+    register_user_fn<4>(name,fh,fd);
 }
 
 void
@@ -119,6 +154,12 @@ Parser::symbols () const
     } else {
         return std::set<std::string>{};
     }
+}
+
+std::map<std::string,int> const&
+Parser::userFunctions () const
+{
+    return m_ufs;
 }
 
 void

@@ -96,6 +96,12 @@ const char* buildInfoGetLibraries() {
   return libraries;
 }
 
+const char* buildInfoGetMakeFlags() {
+
+  static const char make_flags[] = "@@make_flags@@";
+  return make_flags;
+}
+
 const char* buildInfoGetAux(int i) {
 
   //static const char AUX1[] = "${AUX[1]}";
@@ -238,6 +244,10 @@ if __name__ == "__main__":
 
     parser.add_argument("--libraries", help="libraries linked", type=str, default="")
 
+    parser.add_argument("--make_flags",
+                        help="the options provided to the make command",
+                        type=str, default="")
+
     parser.add_argument("--AUX",
                         help="auxiliary information (EOS, network path) (deprecated)",
                         type=str, default="")
@@ -262,6 +272,10 @@ if __name__ == "__main__":
     parser.add_argument("--GIT_STYLE",
                         help="style options for the 'git describe' command used to construct hash strings",
                         type=str, default="--always --tags --dirty")
+
+    parser.add_argument("--output_dir",
+                        help="the directory where AMReX_buildInfo.cpp should be placed",
+                        type=str, default="")
 
 
     # parse and convert to a dictionary
@@ -320,7 +334,11 @@ if __name__ == "__main__":
         AUX = args.AUX.split()
 
 
-    fout = open("AMReX_buildInfo.cpp", "w")
+    dest_path = "AMReX_buildInfo.cpp"
+    if args.output_dir:
+        os.makedirs(args.output_dir, exist_ok=True)
+        dest_path = os.path.join(args.output_dir, dest_path)
+    fout = open(dest_path, "w")
 
     # dictionary view of the args
     dargs = vars(args)

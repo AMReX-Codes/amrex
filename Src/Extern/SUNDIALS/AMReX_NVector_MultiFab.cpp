@@ -24,7 +24,6 @@ namespace amrex::sundials {
 /* ----------------------------------------------------------------------------
  * Function to create a new empty multifab vector
  */
-
 N_Vector N_VNewEmpty_MultiFab(sunindextype length, ::sundials::Context* sunctx)
 {
     /* Create vector */
@@ -76,7 +75,6 @@ N_Vector N_VNewEmpty_MultiFab(sunindextype length, ::sundials::Context* sunctx)
 /* ----------------------------------------------------------------------------
  * Function to create a new MultiFab vector
  */
-
 N_Vector N_VNew_MultiFab(sunindextype length,
                          const amrex::BoxArray &ba,
                          const amrex::DistributionMapping &dm,
@@ -102,7 +100,6 @@ N_Vector N_VNew_MultiFab(sunindextype length,
 /* ----------------------------------------------------------------------------
  * Function to create a MultiFab N_Vector with user-specific MultiFab
  */
-
 N_Vector N_VMake_MultiFab(sunindextype length, amrex::MultiFab *v_mf,
                           ::sundials::Context* sunctx)
 {

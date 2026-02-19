@@ -1,6 +1,8 @@
 #ifndef AMREX_PCI_H_
 #define AMREX_PCI_H_
 
+namespace amrex {
+
 template <class FAB>
 void
 FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -86,7 +88,8 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
 template <class FAB>
 void
 FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
-                             int scomp, int dcomp, int ncomp, CpOp op)
+                             int scomp, int dcomp, int ncomp, CpOp op,
+                             bool deterministic)
 {
     int N_locs = thecpc.m_LocTags->size();
     if (N_locs == 0) { return; }
@@ -97,13 +100,15 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     loc_copy_tags.reserve(N_locs);
 
     Vector<BaseFab<int> > maskfabs;
+    Vector<Array4Tag<int> > masks_unique;
     Vector<Array4Tag<int> > masks;
-    if (!is_thread_safe)
+    if (!is_thread_safe && !deterministic)
     {
         if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
             (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
         {
             maskfabs.resize(this->local_size());
+            masks_unique.reserve(this->local_size());
             masks.reserve(N_locs);
         }
     }
@@ -114,7 +119,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
         if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
             int li = this->localindex(tag.dstIndex);
             loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(),
+                ({this->atLocalIdx(li).array(), tag.dstIndex,
                   src.fabPtr(tag.srcIndex)->const_array(),
                   tag.dbox,
                   (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
@@ -122,6 +127,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
             if (maskfabs.size() > 0) {
                 if (!maskfabs[li].isAllocated()) {
                     maskfabs[li].resize(this->atLocalIdx(li).box());
+                    masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
                 }
                 masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
             }
@@ -129,7 +135,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
 
     if (maskfabs.size() > 0) {
-        amrex::ParallelFor(masks,
+        amrex::ParallelFor(masks_unique,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, Array4Tag<int> const& msk) noexcept
         {
             msk.dfab(i,j,k) = 0;
@@ -148,7 +154,13 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
     else
     {
-        if (is_thread_safe) {
+        if (deterministic) {
+            // Use deterministic_fab_to_fab for ADD operations to ensure bitwise
+            // reproducibility. The atomic add operations (fab_to_fab_atomic_add) are
+            // non-deterministic because the order of atomic additions is not guaranteed.
+            detail::deterministic_fab_to_fab<value_type, value_type>(
+                loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else if (is_thread_safe) {
             detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
                 dcomp, ncomp, detail::CellAdd<value_type, value_type>());
         } else {
@@ -158,5 +170,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
 }
 #endif
+
+}
 
 #endif

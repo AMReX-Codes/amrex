@@ -8,6 +8,7 @@ ifneq ($(NO_CONFIG_CHECKING),TRUE)
   ifeq ($(HIP_PATH),)
     $(error hipconfig failed. Is the HIP toolkit available?)
   endif
+  COMP_VERSION = $(hipcc_version)
 endif
 
 CXX = $(HIP_PATH)/bin/hipcc
@@ -83,18 +84,22 @@ endif  # BL_NO_FORT
 ifeq ($(HIP_COMPILER),clang)
 
   ifeq ($(DEBUG),TRUE)
-    CXXFLAGS += -g -O1 -munsafe-fp-atomics
-    CFLAGS   += -g -O0
+    ifeq ($(DEBUG_OPT_LEVEL),0)
+      CXXFLAGS += -g -O1 -munsafe-fp-atomics
+    else
+      CXXFLAGS += -g -O$(DEBUG_OPT_LEVEL) -munsafe-fp-atomics
+    endif
+    CFLAGS   += -g -O$(DEBUG_OPT_LEVEL)
 
-    FFLAGS   += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
-    F90FLAGS += -g -O0 -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+    FFLAGS   += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
+    F90FLAGS += -g -O$(DEBUG_OPT_LEVEL) -ggdb -fbounds-check -fbacktrace -Wuninitialized -Wunused -ffpe-trap=invalid,zero -finit-real=snan -finit-integer=2147483647 -ftrapv
 
   else  # DEBUG=FALSE flags
 
-    CXXFLAGS += -g -O3 -munsafe-fp-atomics
-    CFLAGS   += -g -O3
-    FFLAGS   += -g -O3
-    F90FLAGS += -g -O3
+    CXXFLAGS += -gline-tables-only -fdebug-info-for-profiling -O3 -munsafe-fp-atomics
+    CFLAGS   += -gline-tables-only -fdebug-info-for-profiling -O3
+    FFLAGS   += -g1 -O3
+    F90FLAGS += -g1 -O3
 
   endif
 
@@ -118,26 +123,20 @@ ifeq ($(HIP_COMPILER),clang)
   endif
 
   # Generic HIP info
-  ROC_PATH=$(realpath $(dir $(HIP_PATH)))
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include $(HIP_PATH)/include
+  ROC_PATH=$(realpath $(HIP_PATH))
+  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include
 
-  # rocRand
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/hiprand $(ROC_PATH)/include/rocrand
   LIBRARY_LOCATIONS += $(ROC_PATH)/lib
-  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand
 
-  # rocPrim - Header only
-  SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocprim
-
-  # rocThrust - Header only
-  # SYSTEM_INCLUDE_LOCATIONS += $(ROC_PATH)/include/rocthrust
+  # hiprand & rocsparse
+  LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lhiprand -lrocrand -lrocsparse
 
   # rocTracer
   ifeq ($(USE_ROCTX),TRUE)
     CXXFLAGS += -DAMREX_USE_ROCTX
     HIPCC_FLAGS += -DAMREX_USE_ROCTX
     LIBRARY_LOCATIONS += $(ROC_PATH)/lib
-    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lroctracer64 -lroctx64
+    LIBRARIES += -Wl,--rpath=$(ROC_PATH)/lib -lrocprofiler-sdk-roctx
   endif
 
   # hipcc passes a lot of unused arguments to clang

@@ -113,14 +113,21 @@ MLNodeLaplacian::averageDownCoeffsSameAmrLevel (int amrlev)
 
     for (int mglev = 1; mglev < m_num_mg_levels[amrlev]; ++mglev)
     {
+        IntVect ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[mglev-1];
+        bool regular_coarsening = true;
+#if (AMREX_SPACEDIM == 1)
+        int idir = 0;
+#else
         int idir = 2;
-        bool regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
-        IntVect ratio = mg_coarsen_ratio_vec[mglev-1];
-        if (ratio[1] == 1) {
-            idir = 1;
-        } else if (ratio[0] == 1) {
-            idir = 0;
+        if (amrlev == 0) {
+            regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+            if (ratio[1] == 1) {
+                idir = 1;
+            } else if (ratio[0] == 1) {
+                idir = 0;
+            }
         }
+#endif
         for (int idim = 0; idim < nsigma; ++idim)
         {
             const MultiFab& fine = *m_sigma[amrlev][mglev-1][idim];
@@ -258,7 +265,9 @@ MLNodeLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& i
 #endif
             });
         }
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -349,95 +358,38 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
 
 #ifdef AMREX_USE_GPU
-    if (Gpu::inLaunchRegion())
+    auto const& solarr_ma = sol.arrays();
+    auto const& rhsarr_ma = rhs.const_arrays();
+    auto const& dmskarr_ma = dmsk.const_arrays();
+#else
+    bool regular_coarsening = true;
+    if (amrlev == 0 && mglev > 0)
     {
-        auto solarr_ma = sol.arrays();
-        auto rhsarr_ma = rhs.const_arrays();
-        auto dmskarr_ma = dmsk.const_arrays();
+        regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
+    }
+    if (sigma[0] == nullptr) {
+        AMREX_ALWAYS_ASSERT(regular_coarsening);
+    }
+#endif
+
+    if (m_use_gauss_seidel)
+    {
         if (m_coarsening_strategy == CoarseningStrategy::RAP)
         {
-            auto starr_ma = stencil->const_arrays();
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
             {
-                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                auto const& starr_ma = stencil->const_arrays();
+                for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
                 {
-                    Real Ax = mlndlap_adotx_sten(i,j,k,solarr_ma[box_no],starr_ma[box_no],dmskarr_ma[box_no]);
-                    mlndlap_jacobi_sten(i,j,k,solarr_ma[box_no],Ax,rhsarr_ma[box_no],starr_ma[box_no],dmskarr_ma[box_no]);
-                });
-            }
-        }
-        else if (sigma[0] == nullptr)
-        {
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
-            {
-                Real const_sigma = m_const_sigma;
-                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                {
-                    Real Ax = mlndlap_adotx_c(i,j,k,solarr_ma[box_no],const_sigma,dmskarr_ma[box_no],
-#if (AMREX_SPACEDIM == 2)
-                                              is_rz,
+                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    {
+                        mlndlap_gscolor_sten(i,j,k,solarr_ma[box_no],rhsarr_ma[box_no],
+                                             starr_ma[box_no],dmskarr_ma[box_no],color);
+                    });
+                }
+            } else
 #endif
-                                              dxinvarr);
-                    mlndlap_jacobi_c(i,j,k, solarr_ma[box_no], Ax, rhsarr_ma[box_no], const_sigma,
-                                     dmskarr_ma[box_no], dxinvarr);
-                });
-            }
-        }
-        else if ((m_use_harmonic_average && mglev > 0) || m_use_mapped)
-        {
-            AMREX_D_TERM(MultiArray4<Real const> const& sxarr_ma = sigma[0]->const_arrays();,
-                         MultiArray4<Real const> const& syarr_ma = sigma[1]->const_arrays();,
-                         MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
-            {
-                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                {
-                    Real Ax = mlndlap_adotx_ha(i,j,k,solarr_ma[box_no],AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]), dmskarr_ma[box_no],
-#if (AMREX_SPACEDIM == 2)
-                                               is_rz,
-#endif
-                                               dxinvarr);
-                    mlndlap_jacobi_ha(i,j,k, solarr_ma[box_no], Ax, rhsarr_ma[box_no], AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
-                                      dmskarr_ma[box_no], dxinvarr);
-                });
-            }
-        }
-        else
-        {
-            auto sarr_ma = sigma[0]->const_arrays();
-            for (int ns = 0; ns < m_smooth_num_sweeps; ++ns)
-            {
-                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                {
-                    Real Ax = mlndlap_adotx_aa(i,j,k,solarr_ma[box_no],sarr_ma[box_no],dmskarr_ma[box_no],
-#if (AMREX_SPACEDIM == 2)
-                                               is_rz,
-#endif
-                                               dxinvarr);
-                    mlndlap_jacobi_aa(i,j,k, solarr_ma[box_no], Ax, rhsarr_ma[box_no], sarr_ma[box_no],
-                                      dmskarr_ma[box_no], dxinvarr);
-                });
-            }
-        }
-
-        Gpu::streamSynchronize();
-        if (m_smooth_num_sweeps > 1) { nodalSync(amrlev, mglev, sol); }
-    }
-    else // cpu
-#endif
-    {
-        bool regular_coarsening = true;
-        if (amrlev == 0 && mglev > 0)
-        {
-            regular_coarsening = mg_coarsen_ratio_vec[mglev-1] == mg_coarsen_ratio;
-        }
-        if (sigma[0] == nullptr) {
-            AMREX_ALWAYS_ASSERT(regular_coarsening);
-        }
-
-        if (m_use_gauss_seidel)
-        {
-            if (m_coarsening_strategy == CoarseningStrategy::RAP)
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -455,9 +407,27 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     }
                 }
             }
-            else if (sigma[0] == nullptr)
+        }
+        else if (sigma[0] == nullptr)
+        {
+            Real const_sigma = m_const_sigma;
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion()) {
+                for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
+                {
+                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    {
+                        mlndlap_gscolor_c(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                          const_sigma, dmskarr_ma[box_no], dxinvarr, color
+#if (AMREX_SPACEDIM == 2)
+                                          ,is_rz
+#endif
+                            );
+                    });
+                }
+            } else
+#endif
             {
-                Real const_sigma = m_const_sigma;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -478,8 +448,32 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     }
                 }
             }
-            else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
+        }
+        else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
+        {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
             {
+                AMREX_D_TERM(MultiArray4<Real const> const& sxarr_ma = sigma[0]->const_arrays();,
+                             MultiArray4<Real const> const& syarr_ma = sigma[1]->const_arrays();,
+                             MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
+                for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
+                {
+                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    {
+                        mlndlap_gscolor_ha(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                           AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
+                                           dmskarr_ma[box_no], dxinvarr, color
+#if (AMREX_SPACEDIM == 2)
+                                           ,is_rz
+#endif
+                            );
+                    });
+                }
+            } else
+#endif
+            {
+
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -504,51 +498,96 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     }
                 }
             }
-            else
+        }
+        else
+        {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                auto const& sarr_ma = sigma[0]->const_arrays();
+                for (int color = 0; color < AMREX_D_TERM(2,*2,*2); ++color)
+                {
+                    ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                    {
+                        mlndlap_gscolor_aa(i,j,k, solarr_ma[box_no], rhsarr_ma[box_no],
+                                           sarr_ma[box_no], dmskarr_ma[box_no], dxinvarr, color
+#if (AMREX_SPACEDIM == 2)
+                                           ,is_rz
+#endif
+                            );
+                    });
+                }
+            } else
+#endif
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
                 for (MFIter mfi(sol); mfi.isValid(); ++mfi)
                 {
-
                     const Box& bx = mfi.validbox();
                     Array4<Real const> const& sarr = sigma[0]->const_array(mfi);
                     Array4<Real> const& solarr = sol.array(mfi);
                     Array4<Real const> const& rhsarr = rhs.const_array(mfi);
                     Array4<int const> const& dmskarr = dmsk.const_array(mfi);
 
+#ifndef AMREX_USE_GPU
                     if ( regular_coarsening )
+#endif
                     {
                         for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
                             mlndlap_gauss_seidel_aa(bx, solarr, rhsarr,
                                                     sarr, dmskarr, dxinvarr
 #if (AMREX_SPACEDIM == 2)
-                                                   ,is_rz
-#endif
-                                 );
-                        }
-                    } else {
-                        for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
-                            mlndlap_gauss_seidel_with_line_solve_aa(bx, solarr, rhsarr,
-                                                                    sarr, dmskarr, dxinvarr
-#if (AMREX_SPACEDIM == 2)
-                                                                   ,is_rz
+                                                    ,is_rz
 #endif
                                 );
                         }
                     }
+#ifndef AMREX_USE_GPU
+                    else {
+                        for (int ns = 0; ns < m_smooth_num_sweeps; ++ns) {
+                            mlndlap_gauss_seidel_with_line_solve_aa(bx, solarr, rhsarr,
+                                                                    sarr, dmskarr, dxinvarr
+#if (AMREX_SPACEDIM == 2)
+                                                                    ,is_rz
+#endif
+                                );
+                        }
+                    }
+#endif
                 }
             }
-
-            nodalSync(amrlev, mglev, sol);
         }
-        else
-        {
-            MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
-            Fapply(amrlev, mglev, Ax, sol);
 
-            if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
+        nodalSync(amrlev, mglev, sol);
+    }
+    else
+    {
+        MultiFab Ax(sol.boxArray(), sol.DistributionMap(), 1, 0);
+        Fapply(amrlev, mglev, Ax, sol);
+
+#ifdef AMREX_USE_GPU
+        auto const& Axarr_ma = Ax.const_arrays();
+#endif
+
+        if (m_coarsening_strategy == CoarseningStrategy::RAP)
+        {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                auto const& starr_ma = stencil->const_arrays();
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    mlndlap_jacobi_sten(i,j,k,solarr_ma[box_no],Axarr_ma[box_no](i,j,k),
+                                        rhsarr_ma[box_no],starr_ma[box_no],
+                                        dmskarr_ma[box_no]);
+                });
+            } else
+#endif
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -565,9 +604,22 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                     mlndlap_jacobi_sten(bx,solarr,Axarr,rhsarr,stenarr,dmskarr);
                 }
             }
-            else if (sigma[0] == nullptr)
+        }
+        else if (sigma[0] == nullptr)
+        {
+            Real const_sigma = m_const_sigma;
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
             {
-                Real const_sigma = m_const_sigma;
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    mlndlap_jacobi_c(i,j,k,solarr_ma[box_no],Axarr_ma[box_no](i,j,k),
+                                     rhsarr_ma[box_no],const_sigma,
+                                     dmskarr_ma[box_no], dxinvarr);
+                });
+            } else
+#endif
+            {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -583,7 +635,23 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                       dmskarr, dxinvarr);
                 }
             }
-            else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
+        }
+        else if ( (m_use_harmonic_average && mglev > 0) || m_use_mapped )
+        {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                AMREX_D_TERM(MultiArray4<Real const> const& sxarr_ma = sigma[0]->const_arrays();,
+                             MultiArray4<Real const> const& syarr_ma = sigma[1]->const_arrays();,
+                             MultiArray4<Real const> const& szarr_ma = sigma[2]->const_arrays(););
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    mlndlap_jacobi_ha(i,j,k,solarr_ma[box_no],Axarr_ma[box_no](i,j,k),rhsarr_ma[box_no],
+                                      AMREX_D_DECL(sxarr_ma[box_no],syarr_ma[box_no],szarr_ma[box_no]),
+                                      dmskarr_ma[box_no], dxinvarr);
+                });
+            } else
+#endif
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -603,7 +671,21 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                        dmskarr, dxinvarr);
                 }
             }
-            else
+        }
+        else
+        {
+#ifdef AMREX_USE_GPU
+            if (Gpu::inLaunchRegion())
+            {
+                auto const& sarr_ma = sigma[0]->const_arrays();
+                ParallelFor(sol, [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
+                {
+                    mlndlap_jacobi_aa(i,j,k,solarr_ma[box_no],Axarr_ma[box_no](i,j,k),
+                                      rhsarr_ma[box_no],sarr_ma[box_no],
+                                      dmskarr_ma[box_no], dxinvarr);
+                });
+            } else
+#endif
             {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -621,6 +703,10 @@ MLNodeLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& 
                                        dmskarr, dxinvarr);
                 }
             }
+        }
+
+        if (Ax.local_size() > 0 || !Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
         }
     }
 }
@@ -891,11 +977,12 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(rhs,vel,rhnd,a_rhcc);
+    amrex::Abort("MLNodeLaplacian::compRHS: 1D not supported");
 #else
     //
     // Note that div vel we copmute on a coarse/fine nodes is not a
     // composite divergence.  It has been restricted so that it is suitable
-    // as RHS for our geometric mulitgrid solver with a MG hirerachy
+    // as RHS for our geometric multigrid solver with a MG hirerachy
     // including multiple AMR levels.
     //
     // Also note that even for RAP, we do doubling at Nuemann boundary,
@@ -931,7 +1018,7 @@ MLNodeLaplacian::compRHS (const Vector<MultiFab*>& rhs, const Vector<MultiFab*>&
     {
         const Geometry& geom = m_geom[ilev][0];
         AMREX_ASSERT(vel[ilev]->nComp() >= AMREX_SPACEDIM);
-        AMREX_ASSERT(vel[ilev]->nGrow() >= 1);
+        AMREX_ASSERT(vel[ilev]->nGrowVect().allGE(1));
 
         if (has_inflow) { // Zero out transverse velocity so that it's not seen.
             Box domain = geom.Domain();

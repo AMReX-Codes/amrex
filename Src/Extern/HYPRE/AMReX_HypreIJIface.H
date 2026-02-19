@@ -60,6 +60,7 @@ private:
     // Preconditioners
     void boomeramg_precond_configure(const std::string& prefix);
     void euclid_precond_configure(const std::string& prefix);
+    void ilu_precond_configure(const std::string& prefix);
 
     // Solvers
     void boomeramg_solver_configure(const std::string& prefix);

@@ -86,12 +86,18 @@ public:
     [[nodiscard]] const ParticleType& operator[] (int i) const { return m_data[i]; }
     [[nodiscard]]       ParticleType& operator[] (int i)       { return m_data[i]; }
 
-    void swap (ArrayOfStructs& other)
+    void swap (ArrayOfStructs& other) noexcept
     {
         m_data.swap(other.m_data);
     }
 
-    void resize (size_t count) { m_data.resize(count); }
+    void resize (size_t count, GrowthStrategy strategy = GrowthStrategy::Poisson) {
+        m_data.resize(count, strategy);
+    }
+
+    void reserve (size_t capacity, GrowthStrategy strategy = GrowthStrategy::Poisson) {
+        m_data.reserve(capacity, strategy);
+    }
 
     Iterator erase ( ConstIterator first, ConstIterator second) { return m_data.erase(first, second); }
 
@@ -105,6 +111,11 @@ public:
     [[nodiscard]] typename ParticleVector::iterator end () { return m_data.end(); }
     [[nodiscard]] typename ParticleVector::const_iterator end () const { return m_data.end(); }
     [[nodiscard]] typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
+
+    void collectVectors (Vector<ParticleVector*>& pvs)
+    {
+        pvs.push_back(&m_data);
+    }
 
     int m_num_neighbor_particles{0};
 

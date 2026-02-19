@@ -68,10 +68,6 @@ void test_assign_density(TestParams& parms)
   myPC.InitRandom(num_particles, iseed, pdata, serialize);
   myPC.AssignCellDensitySingleLevel(0, partMF, 0, 1 + AMREX_SPACEDIM, 0);
 
-  //  myPC.AssignDensitySingleLevel(0, partMF, 0, 4, 0);
-
-  //  myPC.InterpolateSingleLevel(acceleration, 0);
-
   MultiFab::Copy(density, partMF, 0, 0, 1, 0);
 
   WriteSingleLevelPlotfile("plt00000", partMF,
@@ -102,11 +98,11 @@ int main(int argc, char* argv[])
   pp.query("verbose", parms.verbose);
 
   if (parms.verbose && ParallelDescriptor::IOProcessor()) {
-    std::cout << std::endl;
+    std::cout << '\n';
     std::cout << "Number of particles per cell : ";
-    std::cout << parms.nppc  << std::endl;
+    std::cout << parms.nppc  << '\n';
     std::cout << "Size of domain               : ";
-    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << std::endl;
+    std::cout << parms.nx << " " << parms.ny << " " << parms.nz << '\n';
   }
 
   test_assign_density(parms);

@@ -19,7 +19,7 @@ int main_main()
             << " Description:\n"
             << "      This program takes a single plotfile and reports for each\n"
             << "      variable whether there is a NaN."
-            << std::endl;
+            << '\n';
         return 0;
     }
 
