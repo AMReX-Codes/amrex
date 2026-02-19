@@ -212,7 +212,9 @@ Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, 
         {
             dstarr[box_no](i,j,k,dstcomp+n) = DT(srcarr[box_no](i,j,k,srccomp+n));
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -2487,7 +2489,9 @@ FabArray<FAB>::setBndry (value_type val,
                         }
                     }
                 });
-                Gpu::streamSynchronize();
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             } else {
                 using Tag = Array4BoxTag<value_type>;
                 Vector<Tag> tags;
