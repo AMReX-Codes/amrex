@@ -253,7 +253,9 @@ PETScABecLap::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -315,7 +317,9 @@ PETScABecLap::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -373,7 +377,9 @@ PETScABecLap::prepareSolver ()
             cell_id_ma[box_no](i,j,k) += poffset[box_no];
             cell_id_vec_ma[box_no](i,j,k) = cell_id_ma[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -645,7 +651,9 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     (flag_ma[box_no](i,j,k).isCovered()) ?
                     Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {

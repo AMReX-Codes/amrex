@@ -164,7 +164,9 @@ HypreABecLap3::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -226,7 +228,9 @@ HypreABecLap3::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
                 }
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -280,7 +284,9 @@ HypreABecLap3::prepareSolver ()
             cell_id_ma[box_no](i,j,k) += poffset[box_no];
             cell_id_vec_ma[box_no](i,j,k) = cell_id_ma[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -499,7 +505,9 @@ HypreABecLap3::prepareSolver ()
                 });
             }
 
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
             Gpu::hypreSynchronize();
         }
@@ -556,7 +564,9 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                         Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
                 });
             }
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -675,7 +685,9 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                         bp[0] = Real(0.0);
                     }
                 });
-                Gpu::streamSynchronize();
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
             }
 
             HYPRE_IJVectorSetValues(b, nrows, cell_id_vec[mfi].dataPtr(), rhs_diag[mfi].dataPtr());

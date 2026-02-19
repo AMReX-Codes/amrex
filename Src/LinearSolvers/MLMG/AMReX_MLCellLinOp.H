@@ -1008,7 +1008,9 @@ MLCellLinOpT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF& crs
             int kc = amrex::coarsen(k,ratio3.z);
             finema[box_no](i,j,k,n) += crsema[box_no](ic,jc,kc,n);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

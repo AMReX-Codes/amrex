@@ -228,7 +228,9 @@ HypreABecLap::prepareSolver ()
         });
 
         Real* mat = (Real*) rfab.dataPtr();
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
 
         auto reglo = Hypre::loV(reg);
         auto reghi = Hypre::hiV(reg);
@@ -271,7 +273,9 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         {
             rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

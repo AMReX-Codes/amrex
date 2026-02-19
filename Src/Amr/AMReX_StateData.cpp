@@ -517,7 +517,9 @@ StateData::FillBoundary (FArrayBox&     dest,
 #ifdef AMREX_USE_GPU
     // Add a streamSynchronize here in case the user code launched kernels
     // to handle the boundary fills.
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 #endif
 }
 

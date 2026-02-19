@@ -185,7 +185,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         {
             dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -308,7 +310,9 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
         {
             dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -619,7 +623,9 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
             fluxreg_reflux(Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))),
                            sma[box_no], dcomp, fma[box_no], vma[box_no], nc, scale, face);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {

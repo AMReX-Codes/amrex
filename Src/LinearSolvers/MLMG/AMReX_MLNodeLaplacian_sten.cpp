@@ -356,7 +356,9 @@ MLNodeLaplacian::buildStencil ()
         });
     }
 
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 
     // This is only needed at the bottom.
     m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0) * m_normalization_threshold;

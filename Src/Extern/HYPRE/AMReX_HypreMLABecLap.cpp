@@ -315,7 +315,9 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             Gpu::htod_memcpy_async(m_c2f_nentries[clev][mfi].dataPtr(),
                                    h_c2f_nentries.dataPtr(),
                                    h_c2f_nentries.nBytes());
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
 #endif
             AMREX_ASSERT(c2f_total_to < Long(std::numeric_limits<int>::max()));
             m_c2f_total_from[clev][mfi] = int(c2f_total_from);
@@ -740,7 +742,11 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 }
             }
 
-            if (need_sync) { Gpu::streamSynchronize(); }
+            if (need_sync) {
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
+            }
 
             HYPRE_Int vbxlo[] = {AMREX_D_DECL(vbx.smallEnd(0), vbx.smallEnd(1), vbx.smallEnd(2))};
             HYPRE_Int vbxhi[] = {AMREX_D_DECL(vbx.bigEnd(0), vbx.bigEnd(1), vbx.bigEnd(2))};
@@ -940,7 +946,9 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                     tmp.resize(vbx, ncomp);
                     psol = tmp.dataPtr();
                     solsrc.template copyToMem<RunOn::Device>(vbx, 0, ncomp, psol);
-                    Gpu::streamSynchronize();
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
                 } else {
                     psol = solsrc.dataPtr();
                 }
@@ -965,7 +973,9 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 {
                     hypmlabeclap_rhs(i, j, k, boxlo, boxhi, rhs1, rhs0, bcmsk, bcrhs);
                 });
-                Gpu::streamSynchronize();
+                if (!Gpu::inNoSyncRegion()) {
+                    Gpu::streamSynchronize();
+                }
                 HYPRE_SStructVectorSetBoxValues(m_ss_b, ilev, vbxlo, vbxhi, ivar, prhs);
                 Gpu::hypreSynchronize();
             }
@@ -1065,7 +1075,9 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
                 if (has_ghostcells) {
                     dest.template copyFromMem<RunOn::Device>(vbx, 0, ncomp, p);
-                    Gpu::streamSynchronize();
+                    if (!Gpu::inNoSyncRegion()) {
+                        Gpu::streamSynchronize();
+                    }
                 }
             }
         }

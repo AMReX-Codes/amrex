@@ -390,7 +390,9 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         {
             amrex::Abort("FillPatcher: High order interpolation in time not supported.  Or FillPatcher was not properly deleted.");
         }
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
 
         cbc(*m_cf_crse_data_tmp, 0, ncomp, m_cf_crse_data_tmp->nGrowVect(), time, cbccomp);
 
@@ -593,7 +595,9 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
             });
         }
     }
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 
     cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_cf_crse_data_tmp->nGrowVect(), time, 0);
 

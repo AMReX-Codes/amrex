@@ -119,11 +119,13 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
                 && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)
             {
-                adjust_singular_matrix(ncols, cols, rows, mat);
-            }
+            adjust_singular_matrix(ncols, cols, rows, mat);
+        }
 
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
-            HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
+        }
+        HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
             Gpu::hypreSynchronize();
         }
     }
@@ -316,15 +318,17 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
                 && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)
             {
-                AMREX_HOST_DEVICE_FOR_1D(1, m,
-                {
-                    amrex::ignore_unused(m);
-                    bp[0] = 0.0;
-                });
-            }
+            AMREX_HOST_DEVICE_FOR_1D(1, m,
+            {
+                amrex::ignore_unused(m);
+                bp[0] = 0.0;
+            });
+        }
 
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
-            HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
+        }
+        HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
             Gpu::hypreSynchronize();
         }
     }
@@ -356,10 +360,12 @@ HypreNodeLap::getSolution (MultiFab& soln)
                 if (lid(i,j,k,0) >= 0) {
                     xfab(i,j,k) = xp[lid(i,j,k)];
                 }
-            });
+        });
 
+        if (!Gpu::inNoSyncRegion()) {
             Gpu::streamSynchronize();
         }
+    }
     }
 
     soln.ParallelAdd(tmpsoln, 0, 0, 1, geom.periodicity());

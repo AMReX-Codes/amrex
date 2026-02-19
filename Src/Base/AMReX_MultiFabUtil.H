@@ -1313,7 +1313,9 @@ ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F co
             detail::reduce_to_plane<Op, T>(ar, direction, bx, box_no, f);
         }
     }
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 
     return r;
 }
