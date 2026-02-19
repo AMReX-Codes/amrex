@@ -1,4 +1,4 @@
-
+#include <AMReX_Arena.H>
 #include <AMReX_BArena.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FluxReg_C.H>
@@ -173,7 +173,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     const Orientation face_hi(dir,Orientation::high);
 
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
-                MFInfo(), mflx.Factory());
+                MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
@@ -274,7 +274,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
-                  MFInfo(), mflx.Factory());
+                  MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
     area.setVal(1, 0, 1, 0);
 
@@ -298,7 +298,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     const Orientation face_hi(dir,Orientation::high);
 
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
-                MFInfo(), mflx.Factory());
+                MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
@@ -352,7 +352,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
-                  MFInfo(), mflx.Factory());
+                  MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
     area.setVal(1, 0, 1, 0);
 

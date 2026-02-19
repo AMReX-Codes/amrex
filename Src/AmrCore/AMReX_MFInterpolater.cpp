@@ -1,6 +1,7 @@
 #include <AMReX_Interp_C.H>
 #include <AMReX_MFInterp_C.H>
 #include <AMReX_MFInterpolater.H>
+#include <AMReX_Arena.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
@@ -108,7 +109,8 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        MultiFab crse_tmp(crsemf.boxArray(), crsemf.DistributionMap(), AMREX_SPACEDIM*nc, 0);
+        MultiFab crse_tmp(crsemf.boxArray(), crsemf.DistributionMap(), AMREX_SPACEDIM*nc, 0,
+                          MFInfo().SetArena(The_Async_Arena()));
         auto const& crse = crsemf.const_arrays();
         auto const& tmp = crse_tmp.arrays();
         auto const& ctmp = crse_tmp.const_arrays();
@@ -409,7 +411,8 @@ MFCellConsLinMinmaxLimitInterp::interp (MultiFab const& crsemf, int ccomp, Multi
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion()) {
-        MultiFab crse_tmp(crsemf.boxArray(), crsemf.DistributionMap(), AMREX_SPACEDIM*nc, 0);
+        MultiFab crse_tmp(crsemf.boxArray(), crsemf.DistributionMap(), AMREX_SPACEDIM*nc, 0,
+                          MFInfo().SetArena(The_Async_Arena()));
         auto const& crse = crsemf.const_arrays();
         auto const& tmp = crse_tmp.arrays();
         auto const& ctmp = crse_tmp.const_arrays();

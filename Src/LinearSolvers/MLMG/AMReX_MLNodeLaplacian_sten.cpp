@@ -1,5 +1,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_K.H>
+#include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
@@ -230,7 +231,8 @@ MLNodeLaplacian::buildStencil ()
             MultiFab cfine;
             if (need_parallel_copy) {
                 const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
-                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 1);
+                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 1,
+                             MFInfo().SetArena(The_Async_Arena()));
                 cfine.setVal(0.0);
             }
 
