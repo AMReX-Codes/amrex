@@ -1214,4 +1214,17 @@ void hypreSynchronize ()
 }
 #endif
 
+#ifdef AMREX_USE_GPU
+bool isStreamActive (gpuStream_t s)
+{
+#if defined(AMREX_USE_CUDA)
+    return cudaStreamQuery(s) != cudaSuccess;
+#elif defined(AMREX_USE_HIP)
+    return hipStreamQuery(s) != hipSuccess;
+#elif defined(AMREX_USE_SYCL)
+    return ! s.queue->ext_oneapi_empty();
+#endif
+}
+#endif
+
 }
