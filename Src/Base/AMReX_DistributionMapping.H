@@ -2,6 +2,11 @@
 #define BL_DISTRIBUTIONMAPPING_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_DistributionMapping.H
+ * \brief Maps FABs in a BoxArray to MPI processes.
+ */
+
 #include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
@@ -127,7 +132,9 @@ class DistributionMapping
 
     //! Length of the underlying processor map.
     [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    //! Reserved capacity of the underlying processor map.
     [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
+    //! Return \c true if the processor map is empty.
     [[nodiscard]] bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
     //! Number of references to this DistributionMapping
@@ -136,8 +143,10 @@ class DistributionMapping
     //! Equivalent to ProcessorMap()[index].
     [[nodiscard]] int operator[] (int index) const noexcept { return m_ref->m_pmap[index]; }
 
+    //! Read the distribution mapping from binary stream \p is.
     std::istream& readFrom (std::istream& is);
 
+    //! Write the distribution mapping to binary stream \p os.
     std::ostream& writeOn (std::ostream& os) const;
 
     //! Set/get the distribution strategy.
@@ -156,20 +165,26 @@ class DistributionMapping
     //! Are the distributions different?
     bool operator!= (const DistributionMapping& rhs) const noexcept;
 
+    //! Build an SFC-ordered map for \p boxes with per-box weights \p wgts.
     void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                           bool sort=true);
+    //! Build an SFC-ordered map and write the resulting efficiency into \p efficiency.
     void SFCProcessorMap (const BoxArray& boxes, const std::vector<Long>& wgts, int nprocs,
                           Real& efficiency, bool sort=true);
+    //! Build a knapsack map from a weight vector.
     void KnapSackProcessorMap (const std::vector<Long>& wgts, int nprocs,
                                Real* efficiency=nullptr,
                                bool do_full_knapsack=true,
                                int nmax=std::numeric_limits<int>::max(),
                                bool sort=true);
+    //! Incrementally re-balance using the knapsack algorithm, keeping \p keep_ratio fraction on the original process.
     void KnapSackProcessorMap (const DistributionMapping& olddm,
                                const std::vector<Long>& wgts, Real keep_ratio,
                                Real& old_efficiency, Real& new_efficiency,
                                int nmax=std::numeric_limits<int>::max());
+    //! Build a round-robin map for \p nboxes boxes.
     void RoundRobinProcessorMap (int nboxes, int nprocs, bool sort=true);
+    //! Build a round-robin map from a weight vector.
     void RoundRobinProcessorMap (const std::vector<Long>& wgts, int nprocs, bool sort=true);
 
     /**
@@ -184,8 +199,10 @@ class DistributionMapping
     */
     static void Initialize ();
 
+    //! Finalize the DistributionMapping subsystem.
     static void Finalize ();
 
+    //! Return \c true if \p lhs and \p rhs share the same underlying Ref.
     static bool SameRefs (const DistributionMapping& lhs,
                           const DistributionMapping& rhs)
           { return lhs.m_ref == rhs.m_ref; }
@@ -231,11 +248,16 @@ class DistributionMapping
                                              int root=ParallelDescriptor::IOProcessorNumber(),
                                              Real keep_ratio = Real(0.0));
 
+    //! Build a round-robin map weighted by the norms of \p weight.
     static DistributionMapping makeRoundRobin (const MultiFab& weight);
+    //! Build an SFC map weighted by \p weight.
     static DistributionMapping makeSFC (const MultiFab& weight, bool sort=true);
+    //! Build an SFC map weighted by \p weight and write the efficiency into \p eff.
     static DistributionMapping makeSFC (const MultiFab& weight, Real& eff, bool sort=true);
+    //! Build an SFC map from per-box cost vector \p rcost and BoxArray \p ba.
     static DistributionMapping makeSFC (const Vector<Real>& rcost,
                                         const BoxArray& ba, bool sort=true);
+    //! Build an SFC map from \p rcost / \p ba and write efficiency into \p eff.
     static DistributionMapping makeSFC (const Vector<Real>& rcost,
                                         const BoxArray& ba, Real& eff, bool sort=true);
 
@@ -288,6 +310,7 @@ class DistributionMapping
     //! also provides a consistent way for the conversion.
     static Vector<Long> ConvertCostRealToLong (const Vector<Real>& rcost);
 
+    //! Return a weak pointer to the underlying Ref (for low-level identity tracking).
     [[nodiscard]] std::weak_ptr<Ref> getWeakRef () const;
 
 private:

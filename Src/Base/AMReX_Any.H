@@ -2,6 +2,11 @@
 #define AMREX_ANY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Any.H
+ * \brief Type-erased container that supports move-only types.
+ */
+
 #include <memory>
 #include <typeinfo>
 #include <type_traits>
@@ -9,9 +14,13 @@
 namespace amrex {
 
 /**
- * This class is similar to std::any.  However, amrex::Any can store
- * move-only types (e.g., amrex::MultiFab), whereas std::any is for copy
- * constructible types only.  An object of this class is non-copyable.
+ * \class amrex::Any
+ * \ingroup amrex_utilities
+ * \brief Type-erased container similar to \c std::any, but supports move-only types.
+ *
+ * Unlike \c std::any, which requires the stored type to be copy-constructible,
+ * \c amrex::Any can store move-only types such as \c amrex::MultiFab.
+ * An object of this class is itself non-copyable.
  */
 class Any
 {

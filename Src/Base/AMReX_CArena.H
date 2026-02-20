@@ -2,6 +2,11 @@
 #define BL_CARENA_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_CArena.H
+ * \brief Coalescing first-fit dynamic memory arena.
+ */
+
 #include <AMReX_Arena.H>
 
 #include <cstddef>
@@ -17,22 +22,25 @@
 namespace amrex {
 
 /**
-* \ingroup amrex_memory
-* \brief A Concrete Class for Dynamic Memory Management using first fit.
-* This is a coalescing memory manager.  It allocates (possibly) large
-* chunks of heap space and apportions it out as requested.  It merges
-* together neighboring chunks on each free().
-*/
+ * \class amrex::CArena
+ * \ingroup amrex_memory
+ * \brief Coalescing first-fit dynamic memory arena.
+ *
+ * Allocates large hunks from the heap and sub-allocates from them on
+ * demand. Neighboring free blocks are merged on each \c free() call
+ * to reduce fragmentation.
+ */
 class CArena
     :
     public Arena
 {
 public:
     /**
-    * \brief Construct a coalescing memory manager.  hunk_size is the
-    * minimum size of hunks of memory to allocate from the heap.
-    * If hunk_size == 0 we use DefaultHunkSize as specified below.
-    */
+     * \brief Construct a coalescing memory manager.
+     * \param hunk_size Minimum size of heap hunks to allocate.
+     *        Defaults to \c DefaultHunkSize when 0.
+     * \param info      Arena configuration flags.
+     */
     CArena (std::size_t hunk_size = 0, ArenaInfo info = ArenaInfo());
 
     CArena (const CArena& rhs) = delete;
@@ -258,6 +266,7 @@ protected:
 
     std::mutex carena_mutex;
 
+    //! Print a summary of the arena's free and busy lists to \p os.
     friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
 };
 

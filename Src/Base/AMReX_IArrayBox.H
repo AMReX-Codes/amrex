@@ -3,6 +3,11 @@
 #define BL_IFARRAYBOX_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_IArrayBox.H
+ * \brief Integer-valued FAB (Field Array Box) type.
+ */
+
 #include <AMReX_Box.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_SPACE.H>
@@ -14,10 +19,17 @@ namespace amrex {
 class IArrayBox;
 class IntDescriptor;
 
+/**
+ * \class amrex::IFABio
+ * \ingroup amrex_fab_containers
+ * \brief Low-level I/O helper for IArrayBox; handles header writing and binary reading.
+ */
 class IFABio
 {
 public:
+    //! Write the IArrayBox header for \p nvar components to \p os.
     static void write_header (std::ostream& os, const IArrayBox& fab, int nvar) ;
+    //! Read IArrayBox data from \p is using the given \p data_descriptor.
     static void read (std::istream& is, IArrayBox& fab, IntDescriptor const& data_descriptor) ;
 };
 
@@ -53,8 +65,10 @@ public:
     //! Construct an invalid FAB with no memory.
     IArrayBox () noexcept = default;
 
+    //! Construct an empty FAB that allocates from arena \p ar.
     explicit IArrayBox (Arena* ar) noexcept;
 
+    //! Construct a FAB over \p b with \p ncomp components, allocated from \p ar.
     IArrayBox (const Box& b, int ncomp, Arena* ar);
 
     /**
@@ -68,6 +82,7 @@ public:
                         bool       shared=false,
                         Arena*     ar = nullptr);
 
+    //! Construct an alias FAB viewing components [\p scomp, \p scomp+\p ncomp) of \p rhs.
     IArrayBox (const IArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
     explicit IArrayBox (Array4<int> const& a) noexcept : BaseFab<int>(a) {}
@@ -94,15 +109,21 @@ public:
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
+    //! Read FAB data from binary stream \p is.
     void readFrom (std::istream& is);
 
+    //! Initialize the IArrayBox subsystem.
     static void Initialize ();
+    //! Finalize the IArrayBox subsystem.
     static void Finalize ();
 
+    //! Return the IntDescriptor describing the native integer format.
     static std::unique_ptr<IntDescriptor> getDataDescriptor ();
 
+    //! Return the I/O helper object.
     static IFABio const& getFABio ();
 
+    //! Return the class name string used for I/O.
     static std::string getClassName ();
 
 private:

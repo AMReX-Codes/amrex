@@ -2,6 +2,11 @@
 #define AMREX_MATH_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Math.H
+ * \brief Mathematical utility functions available on both host and device.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
@@ -64,12 +69,15 @@ using std::isinf;
 
 #endif
 
+/// \ingroup amrex_utilities
+//! Return pi as the floating-point type T.
 template <typename T>
 constexpr std::enable_if_t<std::is_floating_point_v<T>,T> pi ()
 {
     return T(3.1415926535897932384626433832795029L);
 }
 
+/// \ingroup amrex_utilities
 //! Return cos(x*pi) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double cospi (double x)
@@ -82,6 +90,7 @@ double cospi (double x)
 #endif
 }
 
+/// \ingroup amrex_utilities
 //! Return cos(x*pi) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float cospi (float x)
@@ -94,6 +103,7 @@ float cospi (float x)
 #endif
 }
 
+/// \ingroup amrex_utilities
 //! Return sin(x*pi) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double sinpi (double x)
@@ -106,6 +116,7 @@ double sinpi (double x)
 #endif
 }
 
+/// \ingroup amrex_utilities
 //! Return sin(x*pi) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float sinpi (float x)
@@ -141,6 +152,7 @@ namespace detail {
 /// \endcond
 
 #ifdef AMREX_USE_SIMD
+/// \ingroup amrex_utilities
 //! Return sine and cosine of given number
 template<typename T_Real,
          std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
@@ -155,6 +167,7 @@ std::pair<T_Real,T_Real> sincos (T_Real x)
 }
 #endif
 
+/// \ingroup amrex_utilities
 //! Return sine and cosine of given number
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincos (double x)
@@ -169,6 +182,7 @@ std::pair<double,double> sincos (double x)
     return r;
 }
 
+/// \ingroup amrex_utilities
 //! Return sine and cosine of given number
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincos (float x)
@@ -184,6 +198,7 @@ std::pair<float,float> sincos (float x)
 }
 
 #ifdef AMREX_USE_SIMD
+/// \ingroup amrex_utilities
 //! Return sin(pi*x) and cos(pi*x) given x
 template<typename T_Real,
          std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
@@ -199,6 +214,7 @@ std::pair<T_Real,T_Real> sincospi (T_Real x)
 }
 #endif
 
+/// \ingroup amrex_utilities
 //! Return sin(pi*x) and cos(pi*x) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<double,double> sincospi (double x)
@@ -213,6 +229,7 @@ std::pair<double,double> sincospi (double x)
     return r;
 }
 
+/// \ingroup amrex_utilities
 //! Return sin(pi*x) and cos(pi*x) given x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<float,float> sincospi (float x)
@@ -227,6 +244,7 @@ std::pair<float,float> sincospi (float x)
     return r;
 }
 
+/// \ingroup amrex_utilities
 //! Return pow(x, Power), where Power is an integer known at compile time
 template <int Power, typename T,
     typename = std::enable_if_t<!std::is_integral<T>() || Power>=0>>
@@ -250,6 +268,8 @@ constexpr T powi (T x) noexcept
 }
 
 #if defined(AMREX_INT128_SUPPORTED)
+/// \ingroup amrex_utilities
+//! Return the high 64 bits of the 128-bit product of \p a and \p b.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
 {
@@ -265,6 +285,8 @@ std::uint64_t umulhi (std::uint64_t a, std::uint64_t b)
 }
 #endif
 
+/// \ingroup amrex_utilities
+//! Return the complete elliptic integral of the first kind K(\p k).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_1 (T k)
@@ -290,6 +312,8 @@ T comp_ellint_1 (T k)
     return 0.5*pi<T>()/a;
 }
 
+/// \ingroup amrex_utilities
+//! Return the complete elliptic integral of the second kind E(\p k).
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T comp_ellint_2 (T k)
@@ -331,6 +355,7 @@ T comp_ellint_2 (T k)
     return Kcomp*sum_val;
 }
 
+/// \ingroup amrex_utilities
 //! Return inverse square root of x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double rsqrt (double x)
@@ -345,6 +370,7 @@ double rsqrt (double x)
     return r;
 }
 
+/// \ingroup amrex_utilities
 //! Return inverse square root of x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float rsqrt (float x)
@@ -359,6 +385,7 @@ float rsqrt (float x)
     return r;
 }
 
+/// \ingroup amrex_utilities
 //! Return 10**x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double exp10 (double x)
@@ -373,6 +400,7 @@ double exp10 (double x)
     return r;
 }
 
+/// \ingroup amrex_utilities
 //! Return 10**x
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 float exp10 (float x)
@@ -420,20 +448,25 @@ float exp10 (float x)
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Object to encapsulate the fast division+modulus operation for 64b integer division.
-///
-/// Example:
-///
-///
-///   uint64_t quotient, remainder, dividend, divisor;
-///
-///   FastDivmodU64 divmod(divisor);
-///
-///   divmod(quotient, remainder, dividend);
-///
-///   // quotient = (dividend / divisor)
-///   // remainder = (dividend % divisor)
-///
+/**
+ * \ingroup amrex_utilities
+ * \brief Utility for fast 64-bit integer division and modulus using precomputed multipliers.
+ *
+ * Precompute values from a divisor once (on the host), then perform fast
+ * division and modulus on device without a hardware divide instruction.
+ *
+ * Example:
+ * \code{.cpp}
+ *   uint64_t quotient, remainder, dividend, divisor;
+ *
+ *   FastDivmodU64 divmod(divisor);
+ *
+ *   divmod(quotient, remainder, dividend);
+ *
+ *   // quotient = (dividend / divisor)
+ *   // remainder = (dividend % divisor)
+ * \endcode
+ */
 struct FastDivmodU64
 {
     std::uint64_t divisor = 0;
@@ -486,7 +519,7 @@ struct FastDivmodU64
 
 #endif
 
-    /// Default construct an invalid FastDivmodU64
+    /// Default construct an invalid FastDivmodU64
     FastDivmodU64 () = default;
 
     /// Returns the quotient of floor(dividend / divisor)

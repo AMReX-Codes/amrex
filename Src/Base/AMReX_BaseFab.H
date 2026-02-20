@@ -36,6 +36,11 @@
 #include <atomic>
 #include <utility>
 
+/**
+ * \file AMReX_BaseFab.H
+ * \brief BaseFab container template providing box-based field storage.
+ */
+
 namespace amrex
 {
 
@@ -360,7 +365,7 @@ public:
         }
     }
 
-    //! Same as above except works on const FABs.
+    /** \overload */
     [[nodiscard]] const T* dataPtr (int n = 0) const noexcept {
         if (this->dptr) {
             return &(this->dptr[n*this->domain.numPts()]);
@@ -369,63 +374,140 @@ public:
         }
     }
 
+    /**
+     * \brief Return a pointer to the element at spatial index \p p and component \p n.
+     * \param p Spatial cell index within the fab.
+     * \param n Component offset, defaults to 0.
+     * \return Pointer into the underlying storage.
+     */
     [[nodiscard]] T* dataPtr (const IntVect& p, int n = 0) noexcept;
 
+    /**
+     * \brief Const-qualified overload returning a read-only pointer.
+     * \param p Spatial cell index within the fab.
+     * \param n Component offset, defaults to 0.
+     * \return Pointer into the underlying storage.
+     */
     [[nodiscard]] const T* dataPtr (const IntVect& p, int n = 0) const noexcept;
 
+    /**
+     * \brief Replace the underlying pointer, transferring ownership to the fab.
+     * \param p Pointer to externally allocated data.
+     * \param sz Number of T elements stored at \p p.
+     */
     void setPtr (T* p, Long sz) noexcept { AMREX_ASSERT(this->dptr == nullptr && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
+    /**
+     * \brief Advise the runtime to migrate storage to the host.
+     * \note No effect unless managed memory backends are enabled.
+     */
     void prefetchToHost () const noexcept;
+    /**
+     * \brief Advise the runtime to migrate storage to the active device.
+     * \note No effect unless managed memory backends are enabled.
+     */
     void prefetchToDevice () const noexcept;
 
+    /**
+     * \brief Create an Array4 view over all components.
+     * \return Array4<T const> referencing the fab data.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
+    /**
+     * \brief Create a sliced Array4 view beginning at component \p start_comp.
+     * \param start_comp First component included in the view.
+     * \return Array4<T const> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    /**
+     * \brief Create a sliced Array4 view spanning \p num_comps components.
+     * \param start_comp First component included in the view.
+     * \param num_comps Number of components to expose.
+     * \return Array4<T const> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> array (int start_comp, int num_comps) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
+    /**
+     * \brief Create a mutable Array4 view over all components.
+     * \return Array4<T> referencing the fab data.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
     }
 
+    /**
+     * \brief Mutable overload selecting components starting at \p start_comp.
+     * \param start_comp First component included in the view.
+     * \return Array4<T> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T> array (int start_comp) noexcept
     {
         return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    /**
+     * \brief Mutable overload spanning \p num_comps components.
+     * \param start_comp First component included in the view.
+     * \param num_comps Number of components to expose.
+     * \return Array4<T> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T> array (int start_comp, int num_comps) noexcept
     {
         return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
+    /**
+     * \brief Return a const-qualified Array4 view over all components.
+     *
+     * Useful when a mutable fab needs to be accessed through a read-only view
+     * without casting.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
+    /**
+     * \brief Return a const-qualified Array4 view beginning at component \p start_comp.
+     *
+     * Use this to obtain a read-only window without casting the fab itself.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> const_array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    /**
+     * \brief Return a const-qualified Array4 view spanning \p num_comps components.
+     *
+     * Use this to obtain a read-only window without casting the fab itself.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> const_array (int start_comp, int num_comps) const noexcept
     {
@@ -443,13 +525,13 @@ public:
     */
     [[nodiscard]] T& operator() (const IntVect& p, int N) noexcept;
 
-    //! Same as above, except returns component 0.
+    /** \overload Returns component 0. */
     [[nodiscard]] T& operator() (const IntVect& p) noexcept;
 
-    //! Same as above except works on const FABs.
+    /** \overload */
     [[nodiscard]] const T& operator() (const IntVect& p, int N) const noexcept;
 
-    //! Same as above, except returns component 0.
+    /** \overload Returns component 0. */
     [[nodiscard]] const T& operator() (const IntVect& p) const noexcept;
 
     /**
@@ -458,7 +540,7 @@ public:
     * that must be allocated by the user.
     */
     void getVal (T* data, const IntVect& pos, int N, int numcomp) const noexcept;
-    //! Same as above, except that starts at component 0 and copies all comps.
+    /** \overload Copies all components beginning at component 0. */
     void getVal (T* data, const IntVect& pos) const noexcept;
 
     template <RunOn run_on AMREX_DEFAULT_RUNON,
@@ -473,10 +555,10 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int dcomp, int ncomp) noexcept;
-    //! Same as above, except the number of modified components is one. N is the component to be modified.
+    /** \overload Modifies a single component \p N. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int N = 0) noexcept;
-    //! Same as above, except the sub-box defaults to the entire domain.
+    /** \overload Applies the value across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, int N) noexcept;
 
@@ -581,13 +663,13 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const noexcept;
 
-    //! Same as above except only on given subbox.
+    /** \overload Restricts the norm computation to \p subbox. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const noexcept;
-    //!Compute absolute value for all components of this FAB.
+    /** \brief Compute absolute value for all components of this FAB. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs () noexcept;
-    //! Same as above except only for components (comp: comp+numcomp-1)
+    /** \overload Restricts the operation to components starting at \p comp. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs (int comp, int numcomp=1) noexcept;
     /**
@@ -686,38 +768,38 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    //! Same as above except mark cells with value less than or equal to val.
+    /** \overload Marks cells with value less than or equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
-    //! Same as above except mark cells with value equal to val.
+    /** \overload Marks cells with value equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskEQ (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    //! Same as above except mark cells with value greater than val.
+    /** \overload Marks cells with value greater than \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    //! Same as above except mark cells with value greater than or equal to val.
+    /** \overload Marks cells with value greater than or equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Returns sum of given component of FAB state vector.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (int comp, int numcomp = 1) const noexcept;
-    //! Compute sum of given component of FAB state vector in given subbox.
+    /** \overload Computes the sum over \p subbox only. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (const Box& subbox, int comp, int numcomp = 1) const noexcept;
 
     //! Most general version, specify subbox and which components.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
-    //! As above except on entire domain.
+    /** \overload Applies the operation on the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, int comp, int numcomp=1) noexcept;
 
     //! Negate BaseFab, most general.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (const Box& b, int comp=0, int numcomp=1) noexcept;
-    //! As above, except on entire domain.
+    /** \overload Applies negation across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (int comp, int numcomp=1) noexcept;
 
@@ -725,7 +807,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
-    //! As above, except on entire domain.
+    /** \overload Applies scalar addition across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, int comp, int numcomp=1) noexcept;
 
@@ -829,12 +911,10 @@ public:
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
 
-    //! Scalar multiplication, except control which components are multiplied.
+    /** \brief Scalar multiplication applied to selected components over the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, int comp, int numcomp=1) noexcept;
-    /**
-    * \brief As above, except specify sub-box.
-    */
+    /** \overload Applies the multiplication on the specified sub-box. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -863,11 +943,11 @@ public:
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
-    //! As above except specify which components.
+    /** \brief Divide selected components by a scalar across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, int comp, int numcomp=1) noexcept;
 
-    //! As above except specify sub-box.
+    /** \overload Restricts the scalar division to the specified sub-box. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 

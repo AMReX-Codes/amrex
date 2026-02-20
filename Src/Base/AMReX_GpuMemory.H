@@ -2,6 +2,11 @@
 #define AMREX_GPU_MEMORY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuMemory.H
+ * \brief GPU memory helpers: Managed, Pinned, Deleter, DeviceScalar, and SharedMemory.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
@@ -11,15 +16,25 @@
 
 namespace amrex::Gpu {
 
+/**
+ * \class amrex::Gpu::Managed
+ * \ingroup amrex_execution
+ * \brief Base class that overrides operator new/delete to use managed (unified) GPU memory.
+ *
+ * Deriving from this class causes heap allocation to go through
+ * The_Managed_Arena() when GPU support is enabled.
+ */
 struct Managed {
 
 #ifdef AMREX_USE_GPU
 
+    //! Allocate \p len bytes from the managed arena.
     [[nodiscard]] void *operator new (std::size_t len)
     {
         return The_Managed_Arena()->alloc(len);
     }
 
+    //! Free \p ptr back to the managed arena.
     void operator delete (void *ptr)
     {
         if (ptr) { The_Managed_Arena()->free(ptr); }
@@ -28,15 +43,25 @@ struct Managed {
 #endif
 };
 
+/**
+ * \class amrex::Gpu::Pinned
+ * \ingroup amrex_execution
+ * \brief Base class that overrides operator new/delete to use pinned host memory.
+ *
+ * Deriving from this class causes heap allocation to go through
+ * The_Pinned_Arena() when GPU support is enabled.
+ */
 struct Pinned {
 
 #ifdef AMREX_USE_GPU
 
+    //! Allocate \p len bytes from the pinned arena.
     [[nodiscard]] void *operator new (std::size_t len)
     {
         return The_Pinned_Arena()->alloc(len);
     }
 
+    //! Free \p ptr back to the pinned arena.
     void operator delete (void *ptr)
     {
         if (ptr) { The_Pinned_Arena()->free(ptr); }
@@ -45,22 +70,43 @@ struct Pinned {
 #endif
 };
 
+/**
+ * \class amrex::Gpu::Deleter
+ * \ingroup amrex_execution
+ * \brief A callable deleter that frees memory through a given Arena.
+ *
+ * Suitable for use as a custom deleter with std::unique_ptr.
+ */
 struct Deleter {
-    Arena* m_arena = nullptr;
+    Arena* m_arena = nullptr; ///< The arena used for deallocation.
+    //! Construct with a pointer to the arena to use for deallocation.
     Deleter (Arena* ar) noexcept : m_arena(ar) {}
+    //! Free \p pt through the stored arena.
     void operator() (void* pt) const noexcept { m_arena->free(pt); }
 };
 
+/**
+ * \class amrex::Gpu::DeviceScalar
+ * \ingroup amrex_execution
+ * \brief A single scalar value stored in GPU device memory (or on the host when GPU is off).
+ *
+ * \tparam T Value type (must be trivially copyable).
+ */
 template <class T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
 struct DeviceScalar
 {
+    //! DeviceScalar is not copyable.
     DeviceScalar (DeviceScalar const&) = delete;
+    //! DeviceScalar is not movable.
     DeviceScalar (DeviceScalar &&) = delete;
+    //! DeviceScalar is not copy-assignable.
     void operator= (DeviceScalar const&) = delete;
+    //! DeviceScalar is not move-assignable.
     void operator= (DeviceScalar &&) = delete;
 
 #ifdef AMREX_USE_GPU
 
+    //! Default-construct: allocate device storage without initializing the value.
     DeviceScalar () {
         if (Gpu::inLaunchRegion()) {
             dp = (T*)(The_Arena()->alloc(sizeof(T)));
@@ -69,6 +115,7 @@ struct DeviceScalar
         }
     }
 
+    //! Construct and initialize the scalar to \p init_val.
     explicit DeviceScalar (T init_val) {
         if (Gpu::inLaunchRegion()) {
             dp = (T*)(The_Arena()->alloc(sizeof(T)));
@@ -79,6 +126,7 @@ struct DeviceScalar
         }
     }
 
+    //! Destructor: free device storage.
     ~DeviceScalar () {
         if (Gpu::inLaunchRegion()) {
             The_Arena()->free(dp);
@@ -87,8 +135,11 @@ struct DeviceScalar
         }
     }
 
+    //! Return a pointer to the device scalar (usable in GPU kernels).
     [[nodiscard]] T* dataPtr () { return dp; }
+    //! Return a const pointer to the device scalar.
     [[nodiscard]] T const* dataPtr () const { return dp; }
+    //! Copy the scalar value back to the host and return it.
     [[nodiscard]] T dataValue () const {
         if (Gpu::inLaunchRegion()) {
             T r;
@@ -104,12 +155,17 @@ private:
 
 #else
 
+    //! Construct and initialize the scalar to \p init_val (CPU build).
     DeviceScalar (T const& init_val) : d(init_val) {}
+    //! Default-construct (CPU build).
     DeviceScalar () = default;
     ~DeviceScalar () = default;
 
+    //! Return a pointer to the scalar.
     [[nodiscard]] T* dataPtr () { return &d; }
+    //! Return a const pointer to the scalar.
     [[nodiscard]] T const* dataPtr () const { return &d; }
+    //! Return the scalar value.
     [[nodiscard]] T dataValue () const { return d; }
 
 private:
@@ -120,15 +176,27 @@ private:
 
 #ifdef AMREX_USE_GPU
 
+/**
+ * \class amrex::Gpu::SharedMemory
+ * \ingroup amrex_execution
+ * \brief Provides a pointer to GPU shared (local) memory of type T inside a kernel.
+ *
+ * Specializations are provided for all common arithmetic types.
+ * Using an unsupported type will trigger a compile-time error.
+ *
+ * \tparam T Element type.
+ */
 template <class T>
 struct SharedMemory
 {
+    //! Return a pointer to the dynamically-sized shared memory array.
     [[nodiscard]] AMREX_GPU_DEVICE T* dataPtr () noexcept {
         static_assert(sizeof(T) < 0, "We must specialize struct SharedMemory");
         return nullptr;
     }
 };
 
+/// \cond DOXYGEN_IGNORE
 #ifndef AMREX_USE_SYCL
 // xxxxx SYCL todo: extern __shared__
 
@@ -263,6 +331,7 @@ struct SharedMemory<bool>
 };
 
 #endif
+/// \endcond
 
 #endif
 

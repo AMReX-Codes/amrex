@@ -5,6 +5,24 @@
 
 #include <AMReX.H>
 
+/**
+ * \file AMReX_BLassert.H
+ * \brief Assertion macros used across AMReX for runtime consistency checks.
+ *
+ * In debug builds (or when `AMREX_USE_ASSERTION` is defined) the macros expand
+ * to runtime checks that call `amrex::Assert` if they fail. In release builds
+ * without assertion support, the non-\*_ALWAYS variants become no-ops.
+ *
+ * - `AMREX_ASSERT(expr)` evaluates \p expr and aborts on failure, emitting the
+ *   expression, file, and line number.
+ * - `AMREX_ASSERT_WITH_MESSAGE(expr,msg)` behaves the same but also forwards
+ *   the user-provided \p msg to `amrex::Assert`, allowing custom diagnostics.
+ * - The `_ALWAYS_` variants (`AMREX_ALWAYS_ASSERT`, etc.) remain active even in
+ *   non-debug builds.
+ * - `AMREX_GPU_ASSERT` provides the same semantics inside GPU code paths when
+ *   GPU assertions are enabled.
+ */
+
 #ifdef AMREX_ASSERT
 #undef AMREX_ASSERT
 #endif
@@ -15,25 +33,6 @@
 
 #if !defined(AMREX_DEBUG) && !defined(AMREX_USE_ASSERTION)
 
-/*
-  The macro AMREX_ASSERT(EX) is a debugging macro, used to test the
-  internal consistency of AMReX, that may also be useful in user
-  code.  The argument EX is a C++ expression that you expect to
-  always evaluate to true.
-
-  When code is compiled with the DEBUG macro set to TRUE, the
-  AMREX_ASSERT(EX) macro expands to a boolean test of the expression EX.
-  If that expression evaluates to true, nothing happens, but if the
-  expression evaluates to false, a message is output detailing the
-  file and line number of the AMREX_ASSERT(EX) statement, as well as the
-  literal expression EX itself, and then exits via abort() using
-  amrex::Assert().  The idea is that if the assertion fails, something
-  has gone terribly wrong somewhere.
-
-  If the DEBUG macro is not set to TRUE, the AMREX_ASSERT(EX) call becomes
-  a null statement in the code, which will be eliminated by the code
-  optimizer.
-*/
 #define AMREX_ASSERT_WITH_MESSAGE(EX,MSG) ((void)0)
 #define AMREX_ASSERT(EX) ((void)0)
 #define    BL_ASSERT(EX) ((void)0)
@@ -56,4 +55,4 @@
 #define AMREX_GPU_ASSERT(EX) (EX)?((void)0):amrex::Assert( # EX , __FILE__, __LINE__)
 #endif
 
-#endif /*BL_BL_ASSERT_H*/
+#endif /* AMREX_BLASSERT_H_ */

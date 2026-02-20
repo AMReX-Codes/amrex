@@ -2,6 +2,11 @@
 #define AMREX_REAL_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_REAL.H
+ * \brief Floating-point type definitions and user-defined literals for AMReX precision.
+ */
+
 #include <AMReX_Extension.H>
 
 #ifdef BL_USE_FLOAT
@@ -89,45 +94,45 @@ namespace amrex {
      */
     using ParticleReal = amrex_particle_real;
 
-/** Floating point literals for AMReX precision.
+/**
+ * \brief Namespace providing user-defined literals for AMReX floating-point types.
  *
- * This namespace can be used to write typed numeric literals in expressions.
+ * Use \c _rt to write \ref amrex::Real literals and \c _prt for
+ * \ref amrex::ParticleReal literals:
+ * ```cpp
+ * auto const mypi = 3.14_rt;
+ * auto const sphere_volume = 4_rt / 3_rt * amrex::Math::pi<amrex::Real>() * r * r * r;
+ * ```
  */
 inline namespace literals {
 
-    /** @{
-      C++ user literals ``_rt`` &  ``_prt`` for short-hand notations
-
-      Use this to properly add types to constant such as
-      ```C++
-      auto const mypi = 3.14_rt;
-      auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
-      ```
-    */
+    //! User-defined literal: convert a \c long \c double constant to \ref amrex::Real.
     constexpr Real
     operator""_rt( long double x )
     {
         return Real( x );
     }
 
+    //! User-defined literal: convert an integer constant to \ref amrex::Real.
     constexpr Real
     operator""_rt( unsigned long long int x )
     {
         return Real( x );
     }
 
+    //! User-defined literal: convert a \c long \c double constant to \ref amrex::ParticleReal.
     constexpr ParticleReal
     operator""_prt( long double x )
     {
         return ParticleReal( x );
     }
 
+    //! User-defined literal: convert an integer constant to \ref amrex::ParticleReal.
     constexpr ParticleReal
     operator""_prt( unsigned long long int x )
     {
         return ParticleReal( x );
     }
-    /// @}
 } // namespace literals
 } // namespace amrex
 #endif

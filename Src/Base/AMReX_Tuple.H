@@ -3,6 +3,11 @@
 #define AMREX_TUPLE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Tuple.H
+ * \brief GPU-compatible tuple type and associated utilities.
+ */
+
 #include <AMReX_Array.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
@@ -14,6 +19,8 @@
 #include <tuple>
 
 namespace amrex {
+    /// \ingroup amrex_linear_containers
+    //! Alias for std::tuple.
     template <class... Ts>
     using Tuple = std::tuple<Ts...>;
 }
@@ -97,41 +104,57 @@ class GpuTuple
     : public detail::gpu_tuple_impl<0, Ts...>
 {
 public:
+    //! Default-construct all elements.
     AMREX_GPU_HOST_DEVICE // Some versions of nvcc require this in debug build
     constexpr GpuTuple () = default;
 
+    //! Construct from a pack of const references.
     constexpr GpuTuple (Ts const&... args)
         : detail::gpu_tuple_impl<0, Ts...>(args...)
         {}
 
+    //! Construct from a pack of forwarded arguments.
     template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
     constexpr GpuTuple (Us&&... args)
         : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
         {}
 
+    //! Copy-assign from a GpuTuple of compatible types.
     template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> const& rhs);
 
+    //! Move-assign from a GpuTuple of compatible types.
     template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> && rhs);
 };
 
-// GpuTupleSize
-
+/**
+ * \class amrex::GpuTupleSize
+ * \ingroup amrex_linear_containers
+ * \brief Metafunction returning the number of elements in a GpuTuple
+ *        (analogous to std::tuple_size).
+ */
 template <typename T> struct GpuTupleSize;
 
+/// \cond DOXYGEN_IGNORE
 template <typename... Ts>
 struct GpuTupleSize<GpuTuple<Ts...> >
     : public std::integral_constant<std::size_t, sizeof...(Ts)> {};
+/// \endcond
 
-// GpuTupleElement
-
+/**
+ * \class amrex::GpuTupleElement
+ * \ingroup amrex_linear_containers
+ * \brief Metafunction returning the type of the I-th element of a GpuTuple
+ *        (analogous to std::tuple_element).
+ */
 template <std::size_t I, typename T> struct GpuTupleElement;
 
+/// \cond DOXYGEN_IGNORE
 template <std::size_t I, typename Head, typename... Tail>
 struct GpuTupleElement<I, GpuTuple<Head, Tail...> >
     : GpuTupleElement<I-1, GpuTuple<Tail...> > {};
@@ -140,6 +163,7 @@ template <typename Head, typename... Tail>
 struct GpuTupleElement<0, GpuTuple<Head, Tail...> > {
     using type = Head;
 };
+/// \endcond
 
 // get
 
@@ -179,6 +203,8 @@ get_impl (detail::gpu_tuple_element
 } // detail
 /// \endcond
 
+/// \ingroup amrex_linear_containers
+//! Return a mutable reference to the I-th element of \p tup.
 template <std::size_t I, typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr
@@ -188,6 +214,8 @@ get (GpuTuple<Ts...>& tup) noexcept
     return detail::get_impl<I,Ts...>(tup);
 }
 
+/// \ingroup amrex_linear_containers
+//! Return a const reference to the I-th element of \p tup.
 template <std::size_t I, typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr
@@ -197,6 +225,8 @@ get (GpuTuple<Ts...> const& tup) noexcept
     return detail::get_impl<I,Ts...>(tup);
 }
 
+/// \ingroup amrex_linear_containers
+//! Return an rvalue reference to the I-th element of \p tup.
 template <std::size_t I, typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr
@@ -256,6 +286,8 @@ namespace detail {
 }
 /// \endcond
 
+/// \ingroup amrex_linear_containers
+//! Construct a GpuTuple deducing element types from the arguments.
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr
@@ -293,6 +325,8 @@ namespace detail {
 
 // TupleCat
 
+/// \ingroup amrex_linear_containers
+//! Return the input GpuTuple unchanged.
 template <typename TP>
 AMREX_GPU_HOST_DEVICE
 constexpr auto
@@ -302,6 +336,8 @@ TupleCat (TP && a) -> typename detail::tuple_cat_result<detail::tuple_decay_t<TP
     return ReturnType(std::forward<TP>(a));
 }
 
+/// \ingroup amrex_linear_containers
+//! Concatenate two GpuTuples into a single GpuTuple.
 template <typename TP1, typename TP2>
 AMREX_GPU_HOST_DEVICE
 constexpr auto
@@ -316,6 +352,8 @@ TupleCat (TP1 && a, TP2 && b) -> typename detail::tuple_cat_result<detail::tuple
          std::make_index_sequence<GpuTupleSize<std::decay_t<TP2>>::value>());
 }
 
+/// \ingroup amrex_linear_containers
+//! Concatenate three or more GpuTuples into a single GpuTuple.
 template <typename TP1, typename TP2, typename... TPs>
 AMREX_GPU_HOST_DEVICE
 constexpr auto
@@ -378,6 +416,7 @@ namespace detail {
 /// \endcond
 
 /**
+ * \ingroup amrex_linear_containers
  * \brief Returns a GpuTuple of GpuTuples obtained by splitting the input GpuTuple
  * according to the sizes specified by the template arguments.
  */
@@ -431,6 +470,8 @@ namespace detail {
 }
 /// \endcond
 
+/// \ingroup amrex_linear_containers
+//! Invoke callable \p f with the elements of GpuTuple \p t as arguments.
 template <typename F, typename TP>
 AMREX_GPU_HOST_DEVICE
 constexpr auto
@@ -442,6 +483,8 @@ Apply (F&& f, TP&& t) -> typename detail::apply_result<F,detail::tuple_decay_t<T
 
 // Tie
 
+/// \ingroup amrex_linear_containers
+//! Return a GpuTuple of lvalue references to the given arguments.
 template <typename... Args>
 AMREX_GPU_HOST_DEVICE
 constexpr GpuTuple<Args&...>
@@ -452,6 +495,8 @@ Tie (Args&... args) noexcept
 
 // ForwardAsTuple
 
+/// \ingroup amrex_linear_containers
+//! Return a GpuTuple of forwarding references to the given arguments.
 template <typename... Ts>
 AMREX_GPU_HOST_DEVICE
 constexpr GpuTuple<Ts&&...>
@@ -463,6 +508,7 @@ ForwardAsTuple (Ts&&... args) noexcept
 // MakeZeroTuple
 
 /**
+ * \ingroup amrex_linear_containers
  * \brief Return a GpuTuple containing all zeros.
  * Note that a default-constructed GpuTuple can have uninitialized values.
  */
@@ -484,6 +530,8 @@ namespace detail {
 }
 /// \endcond
 
+/// \ingroup amrex_linear_containers
+//! Convert a single-element GpuTuple<T> to a GpuArray<T,1>.
 template <typename T>
 AMREX_GPU_HOST_DEVICE constexpr
 auto tupleToArray (GpuTuple<T> const& tup)
@@ -491,7 +539,8 @@ auto tupleToArray (GpuTuple<T> const& tup)
     return GpuArray<T,1>{amrex::get<0>(tup)};
 }
 
-//! Convert GpuTuple<T,T2,Ts...> to GpuArray
+/// \ingroup amrex_linear_containers
+//! Convert GpuTuple<T,T2,Ts...> to GpuArray when all element types are the same.
 template <typename T, typename T2, typename... Ts, std::enable_if_t<Same<T,T2,Ts...>::value, int> = 0>
 AMREX_GPU_HOST_DEVICE constexpr
 auto tupleToArray (GpuTuple<T,T2,Ts...> const& tup)
@@ -501,13 +550,13 @@ auto tupleToArray (GpuTuple<T,T2,Ts...> const& tup)
 
 } // namespace amrex
 
-// Spcialize std::tuple_size for GpuTuple. Used by structured bindings.
+// Specialize std::tuple_size for GpuTuple. Used by structured bindings.
 template<typename... Ts>
 struct std::tuple_size<amrex::GpuTuple<Ts...>> {
     static constexpr std::size_t value = sizeof...(Ts);
 };
 
-// Spcialize std::tuple_element for GpuTuple. Used by structured bindings.
+// Specialize std::tuple_element for GpuTuple. Used by structured bindings.
 template<typename T, typename... Ts>
 struct std::tuple_element<std::size_t{0}, amrex::GpuTuple<T, Ts...>> {
     using type = T;

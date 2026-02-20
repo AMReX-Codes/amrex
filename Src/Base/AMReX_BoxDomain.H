@@ -10,6 +10,11 @@
 
 #include <iosfwd>
 
+/**
+ * \file AMReX_BoxDomain.H
+ * \brief Disjoint-list representation of boxes and associated utilities.
+ */
+
 namespace amrex
 {
     class BoxDomain;
@@ -19,31 +24,43 @@ namespace amrex
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
 
     /**
-    * \brief Coarsen all Boxes in the domain by the refinement ratio.
-    *           The result is placed into a new BoxDomain.
-    */
+     * \brief Coarsen all Boxes in the domain by the refinement ratio.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain to coarsen.
+     * \param ratio Uniform coarsening factor.
+     */
     void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
 
     /**
-    * \brief Refine all Boxes in the domain by the refinement ratio
-    *           and return the result in dest.
-    */
+     * \brief Refine all Boxes in the domain by the refinement ratio.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain to refine.
+     * \param ratio Uniform refinement factor.
+     */
     void refine (BoxDomain&       dest,
                  const BoxDomain& fin,
                  int              ratio);
 
     /**
-    * \brief Compute the intersection of BoxDomain fin with Box b
-    *           and place the result into BoxDomain dest.
-    */
+     * \brief Compute the intersection of BoxDomain fin with Box b.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain.
+     * \param b Clipping box.
+     */
     void intersect (BoxDomain&       dest,
                     const BoxDomain& fin,
                     const Box&       b);
 
     /**
-    * \brief Grow each Box in BoxDomain fin by size sz and place
-    *           the result into BoxDomain dest.
-    */
+     * \brief Grow each Box in BoxDomain fin by size sz.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain.
+     * \param sz Number of cells to grow on all sides.
+     */
     void accrete (BoxDomain&       dest,
                   const BoxDomain& fin,
                   int              sz = 1);
@@ -54,13 +71,12 @@ std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
 
 
 /**
-* \brief A List of Disjoint Boxes.
-*
-* A BoxDomain is a BoxList with the restriction that Boxes in the list
-* are disjoint.
-* Note that a BoxDomain is NOT a BoxList due to the protected inheritance.
-* This is a concrete class, not a polymorphic one.
-*/
+ * \class amrex::BoxDomain
+ * \ingroup amrex_domain_decomposition
+ * \brief A list of disjoint boxes built on top of `BoxList`.
+ *
+ * The underlying `BoxList` is exposed selectively through promoted members.
+ */
 class BoxDomain
     :
     protected BoxList
@@ -73,25 +89,24 @@ public:
     //! Construct an empty BoxDomain of IndexType::TheCellType().
     BoxDomain ();
 
-    //! A Box Domain out of single Box
+    //! Make a domain out of a single Box.
     BoxDomain (const Box& bx);
 
     //! Construct an empty BoxDomain of IndexType itype.
     explicit BoxDomain (IndexType itype);
 
-    //! Add a Box to the domain.
+    //! Add a Box to the domain, clipping any overlap to keep boxes disjoint.
     void add (const Box& b);
 
-    //! Add all Boxes in the BoxList to the domain.
+    //! Add all Boxes in the BoxList to the domain, clipping overlaps as needed.
     void add (const BoxList& bl);
 
     //! Remove a box from the domain.
     BoxDomain& rmBox (const Box& b);
 
     /**
-    * Returns True if this BoxDomain is valid.  Checks for
-    * disjointedness. Returns true if the BoxDomain is empty.
-    */
+     * \brief Returns true if this BoxDomain is valid (disjoint or empty).
+     */
     [[nodiscard]] bool ok () const;
 
     //! Promoted from BoxList.
@@ -156,7 +171,7 @@ public:
                              const BoxDomain& bl);
 
 private:
-    //! Construct from a BoxList that has no overlap
+    //! Construct from a BoxList that has no overlap.
     explicit BoxDomain (BoxList&& bl);
 };
 

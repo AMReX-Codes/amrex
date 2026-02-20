@@ -5,8 +5,25 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_TypeTraits.H>
 
+/**
+ * \file AMReX_BaseFabUtility.H
+ * \brief Helper routines for manipulating BaseFab data and related arrays.
+ */
+
 namespace amrex {
 
+/**
+ * \brief Cast components from one BaseFab to another over a region.
+ *
+ * \tparam Tto   Destination value type.
+ * \tparam Tfrom Source value type.
+ * \param tofab Destination fab receiving the cast values.
+ * \param fromfab Source fab providing values to cast.
+ * \param bx Region over which to apply the cast.
+ * \param scomp Starting component in the source fab.
+ * \param dcomp Starting component in the destination fab.
+ * \param ncomp Number of components to copy.
+ */
 template <class Tto, class Tfrom>
 AMREX_GPU_HOST_DEVICE
 void
@@ -21,6 +38,18 @@ cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
     });
 }
 
+/**
+ * \brief Fill an array-of-structs BaseFab by invoking a functor per cell.
+ *
+ * The functor must provide an `operator()(STRUCT&, int i, int j, int k)` that
+ * populates the aggregate. The struct is required to be trivially copyable and
+ * destructible so it can be staged in shared memory on GPUs.
+ *
+ * \tparam STRUCT Aggregate type stored in the fab.
+ * \tparam F Callable functor type.
+ * \param aos_fab Target fab storing STRUCT values.
+ * \param f Functor used to populate each element.
+ */
 template <typename STRUCT, typename F,
           std::enable_if_t<(sizeof(STRUCT)<=36*8) &&
                                   AMREX_IS_TRIVIALLY_COPYABLE(STRUCT) &&
@@ -95,12 +124,14 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
     }
 }
 
-//! Transpose 3D array (nx,ny,nz) from row-major (i.e. C order) to
-//! column-major (Fortran order). The input's unit stride direction is z,
-//! whereas the output's unit stride direction is x. Note that for GPU
-//! builds, the kernel runs on the current GPU stream asynchronously with
-//! respect to the host. If synchronization is needed, it's up to the user
-//! to call `amrex::Gpu::streamSynchronize()`.
+/**
+ * \brief Transpose a 3D array of shape (nx, ny, nz) from C-order to Fortran-order storage.
+ *
+ * The input is interpreted in row-major order with unit stride along the \p z
+ * axis. The output is written in column-major order with unit stride along
+ * the \p x axis. For GPU builds the kernel launches on the current
+ * stream; callers should synchronize explicitly if needed.
+ */
 template <typename T>
 void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 {
@@ -247,12 +278,12 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
 #endif
 }
 
-//! Transpose 2D array (nx,ny) from row-major (i.e. C order) to column-major
-//! (Fortran order). The input's unit stride direction is y, whereas the
-//! output's unit stride direction is x. Note that for GPU builds, the
-//! kernel runs on the current GPU stream asynchronously with respect to the
-//! host. If synchronization is needed, it's up to the user to call
-//! `amrex::Gpu::streamSynchronize()`.
+/**
+ * \brief Transpose a 2D array of shape (nx, ny) from C-order to Fortran-order storage.
+ *
+ * Equivalent to the 3D variant with \p nz = 1. The input's unit stride lies
+ * along the \p y direction and the output's unit stride lies along \p x.
+ */
 template <typename T>
 void transposeCtoF (T const* pi, T* po, int nx, int ny)
 {

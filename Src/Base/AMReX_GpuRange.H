@@ -2,6 +2,11 @@
 #define AMREX_GPU_RANGE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuRange.H
+ * \brief isEmpty helpers and Gpu::Range for iterating over integers or Box indices on GPU.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuError.H>
@@ -10,9 +15,13 @@
 
 namespace amrex {
 
+/// \ingroup amrex_execution
+//! Return true if the integer \p n represents an empty range (n <= 0).
 template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
 bool isEmpty (T n) noexcept { return n <= 0; }
 
+/// \ingroup amrex_execution
+//! Return true if the Box \p b is empty.
 template<int dim>
 AMREX_FORCE_INLINE bool isEmpty (BoxND<dim> const& b) noexcept { return b.isEmpty(); }
 
@@ -116,12 +125,16 @@ private:
 /// \endcond
 
 #ifdef AMREX_USE_SYCL
+/// \ingroup amrex_execution
+//! Return a range over \p b using SYCL global id \p gid and global range \p grange.
 template <typename T>
 range_detail::range_impl<T> Range (T const& b, Long gid, Long grange) noexcept {
     return range_detail::range_impl<T>(b,gid,grange);
 }
 #endif
 
+/// \ingroup amrex_execution
+//! Return a range over \p b suitable for strided iteration in a GPU kernel.
 template <typename T>
 AMREX_GPU_HOST_DEVICE
 range_detail::range_impl<T> Range (T const& b) noexcept { return range_detail::range_impl<T>(b); }

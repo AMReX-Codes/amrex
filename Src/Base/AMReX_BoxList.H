@@ -3,6 +3,11 @@
 #define BL_BOXLIST_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BoxList.H
+ * \brief A list of Boxes sharing a common IndexType with set-algebra operations.
+ */
+
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
@@ -19,9 +24,10 @@ namespace amrex
     //! Returns a BoxList defining the complement of BoxList bl in Box b.
     BoxList complementIn (const Box& b, const BoxList& bl);
 
-    //! Returns BoxList defining the compliment of b2 in b1in.
+    //! Returns BoxList defining the complement of \p b2 in \p b1in.
     BoxList boxDiff (const Box& b1in, const Box& b2);
 
+    //! Populate \p bl_diff with the complement of \p b2 in \p b1in.
     void boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2);
 
     //! Returns a new BoxList in which each Box is refined by the given ratio.
@@ -44,10 +50,14 @@ namespace amrex
     std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
 
 
-/** \brief A class for managing a List of Boxes that share a common
-* IndexType.  This class implements operations for sets of Boxes.
-* This is a concrete class, not a polymorphic one.
-*/
+/**
+ * \class amrex::BoxList
+ * \ingroup amrex_index_space
+ * \brief A list of Boxes sharing a common IndexType with set-algebra operations.
+ *
+ * BoxList implements operations for sets of Boxes (complement, intersection,
+ * refinement, coarsening, etc.).  This is a concrete class, not a polymorphic one.
+ */
 class BoxList
 {
 public:
@@ -87,6 +97,7 @@ public:
     BoxList& operator= (const BoxList& rhs) = default;
     BoxList& operator= (BoxList&& rhs) = default;
 
+    //! Reserve storage for at least \p n Boxes.
     void reserve (std::size_t n) { m_lbox.reserve(n); }
 
     //! Append a Box to this BoxList.
@@ -96,8 +107,10 @@ public:
         m_lbox.push_back(bn);
     }
 
+    //! Return a reference to the first Box in the list.
     [[nodiscard]] Box& front () noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
+    //! Return a const reference to the first Box in the list.
     [[nodiscard]] const Box& front () const noexcept { BL_ASSERT(!m_lbox.empty()); return m_lbox.front(); }
 
     //! Join the BoxList to ourselves.
@@ -112,14 +125,21 @@ public:
     //! The number of Boxes in this BoxList.
     [[nodiscard]] Long size () const noexcept { return m_lbox.size(); }
 
+    //! Return the current allocated capacity.
     [[nodiscard]] std::size_t capacity () const noexcept { return m_lbox.capacity(); }
 
+    //! Return an iterator to the first Box.
     [[nodiscard]] iterator begin () noexcept { return m_lbox.begin(); }
+    //! Return a const iterator to the first Box.
     [[nodiscard]] const_iterator begin () const noexcept { return m_lbox.cbegin(); }
+    //! Return a const iterator to the first Box.
     [[nodiscard]] const_iterator cbegin () const noexcept { return m_lbox.cbegin(); }
 
+    //! Return an iterator past the last Box.
     [[nodiscard]] iterator end () noexcept { return m_lbox.end(); }
+    //! Return a const iterator past the last Box.
     [[nodiscard]] const_iterator end () const noexcept { return m_lbox.cend(); }
+    //! Return a const iterator past the last Box.
     [[nodiscard]] const_iterator cend () const noexcept { return m_lbox.cend(); }
     /**
     * \brief True if this BoxList is valid; i.e. all the Boxes are
@@ -146,11 +166,17 @@ public:
     //! Remove empty Boxes from this BoxList.
     BoxList& removeEmpty();
 
+    //! Set this BoxList to the complement of BoxList \p bl in Box \p b.
     BoxList& complementIn (const Box& b, const BoxList& bl);
+    //! Set this BoxList to the complement of BoxList \p bl (moved) in Box \p b.
     BoxList& complementIn (const Box& b, BoxList&& bl);
+    //! Set this BoxList to the complement of BoxArray \p ba in Box \p b.
     BoxList& complementIn (const Box& b, const BoxArray& ba);
+    //! Parallel version of complementIn using BoxList.
     BoxList& parallelComplementIn (const Box& b, const BoxList& bl);
+    //! Parallel version of complementIn using BoxList (moved).
     BoxList& parallelComplementIn (const Box& b, BoxList&& bl);
+    //! Parallel version of complementIn using BoxArray.
     BoxList& parallelComplementIn (const Box& b, const BoxArray& ba);
 
     //! Refine each Box in the BoxList by the ratio.
@@ -163,6 +189,7 @@ public:
     BoxList& coarsen (const IntVect& ratio);
     //! Grow each Box in the BoxList by size sz.
     BoxList& accrete  (int sz);
+    //! Grow each Box in the BoxList by size \p sz (per direction).
     BoxList& accrete  (const IntVect& sz);
     //! Applies Box::shift(int,int) to each Box in the BoxList.
     BoxList& shift (int dir,
@@ -182,7 +209,7 @@ public:
     * is O(N-squared) while the other algorithm is O(N).
     */
     int simplify (bool best = false);
-    //! Assuming the boxes are nicely ordered
+    //! Merge adjacent Boxes assuming the list is already sorted/ordered.
     int ordered_simplify ();
     //! Forces each Box in the BoxList to have sides of length <= chunk.
     BoxList& maxSize (int chunk);
@@ -216,11 +243,13 @@ public:
     //! Returns a constant reference to the Vector<Box>.
     [[nodiscard]] const Vector<Box>& data () const noexcept { return m_lbox; }
 
+    //! Swap contents with another BoxList.
     void swap (BoxList& rhs) noexcept {
         std::swap(m_lbox, rhs.m_lbox);
         std::swap(btype, rhs.btype);
     }
 
+    //! Broadcast this BoxList from the I/O processor to all other processors.
     void Bcast ();
 
 private:

@@ -3,6 +3,11 @@
 #define AMREX_COORDSYS_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_CoordSys.H
+ * \brief Coordinate system that maps between physical space and index space.
+ */
+
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
@@ -16,14 +21,17 @@ namespace amrex {
 class FArrayBox;
 
 /**
-* \brief Coordinate System
-*
-* Routines for mapping between physical coordinate system and index space.
-*/
+ * \class amrex::CoordSys
+ * \ingroup amrex_real_space
+ * \brief Coordinate system; provides mapping between physical space and index space.
+ *
+ * Supports Cartesian, cylindrical (RZ), and spherical coordinate systems.
+ */
 class CoordSys
 {
 public:
 
+    //! Coordinate system type: undefined, Cartesian, cylindrical (RZ), or spherical.
     enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
     //! Nice ASCII output.
     friend std::ostream& operator<< (std::ostream&, const CoordSys& );
@@ -73,6 +81,7 @@ public:
     //! Returns the cellsize for the specified coordinate direction.
     [[nodiscard]] Real CellSize (int dir) const noexcept { BL_ASSERT(ok); return dx[dir]; }
 
+    //! Returns the cell sizes as a GpuArray for use on host or device.
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> CellSizeArray () const noexcept {
         BL_ASSERT(ok);
         return {{ AMREX_D_DECL(dx[0],dx[1],dx[2]) }};
@@ -84,6 +93,7 @@ public:
     //! Returns the inverse cellsize for the specified coordinate direction.
     [[nodiscard]] Real InvCellSize (int dir) const noexcept { BL_ASSERT(ok); return inv_dx[dir]; }
 
+    //! Returns the inverse cell sizes as a GpuArray for use on host or device.
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> InvCellSizeArray () const noexcept {
         BL_ASSERT(ok);
         return {{ AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) }};

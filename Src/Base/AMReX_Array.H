@@ -2,6 +2,11 @@
 #define AMREX_ARRAY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Array.H
+ * \brief Fixed-size array types for use on GPU and CPU.
+ */
+
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -25,7 +30,11 @@ namespace amrex {
     template <class T, std::size_t N>
     using Array = std::array<T,N>;
 
+    /// \ingroup amrex_linear_containers
+    //! A dimension-sized \c std::array of \c Real values.
     using RealArray = Array<Real, AMREX_SPACEDIM>;
+    /// \ingroup amrex_linear_containers
+    //! A dimension-sized \c std::array of \c int values.
     using IntArray  = Array<int , AMREX_SPACEDIM>;
 
 }
@@ -147,6 +156,12 @@ namespace amrex {
             return p;
         }
 
+        /**
+         * \brief Perform element-wise accumulation from another \c GpuArray.
+         *
+         * \param a Right-hand side array whose values are added to this instance.
+         * \return Reference to the updated array, enabling chained assignments.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         GpuArray<T,N>& operator+= (GpuArray<T,N> const& a) noexcept
         {
@@ -1089,6 +1104,14 @@ namespace amrex
 
 namespace amrex
 {
+    /**
+     * \brief Convert an AMReX dimension-sized coordinate array into an
+     *        `XDim3`, padding unused components with zeros.
+     *
+     * \param a Coordinate values ordered as (x, y, z) but sized by
+     *          `AMREX_SPACEDIM`.
+     * \return `XDim3` initialized with the provided coordinates.
+     */
     inline XDim3 makeXDim3 (const Array<Real,AMREX_SPACEDIM>& a) noexcept
     {
 #if (AMREX_SPACEDIM == 1)

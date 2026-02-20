@@ -2,6 +2,11 @@
 #define AMREX_GPU_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Gpu.H
+ * \brief Umbrella header that includes all AMReX GPU subsystem headers.
+ */
+
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>
 namespace amrex::Hip {}

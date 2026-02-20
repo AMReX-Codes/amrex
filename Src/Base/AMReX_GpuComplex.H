@@ -2,6 +2,11 @@
 #define AMREX_GPUCOMPLEX_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuComplex.H
+ * \brief GPU-compatible complex number type and arithmetic operations.
+ */
+
 #include <AMReX_Algorithm.H>
 #include <AMReX_Math.H>
 #include <cmath>
@@ -16,6 +21,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T norm (const GpuComplex<T>& a_z) noexcept;
 
 /**
+ * \class amrex::GpuComplex
  * \ingroup amrex_arithmetic_types
  * \brief A host / device complex number type, because std::complex doesn't
  *  work in device code with Cuda yet.
@@ -30,7 +36,8 @@ struct alignas(2*sizeof(T)) GpuComplex
 {
     using value_type = T;
 
-    T m_real, m_imag;
+    T m_real; ///< Real part.
+    T m_imag; ///< Imaginary part.
 
     /**
      * \brief Construct a complex number given the real and imaginary part.
@@ -155,6 +162,8 @@ struct alignas(2*sizeof(T)) GpuComplex
     friend std::ostream & operator<< (std::ostream &out, const GpuComplex<U>& c);
 };
 
+/// \ingroup amrex_arithmetic_types
+//! Print a complex number to an ostream.
 template <typename U>
 std::ostream& operator<< (std::ostream& out, const GpuComplex<U>& c)
 {
@@ -163,6 +172,7 @@ std::ostream& operator<< (std::ostream& out, const GpuComplex<U>& c)
     return out;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Identity operation on a complex number.
  */
@@ -170,6 +180,7 @@ template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> operator+ (const GpuComplex<T>& a_x) { return a_x; }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Negate a complex number.
  */
@@ -177,6 +188,7 @@ template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 GpuComplex<T> operator- (const GpuComplex<T>& a_x) { return GpuComplex<T>(-a_x.real(), -a_x.imag()); }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Subtract two complex numbers.
  */
@@ -189,6 +201,7 @@ GpuComplex<T> operator- (const GpuComplex<T>& a_x, const GpuComplex<T>& a_y) noe
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Subtract a real number from a complex one.
  */
@@ -201,6 +214,7 @@ GpuComplex<T> operator- (const GpuComplex<T>& a_x, const T& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Subtract a complex number from a real one.
  */
@@ -213,6 +227,7 @@ GpuComplex<T> operator- (const T& a_x, const GpuComplex<T>& a_y) noexcept
     return -r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Add two complex numbers.
  */
@@ -225,8 +240,9 @@ GpuComplex<T> operator+ (const GpuComplex<T>& a_x, const GpuComplex<T>& a_y) noe
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
- * \brief Add a real number to a complex one
+ * \brief Add a real number to a complex one.
  */
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -237,8 +253,9 @@ GpuComplex<T> operator+ (const GpuComplex<T>& a_x, const T& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
- * \brief Add a complex number to a real one
+ * \brief Add a complex number to a real one.
  */
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -249,6 +266,7 @@ GpuComplex<T> operator+ (const T& a_x, const GpuComplex<T>& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Multiply two complex numbers.
  */
@@ -261,6 +279,7 @@ GpuComplex<T> operator* (const GpuComplex<T>& a_x, const GpuComplex<U>& a_y) noe
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Multiply a complex number by a real one.
  */
@@ -273,6 +292,7 @@ GpuComplex<T> operator* (const GpuComplex<T>& a_x, const U& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Multiply a real number by a complex one.
  */
@@ -285,6 +305,7 @@ GpuComplex<T> operator* (const T& a_x, const GpuComplex<T>& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Divide a complex number by another one.
  */
@@ -297,6 +318,7 @@ GpuComplex<T> operator/ (const GpuComplex<T>& a_x, const GpuComplex<T>& a_y) noe
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Divide a complex number by a real.
  */
@@ -309,6 +331,7 @@ GpuComplex<T> operator/ (const GpuComplex<T>& a_x, const T& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Divide a real number by a complex one.
  */
@@ -321,6 +344,7 @@ GpuComplex<T> operator/ (const T& a_x, const GpuComplex<T>& a_y) noexcept
     return r;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Return a complex number given its polar representation.
  */
@@ -331,8 +355,9 @@ GpuComplex<T> polar (const T& a_r, const T& a_theta) noexcept
     return GpuComplex<T>(a_r * std::cos(a_theta), a_r * std::sin(a_theta));
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
- * \brief Complex expotential function.
+ * \brief Complex exponential function.
  */
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -341,8 +366,9 @@ GpuComplex<T> exp (const GpuComplex<T>& a_z) noexcept
     return polar<T>(std::exp(a_z.real()), a_z.imag());
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
- * \brief Return the norm (magnitude squared) of a complex number
+ * \brief Return the norm (magnitude squared) of a complex number.
  */
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -353,8 +379,9 @@ T norm (const GpuComplex<T>& a_z) noexcept
     return x * x + y * y;
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
- * \brief Return the absolute value of a complex number
+ * \brief Return the absolute value of a complex number.
  */
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -370,8 +397,9 @@ T abs (const GpuComplex<T>& a_z) noexcept
     return s * std::sqrt(x * x + y * y);
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
- * \brief Return the square root of a complex number
+ * \brief Return the square root of a complex number.
  */
 template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -395,6 +423,7 @@ GpuComplex<T> sqrt (const GpuComplex<T>& a_z) noexcept
     }
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Return the angle of a complex number's polar representation.
  */
@@ -405,6 +434,7 @@ T arg (const GpuComplex<T>& a_z) noexcept
     return std::atan2(a_z.imag(), a_z.real());
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Complex natural logarithm function.
  */
@@ -415,6 +445,7 @@ GpuComplex<T> log (const GpuComplex<T>& a_z) noexcept
     return GpuComplex<T>(std::log(amrex::abs(a_z)), amrex::arg(a_z));
 }
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Raise a complex number to a (real) power.
  */
@@ -452,6 +483,7 @@ namespace detail
 }
 /// \endcond
 
+/// \ingroup amrex_arithmetic_types
 /**
  * \brief Raise a complex number to an integer power.
  */

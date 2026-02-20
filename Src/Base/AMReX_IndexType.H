@@ -3,6 +3,11 @@
 #define BL_INDEXTYPE_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_IndexType.H
+ * \brief Cell-based or node-based index type for each spatial direction.
+ */
+
 #include <AMReX_IntVect.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Tuple.H>
@@ -97,6 +102,7 @@ public:
     //! True if IndexTypeNDs are not identical.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator!= (const IndexTypeND& t) const noexcept { return t.itype != itype; }
+    //! Return true if this IndexTypeND is less than \p t (lexicographic on the bit field).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator< (const IndexTypeND& t) const noexcept { return itype < t.itype; }
     //! True if the IndexTypeND is CELL based in all directions.
@@ -165,13 +171,13 @@ public:
         return retval;
     }
 
-    //! Return the size of this IndexTypeND.
+    //! Return the size of this IndexTypeND.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr std::size_t size () noexcept {
         return static_cast<std::size_t>(dim);
     }
 
-    //! Return the size of this IndexTypeND.
+    //! Return the size of this IndexTypeND.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr int isize () noexcept {
         return dim;
@@ -194,7 +200,7 @@ public:
 
     /**
     * \brief Returns a new IndexTypeND of size new_dim and
-    * assigns all values of this IndexTypeND to it and fill_extra to the remaining elements.
+    * assigns all values of this IndexTypeND to it and fill_extra to the remaining elements.
     */
     template<int new_dim>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -276,11 +282,13 @@ namespace detail {
 }
 /// \endcond
 
+/// \ingroup amrex_index_space
 //! Write an IndexTypeND to an ostream in ASCII.
 template<int dim>
 std::ostream& operator<< (std::ostream& os, const IndexTypeND<dim>& it) {
     return detail::index_type_write(os, it.getBits(), dim);
 }
+/// \ingroup amrex_index_space
 //! Read an IndexTypeND from an istream.
 template<int dim>
 std::istream& operator>> (std::istream& is, IndexTypeND<dim>& it) {
@@ -288,6 +296,7 @@ std::istream& operator>> (std::istream& is, IndexTypeND<dim>& it) {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a IndexTypeND obtained by concatenating the input IndexTypeNDs.
 * The dimension of the return value equals the sum of the dimensions of the inputted IndexTypeNDs.
 */
@@ -308,6 +317,7 @@ IndexTypeCat (const IndexTypeND<d>& v, const IndexTypeND<dims>&...vects) noexcep
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a tuple of IndexTypeND obtained by splitting the input IndexTypeND
 * according to the dimensions specified by the template arguments.
 */
@@ -322,6 +332,7 @@ IndexTypeSplit (const IndexTypeND<detail::get_sum<d, dims...>()>& v) noexcept {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a new IndexTypeND of size new_dim and
 * assigns the first new_dim values of v to it.
 */
@@ -333,8 +344,9 @@ IndexTypeShrink (const IndexTypeND<old_dim>& v) noexcept {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a new IndexTypeND of size new_dim and
-* assigns all values of iv to it and fill_extra to the remaining elements.
+* assigns all values of iv to it and fill_extra to the remaining elements.
 */
 template<int new_dim, int old_dim>
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -345,6 +357,7 @@ IndexTypeExpand (const IndexTypeND<old_dim>& v,
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a new IndexTypeND of size new_dim
 * by either shrinking or expanding iv.
 */

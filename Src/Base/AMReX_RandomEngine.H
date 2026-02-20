@@ -2,6 +2,11 @@
 #define AMREX_RANDOM_ENGINE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_RandomEngine.H
+ * \brief GPU random number engine state handle for use in device kernels.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #ifdef AMREX_USE_OMP
@@ -30,6 +35,7 @@ namespace amrex
 
 #ifdef AMREX_USE_SYCL
 
+/// \cond DOXYGEN_IGNORE
     using sycl_rng_engine = mkl::rng::device::philox4x32x10<>;
     using sycl_rng_descr = mkl::rng::device::engine_descriptor<sycl_rng_engine>;
     using sycl_rng_acc = mkl::rng::device::engine_accessor<sycl_rng_engine>;
@@ -43,7 +49,15 @@ namespace amrex
 #endif
         return rand_engine_descr;
     }
+/// \endcond
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief Handle to the per-thread SYCL random number engine state.
+     *
+     * Passed to device-callable random number functions such as
+     * \c amrex::Random(RandomEngine const&) to generate numbers on the GPU.
+     */
     struct RandomEngine {
         sycl_rng_engine* engine;
         AMREX_GPU_HOST_DEVICE RandomEngine (sycl_rng_engine* e) : engine(e) {}
@@ -51,6 +65,7 @@ namespace amrex
 
 #else
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_USE_HIP
     using randState_t = hiprandState_t;
     using randGenerator_t = hiprandGenerator_t;
@@ -68,7 +83,15 @@ namespace amrex
 #endif
         return gpu_rand_state;
     }
+/// \endcond
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief Handle to the per-thread CUDA/HIP random number engine state.
+     *
+     * Passed to device-callable random number functions such as
+     * \c amrex::Random(RandomEngine const&) to generate numbers on the GPU.
+     */
     struct RandomEngine {
         randState_t* rand_state;
         AMREX_GPU_HOST_DEVICE RandomEngine (randState_t* rs) : rand_state(rs) {}
@@ -78,10 +101,16 @@ namespace amrex
 
 #else
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief CPU stub for the random engine handle (no GPU state to carry).
+     */
     struct RandomEngine {}; // CPU
 
 #endif
 
+    /// \ingroup amrex_utilities
+    //! Return an invalid (null) RandomEngine. Useful as a placeholder on the host.
     AMREX_FORCE_INLINE
     RandomEngine getInvalidRandomEngine () {
 #ifdef AMREX_USE_GPU

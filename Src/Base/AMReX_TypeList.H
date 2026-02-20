@@ -2,16 +2,27 @@
 #define AMREX_TYPELIST_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_TypeList.H
+ * \brief Template metaprogramming utilities: TypeList, ForEach, CartesianProduct, etc.
+ */
+
 #include <type_traits>
 #include <utility>
 
 namespace amrex {
 
-//! Struct for holding types
+/**
+ * \class amrex::TypeList
+ * \ingroup amrex_utilities
+ * \brief A compile-time list of types used for template metaprogramming.
+ *
+ * \tparam Ts The types held in the list.
+ */
 template <class... Ts>
 struct TypeList
 {
-    //! Number of types in the TypeList
+    //! Number of types in the TypeList.
     static constexpr std::size_t size () noexcept { return sizeof...(Ts); }
 };
 
@@ -30,7 +41,8 @@ namespace detail {
 }
 /// \endcond
 
-//! Type at position I of a TypeList
+/// \ingroup amrex_utilities
+//! Type at position \p I of a TypeList.
 template <std::size_t I, typename T>
 using TypeAt = typename detail::TypeListGet<I,T>::type;
 
@@ -52,6 +64,7 @@ namespace detail
 /// \endcond
 
 /**
+ * \ingroup amrex_utilities
  * \brief For each type t in TypeList, call f(t)
  *
  * For example, instead of
@@ -87,10 +100,11 @@ ForEach (TypeList<Ts...>, F&& f)
 }
 
 /**
+ * \ingroup amrex_utilities
  * \brief For each type t in TypeList, call f(t) until true is returned.
  *
  * This behaves like return (f(t0) || f(t1) || f(t2) || ...).  Note that
- * shor-circuting occurs for the || operators.
+ * short-circuiting occurs for the || operators.
  *
  * An example,
  * \code{.cpp}
@@ -123,12 +137,14 @@ ForEachUntil (TypeList<Ts...>, F&& f)
         (std::forward<F>(f), std::make_index_sequence<sizeof...(Ts)>());
 }
 
-//! Concatenate two TypeLists
+/// \ingroup amrex_utilities
+//! Concatenate two TypeLists.
 template <typename... As, typename... Bs>
 constexpr auto operator+ (TypeList<As...>, TypeList<Bs...>) {
     return TypeList<As..., Bs...>{};
 }
 
+/// \cond DOXYGEN_IGNORE
 template <typename... Ls, typename A>
 constexpr auto single_product (TypeList<Ls...>, A) {
     return TypeList<decltype(Ls{} + TypeList<A>{})...>{};
@@ -138,8 +154,10 @@ template <typename LLs, typename... As>
 constexpr auto operator* (LLs, TypeList<As...>) {
     return (TypeList<>{} + ... + single_product(LLs{}, As{}));
 }
+/// \endcond
 
 /**
+ * \ingroup amrex_utilities
  * \brief Cartesian Product of TypeLists.
  *
  * For example,
@@ -156,9 +174,18 @@ constexpr auto CartesianProduct (Ls...) {
     return (TypeList<TypeList<>>{} * ... * Ls{});
 }
 
+/**
+ * \class amrex::TypeArray
+ * \ingroup amrex_utilities
+ * \brief A compile-time descriptor for N copies of type T, used with TypeMultiplier.
+ *
+ * \tparam T The element type.
+ * \tparam N The number of repetitions.
+ */
 template <class T, std::size_t N>
 struct TypeArray {
-    using Type = T;
+    using Type = T; ///< The element type.
+    //! Return the number of repetitions.
     static constexpr std::size_t size () noexcept { return N; }
 };
 
@@ -208,6 +235,7 @@ namespace detail {
 /// \endcond
 
 /**
+ * \ingroup amrex_utilities
  * \brief Return the first template argument with the later arguments applied to it.
  * Types of the form T[N] are expanded to T, T, T, T, ... (N times with N >= 1).
  * Types of the form TypeArray<T,N> are expanded to T, T, T, T, ... (N times with N >= 0).
@@ -221,7 +249,11 @@ using TypeMultiplier = TypeAt<0, decltype(detail::TApply<TParam>(
 ))>;
 
 /**
- * \brief Wrap non-TypeList into TypeList
+ * \class amrex::ToTypeList
+ * \ingroup amrex_utilities
+ * \brief Wrap a non-TypeList type into a TypeList; leave a TypeList unchanged.
+ *
+ * \tparam T The type to wrap.
  */
 template <typename T>
 struct ToTypeList { using type = TypeList<T>; };
@@ -229,11 +261,22 @@ struct ToTypeList { using type = TypeList<T>; };
 template <typename... Ts>
 struct ToTypeList<TypeList<Ts...>> { using type = TypeList<Ts...>; };
 
+/// \ingroup amrex_utilities
+//! Alias for the wrapped TypeList type (see amrex::ToTypeList).
 template <typename T>
 using ToTypeList_t = typename ToTypeList<T>::type;
 
+/**
+ * \class amrex::IsTypeList
+ * \ingroup amrex_utilities
+ * \brief Type trait that is true when T is a TypeList specialization.
+ *
+ * \tparam T The type to test.
+ */
 template <typename T> struct IsTypeList : std::false_type {};
 template <typename... Ts> struct IsTypeList<TypeList<Ts...>> : std::true_type {};
+/// \ingroup amrex_utilities
+//! True when T is a TypeList specialization.
 template <typename T> inline constexpr bool IsTypeList_v = IsTypeList<T>::value;
 
 }

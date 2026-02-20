@@ -2,6 +2,14 @@
 #define AMREX_GPU_REDUCE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuReduce.H
+ * \brief Intra-kernel GPU reductions (sum, min, max, logical-and, logical-or).
+ *
+ * These functions perform block-wide reductions inside a GPU kernel and then
+ * atomically combine the block result into a global destination.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuTypes.H>
@@ -23,32 +31,39 @@
 #include <rocprim/rocprim.hpp>
 #endif
 
-//
-// Public interface
-//
 namespace amrex::Gpu {
+
+/// \ingroup amrex_execution
+//! Block-wide reduction that atomically adds the per-block sum of \p source into \p *dest.
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept;
 
+/// \ingroup amrex_execution
+//! Block-wide reduction that atomically updates \p *dest to \c min(*dest, block_min(source)).
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept;
 
+/// \ingroup amrex_execution
+//! Block-wide reduction that atomically updates \p *dest to \c max(*dest, block_max(source)).
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceMax (T * dest, T source, Gpu::Handler const& h) noexcept;
 
+/// \ingroup amrex_execution
+//! Block-wide logical-AND reduction; atomically combines the result into \p *dest.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceLogicalAnd (int * dest, int source, Gpu::Handler const& h) noexcept;
 
+/// \ingroup amrex_execution
+//! Block-wide logical-OR reduction; atomically combines the result into \p *dest.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexcept;
 }
 
-//
+/// \cond DOXYGEN_IGNORE
 // Reduce functions based on _shfl_down_sync
-//
 
 namespace amrex::Gpu {
 
@@ -777,5 +792,6 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const&) noexcep
 
 #endif
 }
+/// \endcond
 
 #endif

@@ -2,6 +2,11 @@
 #define AMREX_INT_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_INT.H
+ * \brief Integer type definitions used throughout AMReX.
+ */
+
 #ifdef __cplusplus
 #include <type_traits>
 #include <cinttypes>
@@ -27,9 +32,9 @@ typedef unsigned long amrex_ulong;      // NOLINT(modernize-use-using)
 #ifdef __cplusplus
 namespace amrex {
     /// \ingroup amrex_arithmetic_types
-    using Long = amrex_long; ///< Signed integer type guaranteed to be wider than int.
+    using Long = amrex_long;   ///< Signed integer type guaranteed to be wider than \c int.
     /// \ingroup amrex_arithmetic_types
-    using ULong = amrex_ulong; ///< Unsigned integer type guaranteed to be wider than unsigned int.
+    using ULong = amrex_ulong; ///< Unsigned integer type guaranteed to be wider than \c unsigned int.
 }
 #endif
 
@@ -47,8 +52,10 @@ typedef          __int128 amrex_int128_t;  // NOLINT(modernize-use-using)
 
 #ifdef __cplusplus
 namespace amrex {
-    using UInt128_t = amrex_uint128_t;
-    using  Int128_t = amrex_int128_t;
+    /// \ingroup amrex_arithmetic_types
+    using UInt128_t = amrex_uint128_t; ///< 128-bit unsigned integer (available when AMREX_INT128_SUPPORTED is defined).
+    /// \ingroup amrex_arithmetic_types
+    using  Int128_t = amrex_int128_t;  ///< 128-bit signed integer (available when AMREX_INT128_SUPPORTED is defined).
 }
 #endif
 

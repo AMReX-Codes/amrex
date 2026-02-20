@@ -2,6 +2,16 @@
 #define AMREX_GPU_ATOMIC_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuAtomic.H
+ * \brief Atomic operations for use in GPU kernels and host code.
+ *
+ * The \c amrex::Gpu::Atomic namespace provides atomic Add, Min, Max,
+ * LogicalOr, LogicalAnd, Exch, CAS, Multiply, and Divide for use on both
+ * GPU device and CPU host code. On the host, these operations are
+ * \b not atomic unless the \c HostDevice::Atomic variants are used.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Functional.H>
 #include <AMReX_INT.H>
@@ -127,6 +137,7 @@ namespace detail {
 //  Add
 ////////////////////////////////////////////////////////////////////////
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_USE_GPU
 
 #ifdef AMREX_USE_SYCL
@@ -191,7 +202,11 @@ namespace detail {
 #endif
 
 #endif
+/// \endcond
 
+/// \ingroup amrex_execution
+//! Atomic add: store \c *sum + value at \p sum and return the old value.
+//! Non-atomic on host; use HostDevice::Atomic::Add for host-atomic semantics.
 #ifdef AMREX_USE_SYCL
     template<class T, sycl::access::address_space AS = sycl::access::address_space::global_space>
 #else
@@ -216,6 +231,7 @@ namespace detail {
 //  If
 ////////////////////////////////////////////////////////////////////////
 
+/// \cond DOXYGEN_IGNORE
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
     template <typename T, typename Op, typename Cond,
               std::enable_if_t<sizeof(T) == sizeof(unsigned int), int> foo = 0>
@@ -235,23 +251,25 @@ namespace detail {
                    std::forward<Op>(op), std::forward<Cond>(cond));
     }
 #endif
+/// \endcond
 
 /**
-*  \brief Conditionally perform an atomic operation.
-*
-*  Atomically updates the result at "add" with "value" using "op",
-*  but only if "cond" is true.
-*
-* \tparam T the type pointed to by add
-* \tparam Op callable that takes two T argument and combines them
-* \tparam Cond callable that takes a "T" a returns whether to do the update
-*
-* \param add address to atomically update
-* \param value value to combine
-* \param op callable specifying the operation to use to combine *add and value
-* \param cond callable specifying the condition to test on first.
-*        The value passed in to the cond function is the would-be combined value
-**/
+ * \ingroup amrex_execution
+ * \brief Conditionally perform an atomic operation.
+ *
+ * Atomically updates the result at \p add with \p value using \p op,
+ * but only if \p cond is true.
+ *
+ * \tparam T   The type pointed to by \p add.
+ * \tparam Op  Callable combining two \p T values.
+ * \tparam Cond Callable returning \c true when the update should occur.
+ *
+ * \param add   Address to atomically update.
+ * \param value Value to combine.
+ * \param op   Callable specifying the operation to combine \c *add and \p value.
+ * \param cond Callable specifying the condition; receives the would-be combined value.
+ * \return \c true if the update was performed, \c false otherwise.
+ */
     template<class T, class Op, class Cond>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool If (T* const add, T const value, Op&& op, Cond&& cond) noexcept
@@ -275,6 +293,9 @@ namespace detail {
 //  AddNoRet
 ////////////////////////////////////////////////////////////////////////
 
+/// \ingroup amrex_execution
+//! Atomic add without return value: store \c *sum + value at \p sum.
+//! Non-atomic on host.
 #ifdef AMREX_USE_SYCL
     template<class T, sycl::access::address_space AS = sycl::access::address_space::global_space>
 #else
@@ -307,6 +328,7 @@ namespace detail {
 //  Min
 ////////////////////////////////////////////////////////////////////////
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_USE_GPU
 
     template<class T>
@@ -351,7 +373,11 @@ namespace detail {
 #endif
 
 #endif
+/// \endcond
 
+/// \ingroup amrex_execution
+//! Atomic min: store \c min(*m, value) at \p m and return the old value.
+//! Non-atomic on host.
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Min (T* const m, T const value) noexcept
@@ -370,6 +396,7 @@ namespace detail {
 //  Max
 ////////////////////////////////////////////////////////////////////////
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_USE_GPU
 
     template<class T>
@@ -414,7 +441,11 @@ namespace detail {
 #endif
 
 #endif
+/// \endcond
 
+/// \ingroup amrex_execution
+//! Atomic max: store \c max(*m, value) at \p m and return the old value.
+//! Non-atomic on host.
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Max (T* const m, T const value) noexcept
@@ -433,6 +464,9 @@ namespace detail {
 //  LogicalOr
 ////////////////////////////////////////////////////////////////////////
 
+/// \ingroup amrex_execution
+//! Atomic bitwise-OR: store \c *m | value at \p m and return the old value.
+//! Non-atomic on host.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int LogicalOr (int* const m, int const value) noexcept
     {
@@ -458,6 +492,9 @@ namespace detail {
 //  LogicalAnd
 ////////////////////////////////////////////////////////////////////////
 
+/// \ingroup amrex_execution
+//! Atomic bitwise-AND: store \c *m & value at \p m and return the old value.
+//! Non-atomic on host.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int LogicalAnd (int* const m, int const value) noexcept
     {
@@ -483,6 +520,8 @@ namespace detail {
 //  Exch
 ////////////////////////////////////////////////////////////////////////
 
+/// \ingroup amrex_execution
+//! Atomic exchange: store \p val at \p address and return the old value.
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Exch (T* address, T val) noexcept
@@ -509,6 +548,8 @@ namespace detail {
 //  CAS
 ////////////////////////////////////////////////////////////////////////
 
+/// \ingroup amrex_execution
+//! Atomic compare-and-swap: if \c *address == compare, store \p val; returns the old value.
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T CAS (T* const address, T compare, T const val) noexcept
@@ -536,6 +577,7 @@ namespace detail {
 //  Multiply
 ////////////////////////////////////////////////////////////////////////
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_USE_GPU
 
     template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
@@ -553,7 +595,11 @@ namespace detail {
     }
 
 #endif
+/// \endcond
 
+/// \ingroup amrex_execution
+//! Atomic multiply: store \c *prod * value at \p prod and return the old value.
+//! Non-atomic on host.
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Multiply (T* const prod, T const value) noexcept
@@ -572,6 +618,7 @@ namespace detail {
 //  Divide
 ////////////////////////////////////////////////////////////////////////
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_USE_GPU
 
     template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
@@ -589,7 +636,11 @@ namespace detail {
     }
 
 #endif
+/// \endcond
 
+/// \ingroup amrex_execution
+//! Atomic divide: store \c *quot / value at \p quot and return the old value.
+//! Non-atomic on host.
     template<class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T Divide (T* const quot, T const value) noexcept
@@ -605,8 +656,12 @@ namespace detail {
     }
 }
 
+/// \ingroup amrex_execution
+/// \brief Atomic-add variants that are atomic on the host as well as on GPU.
 namespace HostDevice::Atomic {
 
+    /// \ingroup amrex_execution
+    //! Host-only atomic add using an OpenMP \c #pragma atomic update (if OMP is enabled).
     template <class T>
     AMREX_FORCE_INLINE
     void Add_Host (T* const sum, T const value) noexcept
@@ -617,6 +672,8 @@ namespace HostDevice::Atomic {
         *sum += value;
     }
 
+    /// \ingroup amrex_execution
+    //! Atomic add that is atomic on both GPU device (via \c AddNoRet) and host (via OMP).
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* const sum, T const value) noexcept
@@ -628,8 +685,10 @@ namespace HostDevice::Atomic {
 }
 
 #ifdef AMREX_USE_GPU
-// functors
+// GPU-only functor wrappers for use with Gpu::Reduce and similar utilities.
 namespace Gpu {
+    /// \ingroup amrex_execution
+    //! GPU functor that atomically adds \p source to \p *dest.
     template <typename T>
     struct AtomicAdd
     {
@@ -638,6 +697,8 @@ namespace Gpu {
         }
     };
 
+    /// \ingroup amrex_execution
+    //! GPU functor that atomically stores \c min(*dest, source) at \p dest.
     template <typename T>
     struct AtomicMin
     {
@@ -646,6 +707,8 @@ namespace Gpu {
         }
     };
 
+    /// \ingroup amrex_execution
+    //! GPU functor that atomically stores \c max(*dest, source) at \p dest.
     template <typename T>
     struct AtomicMax
     {
@@ -654,6 +717,8 @@ namespace Gpu {
         }
     };
 
+    /// \ingroup amrex_execution
+    //! GPU functor that atomically computes \c *dest && source and stores the result.
     template <typename T>
     struct AtomicLogicalAnd
     {
@@ -662,6 +727,8 @@ namespace Gpu {
         }
     };
 
+    /// \ingroup amrex_execution
+    //! GPU functor that atomically computes \c *dest || source and stores the result.
     template <typename T>
     struct AtomicLogicalOr
     {

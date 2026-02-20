@@ -2,6 +2,11 @@
 #define AMREX_RAND_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Random.H
+ * \brief Pseudo-random number generation utilities.
+ */
+
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -14,7 +19,7 @@ namespace amrex
 {
     /**
     * \ingroup amrex_utilities
-    * \brief Generate a psuedo-random real from uniform distribution
+    * \brief Generate a pseudo-random real from uniform distribution
     *
     *  Generates one pseudorandom real number from a uniform
     *  distribution between 0.0 and 1.0 (0.0 included, 1.0 excluded)
@@ -54,7 +59,7 @@ namespace amrex
 
     /**
     * \ingroup amrex_utilities
-    * \brief Generate a psuedo-random real from a normal distribution
+    * \brief Generate a pseudo-random real from a normal distribution
     *
     *  Generates one pseudorandom real number from a normal
     *  distribution with mean 'mean' and standard deviation 'stddev'.
@@ -94,7 +99,7 @@ namespace amrex
 
     /**
     * \ingroup amrex_utilities
-    * \brief Generate a psuedo-random integer from a Poisson distribution
+    * \brief Generate a pseudo-random integer from a Poisson distribution
     *
     *  Generates one pseudorandom positive integer number
     *  extracted from a Poisson distribution, given the Real parameter lambda.
@@ -162,7 +167,7 @@ namespace amrex
 
     /**
     * \ingroup amrex_utilities
-    * \brief Generate a psuedo-random floating point number from the Gamma distribution
+    * \brief Generate a pseudo-random floating point number from the Gamma distribution
     *
     *  Generates one real number (single or double)
     *  extracted from a Gamma distribution, given the Real parameters alpha and beta.
@@ -243,7 +248,7 @@ namespace amrex
 
     //! \ingroup amrex_utilities
     //! Fill random numbers from uniform distribution.  The range is [0,1)
-    //! for CPU and SYCl, and (0,1] for CUADA and HIP.
+    //! for CPU and SYCL, and (0,1] for CUDA and HIP.
     void FillRandom (Real* p, Long N);
 
     //! \ingroup amrex_utilities
@@ -258,33 +263,26 @@ namespace amrex
     }
     /// \endcond
 
-    /** \brief Set the seed of the random number generator.
-    * \ingroup amrex_utilities
-    *
-    *  There is also an entry point for Fortran callable as:
-    *
-    *  INTEGER seed
-    *  call blutilinitrand(seed)
-    *
-    *  or
-    *
-    *  INTEGER seed
-    *  call blinitrand(seed)
-    */
+    /**
+     * \ingroup amrex_utilities
+     * \brief Set the seed of the random number generator.
+     * \param cpu_seed  Seed for the CPU random number generator.
+     * \param nprocs    Number of MPI processes (used to derive per-rank seeds).
+     * \param gpu_seed  Seed for the GPU random number generator.
+     */
     void InitRandom (ULong cpu_seed, int nprocs=ParallelDescriptor::NProcs(),
                      ULong gpu_seed = detail::DefaultGpuSeed());
 
     /// \ingroup amrex_utilities
+    //! Reset the seed of the random number generator.
     void ResetRandomSeed (ULong cpu_seed, ULong gpu_seed = detail::DefaultGpuSeed());
 
-    /**
-    * \ingroup amrex_utilities
-    * \brief Save and restore random state.
-    *
-    */
+    /// \ingroup amrex_utilities
+    //! Save the current random number generator state to an output stream.
     void SaveRandomState (std::ostream& os);
 
     /// \ingroup amrex_utilities
+    //! Restore a previously saved random number generator state from an input stream.
     void RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old);
 
     /**
@@ -300,6 +298,8 @@ namespace amrex
     void UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
                              bool printSet = false);
 
+    /// \ingroup amrex_utilities
+    //! Deallocate the device array holding per-thread GPU random number generator states.
     void DeallocateRandomSeedDevArray ();
 }
 

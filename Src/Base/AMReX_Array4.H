@@ -3,6 +3,11 @@
 
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Array4.H
+ * \brief Lightweight non-owning multidimensional array accessors for GPU and CPU.
+ */
+
 #include <AMReX.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_GpuPrint.H>
@@ -1275,6 +1280,7 @@ namespace amrex {
         }
     };
 
+    /// \cond DOXYGEN_IGNORE
     // Deduction guides for ArrayND
     // 1: Matches ArrayND (T*, BoxND<N>) -> ArrayND<T,N, last_dim_component=false>
     template <typename T, int N>
@@ -1296,6 +1302,7 @@ namespace amrex {
     // 5: Matches ArrayND (T*, Dim3, Dim3) -> ArrayND<T,4, last_dim_component=true>
     template <typename T>
     ArrayND (T*, Dim3 const&, Dim3 const&, int) -> ArrayND<T, 4, true>;
+    /// \endcond
 
     /**
      * \ingroup amrex_fab_containers
@@ -1364,6 +1371,7 @@ namespace amrex {
         return os;
     }
 
+    /// \cond DOXYGEN_IGNORE
     //
     // Type traits for detecting if a class has a size() constexpr function.
     //
@@ -1372,12 +1380,20 @@ namespace amrex {
     template <class B>
     struct HasMultiComp<B, std::enable_if_t<B().size() >= 1>>
         : std::true_type {};
+    /// \endcond
 
-    //
-    // PolymorphicArray4 can be used to access both AoS and SoA with
-    // (i,j,k,n).  Here SoA refers multi-component BaseFab, and AoS refers
-    // to single-component BaseFab of multi-component GpuArray.
-    //
+    /**
+     * \ingroup amrex_fab_containers
+     * \class amrex::PolymorphicArray4
+     * \brief Array4 subclass that provides uniform \c (i,j,k,n) access for both AoS and SoA data.
+     *
+     * Dispatches \c operator()(i,j,k,n) to the appropriate access pattern depending on
+     * whether \p T is a multi-component value type (AoS) or a scalar type (SoA).
+     * SoA refers to a multi-component BaseFab; AoS refers to a single-component
+     * BaseFab whose element type is a multi-component GpuArray.
+     *
+     * \tparam T Element type.
+     */
     template <typename T>
     struct PolymorphicArray4
         : public Array4<T>
@@ -1405,6 +1421,8 @@ namespace amrex {
         }
     };
 
+    /// \ingroup amrex_fab_containers
+    //! Wrap an Array4 in a PolymorphicArray4 for uniform AoS/SoA \c (i,j,k,n) access.
     template <typename T>
     [[nodiscard]] PolymorphicArray4<T>
     makePolymorphic (Array4<T> const& a)

@@ -3,6 +3,11 @@
 #define AMREX_RealBox_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_RealBox.H
+ * \brief A box in real (floating-point) space.
+ */
+
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
@@ -16,11 +21,11 @@
 namespace amrex {
 
 /**
- * \class RealBox
+ * \class amrex::RealBox
  * \ingroup amrex_real_space
- * \brief A Box with real dimensions.
+ * \brief A box in real (floating-point) space.
  *
- * A RealBox is OK iff volume >= 0.
+ * A RealBox is valid (ok()) if and only if its volume is non-negative.
  */
 class RealBox
 {
@@ -33,6 +38,7 @@ public:
     RealBox (const Real* a_lo, const Real* a_hi) noexcept
         : xlo{AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2])}, xhi{AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])} {}
 
+    //! Construct region given lo and hi corners as std::array.
     RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
              const std::array<Real,AMREX_SPACEDIM>& a_hi) noexcept;
 
@@ -46,20 +52,24 @@ public:
     RealBox (AMREX_D_DECL(Real x0, Real y0, Real z0),
              AMREX_D_DECL(Real x1, Real y1, Real z1)) noexcept
         : xlo{AMREX_D_DECL(x0,y0,z0)}, xhi{AMREX_D_DECL(x1,y1,z1)} {}
-    //! Returns lo side.
+    //! Return pointer to the lo-side coordinate array.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     const Real* lo () const& noexcept { return xlo; }
+    /// \cond DOXYGEN_IGNORE
     AMREX_GPU_HOST_DEVICE
     const Real* lo () && = delete;
-    //! Returns hide side.
+    /// \endcond
+    //! Return pointer to the hi-side coordinate array.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     const Real* hi () const& noexcept { return xhi; }
+    /// \cond DOXYGEN_IGNORE
     AMREX_GPU_HOST_DEVICE
     const Real* hi () && = delete;
-    //! Returns length in specified direction.
+    /// \endcond
+    //! Return lo-side coordinate in direction \p dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Real lo (int dir) const noexcept { return xlo[dir]; }
-    //! Returns hi side in specified direction.
+    //! Return hi-side coordinate in direction \p dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Real hi (int dir) const noexcept { return xhi[dir]; }
     //! Returns length in specified direction.
@@ -147,14 +157,18 @@ private:
     Real xhi[AMREX_SPACEDIM] = {AMREX_D_DECL(Real(-1.),Real(-1.),Real(-1.))};
 };
 
-//
-//! Nice ASCII output.
+//! Write a RealBox to an output stream in ASCII format.
 std::ostream& operator<< (std::ostream&, const RealBox&);
-//
-//! Nice ASCII input.
+
+//! Read a RealBox from an input stream in ASCII format.
 std::istream& operator>> (std::istream&, RealBox&);
 
-//! Check for equality of real boxes within a certain tolerance
+/**
+ * \brief Return true if two RealBoxes are equal to within tolerance \p eps.
+ * \param box1 First RealBox.
+ * \param box2 Second RealBox.
+ * \param eps  Absolute tolerance applied to each coordinate independently.
+ */
 bool AlmostEqual (const RealBox& box1,
                   const RealBox& box2,
                   Real eps = 0.0) noexcept;

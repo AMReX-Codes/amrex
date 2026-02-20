@@ -2,10 +2,16 @@
 #define AMREX_FAB_DATA_TYPE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_FabDataType.H
+ * \brief Type trait that exposes the FAB and value types of MultiFab-like containers.
+ */
+
 #include <AMReX_TypeTraits.H>
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 template <typename T, class Enable = void> struct FabDataType {};
 //
 template <typename T>
@@ -21,6 +27,7 @@ struct FabDataType <T, std::enable_if_t<IsMultiFabLike_v<typename T::value_type>
     using   fab_type = typename T::value_type::fab_type;
     using value_type = typename T::value_type::value_type;
 };
+/// \endcond
 
 }
 

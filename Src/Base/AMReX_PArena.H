@@ -2,6 +2,11 @@
 #define AMREX_PARENA_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_PArena.H
+ * \brief CUDA stream-ordered memory arena backed by cudaMemPool / hipMemPool.
+ */
+
 #include <AMReX_Arena.H>
 #include <AMReX_GpuControl.H>
 
@@ -12,14 +17,19 @@
 namespace amrex {
 
 /**
-* \brief This arena uses CUDA stream-ordered memory allocator if available.
-* If not, use The_Arena().
-*/
+ * \class amrex::PArena
+ * \ingroup amrex_memory
+ * \brief Stream-ordered memory arena backed by \c cudaMemPool / \c hipMemPool.
+ *
+ * Uses the GPU stream-ordered memory allocator when available; falls back to
+ * \c The_Arena() otherwise.
+ */
 class PArena
     :
     public Arena
 {
 public:
+    //! Construct with a memory-pool release threshold (bytes).
     PArena (Long release_threshold);
     PArena (const PArena& rhs) = delete;
     PArena (PArena&& rhs) = delete;

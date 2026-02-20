@@ -2,6 +2,11 @@
 #define AMREX_LU_SOLVER_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_LUSolver.H
+ * \brief Dense LU factorization and back-substitution solver for small matrices.
+ */
+
 #include <AMReX_Algorithm.H>
 #include <AMReX_Array.H>
 #include <cmath>
@@ -9,20 +14,40 @@
 
 namespace amrex {
 
-// https://en.wikipedia.org/wiki/LU_decomposition
-
+/**
+ * \class amrex::LUSolver
+ * \ingroup amrex_arithmetic_types
+ * \brief Dense LU factorization and back-substitution solver for small \p N x \p N matrices.
+ *
+ * Uses partial pivoting (Doolittle algorithm) to factorize the matrix in-place.
+ * The factorized form is stored internally and can be reused to solve multiple
+ * right-hand sides, invert the matrix, or compute the determinant.
+ *
+ * \tparam N Matrix dimension.
+ * \tparam T Floating-point element type.
+ *
+ * \sa https://en.wikipedia.org/wiki/LU_decomposition
+ */
 template <int N, typename T>
 class LUSolver
 {
 public:
 
+    //! Default-construct an uninitialized solver.
     LUSolver () = default;
 
+    //! Construct and factorize the matrix \p a_mat immediately.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     LUSolver (Array2D<T, 0, N-1, 0, N-1, Order::C> const& a_mat);
 
+    //! Factorize a new matrix \p a_mat, replacing any previous factorization.
     void define (Array2D<T, 0, N-1, 0, N-1, Order::C> const& a_mat);
 
+    /**
+     * \brief Solve \c A x = b using the stored LU factorization.
+     * \param[out] x Solution vector (length \p N).
+     * \param[in]  b Right-hand side vector (length \p N).
+     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void operator() (T* AMREX_RESTRICT x, T const* AMREX_RESTRICT b) const
     {
@@ -41,6 +66,7 @@ public:
         }
     }
 
+    //! Return the inverse of the factorized matrix as an Array2D.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Array2D<T,0,N-1,0,N-1,Order::C> invert () const
     {
@@ -62,6 +88,7 @@ public:
         return IA;
     }
 
+    //! Return the determinant of the factorized matrix.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     T determinant () const
     {

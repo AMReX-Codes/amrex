@@ -2,26 +2,41 @@
 #define AMREX_LayoutData_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_LayoutData.H
+ * \brief Distributed container holding one object of type \c T per grid box.
+ */
+
 #include <AMReX_FabArrayBase.H>
 #include <AMReX_MFIter.H>
 
 namespace amrex
 {
-  //! a one-thingy-per-box distributed object
+  /**
+   * \class amrex::LayoutData
+   * \ingroup amrex_fab_containers
+   * \brief Distributed container holding one object of type \c T per grid box.
+   *
+   * Each MPI rank owns only the objects corresponding to the boxes it owns
+   * according to the DistributionMapping.  Elements are accessed by iterating
+   * with an \c MFIter or by global box index.
+   */
   template <class T>
   class LayoutData: public FabArrayBase
   {
   public:
 
-    //!
+    //! Default-construct an empty (undefined) LayoutData.
     LayoutData() = default;
 
+    //! Construct and define over \p a_grids with distribution \p a_dm.
     LayoutData(const BoxArray            & a_grids,
                const DistributionMapping & a_dm)
       {
         define(a_grids, a_dm);
       }
 
+    //! Define (or redefine) over \p a_grids with distribution \p a_dm.
     void define(const BoxArray           & a_grids,
                 const DistributionMapping & a_dm)
       {
@@ -81,6 +96,7 @@ namespace amrex
         return *this;
     }
 
+    //! Return a reference to the element owned by the current \p a_mfi tile.
     T& operator[](const MFIter& a_mfi) noexcept
       {
         int local_index = a_mfi.LocalIndex();
@@ -90,6 +106,7 @@ namespace amrex
       }
 
 
+    //! Return a const reference to the element owned by the current \p a_mfi tile.
     const T& operator[](const MFIter& a_mfi) const noexcept
       {
         int local_index = a_mfi.LocalIndex();
@@ -98,6 +115,7 @@ namespace amrex
         return m_data[local_index];
       }
 
+    //! Return a reference to the element for global box index \p a_box_index.
     T& operator[](int a_box_index) noexcept
       {
         int local_index = this->localindex(a_box_index);
@@ -106,6 +124,7 @@ namespace amrex
       }
 
 
+    //! Return a const reference to the element for global box index \p a_box_index.
     const T& operator[](int a_box_index) const noexcept
       {
         int local_index = this->localindex(a_box_index);
@@ -113,7 +132,9 @@ namespace amrex
         return m_data[local_index];
       }
 
+    //! Return a const pointer to the local element array.
     const T* data () const noexcept { return m_data.data(); }
+    //! Return a pointer to the local element array.
     T*       data ()       noexcept { return m_data.data(); }
 
   private:

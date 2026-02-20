@@ -2,6 +2,11 @@
 #define AMREX_PARALLELCONTEXT_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_ParallelContext.H
+ * \brief Stack-based MPI communicator context for hierarchical parallelism.
+ */
+
 #include <AMReX_Extension.H>
 #include <AMReX_Vector.H>
 #include <AMReX_ccse-mpi.H>
@@ -9,13 +14,26 @@
 #include <iosfwd>
 #include <memory>
 
+/**
+ * \ingroup amrex_utilities
+ * \brief Namespace for MPI communicator context management.
+ *
+ * Provides a stack of \c Frame objects representing nested MPI communicator
+ * scopes.  The bottom-most frame is always the world communicator.
+ */
 namespace amrex::ParallelContext {
 
+/**
+ * \class amrex::ParallelContext::Frame
+ * \ingroup amrex_utilities
+ * \brief One level in the MPI communicator context stack.
+ */
 class Frame
 {
 public:
-
+    //! Construct a frame with explicit \p id and I/O rank \p io_rank for communicator \p c.
     Frame (MPI_Comm c, int id, int io_rank);
+    //! Construct a frame for communicator \p c with auto-assigned id and I/O rank 0.
     explicit Frame (MPI_Comm c);
     Frame (Frame const&) = delete;
     Frame& operator= (Frame const&) = delete;
@@ -27,12 +45,19 @@ public:
     [[nodiscard]] int MyProc () const noexcept { return m_rank_me; }
     [[nodiscard]] int NProcs () const noexcept { return m_nranks; }
     [[nodiscard]] int IOProc () const noexcept { return m_io_rank; }
+    //! Convert a single local rank to the corresponding global rank.
     static int local_to_global_rank (int lrank);
+    //! Convert \p n local ranks to global ranks.
     static void local_to_global_rank (int* global, const int* local, int n);
+    //! Convert \p n global ranks to local ranks.
     static void global_to_local_rank (int* local, const int* global, int n);
+    //! Convert a single global rank to the corresponding local rank.
     static int global_to_local_rank (int grank);
+    //! Return and increment the per-frame MPI tag counter.
     int get_inc_mpi_tag ();
+    //! Set the output file name for this frame's I/O stream.
     void set_ofs_name (std::string filename);
+    //! Return a pointer to this frame's output file stream (may be null).
     std::ofstream * get_ofs_ptr ();
 
     //! sub-communicator associated with frame
@@ -99,12 +124,15 @@ inline int global_to_local_rank (int rank) noexcept { return Frame::global_to_lo
 inline void global_to_local_rank (int* local, const int* global, int n) noexcept
     { Frame::global_to_local_rank(local, global, n); }
 
+//! Push a new frame for communicator \p c onto the context stack.
 inline void push (MPI_Comm c) { frames.emplace_back(c); }
+//! Push a new frame for communicator \p c with explicit \p id and I/O rank.
 inline void push (MPI_Comm c, int id, int io_rank) { frames.emplace_back(c, id, io_rank); }
+//! Set the output filename for the most recently pushed frame.
 inline void set_last_frame_ofs (const std::string & filename) {
     frames.back().set_ofs_name(filename);
 }
-//! Note that it's the user's responsibility to free the MPI_Comm
+//! Pop the top frame from the context stack. The caller is responsible for freeing the MPI_Comm.
 inline void pop () { frames.pop_back(); }
 
 }

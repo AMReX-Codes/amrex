@@ -3,6 +3,11 @@
 #define BL_ORIENTATION_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Orientation.H
+ * \brief Face orientation types for Box boundaries.
+ */
+
 #include <AMReX_BLassert.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_GpuQualifiers.H>
@@ -11,20 +16,24 @@
 
 namespace amrex {
 
+/// \ingroup amrex_index_space
+/// Coordinate direction: \c x=0, \c y=1, \c z=2.
 enum class Direction : int { AMREX_D_DECL(x = 0, y = 1, z = 2) };
 
 class OrientationIter;
 
 /**
-* \brief Encapsulation of the Orientation of the Faces of a Box
-*
-* This class encapsulates the orientation of the faces of a Box by
-* providing an ordering of each of the faces of a Box in AMREX_SPACEDIM
-* dimensions.  This allows iterating over all the faces of a Box.  The
-* ordering first traverses the AMREX_SPACEDIM low sides from direction 0 ..
-* AMREX_SPACEDIM-1 and then the AMREX_SPACEDIM high sides from direction 0 ..
-* AMREX_SPACEDIM-1.
-*/
+ * \class amrex::Orientation
+ * \ingroup amrex_index_space
+ * \brief Encapsulation of the orientation of the faces of a Box.
+ *
+ * This class encapsulates the orientation of the faces of a Box by
+ * providing an ordering of each of the faces of a Box in AMREX_SPACEDIM
+ * dimensions.  This allows iterating over all the faces of a Box.  The
+ * ordering first traverses the AMREX_SPACEDIM low sides from direction 0 ..
+ * AMREX_SPACEDIM-1 and then the AMREX_SPACEDIM high sides from direction 0 ..
+ * AMREX_SPACEDIM-1.
+ */
 class Orientation
 {
 public:
@@ -42,6 +51,7 @@ public:
     {
         BL_ASSERT(0 <= dir && dir < AMREX_SPACEDIM);
     }
+    //! Set the orientation of a side using a Direction enum value.
     AMREX_GPU_HOST_DEVICE
     constexpr Orientation (Direction dir, Side side) noexcept
         : val(AMREX_SPACEDIM*side + static_cast<int>(dir))
@@ -130,7 +140,15 @@ private:
 std::ostream& operator<< (std::ostream& os, const Orientation& o);
 
 
-//! An Iterator over the Orientation of Faces of a Box
+/**
+ * \class amrex::OrientationIter
+ * \ingroup amrex_index_space
+ * \brief An iterator over all face orientations of a Box.
+ *
+ * Iterates through all 2*AMREX_SPACEDIM face orientations in the order
+ * defined by Orientation: low faces 0..AMREX_SPACEDIM-1 then high faces
+ * 0..AMREX_SPACEDIM-1.
+ */
 class OrientationIter
 {
 

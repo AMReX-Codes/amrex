@@ -2,6 +2,11 @@
 #define AMREX_PODVECTOR_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_PODVector.H
+ * \brief Dynamically-allocated arena-backed vector for trivially copyable data.
+ */
+
 #include <AMReX.H>
 #include <AMReX_Arena.H>
 #include <AMReX_Enum.H>

@@ -2,6 +2,11 @@
 #define AMREX_GPU_CONTAINERS_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuContainers.H
+ * \brief GPU-aware container type aliases and memory-transfer utilities.
+ */
+
 #include <AMReX_Vector.H>
 #include <AMReX_PODVector.H>
 #include <AMReX_GpuAllocators.H>
@@ -76,37 +81,79 @@ namespace amrex::Gpu {
     using ManagedDeviceVector = PODVector<T, ManagedArenaAllocator<T> >;
 
 #else
-    //! When Cuda is off, all these containers revert to amrex::Gpu::PODVector.
+
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief A PODVector using the default allocator (GPU support is off).
+     * When GPU support is off, all these containers revert to amrex::PODVector.
+     */
     template <class T>
     using DeviceVector = PODVector<T>;
 
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief A PODVector using pinned host memory (GPU support is off).
+     * When GPU support is off, this reverts to amrex::PODVector.
+     */
     template <class T>
     using HostVector = PODVector<T>;
 
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief A PODVector using non-managed device memory (GPU support is off).
+     * When GPU support is off, this reverts to amrex::PODVector.
+     */
     template <class T>
     using NonManagedVector = PODVector<T>;
 
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief A PODVector using managed memory (GPU support is off).
+     * When GPU support is off, this reverts to amrex::PODVector.
+     */
     template <class T>
     using ManagedVector = PODVector<T>;
 
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief Deprecated alias for ManagedVector (GPU support is off).
+     * When GPU support is off, this reverts to amrex::PODVector.
+     */
     template <class T>
     using ManagedDeviceVector = PODVector<T>;
 
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief A PODVector using pinned memory (GPU support is off).
+     * When GPU support is off, this reverts to amrex::PODVector.
+     */
     template <class T>
     using PinnedVector = PODVector<T>;
 
+    /**
+     * \ingroup amrex_linear_containers
+     * \brief A PODVector using the async memory arena (GPU support is off).
+     * When GPU support is off, this reverts to amrex::PODVector.
+     */
     template <class T>
     using AsyncVector = PODVector<T>;
 #endif
 
+    /// \ingroup amrex_execution
+    //! Dispatch tag for host-to-device memory transfers.
     struct HostToDevice {};
+    /// \ingroup amrex_execution
+    //! Dispatch tag for device-to-host memory transfers.
     struct DeviceToHost {};
+    /// \ingroup amrex_execution
+    //! Dispatch tag for device-to-device memory transfers.
     struct DeviceToDevice {};
     static constexpr HostToDevice   hostToDevice{};
     static constexpr DeviceToHost   deviceToHost{};
     static constexpr DeviceToDevice deviceToDevice{};
 
     /**
+     * \ingroup amrex_execution
      * \brief A host-to-device copy routine. Note this is just a wrapper around
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
@@ -140,6 +187,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief A device-to-host copy routine. Note this is just a wrapper around
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
@@ -173,6 +221,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief A device-to-device copy routine. Note this is just a wrapper around
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
@@ -206,6 +255,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief A host-to-device copy routine. Note this is just a wrapper around
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
@@ -240,6 +290,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief A device-to-host copy routine. Note this is just a wrapper around
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
@@ -274,6 +325,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief A device-to-device copy routine. Note this is just a wrapper around
      * memcpy, so it assumes contiguous storage. The amrex-provided containers
      * like Gpu::HostVector, Gpu::DeviceVector, etc. meet this requirement.
@@ -308,6 +360,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief Migrate elements of a container from device to host.
      * This is a no-op for host-only code.
      *
@@ -349,6 +402,7 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief Migrate elements of a container from host to device.
      * This is a no-op for host-only code.
      *
@@ -390,8 +444,9 @@ namespace amrex::Gpu {
     }
 
     /**
+     * \ingroup amrex_execution
      * \brief Fill the elements in the given range using the given
-     * calllable.
+     * callable.
      *
      *  This function is asynchronous for GPU builds.
      *

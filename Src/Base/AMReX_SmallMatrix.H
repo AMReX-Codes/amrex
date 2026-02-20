@@ -2,6 +2,11 @@
 #define AMREX_SMALL_MATRIX_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_SmallMatrix.H
+ * \brief Compile-time-sized dense matrix, vector, and row-vector types.
+ */
+
 #include <AMReX_Algorithm.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
@@ -20,15 +25,17 @@
 namespace amrex {
 
     /**
-     * \brief Matrix class with compile-time size
+     * \class amrex::SmallMatrix
+     * \ingroup amrex_arithmetic_types
+     * \brief Matrix class with compile-time size.
      *
-     * Note that column vectors and row vectors are special cases of a
-     * Matrix.
+     * Column vectors and row vectors are special cases of SmallMatrix.
+     * The class is usable in GPU device code.
      *
-     * \tparam T Matrix element data type.
-     * \tparam NRows Number of rows.
-     * \tparam NCols Number of columns.
-     * \tparam ORDER Memory layout order. Order::F (i.e., column-major) by default.
+     * \tparam T          Matrix element data type.
+     * \tparam NRows      Number of rows.
+     * \tparam NCols      Number of columns.
+     * \tparam ORDER      Memory layout order. \c Order::F (column-major) by default.
      * \tparam StartIndex Starting index. Either 0 or 1.
      */
     template <class T, int NRows, int NCols, Order ORDER = Order::F, int StartIndex = 0>
@@ -310,7 +317,7 @@ namespace amrex {
             return *this;
         }
 
-        //! Binary operator + returning the result of maxtrix addition, lhs+rhs
+        //! Binary operator + returning the result of matrix addition, lhs+rhs
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         friend SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         operator+ (SmallMatrix<T,NRows,NCols,ORDER,StartIndex>        lhs,
@@ -331,7 +338,7 @@ namespace amrex {
             return *this;
         }
 
-        //! Binary operator - returning the result of maxtrix subtraction, lhs-rhs
+        //! Binary operator - returning the result of matrix subtraction, lhs-rhs
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         friend SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         operator- (SmallMatrix<T,NRows,NCols,ORDER,StartIndex>        lhs,
@@ -396,10 +403,12 @@ namespace amrex {
             return r;
         }
 
+        //! Return a const reference to the \p N-th element (for structured bindings).
         template <int N, std::enable_if_t<(N<NRows*NCols),int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T const& get () const { return m_mat[N]; }
 
+        //! Return a reference to the \p N-th element (for structured bindings).
         template <int N, std::enable_if_t<(N<NRows*NCols),int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T& get () { return m_mat[N]; }
@@ -445,6 +454,8 @@ namespace amrex {
         return r;
     }
 
+    /// \ingroup amrex_arithmetic_types
+    //! Write matrix to \p os row-by-row, with elements separated by spaces.
     template <class T, int NRows, int NCols, Order ORDER, int SI>
     std::ostream& operator<< (std::ostream& os,
                               SmallMatrix<T,NRows,NCols,ORDER,SI> const& mat)
@@ -459,13 +470,18 @@ namespace amrex {
         return os;
     }
 
+    /// \ingroup amrex_arithmetic_types
+    //! A column vector of \p N elements (alias for SmallMatrix<T,N,1>).
     template <class T, int N, int StartIndex = 0>
     using SmallVector = SmallMatrix<T,N,1,Order::F,StartIndex>;
 
+    /// \ingroup amrex_arithmetic_types
+    //! A row vector of \p N elements (alias for SmallMatrix<T,1,N>).
     template <class T, int N, int StartIndex = 0>
     using SmallRowVector = SmallMatrix<T,1,N,Order::F,StartIndex>;
 }
 
+/// \cond DOXYGEN_IGNORE
 template <class T, int NRows, int NCols, amrex::Order ORDER, int StartIndex>
 struct std::tuple_size<amrex::SmallMatrix<T,NRows,NCols,ORDER,StartIndex> >
     : std::integral_constant<std::size_t,NRows*NCols> {};
@@ -475,6 +491,7 @@ struct std::tuple_element<N, amrex::SmallMatrix<T,NRows,NCols,ORDER,StartIndex> 
 {
     using type = T;
 };
+/// \endcond
 
 #endif
 

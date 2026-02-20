@@ -2,6 +2,11 @@
 #define AMREX_BOXITERATOR_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BoxIterator.H
+ * \brief Iterator over all IntVects in a Box.
+ */
+
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
@@ -16,65 +21,64 @@ template<int dim>
 class BoxND;
 
 /**
-* \brief iterates through the IntVects of a Box
-*
-* BoxIteratorND iterates through the IntVects of a box
-* in the same order as a series of nested for loops
-* with the innermost loop iterating over the first dimension.
-*
-* Typical usage using a range-based for loop:
-* \code{.cpp}
-*   Box b;
-*   ...
-*   for (IntVect iv : b.iterator()) {
-*       // do operations involving iv
-*   }
-* \endcode
-*
-* Using a traditional for loop:
-* \code{.cpp}
-*   Box b;
-*   ...
-*   BoxIterator bit (b);
-*   for (bit.begin(); bit.ok(); ++bit)
-*   {
-*       IntVect iv = bit();
-*       // do operations involving iv
-*   }
-* \endcode
-*
-* Note that while regular iteration of the range-based version is reasonably performant,
-* neither version is compatible with omp parallel for or simd autovectorization.
-*/
+ * \class amrex::BoxIteratorND
+ * \ingroup amrex_index_space
+ * \brief Iterator over all IntVects in a Box.
+ *
+ * Iterates through the IntVects of a Box in the same order as a series of
+ * nested for loops, with the innermost loop over the first dimension.
+ *
+ * Typical usage with a range-based for loop:
+ * \code{.cpp}
+ *   Box b;
+ *   ...
+ *   for (IntVect iv : b.iterator()) {
+ *       // do operations involving iv
+ *   }
+ * \endcode
+ *
+ * Using a traditional for loop:
+ * \code{.cpp}
+ *   Box b;
+ *   ...
+ *   BoxIterator bit (b);
+ *   for (bit.begin(); bit.ok(); ++bit)
+ *   {
+ *       IntVect iv = bit();
+ *       // do operations involving iv
+ *   }
+ * \endcode
+ *
+ * Note that neither version is compatible with OpenMP \c parallel \c for or
+ * SIMD autovectorization.
+ *
+ * \tparam dim Spatial dimension.
+ */
 template<int dim>
 class BoxIteratorND
 {
 public:
 
-    /**
-    * Default constructor. This constructs an invalid iterator.
-    * The user must call define before using.
-    */
+    //! Default constructor. Constructs an invalid iterator; call define() before use.
     BoxIteratorND () noexcept = default;
 
     /**
-    * Constructs a BoxIteratorND and associates it with a Box.
-    * Arguments:
-    * a_bx (not modified) the Box to iterate over.
-    */
+     * \brief Construct a BoxIteratorND associated with Box \p a_bx.
+     * \param a_bx Box to iterate over.
+     */
     explicit BoxIteratorND (const BoxND<dim>& a_bx) noexcept {
         define(a_bx);
     }
 
+    //! Associate this iterator with Box \p a_bx (equivalent to define()).
     void setBox (const BoxND<dim>& a_bx) noexcept {
         define(a_bx);
     }
 
     /**
-    * Associates a Box with this BoxIteratorND.
-    * Arguments:
-    * a_bx (not modified) the Box to iterate over.
-    */
+     * \brief Associate this iterator with Box \p a_bx.
+     * \param a_bx Box to iterate over.
+     */
     void define (const BoxND<dim>& a_bx) noexcept {
         if (a_bx.ok()) {
             m_current = a_bx.smallEnd();
@@ -87,19 +91,13 @@ public:
         }
     }
 
-    /**
-    * Sets this BoxIteratorND to the first IntVect in its Box.
-    * This is the smallEnd vector of the Box.
-    */
+    //! Reset to the first IntVect (smallEnd) and return \c *this for range-based for.
     BoxIteratorND begin () noexcept {
         m_current = m_boxLo;
         return *this;
     }
 
-    /**
-    * Get a BoxIteratorND with its vector set to the end of the Box.
-    * Should only be used internally by a range-based for loop.
-    */
+    //! Return a past-the-end sentinel for use by range-based for loops.
     [[nodiscard]] BoxIteratorND end () const noexcept {
         BoxIteratorND ret = *this;
         // set current of end to the past-the-end IntVect
@@ -110,25 +108,18 @@ public:
         return ret;
     }
 
-    /**
-    * Sets this BoxIteratorND to the first IntVect in its Box.
-    * This is the smallEnd vector of the Box.
-    */
+    //! Reset to the first IntVect (smallEnd) of the Box.
     void reset () noexcept {
         begin();
     }
 
-    /**
-    * Modifies this BoxIteratorND to set it to the next location in its Box.
-    */
+    //! Advance to the next IntVect in the Box (pre-increment).
     BoxIteratorND& operator++ () noexcept {
         next();
         return *this;
     }
 
-    /**
-    * Modifies this BoxIteratorND to set it to the next location in its Box.
-    */
+    //! Advance to the next IntVect in the Box.
     void next () noexcept {
         for (int i=0; i<dim; ++i) {
             ++m_current[i];
@@ -140,18 +131,14 @@ public:
         }
     }
 
-    /**
-    * Returns the value of the InVect for the current location of this BoxIteratorND.
-    */
+    //! Return the current IntVect (legacy function-call syntax).
     [[nodiscard]] const IntVectND<dim>& operator () () const noexcept {
         AMREX_ASSERT(m_current.allLE(m_boxHi));
         AMREX_ASSERT(m_current.allGE(m_boxLo));
         return m_current;
     }
 
-    /**
-    * Returns the value of the InVect for the current location of this BoxIteratorND.
-    */
+    //! Dereference: return the current IntVect by value.
     [[nodiscard]] IntVectND<dim> operator* () const noexcept {
         AMREX_ASSERT(m_current.allLE(m_boxHi));
         AMREX_ASSERT(m_current.allGE(m_boxLo));
@@ -159,18 +146,12 @@ public:
         return m_current;
     }
 
-    /**
-    * Returns true if this BoxIteratorND's location is within its Box.
-    */
+    //! Return true if the iterator is within the Box.
     [[nodiscard]] bool ok () const noexcept {
         return m_current.allLE(m_boxHi);
     }
 
-    /**
-    * Special operator for range-based for loops.
-    * Only checks inequality of the last dimension of the current position for better performance.
-    * Should only be used internally by a range-based for loop.
-    */
+    //! Inequality test used by range-based for loops (checks only the last dimension).
     [[nodiscard]] friend
     bool operator != (const BoxIteratorND& b1, const BoxIteratorND& b2) noexcept {
         // Only check one value for better performance.
@@ -183,6 +164,8 @@ private:
     IntVectND<dim> m_boxHi   = IntVectND<dim>::TheZeroVector();
 };
 
+/// \ingroup amrex_index_space
+/// Alias for BoxIteratorND<AMREX_SPACEDIM>.
 using BoxIterator = BoxIteratorND<AMREX_SPACEDIM>;
 
 }

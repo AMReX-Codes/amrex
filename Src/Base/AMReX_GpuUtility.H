@@ -2,6 +2,11 @@
 #define AMREX_GPU_UTILITY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuUtility.H
+ * \brief Miscellaneous GPU utility functions and the StreamIter class.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
@@ -23,6 +28,8 @@
 namespace amrex {
 namespace Gpu {
 
+    /// \ingroup amrex_execution
+    //! Load element (i,j,k) of \p a using a read-only cache (L1 texture on CUDA).
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k) noexcept {
@@ -34,6 +41,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Load component \p n at (i,j,k) of \p a using a read-only cache (L1 texture on CUDA).
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T LDG (Array4<T> const& a, int i, int j, int k, int n) noexcept {
@@ -45,6 +54,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Return true if \p p points to CUDA/HIP/SYCL managed (unified) memory.
     inline bool isManaged (void const* p) noexcept {
 #ifdef AMREX_USE_CUDA
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_IS_MANAGED;
@@ -61,6 +72,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Return true if \p p points to device memory.
     inline bool isDevicePtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
@@ -85,6 +98,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Return true if \p p points to pinned (page-locked) host memory.
     inline bool isPinnedPtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         hipPointerAttribute_t attrib;
@@ -109,6 +124,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Return true if \p p is any GPU-accessible pointer (device, host, unified, or array).
     inline bool isGpuPtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
         if (isManaged(p)) { // We might be using CUDA/NVCC
@@ -145,6 +162,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Return true if \p m is a NaN; works on both host and device.
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isnan (T m) noexcept
@@ -159,6 +178,8 @@ namespace Gpu {
 #endif
     }
 
+    /// \ingroup amrex_execution
+    //! Return true if \p m is infinite; works on both host and device.
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isinf (T m) noexcept
@@ -173,37 +194,63 @@ namespace Gpu {
 #endif
     }
 
+    /**
+     * \class amrex::Gpu::StreamItInfo
+     * \ingroup amrex_execution
+     * \brief Configuration options for a StreamIter.
+     */
     struct StreamItInfo
     {
-        bool device_sync;
+        bool device_sync; ///< Whether to synchronize the device after each stream iteration.
+        //! Default-construct with device_sync set from the current no-sync region state.
         StreamItInfo () noexcept
             : device_sync(!Gpu::inNoSyncRegion()) {}
+        //! Disable device synchronization for this StreamIter.
         StreamItInfo& DisableDeviceSync () noexcept {
             device_sync = false;
             return *this;
         }
     };
 
+    /**
+     * \class amrex::Gpu::StreamIter
+     * \ingroup amrex_execution
+     * \brief Iterator over GPU streams; advances to the next stream on each increment.
+     *
+     * Used to distribute work across multiple GPU streams.  The iterator
+     * optionally synchronizes the device between streams.
+     */
     class StreamIter
     {
     public:
+        //! Construct iterating over \p n streams.
         StreamIter (int n, bool is_thread_safe=true) noexcept;
+        //! Construct iterating over \p n streams with the given \p info options.
         StreamIter (int n, const StreamItInfo& info, bool is_thread_safe=true) noexcept;
 
+        //! Destructor: synchronizes the device if requested.
         ~StreamIter ();
 
+        //! StreamIter is not copyable.
         StreamIter (StreamIter const&) = delete;
+        //! StreamIter is not movable.
         StreamIter (StreamIter &&) = delete;
+        //! StreamIter is not copy-assignable.
         void operator= (StreamIter const&) = delete;
+        //! StreamIter is not move-assignable.
         void operator= (StreamIter &&) = delete;
 
+        //! Return the current stream index.
         int operator() () const noexcept { return m_i; }
 
+        //! Return true if there are more streams to iterate over.
         [[nodiscard]] bool isValid () const noexcept { return m_i < m_n; }
 
 #if !defined(AMREX_USE_GPU)
+        //! Advance to the next stream.
         void operator++ () noexcept { ++m_i; }
 #else
+        //! Advance to the next stream.
         void operator++ () noexcept;
 #endif
 
@@ -216,6 +263,8 @@ namespace Gpu {
         bool m_sync;
     };
 
+/// \ingroup amrex_execution
+//! GPU-compatible memcpy; falls back to std::memcpy on the host.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void* memcpy (void* dest, const void* src, std::size_t count)
 {
@@ -229,6 +278,8 @@ void* memcpy (void* dest, const void* src, std::size_t count)
 } // namespace Gpu
 
 #ifdef AMREX_USE_GPU
+/// \ingroup amrex_execution
+//! Print a dim3 value to an output stream.
 std::ostream& operator<< (std::ostream& os, const dim3& d);
 #endif
 

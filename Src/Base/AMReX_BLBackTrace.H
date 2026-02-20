@@ -6,13 +6,20 @@
 #include <omp.h>
 #endif
 
+/**
+ * \file AMReX_BLBackTrace.H
+ * \brief Utilities for capturing and printing lightweight backtraces.
+ */
+
 #include <stack>
 #include <string>
 #include <utility>
 #include <cstdlib>
 
+/// \cond DOXYGEN_IGNORE
 #define BL_PASTE2(x, y) x##y
 #define BL_PASTE(x, y) BL_PASTE2(x, y)
+/// \endcond
 #define BL_BACKTRACE_PUSH( S )  amrex::BLBTer BL_PASTE( bl_bter, __COUNTER__ )( S, __FILE__, __LINE__ )
 #define BL_BACKTRACE_POP()   amrex::BLBackTrace::bt_stack.pop()
 
@@ -20,6 +27,7 @@ namespace amrex {
 
 struct BLBackTrace
 {
+    /** \brief Signal handler that prints and aborts on fatal signals. */
     static void handler(int s);
     //! Abort backtrace. Used automatically.
     static void print_backtrace_info (FILE* f);
@@ -36,6 +44,13 @@ struct BLBackTrace
 class BLBTer
 {
 public:
+    /**
+     * \brief Push an entry onto the backtrace stack.
+     *
+     * \param s Message describing the scope being entered.
+     * \param file Source file name.
+     * \param line Source line number.
+     */
     BLBTer(const std::string& s, const char* file, int line);
     BLBTer (BLBTer const&) = delete;
     BLBTer (BLBTer &&) = delete;
@@ -44,6 +59,11 @@ public:
     ~BLBTer();
 private:
     std::string line_file;
+    /**
+     * \brief Pop the most recent backtrace entry.
+     *
+     * Invoked automatically when the guard object falls out of scope.
+     */
     void pop_bt_stack();
 };
 

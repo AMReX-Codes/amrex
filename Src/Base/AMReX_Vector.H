@@ -2,6 +2,11 @@
 #define AMREX_VECTOR_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Vector.H
+ * \brief A thin wrapper around std::vector with bounds checking and AMReX utilities.
+ */
+
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
@@ -17,10 +22,16 @@
 
 namespace amrex {
 /**
-* \brief This class is a thin wrapper around std::vector.  Unlike vector,
-* Vector::operator[] provides bound checking when compiled with
-* DEBUG=TRUE.
-*/
+ * \class amrex::Vector
+ * \ingroup amrex_linear_containers
+ * \brief A thin wrapper around \c std::vector with bounds checking.
+ *
+ * Unlike \c std::vector, `Vector::operator[]` performs bounds checking
+ * when compiled with \c DEBUG=TRUE.
+ *
+ * \tparam T         Element type.
+ * \tparam Allocator Allocator type; defaults to \c std::allocator<T>.
+ */
 template <class T, class Allocator=std::allocator<T> >
 class Vector
     :
@@ -31,6 +42,7 @@ public:
     using std::vector<T, Allocator>::vector;
     using typename std::vector<T, Allocator>::size_type;
 
+    //! Return a reference to element \p i, with bounds checking in debug builds.
     [[nodiscard]] T& operator[] (size_type i) noexcept
     {
         AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
@@ -38,6 +50,7 @@ public:
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
+    //! Return a const reference to element \p i, with bounds checking in debug builds.
     [[nodiscard]] const T& operator[] (size_type i) const noexcept
     {
         AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
@@ -50,6 +63,7 @@ public:
     //! get access to the underlying data pointer
     [[nodiscard]] const T* dataPtr () const noexcept { return this->data(); }
 
+    //! Return the number of elements as a \ref amrex::Long (signed, wider than \c int).
     [[nodiscard]] Long size () const noexcept {return static_cast<Long>(std::vector<T, Allocator>::size());}
 
 };
@@ -60,6 +74,8 @@ namespace amrex
 {
     /////////////////////////////////////////////////////////////
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of raw pointers to the elements of \p a (FAB types only).
     template <class T, typename = typename T::FABType>
     [[nodiscard]] Vector<T*> GetVecOfPtrs (Vector<T>& a)
     {
@@ -69,6 +85,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of raw pointers to the Array elements of \p a (FAB types only).
     template <class T, std::size_t N, typename = typename T::FABType>
     [[nodiscard]] Vector<Array<T,N>*> GetVecOfPtrs (Vector<Array<T,N>>& a)
     {
@@ -78,6 +96,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of raw pointers from a Vector of unique_ptr.
     template <class T>
     [[nodiscard]] Vector<T*> GetVecOfPtrs (const Vector<std::unique_ptr<T> >& a)
     {
@@ -89,6 +109,8 @@ namespace amrex
 
     /////////////////////////////////////////////////////////////
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of const raw pointers to the elements of \p a (FAB types only).
     template <class T, typename = typename T::FABType>
     [[nodiscard]] Vector<const T*> GetVecOfConstPtrs (const Vector<T>& a)
     {
@@ -98,6 +120,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of const raw pointers to the Array elements of \p a (FAB types only).
     template <class T, std::size_t N, typename = typename T::FABType>
     [[nodiscard]] Vector<Array<T,N> const*> GetVecOfConstPtrs (Vector<Array<T,N>> const& a)
     {
@@ -107,6 +131,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of const raw pointers from a Vector of unique_ptr.
     template <class T>
     [[nodiscard]] Vector<const T*> GetVecOfConstPtrs (const Vector<std::unique_ptr<T> >& a)
     {
@@ -116,6 +142,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of const raw pointers from a Vector of raw pointers.
     template <class T, typename = typename T::FABType>
     [[nodiscard]] Vector<const T*> GetVecOfConstPtrs (const Vector<T*>& a)
     {
@@ -124,6 +152,8 @@ namespace amrex
 
     /////////////////////////////////////////////////////////////
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of Vectors of raw pointers from a Vector of Vectors of unique_ptr.
     template <class T>
     [[nodiscard]] Vector<Vector<T*> > GetVecOfVecOfPtrs (const Vector<Vector<std::unique_ptr<T> > >& a)
     {
@@ -136,6 +166,8 @@ namespace amrex
     /////////////////////////////////////////////////////////////
 
 #ifdef AMREX_SPACEDIM
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of AMREX_SPACEDIM-arrays of raw pointers from a Vector of arrays of unique_ptr.
     template <class T>
     [[nodiscard]] Vector<std::array<T*,AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
@@ -146,6 +178,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of AMREX_SPACEDIM-arrays of const raw pointers from a Vector of arrays of unique_ptr.
     template <class T>
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfPtrsConst (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
@@ -156,6 +190,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of AMREX_SPACEDIM-arrays of const raw pointers from a Vector of arrays of unique_ptr.
     template <class T>
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<std::unique_ptr<T>,AMREX_SPACEDIM> >& a)
@@ -166,6 +202,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of AMREX_SPACEDIM-arrays of const raw pointers from a Vector of arrays of FAB objects.
     template <class T, std::enable_if_t<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
                                                int> = 0 >
@@ -178,6 +216,8 @@ namespace amrex
         return r;
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Return a Vector of AMREX_SPACEDIM-arrays of raw pointers from a Vector of arrays of FAB objects.
     template <class T, std::enable_if_t<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
                                                int> = 0 >
@@ -193,12 +233,16 @@ namespace amrex
 
     /////////////////////////////////////////////////////////////
 
+    /// \ingroup amrex_linear_containers
+    //! Set all raw pointers in \p a to nullptr.
     template <class T>
     void FillNull (Vector<T*>& a)
     {
         std::for_each(a.begin(), a.end(), [](T*& p) { p = nullptr; });
     }
 
+    /// \ingroup amrex_linear_containers
+    //! Reset all unique_ptr elements of \p a to empty.
     template <class T>
     void FillNull (Vector<std::unique_ptr<T> >& a)
     {
@@ -207,6 +251,8 @@ namespace amrex
 
     /////////////////////////////////////////////////////////////
 
+    /// \ingroup amrex_linear_containers
+    //! Sort \p vec and remove duplicate elements (requires operator< and operator==).
     template <class T>
     void RemoveDuplicates (Vector<T>& vec) {
         std::sort(vec.begin(), vec.end());
@@ -299,6 +345,16 @@ namespace amrex
     }
     /// \endcond
 
+    /// \ingroup amrex_linear_containers
+    /**
+     * \brief Remove duplicate elements from \p vec using a hash function.
+     *
+     * Uses a hash-based algorithm that does not require \p T to be sortable.
+     * Requires only equality comparison and the provided hash functor \p H.
+     *
+     * \tparam T Element type.
+     * \tparam H Hash functor type satisfying the \c std::hash interface.
+     */
     template <class T, class H>
     void RemoveDuplicates (Vector<T>& vec) {
         // https://stackoverflow.com/questions/1532819/algorithm-efficient-way-to-remove-duplicate-integers-from-an-array

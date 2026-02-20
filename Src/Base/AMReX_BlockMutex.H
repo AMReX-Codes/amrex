@@ -2,33 +2,54 @@
 #define AMREX_BLOCK_MUTEX_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BlockMutex.H
+ * \brief GPU block-level mutex for serializing access across CUDA/HIP thread blocks.
+ */
+
 #include <AMReX_Gpu.H>
 
 namespace amrex {
 
 #ifdef AMREX_USE_GPU
 
+/**
+ * \struct amrex::BlockMutex
+ * \ingroup amrex_execution
+ * \brief A reentrant mutex for GPU thread blocks.
+ *
+ * Provides mutual exclusion between GPU thread blocks using atomic
+ * compare-and-swap operations. A block that already holds the lock
+ * can acquire it again (re-entrant), incrementing an internal counter.
+ * Available only when \c AMREX_USE_GPU is defined.
+ */
 struct BlockMutex
 {
+    /// \cond DOXYGEN_IGNORE
     union state_t
     {
         struct II { int blockid; int count; } data;
         unsigned long long ull;
     };
+    /// \endcond
 
+    //! Return the unlocked sentinel state (blockid == -1, count == 0).
     AMREX_GPU_HOST_DEVICE
     static constexpr state_t FreeState () noexcept {
         return state_t{{-1,0}};
     }
 
+    //! Initialize \p N mutex states stored at \p state to the free state.
     static void init_states (state_t* state, int N) noexcept;
 
+    //! Construct a block mutex managing \p N independent lock slots.
     explicit BlockMutex (int N) noexcept;
 
     ~BlockMutex ();
 
     void operator= (BlockMutex const&) = delete;
 
+    //! Acquire lock slot \p i for the calling thread block; spins until acquired.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void lock (int i) noexcept {
 #ifdef AMREX_USE_SYCL
@@ -55,6 +76,7 @@ struct BlockMutex
 #endif
     }
 
+    //! Release lock slot \p i held by the calling thread block.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void unlock (int i) noexcept {
 #ifdef AMREX_USE_SYCL

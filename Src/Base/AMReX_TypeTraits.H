@@ -2,6 +2,11 @@
 #define BL_TYPETRAITS_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_TypeTraits.H
+ * \brief Type traits and metaprogramming utilities used throughout AMReX.
+ */
+
 #include <AMReX_Extension.H>
 #include <vector>
 #include <type_traits>
@@ -15,6 +20,11 @@ namespace amrex
     template <class T> class BaseFab;
     template <class FAB> class FabArray;
 
+    /**
+     * \class amrex::IsBaseFab
+     * \ingroup amrex_utilities
+     * \brief True if D is derived from BaseFab<D::value_type>.
+     */
     template <class A, class Enable = void> struct IsBaseFab : std::false_type {};
     //
     template <class D>
@@ -23,9 +33,16 @@ namespace amrex
                                             D>>>
         : std::true_type {};
     //
+    /// \ingroup amrex_utilities
+    //! True if A is derived from BaseFab<A::value_type>.
     template <class A>
     inline constexpr bool IsBaseFab_v = IsBaseFab<A>::value;
 
+    /**
+     * \class amrex::IsFabArray
+     * \ingroup amrex_utilities
+     * \brief True if D is derived from FabArray<D::FABType::value_type>.
+     */
     template <class A, class Enable = void> struct IsFabArray : std::false_type {};
     //
     template <class D>
@@ -34,9 +51,16 @@ namespace amrex
                                              D>>>
         : std::true_type {};
     //
+    /// \ingroup amrex_utilities
+    //! True if A is derived from FabArray<A::FABType::value_type>.
     template <class A>
     inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
 
+    /**
+     * \class amrex::IsMultiFabLike
+     * \ingroup amrex_utilities
+     * \brief True if M is both a FabArray and has a BaseFab-derived fab type.
+     */
     template <class M, class Enable = void>
     struct IsMultiFabLike : std::false_type {};
     //
@@ -45,13 +69,22 @@ namespace amrex
                                               IsBaseFab_v<typename M::fab_type> > >
         : std::true_type {};
     //
+    /// \ingroup amrex_utilities
+    //! True if M is both a FabArray and has a BaseFab-derived fab type.
     template <class M>
     inline constexpr bool IsMultiFabLike_v = IsMultiFabLike<M>::value;
 
 
+    /// \ingroup amrex_utilities
+    //! Alias for std::enable_if_t.
     template <bool B, class T = void>
     using EnableIf_t = std::enable_if_t<B,T>;
 
+    /**
+     * \class amrex::HasAtomicAdd
+     * \ingroup amrex_utilities
+     * \brief True if T supports GPU atomic add operations.
+     */
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
     template <> struct HasAtomicAdd<int> : std::true_type {};
@@ -61,6 +94,11 @@ namespace amrex
     template <> struct HasAtomicAdd<float> : std::true_type {};
     template <> struct HasAtomicAdd<double> : std::true_type {};
 
+    /**
+     * \class amrex::IsAddAssignable
+     * \ingroup amrex_utilities
+     * \brief True if T supports the += operator.
+     */
     // support +=?
     template <class T, class Enable = void>
     struct IsAddAssignable : std::false_type {};
@@ -70,39 +108,58 @@ namespace amrex
         : std::true_type {};
 
     class MFIter;
+    /**
+     * \class amrex::IsMultiFabIterator
+     * \ingroup amrex_utilities
+     * \brief True if T is derived from MFIter.
+     */
     template <typename T>
     struct IsMultiFabIterator : public std::is_base_of<MFIter, T>::type {};
 
 #ifdef AMREX_PARTICLES
-    // template <bool is_const, int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-    //           template<class> class Allocator>
-    // class ParIterBase;
-
-    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-    //           template<class> class Allocator>
-    // class ParIter;
-
-    // template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt,
-    //           template<class> class Allocator>
-    // class ParConstIter;
-
     class ParticleContainerBase;
 
+    /**
+     * \class amrex::IsParticleIterator
+     * \ingroup amrex_utilities
+     * \brief True if T is derived from MFIter (used as a proxy for particle iterators).
+     */
     template <typename T>
     struct IsParticleIterator : public std::is_base_of<MFIter, T>::type {}; // not exactly right
 
+    /**
+     * \class amrex::IsParticleContainer
+     * \ingroup amrex_utilities
+     * \brief True if T is derived from ParticleContainerBase.
+     */
     template <typename T>
     struct IsParticleContainer : public std::is_base_of<ParticleContainerBase, T>::type {};
 #endif
 
+    /**
+     * \class amrex::DefinitelyNotHostRunnable
+     * \ingroup amrex_utilities
+     * \brief True if T is definitely not callable on the host
+     *        (e.g., a CUDA \c __device__-only lambda).
+     */
     template <class T, class Enable = void>
     struct DefinitelyNotHostRunnable : std::false_type {};
 
 #ifdef AMREX_USE_GPU
 
+    /**
+     * \class amrex::MaybeDeviceRunnable
+     * \ingroup amrex_utilities
+     * \brief True if T might be callable inside a GPU device kernel.
+     */
     template <class T, class Enable = void>
     struct MaybeDeviceRunnable : std::true_type {};
 
+    /**
+     * \class amrex::MaybeHostDeviceRunnable
+     * \ingroup amrex_utilities
+     * \brief True if T might be callable on both host and device.
+     */
     template <class T, class Enable = void>
     struct MaybeHostDeviceRunnable : std::true_type {};
 
@@ -124,6 +181,11 @@ namespace amrex
 
 #endif
 
+    /**
+     * \class amrex::Same
+     * \ingroup amrex_utilities
+     * \brief True if all types U1, Us... are the same as T.
+     */
     template <typename T, typename U1, typename... Us>
     struct Same;
 
@@ -178,15 +240,23 @@ namespace amrex
     }
     /// \endcond
 
+    /// \ingroup amrex_utilities
+    //! True if the expression Op<Args...> is valid (SFINAE detection idiom).
     template <template <class...> class Op, class... Args>
     using IsDetected = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::value_t;
 
+    /// \ingroup amrex_utilities
+    //! The type Op<Args...> if valid, otherwise detail::Nonesuch.
     template <template <class...> class Op, class... Args>
     using Detected_t = typename detail::Detector<detail::Nonesuch, void, Op, Args...>::type;
 
+    /// \ingroup amrex_utilities
+    //! The type Op<Args...> if valid, otherwise Default.
     template <class Default, template <class...> class Op, class... Args>
     using DetectedOr = typename detail::Detector<Default, void, Op, Args...>::type;
 
+    /// \ingroup amrex_utilities
+    //! True if Op<Args...> is valid and equals Expected.
     template <class Expected, template <typename...> class Op, class... Args>
     using IsDetectedExact = std::is_same<Expected, Detected_t<Op, Args...>>;
 
@@ -200,6 +270,7 @@ namespace amrex
     }
     /// \endcond
 
+    //! \ingroup amrex_utilities
     //! \brief Test if a given type T is callable with arguments of type Args...
     //!
     //! This type trait is different from std::is_invocable since it only cares for the call syntax
@@ -212,7 +283,8 @@ namespace amrex
     template <typename T, typename... Args>
     struct IsCallable : IsDetected<detail::call_result_t, T, Args...> {};
 
-    //! \brief Test if a given type T is callable with arguments of type Args...
+    //! \ingroup amrex_utilities
+    //! \brief Test if a given type T is callable with arguments of type Args... and returns R.
     //!
     //! \see IsCallable
     template <typename R, typename T, typename... Args>
@@ -223,12 +295,17 @@ namespace amrex
     //                                                          [traits.Disjunction]
     //                                                          [traits.Negation]
 
-
-    //! Logical traits let us combine multiple type requirements in one enable_if_t clause.
 #if defined(__cpp_lib_logical_traits)
+    /// \ingroup amrex_utilities
+    //! Logical AND of compile-time boolean predicates (equivalent to std::conjunction).
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
+    /// \ingroup amrex_utilities
+    //! Logical OR of compile-time boolean predicates (equivalent to std::disjunction).
     template <typename... Args> using Disjunction = std::disjunction<Args...>;
+    /// \ingroup amrex_utilities
+    //! Logical NOT of a compile-time boolean predicate (equivalent to std::negation).
     template <typename... Args> using Negation = std::negation<Args...>;
+/// \cond DOXYGEN_IGNORE
 #elif defined(__cpp_lib_experimental_logical_traits)
     template <typename... Args> using Conjunction = std::experimental::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::experimental::disjunction<Args...>;
@@ -249,6 +326,7 @@ namespace amrex
     template <class B>
     using Negation = std::integral_constant<bool, !bool(B::value)>;
 #endif
+/// \endcond
 
     ////////////////////////////////////////////////////////////////////////////////
     //                                                        [traits.IsConvertible]
@@ -266,15 +344,19 @@ namespace amrex
     }
     /// \endcond
 
-    //! \brief Test if all the types Args... are automatically convertible to type T
+    //! \ingroup amrex_utilities
+    //! \brief Test if all the types Args... are automatically convertible to type T.
     template <typename T, typename... Args>
     struct IsConvertible {
         static constexpr bool value = (... && detail::IsConvertibleImp<T, Args>::value);
     };
 
+    /// \ingroup amrex_utilities
+    //! True if all types Args... are automatically convertible to T.
     template <typename T, typename... Args>
     inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value;
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template <typename T, typename U, typename Enable = void>
         struct IsNarrowingConversionImp : std::true_type {};
@@ -282,17 +364,32 @@ namespace amrex
         template <typename T, typename U>
         struct IsNarrowingConversionImp<T, U, std::void_t<decltype(U{std::declval<T>()})>> : std::false_type {};
     }
+    /// \endcond
 
+    /**
+     * \class amrex::IsNarrowingConversion
+     * \ingroup amrex_utilities
+     * \brief True if converting From to To is a narrowing conversion.
+     */
     template <typename From, typename To>
     struct IsNarrowingConversion : detail::IsNarrowingConversionImp<From, To> {};
 
+    /// \ingroup amrex_utilities
+    //! True if converting From to To is a narrowing conversion.
     template <typename From, typename To>
     inline constexpr bool IsNarrowingConversion_v = IsNarrowingConversion<From, To>::value;
 
+    /// \ingroup amrex_utilities
+    //! True if converting From to To is NOT a narrowing conversion.
     template <typename From, typename To>
     inline constexpr bool IsNonNarrowingConversion_v = !IsNarrowingConversion<From, To>::value;
 
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
+    /**
+     * \class amrex::IsStoreAtomic
+     * \ingroup amrex_utilities
+     * \brief True if T is an arithmetic type that can be stored atomically (8 bytes or fewer).
+     */
     template <class T, class Enable = void>
     struct IsStoreAtomic : std::false_type {};
     //
@@ -302,6 +399,11 @@ namespace amrex
                                 && sizeof(T) <= 8 > >
         : std::true_type {};
 
+    /**
+     * \class amrex::IsStdVector
+     * \ingroup amrex_utilities
+     * \brief True if T is derived from std::vector<T::value_type, T::allocator_type>.
+     */
     template <class T, class Enable = void>
     struct IsStdVector : std::false_type {};
     //

@@ -2,6 +2,11 @@
 #define AMREX_INTVECT_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_IntVect.H
+ * \brief IntVectND: an N-dimensional integer vector representing a discrete grid point.
+ */
+
 #include <AMReX_INT.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
@@ -23,6 +28,8 @@
 
 namespace amrex {
 
+/// \ingroup amrex_index_space
+//! Integer division rounding toward negative infinity; used for coarsening index \p i by \p ratio.
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i, int ratio) noexcept
 {
@@ -34,6 +41,8 @@ int coarsen (int i, int ratio) noexcept
     }
 }
 
+/// \ingroup amrex_index_space
+//! Compile-time-ratio version of coarsen; coarsens index \p i by the template parameter \p ratio.
 template <int ratio>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int coarsen (int i) noexcept
@@ -551,7 +560,7 @@ public:
         }
         return *this;
     }
-    //! Returns component-wise sum of IntVectND<and argument.
+    //! Returns component-wise sum of IntVectND and argument.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr IntVectND<dim> operator+ (const IntVectND<dim>& p) const noexcept
     {
@@ -893,6 +902,7 @@ IntVectND<dim>::maxDir(bool a_doAbsValue) const noexcept
     return retval;
 }
 
+/// \ingroup amrex_index_space
 //! Returns p + s.
 template<int dim>
 AMREX_GPU_HOST_DEVICE
@@ -906,6 +916,7 @@ constexpr IntVectND<dim> operator+ (int s, const IntVectND<dim>& p) noexcept
     return retval;
 }
 
+/// \ingroup amrex_index_space
 //! Returns -p + s.
 template<int dim>
 AMREX_GPU_HOST_DEVICE
@@ -920,6 +931,7 @@ constexpr IntVectND<dim> operator- (int s, const IntVectND<dim>& p) noexcept
     return retval;
 }
 
+/// \ingroup amrex_index_space
 //! Returns p * s.
 template<int dim>
 AMREX_GPU_HOST_DEVICE
@@ -934,6 +946,7 @@ constexpr IntVectND<dim> operator* (int s, const IntVectND<dim>& p) noexcept
 }
 
 /**
+ * \ingroup amrex_index_space
  * \brief Returns the IntVectND that is the component-wise minimum of two
  * argument IntVectNDs.
  */
@@ -948,6 +961,8 @@ min (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
     return p;
 }
 
+/// \ingroup amrex_index_space
+//! Returns the component-wise minimum of \p p1 and \p p2 (alias for min).
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
@@ -960,6 +975,7 @@ elemwiseMin (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 }
 
 /**
+ * \ingroup amrex_index_space
  * \brief Returns the IntVectND that is the component-wise maximum of two
  * argument IntVectNDs.
  */
@@ -974,6 +990,8 @@ max (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
     return p;
 }
 
+/// \ingroup amrex_index_space
+//! Returns the component-wise maximum of \p p1 and \p p2 (alias for max).
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
@@ -986,6 +1004,7 @@ elemwiseMax (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 }
 
     /**
+    * \ingroup amrex_index_space
     * \brief Returns a basis vector in the given coordinate direction;
     * eg.  IntVectND<3> BASISV<3>(1) == (0,1,0).  Note that the coordinate
     * directions are zero based.
@@ -1003,6 +1022,7 @@ BASISV (int dir) noexcept
 }
 
     /**
+    * \ingroup amrex_index_space
     * \brief Returns a IntVectND obtained by multiplying each of the
     * components of this IntVectND by s.
     */
@@ -1016,6 +1036,7 @@ scale (const IntVectND<dim>& p, int s) noexcept
 }
 
     /**
+    * \ingroup amrex_index_space
     * \brief Returns an IntVectND that is the reflection of input in the
     * plane which passes through ref_ix and normal to the
     * coordinate direction idir.
@@ -1030,6 +1051,7 @@ reflect (const IntVectND<dim>& a, int ref_ix, int idir) noexcept
 }
 
     /**
+    * \ingroup amrex_index_space
     * \brief Returns IntVectND obtained by adding s to each of the
     * components of this IntVectND.
     */
@@ -1043,6 +1065,7 @@ diagShift (const IntVectND<dim>& p, int s) noexcept
 }
 
     /**
+    * \ingroup amrex_index_space
     * \brief Returns an IntVectND that is the component-wise integer
     * projection of p by s.
     */
@@ -1059,6 +1082,7 @@ coarsen (const IntVectND<dim>& p, int s) noexcept
 }
 
     /**
+    * \ingroup amrex_index_space
     * \brief Returns an IntVectND which is the component-wise integer
     * projection of IntVectND p1 by IntVectND p2.
     */
@@ -1073,6 +1097,8 @@ coarsen (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
     return v;
 }
 
+/// \ingroup amrex_index_space
+//! Refine a Dim3 index by the per-direction refinement ratios in \p ratio.
 template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
@@ -1086,6 +1112,8 @@ constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
     }
 }
 
+/// \ingroup amrex_index_space
+//! Coarsen a Dim3 index by the per-direction coarsening ratios in \p ratio.
 template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
@@ -1143,6 +1171,8 @@ namespace detail {
 }
 /// \endcond
 
+/// \ingroup amrex_index_space
+//! Write an IntVectND to an output stream.
 template<int dim>
 std::ostream&
 operator<< (std::ostream& os, const IntVectND<dim>& iv)
@@ -1150,6 +1180,8 @@ operator<< (std::ostream& os, const IntVectND<dim>& iv)
     return detail::int_vector_write(os, iv.begin(), dim);
 }
 
+/// \ingroup amrex_index_space
+//! Read an IntVectND from an input stream.
 template<int dim>
 std::istream&
 operator>> (std::istream& is, IntVectND<dim>& iv)
@@ -1158,7 +1190,8 @@ operator>> (std::istream& is, IntVectND<dim>& iv)
 }
 
 /**
-* \brief Returns a IntVectND obtained by concatenating the input IntVectNDs.
+* \ingroup amrex_index_space
+* \brief Returns an IntVectND obtained by concatenating the input IntVectNDs.
 * The dimension of the return value equals the sum of the dimensions of the inputted IntVectNDs.
 */
 template<int d, int...dims>
@@ -1174,6 +1207,7 @@ IntVectCat (const IntVectND<d>& v, const IntVectND<dims>&...vects) noexcept {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a tuple of IntVectND obtained by splitting the input IntVectND
 * according to the dimensions specified by the template arguments.
 */
@@ -1189,6 +1223,7 @@ IntVectSplit (const IntVectND<detail::get_sum<d, dims...>()>& v) noexcept {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a new IntVectND of size new_dim and
 * assigns the first new_dim values of iv to it.
 */
@@ -1201,8 +1236,9 @@ IntVectShrink (const IntVectND<old_dim>& iv) noexcept {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a new IntVectND of size new_dim and
-* assigns all values of iv to it and fill_extra to the remaining elements.
+* assigns all values of iv to it and fill_extra to the remaining elements.
 */
 template<int new_dim, int old_dim>
 AMREX_GPU_HOST_DEVICE
@@ -1213,6 +1249,7 @@ IntVectExpand (const IntVectND<old_dim>& iv, int fill_extra=0) noexcept {
 }
 
 /**
+* \ingroup amrex_index_space
 * \brief Returns a new IntVectND of size new_dim
 * by either shrinking or expanding iv.
 */
@@ -1224,11 +1261,13 @@ IntVectResize (const IntVectND<old_dim>& iv, int fill_extra=0) noexcept {
     return iv.template resize<new_dim>(fill_extra);
 }
 
-//! Get I'th element of IntVectND<dim>
+/// \ingroup amrex_index_space
+//! Get the I'th element of IntVectND<dim>.
 template <std::size_t I, int dim>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 constexpr int get (IntVectND<dim> const& iv) noexcept { return iv.vect[I]; }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <typename F, int dim, std::size_t... N>
     AMREX_GPU_HOST_DEVICE
@@ -1238,9 +1277,10 @@ namespace detail {
         return std::forward<F>(f)(amrex::get<N>(iv)...);
     }
 }
+/// \endcond
 
-//! Invoke the callable `f` with the elements of the given IntVectND object
-//! as arguments.
+/// \ingroup amrex_index_space
+//! Invoke callable \p f with the elements of the IntVectND \p iv as arguments.
 template <typename F, int dim>
 AMREX_GPU_HOST_DEVICE
 constexpr auto Apply (F&& f, IntVectND<dim> const& iv)
@@ -1250,13 +1290,13 @@ constexpr auto Apply (F&& f, IntVectND<dim> const& iv)
 
 } // namespace amrex
 
-// Spcialize std::tuple_size for IntVectND. Used by structured bindings.
+// Specialize std::tuple_size for IntVectND. Used by structured bindings.
 template<int dim>
 struct std::tuple_size<amrex::IntVectND<dim>> {
     static constexpr std::size_t value = dim;
 };
 
-// Spcialize std::tuple_element for IntVectND. Used by structured bindings.
+// Specialize std::tuple_element for IntVectND. Used by structured bindings.
 template<std::size_t s, int dim>
 struct std::tuple_element<s, amrex::IntVectND<dim>> {
     using type = int;

@@ -1,15 +1,22 @@
 #ifndef AMREX_IO_FORMAT_H_
 #define AMREX_IO_FORMAT_H_
 
+/**
+ * \file AMReX_IOFormat.H
+ * \brief RAII saver/restorer for \c std::basic_ios format state.
+ */
+
 #include <ios>
 
 namespace amrex {
 
-/*
- * \brief I/O stream format saver
+/**
+ * \class amrex::IOFormatSaver
+ * \ingroup amrex_utilities
+ * \brief RAII saver and restorer for \c std::basic_ios format state.
  *
- * This class can be used to save and restore I/O stream format in a RAII
- * way. It handles fill, fmtflag, precision, and width.
+ * Saves the fill character, format flags, precision, and width of the
+ * stream on construction and restores them on destruction.
  */
 template <class CharT, class Traits>
 class IOFormatSaver
@@ -17,6 +24,7 @@ class IOFormatSaver
 public:
     using BasicIos = std::basic_ios<CharT, Traits>;
 
+    //! Save the format state of \p ios.
     explicit IOFormatSaver (BasicIos& ios)
         : m_ios(&ios),
           m_fill(ios.fill()),

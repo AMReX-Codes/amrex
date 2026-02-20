@@ -2,6 +2,11 @@
 #define AMREX_GPU_ASYNC_ARRAY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuAsyncArray.H
+ * \brief A GPU array whose device memory is freed asynchronously at stream completion.
+ */
+
 #include <AMReX_Arena.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuDevice.H>
@@ -11,6 +16,7 @@
 #include <cstdlib>
 #include <memory>
 
+/// \cond DOXYGEN_IGNORE
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
 extern "C" {
 #if defined(AMREX_USE_HIP)
@@ -20,15 +26,30 @@ extern "C" {
 #endif
 }
 #endif
+/// \endcond
 
 namespace amrex {
 namespace Gpu {
 
+/**
+ * \class amrex::Gpu::AsyncArray
+ * \ingroup amrex_linear_containers
+ * \brief A fixed-size GPU array whose device memory is freed asynchronously
+ *        after all pending work on the current GPU stream completes.
+ *
+ * Useful for short-lived, read-only device arrays.  The host copy lives in
+ * pinned memory and is synchronously freed on destruction; the device copy is
+ * freed via a stream callback so that any GPU kernels that read it can finish
+ * first.
+ *
+ * \tparam T Element type (must be trivially copyable).
+ */
 template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
 class AsyncArray
 {
 public:
 
+    //! Construct from a host pointer \p h_p and size \p n; copies data to device asynchronously.
     AsyncArray (T const* h_p, const std::size_t n)
     {
         if (n == 0) { return; }
@@ -43,6 +64,7 @@ public:
 #endif
     }
 
+    //! Allocate \p n uninitialized elements on the device (or host if not in a launch region).
     template <typename U = T, std::enable_if_t<std::is_standard_layout_v<U> && std::is_trivial_v<U>,int> = 0>
     explicit AsyncArray (const std::size_t n)
     {
@@ -59,15 +81,24 @@ public:
         }
     }
 
+    //! Destructor: schedules asynchronous deallocation of device memory.
     ~AsyncArray () { clear(); }
 
+    //! AsyncArray is not copyable.
     AsyncArray (AsyncArray const&) = delete;
+    //! AsyncArray is not movable.
     AsyncArray (AsyncArray &&) = delete;
+    //! AsyncArray is not copy-assignable.
     void operator= (AsyncArray const&) = delete;
+    //! AsyncArray is not move-assignable.
     void operator= (AsyncArray &&) = delete;
 
+    //! Return a const pointer to the data (device pointer if available, host otherwise).
     [[nodiscard]] T const* data () const noexcept { return (d_data != nullptr) ? d_data : h_data; }
+    //! Return a pointer to the data (device pointer if available, host otherwise).
     [[nodiscard]] T* data () noexcept { return (d_data != nullptr) ? d_data : h_data; }
+
+    //! Asynchronously free device memory and synchronously free host memory.
     void clear ()
     {
 #ifdef AMREX_USE_GPU
@@ -111,6 +142,7 @@ public:
         h_data = nullptr;
     }
 
+    //! Copy \p n elements from device memory back to the host pointer \p h_p.
     void copyToHost (T* h_p, std::size_t n) const
     {
         if (n == 0) { return; }

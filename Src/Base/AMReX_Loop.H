@@ -2,6 +2,11 @@
 #define AMREX_LOOP_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Loop.H
+ * \brief Sequential and concurrent CPU/GPU loop utilities over Box or Dim3 ranges.
+ */
+
 #include <AMReX_Box.H>
 #include <AMReX_ConstexprFor.H>
 #include <AMReX_Extension.H>
@@ -121,6 +126,8 @@ namespace loop_detail {
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! Iterate \p f(i,j,k) over all \c (i,j,k) in \c [lo,hi] (inclusive, sequential).
 template <class F>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -133,6 +140,8 @@ void Loop (Dim3 lo, Dim3 hi, F const& f) noexcept
     }}}
 }
 
+/// \ingroup amrex_execution
+//! Iterate \p f(i,j,k,n) over all \c (i,j,k) in \c [lo,hi] and \p ncomp components (sequential).
 template <class F>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -146,6 +155,8 @@ void Loop (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
     }}}}
 }
 
+/// \ingroup amrex_execution
+//! Iterate \p f(i,j,k) over all \c (i,j,k) in \c [lo,hi]; inner \c i-loop is SIMD-vectorizable.
 template <class F>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -159,6 +170,8 @@ void LoopConcurrent (Dim3 lo, Dim3 hi, F const& f) noexcept
     }}}
 }
 
+/// \ingroup amrex_execution
+//! Iterate \p f(i,j,k,n) over \c [lo,hi] and \p ncomp components; inner \c i-loop is SIMD-vectorizable.
 template <class F>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -205,6 +218,8 @@ void Loop_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, I
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! Iterate \p f over all lattice points in \p bx (sequential, host+device).
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -248,6 +263,8 @@ void Loop_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, I
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! Iterate \p f over all lattice points in \p bx and \p ncomp components (sequential, host+device).
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -296,6 +313,8 @@ void LoopConcurrent_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! Iterate \p f over all lattice points in \p bx; inner loop is SIMD-vectorizable (host+device).
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -342,6 +361,8 @@ void LoopConcurrent_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! Iterate \p f over all lattice points in \p bx and \p ncomp components; inner loop is SIMD-vectorizable (host+device).
 template <class F, int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_ATTRIBUTE_FLATTEN_FOR
@@ -360,6 +381,8 @@ void LoopConcurrent (BoxND<dim> const& bx, int ncomp, F const& f) noexcept
 // function from a __host__ __device__ function.  This is ugly.  To get rid
 // of the warning, we have to use the functions below for those situations.
 
+/// \ingroup amrex_execution
+//! CPU-only variant of Loop; use when \p f is not a \c __host__ __device__ function.
 template <class F>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
@@ -371,6 +394,8 @@ void LoopOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
     }}}
 }
 
+/// \ingroup amrex_execution
+//! CPU-only variant of Loop with component index; use when \p f is not a \c __host__ __device__ function.
 template <class F>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
@@ -383,6 +408,8 @@ void LoopOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
     }}}}
 }
 
+/// \ingroup amrex_execution
+//! CPU-only variant of LoopConcurrent; inner \c i-loop is SIMD-vectorizable.
 template <class F>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
@@ -395,6 +422,8 @@ void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, F const& f) noexcept
     }}}
 }
 
+/// \ingroup amrex_execution
+//! CPU-only variant of LoopConcurrent with component index; inner \c i-loop is SIMD-vectorizable.
 template <class F>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (Dim3 lo, Dim3 hi, int ncomp, F const& f) noexcept
@@ -440,6 +469,8 @@ void LoopOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const 
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! CPU-only variant of Loop over a BoxND; use when \p f is not a \c __host__ __device__ function.
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (BoxND<dim> const& bx, F const& f) noexcept
@@ -482,6 +513,8 @@ void LoopOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const 
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! CPU-only variant of Loop over a BoxND with component index; use when \p f is not a \c __host__ __device__ function.
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopOnCpu (BoxND<dim> const& bx, int ncomp, F const& f) noexcept
@@ -529,6 +562,8 @@ void LoopConcurrentOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<d
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! CPU-only variant of LoopConcurrent over a BoxND; inner loop is SIMD-vectorizable.
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (BoxND<dim> const& bx, F const& f) noexcept
@@ -574,6 +609,8 @@ void LoopConcurrentOnCpu_impND (L const& f, IntVectND<dim> const lo, IntVectND<d
 }
 /// \endcond
 
+/// \ingroup amrex_execution
+//! CPU-only variant of LoopConcurrent over a BoxND with component index; inner loop is SIMD-vectorizable.
 template <class F, int dim>
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void LoopConcurrentOnCpu (BoxND<dim> const& bx, int ncomp, F const& f) noexcept

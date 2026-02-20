@@ -2,12 +2,19 @@
 #define BL_MFITER_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_MFIter.H
+ * \brief Iterator for looping over tiles and boxes of FabArray-based containers.
+ */
+
 #include <AMReX_FabArrayBase.H>
 
 #include <memory>
 
 namespace amrex {
 
+/// \ingroup amrex_fab_containers
+//! Return \c true when tiling should be used: always on CPU, only outside GPU launch regions on GPU.
 #ifdef AMREX_USE_GPU
     inline bool TilingIfNotGPU () noexcept { return Gpu::notInLaunchRegion(); }
 #else
@@ -16,59 +23,79 @@ namespace amrex {
 
 template<class T> class FabArray;
 
+/**
+ * \struct amrex::MFItInfo
+ * \ingroup amrex_fab_containers
+ * \brief Configuration options passed to MFIter constructors.
+ *
+ * Controls tiling, dynamic scheduling, GPU stream count, and GPU device
+ * synchronization behaviour.  All setters return \c *this for chaining.
+ */
 struct MFItInfo
 {
-    bool do_tiling{false};
-    bool dynamic{false};
-    bool device_sync = true;
-    bool device_sync_pre = true;
-    bool device_sync_post = true;
-    int  num_streams = 1;
-    IntVect tilesize;
+    bool do_tiling{false};      //!< Enable tiling when \c true.
+    bool dynamic{false};        //!< Use dynamic (work-stealing) scheduling when \c true.
+    bool device_sync = true;    //!< Synchronize device before and after iteration when \c true.
+    bool device_sync_pre = true;   //!< Synchronize device before iteration starts.
+    bool device_sync_post = true;  //!< Synchronize device after iteration ends.
+    int  num_streams = 1;       //!< Number of GPU streams to use.
+    IntVect tilesize;           //!< Tile size (zero means use default).
+    //! Default-construct with GPU-aware defaults.
     MFItInfo () noexcept
         :  device_sync(!Gpu::inNoSyncRegion()), num_streams(Gpu::numGpuStreams()),
           tilesize(IntVect::TheZeroVector()) {}
+    //! Enable tiling with tile size \p ts (defaults to \c FabArrayBase::mfiter_tile_size).
     MFItInfo& EnableTiling (const IntVect& ts = FabArrayBase::mfiter_tile_size) noexcept {
         do_tiling = true;
         tilesize = ts;
         return *this;
     }
+    //! Set tiling on or off.
     MFItInfo& SetTiling (bool f) noexcept {
         do_tiling = f;
         return *this;
     }
+    //! Enable or disable dynamic (work-stealing) scheduling.
     MFItInfo& SetDynamic (bool f) noexcept {
         dynamic = f;
         return *this;
     }
+    //! Disable all GPU device synchronization around the iteration.
     MFItInfo& DisableDeviceSync () noexcept {
         device_sync = false;
         return *this;
     }
+    //! Enable or disable all GPU device synchronization around the iteration.
     MFItInfo& SetDeviceSync (bool f) noexcept {
         device_sync = f;
         return *this;
     }
+    //! Disable the GPU device synchronization performed before iteration starts.
     MFItInfo& DisableDeviceSyncPre () noexcept {
         device_sync_pre = false;
         return *this;
     }
+    //! Enable or disable the GPU device synchronization before iteration starts.
     MFItInfo& SetDeviceSyncPre (bool f) noexcept {
         device_sync_pre = f;
         return *this;
     }
+    //! Disable the GPU device synchronization performed after iteration ends.
     MFItInfo& DisableDeviceSyncPost () noexcept {
         device_sync_post = false;
         return *this;
     }
+    //! Enable or disable the GPU device synchronization after iteration ends.
     MFItInfo& SetDeviceSyncPost (bool f) noexcept {
         device_sync_post = f;
         return *this;
     }
+    //! Set the number of GPU streams to use during iteration.
     MFItInfo& SetNumStreams (int n) noexcept {
         num_streams = n;
         return *this;
     }
+    //! Restrict iteration to the default GPU stream (sets \c num_streams to 1).
     MFItInfo& UseDefaultStream () noexcept {
         num_streams = 1;
         return *this;
@@ -78,7 +105,7 @@ struct MFItInfo
 /**
  * \class amrex::MFIter
  * \ingroup amrex_multifab_containers
- * \brief Iterator for looping ever tiles and boxes of \ref amrex::FabArray
+ * \brief Iterator for looping over tiles and boxes of \ref amrex::FabArray
  * based containers.
  */
 class MFIter
@@ -115,15 +142,20 @@ public:
             const IntVect&      tilesize,
             unsigned char       flags_=0);
 
+    //! Construct over a BoxArray/DistributionMapping pair with optional flags.
     MFIter (const BoxArray& ba, const DistributionMapping& dm, unsigned char flags_=0);
 
+    //! Construct over a BoxArray/DistributionMapping pair with tiling on or off.
     MFIter (const BoxArray& ba, const DistributionMapping& dm, bool do_tiling);
 
+    //! Construct over a BoxArray/DistributionMapping pair with explicit tile size and flags.
     MFIter (const BoxArray& ba, const DistributionMapping& dm,
             const IntVect& tilesize, unsigned char flags_=0);
 
+    //! Construct over a FabArrayBase with the full \c MFItInfo configuration.
     MFIter (const FabArrayBase& fabarray, const MFItInfo& info);
 
+    //! Construct over a BoxArray/DistributionMapping pair with the full \c MFItInfo configuration.
     MFIter (const BoxArray& ba, const DistributionMapping& dm, const MFItInfo& info);
 
     MFIter (MFIter&& rhs) = default;
@@ -189,14 +221,19 @@ public:
     //! Constant reference to FabArray over which we're iterating.
     [[nodiscard]] const FabArrayBase& theFabArrayBase () const noexcept { return *fabArray; }
 
+    //! Return the internal sequential tile index (for advanced use).
     [[nodiscard]] int tileIndex () const noexcept {return currentIndex;}
 
+    //! Return the DistributionMapping of the underlying FabArray.
     [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept { return fabArray->DistributionMap(); }
 
+    //! Allow or disallow nested MFIters; returns the old value.
     static int allowMultipleMFIters (int allow);
 
+    //! Return the current MFIter nesting depth.
     static int currentDepth ();
 
+    //! Finalize the iterator early (otherwise called automatically in the destructor).
     void Finalize ();
 
 protected:
