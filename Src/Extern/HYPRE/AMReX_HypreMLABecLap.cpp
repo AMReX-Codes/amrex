@@ -1,4 +1,5 @@
 #include <AMReX_HypreMLABecLap.H>
+#include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
 
@@ -315,9 +316,9 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             Gpu::htod_memcpy_async(m_c2f_nentries[clev][mfi].dataPtr(),
                                    h_c2f_nentries.dataPtr(),
                                    h_c2f_nentries.nBytes());
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
+            // Must sync: h_c2f_offset_from/to/nentries are pinned-memory locals
+            // whose lifetime ends at the close of this MFIter loop body.
+            Gpu::streamSynchronize();
 #endif
             AMREX_ASSERT(c2f_total_to < Long(std::numeric_limits<int>::max()));
             m_c2f_total_from[clev][mfi] = int(c2f_total_from);
@@ -1052,7 +1053,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         HYPRE_SStructVectorGather(m_ss_x);
 
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
-            FArrayBox sol;
+            FArrayBox sol(The_Async_Arena());
             bool has_ghostcells = (a_sol[ilev]->nGrowVect() != 0);
             for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
                 Box const& vbx = mfi.validbox();

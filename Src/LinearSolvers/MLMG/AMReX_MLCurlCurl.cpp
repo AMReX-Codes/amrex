@@ -204,7 +204,8 @@ void MLCurlCurl::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
         MultiFab cfine;
         if (need_parallel_copy) {
             BoxArray const& ba = amrex::coarsen(fine[idim].boxArray(), 2);
-            cfine.define(ba, fine[idim].DistributionMap(), 1, 0);
+            cfine.define(ba, fine[idim].DistributionMap(), 1, 0,
+                         MFInfo().SetArena(The_Async_Arena()));
         }
 
         MultiFab* pcrse = (need_parallel_copy) ? &cfine : &(crse[idim]);
@@ -239,7 +240,8 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
         MultiFab const* cmf = &(crse[idim]);
         if (need_parallel_copy) {
             BoxArray const& ba = amrex::coarsen(fine[idim].boxArray(), 2);
-            cfine.define(ba, fine[idim].DistributionMap(), 1, 0);
+            cfine.define(ba, fine[idim].DistributionMap(), 1, 0,
+                         MFInfo().SetArena(The_Async_Arena()));
             cfine.ParallelCopy(crse[idim]);
             cmf = &cfine;
         }

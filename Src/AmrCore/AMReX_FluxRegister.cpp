@@ -603,7 +603,8 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
     int idir = face.coordDir();
 
     MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
-                  mf.DistributionMap(), nc, 0, MFInfo(), mf.Factory());
+                  mf.DistributionMap(), nc, 0,
+                  MFInfo().SetArena(The_Async_Arena()), mf.Factory());
     flux.setVal(0.0);
 
     bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());

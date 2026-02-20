@@ -116,7 +116,7 @@ MFCellConsLinInterp::interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf
         auto const& ctmp = crse_tmp.const_arrays();
         auto const& fine = finemf.arrays();
 
-        Gpu::DeviceVector<BCRec> d_bc(nc);
+        Gpu::AsyncVector<BCRec> d_bc(nc);
         BCRec const* pbc = d_bc.data();
         Gpu::copyAsync(Gpu::hostToDevice, bcs.begin()+bcomp, bcs.begin()+bcomp+nc, d_bc.begin());
 
@@ -418,7 +418,7 @@ MFCellConsLinMinmaxLimitInterp::interp (MultiFab const& crsemf, int ccomp, Multi
         auto const& ctmp = crse_tmp.const_arrays();
         auto const& fine = finemf.arrays();
 
-        Gpu::DeviceVector<BCRec> d_bc(nc);
+        Gpu::AsyncVector<BCRec> d_bc(nc);
         BCRec const* pbc = d_bc.data();
         Gpu::copyAsync(Gpu::hostToDevice, bcs.begin()+bcomp, bcs.begin()+bcomp+nc, d_bc.begin());
 
