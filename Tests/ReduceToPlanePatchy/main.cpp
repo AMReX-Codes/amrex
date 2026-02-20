@@ -48,6 +48,8 @@ int main (int argc, char* argv[])
             {
                 return ma[box_no](i,j,k);
             });
+        ParallelDescriptor::ReduceRealSum(ref_plane.dataPtr(),
+                                          static_cast<int>(ref_plane.box().numPts()));
 
         auto [plane_patch, plane_unique] = ReduceToPlaneMF2Patchy<ReduceOpSum>(dir, domain, mf,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
