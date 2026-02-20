@@ -219,25 +219,31 @@ namespace amrex
     //! are set to fine_value, whereas other cells are set to crse_value.
     template <typename FAB>
     iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-                            int crse_value = 0, int fine_value = 1);
+                            int crse_value = 0, int fine_value = 1,
+                            MFInfo const& info = MFInfo());
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
-                            int crse_value = 0, int fine_value = 1);
+                            int crse_value = 0, int fine_value = 1,
+                            MFInfo const& info = MFInfo());
     template <typename FAB>
     iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value);
+                            Periodicity const& period, int crse_value, int fine_value,
+                            MFInfo const& info = MFInfo());
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value);
-    template <typename FAB>
-    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
-                            const IntVect& cnghost, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value);
+                            Periodicity const& period, int crse_value, int fine_value,
+                            MFInfo const& info = MFInfo());
     template <typename FAB>
     iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
                             const IntVect& cnghost, const IntVect& ratio,
                             Periodicity const& period, int crse_value, int fine_value,
-                            LayoutData<int>& has_cf);
+                            MFInfo const& info = MFInfo());
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+                            const IntVect& cnghost, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value,
+                            LayoutData<int>& has_cf,
+                            MFInfo const& info = MFInfo());
 
     MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                            const BoxArray& fba, const IntVect& ratio,
@@ -548,28 +554,31 @@ namespace amrex {
 template <typename FAB>
 iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-              int crse_value, int fine_value)
+              int crse_value, int fine_value, MFInfo const& info)
 {
     return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
-                        fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
+                        fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value,
+                        info);
 }
 
 template <typename FAB>
 iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-              Periodicity const& period, int crse_value, int fine_value)
+              Periodicity const& period, int crse_value, int fine_value,
+              MFInfo const& info)
 {
     return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
-                        fba, ratio, period, crse_value, fine_value);
+                        fba, ratio, period, crse_value, fine_value, info);
 }
 
 template <typename FAB>
 iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
               const IntVect& cnghost, const IntVect& ratio,
-              Periodicity const& period, int crse_value, int fine_value)
+              Periodicity const& period, int crse_value, int fine_value,
+              MFInfo const& info)
 {
-    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost, info);
     mask.setVal(crse_value);
 
     iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
@@ -585,9 +594,9 @@ iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
               const IntVect& cnghost, const IntVect& ratio,
               Periodicity const& period, int crse_value, int fine_value,
-              LayoutData<int>& has_cf)
+              LayoutData<int>& has_cf, MFInfo const& info)
 {
-    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost, info);
     mask.setVal(crse_value);
 
     iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
