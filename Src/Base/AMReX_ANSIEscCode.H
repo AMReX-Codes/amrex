@@ -31,6 +31,7 @@ namespace Font {
 
 /// \ingroup amrex_utilities
 /// \brief ANSI foreground-color escape codes.
+namespace FGColor {
     constexpr char Black         [] = "\033[30m";
     constexpr char Red           [] = "\033[31m";
     constexpr char Green         [] = "\033[32m";
@@ -53,6 +54,7 @@ namespace Font {
 
 /// \ingroup amrex_utilities
 /// \brief ANSI background-color escape codes.
+namespace BGColor {
     constexpr char Black          [] = "\033[40m";
     constexpr char Red            [] = "\033[41m";
     constexpr char Green          [] = "\033[42m";
