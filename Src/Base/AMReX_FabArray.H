@@ -1819,7 +1819,7 @@ FabArray<FAB>::build_arrays () const
         m_hp_arrays = (void*)The_Pinned_Arena()->alloc(n*2*sizeof(A));
         m_dp_arrays = (void*)The_Arena()->alloc(n*2*sizeof(A));
 #else
-        m_hp_arrays = (void*)std::malloc(n*2*sizeof(A));
+        m_hp_arrays = std::malloc(n*2*sizeof(A));
 #endif
         for (int li = 0; li < n; ++li) {
             if (m_fabs_v[li]) {
@@ -2063,7 +2063,7 @@ template <class FAB>
 FabArray<FAB>::FabArray (FabArray<FAB>&& rhs) noexcept
     : FabArrayBase (static_cast<FabArrayBase&&>(rhs))
     , m_factory    (std::move(rhs.m_factory))
-    , m_dallocator (std::move(rhs.m_dallocator))
+    , m_dallocator (rhs.m_dallocator)
     , m_single_chunk_arena(std::move(rhs.m_single_chunk_arena))
     , m_single_chunk_size(std::exchange(rhs.m_single_chunk_size,0))
     , define_function_called(rhs.define_function_called)
@@ -2099,7 +2099,7 @@ FabArray<FAB>::operator= (FabArray<FAB>&& rhs) noexcept
 
         FabArrayBase::operator=(static_cast<FabArrayBase&&>(rhs));
         m_factory = std::move(rhs.m_factory);
-        m_dallocator = std::move(rhs.m_dallocator);
+        m_dallocator = rhs.m_dallocator;
         m_single_chunk_arena = std::move(rhs.m_single_chunk_arena);
         std::swap(m_single_chunk_size, rhs.m_single_chunk_size);
         define_function_called = rhs.define_function_called;

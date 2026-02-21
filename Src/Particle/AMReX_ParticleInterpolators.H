@@ -15,7 +15,7 @@ namespace amrex::ParticleInterpolator
  *  you use one of the derived versions below that implement specific interpolations.
  */
 template <class Derived, class WeightType>
-struct Base
+struct Base // NOLINT(bugprone-crtp-constructor-accessibility)
 {
     int index[3];
     WeightType* w;

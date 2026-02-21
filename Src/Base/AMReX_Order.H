@@ -16,7 +16,6 @@ namespace amrex
  * \c Order::C (row-major) stores the last index fastest; \c Order::F
  * (column-major / Fortran order) stores the first index fastest.
  */
-    enum struct Order { C, F, RowMajor=C, ColumnMajor=F };
+    enum struct Order { C, F, RowMajor=C, ColumnMajor=F }; // NOLINT(readability-enum-initial-value)
 }
 #endif
-

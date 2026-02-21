@@ -334,7 +334,7 @@ namespace amrex
     /// \cond DOXYGEN_IGNORE
     namespace detail {
         template<typename T>
-        inline constexpr bool is_convertible(T) {return true;}
+        constexpr bool is_convertible(T) {return true;}
 
         template <typename T, typename U, typename Enable = void>
         struct IsConvertibleImp : std::false_type {};

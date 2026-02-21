@@ -26,13 +26,13 @@ public:
         [[nodiscard]] Real cent (int d) const
         {
             static_assert(sizeof(XDim3) == sizeof(Real)*3);
-            return Real(1./3.)*((&v1.x)[d] + (&v2.x)[d] + (&v3.x)[d]);
+            return Real(1./3.)*((&v1.x)[d] + (&v2.x)[d] + (&v3.x)[d]); // NOLINT(clang-analyzer-security.ArrayBound)
         }
 
         [[nodiscard]] std::pair<Real,Real> minmax (int d) const
         {
             static_assert(sizeof(XDim3) == sizeof(Real)*3);
-            return std::minmax({(&v1.x)[d], (&v2.x)[d], (&v3.x)[d]});
+            return std::minmax({(&v1.x)[d], (&v2.x)[d], (&v3.x)[d]}); // NOLINT(clang-analyzer-security.ArrayBound)
         }
     };
     /// \endcond

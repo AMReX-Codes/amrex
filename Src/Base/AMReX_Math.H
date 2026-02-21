@@ -22,7 +22,7 @@
 #  include <sycl/sycl.hpp>
 #endif
 
-namespace amrex {
+namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
 /// \cond DOXYGEN_IGNORE
 inline namespace disabled {
     // If it is inside namespace amrex, or amrex namespace is imported with using namespace amrex or

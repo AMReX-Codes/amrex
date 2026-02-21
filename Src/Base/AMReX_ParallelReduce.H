@@ -14,7 +14,7 @@ namespace amrex {
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-    enum ReduceOp : int {
+    enum class ReduceOp : int {
         max = 0,
         min,
         sum,
@@ -196,7 +196,7 @@ namespace ParallelAllReduce {
     }
     /// \ingroup amrex_mpi
     template<typename T>
-    void Max (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
+    void Max (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) { // NOLINT(performance-unnecessary-value-param)
         detail::Reduce<T>(detail::ReduceOp::max, v, -1, comm);
     }
 
@@ -212,7 +212,7 @@ namespace ParallelAllReduce {
     }
     /// \ingroup amrex_mpi
     template<typename T>
-    void Min (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
+    void Min (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) { // NOLINT(performance-unnecessary-value-param)
         detail::Reduce<T>(detail::ReduceOp::min, v, -1, comm);
     }
 
@@ -228,7 +228,7 @@ namespace ParallelAllReduce {
     }
     /// \ingroup amrex_mpi
     template<typename T>
-    void Sum (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) {
+    void Sum (Vector<std::reference_wrapper<T> > v, MPI_Comm comm) { // NOLINT(performance-unnecessary-value-param)
         detail::Reduce<T>(detail::ReduceOp::sum, v, -1, comm);
     }
 
@@ -327,7 +327,7 @@ namespace ParallelReduce {
     }
     /// \ingroup amrex_mpi
     template<typename T>
-    void Max (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
+    void Max (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) { // NOLINT(performance-unnecessary-value-param)
         detail::Reduce<T>(detail::ReduceOp::max, v, root, comm);
     }
 
@@ -343,7 +343,7 @@ namespace ParallelReduce {
     }
     /// \ingroup amrex_mpi
     template<typename T>
-    void Min (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
+    void Min (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) { // NOLINT(performance-unnecessary-value-param)
         detail::Reduce<T>(detail::ReduceOp::min, v, root, comm);
     }
 
@@ -359,7 +359,7 @@ namespace ParallelReduce {
     }
     /// \ingroup amrex_mpi
     template<typename T>
-    void Sum (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) {
+    void Sum (Vector<std::reference_wrapper<T> > v, int root, MPI_Comm comm) { // NOLINT(performance-unnecessary-value-param)
         detail::Reduce<T>(detail::ReduceOp::sum, v, root, comm);
     }
 

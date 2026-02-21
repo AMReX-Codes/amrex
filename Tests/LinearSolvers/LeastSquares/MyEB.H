@@ -29,7 +29,7 @@ public:
     FlowerIF& operator= (const FlowerIF& rhs) = delete;
     FlowerIF& operator= (FlowerIF&& rhs) = delete;
 
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::Real operator() (AMREX_D_DECL(amrex::Real x, amrex::Real y, amrex::Real z))
         const noexcept
     {
@@ -40,7 +40,7 @@ public:
         return m_sign*(r - m_r - m_dr * std::cos(m_npetals*theta));
     }
 
-    inline amrex::Real operator() (const amrex::RealArray& p) const noexcept
+    AMREX_FORCE_INLINE amrex::Real operator() (const amrex::RealArray& p) const noexcept
     {
         return this->operator() (AMREX_D_DECL(p[0], p[1], p[2]));
     }

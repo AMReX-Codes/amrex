@@ -121,11 +121,11 @@ namespace amrex
     constexpr const T& Clamp (const T& v, const T& lo, const T& hi)
     {
         if (v < lo) {
-            return lo;
+            return lo; // NOLINT(bugprone-return-const-ref-from-parameter)
         } else if (hi < v) {
-            return hi;
+            return hi; // NOLINT(bugprone-return-const-ref-from-parameter)
         } else {
-            return v;
+            return v; // NOLINT(bugprone-return-const-ref-from-parameter)
         }
     }
 

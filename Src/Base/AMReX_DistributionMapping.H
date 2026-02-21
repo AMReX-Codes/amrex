@@ -131,7 +131,7 @@ class DistributionMapping
     [[nodiscard]] const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    [[nodiscard]] Long size () const noexcept { return m_ref->m_pmap.size(); }
     //! Reserved capacity of the underlying processor map.
     [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
     //! Return \c true if the processor map is empty.

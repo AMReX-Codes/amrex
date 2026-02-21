@@ -12,7 +12,6 @@ void main_main ()
     int ny = 64;
     int nz = 64;
     int max_grid_size = 32;
-    std::string plot_file{"plt"};
     Real xmin = -1.2;
     Real xmax =  1.2;
     Real ymin = -1.2;

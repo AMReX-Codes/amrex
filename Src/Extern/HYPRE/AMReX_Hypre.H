@@ -42,7 +42,13 @@ public:
 
     static HYPRE_Int ispow2 (HYPRE_Int i)
     {
-        return (i == 1) ? 1 : (((i <= 0) || (i & 1)) ? 0 : ispow2(i / 2));
+        if (i == 1) {
+            return 1;
+        } else if ((i <= 0) || (i & 1)) {
+            return 0;
+        } else {
+            return ispow2(i/2);
+        }
     }
 
     static Array<HYPRE_Int,AMREX_SPACEDIM> loV (const Box& b) {
