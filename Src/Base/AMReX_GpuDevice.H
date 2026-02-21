@@ -463,7 +463,7 @@ struct [[nodiscard]] SyncAtExitOnly
     : public NoSyncRegion
 {
     ~SyncAtExitOnly () {
-        if (! inNoSyncRegionPreviously())
+        if (! inNoSyncRegionPreviously()) {
             Gpu::streamSynchronizeActive();
         }
     }
