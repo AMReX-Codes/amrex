@@ -18,13 +18,13 @@ public:
 
     ComplementIF (F a_f) : m_f(std::move(a_f)) {}
 
-    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         return -m_f(p);
     }
 
     template<class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         return -m_f(AMREX_D_DECL(x,y,z));

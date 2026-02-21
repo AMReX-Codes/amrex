@@ -2678,7 +2678,7 @@ Amr::regrid (int  lbase,
     // Reclaim all remaining storage for levels > new_finest.
     //
     for(int lev = new_finest + 1; lev <= finest_level; ++lev) {
-        amr_level[lev].reset();
+        amr_level[lev] = nullptr;
         this->ClearBoxArray(lev);
         this->ClearDistributionMap(lev);
     }

@@ -52,7 +52,7 @@ struct Table1D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (IDX i) const
     {
         if (i < begin || i >= end) {
@@ -134,7 +134,7 @@ struct Table2D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (int i, int j) const
     {
         if (i < begin[0] || i >= end[0] ||
@@ -217,7 +217,7 @@ struct Table3D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (int i, int j, int k) const
     {
         if (i < begin[0] || i >= end[0] ||
@@ -312,7 +312,7 @@ struct Table4D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (int i, int j, int k, int n) const
     {
         if (i < begin[0] || i >= end[0] ||

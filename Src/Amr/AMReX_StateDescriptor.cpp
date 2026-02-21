@@ -482,7 +482,7 @@ StateDescriptor::setUpMaps (int&                use_default_map,
 
             BL_ASSERT (imap < nmaps);
 
-            maps[imap]           = mapper_icomp;
+            maps[imap]           = mapper_icomp; // NOLINT(clang-analyzer-security.ArrayBound)
             map_start_comp[imap] = icomp;
             map_num_comp[imap]   = 1;
             min_end_comp[imap]   = min_map_end_comp[icomp];
