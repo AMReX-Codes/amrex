@@ -84,7 +84,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
         }
 
-        static_assert(std::is_standard_layout<ParticleType>::value,
+        static_assert(std::is_standard_layout_v<ParticleType>,
                       "Particle type must be standard layout");
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
@@ -856,7 +856,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         return;
     }
 
-    std::string aggregation_type = AggregationType();
+    std::string const& aggregation_type = AggregationType();
     int aggregation_buffer = AggregationBuffer();
 
     if (aggregation_type == "None")

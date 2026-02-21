@@ -1495,7 +1495,7 @@ void
 ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
                   bool bExitOnError, const MPI_Comm&comm)
 {
-    enum { IO_Buffer_Size = 262144 * 8 };
+    constexpr int IO_Buffer_Size = 262144 * 8;
 
 #ifdef BL_SETBUF_SIGNED_CHAR
     using Setbuf_Char_Type = signed char;

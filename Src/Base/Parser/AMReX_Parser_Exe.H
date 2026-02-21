@@ -233,31 +233,31 @@ namespace parser_detail
     AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
     void call_user_fn (ParserExeUserFn* p, Stack<T,N>& pstack)
     {
-        short argc = ((ParserExeUserFn*)p)->argc;
+        short argc = p->argc;
         if (argc == 1) {
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn1(((ParserExeUserFn*)p)->fh)(pstack.top()); ))
+            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn1(p->fh)(pstack.top()); ))
 #if !defined(AMREX_USE_SYCL)
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn1(((ParserExeUserFn*)p)->fd)(pstack.top()); ))
+            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn1(p->fd)(pstack.top()); ))
 #endif
         } else if (argc == 2) {
             T a1 = pstack.top(); // NOLINT
             pstack.pop();
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn2(((ParserExeUserFn*)p)->fh)(pstack.top(),a1); ))
+            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn2(p->fh)(pstack.top(),a1); ))
 #if defined(AMREX_USE_SYCL)
             amrex::ignore_unused(a1);
 #else
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn2(((ParserExeUserFn*)p)->fd)(pstack.top(),a1); ))
+            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn2(p->fd)(pstack.top(),a1); ))
 #endif
         } else if (argc == 3) {
             T a2 = pstack.top(); // NOLINT
             pstack.pop();
             T a1 = pstack.top(); // NOLINT
             pstack.pop();
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn3(((ParserExeUserFn*)p)->fh)(pstack.top(),a1,a2); ))
+            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn3(p->fh)(pstack.top(),a1,a2); ))
 #if defined(AMREX_USE_SYCL)
             amrex::ignore_unused(a1,a2);
 #else
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn3(((ParserExeUserFn*)p)->fd)(pstack.top(),a1,a2); ))
+            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn3(p->fd)(pstack.top(),a1,a2); ))
 #endif
         } else if (argc == 4) {
             T a3 = pstack.top(); // NOLINT
@@ -266,11 +266,11 @@ namespace parser_detail
             pstack.pop();
             T a1 = pstack.top(); // NOLINT
             pstack.pop();
-            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn4(((ParserExeUserFn*)p)->fh)(pstack.top(),a1,a2,a3); ))
+            AMREX_IF_ON_HOST  (( pstack.top() = ParserUserFn4(p->fh)(pstack.top(),a1,a2,a3); ))
 #if defined(AMREX_USE_SYCL)
             amrex::ignore_unused(a1,a2,a3);
 #else
-            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn4(((ParserExeUserFn*)p)->fd)(pstack.top(),a1,a2,a3); ))
+            AMREX_IF_ON_DEVICE(( pstack.top() = ParserUserFn4(p->fd)(pstack.top(),a1,a2,a3); ))
 #endif
         }
     }

@@ -472,7 +472,7 @@ struct alignas(sizeof(double)) Particle
     RealType& rdata (int index) &
     {
         AMREX_ASSERT(index < NReal);
-        return this->m_rdata[index];
+        return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
@@ -488,7 +488,7 @@ struct alignas(sizeof(double)) Particle
     const RealType& rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
-        return this->m_rdata[index];
+        return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
@@ -543,7 +543,7 @@ struct alignas(sizeof(double)) Particle
     int& idata (int index) &
     {
         AMREX_ASSERT(index < NInt);
-        return this->m_idata[index];
+        return this->m_idata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
@@ -559,7 +559,7 @@ struct alignas(sizeof(double)) Particle
     const int& idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
-        return this->m_idata[index];
+        return this->m_idata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
