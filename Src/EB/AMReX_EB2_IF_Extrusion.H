@@ -21,7 +21,7 @@ public:
           m_direction(direction)
         {}
 
-    [[nodiscard]] inline Real operator() (const RealArray& p) const
+    [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const
     {
         RealArray x = p;
         x[m_direction] = 0.0;
@@ -29,7 +29,7 @@ public:
     }
 
     template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         switch (m_direction)

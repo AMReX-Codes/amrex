@@ -427,7 +427,7 @@ namespace amrex::detail {
 
     // Determine if type has a specialization for std::tuple_size
     template <class T>
-    constexpr decltype((std::tuple_size<T>::value, true)) HasTupleSize() {
+    constexpr decltype((std::tuple_size<T>::value, true)) HasTupleSize() { // NOLINT(modernize-type-traits)
         return true;
     }
     template <class T, class... Args>

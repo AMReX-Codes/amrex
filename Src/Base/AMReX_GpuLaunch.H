@@ -85,11 +85,11 @@ namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_GPU
-    inline constexpr std::size_t numThreadsPerBlockParallelFor () {
+    constexpr std::size_t numThreadsPerBlockParallelFor () {
         return AMREX_GPU_MAX_THREADS;
     }
 #else
-    inline constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
+    constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
 
     AMREX_GPU_HOST_DEVICE

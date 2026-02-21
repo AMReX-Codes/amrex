@@ -145,9 +145,9 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         int i = 0;
         while (lis >> word) {
 #ifdef AMREX_USE_FLOAT
-            prob_lo[i++] = std::stof(word);
+            prob_lo[i++] = std::stof(word); // NOLINT(clang-analyzer-security.ArrayBound)
 #else
-            prob_lo[i++] = std::stod(word);
+            prob_lo[i++] = std::stod(word); // NOLINT(clang-analyzer-security.ArrayBound)
 #endif
         }
     }
@@ -158,9 +158,9 @@ ChkptFile::read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
         int i = 0;
         while (lis >> word) {
 #ifdef AMREX_USE_FLOAT
-            prob_hi[i++] = std::stof(word);
+            prob_hi[i++] = std::stof(word); // NOLINT(clang-analyzer-security.ArrayBound)
 #else
-            prob_hi[i++] = std::stod(word);
+            prob_hi[i++] = std::stod(word); // NOLINT(clang-analyzer-security.ArrayBound)
 #endif
         }
     }

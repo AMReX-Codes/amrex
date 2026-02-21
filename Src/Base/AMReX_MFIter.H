@@ -11,7 +11,7 @@ namespace amrex {
 #ifdef AMREX_USE_GPU
     inline bool TilingIfNotGPU () noexcept { return Gpu::notInLaunchRegion(); }
 #else
-    inline constexpr bool TilingIfNotGPU () noexcept { return true; }
+    constexpr bool TilingIfNotGPU () noexcept { return true; }
 #endif
 
 template<class T> class FabArray;

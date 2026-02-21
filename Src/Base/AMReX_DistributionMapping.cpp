@@ -1455,7 +1455,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         for (int i = 0; i < nteams; ++i)
         {
             const Long W = LIpairV[i].first;
-            if (W > max_wgt) { max_wgt = W; }
+            max_wgt = std::max(W, max_wgt);
             sum_wgt += W;
         }
         Real efficiency = static_cast<Real>(sum_wgt)/static_cast<Real>(nteams*max_wgt);
