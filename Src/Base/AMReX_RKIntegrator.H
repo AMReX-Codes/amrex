@@ -6,18 +6,35 @@
 #include <AMReX_IntegratorBase.H>
 #include <functional>
 
+/**
+ * \file AMReX_RKIntegrator.H
+ * \brief Runge-Kutta integrator with configurable Butcher tableau.
+ */
+
 namespace amrex {
 
+/**
+ * \brief Named Runge-Kutta Butcher tableaus recognized by RKIntegrator.
+ */
 enum struct ButcherTableauTypes {
-    User = 0,
-    ForwardEuler,
-    Trapezoid,
-    SSPRK3,
-    RK4,
+    User = 0,      //!< User supplies nodes/weights/tableau entries via ParmParse.
+    ForwardEuler,  //!< First-order explicit Euler method.
+    Trapezoid,     //!< Two-stage trapezoidal rule (Heun's method).
+    SSPRK3,        //!< Strong stability preserving third-order RK scheme.
+    RK4,           //!< Classic four-stage Runge-Kutta scheme.
     NumTypes
 };
 
 template<class T>
+/**
+ * \class amrex::RKIntegrator
+ * \brief Generic explicit Runge-Kutta integrator with configurable tableau.
+ *
+ * The template parameter \p T represents the state container (e.g., MultiFab).
+ * Users call initialize() with an initial state, then repeatedly call advance()
+ * or evolve() to step forward in time. All state allocation/copying is
+ * delegated to IntegratorOps<T>.
+ */
 class RKIntegrator : public IntegratorBase<T>
 {
 private:
@@ -174,13 +191,24 @@ private:
     }
 
 public:
+    //! Default-construct with no allocated storage; call initialize() later.
     RKIntegrator () {}
 
+    /**
+     * \brief Construct and immediately initialize internal buffers.
+     * \param S_data Prototype data structure used to size stage vectors.
+     * \param time   Starting time associated with \p S_data.
+     */
     RKIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize(S_data, time);
     }
 
+    /**
+     * \brief Allocate stage storage and configure the Butcher tableau.
+     * \param S_data Prototype data structure used to size stage vectors.
+     * \param time   Starting time associated with \p S_data.
+     */
     void initialize (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize_parameters();
@@ -189,6 +217,15 @@ public:
 
     virtual ~RKIntegrator () {}
 
+    /**
+     * \brief Advance the solution by a single timestep using the configured RK scheme.
+     *
+     * \param S_old State at time \p time (input only).
+     * \param S_new Output state overwritten with the result at \p time + \p dt.
+     * \param time  Current time associated with \p S_old.
+     * \param dt    Desired timestep size.
+     * \return The timestep actually taken (equals \p dt for fixed-step schemes).
+     */
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
         // Assume before step() that S_old is valid data at the current time ("time" argument)
@@ -243,6 +280,15 @@ public:
         return dt;
     }
 
+    /**
+     * \brief Integrate forward in time until \p time_out.
+     *
+     * Uses IntegratorBase::time_step as the default step size, adjusting the
+     * final step to hit \p time_out exactly (within roundoff).
+     *
+     * \param S_out State container populated with the solution at \p time_out.
+     * \param time_out Target time to reach relative to the state passed to initialize().
+     */
     void evolve (T& S_out, const amrex::Real time_out) override
     {
         amrex::Real dt = BaseT::time_step;
@@ -275,8 +321,19 @@ public:
         }
     }
 
-    void time_interpolate (const T& /* S_new */, const T& S_old, amrex::Real timestep_fraction, T& data) override
+    /**
+     * \brief Reconstruct an intermediate state within the last RK step.
+     *
+     * Currently implemented for the classical four-stage RK only.
+     *
+     * \param S_new             Not used (reserved for future extensions).
+     * \param S_old             State at the beginning of the last step.
+     * \param timestep_fraction Fraction of the step [0,1] at which to interpolate.
+     * \param data              Output container receiving the interpolated state.
+     */
+    void time_interpolate (const T& S_new, const T& S_old, amrex::Real timestep_fraction, T& data) override
     {
+        (void)S_new;
         // data = S_old*(1-time_step_fraction) + S_new*(time_step_fraction)
         /*
         data.setVal(0);
@@ -312,6 +369,10 @@ public:
 
     }
 
+    /**
+     * \brief Apply \p Map to each stored stage vector (e.g., to remap data).
+     * \param Map Functor that operates in-place on a stage container.
+     */
     void map_data (std::function<void(T&)> Map) override
     {
         for (auto& F : F_nodes) {

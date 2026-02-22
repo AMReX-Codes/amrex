@@ -1,3 +1,7 @@
+/**
+ * \file AMReX_MultiFabUtilI.H
+ * \brief Inline helper utilities for MultiFab copies (used by EB_LSCore).
+ */
 
 // Used by EB_LSCore only.  Might be removed in the future.  So don't use.
 
@@ -121,4 +125,3 @@ namespace amrex::MFUtil {
 }
 
 /// \endcond
-

@@ -15,6 +15,11 @@
 #include <AMReX_Vector.H>
 #include <AMReX_ValLocPair.H>
 
+/**
+ * \file AMReX_ParallelDescriptor.H
+ * \brief Low-level MPI communication helpers and collective operations.
+ */
+
 #ifndef BL_AMRPROF
 #include <AMReX_Box.H>
 #endif
@@ -186,11 +191,13 @@ while ( false )
 #endif
         }
 
+        //! Return the underlying team communicator handle.
         [[nodiscard]] const team_t& get() const {
             return m_team_comm;
         }
-        //! return the communicator
+        //! Return the communicator used within each team.
         [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
+        //! Return the communicator used among team leaders.
         [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
         /// \cond DOXYGEN_IGNORE
@@ -217,9 +224,12 @@ while ( false )
     extern AMREX_EXPORT const int ioProcessor;
     /// \endcond
 
+    //! Return the minimum MPI tag reserved for AMReX collectives.
     inline int MinTag () noexcept { return m_MinTag; }
+    //! Return the maximum MPI tag reserved for AMReX collectives.
     inline int MaxTag () noexcept { return m_MaxTag; }
 
+    //! Return the default AMReX communicator (usually `MPI_COMM_WORLD`).
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
     //! Return the number of MPI ranks per node as defined by
@@ -306,66 +316,87 @@ while ( false )
     }
 
     //
+    //! Return the width (number of ranks) for each team communicator.
     inline int
     TeamSize () noexcept
     {
         return m_Team.m_size;
     }
+    //! Return the number of teams currently active.
     inline int
     NTeams () noexcept
     {
         return m_Team.m_numTeams;
     }
+    //! Return this rank's team color (team identifier).
     inline int
     MyTeamColor () noexcept
     {
         return m_Team.m_color;
     }
+    //! Return the global rank of the lead process for this rank’s team.
     inline int
     MyTeamLead () noexcept
     {
         return m_Team.m_lead;
     }
+    //! Return the caller's rank within its team communicator.
     inline int
     MyRankInTeam () noexcept
     {
         return m_Team.m_rankInTeam;
     }
+    //! Return the rank id of the team lead that owns \p rank.
     inline int
     TeamLead (int rank) noexcept
     {
         return (rank >= 0) ? (rank - rank % m_Team.m_size) : MPI_PROC_NULL;
     }
+    //! True if the caller is its team's lead rank.
     inline bool
     isTeamLead () noexcept
     {
         return MyRankInTeam() == 0;
     }
+    //! True if \p rank belongs to the caller's team.
     inline bool
     sameTeam (int rank) noexcept
     {
         return MyTeamLead() == TeamLead(rank);
     }
+    //! True if ranks \p rankA and \p rankB belong to the same team.
     inline bool
     sameTeam (int rankA, int rankB) noexcept
     {
         return TeamLead(rankA) == TeamLead(rankB);
     }
+    //! Return the rank index of \p rank inside the lead communicator.
     inline int
     RankInLeadComm (int rank) noexcept
     {
         return (rank >= 0) ? (rank / m_Team.m_size) : MPI_PROC_NULL;
     }
+    //! True if reductions should run per team instead of globally.
     inline bool
     doTeamReduce () noexcept
     {
         return m_Team.m_do_team_reduce;
     }
+    //! Return a reference to the singleton ProcessTeam descriptor.
     inline const ProcessTeam&
     MyTeam () noexcept
     {
         return m_Team;
     }
+    /**
+     * \brief Partition the integer range [begin,end) among team workers.
+     *
+     * \param begin    Global start index (inclusive).
+     * \param end      Global end index (exclusive).
+     * \param rit      Optional rank-in-team override (defaults to caller).
+     * \param nworkers Optional team size override (defaults to TeamSize()).
+     * \return Pair {range_begin, range_end} assigned to the chosen worker.
+     */
     inline std::pair<int,int>
     team_range (int begin, int end, int rit = -1, int nworkers = 0) noexcept
     {
@@ -410,6 +441,14 @@ while ( false )
 
         return std::make_pair(rb,re);
     }
+    /**
+     * \brief Execute \p f(i) across the current team’s portion of [begin,end).
+     *
+     * \tparam F Callable type accepting an integer index.
+     * \param begin Global start index (inclusive).
+     * \param end   Global end index (exclusive).
+     * \param f     Functor invoked for each local index.
+     */
     template <typename F>
     void team_for (int begin, int end, const F& f)
     {
@@ -418,7 +457,12 @@ while ( false )
             f(i);
         }
     }
-    template <typename F>               // rit: rank in team
+    /**
+     * \brief Execute \p f(i) for the subrange assigned to rank \p rit.
+     *
+     * \param rit Rank-in-team used to select the subrange.
+     */
+    template <typename F>
     void team_for (int begin, int end, int rit, const F& f)
     {
         const auto& range = team_range(begin, end, rit);
@@ -426,7 +470,13 @@ while ( false )
             f(i);
         }
     }
-    template <typename F>               // rit: rank in team
+    /**
+     * \brief Execute \p f(i) for the subrange associated with rank \p rit among \p nworkers workers.
+     *
+     * \param rit       Rank-in-team used to select the subrange.
+     * \param nworkers  Number of workers participating in the split.
+     */
+    template <typename F>
     void team_for (int begin, int end, int rit, int nworkers, const F& f)
     {
         const auto& range = team_range(begin, end, rit, nworkers);
@@ -436,19 +486,26 @@ while ( false )
     }
 
     /// \ingroup amrex_mpi
+    //! Synchronize all ranks in the default communicator; optional \p message helps diagnose hangs.
     void Barrier (const std::string& message = Unnamed);
     /// \ingroup amrex_mpi
+    //! Synchronize all ranks in \p comm; optional \p message helps diagnose hangs.
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
+    //! Non-blocking barrier on the default communicator; returns a Message handle to wait/test.
     Message Abarrier ();
+    //! Non-blocking barrier on \p comm; returns a Message handle to wait/test.
     Message Abarrier (const MPI_Comm &comm);
 
+    //! Test whether \p request has completed; updates \p flag/status.
     void Test (MPI_Request& request, int& flag, MPI_Status& status);
+    //! Test a vector of requests; sets \p flag true if all completed and fills \p status.
     void Test (Vector<MPI_Request>& request, int& flag, Vector<MPI_Status>& status);
 
+    //! Duplicate \p comm into \p newcomm, inheriting the group and context.
     void Comm_dup (MPI_Comm comm, MPI_Comm& newcomm);
-    //! Abort with specified error code.
+    //! Abort with specified error code; optionally emit a backtrace.
     void Abort (int errorcode = SIGABRT, bool backtrace = true);
-    //! ErrorString return string associated with error internal error condition
+    //! Translate an MPI error code into a printable string.
     const char* ErrorString (int errorcode);
     //! Returns wall-clock seconds since start of execution.
     double second () noexcept;

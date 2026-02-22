@@ -96,6 +96,7 @@ struct range_impl
         Long mi_s;
     };
 
+    //! Return an iterator positioned at the first logical index for the current execution context.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator begin () const noexcept {
 #if defined (__SYCL_DEVICE_ONLY__)
@@ -110,6 +111,7 @@ struct range_impl
 #endif
     }
 
+    //! Return the past-the-end iterator sentinel for the range.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     iterator end () const noexcept { return iterator(m_b,m_n,0); }
 

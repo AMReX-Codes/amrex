@@ -203,6 +203,7 @@ struct SharedMemory
 template <>
 struct SharedMemory<double>
 {
+    //! Return a pointer to the double-precision shared-memory buffer for this kernel launch.
     [[nodiscard]] AMREX_GPU_DEVICE double* dataPtr () noexcept {
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(double,amrex_sm_double);,
                           extern __shared__  double amrex_sm_double[];)
@@ -213,6 +214,7 @@ struct SharedMemory<double>
 template <>
 struct SharedMemory<float>
 {
+    //! Return a pointer to the single-precision shared-memory buffer for this kernel launch.
     [[nodiscard]] AMREX_GPU_DEVICE float* dataPtr () noexcept {
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(float,amrex_sm_float);,
                           extern __shared__  float amrex_sm_float[];)
@@ -223,6 +225,7 @@ struct SharedMemory<float>
 template <>
 struct SharedMemory<long>
 {
+    //! Return a pointer to the long-integer shared-memory buffer for this kernel launch.
     [[nodiscard]] AMREX_GPU_DEVICE long* dataPtr () noexcept {
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(long,amrex_sm_long);,
                           extern __shared__  long amrex_sm_long[];)
@@ -233,6 +236,7 @@ struct SharedMemory<long>
 template <>
 struct SharedMemory<long long>
 {
+    //! Return a pointer to the long-long shared-memory buffer for this kernel launch.
     [[nodiscard]] AMREX_GPU_DEVICE long long* dataPtr () noexcept {
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(long long,amrex_sm_long_long);,
                           extern __shared__  long long amrex_sm_long_long[];)
@@ -243,6 +247,7 @@ struct SharedMemory<long long>
 template <>
 struct SharedMemory<int>
 {
+    //! Return a pointer to the 32-bit integer shared-memory buffer for this kernel launch.
     [[nodiscard]] AMREX_GPU_DEVICE int* dataPtr () noexcept {
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(int,amrex_sm_int);,
                           extern __shared__  int amrex_sm_int[];)
@@ -253,6 +258,7 @@ struct SharedMemory<int>
 template <>
 struct SharedMemory<short>
 {
+    //! Return a pointer to the 16-bit integer shared-memory buffer for this kernel launch.
     [[nodiscard]] AMREX_GPU_DEVICE short* dataPtr () noexcept {
         AMREX_HIP_OR_CUDA(HIP_DYNAMIC_SHARED(short,amrex_sm_short);,
                           extern __shared__  short amrex_sm_short[];)

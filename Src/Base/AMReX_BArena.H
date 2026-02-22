@@ -25,6 +25,7 @@ public:
      * \param sz Number of bytes to allocate.
      * \return Pointer to the allocated buffer.
      */
+    /// \return Host pointer allocated with std::malloc.
     [[nodiscard]] void* alloc (std::size_t sz) final;
     /**
      * \brief Free memory previously returned by alloc().

@@ -115,6 +115,7 @@ public:
     const int* vect () const& noexcept{ return bc; }
     const int* vect () && = delete;
 
+    /** \brief Return pointer to the combined low/high face array. */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const int* data () const& noexcept { return bc; }
     const int* data () && = delete;

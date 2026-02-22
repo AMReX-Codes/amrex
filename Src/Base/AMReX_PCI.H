@@ -1,8 +1,23 @@
 #ifndef AMREX_PCI_H_
 #define AMREX_PCI_H_
 
+/**
+ * \file AMReX_PCI.H
+ * \brief FabArray point-to-point copy implementation details.
+ */
+
 namespace amrex {
 
+/**
+ * \brief Perform CPU-side local copy/plus operations for FabArrays.
+ *
+ * \param thecpc Copy descriptor describing local and remote tags.
+ * \param src    Source FabArray supplying the data.
+ * \param scomp  First component in \p src to copy.
+ * \param dcomp  First component in \p this to overwrite/add.
+ * \param ncomp  Number of components to transfer.
+ * \param op     Whether to copy or add (`FabArrayBase::COPY`/`ADD`).
+ */
 template <class FAB>
 void
 FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -85,6 +100,17 @@ FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
 }
 
 #ifdef AMREX_USE_GPU
+/**
+ * \brief Perform GPU-side local copy/plus operations for FabArrays.
+ *
+ * \param thecpc        Copy descriptor describing local tags.
+ * \param src           Source FabArray supplying the data.
+ * \param scomp         First component in \p src to copy.
+ * \param dcomp         First component in \p this to overwrite/add.
+ * \param ncomp         Number of components to transfer.
+ * \param op            Whether to copy or add (`FabArrayBase::COPY`/`ADD`).
+ * \param deterministic If true, enforce deterministic write ordering (uses additional masks).
+ */
 template <class FAB>
 void
 FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,

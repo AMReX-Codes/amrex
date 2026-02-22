@@ -7,7 +7,13 @@
 #include <AMReX_Config.H>
 #include <AMReX_TypeTraits.H>
 
+/**
+ * \file AMReX_NonLocalBCImpl.H
+ * \brief Concrete index-mapping functors used by non-local boundary support.
+ */
+
 namespace amrex::NonLocalBC {
+//! Rotate a 2D index 90 degrees clockwise around the origin.
 struct Rotate90ClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -29,6 +35,7 @@ struct Rotate90ClockWise {
     }
 };
 
+//! Rotate a 2D index 90 degrees counter-clockwise around the origin.
 struct Rotate90CounterClockWise {
     AMREX_GPU_HOST_DEVICE
     IntVect operator() (IntVect const& iv) const noexcept {
@@ -50,6 +57,7 @@ struct Rotate90CounterClockWise {
     }
 };
 
+//! Dispatch between clockwise and counter-clockwise rotations based on the sign of x.
 struct Rotate90DstToSrc
 {
     AMREX_GPU_HOST_DEVICE
@@ -62,6 +70,7 @@ struct Rotate90DstToSrc
     }
 };
 
+//! Rotate by 180 degrees with respect to a domain of height \c Ly.
 struct Rotate180Fn {
     int Ly;
 
@@ -85,6 +94,7 @@ struct Rotate180Fn {
     }
 };
 
+//! Map Cartesian indices onto a polar tiling.
 struct PolarFn {
     int Lx, Ly;
 
@@ -118,6 +128,7 @@ struct PolarFn {
     }
 };
 
+//! Variant of PolarFn that handles x-y corner cases.
 struct PolarFn2 { // for the x-y corners
     int Lx, Ly;
 

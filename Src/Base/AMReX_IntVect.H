@@ -177,6 +177,7 @@ public:
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
+    //! Convert the IntVect to a Dim3 with unused components set to zero.
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 () const noexcept {
@@ -189,6 +190,7 @@ public:
         }
     }
 
+    //! Convert to Dim3, filling inactive directions with \p fill_extra.
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
@@ -201,6 +203,7 @@ public:
         }
     }
 
+    //! Convert to a fixed-size Array of the requested value type \p T.
     template< typename T = int >
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Array<T, dim> toArray () const noexcept {

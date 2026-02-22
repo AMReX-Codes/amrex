@@ -4,6 +4,11 @@
 
 #include <AMReX_Reduce.H>
 
+/**
+ * \file AMReX_ParReduce.H
+ * \brief Convenience wrappers for running ReduceOps over MultiFabs.
+ */
+
 namespace amrex {
 
 /**

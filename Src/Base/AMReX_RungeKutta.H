@@ -5,6 +5,11 @@
 #include <AMReX_FabArray.H>
 
 /**
+ * \file AMReX_RungeKutta.H
+ * \brief Helpers for implementing Runge-Kutta time integrators on FabArrays.
+ */
+
+/**
  * \brief Functions for Runge-Kutta methods
  *
  * This namespace RungeKutta has functions for a number RK methods, RK2, RK3
@@ -146,15 +151,15 @@ void rk4_update_4 (MF& Unew, MF const& Uold, Array<MF,4> const& rkk, Real dt6)
 /// \endcond
 
 /**
- * \brief Time stepping with RK2
+ * \brief Advance one timestep with the explicit trapezoid (RK2) scheme.
  *
- * \param Uold       input FabArray/MultiFab data at time
- * \param Unew       output FabArray/MultiFab data at time+dt
- * \param time       time at the beginning of the step
- * \param dt         time step
- * \param frhs       computing the right-hand side
- * \param fillbndry  filling ghost cells
- * \param post_stage post-processing stage results
+ * \param Uold       Input FabArray/MultiFab at \p time (ghost cells allocated).
+ * \param Unew       Output FabArray/MultiFab at \p time + \p dt.
+ * \param time       Beginning of the timestep.
+ * \param dt         Timestep size.
+ * \param frhs       Callable computing the RHS: `void(stage, MF&, MF const&, Real, Real)`.
+ * \param fillbndry  Callable that fills ghost cells: `void(stage, MF&, Real)`.
+ * \param post_stage Optional callable invoked after each stage: `void(stage, MF&)`.
  */
 template <typename MF, typename F, typename FB, typename P = PostStageNoOp>
 void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillbndry,
@@ -182,16 +187,16 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
 }
 
 /**
- * \brief Time stepping with RK3
+ * \brief Advance one timestep with the SSPRK3 scheme.
  *
- * \param Uold            input FabArray/MultiFab data at time
- * \param Unew            output FabArray/MultiFab data at time+dt
- * \param time            time at the beginning of the step
- * \param dt              time step
- * \param frhs            computing the right-hand side
- * \param fillbndry       filling ghost cells
- * \param store_crse_data storing right-hand side data for AMR
- * \param post_stage      post-processing stage results
+ * \param Uold            Input FabArray/MultiFab at \p time (ghost cells allocated).
+ * \param Unew            Output FabArray/MultiFab at \p time + \p dt.
+ * \param time            Beginning of the timestep.
+ * \param dt              Timestep size.
+ * \param frhs            Callable computing the RHS: `void(stage, MF&, MF const&, Real, Real)`.
+ * \param fillbndry       Callable that fills ghost cells: `void(stage, MF&, Real)`.
+ * \param store_crse_data Callable invoked after completing the step with the array of stage RHS.
+ * \param post_stage      Optional callable invoked after each stage: `void(stage, MF&)`.
  */
 template <typename MF, typename F, typename FB, typename R,
           typename P = PostStageNoOp>
@@ -232,16 +237,16 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
 }
 
 /**
- * \brief Time stepping with RK4
+ * \brief Advance one timestep with the classical RK4 scheme.
  *
- * \param Uold            input FabArray/MultiFab data at time
- * \param Unew            output FabArray/MultiFab data at time+dt
- * \param time            time at the beginning of the step
- * \param dt              time step
- * \param frhs            computing the right-hand side
- * \param fillbndry       filling ghost cells
- * \param store_crse_data storing right-hand side data for AMR
- * \param post_stage      post-processing stage results
+ * \param Uold            Input FabArray/MultiFab at \p time.
+ * \param Unew            Output FabArray/MultiFab at \p time + \p dt.
+ * \param time            Beginning of the timestep.
+ * \param dt              Timestep size.
+ * \param frhs            Callable computing the RHS: `void(stage, MF&, MF const&, Real, Real)`.
+ * \param fillbndry       Callable that fills ghost cells: `void(stage, MF&, Real)`.
+ * \param store_crse_data Callable invoked after completing the step with the array of stage RHS.
+ * \param post_stage      Optional callable invoked after each stage: `void(stage, MF&)`.
  */
 template <typename MF, typename F, typename FB, typename R,
           typename P = PostStageNoOp>

@@ -10,6 +10,11 @@
 #include <fstream>
 #include <string>
 
+/**
+ * \file AMReX_NFiles.H
+ * \brief Helpers for writing/reading datasets across N output files.
+ */
+
 namespace amrex {
 
 
@@ -29,49 +34,48 @@ class NFilesIter
 
 
     /**
-    * \brief the nfiles will be named "filePrefix" + "00000"
-    * through "filePrefix" + "noutfiles-1"
-    * the range [1, nProcs] for noutfiles is enforced
-    *
-    * constructor for writing with static set selection
-    *
-    * \param noutfiles
-    * \param &fileprefix
-    * \param groupsets
-    * \param setBuf
-    */
+     * \brief Construct a writer iterator producing files `filePrefix00000`, …, `filePrefixNNNNN`.
+     *
+     * The requested file count is clamped to `[1, NProcs]`.
+     *
+     * \param noutfiles Desired number of output files.
+     * \param fileprefix Prefix applied to every file name.
+     * \param groupsets  If true, ranks are partitioned into contiguous groups; otherwise they interleave.
+     * \param setBuf     If true, enable buffered I/O on the file stream.
+     */
     NFilesIter(int noutfiles, std::string fileprefix,
                bool groupsets, bool setBuf);
 
 
     /**
-    * \brief call this to use dynamic set selection
-    * deciderproc defaults to nprocs - 1 if \< 0
-    *
-    * \param deciderproc
-    */
+     * \brief Enable dynamic set selection coordinated by \p deciderproc.
+     *
+     * The coordinator defaults to `NProcs-1` if \p deciderproc < 0.
+     *
+     * \param deciderproc Rank that decides which writers proceed.
+     */
     void SetDynamic(int deciderproc = -1);
     [[nodiscard]] bool GetDynamic() const { return ( ! useStaticSetSelection); }
 
 
     /**
-    * \brief call this to use a file per process for a sparse
-    * set of writers.  ranksToWrite.size() will set noutfiles
-    * rank ranksToWrite[n] will write to file_rank
-    *
-    * \param &ranksToWrite
-    */
+     * \brief Configure a sparse file-per-process mode.
+     *
+     * Each rank in \p ranksToWrite writes to its own file.
+     *
+     * \param ranksToWrite Ordered list of participating writer ranks.
+     */
     void SetSparseFPP(const Vector<int> &ranksToWrite);
     [[nodiscard]] bool GetSparseFPP() const { return useSparseFPP; }
 
 
     /**
-    * \brief constructor for reading
-    *
-    * \param &fileName
-    * \param &readRanks
-    * \param setBuf
-    */
+     * \brief Construct a reader for an existing multi-file dataset.
+     *
+     * \param fileName  Base filename/prefix.
+     * \param readRanks Ranks that will read the data.
+     * \param setBuf    If true, enable buffered I/O.
+     */
     NFilesIter(std::string fileName,
                Vector<int> readRanks,
                bool setBuf = false);
@@ -84,30 +88,57 @@ class NFilesIter
     NFilesIter& operator= (NFilesIter &&) = delete;
 
     /**
-    * \brief if appendFirst is true, the first set for this
-    * iterator will open the files in append mode
-    *
-    * \param appendFirst
-    */
+     * \brief Determine whether the current rank should write during this iteration.
+     *
+     * \param appendFirst Open the file in append mode for the first write set.
+     * \return True if the caller may write; false otherwise.
+     */
     bool ReadyToWrite(bool appendFirst = false);
 
+    /**
+     * \brief Determine whether the current rank should read during this iteration.
+     * \return True if the caller may issue read operations; false if this rank is idle.
+     */
     bool ReadyToRead();
 
+    /**
+     * \brief Advance to the next writer/reader set (pre-increment).
+     * \return Reference to this iterator after advancement.
+     */
     NFilesIter &operator++();
 
+    //! Return the fstream associated with the current file set.
     std::fstream &Stream() { return fileStream; }
 
 
     /**
-    * \brief get the current Stream()'s seek position
-    */
+     * \brief Return the current seek position of Stream().
+     *
+     * \return Offset within the underlying file.
+     */
     std::streampos SeekPos();
 
+    /**
+     * \brief Compute the maximum number of entries per set.
+     *
+     * \param nProcs    Total number of ranks.
+     * \param nOutFiles Requested number of output files.
+     * \return Size of each set such that every rank appears in exactly one set.
+     */
     static int LengthOfSet(int nProcs, int nOutFiles) {
       int anf(ActualNFiles(nOutFiles));
       return ((nProcs + (anf - 1)) / anf);
     }
 
+    /**
+     * \brief Determine the set index occupied by a rank.
+     *
+     * \param whichproc Rank index to query.
+     * \param nprocs    Total number of ranks.
+     * \param noutfiles Requested number of output files.
+     * \param groupsets If true, sets are contiguous; otherwise they interleave.
+     * \return Zero-based set index holding \p whichproc.
+     */
     static int WhichSetPosition(int whichproc, int nprocs,
                                 int noutfiles, bool groupsets)
     {
@@ -122,11 +153,11 @@ class NFilesIter
 
 
     /**
-    * \brief this returns the actual number of files used
-    * the range [1, nProcs] is enforced
-    *
-    * \param nOutFiles
-    */
+     * \brief Clamp the requested file count to `[1, NProcs]`.
+     *
+     * \param nOutFiles Requested number of output files.
+     * \return Feasible number of files that will actually be used.
+     */
     static int ActualNFiles(int nOutFiles)
     {
       return( std::max(1, std::min(ParallelDescriptor::NProcs(), nOutFiles)) );
@@ -134,15 +165,23 @@ class NFilesIter
 
 
     /**
-    * \brief this checks if nOutFiles equals the calculated number of files
-    * returns false if they do not match
-    *
-    * \param nProcs
-    * \param nOutFiles
-    * \param groupSets
-    */
+     * \brief Validate that \p nOutFiles matches the derived number of files for \p nProcs.
+     *
+     * \param nProcs    Number of MPI ranks participating.
+     * \param nOutFiles Requested number of files.
+     * \param groupSets Whether the writers are grouped contiguously.
+     * \return True if the request is consistent, false otherwise.
+     */
     static bool CheckNFiles(int nProcs, int nOutFiles, bool groupSets);
 
+    /**
+     * \brief Map a rank to its assigned file number.
+     *
+     * \param nOutFiles Requested number of files (will be clamped internally).
+     * \param whichProc Rank id whose file number is queried.
+     * \param groupSets Whether ranks are grouped contiguously when mapping to files.
+     * \return Zero-based file number that \p whichProc uses.
+     */
     static int FileNumber(int nOutFiles, int whichProc, bool groupSets)
     {
       BL_ASSERT(whichProc >= 0 && whichProc < ParallelDescriptor::NProcs());
@@ -160,6 +199,15 @@ class NFilesIter
     [[nodiscard]] const std::string &FileName() const { return fullFileName; }
     [[nodiscard]] int FileNumber() const { return fileNumber; }
 
+    /**
+     * \brief Return the file name for the rank \p whichProc under the given policy.
+     *
+     * \param nOutFiles   Requested number of files.
+     * \param filePrefix  File name prefix.
+     * \param whichProc   Rank whose file name to build.
+     * \param groupSets   Whether ranks are grouped contiguously.
+     * \return Full file name including numeric suffix.
+     */
     static std::string FileName(int nOutFiles,
                                 const std::string &filePrefix,
                                 int whichProc, bool groupSets)
@@ -171,6 +219,13 @@ class NFilesIter
                                               whichProc, groupSets), minDigits ) );
     }
 
+    /**
+     * \brief Return the file name corresponding to \p fileNumber.
+     *
+     * \param fileNumber Zero-based file index.
+     * \param filePrefix File name prefix.
+     * \return Full file name including numeric suffix.
+     */
     static std::string FileName(int fileNumber,
                                 const std::string &filePrefix)
     {
@@ -178,29 +233,32 @@ class NFilesIter
     }
 
 
-    /**
-    * \brief this is the processor coordinating dynamic set selection
-    */
+    //! Return the rank coordinating dynamic set selection.
     [[nodiscard]] int CoordinatorProc() const { return coordinatorProc; }
 
 
     /**
-    * \brief these are the file numbers to which each rank wrote  [rank]
-    * a rank only writes to one file
-    */
+     * \brief Return, for each rank, the file number it wrote to (at most one per rank).
+     *
+     * \return Vector indexed by rank id giving the file number used, or -1 if the rank never wrote.
+     */
     Vector<int> FileNumbersWritten();
 
 
     /**
-    * \brief these are the order of ranks which wrote to each file
-    * [filenumber][ranks in order they wrote to filenumber]
-    */
+     * \brief For each file, return the ranks that wrote to it in chronological order.
+     *
+     * Indexed as `[file_number][writer_index]`.
+     */
     [[nodiscard]] const Vector< Vector<int> > &FileNumbersWriteOrder() const { return fileNumbersWriteOrder; }
 
+    //! Release any outstanding MPI control messages (dynamic mode only).
     void CleanUpMessages();
 
+    //! Return the number of digits used when formatting file numbers.
     static int  GetMinDigits()       { return minDigits; }
 
+    //! Override the number of digits used when formatting file numbers.
     static void SetMinDigits(int md) { minDigits = md;   }
 
   private:

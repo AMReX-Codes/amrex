@@ -79,16 +79,18 @@ public:
     FabFactory& operator= (FabFactory &&) noexcept = default;
     virtual ~FabFactory () noexcept = default;
     //! Allocate and return a new FAB covering \p box with \p ncomps components.
+    //! The \p info hints control allocation behavior and \p box_index identifies
+    //! the position inside the owning container.
     AMREX_NODISCARD
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     //! Return an alias FAB that views components [\p scomp, \p scomp+\p ncomp) of \p rhs.
     AMREX_NODISCARD
     virtual FAB* create_alias (FAB const& /*rhs*/, int /*scomp*/, int /*ncomp*/) const { return nullptr; }
-    //! Destroy a FAB previously created by this factory.
+    //! Destroy a FAB previously created by this factory; \p fab may be nullptr.
     virtual void destroy (FAB* fab) const = 0;
     //! Return a heap-allocated copy of this factory.
     AMREX_NODISCARD virtual FabFactory<FAB>* clone () const = 0;
-    //! Return the number of bytes needed to store \p ncomps components in \p box.
+    //! Return the number of bytes needed to store \p ncomps components in \p box (optionally using \p box_index for bookkeeping).
     AMREX_NODISCARD virtual Long nBytes (const Box& box, int ncomps, int /*box_index*/) const {
         if constexpr (IsBaseFab_v<FAB>) {
             return box.numPts() * ncomps * Long(sizeof(typename FAB::value_type));

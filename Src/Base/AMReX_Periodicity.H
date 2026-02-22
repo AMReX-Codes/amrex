@@ -61,6 +61,7 @@ public:
      *
      * \param nghost Number of ghost cells in each direction.
      */
+    /// \return Vector of IntVect shifts covering the requested ghost region.
     [[nodiscard]] std::vector<IntVect> shiftIntVect (IntVect const& nghost = IntVect(0)) const;
 
     //! Return a reference to the canonical non-periodic Periodicity singleton.

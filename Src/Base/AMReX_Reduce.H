@@ -2,6 +2,11 @@
 #define AMREX_REDUCE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Reduce.H
+ * \brief Local reduction kernels on arrays and MultiFabs (no MPI).
+ */
+
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
 #include <AMReX_OpenMP.H>

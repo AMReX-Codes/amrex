@@ -81,19 +81,23 @@ public:
 
     //! Initialize the TinyProfiler subsystem.
     static void Initialize ();
-    //! Finalize the TinyProfiler subsystem and print a timing report.
+    //! Finalize the TinyProfiler subsystem and print a timing report (set \p bFlushing when aborting early).
     static void Finalize (bool bFlushing = false) noexcept;
 
     //! Initialize memory-tracking subsystem.
     static void MemoryInitialize ();
-    //! Finalize memory-tracking subsystem and print a memory report.
+    //! Finalize memory-tracking subsystem and print a memory report (set \p bFlushing when aborting early).
     static void MemoryFinalize (bool bFlushing = false) noexcept;
 
-    //! Register an arena's memory-stat map under \p memory_name; returns \c true on success.
+    /**
+     * \brief Register an arena's memory-stat map so TinyProfiler can report it.
+     * \param memory_name Label shown in the report.
+     * \param memstats    Map tracking allocation statistics for the arena.
+     */
     static bool RegisterArena (const std::string& memory_name,
                                std::map<std::string, MemStat>& memstats) noexcept;
 
-    //! Deregister the arena identified by \p memstats.
+    //! Deregister the arena identified by \p memstats (undoes RegisterArena).
     static void DeregisterArena (std::map<std::string, MemStat>& memstats) noexcept;
 
     //! Open a named timing region \p regname.
@@ -192,15 +196,26 @@ private:
                                double t_final, std::ostream* os, bool only_local);
 };
 
+/**
+ * \class amrex::TinyProfileRegion
+ * \brief RAII helper that brackets a named profiling region via TinyProfiler.
+ *
+ * Constructing the object calls TinyProfiler::StartRegion and destruction
+ * automatically stops the region, ensuring balanced calls even when exceptions
+ * occur.
+ */
 class TinyProfileRegion
 {
 public:
+    //! Start a profiling region named \p a_regname.
     explicit TinyProfileRegion (std::string a_regname) noexcept;
+    //! Start a profiling region named \p a_regname.
     explicit TinyProfileRegion (const char* a_regname) noexcept;
     TinyProfileRegion (TinyProfileRegion const&) = delete;
     TinyProfileRegion (TinyProfileRegion &&) = delete;
     TinyProfileRegion& operator= (TinyProfileRegion const&) = delete;
     TinyProfileRegion& operator= (TinyProfileRegion &&) = delete;
+    //! Stop the profiling region on destruction.
     ~TinyProfileRegion ();
 private:
     std::string regname;

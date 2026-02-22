@@ -23,20 +23,40 @@
 
 namespace amrex
 {
-    //!  return the name of the level directory,  e.g., Level_5
+    /**
+     * \brief Return the directory name for a level (e.g., "Level_5").
+     * \param level Zero-based AMR level index.
+     * \param levelPrefix Prefix prepended to the integer index.
+     */
     std::string LevelPath (int level, const std::string &levelPrefix = "Level_");
 
-    //!  return the path of the multifab to write to the header, e.g., Level_5/Cell
+    /**
+     * \brief Return the relative MultiFab path recorded in the header (e.g., "Level_5/Cell").
+     * \param level Zero-based AMR level index.
+     * \param levelPrefix Prefix used for directories (defaults to "Level_").
+     * \param mfPrefix    Name of the data prefix ("Cell" for cell-centered data).
+     */
     std::string MultiFabHeaderPath (int level,
                                     const std::string &levelPrefix = "Level_",
                                     const std::string &mfPrefix = "Cell");
 
-    //!  return the full path of the level directory, e.g., plt00005/Level_5
+    /**
+     * \brief Return the absolute level directory path (e.g., "plt00005/Level_5").
+     * \param level Zero-based AMR level index.
+     * \param plotfilename Name of the plotfile root directory.
+     * \param levelPrefix Prefix used for directories (defaults to "Level_").
+     */
     std::string LevelFullPath (int level,
                                const std::string &plotfilename,
                                const std::string &levelPrefix = "Level_");
 
-    //!  return the full path multifab prefix, e.g., plt00005/Level_5/Cell
+    /**
+     * \brief Return the absolute path prefix for MultiFab data (e.g., "plt00005/Level_5/Cell").
+     * \param level Zero-based AMR level index.
+     * \param plotfilename Name of the plotfile root directory.
+     * \param levelPrefix Prefix used for directories (defaults to "Level_").
+     * \param mfPrefix    Component prefix ("Cell", "Node", etc.).
+     */
     std::string MultiFabFileFullPrefix (int level,
                                         const std::string &plotfilename,
                                         const std::string &levelPrefix = "Level_",
@@ -44,27 +64,42 @@ namespace amrex
 
 
     /**
-    * \brief  prebuild a hierarchy of directories
-    *  dirName is built first.  if dirName exists, it is renamed.  then build
-    *  dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
-    *  if callBarrier is true, call ParallelDescriptor::Barrier()
-    *  after all directories are built
-    *  ParallelDescriptor::IOProcessor() creates the directories
-    *
-    * \param &dirName
-    * \param &subDirPrefix
-    * \param nSubDirs
-    * \param callBarrier
-    */
+     * \brief Create a hierarchy of plotfile directories on disk.
+     *
+     * Builds \p dirName and renames it if it already exists, then creates the
+     * numbered subdirectories `dirName/subDirPrefix_i` for `i` in `[0,nSubDirs)`.
+     * MPI rank 0 (IOProcessor) performs the filesystem work; optionally, all
+     * ranks can synchronize via ParallelDescriptor::Barrier().
+     *
+     * \param dirName     Root directory to create.
+     * \param subDirPrefix Prefix for per-level subdirectories (e.g., "Level_").
+     * \param nSubDirs    Number of subdirectories to create.
+     * \param callBarrier Whether to synchronize all ranks after creation.
+     */
     void PreBuildDirectorHierarchy (const std::string &dirName,
                                     const std::string &subDirPrefix,
                                     int nSubDirs,
                                     bool callBarrier);
 
     /**
-    *  write a generic plot file header to the file plotfilename/Header
-    *  the plotfilename directory must already exist
-    */
+     * \brief Write the ascii header that describes a multi-level plot file.
+     *
+     * The target plotfile directory must already exist, and the caller passes
+     * header metadata describing the AMR hierarchy, component list, timesteps,
+     * and refinement ratios.
+     *
+     * \param HeaderFile Stream already opened on `<plotfilename>/Header`.
+     * \param nlevels Number of AMR levels present.
+     * \param bArray Per-level BoxArrays.
+     * \param varnames Component names.
+     * \param geom Per-level geometries.
+     * \param time Simulation time.
+     * \param level_steps Per-level step counters.
+     * \param ref_ratio Refinement ratios between levels.
+     * \param versionName ASCII version string stored in Header.
+     * \param levelPrefix Directory prefix for each level.
+     * \param mfPrefix    MultiFab component prefix.
+     */
     void WriteGenericPlotfileHeader (std::ostream &HeaderFile,
                                      int nlevels,
                                      const Vector<BoxArray> &bArray,
@@ -78,7 +113,20 @@ namespace amrex
                                      const std::string &mfPrefix = "Cell");
 
     /// \ingroup amrex_io
-    //! Write a single-level AMReX plot file for \p mf with the given variable names, geometry, and time.
+    /**
+     * \brief Write a single-level AMReX plot file for \p mf.
+     *
+     * \param plotfilename Destination directory (created if needed).
+     * \param mf           MultiFab holding the cell data to dump.
+     * \param varnames     Component names written to the header.
+     * \param geom         Geometry describing the domain.
+     * \param t            Simulation time stamp stored in the header.
+     * \param level_step   Step number recorded for the level.
+     * \param versionName  ASCII version string stored in Header.
+     * \param levelPrefix  Directory prefix for this level (defaults to "Level_").
+     * \param mfPrefix     Component prefix ("Cell", "Node", etc.).
+     * \param extra_dirs   Optional directories created alongside the plotfile.
+     */
     void WriteSingleLevelPlotfile (const std::string &plotfilename,
                                    const MultiFab &mf,
                                    const Vector<std::string> &varnames,
@@ -91,7 +139,22 @@ namespace amrex
                                    const Vector<std::string>& extra_dirs = Vector<std::string>());
 
     /// \ingroup amrex_io
-    //! Write a multi-level AMReX plot file for the \p nlevels MultiFabs with the given variable names, geometry, and time.
+    /**
+     * \brief Write a multi-level AMReX plot file.
+     *
+     * \param plotfilename Destination directory (created if needed).
+     * \param nlevels      Number of AMR levels written.
+     * \param mf           Vector of MultiFab pointers, one per level.
+     * \param varnames     Component names recorded in the header.
+     * \param geom         Per-level geometries.
+     * \param time         Simulation time stamp stored in the header.
+     * \param level_steps  Per-level step counters.
+     * \param ref_ratio    Refinement ratios between levels.
+     * \param versionName  ASCII version string stored in Header.
+     * \param levelPrefix  Directory prefix for level subdirectories.
+     * \param mfPrefix     Component prefix (e.g., "Cell").
+     * \param extra_dirs   Optional directories created alongside the plotfile.
+     */
     void WriteMultiLevelPlotfile (const std::string &plotfilename,
                                   int nlevels,
                                   const Vector<const MultiFab*> &mf,
@@ -106,24 +169,39 @@ namespace amrex
                                   const Vector<std::string>& extra_dirs = Vector<std::string>());
 
     /**
-    * \brief write a plotfile to disk given:
-    * -plotfile name
-    * -vector of MultiFabs
-    * -vector of Geometrys
-    * variable names are written as "Var0", "Var1", etc.
-    * refinement ratio is computed from the Geometry vector
-    * "time" and "level_steps" are set to zero
-    *
-    * \param &plotfilename
-    * \param mf
-    * \param &geom
-    */
+     * \brief Convenience wrapper that writes a plotfile with generic variable names.
+     *
+     * Each component is named "Var<i>", refinement ratios are inferred from the
+     * Geometry vector, and both time and level_steps are written as zero.
+     *
+     * \param plotfilename Destination directory.
+     * \param mf           MultiFabs (one per level) to dump.
+     * \param geom         Per-level geometries.
+     */
     void WriteMLMF (const std::string &plotfilename,
                     const Vector<const MultiFab*>& mf,
                     const Vector<Geometry> &geom);
 
     /// \ingroup amrex_io
-    //! Write only the headers for a multi-level plot file (data files assumed already written).
+    /**
+     * \brief Write only the ASCII headers for a multi-level plot file.
+     *
+     * The MultiFabs referenced by \p mf are used for metadata (BoxArrays, NGrow),
+     * but the function assumes the raw data already exists on disk.
+     *
+     * \param plotfilename Destination directory.
+     * \param nlevels      Number of AMR levels present.
+     * \param mf           MultiFabs used to derive headers (one per level).
+     * \param varnames     Component names.
+     * \param geom         Per-level geometries.
+     * \param time         Simulation time stamp.
+     * \param level_steps  Per-level step counters.
+     * \param ref_ratio    Refinement ratios between levels.
+     * \param versionName  ASCII version string stored in Header.
+     * \param levelPrefix  Directory prefix for levels.
+     * \param mfPrefix     Component prefix.
+     * \param extra_dirs   Optional directories created alongside the plotfile.
+     */
     void WriteMultiLevelPlotfileHeaders (const std::string& plotfilename, int nlevels,
                                          const Vector<const MultiFab*>& mf,
                                          const Vector<std::string>& varnames,
@@ -137,7 +215,20 @@ namespace amrex
 
 #ifdef AMREX_USE_EB
     /// \ingroup amrex_io
-    //! Write a single-level EB-aware plot file (includes volume fractions and centroid data).
+    /**
+     * \brief Write a single-level plotfile augmented with embedded-boundary data.
+     *
+     * \param plotfilename Destination directory (created if needed).
+     * \param mf           Cell-centered MultiFab containing solution data.
+     * \param varnames     Component names.
+     * \param geom         Geometry describing the domain.
+     * \param t            Simulation time stamp.
+     * \param level_step   Step number recorded for the level.
+     * \param versionName  ASCII version string stored in Header.
+     * \param levelPrefix  Directory prefix used for levels.
+     * \param mfPrefix     Component prefix written to disk.
+     * \param extra_dirs   Optional sibling directories to create.
+     */
     void EB_WriteSingleLevelPlotfile (const std::string &plotfilename,
                                       const MultiFab &mf,
                                       const Vector<std::string> &varnames,
@@ -150,7 +241,22 @@ namespace amrex
                                       const Vector<std::string>& extra_dirs = Vector<std::string>());
 
     /// \ingroup amrex_io
-    //! Write a multi-level EB-aware plot file (includes volume fractions and centroid data).
+    /**
+     * \brief Write a multi-level EB-aware plotfile.
+     *
+     * \param plotfilename Destination directory.
+     * \param nlevels      Number of AMR levels written.
+     * \param mf           Per-level MultiFabs containing solution data.
+     * \param varnames     Component names.
+     * \param geom         Per-level geometries.
+     * \param time         Simulation time stamp.
+     * \param level_steps  Per-level step counters.
+     * \param ref_ratio    Refinement ratios between levels.
+     * \param versionName  ASCII version string stored in Header.
+     * \param levelPrefix  Directory prefix used for levels.
+     * \param mfPrefix     Component prefix written to disk.
+     * \param extra_dirs   Optional sibling directories to create.
+     */
     void EB_WriteMultiLevelPlotfile (const std::string &plotfilename,
                                      int nlevels,
                                      const Vector<const MultiFab*> &mf,

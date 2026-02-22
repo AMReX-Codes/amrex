@@ -18,7 +18,7 @@ using mode_t = unsigned short;
 namespace amrex::FileSystem {
 
 /// \ingroup amrex_utilities
-//! Create all directories along \p path with permissions \p mode; returns true on success.
+//! Create all directories along \p path with permissions \p mode; returns true on success. When \p verbose is true diagnostic messages are printed.
 bool
 CreateDirectories (std::string const& path, mode_t mode, bool verbose = false);
 

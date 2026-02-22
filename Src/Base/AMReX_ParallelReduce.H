@@ -9,6 +9,11 @@
 #include <AMReX_Vector.H>
 #include <type_traits>
 
+/**
+ * \file AMReX_ParallelReduce.H
+ * \brief MPI reduction/gather helpers with type-safe wrappers.
+ */
+
 namespace amrex {
 
 /// \cond DOXYGEN_IGNORE
@@ -102,11 +107,13 @@ namespace detail {
 
 namespace ParallelAllGather {
     /// \ingroup amrex_mpi
+    //! Gather \p cnt entries from every rank and concatenate them on all ranks.
     template<typename T>
     void AllGather (const T* v, int cnt, T* vs, MPI_Comm comm) {
         detail::Gather(v, cnt, vs, -1, comm);
     }
     /// \ingroup amrex_mpi
+    //! Gather one entry per rank and broadcast the concatenated result.
     template<typename T>
     void AllGather (const T& v, T* vs, MPI_Comm comm) {
         detail::Gather(v, vs, -1, comm);
@@ -115,11 +122,13 @@ namespace ParallelAllGather {
 
 namespace ParallelGather {
     /// \ingroup amrex_mpi
+    //! Gather \p cnt entries from every rank onto \p root; other ranks need not provide \p vs.
     template<typename T>
     void Gather (const T* v, int cnt, T* vs, int root, MPI_Comm comm) {
         detail::Gather(v, cnt, vs, root, comm);
     }
     /// \ingroup amrex_mpi
+    //! Gather one entry per rank onto \p root.
     template<typename T>
     void Gather (const T& v, T* vs, int root, MPI_Comm comm) {
         detail::Gather(v, vs, root, comm);
@@ -129,6 +138,7 @@ namespace ParallelGather {
 namespace ParallelAllReduce {
 
     /// \ingroup amrex_mpi
+    //! All-reduce to find the maximum key/value pair across all ranks.
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>& vi, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -143,6 +153,7 @@ namespace ParallelAllReduce {
     }
 
     /// \ingroup amrex_mpi
+    //! All-reduce to find the maximum key/value pair for each entry in an array.
     template<typename K, typename V>
     void Max (KeyValuePair<K,V>* vi, int cnt, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -157,6 +168,7 @@ namespace ParallelAllReduce {
     }
 
     /// \ingroup amrex_mpi
+    //! All-reduce to find the minimum key/value pair across all ranks.
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>& vi, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -171,6 +183,7 @@ namespace ParallelAllReduce {
     }
 
     /// \ingroup amrex_mpi
+    //! All-reduce to find the minimum key/value pair for each entry in an array.
     template<typename K, typename V>
     void Min (KeyValuePair<K,V>* vi, int cnt, MPI_Comm comm) {
 #ifdef AMREX_USE_MPI
@@ -185,11 +198,13 @@ namespace ParallelAllReduce {
     }
 
     /// \ingroup amrex_mpi
+    //! All-reduce maximum across all ranks.
     template<typename T>
     void Max (T& v, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, -1, comm);
     }
     /// \ingroup amrex_mpi
+    //! All-reduce maximum for \p cnt entries.
     template<typename T>
     void Max (T* v, int cnt, MPI_Comm comm) {
         detail::Reduce(detail::ReduceOp::max, v, cnt, -1, comm);
@@ -240,6 +255,7 @@ namespace ParallelAllReduce {
     }
 
     /// \ingroup amrex_mpi
+    //! All-reduce logical AND across all ranks.
     inline void And (bool & v, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
         detail::Reduce(detail::ReduceOp::land, iv, -1, comm);
@@ -371,6 +387,8 @@ namespace ParallelReduce {
     }
 
     /// \ingroup amrex_mpi
+    /// \ingroup amrex_mpi
+    //! Reduce logical AND to \p root.
     inline void And (bool & v, int root, MPI_Comm comm) {
         auto iv = static_cast<int>(v);
         detail::Reduce(detail::ReduceOp::land, iv, root, comm);

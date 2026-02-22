@@ -8,14 +8,23 @@
 
 #include <mpi.h>
 
+/**
+ * \file AMReX_MPMD.H
+ * \brief Support for running multiple AMReX programs within one MPI job (MPMD).
+ */
+
 namespace amrex::MPMD {
 
+//! Initialize MPI subsystems shared between cooperating executables.
 void Initialize_without_split (int argc, char* argv[]);
 
+//! Initialize and split MPI_COMM_WORLD into per-program communicators.
 MPI_Comm Initialize (int argc, char* argv[]);
 
+//! Tear down MPMD helper state (must only be called once per program).
 void Finalize ();
 
+//! Query whether Initialize() has been called.
 bool Initialized ();
 
 int MyProc ();   //! Process ID in MPI_COMM_WORLD
@@ -23,6 +32,13 @@ int NProcs ();   //! Number of processes in MPI_COMM_WORLD
 int AppNum ();   //! Get the appnum (color) required for MPI_Comm_split
 int MyProgId (); //! Program ID
 
+/**
+ * \class amrex::MPMD::Copier
+ * \brief Manages asynchronous FAB transfers between cooperating programs.
+ *
+ * Each Copier pre-computes send/recv tags for the requested BoxArray and
+ * uses MPI point-to-point messaging for the actual data movement.
+ */
 class Copier
 {
 public:
@@ -31,9 +47,11 @@ public:
     Copier (BoxArray const& ba, DistributionMapping const& dm,
             bool send_ba = false);
 
+    /** \brief Pack and send components \p icomp..\p icomp+ncomp-1 to partner ranks. */
     template <typename FAB>
     void send (FabArray<FAB> const& mf, int icomp, int ncomp) const;
 
+    /** \brief Receive data from partner ranks and unpack into \p mf. */
     template <typename FAB>
     void recv (FabArray<FAB>& mf, int icomp, int ncomp) const;
 

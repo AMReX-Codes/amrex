@@ -339,12 +339,22 @@ namespace amrex
         size_type m_size{0}, m_capacity{0};
 
     public:
+        //! Default-construct an empty PODVector that uses the default allocator.
         constexpr PODVector () noexcept = default;
 
+        //! Construct an empty PODVector whose allocations use \p a_allocator.
         constexpr explicit PODVector (const allocator_type& a_allocator) noexcept
             : Allocator(a_allocator)
         {}
 
+        /**
+         * \brief Construct a vector of \p a_size elements without initializing them.
+         *
+         * The allocation uses the growth strategy described in grow_podvector_capacity
+         * and may reserve more than \p a_size slots to reduce future reallocations.
+         *
+         * \param a_size Number of elements to allocate.
+         */
         explicit PODVector (size_type a_size)
             : m_size(a_size),
               m_capacity(grow_podvector_capacity(GrowthStrategy::Poisson, a_size, 0, sizeof(T)))
@@ -357,6 +367,13 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Construct a vector of \p a_size elements initialized to \p a_value.
+         *
+         * \param a_size   Desired number of elements.
+         * \param a_value  Value assigned to each element.
+         * \param a_allocator Allocator used for subsequent allocations.
+         */
         PODVector (size_type a_size, const value_type& a_value,
                    const allocator_type& a_allocator = Allocator())
             : Allocator(a_allocator), m_size(a_size),
@@ -371,6 +388,12 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Construct a vector initialized from \p a_initializer_list.
+         *
+         * \param a_initializer_list Source values copied into the vector.
+         * \param a_allocator Allocator used for subsequent allocations.
+         */
         PODVector (std::initializer_list<T> a_initializer_list,
                    const allocator_type& a_allocator = Allocator())
             : Allocator(a_allocator),
@@ -387,6 +410,10 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Copy-construct from another PODVector.
+         * \param a_vector Source vector whose contents are duplicated.
+         */
         PODVector (const PODVector<T, Allocator>& a_vector)
             : Allocator(a_vector),
               m_size    (a_vector.size()),
@@ -402,6 +429,10 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Move-construct from \p a_vector, leaving it empty.
+         * \param a_vector Source vector that donates its storage.
+         */
         PODVector (PODVector<T, Allocator>&& a_vector) noexcept
             : Allocator(static_cast<Allocator&&>(a_vector)),
               m_data(a_vector.m_data),
@@ -413,6 +444,7 @@ namespace amrex
             a_vector.m_capacity = 0;
         }
 
+        //! Destructor: releases the owned allocation (if any).
         ~PODVector ()
         {
             // let's not worry about other allocators
@@ -423,6 +455,11 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Copy-assign from \p a_vector, reallocating if necessary.
+         * \param a_vector Source vector to copy from.
+         * \return Reference to this vector.
+         */
         PODVector& operator= (const PODVector<T, Allocator>& a_vector)
         {
             if (this == &a_vector) { return *this; }
@@ -452,6 +489,11 @@ namespace amrex
             return *this;
         }
 
+        /**
+         * \brief Move-assign from \p a_vector, reusing its allocation when compatible.
+         * \param a_vector Source vector to move from.
+         * \return Reference to this vector.
+         */
         PODVector& operator= (PODVector<T, Allocator>&& a_vector) noexcept
         {
             if (this == &a_vector) { return *this; }
@@ -480,6 +522,12 @@ namespace amrex
             return *this;
         }
 
+        /**
+         * \brief Erase the element pointed to by \p a_pos.
+         *
+         * \param a_pos Iterator to the element being removed.
+         * \return Iterator pointing to the erased element's former location.
+         */
         iterator erase (const_iterator a_pos)
         {
             auto* pos = const_cast<iterator>(a_pos);
@@ -489,6 +537,13 @@ namespace amrex
             return pos;
         }
 
+        /**
+         * \brief Erase the range [\p a_first, \p a_last).
+         *
+         * \param a_first Iterator to the first element to erase.
+         * \param a_last Iterator past the last element to erase.
+         * \return Iterator pointing to \p a_first after erasure.
+         */
         iterator erase (const_iterator a_first, const_iterator a_last)
         {
             size_type num_to_erase = a_last - a_first;
@@ -501,11 +556,26 @@ namespace amrex
             return first;
         }
 
+        /**
+         * \brief Insert \p a_item before \p a_pos.
+         *
+         * \param a_pos Iterator designating the insertion point.
+         * \param a_item Value to copy into the vector.
+         * \return Iterator pointing to the inserted element.
+         */
         iterator insert (const_iterator a_pos, const T& a_item)
         {
             return insert(a_pos, 1, a_item);
         }
 
+        /**
+         * \brief Insert \p a_count copies of \p a_value before \p a_pos.
+         *
+         * \param a_pos Iterator designating the insertion point.
+         * \param a_count Number of copies to insert.
+         * \param a_value Value assigned to each inserted element.
+         * \return Iterator pointing to the first inserted element.
+         */
         iterator insert (const_iterator a_pos, size_type a_count, const T& a_value)
         {
             auto* pos = const_cast<iterator>(a_pos);
@@ -528,12 +598,26 @@ namespace amrex
             return pos;
         }
 
+        /**
+         * \brief Insert \p a_item before \p a_pos by moving the value.
+         *
+         * \param a_pos Iterator designating the insertion point.
+         * \param a_item Value to move into the vector.
+         * \return Iterator pointing to the inserted element.
+         */
         iterator insert (const_iterator a_pos, T&& a_item)
         {
             // This is *POD* vector after all
             return insert(a_pos, 1, std::move(a_item));
         }
 
+        /**
+         * \brief Insert the contents of \p a_initializer_list before \p a_pos.
+         *
+         * \param a_pos Iterator designating the insertion point.
+         * \param a_initializer_list Values copied into the vector.
+         * \return Iterator pointing to the first inserted element.
+         */
         iterator insert (const_iterator a_pos,
                          std::initializer_list<T> a_initializer_list)
         {
@@ -558,6 +642,15 @@ namespace amrex
             return pos;
         }
 
+        /**
+         * \brief Insert the range [\p a_first, \p a_last) before \p a_pos.
+         *
+         * \tparam InputIt Input iterator type describing the range.
+         * \param a_pos Iterator designating the insertion point.
+         * \param a_first Iterator to the first element to insert.
+         * \param a_last Iterator past the last element to insert.
+         * \return Iterator pointing to the first inserted element.
+         */
         template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
         iterator insert (const_iterator a_pos, InputIt a_first, InputIt a_last)
         {
@@ -585,6 +678,12 @@ namespace amrex
             return pos;
         }
 
+        /**
+         * \brief Replace the contents with \p a_count copies of \p a_value.
+         *
+         * \param a_count Number of elements to assign.
+         * \param a_value Value written to each element.
+         */
         void assign (size_type a_count, const T& a_value)
         {
             if ( a_count > m_capacity ) {
@@ -596,6 +695,11 @@ namespace amrex
                                            (Allocator const&)(*this));
         }
 
+        /**
+         * \brief Replace the contents with \p a_initializer_list.
+         *
+         * \param a_initializer_list Values copied into the vector.
+         */
         void assign (std::initializer_list<T> a_initializer_list)
         {
             if (a_initializer_list.size() > m_capacity) {
@@ -607,6 +711,13 @@ namespace amrex
                                      (Allocator const&)(*this));
         }
 
+        /**
+         * \brief Replace the contents with the range [\p a_first, \p a_last).
+         *
+         * \tparam InputIt Input iterator type describing the range.
+         * \param a_first Iterator to the first element to copy.
+         * \param a_last Iterator past the last element to copy.
+         */
         template <class InputIt, class bar = typename std::iterator_traits<InputIt>::difference_type>
         void assign (InputIt a_first, InputIt a_last)
         {
@@ -620,17 +731,26 @@ namespace amrex
                                    (Allocator const&)(*this));
         }
 
-        /** Set the same value to every element of the vector
+        /**
+         * \brief Assign \p a_value to every existing element.
          *
-         * @param a_value the value to assign
+         * \param a_value Value written to each entry.
          */
         void assign (const T& a_value)
         {
             assign(m_size, a_value);
         }
 
+        //! Return a copy of the allocator associated with this vector.
         [[nodiscard]] allocator_type get_allocator () const noexcept { return *this; }
 
+        /**
+         * \brief Append \p a_value to the end of the vector.
+         *
+         * Reallocates if necessary to accommodate the new element.
+         *
+         * \param a_value Value to append.
+         */
         void push_back (const T& a_value)
         {
             if (m_size == m_capacity) {
@@ -646,58 +766,85 @@ namespace amrex
 
         // Don't have the emplace methods, but not sure how often we use those.
 
+        //! Remove the last element (capacity remains unchanged).
         void pop_back () noexcept { --m_size; }
 
+        //! Reset the size to zero without releasing memory.
         void clear () noexcept { m_size = 0; }
 
+        //! Return the number of elements currently stored.
         [[nodiscard]] size_type size () const noexcept { return m_size; }
 
+        //! Return the number of elements that can be stored without reallocation.
         [[nodiscard]] size_type capacity () const noexcept { return m_capacity; }
 
+        //! Return true if the vector is empty.
         [[nodiscard]] bool empty () const noexcept { return m_size == 0 || m_data == nullptr; } // test m_data to avoid compiler warning
 
+        //! Return a reference to element \p a_index (no bounds checking).
         [[nodiscard]] T& operator[] (size_type a_index) noexcept { return m_data[a_index]; }
 
+        //! Return a const reference to element \p a_index (no bounds checking).
         [[nodiscard]] const T& operator[] (size_type a_index) const noexcept { return m_data[a_index]; }
 
+        //! Return a reference to the first element.
         [[nodiscard]] T& front () noexcept { return *m_data; }
 
+        //! Return a const reference to the first element.
         [[nodiscard]] const T& front () const noexcept { return *m_data; }
 
+        //! Return a reference to the last element.
         [[nodiscard]] T& back () noexcept { return *(m_data + m_size - 1); }
 
+        //! Return a const reference to the last element.
         [[nodiscard]] const T& back () const noexcept { return *(m_data + m_size - 1); }
 
+        //! Return a pointer to the contiguous storage.
         [[nodiscard]] T* data () noexcept { return m_data; }
 
+        //! Return a const pointer to the contiguous storage.
         [[nodiscard]] const T* data () const noexcept { return m_data; }
 
+        //! Alias for data(); provided for compatibility with AMReX utilities.
         [[nodiscard]] T* dataPtr () noexcept { return m_data; }
 
+        //! Alias for data() const.
         [[nodiscard]] const T* dataPtr () const noexcept { return m_data; }
 
+        //! Return an iterator to the beginning of the data.
         [[nodiscard]] iterator begin () noexcept { return m_data; }
 
+        //! Return a const iterator to the beginning of the data.
         [[nodiscard]] const_iterator begin () const noexcept { return m_data; }
 
+        //! Return an iterator one past the last element.
         [[nodiscard]] iterator end () noexcept { return m_data + m_size; }
 
+        //! Return a const iterator one past the last element.
         [[nodiscard]] const_iterator end () const noexcept { return m_data + m_size; }
 
+        //! Return a reverse iterator to the last element.
         [[nodiscard]] reverse_iterator rbegin () noexcept { return reverse_iterator(end()); }
 
+        //! Return a const reverse iterator to the last element.
         [[nodiscard]] const_reverse_iterator rbegin () const noexcept { return const_reverse_iterator(end()); }
 
+        //! Return a reverse iterator past the first element.
         [[nodiscard]] reverse_iterator rend () noexcept { return reverse_iterator(begin()); }
 
+        //! Return a const reverse iterator past the first element.
         [[nodiscard]] const_reverse_iterator rend () const noexcept { return const_reverse_iterator(begin()); }
 
+        //! Return a const iterator to the beginning.
         [[nodiscard]] const_iterator cbegin () const noexcept { return m_data; }
 
+        //! Return a const iterator one past the last element.
         [[nodiscard]] const_iterator cend () const noexcept { return m_data + m_size; }
 
+        //! Return a const reverse iterator to the last element.
         [[nodiscard]] const_reverse_iterator crbegin () const noexcept { return const_reverse_iterator(end()); }
 
+        //! Return a const reverse iterator past the first element.
         [[nodiscard]] const_reverse_iterator crend () const noexcept { return const_reverse_iterator(begin()); }
 
         /** Resizes the PODVector to a_new_size elements. New elements are either uninitialized or,
@@ -820,6 +967,11 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Release any excess capacity so `capacity() == size()`.
+         *
+         * For arena allocators this tries to shrink in place; otherwise it reallocates.
+         */
         void shrink_to_fit ()
         {
             if (m_data != nullptr) {
@@ -842,6 +994,11 @@ namespace amrex
             }
         }
 
+        /**
+         * \brief Swap the contents (and allocators) with \p a_vector.
+         *
+         * \param a_vector Other vector whose contents will be exchanged with this one.
+         */
         void swap (PODVector<T, Allocator>& a_vector) noexcept
         {
             std::swap(m_data, a_vector.m_data);

@@ -2,6 +2,11 @@
 #define AMREX_TABLE_DATA_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_TableData.H
+ * \brief Lightweight host/device table wrappers with explicit bounds.
+ */
+
 #include <AMReX.H>
 #include <AMReX_Array.H>
 #include <AMReX_DataAllocator.H>
@@ -15,6 +20,14 @@
 
 namespace amrex {
 
+/**
+ * \class amrex::Table1D
+ * \ingroup amrex_linear_containers
+ * \brief Lightweight 1-D view with explicit index bounds for host or device use.
+ *
+ * \tparam T   element type stored in the table.
+ * \tparam IDX integral index type used for bounds checking.
+ */
 template <typename T, typename IDX = int>
 struct Table1D
 {
@@ -24,6 +37,10 @@ struct Table1D
 
     constexpr Table1D () noexcept = default;
 
+    /**
+     * \brief Allow implicit conversion from a mutable Table1D to a const view.
+     * \param rhs Source table whose data/bounds are copied.
+     */
     template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr Table1D (Table1D<std::remove_const_t<T>> const& rhs) noexcept
@@ -32,6 +49,12 @@ struct Table1D
           end(rhs.end)
         {}
 
+    /**
+     * \brief Construct a view given raw storage and explicit bounds.
+     * \param a_p    Pointer to the contiguous storage.
+     * \param a_begin Lowest valid index (inclusive).
+     * \param a_end   One past the highest valid index.
+     */
     AMREX_GPU_HOST_DEVICE
     constexpr Table1D (T* a_p, IDX a_begin, IDX a_end) noexcept
         : p(a_p),
@@ -88,6 +111,14 @@ struct Table1D
 #endif
 };
 
+/**
+ * \class amrex::Table2D
+ * \ingroup amrex_linear_containers
+ * \brief Lightweight 2-D view with explicit bounds and configurable layout.
+ *
+ * \tparam T     element type stored in the table.
+ * \tparam ORDER storage order (column-major by default).
+ */
 template <typename T, Order ORDER = Order::F>
 struct Table2D
 {
@@ -98,6 +129,10 @@ struct Table2D
 
     constexpr Table2D () noexcept = default;
 
+    /**
+     * \brief Allow implicit conversion from a mutable Table2D to a const view.
+     * \param rhs Source table whose data/bounds are copied.
+     */
     template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr Table2D (Table2D<std::remove_const_t<T>, ORDER> const& rhs) noexcept
@@ -107,6 +142,12 @@ struct Table2D
           end(rhs.end)
         {}
 
+    /**
+     * \brief Construct a 2-D view given storage and explicit bounds.
+     * \param a_p     Pointer to the contiguous storage.
+     * \param a_begin Lower bounds for each dimension (inclusive).
+     * \param a_end   Upper bounds (one past the last valid index).
+     */
     AMREX_GPU_HOST_DEVICE
     constexpr Table2D (T* a_p,
                        GpuArray<int,2> const& a_begin,
@@ -168,6 +209,14 @@ private:
     }
 };
 
+/**
+ * \class amrex::Table3D
+ * \ingroup amrex_linear_containers
+ * \brief Lightweight 3-D view with explicit bounds and configurable layout.
+ *
+ * \tparam T     element type stored in the table.
+ * \tparam ORDER storage order (column-major by default).
+ */
 template <typename T, Order ORDER = Order::F>
 struct Table3D
 {
@@ -179,6 +228,10 @@ struct Table3D
 
     constexpr Table3D () noexcept = default;
 
+    /**
+     * \brief Allow implicit conversion from a mutable Table3D to a const view.
+     * \param rhs Source table whose data/bounds are copied.
+     */
     template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
     AMREX_GPU_HOST_DEVICE
     constexpr Table3D (Table3D<std::remove_const_t<T>,ORDER> const& rhs) noexcept
@@ -189,6 +242,12 @@ struct Table3D
           end(rhs.end)
         {}
 
+    /**
+     * \brief Construct a 3-D view given storage and explicit bounds.
+     * \param a_p     Pointer to the contiguous storage.
+     * \param a_begin Lower bounds for each dimension (inclusive).
+     * \param a_end   Upper bounds (one past the last valid index).
+     */
     AMREX_GPU_HOST_DEVICE
     constexpr Table3D (T* a_p,
                        GpuArray<int,3> const& a_begin,
@@ -440,10 +499,12 @@ public:
 
     ~TableData () noexcept;
 
+    //! Return the compile-time dimension (1-4) represented by this table.
     [[nodiscard]] constexpr int dim () const noexcept { return N; }
 
     void resize (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar = nullptr);
 
+    //! Return the total number of elements currently allocated.
     [[nodiscard]] Long size () const noexcept;
 
     Array<int,N> const& lo () const noexcept { return m_lo; }

@@ -20,7 +20,13 @@ namespace amrex
     class BoxDomain;
     class BoxArray;
 
-    //! Returns the complement of BoxDomain bl in Box b.
+    /**
+     * \brief Returns the complement of BoxDomain \p bl in Box \p b.
+     *
+     * \param b Bounding box that defines the full region.
+     * \param bl BoxDomain describing the portion to remove.
+     * \return A BoxDomain covering the cells of \p b not present in \p bl.
+     */
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
 
     /**
@@ -66,7 +72,13 @@ namespace amrex
                   int              sz = 1);
 
 
-//! Output a BoxDomain to an ostream is ASCII format.
+/**
+ * \brief Output a BoxDomain to an ostream in ASCII format.
+ *
+ * \param os Stream receiving the textual representation.
+ * \param bd Domain to print.
+ * \return Reference to \p os to enable chaining.
+ */
 std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
 
 

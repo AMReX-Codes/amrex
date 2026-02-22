@@ -8,6 +8,11 @@
 #include <cmath>
 #include <limits>
 
+/**
+ * \file AMReX_MFParallelForG.H
+ * \brief GPU implementation details for MultiFab-aware ParallelFor.
+ */
+
 /// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
 

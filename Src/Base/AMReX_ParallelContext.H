@@ -41,9 +41,13 @@ public:
     Frame (Frame && rhs) noexcept;
     ~Frame ();
 
+    //! Return the frame identifier (0 corresponds to the world communicator).
     [[nodiscard]] int MyID   () const noexcept { return m_id; }
+    //! Return this rank's index within the communicator represented by the frame.
     [[nodiscard]] int MyProc () const noexcept { return m_rank_me; }
+    //! Return the number of ranks participating in this communicator.
     [[nodiscard]] int NProcs () const noexcept { return m_nranks; }
+    //! Return the I/O-designated rank for this communicator.
     [[nodiscard]] int IOProc () const noexcept { return m_io_rank; }
     //! Convert a single local rank to the corresponding global rank.
     static int local_to_global_rank (int lrank);
@@ -76,51 +80,56 @@ private:
 
 extern AMREX_EXPORT Vector<Frame> frames; //!< stack of communicator frames
 
-//! world communicator
+//! Return the MPI communicator for the root frame (typically `MPI_COMM_WORLD`).
 inline MPI_Comm CommunicatorAll () noexcept { return frames[0].comm; }
-//! world group
+//! Return the MPI group for the root frame.
 inline MPI_Group GroupAll () noexcept { return frames[0].group; }
-//! number of ranks in world communicator
+//! Return the number of ranks participating in the root frame.
 inline int NProcsAll () noexcept { return frames[0].NProcs(); }
-//! my rank in world communicator
+//! Return this rank's index within the root frame.
 inline int MyProcAll () noexcept { return frames[0].MyProc(); }
-//! IO rank in world communicator
+//! Return the designated I/O rank in the root frame.
 inline int IOProcessorNumberAll () noexcept { return frames[0].IOProc(); }
-//! Am IO processor for world communicator?
+//! Return true if the caller is the I/O rank of the root frame.
 inline bool IOProcessorAll () noexcept { return MyProcAll() == IOProcessorNumberAll(); }
-//! Pointer to ofstream
+//! Return the file stream associated with the root frame (if any).
 inline std::ofstream * OFSPtrAll () noexcept { return frames[0].get_ofs_ptr(); }
 
-//! sub-communicator for current frame
+//! Return the MPI communicator for the most recently pushed frame.
 inline MPI_Comm CommunicatorSub () noexcept { return frames.back().comm; }
-//! sub-group for current frame
+//! Return the MPI group for the most recently pushed frame.
 inline MPI_Group GroupSub () noexcept { return frames.back().group; }
-//! number of ranks in current frame
+//! Return the number of ranks participating in the current frame.
 inline int NProcsSub () noexcept { return frames.back().NProcs(); }
-//! my sub-rank in current frame
+//! Return this rank's index within the current frame.
 inline int MyProcSub () noexcept { return frames.back().MyProc(); }
-//! IO sub-rank in current frame
+//! Return the designated I/O rank within the current frame.
 inline int IOProcessorNumberSub () noexcept { return frames.back().IOProc(); }
-//! Am IO processor for current frame?
+//! Return true if the caller is the I/O rank of the current frame.
 inline bool IOProcessorSub () noexcept { return MyProcSub() == IOProcessorNumberSub(); }
-//! Pointer to ofstream
+//! Return the file stream associated with the current frame (if any).
 inline std::ofstream * OFSPtrSub () noexcept { return frames.back().get_ofs_ptr(); }
 
 #ifdef BL_USE_MPI
+//! Synchronize all ranks in the current frame’s communicator.
 inline void BarrierSub () noexcept { MPI_Barrier(CommunicatorSub()); }
+//! Synchronize all ranks in the root frame’s communicator.
 inline void BarrierAll () noexcept { MPI_Barrier(CommunicatorAll()); }
 #else
 inline void BarrierSub () noexcept { }
 inline void BarrierAll () noexcept { }
 #endif
 
-//! get and increment mpi tag in current frame
+//! Get and increment the current frame’s MPI tag counter.
 inline int get_inc_mpi_tag () noexcept { return frames.back().get_inc_mpi_tag(); }
-//! translate between local rank and global rank
+//! Translate a single local rank to its global counterpart (current frame vs. root).
 inline int local_to_global_rank (int rank) noexcept { return Frame::local_to_global_rank(rank); }
+//! Translate a list of \p n local ranks to their global counterparts.
 inline void local_to_global_rank (int* global, const int* local, int n) noexcept
     { Frame::local_to_global_rank(global, local, n); }
+//! Translate a single global rank to its local counterpart.
 inline int global_to_local_rank (int rank) noexcept { return Frame::global_to_local_rank(rank); }
+//! Translate a list of \p n global ranks to their local counterparts.
 inline void global_to_local_rank (int* local, const int* global, int n) noexcept
     { Frame::global_to_local_rank(local, global, n); }
 
@@ -129,10 +138,11 @@ inline void push (MPI_Comm c) { frames.emplace_back(c); }
 //! Push a new frame for communicator \p c with explicit \p id and I/O rank.
 inline void push (MPI_Comm c, int id, int io_rank) { frames.emplace_back(c, id, io_rank); }
 //! Set the output filename for the most recently pushed frame.
+//! Set the output filename used when `Print` flushes within the most recently pushed frame.
 inline void set_last_frame_ofs (const std::string & filename) {
     frames.back().set_ofs_name(filename);
 }
-//! Pop the top frame from the context stack. The caller is responsible for freeing the MPI_Comm.
+//! Pop the top frame from the context stack. The caller must free the MPI communicator separately.
 inline void pop () { frames.pop_back(); }
 
 }

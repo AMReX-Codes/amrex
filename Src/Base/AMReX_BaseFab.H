@@ -63,28 +63,54 @@ extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over
 
 /// \endcond
 
+/**
+ * \brief Total bytes currently held by all BaseFab instances on this rank.
+ */
 Long TotalBytesAllocatedInFabs () noexcept;
+/**
+ * \brief High-water mark of BaseFab bytes since the last reset.
+ */
 Long TotalBytesAllocatedInFabsHWM () noexcept;
+/**
+ * \brief Total number of BaseFab cells (volume * components) currently allocated.
+ */
 Long TotalCellsAllocatedInFabs () noexcept;
+/**
+ * \brief High-water mark of BaseFab cell count since the last reset.
+ */
 Long TotalCellsAllocatedInFabsHWM () noexcept;
+/**
+ * \brief Reset the byte high-water mark reported by TotalBytesAllocatedInFabsHWM().
+ */
 void ResetTotalBytesAllocatedInFabsHWM () noexcept;
+/**
+ * \brief Internal helper used by BaseFab constructors/destructors to maintain stats.
+ * \param n Number of cells affected.
+ * \param s Number of components.
+ * \param szt Size in bytes of the value type.
+ */
 void update_fab_stats (Long n, Long s, std::size_t szt) noexcept;
 
+//! Initialize BaseFab subsystem resources (profilers, stats counters, etc.).
 void BaseFab_Initialize ();
+//! Release any BaseFab subsystem resources.
 void BaseFab_Finalize ();
 
+/** \brief Source-component descriptor passed to copy helpers. */
 struct SrcComp {
     AMREX_GPU_HOST_DEVICE
     explicit SrcComp (int ai) noexcept : i(ai) {}
     int i;
 };
 
+/** \brief Destination-component descriptor passed to copy helpers. */
 struct DestComp {
     AMREX_GPU_HOST_DEVICE
     explicit DestComp (int ai) noexcept : i(ai) {}
     int i;
 };
 
+/** \brief Number-of-components descriptor passed to copy helpers. */
 struct NumComps {
     AMREX_GPU_HOST_DEVICE
     explicit NumComps (int an) noexcept : n(an) {}
@@ -99,6 +125,13 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
+/**
+ * \brief Conditionally construct objects in-place over a preallocated buffer.
+ *
+ * Arithmetic types need no construction; trivially default-constructible types
+ * use placement-new on the host; other types perform placement-new via AMReX
+ * host/device loops so GPU resident buffers are initialized correctly.
+ */
 template <typename T>
 std::enable_if_t<std::is_arithmetic_v<T>>
 placementNew (T* const /*ptr*/, Long /*n*/)
@@ -124,6 +157,12 @@ placementNew (T* const ptr, Long n)
     });
 }
 
+/**
+ * \brief Destroy objects previously constructed via placementNew.
+ *
+ * Trivially destructible types skip work; other types invoke their destructors
+ * on each element, again supporting both host and device execution.
+ */
 template <typename T>
 std::enable_if_t<std::is_trivially_destructible_v<T>>
 placementDelete (T* const /*ptr*/, Long /*n*/)
@@ -365,7 +404,7 @@ public:
         }
     }
 
-    /** \overload */
+    /** \brief Const-qualified variant of dataPtr(). */
     [[nodiscard]] const T* dataPtr (int n = 0) const noexcept {
         if (this->dptr) {
             return &(this->dptr[n*this->domain.numPts()]);
@@ -525,13 +564,13 @@ public:
     */
     [[nodiscard]] T& operator() (const IntVect& p, int N) noexcept;
 
-    /** \overload Returns component 0. */
+    /** \brief Returns component 0 at location \p p. */
     [[nodiscard]] T& operator() (const IntVect& p) noexcept;
 
-    /** \overload */
+    /** \brief Const-qualified accessor for component \p N. */
     [[nodiscard]] const T& operator() (const IntVect& p, int N) const noexcept;
 
-    /** \overload Returns component 0. */
+    /** \brief Const-qualified accessor for component 0. */
     [[nodiscard]] const T& operator() (const IntVect& p) const noexcept;
 
     /**
@@ -540,7 +579,7 @@ public:
     * that must be allocated by the user.
     */
     void getVal (T* data, const IntVect& pos, int N, int numcomp) const noexcept;
-    /** \overload Copies all components beginning at component 0. */
+    /** \brief Copy all components beginning at component 0. */
     void getVal (T* data, const IntVect& pos) const noexcept;
 
     template <RunOn run_on AMREX_DEFAULT_RUNON,
@@ -555,10 +594,10 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int dcomp, int ncomp) noexcept;
-    /** \overload Modifies a single component \p N. */
+    /** \brief Set a single component \p N over \p bx to \p x. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int N = 0) noexcept;
-    /** \overload Applies the value across the entire domain. */
+    /** \brief Fill component \p N across the entire domain with \p x. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, int N) noexcept;
 
@@ -663,13 +702,13 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const noexcept;
 
-    /** \overload Restricts the norm computation to \p subbox. */
+    /** \brief Restrict the norm computation to \p subbox. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const noexcept;
     /** \brief Compute absolute value for all components of this FAB. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs () noexcept;
-    /** \overload Restricts the operation to components starting at \p comp. */
+    /** \brief Apply abs() to components starting at \p comp. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs (int comp, int numcomp=1) noexcept;
     /**
@@ -768,38 +807,38 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    /** \overload Marks cells with value less than or equal to \p val. */
+    /** \brief Mark cells with value \f$\le\f$ \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
-    /** \overload Marks cells with value equal to \p val. */
+    /** \brief Mark cells with value equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskEQ (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    /** \overload Marks cells with value greater than \p val. */
+    /** \brief Mark cells with value greater than \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    /** \overload Marks cells with value greater than or equal to \p val. */
+    /** \brief Mark cells with value greater than or equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Returns sum of given component of FAB state vector.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (int comp, int numcomp = 1) const noexcept;
-    /** \overload Computes the sum over \p subbox only. */
+    /** \brief Restrict the sum to \p subbox. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (const Box& subbox, int comp, int numcomp = 1) const noexcept;
 
     //! Most general version, specify subbox and which components.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
-    /** \overload Applies the operation on the entire domain. */
+    /** \brief Apply the inversion on the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, int comp, int numcomp=1) noexcept;
 
     //! Negate BaseFab, most general.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (const Box& b, int comp=0, int numcomp=1) noexcept;
-    /** \overload Applies negation across the entire domain. */
+    /** \brief Apply negation across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (int comp, int numcomp=1) noexcept;
 
@@ -807,7 +846,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
-    /** \overload Applies scalar addition across the entire domain. */
+    /** \brief Apply scalar addition across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, int comp, int numcomp=1) noexcept;
 
@@ -914,7 +953,7 @@ public:
     /** \brief Scalar multiplication applied to selected components over the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, int comp, int numcomp=1) noexcept;
-    /** \overload Applies the multiplication on the specified sub-box. */
+    /** \brief Apply the multiplication on the specified sub-box. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -947,7 +986,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, int comp, int numcomp=1) noexcept;
 
-    /** \overload Restricts the scalar division to the specified sub-box. */
+    /** \brief Restrict the scalar division to the specified sub-box. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 

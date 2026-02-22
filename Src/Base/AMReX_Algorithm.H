@@ -66,7 +66,7 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the element-wise minimum of the given values for types like XDim3.
+    //! Return the element-wise minimum of \p a and \p b for types like XDim3.
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMin (T const& a, T const& b) noexcept {
@@ -74,7 +74,7 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the element-wise minimum of the given values for types like XDim3.
+    //! Return the element-wise minimum of \p a, \p b, and the rest of the pack \p c.
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMin (const T& a, const T& b, const Ts& ... c) noexcept
@@ -83,7 +83,7 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the element-wise maximum of the given values for types like XDim3.
+    //! Return the element-wise maximum of \p a and \p b for types like XDim3.
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMax (T const& a, T const& b) noexcept {
@@ -91,7 +91,7 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the element-wise maximum of the given values for types like XDim3.
+    //! Return the element-wise maximum of \p a, \p b, and every entry in \p c.
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMax (const T& a, const T& b, const Ts& ... c) noexcept
@@ -100,7 +100,7 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Swap the given values. `std::swap` can be used directly instead in
+    //! Swap the contents of \p t1 and \p t2. `std::swap` can be used directly instead in
     //! GPU codes since C++20.
     template<typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -112,8 +112,8 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return the reference to `lo` if `v < lo`; return the reference to
-    //! `hi` if `hi < v`; otherwise return the reference to `v`. This
+    //! Return the reference to \p lo if \p v < \p lo; return the reference to
+    //! \p hi if \p hi < \p v; otherwise return the reference to \p v. This
     //! function was added to AMReX before switching to C++17. `std::clamp`
     //! can now be used directly instead.
     template <typename T>
@@ -130,8 +130,8 @@ namespace amrex
     }
 
     /// \ingroup amrex_utilities
-    //! Return if the difference between two values are small as measured by
-    //! the given `ulp` (units in the last place).
+    //! Return true when the difference between \p x and \p y is small, as measured by
+    //! the given \p ulp (units in the last place).
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<std::is_floating_point_v<T>,bool>
@@ -427,7 +427,7 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
 /// \endcond
 
 /// \ingroup amrex_utilities
-//! Return the number of leading zeros of the given integer.
+//! Return the number of leading zeros present in the unsigned integer \p x.
 template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
                                     std::is_same_v<std::decay_t<T>,std::uint16_t> ||
                                     std::is_same_v<std::decay_t<T>,std::uint32_t> ||

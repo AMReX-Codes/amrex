@@ -4,6 +4,11 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
+
+/**
+ * \file AMReX_FabConv.H
+ * \brief Portable serialization descriptors for FAB I/O (ints/reals).
+ */
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>

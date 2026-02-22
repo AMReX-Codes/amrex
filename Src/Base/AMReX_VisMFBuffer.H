@@ -7,6 +7,11 @@
 #include <AMReX_INT.H>
 #include <AMReX_Vector.H>
 
+/**
+ * \file AMReX_VisMFBuffer.H
+ * \brief Shared buffer logic for VisMF I/O.
+ */
+
 namespace amrex {
 
 class VisMFBuffer
@@ -23,12 +28,21 @@ public:
     //! A simple character buffer for setbuf() usage.
     using IO_Buffer = Vector<Setbuf_Char_Type>;
 
+    //! Return the current global buffer size used by VisMF I/O helpers.
     static Long GetIOBufferSize () { return ioBufferSize; }
+    /**
+     * \brief Override the default VisMF I/O buffer size (must be positive).
+     * \param iobuffersize Desired buffer size in bytes.
+     */
     static void SetIOBufferSize (Long iobuffersize) {
         BL_ASSERT(iobuffersize > 0);
         ioBufferSize = iobuffersize;
     }
 
+    /**
+     * \brief Release the memory held by a buffer.
+     * \param buf Buffer instance to clear and deallocate.
+     */
     static void ClearBuffer (IO_Buffer& buf) {
         IO_Buffer().swap(buf);
     }

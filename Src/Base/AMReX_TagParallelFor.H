@@ -10,113 +10,158 @@
 #include <limits>
 #include <utility>
 
+/**
+ * \file AMReX_TagParallelFor.H
+ * \brief Helper tag structs used to drive FabArray GPU ParallelFor kernels.
+ */
+
 namespace amrex {
 
+/**
+ * \brief Bundle of destination/source Array4 views used by GPU copy kernels.
+ *
+ * The tag exposes a Box covering the destination region so the driver can
+ * launch a ParallelFor over the appropriate tile.
+ */
 template <class T>
 struct Array4PairTag {
-    Array4<T      > dfab;
-    Array4<T const> sfab;
-    Box dbox;
+    Array4<T      > dfab; //!< Destination Array4.
+    Array4<T const> sfab; //!< Source Array4.
+    Box dbox;              //!< Destination region covered by the copy.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
+/**
+ * \brief Tag describing a copy from `sfab` to component \c dindex of `dfab`.
+ *
+ * \tparam T0 destination component type.
+ * \tparam T1 source component type (defaults to \c T0).
+ */
 template <class T0, class T1=T0>
 struct Array4CopyTag {
-    Array4<T0      > dfab;
-    int              dindex;
-    Array4<T1 const> sfab;
-    Box dbox;
-    Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
+    Array4<T0      > dfab; //!< Destination Array4.
+    int              dindex; //!< Component index being filled in dfab.
+    Array4<T1 const> sfab; //!< Source Array4.
+    Box dbox;              //!< Destination sub-box to update.
+    Dim3 offset;           //!< sbox.smallEnd() - dbox.smallEnd().
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
+/**
+ * \brief Tag describing a masked copy (respecting `mask`) between Array4 views.
+ */
 template <class T0, class T1=T0>
 struct Array4MaskCopyTag {
-    Array4<T0      > dfab;
-    Array4<T1 const> sfab;
-    Array4<int     > mask;
-    Box dbox;
-    Dim3 offset; // sbox.smallEnd() - dbox.smallEnd()
+    Array4<T0      > dfab; //!< Destination Array4.
+    Array4<T1 const> sfab; //!< Source Array4.
+    Array4<int     > mask; //!< Element-wise mask (non-zero = copy).
+    Box dbox;              //!< Destination sub-box to update.
+    Dim3 offset;           //!< sbox.smallEnd() - dbox.smallEnd().
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
+/**
+ * \brief Tag wrapping a single Array4; its Box is inferred from the view itself.
+ */
 template <class T>
 struct Array4Tag {
-    Array4<T> dfab;
+    Array4<T> dfab; //!< View whose Box drives the kernel.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box box () const noexcept { return Box(dfab); }
 };
 
+/**
+ * \brief Tag exposing an Array4 paired with an explicit destination Box.
+ */
 template <class T>
 struct Array4BoxTag {
-    Array4<T> dfab;
-    Box       dbox;
+    Array4<T> dfab; //!< Destination Array4.
+    Box       dbox; //!< Region covered by the operation.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
+/**
+ * \brief Tag describing a fill of Box \c dbox with the constant value \c val.
+ */
 template <class T>
 struct Array4BoxValTag {
-    Array4<T> dfab;
-    Box       dbox;
-    T          val;
+    Array4<T> dfab; //!< Destination Array4.
+    Box       dbox; //!< Region covered by the operation.
+    T          val; //!< Constant fill value.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return dbox; }
 };
 
+/**
+ * \brief Tag pairing an Array4 with a Box and face orientation (for BC kernels).
+ */
 template <class T>
 struct Array4BoxOrientationTag {
-    Array4<T> fab;
-    Box bx;
-    Orientation face;
+    Array4<T> fab; //!< Array view used by the boundary kernel.
+    Box bx;        //!< Region covered by the operation.
+    Orientation face; //!< Face orientation being updated.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
 };
 
+/**
+ * \brief Tag pairing an Array4 with a Box and a Dim3 offset vector.
+ */
 template <class T>
 struct Array4BoxOffsetTag {
-    Array4<T> fab;
-    Box bx;
-    Dim3 offset;
+    Array4<T> fab; //!< Array view used by the kernel.
+    Box bx;        //!< Region covered by the operation.
+    Dim3 offset;   //!< Offset applied when looking up neighboring cells.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box() const noexcept { return bx; }
 };
 
+/**
+ * \brief Tag describing a raw vector buffer so kernels can loop over `size()`.
+ */
 template <class T>
 struct VectorTag {
-    T* p;
-    Long m_size;
+    T* p;       //!< Pointer to the raw buffer.
+    Long m_size; //!< Number of elements referenced by the tag.
 
+    //! Return the buffer length so kernels can iterate over the entries.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Long size () const noexcept { return m_size; }
 };
 
+/**
+ * \brief Tag used when unpacking MPI receive buffers into Array4 tiles.
+ */
 template <class T>
 struct CommRecvBufTag { // for unpacking recv buffer
-    Array4<T> dfab;
-    std::ptrdiff_t poff;
-    Box bx;
+    Array4<T> dfab; //!< Destination Array4 receiving the unpacked data.
+    std::ptrdiff_t poff; //!< Offset into the MPI receive buffer.
+    Box bx;              //!< Region being unpacked.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return bx; }
 };
 
+/**
+ * \brief Tag used when packing MPI send buffers from Array4 tiles.
+ */
 template <class T>
 struct CommSendBufTag { // for packing send buffer
-    Array4<T const> sfab;
-    std::ptrdiff_t poff;
-    Box bx;
+    Array4<T const> sfab; //!< Source Array4 contributing to the send buffer.
+    std::ptrdiff_t poff; //!< Offset into the MPI send buffer.
+    Box bx;              //!< Region being packed.
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Box const& box () const noexcept { return bx; }
@@ -154,6 +199,14 @@ namespace detail {
 }
 /// \endcond
 
+/**
+ * \class amrex::TagVector
+ * \brief Host/device container that stages a batch of tags for GPU kernels.
+ *
+ * `TagVector` allocates contiguous host and device buffers for arbitrary tag
+ * types and computes launch parameters (blocks, warps) consumed by the
+ * generated ParallelFor driver.
+ */
 template <class TagType>
 struct TagVector {
 

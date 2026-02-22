@@ -13,8 +13,17 @@
 #include <iosfwd>
 #include <memory>
 
+/**
+ * \file AMReX_MemProfiler.H
+ * \brief Lightweight memory usage profiler and reporting hooks.
+ */
+
 namespace amrex {
 
+/**
+ * \class amrex::MemProfiler
+ * \brief Singleton that aggregates memory usage callbacks and prints reports.
+ */
 class MemProfiler
 {
 public:
@@ -29,11 +38,15 @@ public:
         int  hwm_builds;
     };
 
+    //! Register a callback returning current bytes / HWM stats.
     static void add (const std::string& name, std::function<MemInfo()>&& f);
+    //! Register a callback returning current/high-water build counts.
     static void add (const std::string& name, std::function<NBuildsInfo()>&& f);
 
+    //! Emit a memory report to stdout (and optionally to a log file via prefix).
     static void report (const std::string& prefix = std::string());
 
+    //! Destroy the global profiler instance and release callbacks.
     static void Finalize ();
 
     MemProfiler (const MemProfiler&) = delete;

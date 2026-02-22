@@ -11,6 +11,11 @@
 #include <AMReX_MFParallelForC.H>
 #endif
 
+/**
+ * \file AMReX_MFParallelFor.H
+ * \brief MultiFab-aware ParallelFor front-ends selecting CPU/GPU implementations.
+ */
+
 namespace amrex {
 
 struct TileSize {

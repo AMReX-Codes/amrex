@@ -2,6 +2,11 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
+/**
+ * \file AMReX_FabArrayCommI.H
+ * \brief Inline communication routines used by FabArray FillBoundary.
+ */
+
 namespace amrex {
 
 template <class FAB>

@@ -9,6 +9,10 @@
 #include <cuda.h>
 #include <cupti.h>
 
+/**
+ * \file AMReX_CuptiTrace.H
+ * \brief CUPTI-based kernel tracing hooks used by the AMReX profiler.
+ */
 
 namespace amrex {
 
@@ -17,11 +21,19 @@ void CUPTIAPI bfrRequestCallback (uint8_t* *bfr, size_t* size,
 void CUPTIAPI bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
                                    size_t size, size_t validSize) noexcept;
 
+/** \brief Initialize CUPTI tracing buffers and callbacks. */
 void initCuptiTrace () noexcept;
+/** \brief Enable CUPTI callbacks and begin tracing GPU activity. */
 void cuptiTraceStart () noexcept;
+/** \brief Stop tracing and process collected records. */
 void cuptiTraceStop () noexcept;
+/** \brief Stop tracing for a specific box identifier. */
 void cuptiTraceStop (unsigned boxUintID) noexcept;
 
+/**
+ * \class amrex::CUpti_Activity_Userdata
+ * \brief Stores metadata for a single CUPTI activity record.
+ */
 class CUpti_Activity_Userdata {
 private:
     unsigned uintID_;
@@ -49,6 +61,10 @@ public:
     std::string const& getName () const noexcept;
 };
 
+/**
+ * \class amrex::CuptiTrace
+ * \brief RAII wrapper that manages CUPTI lifetime for AMReX profiling.
+ */
 class CuptiTrace {
 public:
     CuptiTrace () noexcept;

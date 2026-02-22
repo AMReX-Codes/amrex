@@ -6,12 +6,23 @@
 #include <AMReX_FACopyDescriptor.H>
 #include <AMReX_MultiFab.H>
 
+/**
+ * \file AMReX_MFCopyDescriptor.H
+ * \brief MultiFab-specific wrappers around FabArrayCopyDescriptor.
+ */
+
 namespace amrex {
 
 class MultiFabCopyDescriptor;
 
 using MultiFabId = FabArrayId;
 
+/**
+ * \brief Add an interpolation request spanning two source MultiFabs.
+ *
+ * Populates \p returnedFillBoxIds describing the fill operations required to
+ * interpolate data from MultiFabs \p faid1 and \p faid2 at time \p t.
+ */
 void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                    BoxList*                returnUnfilledBoxes,
                    Vector<FillBoxId>&       returnedFillBoxIds,
@@ -26,6 +37,9 @@ void InterpAddBox (MultiFabCopyDescriptor& fabCopyDesc,
                    int                     num_comp,
                    bool                    extrap);
 
+/**
+ * \brief Execute interpolation fills previously staged via InterpAddBox.
+ */
 void InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                     const Vector<FillBoxId>& fillBoxIds,
                     MultiFabId              faid1,
@@ -40,6 +54,10 @@ void InterpFillFab (MultiFabCopyDescriptor& fabCopyDesc,
                     bool                    extrap);
 
 
+/**
+ * \class amrex::MultiFabCopyDescriptor
+ * \brief Thin wrapper that specializes FabArrayCopyDescriptor for FArrayBox.
+ */
 class MultiFabCopyDescriptor
     :
     public FabArrayCopyDescriptor<FArrayBox>

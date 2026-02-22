@@ -5,6 +5,11 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
 
+/**
+ * \file AMReX_NonLocalBC.H
+ * \brief Index-mapping utilities for non-local boundary condition exchanges.
+ */
+
 namespace amrex::NonLocalBC {
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -499,12 +504,42 @@ struct IsDataPacking :
     > {};
 #endif
 
+/**
+ * \brief Perform a host-side local copy honoring an index mapping and optional projection.
+ *
+ * \tparam FAB  FabArray element type.
+ * \tparam DTOS Index-mapping functor applied to destination indices.
+ * \tparam Proj Functor that maps components/value lookups.
+ * \param dest       Destination FabArray.
+ * \param src        Source FabArray.
+ * \param dcomp      First destination component to fill.
+ * \param scomp      First source component to read.
+ * \param ncomp      Number of components to copy.
+ * \param local_tags Copy tags describing overlapping tiles on this rank.
+ * \param dtos       Index mapping from destination to source coordinates.
+ * \param proj       Projection applied to each fetched value.
+ */
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept;
 
+/**
+ * \brief Expand received buffers into destination FABs on the host.
+ *
+ * \tparam FAB  FabArray element type.
+ * \tparam DTOS Index-mapping functor applied to destination indices.
+ * \tparam Proj Functor that maps components/value lookups.
+ * \param mf          Destination FabArray populated from the buffer.
+ * \param dcomp       First destination component to fill.
+ * \param ncomp       Number of components stored per buffer entry.
+ * \param recv_data   Raw buffers received via MPI.
+ * \param recv_size   Size of each entry in \p recv_data (bytes).
+ * \param recv_cctc   Copy-tag metadata describing each buffer.
+ * \param dtos        Index mapping from destination to source coordinates.
+ * \param proj        Projection applied to each fetched value.
+ */
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
@@ -513,12 +548,36 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
                         DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) noexcept;
 
 #ifdef AMREX_USE_GPU
+/**
+ * \brief GPU counterpart to local_copy_cpu.
+ *
+ * \param dest       Destination FabArray.
+ * \param src        Source FabArray.
+ * \param dcomp      First destination component to fill.
+ * \param scomp      First source component to read.
+ * \param ncomp      Number of components to copy.
+ * \param local_tags Copy tags describing overlapping tiles on this rank.
+ * \param dtos       Index mapping from destination to source coordinates.
+ * \param proj       Projection applied to each fetched value.
+ */
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept;
 
+/**
+ * \brief GPU counterpart to unpack_recv_buffer_cpu.
+ *
+ * \param mf          Destination FabArray populated from the buffer.
+ * \param scomp       First destination component to fill.
+ * \param ncomp       Number of components stored per buffer entry.
+ * \param recv_data   Raw buffers received via MPI.
+ * \param recv_size   Size of each entry in \p recv_data (bytes).
+ * \param recv_cctc   Copy-tag metadata describing each buffer.
+ * \param dtos        Index mapping from destination to source coordinates.
+ * \param proj        Projection applied to each fetched value.
+ */
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,

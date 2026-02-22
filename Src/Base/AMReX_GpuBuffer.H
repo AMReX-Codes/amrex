@@ -189,6 +189,7 @@ public:
 
 private:
 
+    //! Return true if the buffer should access the device mirror (inside GPU launch regions).
     [[nodiscard]] bool useDVect () const noexcept {
         return Gpu::inLaunchRegion() /* && !use_unified_gpu_memory */;
     }

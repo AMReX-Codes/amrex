@@ -73,7 +73,7 @@ struct ArenaAllocatorBase
         return (T*) arena()->alloc(n * sizeof(T));
     }
 
-    //! Try to grow or shrink the allocation at \p p in-place to between \p nmin and \p nmax elements.
+    //! Try to grow or shrink the allocation at \p p in-place to between \p nmin and \p nmax elements; returns the resulting pointer/size pair.
     [[nodiscard]] FatPtr<T>
     allocate_in_place (T* p, std::size_t nmin, std::size_t nmax)
     {

@@ -181,11 +181,13 @@ public:
     //! Return the tile box at the current index grown to include ghost cells.
     [[nodiscard]] Box growntilebox (int ng=-1000000) const noexcept;
 
+    //! Return the tile box grown by the component-wise ghost vector \p ng.
     [[nodiscard]] Box growntilebox (const IntVect& ng) const noexcept;
 
     //! Return the dir-nodal (or all nodal if dir<0) box grown to include ghost cells.
     [[nodiscard]] Box grownnodaltilebox (int dir=-1, int ng=-1000000) const noexcept;
 
+    //! Return the dir-nodal box grown by the ghost vector \p ng (all nodal if \p dir < 0).
     [[nodiscard]] Box grownnodaltilebox (int dir, const IntVect& ng) const noexcept;
 
     //! Return the valid Box in which the current tile resides.

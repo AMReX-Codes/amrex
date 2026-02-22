@@ -97,6 +97,8 @@ public:
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
+    *
+    * \param vp Pointer previously returned by alloc() or alloc_in_place().
     */
     void free (void* vp) final;
 
@@ -106,7 +108,11 @@ public:
     */
     std::size_t freeUnused () final;
 
-    //! Return the amount of memory that can be freed
+    /**
+     * \brief Return the amount of memory that can be freed.
+     *
+     * \return Number of bytes currently held in free blocks.
+     */
     [[nodiscard]] std::size_t freeableMemory () const;
 
     /**
@@ -114,6 +120,8 @@ public:
      * much memory?  For CPU builds, this always return true.  This is not a
      * const function because it may attempt to release memory back to the
      * system.
+     *
+     * \param sz Number of bytes requested.
      */
     [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
 
@@ -123,7 +131,11 @@ public:
     //! Return the total amount of memory given out via alloc.
     std::size_t heap_space_actually_used () const noexcept;
 
-    //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
+    /**
+     * \brief Return the size of the allocation referenced by \p p (0 if unknown).
+     *
+     * \param p Pointer previously returned by alloc().
+     */
     std::size_t sizeOf (void* p) const noexcept;
 
     /**

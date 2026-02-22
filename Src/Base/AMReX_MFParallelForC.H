@@ -2,6 +2,11 @@
 #define AMREX_MF_PARALLEL_FOR_C_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_MFParallelForC.H
+ * \brief CPU implementations of MultiFab-aware ParallelFor routines.
+ */
+
 #ifndef AMREX_USE_GPU
 
 #include <AMReX_MFIter.H>

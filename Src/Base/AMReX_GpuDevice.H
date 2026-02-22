@@ -67,6 +67,7 @@ class StreamManager {
     std::mutex m_mutex;
     Vector<std::pair<Arena*, void*>> m_free_wait_list;
 public:
+    //! Return the underlying gpuStream_t, creating it on first use.
     [[nodiscard]] gpuStream_t& get ();
     void sync ();
     void free_async (Arena* arena, void* mem);

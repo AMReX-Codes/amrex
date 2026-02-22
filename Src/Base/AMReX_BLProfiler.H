@@ -2,6 +2,11 @@
 #define BL_PROFILER_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BLProfiler.H
+ * \brief Instrumentation helpers and runtime-only profiler used by BL_PROFILE.
+ */
+
 #define BL_PROFILE_PASTE2(x, y) x##y
 #define BL_PROFILE_PASTE(x, y) BL_PROFILE_PASTE2(x, y)
 
@@ -26,6 +31,11 @@
 
 namespace amrex {
 
+/**
+ * \class amrex::BLProfiler
+ * \brief Collects scoped timing data produced by the BL_PROFILE macros.
+ * \ingroup amrex_utilities
+ */
 class BLProfiler
 {
   public:

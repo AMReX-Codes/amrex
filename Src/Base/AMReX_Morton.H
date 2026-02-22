@@ -9,6 +9,11 @@
 
 #include <cstdint>
 
+/**
+ * \file AMReX_Morton.H
+ * \brief Morton/Hilbert-like index helpers for space-filling curves.
+ */
+
 namespace amrex::Morton {
 
 /**

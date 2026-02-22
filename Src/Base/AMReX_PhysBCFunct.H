@@ -11,6 +11,11 @@
 #include <AMReX_FilFC_C.H>
 #include <AMReX_TypeTraits.H>
 
+/**
+ * \file AMReX_PhysBCFunct.H
+ * \brief Physical boundary condition functor interfaces for MultiFabs.
+ */
+
 namespace amrex {
 
 extern "C"
@@ -39,12 +44,30 @@ public:
     BndryFuncArray (BndryFuncDefault inFunc) noexcept : m_func(inFunc) {}
     BndryFuncArray (BndryFunc3DDefault inFunc) noexcept : m_func3D(inFunc) {}
 
+    /**
+     * \brief Fill the boundary data for \p dest on Box \p bx.
+     *
+     * Invokes the user-provided Fortran callbacks (cell-centered, node-centered,
+     * or face-centered) to populate components \c [dcomp, dcomp+numcomp) at time
+     * \p time using the supplied geometry and boundary condition metadata.
+     *
+     * \param bx      Region to be filled (typically the ghost cells).
+     * \param dest    FAB receiving the filled values.
+     * \param dcomp   Destination component offset in \p dest.
+     * \param numcomp Number of components to fill.
+     * \param geom    Geometry describing the embedded domain.
+     * \param time    Physical time associated with the fill.
+     * \param bcr     Boundary condition records per component.
+     * \param bcomp   Starting component offset inside \p bcr.
+     * \param orig_comp Original user component offset (for compatibility).
+     */
     void operator() (Box const& bx, FArrayBox& dest,
                      int dcomp, int numcomp,
                      Geometry const& geom, Real time,
                      const Vector<BCRec>& bcr, int bcomp,
                      int orig_comp);
 
+    //! Return true if the functor is configured to run inside GPU kernels.
     [[nodiscard]] bool RunOnGPU () const noexcept { return m_run_on_gpu; }
 //    void setRunOnGPU (bool b) noexcept { m_run_on_gpu = b; }
 
@@ -67,12 +90,43 @@ public:
     GpuBndryFuncFab (F const& a_f) : m_user_f(a_f) {}
     GpuBndryFuncFab (F&& a_f) : m_user_f(std::move(a_f)) {}
 
+    /**
+     * \brief Invoke the GPU boundary fill functor over \p bx.
+     *
+     * Applies user-supplied device code to all requested components, handling
+     * both interior data and ghost-cell population according to the boundary
+     * descriptors.
+     *
+     * \param bx      Region to be filled (typically a ghost box).
+     * \param dest    FAB receiving the updated data.
+     * \param dcomp   Destination component offset.
+     * \param numcomp Number of components to fill.
+     * \param geom    Geometry describing the domain metrics.
+     * \param time    Physical time of the fill.
+     * \param bcr     Boundary condition descriptors per component.
+     * \param bcomp   Component offset inside \p bcr.
+     * \param orig_comp Original component offset passed through to callbacks.
+     */
     void operator() (Box const& bx, FArrayBox& dest,
                      int dcomp, int numcomp,
                      Geometry const& geom, Real time,
                      const Vector<BCRec>& bcr, int bcomp,
                      int orig_comp);
 
+    /**
+     * \brief Helper that applies a supplied cell- or face-centered fill kernel.
+     *
+     * \param bx      Target region to fill.
+     * \param dest    FAB to populate.
+     * \param dcomp   Destination component offset.
+     * \param numcomp Number of components to fill.
+     * \param geom    Geometry describing the metric.
+     * \param time    Physical time of the fill.
+     * \param bcr     Boundary records per component.
+     * \param bcomp   Component offset inside \p bcr.
+     * \param orig_comp Original component offset passed to the callback.
+     * \param fillfunc Callable that performs the actual filling.
+     */
     template <class FF>
     void ccfcdoit (Box const& bx, FArrayBox& dest,
                    int dcomp, int numcomp,
@@ -80,6 +134,19 @@ public:
                    const Vector<BCRec>& bcr, int bcomp,
                    int orig_comp, FF const& fillfunc);
 
+    /**
+     * \brief Fill node-centered boundaries using the nodal helper.
+     *
+     * \param bx      Target region to fill.
+     * \param dest    FAB to populate.
+     * \param dcomp   Destination component offset.
+     * \param numcomp Number of components to fill.
+     * \param geom    Geometry describing the domain.
+     * \param time    Physical time of the fill.
+     * \param bcr     Boundary records per component.
+     * \param bcomp   Component offset inside \p bcr.
+     * \param orig_comp Original component offset passed to the callback.
+     */
     void nddoit (Box const& bx, FArrayBox& dest,
                  int dcomp, int numcomp,
                  Geometry const& geom, Real time,
@@ -106,6 +173,19 @@ public:
     CpuBndryFuncFab () = default;
     CpuBndryFuncFab (UserFillBox a_f) : f_user(a_f) {}
 
+    /**
+     * \brief Execute the user-provided CPU boundary fill routine.
+     *
+     * \param bx      Region requiring data (typically ghost cells).
+     * \param dest    FAB receiving the fill results.
+     * \param dcomp   Destination component offset.
+     * \param numcomp Number of components to fill.
+     * \param geom    Geometry describing the domain.
+     * \param time    Physical time for time-dependent fills.
+     * \param bcr     Boundary condition descriptors per component.
+     * \param bcomp   Component offset inside \p bcr.
+     * \param orig_comp Original component offset passed to callbacks.
+     */
     void operator() (Box const& bx, FArrayBox& dest,
                      int dcomp, int numcomp,
                      Geometry const& geom, Real time,
@@ -119,6 +199,7 @@ protected:
 class PhysBCFunctNoOp
 {
 public:
+    //! No-op boundary operator that leaves the MultiFab untouched.
     void operator() (MultiFab& /*mf*/, int /*dcomp*/, int /*ncomp*/, IntVect const& /*nghost*/,
                      Real /*time*/, int /*bccomp*/) {}
 };
@@ -127,9 +208,24 @@ class PhysBCFunctUseCoarseGhost
 {
 public:
 
+    //! Construct using an explicit coarse ghost vector for the fine-plus-one grid.
     PhysBCFunctUseCoarseGhost (IntVect const& a_fp1_src_ghost)
         : fp1_src_ghost(a_fp1_src_ghost) {}
 
+    /**
+     * \brief Construct using a coarse MultiFab and interpolation metadata.
+     *
+     * Determines the coarse/fine ghost regions needed to populate exterior
+     * cells by applying the supplied coarsening ratio and interpolation mapper.
+     *
+     * \tparam MF     MultiFab-like coarse container type.
+     * \tparam Interp Interpolation operator type.
+     * \param cmf     Coarse MultiFab supplying source ghost data.
+     * \param a_nghost Fine ghost vector requested by the caller.
+     * \param a_nghost_outside_domain Ghost cells that extend beyond the domain.
+     * \param ratio   Refinement ratio between coarse and fine levels.
+     * \param mapper  Interpolation object that provides a Box coarsener.
+     */
     template <typename MF, typename Interp>
     PhysBCFunctUseCoarseGhost (MF const& cmf, IntVect const& a_nghost,
                                IntVect const& a_nghost_outside_domain,

@@ -154,6 +154,7 @@ public:
     * when defining a Box all of whose faces should be of type
     * IndexTypeND::CELL.
     */
+    /// \return Cell-centered indexing descriptor.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr IndexTypeND<dim> TheCellType () noexcept {
         return IndexTypeND<dim>{};

@@ -25,10 +25,22 @@ namespace amrex
 {
     class BoxArray;
 
-    //! Make a BoxArray from the the complement of b2 in b1in.
+    /**
+     * \brief Make a BoxArray from the complement of \p b2 in \p b1in.
+     *
+     * \param b1in Base box to subtract from.
+     * \param b2 Box describing the region to remove.
+     * \return A BoxArray covering the cells in \p b1in \ \p b2.
+     */
     [[nodiscard]] BoxArray boxComplement (const Box& b1in, const Box& b2);
 
-    //! Make a BoxArray from the complement of BoxArray ba in Box b.
+    /**
+     * \brief Make a BoxArray from the complement of \p ba within the Box \p b.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param ba BoxArray describing the region to exclude.
+     * \return Boxes covering the cells of \p b that are not contained in \p ba.
+     */
     [[nodiscard]] BoxArray complementIn (const Box& b, const BoxArray& ba);
 
     /**
@@ -100,13 +112,31 @@ namespace amrex
      */
     [[nodiscard]] BoxArray refine  (const BoxArray& ba, const IntVect& ratio);
 
-    //! Find the ghost cells of a given BoxArray.
+    /**
+     * \brief Find the boundary/ghost cells of a given BoxArray.
+     *
+     * \param ba Input BoxArray.
+     * \param ngrow Number of ghost cells to include around each box.
+     * \return BoxList describing the ghost region.
+     */
     [[nodiscard]] BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
-    //! Read a BoxArray from a stream.  If b is true, read in a special way
+    /**
+     * \brief Read a BoxArray from a stream.
+     *
+     * \param ba Destination BoxArray receiving the parsed boxes.
+     * \param s Input stream.
+     * \param b When true, use the historical alternate parsing format.
+     */
     void readBoxArray (BoxArray& ba, std::istream& s, bool b = false);
 
-    //! Note that two BoxArrays that match are not necessarily equal.
+    /**
+     * \brief Return true if two BoxArrays cover the same region (not necessarily identical).
+     *
+     * \param x First BoxArray operand.
+     * \param y Second BoxArray operand.
+     * \return True when the BoxArrays match.
+     */
     [[nodiscard]] bool match (const BoxArray& x, const BoxArray& y);
 
     /**

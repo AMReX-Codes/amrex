@@ -10,6 +10,11 @@
 #include <AMReX_Geometry.H>
 #include <memory>
 
+/**
+ * \file AMReX_iMultiFab.H
+ * \brief Integer-valued MultiFab container and helpers.
+ */
+
 namespace amrex {
 
 /**

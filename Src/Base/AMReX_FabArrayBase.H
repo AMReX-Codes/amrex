@@ -12,6 +12,11 @@
 #include <AMReX_Arena.H>
 #include <AMReX_Gpu.H>
 
+/**
+ * \file AMReX_FabArrayBase.H
+ * \brief Common infrastructure shared by FabArray specializations.
+ */
+
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif

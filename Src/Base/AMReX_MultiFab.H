@@ -13,6 +13,11 @@
 
 #include <cstdint>
 
+/**
+ * \file AMReX_MultiFab.H
+ * \brief MultiFab container and associated helper routines.
+ */
+
 namespace amrex
 {
 

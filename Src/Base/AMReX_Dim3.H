@@ -30,35 +30,55 @@ struct Dim3 { int x; int y; int z; };
  */
 struct XDim3 { Real x; Real y; Real z; };
 
-//! Return the dot product of two XDim3 vectors.
+/**
+ * \brief Return the dot product of two XDim3 vectors.
+ * \param a First operand.
+ * \param b Second operand.
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Real dot_product (XDim3 const& a, XDim3 const& b)
 {
     return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
-//! Return the cross product of two XDim3 vectors.
+/**
+ * \brief Return the cross product of two XDim3 vectors.
+ * \param a First operand.
+ * \param b Second operand.
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 cross_product (XDim3 const& a, XDim3 const& b)
 {
     return {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};
 }
 
-//! Component-wise addition of two XDim3 vectors.
+/**
+ * \brief Component-wise addition of two XDim3 vectors.
+ * \param a First operand.
+ * \param b Second operand.
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 operator+ (XDim3 const& a, XDim3 const& b)
 {
     return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
-//! Component-wise subtraction of two XDim3 vectors.
+/**
+ * \brief Component-wise subtraction of two XDim3 vectors.
+ * \param a Minuend vector.
+ * \param b Subtrahend vector.
+ */
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 operator- (XDim3 const& a, XDim3 const& b)
 {
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
-//! Write a Dim3 or XDim3 to an output stream in \c (x,y,z) format.
+/**
+ * \brief Write a Dim3 or XDim3 to an output stream in \c (x,y,z) format.
+ * \param os Stream receiving formatted output.
+ * \param d  Coordinate tuple to print.
+ */
 template <typename T,
           std::enable_if_t <std::is_same_v<T,  Dim3> ||
                                    std::is_same_v<T, XDim3>>* = nullptr>

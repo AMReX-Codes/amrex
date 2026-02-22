@@ -7,6 +7,11 @@
 #include <AMReX_FabConv.H>
 #include <AMReX_FabFactory.H>
 
+/**
+ * \file AMReX_FArrayBox.H
+ * \brief Floating-point specialization of BaseFab plus FAB I/O helpers.
+ */
+
 namespace amrex {
 
 class FArrayBox;

@@ -1,8 +1,20 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
 
+/**
+ * \file AMReX_FBI.H
+ * \brief Internal Fab copy tags and GPU helpers used by FabArray transfers.
+ */
+
 namespace amrex {
 
+template <class FAB>
+/**
+ * \brief Describes a source FAB region participating in a copy.
+ *
+ * Contains the source FAB pointer, destination box, and the offset between
+ * source/destination boxes so kernels can translate coordinates quickly.
+ */
 template <class FAB>
 struct FabCopyTag {
     FAB const* sfab;
@@ -10,6 +22,7 @@ struct FabCopyTag {
     IntVect offset; // sbox.smallEnd() - dbox.smallEnd()
 };
 
+/** \brief Lightweight tag describing raw pointer copies (used for pack/unpack). */
 struct VoidCopyTag {
     char const* p;
     Box dbox;

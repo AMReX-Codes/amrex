@@ -249,6 +249,7 @@ public:
     /** \brief Return true if argument is contained within BoxND.
     * It is an error if the Boxes have different types.
     */
+    /// \return True when \p b lies within this box.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const BoxND& b) const noexcept
     {

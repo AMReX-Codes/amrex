@@ -5,6 +5,11 @@
 #include <AMReX_Box.H>
 #include <AMReX_TypeList.H>
 
+/**
+ * \file AMReX_CTOParallelForImpl.H
+ * \brief Helper routines that expand compile-time options for GPU kernels.
+ */
+
 #include <array>
 #include <type_traits>
 

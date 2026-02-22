@@ -36,6 +36,7 @@ public:
     Any& operator= (Any && rhs) = default;
 
     //! Constructs by moving the given object.
+    //! \param mf Value forwarded into the internal storage.
     template <typename MF,
               std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
     Any (MF && mf) // NOLINT(bugprone-forwarding-reference-overload)
@@ -43,6 +44,7 @@ public:
         {}
 
     //! Assigns by moving the given object.
+    //! \param mf Value forwarded into the internal storage.
     template <typename MF,
               std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
     Any& operator= (MF && mf) {

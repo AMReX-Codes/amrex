@@ -33,6 +33,11 @@
 
 #include <AMReX_Gpu.H>
 
+/**
+ * \file AMReX_FabArray.H
+ * \brief Distributed container of BaseFabs plus copy/fill utilities.
+ */
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
 #endif

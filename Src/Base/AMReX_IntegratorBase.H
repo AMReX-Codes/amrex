@@ -13,6 +13,11 @@
 #include <functional>
 #include <type_traits>
 
+/**
+ * \file AMReX_IntegratorBase.H
+ * \brief Abstract interface plus helper traits for time integrators.
+ */
+
 namespace amrex {
 
 template<class T, typename Tv = void> struct IntegratorOps;

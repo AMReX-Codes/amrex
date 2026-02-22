@@ -2,6 +2,11 @@
 #define AMREX_GPU_QUALIFIERS_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuQualifiers.H
+ * \brief Macros abstracting GPU host/device qualifiers and helpers.
+ */
+
 #if defined(AMREX_USE_GPU) && !defined(AMREX_USE_SYCL)
 
 #if defined(AMREX_USE_HIP)

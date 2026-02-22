@@ -6,15 +6,26 @@
 #include <AMReX_FabArray.H>
 #include <string>
 
+/**
+ * \file AMReX_FACopyDescriptor.H
+ * \brief Helper types for staging FabArray copy/fill requests.
+ */
+
 namespace amrex {
 
-//!
-//! This enum and the FabCopyDescriptor class should really be nested
-//! in FabArrayCopyDescriptor (not done for portability reasons).
-//!
-
+/**
+ * \enum FillType
+ * \brief Categorizes how a requested fill box can be satisfied.
+ *
+ * Used internally by FabArrayCopyDescriptor to decide whether data will come
+ * from the local rank, a remote rank, or cannot be filled at all.
+ */
 enum FillType { FillLocally, FillRemotely, Unfillable };
 
+/**
+ * \class amrex::FillBoxId
+ * \brief Tracks metadata about a pending fill region (box and identifiers).
+ */
 class FillBoxId
 {
   public:
@@ -27,9 +38,13 @@ class FillBoxId
         m_fillBoxId(newid)
         {}
 
+    //! Unique identifier assigned by the descriptor.
     [[nodiscard]] int Id () const              { return m_fillBoxId;    }
+    //! Index of the source Fab chosen for this fill.
     [[nodiscard]] int FabIndex () const        { return m_fabIndex;     }
+    //! Record the source Fab index associated with the fill.
     void FabIndex (int fabindex) { m_fabIndex = fabindex; }
+    //! Geometric region requested.
     [[nodiscard]] const Box& box () const      { return m_fillBox;      }
 
 private:
@@ -39,6 +54,10 @@ private:
     int m_fabIndex{-1};
 };
 
+/**
+ * \class amrex::FabArrayId
+ * \brief Lightweight handle returned when registering FabArrays with a descriptor.
+ */
 class FabArrayId
 {
 public:
@@ -59,6 +78,11 @@ private:
     int fabArrayId;
 };
 
+/**
+ * \brief Describes a single copy request originating from a registered FabArray.
+ *
+ * Instances are owned by FabArrayCopyDescriptor and reused while staging data.
+ */
 template <class FAB>
 struct FabCopyDescriptor
 {
@@ -100,9 +124,11 @@ FabCopyDescriptor<FAB>::~FabCopyDescriptor ()
 }
 
 /**
-* \brief This class orchestrates filling a destination fab of size destFabBox
-* from fabarray on the local processor (myProc).
-*/
+ * \brief Manages multi-component copy operations out of one or more FabArrays.
+ *
+ * Each descriptor registers the FabArrays it can read from, tracks boxes that
+ * still require data, and knows how to pull data either locally or via MPI.
+ */
 template <class FAB>
 class FabArrayCopyDescriptor
 {
@@ -123,21 +149,42 @@ public:
     FabArrayCopyDescriptor<FAB>& operator= (const FabArrayCopyDescriptor<FAB> &) = delete;
     FabArrayCopyDescriptor<FAB>& operator= (FabArrayCopyDescriptor<FAB> &&) = delete;
 
+    /**
+     * \brief Register a FabArray from which copies may be requested.
+     * \return Handle used in subsequent AddBox/FillFab calls.
+     */
     FabArrayId RegisterFabArray(FabArray<FAB> *fabarray);
 
+    /**
+     * \brief Describe a destination box that needs to be filled.
+     * \param fabarrayid Handle returned by RegisterFabArray.
+     * \param destFabBox Region to fill.
+     * \param unfilledBoxes Optional list to receive regions still missing data.
+     */
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
                       BoxList*   unfilledBoxes);
 
+    /**
+     * \brief Add a destination box specifying component ranges explicitly.
+     */
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
                       BoxList*   unfilledBoxes,
                       int        srccomp,
                       int        destcomp,
                       int        numcomp);
-    //!
-    //! Add a box but only from FabArray[fabarrayindex].
-    //!
+    /**
+     * \brief Add a destination box but restrict fills to a specific Fab index.
+     * \param fabarrayid    Handle returned by RegisterFabArray.
+     * \param destFabBox    Region to fill.
+     * \param unfilledBoxes Optional list to receive regions still missing data.
+     * \param fabarrayindex Source Fab index to pull data from.
+     * \param srccomp       First component to copy from the source.
+     * \param destcomp      First destination component to write.
+     * \param numcomp       Number of components to copy.
+     * \param bUseValidBox  Restrict to valid-box intersection if true.
+     */
     FillBoxId AddBox (FabArrayId fabarrayid,
                       const Box& destFabBox,
                       BoxList*   unfilledBoxes,
@@ -147,12 +194,15 @@ public:
                       int        numcomp,
                       bool       bUseValidBox = true);
 
+    //! Exchange staged data for all FillBox entries.
     void CollectData ();
 
+    //! Copy into the destination Fab's full domain.
     void FillFab (FabArrayId       faid,
                   const FillBoxId& fillboxid,
                   FAB&             destFab);
 
+    //! Copy into a user-provided sub-box of the destination Fab.
     void FillFab (FabArrayId       faid,
                   const FillBoxId& fillboxid,
                   FAB&             destFab,

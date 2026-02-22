@@ -1,11 +1,15 @@
 /**
  * \file AMReX_SPACE.H
+ * \brief Compile-time dimensionality helpers used throughout AMReX.
  */
-
 
 #ifndef AMREX_SPACE_H
 #define AMREX_SPACE_H
 #include <AMReX_Config.H>
+
+#if !defined(AMREX_SPACEDIM) && (defined(DOXYGEN) || defined(__DOXYGEN__))
+#define AMREX_SPACEDIM 3
+#endif
 
 /* for backward compatibility */
 #if defined(BL_SPACEDIM) && !defined(AMREX_SPACEDIM)
@@ -15,16 +19,12 @@
 #define BL_SPACEDIM AMREX_SPACEDIM
 #endif
 
-/*
- * \def AMREX_SPACEDIM
+/**
+ * \brief Dimension macro (`AMREX_SPACEDIM`) that selects 1D, 2D, or 3D builds.
  *
- * The AMREX_SPACEDIM macro specifies the dimension of the AMReX library
- * to be built.  Acceptable values are either 1, 2, or 3.  This macro
- * must be set for every compilation as many of the data structures of
- * AMReX rely on it being set.
- *
- * Code that depends on the dimensionality of the problem that you're
- * trying to solve should be cast in terms of this macro.
+ * The macro must be defined (usually by the build system) for every compilation,
+ * since many AMReX data structures depend on it. Code that is dimension-aware
+ * should refer to `AMREX_SPACEDIM` (or \ref amrex::SpaceDim) instead of hard-coding values.
  */
 
 #if !defined(AMREX_SPACEDIM)
@@ -35,16 +35,18 @@
 #error AMREX_SPACEDIM must be either 1, 2, or 3
 #endif
 
-/*
-  The SpaceDim C++ integer constant specifies the dimension of the
-  AMReX library to be built.  It is initialized to the value of
-  the macro AMREX_SPACEDIM.  Hence it will have one of the values 1, 2, or 3.
-
-  C++ code that depends on the dimensionality of the problem that
-  you're trying to solve should be cast in terms of this constant,
-  instead of the AMREX_SPACEDIM macro, if possible, as constants are
-  visible to debuggers while macros are not.
-*/
+/**
+ * \brief Dimension constant available in the \c amrex namespace.
+ *
+ * The SpaceDim C++ integer constant specifies the dimension of the
+ * AMReX library to be built.  It is initialized to the value of
+ * the macro AMREX_SPACEDIM.  Hence it will have one of the values 1, 2, or 3.
+ *
+ * C++ code that depends on the dimensionality of the problem that
+ * you're trying to solve should be cast in terms of this constant,
+ * instead of the AMREX_SPACEDIM macro, if possible, as constants are
+ * visible to debuggers while macros are not.
+ */
 #ifdef __cplusplus
 namespace amrex
 {
@@ -173,6 +175,16 @@ namespace amrex
 #  define AMREX_D_PICK(a,b,c) c
 #endif
 
+/**
+ * \def AMREX_1D_ONLY(a)
+ * \brief Evaluate \p a only in 1-D builds; otherwise compiles to a no-op.
+ *
+ * \def AMREX_2D_ONLY(a)
+ * \brief Evaluate \p a only in 2-D builds; otherwise compiles to a no-op.
+ *
+ * \def AMREX_3D_ONLY(a)
+ * \brief Evaluate \p a only in 3-D builds; otherwise compiles to a no-op.
+ */
 #if (AMREX_SPACEDIM == 1)
 #  define AMREX_1D_ONLY(a) a
 #  define AMREX_2D_ONLY(a) ((void)0)
@@ -189,6 +201,16 @@ namespace amrex
 
 #ifdef __cplusplus
 
+/**
+ * \def AMREX_1D_ONLY_ARGS(...)
+ * \brief Expand to the variadic argument list only for 1-D builds.
+ *
+ * \def AMREX_2D_ONLY_ARGS(...)
+ * \brief Expand to the variadic argument list only for 2-D builds.
+ *
+ * \def AMREX_3D_ONLY_ARGS(...)
+ * \brief Expand to the variadic argument list only for 3-D builds.
+ */
 #if (AMREX_SPACEDIM == 1)
 #define AMREX_1D_ONLY_ARGS(...) __VA_ARGS__ ,
 #else

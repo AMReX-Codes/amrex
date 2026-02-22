@@ -62,7 +62,9 @@ namespace amrex
     * \brief Generate a pseudo-random real from a normal distribution
     *
     *  Generates one pseudorandom real number from a normal
-    *  distribution with mean 'mean' and standard deviation 'stddev'.
+    *  distribution with mean \p mean and standard deviation \p stddev.
+    *  \param mean Location parameter of the Gaussian.
+    *  \param stddev Standard deviation of the Gaussian.
     *
     */
     Real RandomNormal (Real mean, Real stddev);
@@ -102,9 +104,11 @@ namespace amrex
     * \brief Generate a pseudo-random integer from a Poisson distribution
     *
     *  Generates one pseudorandom positive integer number
-    *  extracted from a Poisson distribution, given the Real parameter lambda.
+    *  extracted from a Poisson distribution, given the Real parameter \p lambda.
     *  The CPU version of this function relies on the standard Template Library
     *  The GPU version of this function relies on the cuRAND library
+    *
+    *  \param lambda Mean of the Poisson distribution (must be > 0).
     *
     */
     unsigned int RandomPoisson (Real lambda);
@@ -170,8 +174,8 @@ namespace amrex
     * \brief Generate a pseudo-random floating point number from the Gamma distribution
     *
     *  Generates one real number (single or double)
-    *  extracted from a Gamma distribution, given the Real parameters alpha and beta.
-    *  alpha and beta must both be > 0.
+    *  extracted from a Gamma distribution, given the Real parameters \p alpha and \p beta.
+    *  \p alpha and \p beta must both be > 0.
     *  The CPU version of this function relies on the Standard Template Library
     *  The GPU version of this function relies is implemented in terms of Random
     *  and RandomNormal.

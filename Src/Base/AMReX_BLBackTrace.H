@@ -27,11 +27,20 @@ namespace amrex {
 
 struct BLBackTrace
 {
-    /** \brief Signal handler that prints and aborts on fatal signals. */
+    /**
+     * \brief Signal handler that prints and aborts on fatal signals.
+     * \param s Signal number provided by the runtime.
+     */
     static void handler(int s);
-    //! Abort backtrace. Used automatically.
+    /**
+     * \brief Abort backtrace that writes details to \p f.
+     * \param f Destination file handle (for example, stderr).
+     */
     static void print_backtrace_info (FILE* f);
-    //! Non-abort backtrace. Prints to specified file and continues.
+    /**
+     * \brief Non-aborting backtrace that prints to a file and continues.
+     * \param filename Output file that receives the textual stack trace.
+     */
     static void print_backtrace_info (const std::string& filename);
 
     static std::stack<std::pair<std::string, std::string> > bt_stack;

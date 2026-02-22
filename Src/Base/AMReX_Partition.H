@@ -8,6 +8,11 @@
 
 #include <algorithm>
 
+/**
+ * \file AMReX_Partition.H
+ * \brief GPU-friendly partition and stable partition helpers.
+ */
+
 namespace amrex {
 
 #ifdef AMREX_USE_GPU
@@ -76,7 +81,7 @@ namespace detail
  * \param end index at which to stop (exclusive)
  * \param f predicate function that returns 1 or 0 for each input
  *
- * Returns the index of the first element for which f is 0.
+ * \return Index of the first element for which \p f evaluates to false.
  */
 template <typename T, typename F>
 int Partition (T* data, int beg, int end, F && f)
@@ -105,7 +110,7 @@ int Partition (T* data, int beg, int end, F && f)
  * \param n the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
- * Returns the index of the first element for which f is 0.
+ * \return Index of the first element for which \p f evaluates to false.
  */
 template <typename T, typename F>
 int Partition (T* data, int n, F && f)
@@ -129,7 +134,7 @@ int Partition (T* data, int n, F && f)
  * \param v a Gpu::DeviceVector with the data to be partitioned.
  * \param f predicate function that returns 1 or 0 for each input
  *
- * Returns the index of the first element for which f is 0.
+ * \return Index of the first element for which \p f evaluates to false.
  */
 template <typename T, typename F>
 int Partition (Gpu::DeviceVector<T>& v, F && f)
@@ -161,7 +166,7 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
  * \param end index at which to stop (exclusive)
  * \param f predicate function that returns 1 or 0 for each input
  *
- * Returns the index of the first element for which f is 0.
+ * \return Index of the first element for which \p f evaluates to false.
  */
 template <typename T, typename F>
 int StablePartition (T* data, int beg, int end, F && f)
@@ -191,7 +196,7 @@ int StablePartition (T* data, int beg, int end, F && f)
  * \param n the number of elements in the array
  * \param f predicate function that returns 1 or 0 for each input
  *
- * Returns the index of the first element for which f is 0.
+ * \return Index of the first element for which \p f evaluates to false.
  */
 template <typename T, typename F>
 int StablePartition (T* data, int n, F && f)
@@ -217,7 +222,7 @@ int StablePartition (T* data, int n, F && f)
  * \param v a Gpu::DeviceVector with the data to be partitioned.
  * \param f predicate function that returns 1 or 0 for each input
  *
- * Returns the index of the first element for which f is 0.
+ * \return Index of the first element for which \p f evaluates to false.
  */
 template <typename T, typename F>
 int StablePartition (Gpu::DeviceVector<T>& v, F && f)

@@ -5,9 +5,23 @@
 #include <AMReX_IntegratorBase.H>
 #include <functional>
 
+/**
+ * \file AMReX_FEIntegrator.H
+ * \brief Forward-Euler implementation of IntegratorBase.
+ */
+
 namespace amrex {
 
 template<class T>
+/**
+ * \class amrex::FEIntegrator
+ * \brief Single-stage forward Euler time integrator for IntegratorBase clients.
+ *
+ * Stores scratch RHS data and current state, exposing the IntegratorBase API
+ * so it can be swapped interchangeably with higher-order schemes.
+ *
+ * \tparam T State container type compatible with IntegratorOps helpers.
+ */
 class FEIntegrator : public IntegratorBase<T>
 {
 private:

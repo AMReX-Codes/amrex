@@ -49,12 +49,14 @@ struct alignas(2*sizeof(T)) GpuComplex
     /**
      * \brief Return the real part.
      */
+    /// \return Real component.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr T real () const noexcept { return m_real; }
 
     /**
      * \brief Return the imaginary part.
      */
+    /// \return Imaginary component.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr T imag () const noexcept { return m_imag; }
 

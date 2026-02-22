@@ -49,6 +49,10 @@ class RealVectND {
     */
     constexpr RealVectND () noexcept {}  // NOLINT
 
+    /**
+     * \brief Construct from a std::vector of coordinates.
+     * \param vr Container whose length must equal \p dim.
+     */
     explicit RealVectND (const std::vector<Real>& vr) noexcept {
         BL_ASSERT(vr.size() == dim);
         for (int i = 0; i < dim; ++i) {
@@ -61,6 +65,16 @@ class RealVectND {
         Construct a RealVectND given the specific values for its
         coordinates.
     */
+    /**
+     * \brief Construct from explicit coordinate values.
+     *
+     * The first two arguments are required; remaining coordinates are provided
+     * via the variadic pack.
+     *
+     * \param i First coordinate.
+     * \param j Second coordinate.
+     * \param ks Remaining coordinate values.
+     */
     template <class... Args,
         std::enable_if_t<
             (sizeof...(Args) + 2 == dim) &&
@@ -70,6 +84,10 @@ class RealVectND {
     constexpr RealVectND (Real i, Real j, Args... ks) noexcept
         : vect{i, j, static_cast<Real>(ks)...} {}
 
+    /**
+     * \brief Construct a vector with all coordinates equal to \p s.
+     * \param s Value copied into every component.
+     */
     AMREX_GPU_HOST_DEVICE
     explicit constexpr RealVectND (Real s) noexcept {
         for (int i = 0; i < dim; ++i) {
@@ -82,6 +100,10 @@ class RealVectND {
         Construct a RealVectND setting the coordinates to the corresponding values in
         the Real array a.
     */
+    /**
+     * \brief Construct from a raw pointer to \p dim coordinates.
+     * \param a Pointer to an array of at least \p dim elements.
+     */
     AMREX_GPU_HOST_DEVICE
     explicit RealVectND (const Real* a) noexcept {
         for (int i = 0; i < dim; ++i) {
@@ -94,6 +116,10 @@ class RealVectND {
         Construct a RealVectND from an IntVectND by coercing each component
         from <tt>int</tt> to Real.
     */
+    /**
+     * \brief Construct from an IntVectND by casting each component to Real.
+     * \param iv Integer vector supplying the coordinates.
+     */
     AMREX_GPU_HOST_DEVICE constexpr
     RealVectND (const IntVectND<dim>& iv) noexcept {
         for (int i = 0; i < dim; ++i) {
@@ -104,6 +130,10 @@ class RealVectND {
     ///
     /**
         Construct a RealVectND from a GpuArray
+    */
+   /**
+    * \brief Construct from a GPU array by copying each coordinate.
+    * \param ga Source array of length \p dim.
     */
    AMREX_GPU_HOST_DEVICE constexpr
    RealVectND (const GpuArray<Real, dim> ga) noexcept {
@@ -119,38 +149,31 @@ class RealVectND {
     */
     Real& operator[] (int i) && = delete;
 
-    ///
-    /**
-        Returns a modifiable lvalue reference to the <i>i</i>'th coordinate of the
-        RealVectND.
-    */
+    /// Returns a modifiable lvalue reference to the <i>i</i>'th coordinate of the vector.
     AMREX_GPU_HOST_DEVICE constexpr
     Real& operator[] (int i) & noexcept {
         AMREX_ASSERT(i >= 0 && i < dim);
         return vect[i];
     }
 
-    ///
-    /**
-        Returns the <i>i</i>'th coordinate of the RealVectND.
-    */
+    /// Returns the <i>i</i>'th coordinate of the vector.
     AMREX_GPU_HOST_DEVICE constexpr
     const Real& operator[] (int i) const& noexcept {
         AMREX_ASSERT(i >= 0 && i < dim);
         return vect[i];
     }
 
-    //! Returns a reference to the i'th coordinate of the RealVectND. Used by structured bindings.
+    //! Returns a reference to the i'th coordinate (used by structured bindings).
     template<std::size_t i>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     Real& get () noexcept {static_assert(0<=i && i<dim); return vect[i];}
 
-    //! Returns a reference to the i'th coordinate of the RealVectND. Used by structured bindings.
+    //! Returns a const reference to the i'th coordinate (used by structured bindings).
     template<std::size_t i>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     const Real& get () const noexcept {static_assert(0<=i && i<dim); return vect[i];}
 
-    //! Return the components as a GpuArray.
+    //! Return the components as a GpuArray (host or device).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     GpuArray<Real, dim> to_array () const noexcept {
         GpuArray<Real, dim> retval{};
@@ -167,31 +190,19 @@ class RealVectND {
     */
     /*@{*/
 
-    ///
-    /**
-        Return pointer to the first component.
-    */
+    //! Return pointer to the first component.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     Real* begin () noexcept { return vect; }
 
-    ///
-    /**
-        Return pointer to the first component.
-    */
+    //! Return pointer to the first component (const overload).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     const Real* begin () const noexcept { return vect; }
 
-    ///
-    /**
-        Return pointer to the one past last component
-    */
+    //! Return pointer one past the last component.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     Real* end () noexcept { return vect + dim; }
 
-    ///
-    /**
-        Return pointer to the one past last component
-    */
+    //! Return pointer one past the last component (const overload).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     const Real* end () const noexcept {
         return vect + dim;

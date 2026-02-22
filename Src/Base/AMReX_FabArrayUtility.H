@@ -8,6 +8,11 @@
 #include <AMReX_ParReduce.H>
 #include <limits>
 
+/**
+ * \file AMReX_FabArrayUtility.H
+ * \brief Reduction helpers and utility algorithms for FabArray objects.
+ */
+
 namespace amrex {
 
 template <class FAB, class F,

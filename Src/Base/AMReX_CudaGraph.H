@@ -8,8 +8,14 @@
 #include <AMReX_Array.H>
 #include <AMReX_GpuDevice.H>
 
+/**
+ * \file AMReX_CudaGraph.H
+ * \brief Helpers for building and launching CUDA Graph executions in AMReX.
+ */
+
 namespace amrex {
 
+/** \brief Describes a strided copy region captured inside a CUDA graph. */
 struct CopyMemory
 {
     void* src = nullptr;
@@ -40,6 +46,10 @@ makeCopyMemory (Array4<T> const& src, Array4<U> const& dst, int scomp, int ncomp
 
 // ======================================================================================
 
+/**
+ * \brief Lightweight RAII wrapper over a cudaGraphExec_t plus parameter storage.
+ * \tparam T trivially-copyable struct describing kernel parameters.
+ */
 template <typename T>
 struct CudaGraph
 {

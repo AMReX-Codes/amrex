@@ -137,13 +137,13 @@ public:
                 static_cast<int>(c_sys) };
     }
 
-    //! Read static values from ParmParse database.
+    //! Read static defaults from ParmParse, optionally overriding with \p rb, \p coord, and \p isper.
     static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* isper = nullptr) noexcept;
-    //! Reset the default problem domain used when none is supplied at construction.
+    //! Reset the default problem domain used when none is supplied at construction to \p rb.
     static void ResetDefaultProbDomain (const RealBox& rb) noexcept;
-    //! Reset the default periodicity flags used when none are supplied at construction.
+    //! Reset the default periodicity flags used when none are supplied at construction to \p is_per.
     static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
-    //! Reset the default coordinate-system type used when none is supplied at construction.
+    //! Reset the default coordinate-system type used when none is supplied at construction to \p coord.
     static void ResetDefaultCoord (int coord) noexcept;
 
     /**
@@ -233,7 +233,7 @@ public:
         domain = bx;
         computeRoundoffDomain();
     }
-    //! Define a multifab of areas and volumes with given grow factor.
+    //! Define a multifab of areas and volumes with given grow factor using grids \p grds and distribution map \p dm.
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
                     const DistributionMapping& dm,
@@ -320,8 +320,8 @@ public:
     }
 
     /**
-    * \brief Compute d(log(A))/dr at cell centers in given region and
-    *           stuff the results into the passed MultiFab.
+    * \brief Compute d(log(A))/dr at cell centers in the region described by \p grds / \p dm and
+    * place the results into \p dloga grown by \p grow in direction \p dir.
     */
     void GetDLogA (MultiFab&       dloga,
                    const BoxArray& grds,
@@ -329,15 +329,14 @@ public:
                    int             dir,
                    int             grow) const;
     /**
-    * \brief Compute area of cell faces in given region and stuff
-    * stuff the results into the passed MultiFab.
+    * \brief Compute face areas over the region described by \p grds / \p dm and write them into \p area grown by \p grow in direction \p dir.
     */
     void GetFaceArea (MultiFab&       area,
                       const BoxArray& grds,
                       const DistributionMapping& dm,
                       int             dir,
                       int             grow) const;
-    //! Fill the pre-built multifab with area
+    //! Fill the pre-built multifab with face areas in direction \p dir.
     void GetFaceArea (MultiFab&       area,
                       int             dir) const;
 
@@ -390,10 +389,10 @@ public:
     }
 
     /**
-    * \brief Compute Array of shifts which will translate src so that it will
-    * intersect target with non-zero intersection.  the array will be
-    * resized internally, so anything previously there will be gone
-    * DO NOT return non-periodic shifts, even if the box's do
+    * \brief Compute Array of shifts which will translate \p src so that it will
+    * intersect \p target with non-zero intersection. The \p out array will be
+    * resized internally, so anything previously there will be gone.
+    * DO NOT return non-periodic shifts, even if the boxes do
     * intersect without shifting.  The logic is that you will only do
     * this as a special case if there is some periodicity.
     */

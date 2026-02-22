@@ -2,6 +2,11 @@
 #define AMREX_BC_TYPES_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BC_TYPES.H
+ * \brief Enumerations describing physical and mathematical boundary types.
+ */
+
 #if 0
 ---------------------------------------------------------------------
           CONVERSIONS FROM PHYSICAL TO MATHEMATICAL BCs

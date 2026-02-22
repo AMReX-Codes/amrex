@@ -88,9 +88,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
         explicit operator bool() const noexcept { return p != nullptr; }
 
-        /**
-         * \brief Return the number of components.
-         */
+        //! Return the number of components referenced by this accessor.
         [[nodiscard]] AMREX_GPU_HOST_DEVICE
         int nComp() const noexcept { return ncomp; }
 

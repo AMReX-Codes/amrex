@@ -58,21 +58,33 @@ namespace amrex
 
         static constexpr int AllProcs = -1;
 
-        //! Print on the I/O processor of the default communicator.
+        /**
+         * \brief Buffer output and flush it on the I/O processor of the default communicator.
+         * \param os_ Destination stream (defaults to amrex::OutStream()).
+         */
         explicit Print (std::ostream& os_ = amrex::OutStream())
             : rank(ParallelContext::IOProcessorNumberSub())
             , comm(ParallelContext::CommunicatorSub())
             , os(os_)
             { ss.precision(os.precision()); }
 
-        //! Print on rank \p rank_ of the default communicator.
+        /**
+         * \brief Buffer output and flush it on \p rank_ of the default communicator.
+         * \param rank_ MPI rank in the default communicator that emits the data.
+         * \param os_   Destination stream (defaults to amrex::OutStream()).
+         */
         Print (int rank_, std::ostream& os_ = amrex::OutStream())
             : rank(rank_)
             , comm(ParallelContext::CommunicatorSub())
             , os(os_)
             { ss.precision(os.precision()); }
 
-        //! Print on rank \p rank_ of communicator \p comm_.
+        /**
+         * \brief Buffer output and flush it on \p rank_ of communicator \p comm_.
+         * \param rank_ MPI rank that emits the data.
+         * \param comm_ Communicator containing the ranks of interest.
+         * \param os_   Destination stream (defaults to amrex::OutStream()).
+         */
         Print (int rank_, MPI_Comm comm_, std::ostream& os_ = amrex::OutStream())
             : rank(rank_)
             , comm(comm_)
@@ -161,21 +173,33 @@ namespace amrex
 
         static constexpr int AllProcs = -1;
 
-        //! Print on the I/O processor of the default communicator.
+        /**
+         * \brief Append output from the I/O processor to per-rank files.
+         * \param file_name_ Base file name (rank/thread suffixes are added automatically).
+         */
         explicit PrintToFile (std::string file_name_)
             : file_name(std::move(file_name_))
             , rank(ParallelContext::IOProcessorNumberSub())
             , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
 
-        //! Print on rank \p rank_ of the default communicator.
+        /**
+         * \brief Append output from a specific rank in the default communicator.
+         * \param file_name_ Base file name (rank/thread suffixes are added automatically).
+         * \param rank_      MPI rank that is allowed to write.
+         */
         PrintToFile (std::string file_name_, int rank_ )
             : file_name(std::move(file_name_))
             , rank(rank_)
             , comm(ParallelContext::CommunicatorSub())
         { Initialize(); }
 
-        //! Print on rank \p rank_ of communicator \p comm_.
+        /**
+         * \brief Append output from \p rank_ of communicator \p comm_ to a per-rank file.
+         * \param file_name_ Base file name (rank/thread suffixes are added automatically).
+         * \param rank_      MPI rank that is allowed to write.
+         * \param comm_      Communicator containing \p rank_.
+         */
         PrintToFile (std::string file_name_, int rank_, MPI_Comm comm_)
             : file_name(std::move(file_name_))
             , rank(rank_)

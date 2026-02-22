@@ -207,6 +207,7 @@ namespace amrex
     template <class T, std::enable_if_t<IsFabArray<T>::value ||
                                                IsBaseFab<T>::value,
                                                int> = 0 >
+    //! Convert the array-of-FAB container into raw pointer arrays.
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
     {

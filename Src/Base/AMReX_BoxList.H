@@ -21,32 +21,79 @@ namespace amrex
     class BoxArray;
     class BoxList;
 
-    //! Returns a BoxList defining the complement of BoxList bl in Box b.
+    /**
+     * \brief Returns a BoxList defining the complement of BoxList \p bl in Box \p b.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param bl BoxList describing the region to exclude.
+     * \return A BoxList covering the cells of \p b not present in \p bl.
+     */
     BoxList complementIn (const Box& b, const BoxList& bl);
 
-    //! Returns BoxList defining the complement of \p b2 in \p b1in.
+    /**
+     * \brief Returns a BoxList defining the complement of \p b2 in \p b1in.
+     *
+     * \param b1in Base box.
+     * \param b2 Box describing the region to subtract.
+     */
     BoxList boxDiff (const Box& b1in, const Box& b2);
 
-    //! Populate \p bl_diff with the complement of \p b2 in \p b1in.
+    /**
+     * \brief Populate \p bl_diff with the complement of \p b2 in \p b1in.
+     *
+     * \param bl_diff Output BoxList receiving the difference.
+     * \param b1in Base box.
+     * \param b2 Box describing the region to subtract.
+     */
     void boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2);
 
-    //! Returns a new BoxList in which each Box is refined by the given ratio.
+    /**
+     * \brief Returns a new BoxList in which each Box is refined by the given ratio.
+     *
+     * \param bl Input BoxList.
+     * \param ratio Uniform refinement ratio applied to every box.
+     */
     BoxList refine (const BoxList&  bl, int ratio);
 
-    //! Returns a new BoxList in which each Box is coarsened by the given ratio.
+    /**
+     * \brief Returns a new BoxList in which each Box is coarsened by the given ratio.
+     *
+     * \param bl Input BoxList.
+     * \param ratio Uniform coarsening ratio applied to every box.
+     */
     BoxList coarsen (const BoxList& bl, int ratio);
 
-    //! Returns a BoxList defining the intersection of bl with b.
+    /**
+     * \brief Returns a BoxList defining the intersection of \p bl with \p b.
+     *
+     * \param bl Input BoxList.
+     * \param b Clipping box.
+     */
     BoxList intersect (const BoxList& bl, const Box& b);
 
-    //! Returns a new BoxList in which each Box is grown by the given size.
+    /**
+     * \brief Returns a new BoxList in which each Box is grown by the given size.
+     *
+     * \param bl Input BoxList.
+     * \param sz Number of cells to grow in every direction.
+     */
     BoxList accrete (const BoxList& bl, int sz);
 
-    //! Return BoxList which covers the same area but has no overlapping boxes.
+    /**
+     * \brief Return BoxList which covers the same area but has no overlapping boxes.
+     *
+     * \param bl Input BoxList (possibly overlapping).
+     */
     BoxList removeOverlap (const BoxList& bl);
 
 
-    //! Output a BoxList to an ostream in ASCII format.
+    /**
+     * \brief Output a BoxList to an ostream in ASCII format.
+     *
+     * \param os Stream receiving the text output.
+     * \param blist BoxList to print.
+     * \return Reference to \p os to enable chaining.
+     */
     std::ostream& operator<< (std::ostream&  os, const BoxList& blist);
 
 
@@ -166,38 +213,112 @@ public:
     //! Remove empty Boxes from this BoxList.
     BoxList& removeEmpty();
 
-    //! Set this BoxList to the complement of BoxList \p bl in Box \p b.
+    /**
+     * \brief Set this BoxList to the complement of BoxList \p bl in Box \p b.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param bl Region to exclude.
+     * \return Reference to \c *this.
+     */
     BoxList& complementIn (const Box& b, const BoxList& bl);
-    //! Set this BoxList to the complement of BoxList \p bl (moved) in Box \p b.
+    /**
+     * \brief Set this BoxList to the complement of BoxList \p bl (moved) in Box \p b.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param bl Region to exclude (consumed by the call).
+     * \return Reference to \c *this.
+     */
     BoxList& complementIn (const Box& b, BoxList&& bl);
-    //! Set this BoxList to the complement of BoxArray \p ba in Box \p b.
+    /**
+     * \brief Set this BoxList to the complement of BoxArray \p ba in Box \p b.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param ba Region to exclude (provided as a BoxArray).
+     * \return Reference to \c *this.
+     */
     BoxList& complementIn (const Box& b, const BoxArray& ba);
-    //! Parallel version of complementIn using BoxList.
+    /**
+     * \brief Parallel version of complementIn using BoxList.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param bl Region to exclude.
+     * \return Reference to \c *this.
+     */
     BoxList& parallelComplementIn (const Box& b, const BoxList& bl);
-    //! Parallel version of complementIn using BoxList (moved).
+    /**
+     * \brief Parallel version of complementIn using BoxList (moved).
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param bl Region to exclude (consumed by the call).
+     * \return Reference to \c *this.
+     */
     BoxList& parallelComplementIn (const Box& b, BoxList&& bl);
-    //! Parallel version of complementIn using BoxArray.
+    /**
+     * \brief Parallel version of complementIn using BoxArray.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param ba Region to exclude (provided as BoxArray).
+     * \return Reference to \c *this.
+     */
     BoxList& parallelComplementIn (const Box& b, const BoxArray& ba);
 
-    //! Refine each Box in the BoxList by the ratio.
+    /**
+     * \brief Refine each Box in the BoxList by a uniform ratio.
+     *
+     * \param ratio Refinement factor applied in every direction.
+     */
     BoxList& refine (int ratio);
-    //! Refine each Box in the BoxList by the ratio.
+    /**
+     * \brief Refine each Box in the BoxList by direction-dependent ratios.
+     *
+     * \param ratio Component-wise refinement factors.
+     */
     BoxList& refine (const IntVect& ratio);
-    //! Coarsen each Box in the BoxList by the ratio.
+    /**
+     * \brief Coarsen each Box in the BoxList by a uniform ratio.
+     *
+     * \param ratio Coarsening factor applied in every direction.
+     */
     BoxList& coarsen (int ratio);
-    //! Coarsen each Box in the BoxList by the ratio.
+    /**
+     * \brief Coarsen each Box in the BoxList by direction-dependent ratios.
+     *
+     * \param ratio Component-wise coarsening factors.
+     */
     BoxList& coarsen (const IntVect& ratio);
-    //! Grow each Box in the BoxList by size sz.
+    /**
+     * \brief Grow each Box in the BoxList by \p sz cells in every direction.
+     *
+     * \param sz Number of cells to add/subtract from each face.
+     */
     BoxList& accrete  (int sz);
-    //! Grow each Box in the BoxList by size \p sz (per direction).
+    /**
+     * \brief Grow each Box in the BoxList by \p sz cells (per direction).
+     *
+     * \param sz Direction-wise growth vector.
+     */
     BoxList& accrete  (const IntVect& sz);
-    //! Applies Box::shift(int,int) to each Box in the BoxList.
+    /**
+     * \brief Apply `Box::shift(dir, nzones)` to every Box in the list.
+     *
+     * \param dir Coordinate direction to shift.
+     * \param nzones Number of cell widths to shift (positive or negative).
+     */
     BoxList& shift (int dir,
                     int nzones);
-    //! Applies Box::shiftHalf(int,int) to each Box in the BoxList.
+    /**
+     * \brief Apply `Box::shiftHalf(dir, num_halfs)` to every Box in the list.
+     *
+     * \param dir Coordinate direction to shift.
+     * \param num_halfs Amount of half-cell shifts (typically -1, 0, or 1).
+     */
     BoxList& shiftHalf (int dir,
                         int num_halfs);
-    //! Applies Box::shiftHalf(IntVect) to each Box in BoxList.
+    /**
+     * \brief Apply `Box::shiftHalf(const IntVect&)` to every Box in the list.
+     *
+     * \param iv Vector of half-cell shifts per direction.
+     */
     BoxList& shiftHalf (const IntVect& iv);
     /**
     * \brief Merge adjacent Boxes in this BoxList. Return the number

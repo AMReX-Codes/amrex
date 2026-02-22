@@ -190,6 +190,7 @@ namespace amrex {
          * Returns a \c const pointer address to the first element of the
          * SmallMatrix object, as if the object is treated as one-dimensional.
          */
+        /// \return Pointer to the first coefficient (const-qualified).
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* begin () const noexcept { return m_mat; }
 
@@ -197,6 +198,7 @@ namespace amrex {
          * Returns a \c const pointer address right after the last element of the
          * SmallMatrix object, as if the object is treated as one-dimensional.
          */
+        /// \return Past-the-end pointer (const-qualified).
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* end () const noexcept { return m_mat + NRows*NCols; }
 
@@ -204,6 +206,7 @@ namespace amrex {
          * Returns a pointer address to the first element of the
          * SmallMatrix object, as if the object is treated as one-dimensional.
          */
+        /// \return Pointer to the first coefficient.
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return m_mat; }
 

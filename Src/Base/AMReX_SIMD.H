@@ -6,6 +6,11 @@
 #include <AMReX.H>  // amrex::ignore_unused
 #include <AMReX_REAL.H>
 
+/**
+ * \file AMReX_SIMD.H
+ * \brief Portable SIMD type aliases and helpers.
+ */
+
 #ifdef AMREX_USE_SIMD
 // TODO make SIMD provider configurable: VIR (C++17 TS2) or C++26 (later)
 #   include <vir/simd.h>  // includes SIMD TS2 header <experimental/simd>

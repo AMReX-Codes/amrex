@@ -21,6 +21,11 @@
 #include <string>
 #include <type_traits>
 
+/**
+ * \file AMReX_VisMF.H
+ * \brief Visualization MultiFab (VisMF) on-disk I/O management.
+ */
+
 namespace amrex {
 
 class IArrayBox;
@@ -142,20 +147,29 @@ public:
     };
 
     /**
-    * \brief Open the stream if it is not already open
-    * Close the stream if not persistent or forced
-    * Close all open streams
-    */
+     * \brief Open (or reuse) the persistent stream associated with \p fileName.
+     * \param fileName Fully qualified path to the FAB data file.
+     * \return Pointer to an active ifstream positioned at the start of the file.
+     */
     static std::ifstream *OpenStream(const std::string &fileName);
+    /**
+     * \brief Flush and optionally close the persistent stream for \p fileName.
+     * \param fileName Fully qualified path to the FAB data file.
+     * \param forceClose Close even if the stream is marked persistent.
+     */
     static void CloseStream(const std::string &fileName, bool forceClose = false);
+    //! Remove the persistent stream associated with \p fileName from the cache.
     static void DeleteStream(const std::string &fileName);
+    //! Close every stream currently cached by VisMF.
     static void CloseAllStreams();
+    //! Return true if the given header encodes data without per-FAB headers.
     static bool NoFabHeader(const VisMF::Header &hdr);
 
     //! The number of components in the on-disk FabArray<FArrayBox>.
     [[nodiscard]] int nComp () const;
     //! The grow factor of the on-disk FabArray<FArrayBox>.
     [[nodiscard]] int nGrow () const;
+    //! Return the full ghost-cell vector (per dimension) of the on-disk data.
     [[nodiscard]] IntVect nGrowVect () const;
     //! # of FABs in the VisMF. Equal to # of Boxes in the BoxArray.
     [[nodiscard]] int size () const;
@@ -189,13 +203,34 @@ public:
     * one-half the average of the min and max over the valid region
     * of each contained FAB.
     */
+    /**
+     * \brief Write \p mf to disk using the VisMF format.
+     *
+     * \param mf        FabArray to serialize.
+     * \param name      Logical dataset name (determines directory layout).
+     * \param how       File layout strategy (deprecated; use appropriate NFiles).
+     * \param set_ghost Whether to fill ghost cells with the average of min/max before writing.
+     * \return Total number of bytes written by this rank.
+     */
     static Long Write (const FabArray<FArrayBox> &mf,
                        const std::string& name,
                        VisMF::How         how = NFiles,
                        bool               set_ghost = false);
 
+    /**
+     * \brief Launch an asynchronous write of \p mf (lvalue reference) on the AsyncOut queue.
+     * \param mf                FabArray to serialize (must remain valid until the write completes).
+     * \param mf_name           Logical dataset name.
+     * \param valid_cells_only  If true, only valid regions are written.
+     */
     static void AsyncWrite (const FabArray<FArrayBox>& mf, const std::string& mf_name,
                             bool valid_cells_only = false);
+    /**
+     * \brief Launch an asynchronous write of \p mf (rvalue reference) by moving ownership.
+     * \param mf                FabArray to serialize (ownership transferred to AsyncOut).
+     * \param mf_name           Logical dataset name.
+     * \param valid_cells_only  If true, only valid regions are written.
+     */
     static void AsyncWrite (FabArray<FArrayBox>&& mf, const std::string& mf_name,
                             bool valid_cells_only = false);
 
@@ -221,6 +256,15 @@ public:
     * DistributionMapping will be made.  A pre-read FabArray header
     * can be passed in to avoid a read and broadcast.
     */
+    /**
+     * \brief Read a FabArray from disk into \p mf.
+     *
+     * \param mf               Destination FabArray (must be default-constructed or match the stored BoxArray).
+     * \param name             Logical dataset name.
+     * \param faHeader         Optional pre-read header buffer (pass nullptr to read from disk).
+     * \param coordinatorProc  Rank coordinating the read (usually IOProcessor).
+     * \param allow_empty_mf   Set to non-zero to permit empty multifabs.
+     */
     static void Read (FabArray<FArrayBox> &mf,
                       const std::string &name,
                       const char *faHeader = nullptr,
@@ -228,68 +272,103 @@ public:
                       int allow_empty_mf = 0);
 
     //! Does FabArray exist?
+    //! Return true if a VisMF dataset named \p name exists on disk.
     static bool Exist (const std::string &name);
 
     //! Read only the header of a FabArray, header will be resized here.
+    //! Read only the header for dataset \p fafabName into \p header (resized as needed).
     static void ReadFAHeader (const std::string &fafabName,
                               Vector<char> &header);
 
     //! Check if the multifab is ok, false is returned if not ok
+    //! Return true if all files belonging to \p name pass basic consistency checks.
     static bool Check (const std::string &name);
-    //! The file offset of the passed ostream.
+    //! Return the current file offset of the provided stream (in bytes).
     static Long FileOffset (std::ostream& os);
     //! Read the entire fab (all components).
     FArrayBox* readFAB (int idx, const std::string& mf_name);
     //! Read the specified fab component.
     FArrayBox* readFAB (int idx, int icomp);
 
+    //! Return the number of output files currently used for VisMF writes.
     static int  GetNOutFiles ();
+    //! Set the number of output files used for VisMF writes.
     static void SetNOutFiles (int noutfiles, MPI_Comm comm = ParallelDescriptor::Communicator());
 
+    //! Return the number of concurrently open input streams.
     static int  GetMFFileInStreams ()  { return nMFFileInStreams; }
+    //! Set the number of concurrently open input streams.
     static void SetMFFileInStreams (int nstreams, MPI_Comm comm = ParallelDescriptor::Communicator());
 
+    //! Return the verbosity level used by VisMF.
     static int GetVerbose ()       { return verbose; }
+    //! Set the verbosity level used by VisMF.
     static void SetVerbose (int v) { verbose = v; }
 
+    //! Return the VisMF header version used for future writes.
     static VisMF::Header::Version GetHeaderVersion () { return currentVersion; }
+    //! Override the VisMF header version used for future writes.
     static void SetHeaderVersion (VisMF::Header::Version version)
                                                    { currentVersion = version; }
 
+    //! Return whether VisMF groups FABs into sets when writing.
     static bool GetGroupSets () { return groupSets; }
+    //! Enable or disable grouping FABs into sets.
     static void SetGroupSets (bool groupsets) { groupSets = groupsets; }
 
+    //! Return whether VisMF sets custom IO buffers.
     static bool GetSetBuf () { return setBuf; }
+    //! Enable or disable custom IO buffers.
     static void SetSetBuf (bool setbuf) { setBuf = setbuf; }
 
+    //! Return whether all ranks funnel reads through a single reader.
     static bool GetUseSingleRead () { return useSingleRead; }
+    //! Enable or disable single-reader mode.
     static void SetUseSingleRead (bool usesingleread) { useSingleRead = usesingleread; }
 
+    //! Return whether all ranks funnel writes through a single writer.
     static bool GetUseSingleWrite () { return useSingleWrite; }
+    //! Enable or disable single-writer mode.
     static void SetUseSingleWrite (bool usesinglewrite) { useSingleWrite = usesinglewrite; }
 
+    //! Return whether VisMF verifies stream positions when reading/writing.
     static bool GetCheckFilePositions () { return checkFilePositions; }
+    //! Enable or disable stream-position checks.
     static void SetCheckFilePositions (bool cfp) { checkFilePositions = cfp; }
 
+    //! Return whether persistent input streams are used.
     static bool GetUsePersistentIFStreams () { return usePersistentIFStreams; }
+    //! Enable or disable persistent input streams.
     static void SetUsePersistentIFStreams (bool usepifs) { usePersistentIFStreams = usepifs; }
 
+    //! Return whether synchronous reads are forced.
     static bool GetUseSynchronousReads () { return useSynchronousReads; }
+    //! Enable or disable synchronous reads.
     static void SetUseSynchronousReads (bool usepsr) { useSynchronousReads = usepsr; }
 
+    //! Return whether dynamic set selection is used for NFiles.
     static bool GetUseDynamicSetSelection () { return useDynamicSetSelection; }
+    //! Enable or disable dynamic set selection.
     static void SetUseDynamicSetSelection (bool usedss) { useDynamicSetSelection = usedss; }
 
+    //! Return whether VisMF skips flushing after writes.
     static bool GetNoFlushAfterWrite () { return noFlushAfterWrite; }
+    //! Enable or disable flush suppression after writes.
     static void SetNoFlushAfterWrite (bool nfaw) { noFlushAfterWrite = nfaw; }
 
+    //! Return whether VisMF enforces a barrier after finishing each level.
     static bool GetBarrierAfterLevel () { return barrierAfterLevel; }
+    //! Enable or disable enforcing a barrier after each level is written.
     static void SetBarrierAfterLevel (bool bal) { barrierAfterLevel = bal; }
 
+    //! Return the directory containing \p filename.
     static std::string DirName (const std::string& filename);
+    //! Return the filename without directory components.
     static std::string BaseName (const std::string& filename);
 
+    //! Initialize global VisMF state (streams, buffers, etc.).
     static void Initialize ();
+    //! Finalize global VisMF state and release cached resources.
     static void Finalize ();
 
 private:

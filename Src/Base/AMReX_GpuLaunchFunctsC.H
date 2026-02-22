@@ -2,6 +2,11 @@
 #define AMREX_GPU_LAUNCH_FUNCTS_C_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuLaunchFunctsC.H
+ * \brief CPU fallbacks for GPU launch helpers.
+ */
+
 namespace amrex {
 
 /// \cond DOXYGEN_IGNORE

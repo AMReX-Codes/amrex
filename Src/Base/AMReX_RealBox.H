@@ -35,18 +35,30 @@ public:
     //! The default constructor.  Builds invalid RealBox.
     constexpr RealBox () noexcept = default;
 
-    //! Construct region given diagonal points.
+    /**
+     * \brief Construct region given diagonal points.
+     * \param a_lo Pointer to the lower corner coordinates.
+     * \param a_hi Pointer to the upper corner coordinates.
+     */
     AMREX_GPU_HOST_DEVICE
     RealBox (const Real* a_lo, const Real* a_hi) noexcept
         : xlo{AMREX_D_DECL(a_lo[0],a_lo[1],a_lo[2])}, xhi{AMREX_D_DECL(a_hi[0],a_hi[1],a_hi[2])} {}
 
-    //! Construct region given lo and hi corners as std::array.
+    /**
+     * \brief Construct region given lo and hi corners as std::array.
+     * \param a_lo Lower corner coordinates.
+     * \param a_hi Upper corner coordinates.
+     */
     RealBox (const std::array<Real,AMREX_SPACEDIM>& a_lo,
              const std::array<Real,AMREX_SPACEDIM>& a_hi) noexcept;
 
     /**
     * \brief Construct region given index box, cell spacing
     * and physical location of index (0,0,0).
+    *
+    * \param bx   Integer AMR box.
+    * \param dx   Cell spacing along each dimension.
+    * \param base Physical location of cell (0,0,0).
     */
     RealBox (const Box&  bx, const Real* dx, const Real* base) noexcept;
     //! Explicit dimension specific constructors.
@@ -77,21 +89,21 @@ public:
     //! Returns length in specified direction.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Real length (int dir) const noexcept { return xhi[dir]-xlo[dir]; }
-    //! Sets lo side.
+    //! Sets lo side to the coordinates in \p a_lo.
     void setLo (const Real* a_lo) noexcept { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
-    //! Sets lo side.
+    //! Sets lo side to the coordinates in \p a_lo.
     void setLo (const Vector<Real>& a_lo) noexcept { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
-    //! Sets lo side.
+    //! Sets lo side to the coordinates in \p a_lo.
     void setLo (const RealVect& a_lo) noexcept { AMREX_D_EXPR(xlo[0] = a_lo[0], xlo[1] = a_lo[1], xlo[2] = a_lo[2]); }
-    //! Sets lo side in specified direction.
+    //! Sets lo side in direction \p dir to the value \p a_lo.
     void setLo (int dir, Real a_lo) noexcept { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xlo[dir] = a_lo; }
-    //! Sets hi side.
+    //! Sets hi side to the coordinates in \p a_hi.
     void setHi (const Real* a_hi) noexcept { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
-    //! Sets hi side.
+    //! Sets hi side to the coordinates in \p a_hi.
     void setHi (const Vector<Real>& a_hi) noexcept { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
-    //! Sets hi side.
+    //! Sets hi side to the coordinates in \p a_hi.
     void setHi (const RealVect& a_hi) noexcept { AMREX_D_EXPR(xhi[0] = a_hi[0], xhi[1] = a_hi[1], xhi[2] = a_hi[2]); }
-    //! Sets hi side in specified direction.
+    //! Sets hi side in direction \p dir to the value \p a_hi.
     void setHi (int dir, Real a_hi) noexcept { BL_ASSERT(dir >= 0 && dir < AMREX_SPACEDIM); xhi[dir] = a_hi; }
     //! Is the RealBox OK; i.e. does it have non-negative volume?
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
@@ -114,7 +126,11 @@ public:
         return 0.0;
     }
 
-    //! Is the specified point contained in the RealBox?
+    /**
+     * \brief Return true if the specified point lies inside the box.
+     * \param point Cartesian coordinates to test.
+     * \param eps   Optional tolerance applied symmetrically to each face.
+     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const Real* point,
                    Real eps = 0.0) const noexcept {
@@ -123,7 +139,11 @@ public:
                           && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
     }
 
-    //! Is the specified point contained in the RealBox?
+    /**
+     * \brief Return true if the specified point lies inside the box.
+     * \param point Cartesian coordinates to test.
+     * \param eps   Optional tolerance applied symmetrically to each face.
+     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (XDim3 point, Real eps = 0.0) const noexcept {
         return  AMREX_D_TERM((xlo[0]-eps < point.x) && (point.x < xhi[0]+eps),
@@ -131,19 +151,30 @@ public:
                           && (xlo[2]-eps < point.z) && (point.z < xhi[2]+eps));
     }
 
-    //! Is the specified RealVect contained in this RealBox?
+    /**
+     * \brief Return true if the specified RealVect lies inside the box.
+     * \param rv  Point expressed as a RealVect.
+     * \param eps Optional tolerance applied symmetrically to each face.
+     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const RealVect& rv,
                    Real eps=0.0) const noexcept { return contains(rv.dataPtr(), eps); }
 
-    //! Is the specified RealBox contained in this RealBox?
+    /**
+     * \brief Return true if the specified RealBox is fully contained in this box.
+     * \param rb  Candidate RealBox to test.
+     * \param eps Optional tolerance applied symmetrically to each face.
+     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const RealBox& rb,
                    Real eps = 0.0) const noexcept {
         return contains(rb.xlo, eps) && contains(rb.xhi, eps);
     }
 
-    //! Does the specified RealBox intersect with this RealBox?
+    /**
+     * \brief Return true if the specified RealBox intersects this box.
+     * \param bx Other RealBox to test.
+     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool intersects (const RealBox& bx) const noexcept {
         return  ! (AMREX_D_TERM((xlo[0] > bx.xhi[0]) || (xhi[0] < bx.xlo[0]),

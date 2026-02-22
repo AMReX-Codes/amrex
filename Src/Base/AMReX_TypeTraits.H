@@ -305,12 +305,12 @@ namespace amrex
     /// \ingroup amrex_utilities
     //! Logical NOT of a compile-time boolean predicate (equivalent to std::negation).
     template <typename... Args> using Negation = std::negation<Args...>;
-/// \cond DOXYGEN_IGNORE
 #elif defined(__cpp_lib_experimental_logical_traits)
     template <typename... Args> using Conjunction = std::experimental::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::experimental::disjunction<Args...>;
     template <typename... Args> using Negation = std::experimental::negation<Args...>;
 #else
+/// \cond DOXYGEN_IGNORE
     template <class...> struct Conjunction : std::true_type {};
     template <class B1> struct Conjunction<B1> : B1 {};
     template <class B1, class... Bn>
@@ -325,8 +325,8 @@ namespace amrex
 
     template <class B>
     using Negation = std::integral_constant<bool, !bool(B::value)>;
-#endif
 /// \endcond
+#endif
 
     ////////////////////////////////////////////////////////////////////////////////
     //                                                        [traits.IsConvertible]

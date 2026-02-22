@@ -131,6 +131,12 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
  * axis. The output is written in column-major order with unit stride along
  * the \p x axis. For GPU builds the kernel launches on the current
  * stream; callers should synchronize explicitly if needed.
+ *
+ * \param pi Pointer to the source data laid out in C order.
+ * \param po Pointer to the destination buffer that receives Fortran-ordered data.
+ * \param nx Number of cells in the x-direction.
+ * \param ny Number of cells in the y-direction.
+ * \param nz Number of cells in the z-direction.
  */
 template <typename T>
 void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
@@ -283,6 +289,11 @@ void transposeCtoF (T const* pi, T* po, int nx, int ny, int nz)
  *
  * Equivalent to the 3D variant with \p nz = 1. The input's unit stride lies
  * along the \p y direction and the output's unit stride lies along \p x.
+ *
+ * \param pi Pointer to the source data laid out in C order.
+ * \param po Pointer to the destination buffer that receives Fortran-ordered data.
+ * \param nx Number of cells along the first (x) dimension.
+ * \param ny Number of cells along the second (y) dimension.
  */
 template <typename T>
 void transposeCtoF (T const* pi, T* po, int nx, int ny)

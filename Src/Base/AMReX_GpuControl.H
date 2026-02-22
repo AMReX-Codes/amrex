@@ -152,6 +152,7 @@ namespace Gpu {
      * \brief RAII guard that sets the GPU launch region flag on construction
      *        and restores it on destruction.
      */
+    /// RAII guard that toggles the launch-region flag.
     struct [[nodiscard]] LaunchSafeGuard
     {
         //! Construct; sets the launch region flag to \p flag.
@@ -169,6 +170,7 @@ namespace Gpu {
      * \brief RAII guard that sets the GPU graph region flag on construction
      *        and restores it on destruction.
      */
+    /// RAII guard that toggles the CUDA-graph capture flag.
     struct [[nodiscard]] GraphSafeGuard
     {
         //! Construct; sets the graph region flag to \p flag.
@@ -254,11 +256,13 @@ namespace Gpu {
     [[nodiscard]] constexpr bool notInGraphRegion () { return true; }
     [[nodiscard]] constexpr bool setGraphRegion (bool) { return false; }
 
+    /// RAII guard that toggles the launch-region flag (CPU build stub).
     struct [[nodiscard]] LaunchSafeGuard
     {
         explicit LaunchSafeGuard (bool) {}
     };
 
+    /// RAII guard that toggles the CUDA-graph capture flag (CPU build stub).
     struct [[nodiscard]] GraphSafeGuard
     {
         explicit GraphSafeGuard (bool) {}

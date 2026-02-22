@@ -661,7 +661,7 @@ namespace detail {
 namespace HostDevice::Atomic {
 
     /// \ingroup amrex_execution
-    //! Host-only atomic add using an OpenMP \c #pragma atomic update (if OMP is enabled).
+    //! Host-only atomic add using an OpenMP \c \#pragma atomic update (if OMP is enabled).
     template <class T>
     AMREX_FORCE_INLINE
     void Add_Host (T* const sum, T const value) noexcept

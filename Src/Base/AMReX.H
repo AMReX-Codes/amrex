@@ -3,6 +3,11 @@
 #define BL_AMREX_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX.H
+ * \brief Runtime initialization/finalization helpers and global diagnostics.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>
 #include <AMReX_GpuAssert.H>
@@ -36,6 +41,7 @@ namespace amrex
     using PTR_TO_VOID_FUNC = void (*)();
     using ErrorHandler = void (*)(const char*);
 
+    /** \brief Run-time configuration flags populated during amrex::Initialize. */
     namespace system
     {
 #ifndef AMREX_DEBUG
@@ -72,17 +78,48 @@ namespace amrex
         extern AMREX_EXPORT bool init_snan;
     }
 
-    /** the AMReX "git describe" version */
+    /**
+     * \brief Return the AMReX version string reported by `git describe`.
+     *
+     * Useful for embedding build provenance into logs or metadata.
+     */
     [[nodiscard]] std::string Version ();
 
-    // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
+    /**
+     * \brief Initialize AMReX using an existing MPI communicator.
+     *
+     * This wires up stream redirection, installs the error handler, initializes
+     * GPU resources, and pushes a new AMReX instance onto the global stack.
+     * The returned pointer is non-owning; pass it to Finalize(AMReX*) when done.
+     *
+     * \param mpi_comm    Communicator used for AMReX collectives.
+     * \param a_osout     Stream receiving informational output (defaults to std::cout).
+     * \param a_oserr     Stream receiving diagnostic output (defaults to std::cerr).
+     * \param a_errhandler Optional custom error handler (nullptr = default handler).
+     * \param a_device_id GPU device index to select (-1 chooses the default policy).
+     * \return Non-owning pointer to the initialized AMReX instance.
+     */
     AMReX* Initialize (MPI_Comm mpi_comm,
                        std::ostream& a_osout = std::cout,
                        std::ostream& a_oserr = std::cerr,
                        ErrorHandler a_errhandler = nullptr,
                        int a_device_id = -1);
 
-    // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
+    /**
+     * \brief Initialize AMReX with custom ParmParse handling.
+     *
+     * The caller supplies a callback that AMReX invokes after constructing
+     * ParmParse so application-specific parameters can be parsed.
+     *
+     * \param argc Reference to argc (may be modified as AMReX consumes arguments).
+     * \param argv Reference to argv.
+     * \param func_parm_parse Callback invoked after AMReX constructs ParmParse.
+     * \param a_osout Stream receiving informational output.
+     * \param a_oserr Stream receiving diagnostic output.
+     * \param a_errhandler Optional custom error handler.
+     * \param a_device_id GPU device index to select (-1 chooses the default policy).
+     * \return Non-owning pointer to the initialized AMReX instance.
+     */
     AMReX* Initialize (int& argc, char**& argv,
                        const std::function<void()>& func_parm_parse,
                        std::ostream& a_osout = std::cout,
@@ -90,7 +127,20 @@ namespace amrex
                        ErrorHandler a_errhandler = nullptr,
                        int a_device_id = -1);
 
-    // The returned AMReX* is non-owning! To delete it, call Finalize(AMReX*).
+    /**
+     * \brief Initialize AMReX from argc/argv, optionally constructing ParmParse.
+     *
+     * \param argc Reference to argc (may be modified as arguments are consumed).
+     * \param argv Reference to argv.
+     * \param build_parm_parse Whether AMReX should create ParmParse instances.
+     * \param mpi_comm Communicator used for AMReX collectives.
+     * \param func_parm_parse Optional callback invoked after ParmParse is constructed.
+     * \param a_osout Stream receiving informational output.
+     * \param a_oserr Stream receiving diagnostic output.
+     * \param a_errhandler Optional custom error handler.
+     * \param a_device_id GPU device index to select (-1 chooses the default policy).
+     * \return Non-owning pointer to the initialized AMReX instance.
+     */
     AMReX* Initialize (int& argc, char**& argv, bool build_parm_parse=true,
                        MPI_Comm mpi_comm = MPI_COMM_WORLD,
                        const std::function<void()>& func_parm_parse = {},
@@ -99,16 +149,14 @@ namespace amrex
                        ErrorHandler a_errhandler = nullptr,
                        int a_device_id = -1);
 
-    // \brief Minimal version of initialization.
-    //
-    // This version is intended for users who only need AMReX for some
-    // specific functionalities such as FFT. It's the user's responsibility
-    // to initialize MPI. For multiple-GPU systems, it's the user's
-    // responsibility to properly set the GPU devices to be used. We will not
-    // try to pre-allocate memory arenas. We will not install a signal
-    // handler. Functionalities like random number generator and async I/O
-    // will be work. However, functionalities like FFT and linear solvers do
-    // work.
+    /**
+     * \brief Minimal initialization skipping signal handlers, RNG, and async I/O.
+     *
+     * Intended for standalone utilities (e.g., FFT) that only need a subset of AMReX.
+     * The caller is responsible for initializing MPI and selecting GPUs.
+     *
+     * \param mpi_comm Communicator used for any collectives the component requires.
+     */
     void Init_minimal (MPI_Comm mpi_comm = MPI_COMM_WORLD);
 
     /**
@@ -118,31 +166,63 @@ namespace amrex
      */
     [[nodiscard]] bool Initialized ();
 
+    /**
+     * \brief Finalize AMReX state associated with the supplied instance pointer.
+     *
+     * This drains outstanding GPU work, runs registered finalizers, restores
+     * signal handlers, and releases resources before removing \p pamrex from
+     * the global stack.
+     *
+     * \param pamrex Non-owning pointer previously returned by Initialize().
+     */
     void Finalize (AMReX* pamrex);
-    void Finalize (); // Finalize the current top
-    // For initialization with Init_minimal, Finalize_minimal should be used
-    // for finalization.
+    //! Convenience overload that finalizes the instance at the top of the stack.
+    void Finalize ();
+    //! Finalize a run that was initialized via Init_minimal().
     void Finalize_minimal();
 
     /**
-    * \brief We maintain a stack of functions that need to be called in Finalize().
-    * The functions are called in LIFO order.  The idea here is to allow
-    * classes to clean up any "global" state that they maintain when we're
-    * exiting from AMReX.
-    */
-    void ExecOnFinalize (std::function<void()>);
-    void ExecOnInitialize (std::function<void()>);
+     * \brief Register a callback that runs just before AMReX finalizes.
+     *
+     * Finalize callbacks execute in LIFO order so subsystems can release
+     * global resources cleanly.
+     *
+     * \param func Callback invoked immediately before Finalize tears down AMReX.
+     */
+    void ExecOnFinalize (std::function<void()> func);
+    /**
+     * \brief Register a callback that runs after AMReX completes initialization.
+     * \param func Callback invoked after AMReX wires up MPI and GPU state.
+     */
+    void ExecOnInitialize (std::function<void()> func);
 
-    //! This shuts up the compiler about unused variables
+    /**
+     * \brief Compile-time helper that marks variables as intentionally unused.
+     * \tparam Ts Argument types to ignore.
+     */
     template <class... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void ignore_unused (const Ts&...) {}
 
-    //! Print out message to cerr and exit via amrex::Abort().
+    /**
+     * \brief Print a message to the diagnostic stream and abort the program.
+     * \param msg Description explaining why the run is terminating.
+     */
     void Error (const std::string& msg);
 
+    /**
+     * \brief Host-side error sink invoked by GPU-friendly overloads.
+     *
+     * The helper either dispatches to the registered error handler, throws
+     * RuntimeError (when `system::throw_exception` is true), or prints the
+     * message and aborts. Device wrappers call this once they return to the host.
+     *
+     * \param type Short label describing the failure class (e.g., "Error").
+     * \param msg  Null-terminated string explaining the failure (may be nullptr).
+     */
     void Error_host (const char* type, const char* msg);
 
+    //! \copydoc amrex::Error(const std::string&)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Error (const char* msg = nullptr) {
 #if defined(NDEBUG)
@@ -156,11 +236,19 @@ namespace amrex
         AMREX_IF_ON_HOST((Error_host("Error", msg);))
     }
 
-    //! Print out warning message to cerr.
+    /**
+     * \brief Print a warning message to the diagnostic stream and keep running.
+     * \param msg Human-readable explanation of the non-fatal condition.
+     */
     void Warning (const std::string& msg);
 
+    /**
+     * \brief Print a warning message to the diagnostic stream (host only).
+     * \param msg Text appended with `!` before a trailing newline (may be nullptr).
+     */
     void Warning_host (const char * msg);
 
+    //! \copydoc amrex::Warning(const std::string&)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Warning (const char * msg) {
 #if defined(NDEBUG)
@@ -171,9 +259,13 @@ namespace amrex
         AMREX_IF_ON_HOST((Warning_host(msg);))
     }
 
-    //! Print out message to cerr and exit via abort().
+    /**
+     * \brief Print a fatal-error message to stderr and abort execution.
+     * \param msg Explanation emitted before terminating the program.
+     */
     void Abort (const std::string& msg);
 
+    //! \copydoc amrex::Abort(const std::string&)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Abort (const char * msg = nullptr) {
 #if defined(NDEBUG)
@@ -188,14 +280,31 @@ namespace amrex
     }
 
     /**
-    * \brief Prints assertion failed messages to cerr and exits
-    * via abort().  Intended for use by the BL_ASSERT() macro
-    * in <AMReX_BLassert.H>.
-    */
-
+     * \brief Host-side assertion helper used by BL_ASSERT().
+     *
+     * Writes a formatted assertion failure to stderr, adds any optional
+     * message, and aborts the program.
+     *
+     * \param EX   Stringized expression that failed.
+     * \param file Source file containing the assertion.
+     * \param line Line number where the assertion triggered.
+     * \param msg  Optional supplemental text (may be nullptr).
+     * \param msg_size Length of \p msg when supplied.
+     */
     void Assert_host (const char* EX, const char* file, int line, const char* msg,
                       std::size_t msg_size=0);
 
+    /**
+     * \brief Device/host assertion helper used by BL_ASSERT.
+     *
+     * Prints a message and aborts when triggered during debug builds. In
+     * release builds with AMREX_USE_ASSERTION disabled, the arguments are
+     * ignored.
+     *
+     * \param EX   Stringized expression that failed.
+     * \param file Source file containing the assertion.
+     * \param line Line number where the assertion triggered.
+     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line) {
 #if defined(NDEBUG) && !defined(AMREX_USE_ASSERTION)
@@ -210,6 +319,13 @@ namespace amrex
         AMREX_IF_ON_HOST((Assert_host(EX,file,line,nullptr,0U);))
     }
 
+    /**
+     * \brief Assert helper that forwards an additional message to the host.
+     * \param EX   Stringized expression that failed.
+     * \param file Source file containing the assertion.
+     * \param line Line number where the assertion triggered.
+     * \param msg  Optional text providing additional context.
+     */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg) {
 #if defined(NDEBUG) && !defined(AMREX_USE_ASSERTION)
@@ -224,40 +340,60 @@ namespace amrex
         AMREX_IF_ON_HOST((Assert_host(EX,file,line,msg,std::strlen(msg));))
     }
 
+    //! \overload amrex::Assert(const char*, const char*, int, const char*)
     AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const std::string& msg) {
         Assert_host(EX,file,line,msg.c_str(),msg.size());
     }
 
     /**
-    * \brief This is used by amrex::Error(), amrex::Abort(), and amrex::Assert()
-    * to ensure that when writing the message to stderr, that no additional
-    * heap-based memory is allocated.
-    */
+     * \brief Write directly to stderr without allocating heap buffers.
+     *
+     * Used internally by amrex::Error(), amrex::Abort(), and amrex::Assert()
+     * so low-memory situations cannot trigger another allocation failure.
+     *
+     * \param str Null-terminated string describing the failure (may be nullptr).
+     */
     void write_to_stderr_without_buffering (const char* str);
 
+    /**
+     * \brief Install a custom error handler invoked by amrex::Error_host.
+     * \param f Callback receiving the error message; nullptr restores defaults.
+     */
     void SetErrorHandler (ErrorHandler f);
 
+    //! Stream that receives informational output (defaults to std::cout).
     std::ostream& OutStream ();
+    //! Stream that receives diagnostic output (defaults to std::cerr).
     std::ostream& ErrorStream ();
 
+    //! Return the verbosity level configured via ParmParse or SetVerbose().
     [[nodiscard]] int Verbose () noexcept;
+    /**
+     * \brief Override the verbosity level used by amrex::Print().
+     * \param v Non-negative verbosity level (0 = quiet).
+     */
     void SetVerbose (int v) noexcept;
 
+    //! Whether NaNs are initialized to signaling NaN values during setup.
     [[nodiscard]] bool InitSNaN () noexcept;
+    /**
+     * \brief Toggle initialization of data structures with signaling NaNs.
+     * \param v True to touch allocations with SNaN values, false to skip.
+     */
     void SetInitSNaN (bool v) noexcept;
 
-    // ! Get the entire command line including the executable
+    //! Get the entire command line including the executable path.
     [[nodiscard]] std::string get_command ();
 
-    // ! Get number of command line arguments after the executable
+    //! Get the number of command line arguments excluding argv[0].
     [[nodiscard]] int command_argument_count ();
 
     /**
-    * \brief Get command line arguments. The executable name is the
-    * zero-th argument.  Return empty string if there are not that
-    * many arguments.  std::string
-    */
+     * \brief Fetch a copy of argv[number] (argv[0] is the executable path).
+     * \param number Argument index to query.
+     * \return Requested argument or an empty string when \p number is out of range.
+     */
     [[nodiscard]] std::string get_command_argument (int number);
 
 #ifndef _MSC_VER
@@ -294,33 +430,50 @@ namespace amrex
 
     class Geometry;
 
+    /**
+     * \brief Runtime context stored for each active amrex::Initialize() call.
+     *
+     * Instances live on an internal stack so nested initialization sequences
+     * (multi-component executables) can cooperate. Each instance owns a
+     * default Geometry object shared with legacy utilities.
+     */
     class AMReX
     {
     public:
+        //! Construct a runtime context with its own Geometry placeholder.
         AMReX ();
+        //! Destroy the owned Geometry.
         ~AMReX ();
         AMReX (AMReX const&) = delete;
         AMReX (AMReX &&) = delete;
         AMReX& operator= (AMReX const&) = delete;
         AMReX& operator= (AMReX &&) = delete;
 
+        //! True if no AMReX instances are registered on the stack.
         static bool empty () noexcept { return m_instance.empty(); }
 
+        //! Number of managed instances currently tracked (Initialize depth).
         static int size () noexcept { return static_cast<int>(m_instance.size()); }
 
+        //! Pointer to the most recently pushed instance.
         static AMReX* top () noexcept { return m_instance.back().get(); }
 
-        // Thisfunction will take the ownership of the AMReX pointer,
-        // and put it on the top of the stack (i.e., back of the
-        // vector).  If the pointer is already in the stack, it will
-        // be moved to the top.
+        /**
+         * \brief Transfer ownership of an existing AMReX* into the stack.
+         *
+         * If the pointer already lives in the stack, it is rotated to the top.
+         *
+         * \param pamrex Raw pointer previously allocated with `new AMReX`.
+         */
         static void push (AMReX* pamrex);
 
+        //! Push a freshly created AMReX instance stored in a unique_ptr.
         static void push (std::unique_ptr<AMReX> pamrex);
 
-        // This erases `pamrex` from the stack.
+        //! Remove a specific instance pointer from the internal stack.
         static void erase (AMReX* pamrex);
 
+        //! Geometry built during initialization (owned by the context).
         [[nodiscard]] Geometry* getDefaultGeometry () noexcept { return m_geom; }
 
     private:
@@ -338,8 +491,10 @@ namespace amrex
         all      = 0B0111
     };
 
+    //! Return true when any floating-point exception flag is set.
     [[nodiscard]] inline bool any (FPExcept a) { return a != FPExcept::none; }
 
+    //! Bitwise union of two floating-point exception masks.
     [[nodiscard]] inline FPExcept operator| (FPExcept a, FPExcept b)
     {
         using T = std::underlying_type_t<FPExcept>;
@@ -347,6 +502,7 @@ namespace amrex
         return static_cast<FPExcept>(static_cast<T>(a) | static_cast<T>(b));
     }
 
+    //! Bitwise intersection of two floating-point exception masks.
     [[nodiscard]] inline FPExcept operator& (FPExcept a, FPExcept b)
     {
         using T = std::underlying_type_t<FPExcept>;
@@ -358,6 +514,7 @@ namespace amrex
 
     //! Set FP exception traps. Linux only. This enables set flags and
     //! DISABLES unset flags. This can be used to restore previous settings.
+    //! \param excepts Bit mask describing which traps should be enabled.
     FPExcept setFPExcept (FPExcept excepts);
 
     /**
@@ -372,6 +529,7 @@ namespace amrex
          // ....
          setFPExcept(prev_excepts); // restore previous settings
      \endcode
+     * \param excepts Bit mask describing which traps should be disabled.
      */
     [[nodiscard]] FPExcept disableFPExcept (FPExcept excepts);
 
@@ -387,6 +545,7 @@ namespace amrex
          // ....
          setFPExcept(prev_excepts); // restore previous settings
      \endcode
+     * \param excepts Bit mask describing which traps should be enabled.
      */
     [[nodiscard]] FPExcept enableFPExcept (FPExcept excepts);
 }

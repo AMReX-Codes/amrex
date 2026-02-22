@@ -6,8 +6,20 @@
 #include <AMReX_MultiFab.H>
 #include <utility>
 
+/**
+ * \file AMReX_ForkJoin.H
+ * \brief Cooperative-scheduling helper that splits ranks into tasks.
+ */
+
 namespace amrex {
 
+/**
+ * \class amrex::ForkJoin
+ * \brief Splits an MPI job into multiple "tasks" that operate on duplicated/split data.
+ *
+ * Register MultiFabs with intents/strategies, then iterate tasks with Fork()/Join()
+ * (see implementation) to run different code paths per task.
+ */
 class ForkJoin
 {
   public:

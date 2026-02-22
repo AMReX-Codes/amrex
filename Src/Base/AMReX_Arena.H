@@ -162,35 +162,44 @@ public:
     [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
 
     /**
-     * \brief Allocate memory in-place if possible
+     * \brief Allocate memory in-place if possible.
      *
      * In this implementation of the virtual function, a new allocation is
      * always performed, and it returns the new pointer and allocation size.
-     *
      * Note that this function does NOT free the existing allocation. So
      * it's the caller's responsibility to free the original pointer when
      * appropriate.
+     *
+     * \param pt Existing allocation to be reused when possible.
+     * \param szmin Minimum size guaranteed to fit within \p pt.
+     * \param szmax Requested size for the returned allocation.
+     * \return Pointer/size pair describing the resulting allocation.
      */
     [[nodiscard]] virtual std::pair<void*,std::size_t>
-    alloc_in_place (void* /*pt*/, std::size_t /*szmin*/, std::size_t szmax)
+    alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
     {
+        (void) pt;
+        (void) szmin;
         auto* p = alloc(szmax);
         return std::make_pair(p, szmax);
     }
 
     /**
-     * \brief Shrink allocation size in-place
+     * \brief Shrink allocation size in-place.
      *
      * In this implementation of the virtual function, a new allocation is
-     * always performed, and it returns the new pointer.
+     * always performed, and it returns the new pointer. Note that this
+     * function does NOT free the existing allocation, so it's the caller's
+     * responsibility to free the original pointer when appropriate.
      *
-     * Note that this function does NOT free the existing allocation. So
-     * it's the caller's responsibility to free the original pointer when
-     * appropriate.
+     * \param pt Existing allocation to be shrunk.
+     * \param sz Target size for the new allocation.
+     * \return Pointer to the resized allocation.
      */
     [[nodiscard]] virtual void*
-    shrink_in_place (void* /*pt*/, std::size_t sz)
+    shrink_in_place (void* pt, std::size_t sz)
     {
+        (void) pt;
         return alloc(sz);
     }
 
@@ -243,6 +252,7 @@ public:
      * much memory?  For CPU builds, this always return true.  This is not a
      * const function because it may attempt to release memory back to the
      * system.
+     * \param sz Requested allocation size in bytes.
      */
     [[nodiscard]] virtual bool hasFreeDeviceMemory (std::size_t sz);
 
@@ -268,7 +278,11 @@ public:
      */
     static std::size_t align (std::size_t sz);
 
-    static void Initialize (bool minimal); ///< Used internally by amrex
+    /**
+     * \brief Initialize the Arena subsystem (used internally by AMReX).
+     * \param minimal When true, perform only the minimal setup required.
+     */
+    static void Initialize (bool minimal);
 
     /**
      * \brief Print memory usage information of all arenas

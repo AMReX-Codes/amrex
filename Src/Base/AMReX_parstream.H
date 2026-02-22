@@ -4,6 +4,12 @@
 
 #include <iosfwd>
 #include <string>
+
+/**
+ * \file AMReX_parstream.H
+ * \brief Parallel-safe ostream helper (pout) for writing per-rank logs.
+ */
+
 namespace amrex
 {
 
@@ -29,6 +35,8 @@ namespace amrex
  * has already been called, it closes the current output file and opens a
  * new one (unless the name is the same, in which case it does nothing).
  * In serial, ignores the argument and does nothing.
+ *
+ * \param a_Name New base name to use for pout files.
  */
   void setPoutBaseName(const std::string & a_Name);
 

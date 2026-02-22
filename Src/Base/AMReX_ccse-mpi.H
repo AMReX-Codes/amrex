@@ -3,6 +3,13 @@
 #define BL_CCSE_MPI_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_ccse-mpi.H
+ * \brief MPI datatype helpers and fallbacks for builds without MPI.
+ *
+ * Including this header centralizes all direct references to <mpi.h>.
+ */
+
 //
 // This header encapsulates the MPI header.
 //
@@ -17,8 +24,14 @@ namespace amrex::ParallelDescriptor
 {
     using lull_t = unsigned long long[8];
 
+    /**
+     * \brief Helper that maps a C++ type to its corresponding MPI_Datatype.
+     *
+     * Specializations are provided for all fundamental types AMReX sends.
+     * This wrapper is available even in non-MPI builds (where MPI_Datatype
+     * is an int placeholder), so templated code can compile unconditionally.
+     */
     template <class T>
-    //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
         static MPI_Datatype type();
@@ -72,8 +85,13 @@ namespace amrex {
 
 namespace amrex::ParallelDescriptor
 {
+    /**
+     * \brief Helper that maps a C++ type to its corresponding MPI_Datatype.
+     *
+     * In non-MPI builds the returned value is a dummy placeholder so code
+     * that relies on the interface can still compile.
+     */
     template <class T>
-    //! Communication datatype (note: this structure also works without MPI)
     struct Mpi_typemap
     {
         static MPI_Datatype type();

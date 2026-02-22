@@ -47,11 +47,16 @@ public:
     */
     void free (void* pt) final;
 
+    //! Return true; SArena allocations are accessible from the device.
     [[nodiscard]] bool isDeviceAccessible () const final;
+    //! Return true; SArena allocations reside in host memory.
     [[nodiscard]] bool isHostAccessible () const final;
 
+    //! Return false; SArena does not allocate managed (unified) memory.
     [[nodiscard]] bool isManaged () const final;
+    //! Return false because SArena is backed by host memory.
     [[nodiscard]] bool isDevice () const final;
+    //! Return false; SArena allocations are not pinned host buffers.
     [[nodiscard]] bool isPinned () const final;
 
 #ifdef AMREX_USE_GPU

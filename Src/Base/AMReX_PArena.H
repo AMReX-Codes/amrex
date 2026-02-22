@@ -29,22 +29,49 @@ class PArena
     public Arena
 {
 public:
-    //! Construct with a memory-pool release threshold (bytes).
+    /**
+     * \brief Construct with a memory-pool release threshold (bytes).
+     *
+     * \param release_threshold Bytes of cached allocations the pool may keep before returning
+     *                          memory to the driver/runtime.
+     */
     PArena (Long release_threshold);
     PArena (const PArena& rhs) = delete;
     PArena (PArena&& rhs) = delete;
     PArena& operator= (const PArena& rhs) = delete;
     PArena& operator= (PArena&& rhs) = delete;
+    //! Destroy the arena and release any outstanding pool reservations.
     ~PArena () override;
 
+    /**
+     * \brief Allocate \p nbytes from the underlying GPU memory pool.
+     *
+     * May synchronize the current stream if the pool needs to reclaim memory.
+     *
+     * \param nbytes Number of bytes to allocate.
+     * \return Pointer to the allocated buffer.
+     */
     [[nodiscard]] void* alloc (std::size_t nbytes) final;
+
+    /**
+     * \brief Return the allocation at \p p to the memory pool.
+     *
+     * The pointer must have been obtained from alloc().
+     *
+     * \param p Pointer to the allocation to free.
+     */
     void free (void* p) final;
 
+    //! Return true because PArena allocations are accessible from the device.
     [[nodiscard]] bool isDeviceAccessible () const final;
+    //! Return false; PArena allocations reside in device memory.
     [[nodiscard]] bool isHostAccessible () const final;
 
+    //! Return false; PArena does not provide managed memory.
     [[nodiscard]] bool isManaged () const final;
+    //! Return true; PArena allocates from device memory pools.
     [[nodiscard]] bool isDevice () const final;
+    //! Return false; PArena does not allocate pinned host memory.
     [[nodiscard]] bool isPinned () const final;
 
 #ifdef AMREX_USE_GPU
