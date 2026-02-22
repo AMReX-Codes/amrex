@@ -2,6 +2,11 @@
 #define BL_UTILITY_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Utility.H
+ * \brief Miscellaneous C++ utility functions used throughout AMReX.
+ */
+
 #include <AMReX_BLassert.H>
 #include <AMReX_REAL.H>
 #include <AMReX_INT.H>
@@ -36,10 +41,6 @@
 
 namespace amrex
 {
-/**
-* \brief Useful C++ Utility Functions
-*/
-
     //! Return true if argument is a non-zero length string of digits.
     bool is_integer (const char* str);
 
@@ -149,33 +150,54 @@ namespace amrex
     */
     double InvNormDistBest (double p);
 
-    /* \brief cumulative refinement ratio between levels */
+    //! Return the cumulative refinement ratio between AMR levels \p fromlevel and \p tolevel.
     int CRRBetweenLevels(int fromlevel, int tolevel,
                          const Vector<int> &refratios);
 
     class expect;
+    //! Read and discard characters from \p is that match the expected string in \p exp; throw on mismatch.
     std::istream& operator>>(std::istream&, const expect& exp);
 
+    /**
+     * \class amrex::expect
+     * \ingroup amrex_utilities
+     * \brief Stream manipulator that asserts the next characters in a stream match an expected token.
+     */
     class expect
     {
         friend std::istream& operator>>(std::istream&, const expect& exp);
     public:
+        //! Expect the literal string \p str_.
         explicit expect (std::string str_);
+        //! Expect the C-string \p istr_.
         explicit expect (const char* istr_);
+        //! Expect the single character \p c.
         explicit expect (char c);
+        //! Return the expected string.
         [[nodiscard]] const std::string& the_string( ) const;
     private:
         std::string istr;
     };
 
+    /**
+     * \class amrex::StreamRetry
+     * \ingroup amrex_utilities
+     * \brief Retry helper for output streams that may encounter transient errors.
+     */
     class StreamRetry
     {
       public:
+        //! Attach to stream \p os, appending \p suffix on each retry, up to \p maxtries attempts.
         StreamRetry(std::ostream &os, std::string suffix, int maxtries);
+        //! Attach to file \p filename, aborting or retrying up to \p maxtries times.
         StreamRetry(std::string filename, bool abortonretryfailure, int maxtries);
+        //! Attempt to flush/write to the stream; return \c true if the output succeeded.
         bool TryOutput();
+        //! Attempt to write to the file; return \c true if the output succeeded.
         bool TryFileOutput();
+        //! Return the total number of stream errors recorded across all instances.
         static int NStreamErrors()       { return nStreamErrors; }
+        //! Reset the stream error counter to zero.
         static void ClearStreamErrors()  { nStreamErrors = 0;    }
 
       private:
@@ -189,8 +211,11 @@ namespace amrex
         static int nStreamErrors;
     };
 
+    //! Pack a vector of strings into a flat byte buffer for MPI communication.
     Vector<char> SerializeStringArray(const Vector<std::string> &stringArray);
+    //! Unpack a flat byte buffer produced by SerializeStringArray back into a string vector.
     Vector<std::string> UnSerializeStringArray(const Vector<char> &charArray);
+    //! MPI-synchronize \p localStrings across all ranks into \p syncedStrings; sets \p alreadySynced if all ranks agreed.
     void SyncStrings(const Vector<std::string> &localStrings,
                      Vector<std::string> &syncedStrings, bool &alreadySynced);
 
@@ -202,27 +227,45 @@ namespace amrex
     /// \cond DOXYGEN_IGNORE
     static const Long gcc_map_node_extra_bytes = 32L;
     /// \endcond
+    //! Return the approximate number of bytes occupied by the vector \p v (including capacity).
     template <typename T> amrex::Long bytesOf (const std::vector<T>& v);
+    //! Return the approximate number of bytes occupied by the map \p m.
     template <typename Key, typename T, class Compare> amrex::Long bytesOf (const std::map<Key,T,Compare>& m);
 
+    //! Broadcast a boolean from rank \p rootId to all ranks on communicator \p localComm.
     void BroadcastBool(bool &bBool, int myLocalId, int rootId, const MPI_Comm &localComm);
 
+    //! Broadcast a string from rank \p rootId to all ranks on communicator \p localComm.
     void BroadcastString(std::string &bStr, int myLocalId, int rootId, const MPI_Comm &localComm);
+    //! Broadcast a vector of strings from rank \p rootId to all ranks on communicator \p localComm.
     void BroadcastStringArray(Vector<std::string> &bSA, int myLocalId, int rootId, const MPI_Comm &localComm);
 
+    //! Broadcast a typed vector from rank \p rootId to all ranks on communicator \p localComm.
     template<class T> void BroadcastArray(Vector<T> &aT, int myLocalId, int rootId, const MPI_Comm &localComm);
 
-    void Sleep (double sleepsec);  // Sleep for sleepsec seconds
+    //! Suspend the calling thread for \p sleepsec seconds.
+    void Sleep (double sleepsec);
 
-
+    /// \cond DOXYGEN_IGNORE
     using MaxResSteadyClock = std::conditional_t<std::chrono::high_resolution_clock::is_steady,
                                                std::chrono::high_resolution_clock,
                                                std::chrono::steady_clock>;
+    /// \endcond
+    //! Return the current wall-clock time in seconds (high-resolution steady clock).
     double second () noexcept;
 
+    //! Combine \p val into the hash \p seed using a Boost-style mixing step.
     template<typename T> void hash_combine (uint64_t & seed, const T & val) noexcept;
+    //! Compute a hash of all elements in \p vec, starting from \p seed.
     template<typename T> uint64_t hash_vector (const Vector<T> & vec, uint64_t seed = 0xDEADBEEFDEADBEEF) noexcept;
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief Write a human-readable representation of \p t to stream \p os.
+     *
+     * Handles scalars, string-like types, array-like types, and tuple-like types
+     * recursively.  At most \p limit elements are printed before an ellipsis.
+     */
     template <class T>
     std::ostream& ToString(std::ostream& os,
                            const T& t,
@@ -232,6 +275,7 @@ namespace amrex
                            const char* symbol_str = "\"",
                            int limit = 100);
 
+    //! Return a human-readable representation of \p t as a string; see the stream overload for details.
     template <class T>
     std::string ToString(const T& t,
                          const char* symbol_begin = "[",
