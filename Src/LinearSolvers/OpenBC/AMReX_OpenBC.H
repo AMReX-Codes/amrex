@@ -8,6 +8,14 @@
 namespace amrex
 {
 
+/**
+ * \file AMReX_OpenBC.H
+ *
+ * Multilevel Poisson solver that enforces open (isolated) domain boundaries by
+ * matching multipole moments on the coarse exterior domain built by James/McCorquodale.
+ * Provides GPU-aware helper hooks so the boundary solves can run on accelerators.
+ */
+
 namespace openbc {
 
     /// \cond DOXYGEN_IGNORE
@@ -62,8 +70,17 @@ struct Gpu::SharedMemory<openbc::Moments::array_type>
 class OpenBCSolver
 {
 public:
+    //! Construct an empty solver; call define() before solving.
     OpenBCSolver () = default;
 
+    /**
+     * \brief Build the solver hierarchy covering \p a_geom/\p a_grids.
+     *
+     * \param a_geom  AMR geometry objects (fine to coarse).
+     * \param a_grids AMR grid arrays (fine to coarse).
+     * \param a_dmap  Distribution mappings per level.
+     * \param a_info  Optional linear-operator configuration overrides.
+     */
     OpenBCSolver (const Vector<Geometry>& a_geom,
                   const Vector<BoxArray>& a_grids,
                   const Vector<DistributionMapping>& a_dmap,
@@ -76,23 +93,68 @@ public:
     OpenBCSolver& operator= (const OpenBCSolver&) = delete;
     OpenBCSolver& operator= (OpenBCSolver&&) = delete;
 
+    /**
+     * \brief Initialize/refresh geometric data structures and coarse solves.
+     *
+     * May be called repeatedly if the mesh hierarchy changes.
+     *
+     * \param a_geom  AMR geometry objects (fine to coarse).
+     * \param a_grids AMR grid arrays (fine to coarse).
+     * \param a_dmap  Distribution mappings per level.
+     * \param a_info  Optional linear-operator configuration overrides.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo());
 
+    //! Control high-level MLMG verbosity (0 = silent) via \p v.
     void setVerbose (int v) noexcept;
+    //! Control coarse-level (bottom) solver verbosity via \p v.
     void setBottomVerbose (int v) noexcept;
 
+    /**
+     * \brief Toggle the Hypre bottom solver (requires Hypre-enabled build).
+     *
+     * When enabled, the max coarsening level is forced to zero so Hypre owns
+     * the coarsest solve.
+     *
+     * \param use_hypre True to use Hypre; false for AMReX-native solvers.
+     */
     void useHypre (bool use_hypre) noexcept;
 
+    /**
+     * \brief Solve the isolated Poisson problem.
+     *
+     * The RHS/solution vectors must cover the AMR hierarchy supplied to define().
+     *
+     * \param a_sol    Solution MultiFabs (updated in place).
+     * \param a_rhs    Right-hand sides.
+     * \param a_tol_rel Relative tolerance passed to both MLMG instances.
+     * \param a_tol_abs Absolute tolerance passed to both MLMG instances.
+     * \return Final relative residual reported by the outer MLMG stage.
+     */
     Real solve (const Vector<MultiFab*>& a_sol, const Vector<MultiFab const*>& a_rhs,
                 Real a_tol_rel, Real a_tol_abs);
 
 // public for cuda
-
+    /**
+     * \brief Build per-face multipole moments that summarize solution derivatives.
+     *
+     * \param moments Device vector sized to `m_nblocks_local`; filled in place.
+     */
     void compute_moments (Gpu::DeviceVector<openbc::Moments>& moments);
+    /**
+     * \brief Evaluate the coarse potential contribution from precomputed moments.
+     *
+     * \param moments Device buffer returned by compute_moments().
+     */
     void compute_potential (Gpu::DeviceVector<openbc::Moments> const& moments);
+    /**
+     * \brief Interpolate coarse potential values back onto the grown solution domain.
+     *
+     * \param solg Buffer defined on the extended domain; updated in place.
+     */
     void interpolate_potential (MultiFab& solg);
 
 private:

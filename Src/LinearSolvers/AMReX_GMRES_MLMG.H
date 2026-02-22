@@ -10,6 +10,12 @@
 namespace amrex {
 
 /**
+ * \file AMReX_GMRES_MLMG.H
+ *
+ * GMRES wrapper that plugs into MLMG operators/preconditioners.
+ */
+
+/**
  * \ingroup amrex_solver_gmres
  * \brief Solve using GMRES with multigrid as preconditioner
  *
@@ -26,6 +32,11 @@ public:
     using RT = typename MG::RT; // double or float
     using GM = GMRES<Vector<MF>,GMRESMLMGT<MF>>;
 
+    /**
+     * \brief Wrap an existing MLMG hierarchy as a GMRES operator/preconditioner.
+     *
+     * \param mlmg Multigrid object that provides apply/precond hooks.
+     */
     explicit GMRESMLMGT (MG& mlmg);
 
     /**
@@ -38,59 +49,113 @@ public:
      */
     void solve (MF& a_sol, MF const& a_rhs, RT a_tol_rel, RT a_tol_abs);
 
+    /**
+     * \brief Solve using pointer-to-MultiFab arrays (utility for existing MLMG data).
+     *
+     * \param a_sol     Per-level solution MultiFabs (single component).
+     * \param a_rhs     Per-level RHS MultiFabs (single component).
+     * \param a_tol_rel Relative tolerance.
+     * \param a_tol_abs Absolute tolerance.
+     */
     void solve (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs, RT a_tol_rel, RT a_tol_abs);
 
-    //! Sets verbosity.
+    //! Set verbosity level \p v for both GMRES and MLMG components.
     void setVerbose (int v) {
         m_verbose = v;
         m_gmres.setVerbose(v);
     }
 
-    //! Sets the max number of iterations
+    //! Cap the number of GMRES iterations executed per solve to \p niters.
     void setMaxIters (int niters) { m_gmres.setMaxIters(niters); }
 
-    //! Gets the number of iterations.
+    //! Number of iterations executed by the last solve().
     [[nodiscard]] int getNumIters () const { return m_gmres.getNumIters(); }
 
-    //! Gets the 2-norm of the residual.
+    //! Final residual 2-norm produced by the last solve().
     [[nodiscard]] RT getResidualNorm () const { return m_gmres.getResidualNorm(); }
 
-    //! Get the GMRES object.
+    //! Direct access to the underlying GMRES driver for fine-grained tuning.
     GM& getGMRES () { return m_gmres; }
 
-    //! Make MultiFab without ghost cells
+    //! Return a MultiFab vector without ghost cells for RHS storage.
     VEC makeVecRHS () const;
 
-    //! Make MultiFab with ghost cells and set ghost cells to zero
+    //! Return a MultiFab vector with one layer of ghost cells for LHS storage.
     VEC makeVecLHS () const;
 
+    //! Return the 2-norm of \p mf using the multigrid operator's weighting.
     RT norm2 (VEC const& mf) const;
 
+    //! Scale each component of \p mf by \p scale_factor.
     static void scale (VEC& mf, RT scale_factor);
 
+    //! Return the preconditioner-aware dot product between \p mf1 and \p mf2.
     RT dotProduct (VEC const& mf1, VEC const& mf2) const;
 
-    //! lhs = 0
+    /**
+     * \brief Reset \p lhs to zero on every AMR level.
+     *
+     * \param lhs Per-level vector that will be zeroed in place.
+     */
     static void setToZero (VEC& lhs);
 
-    //! lhs = rhs
+    /**
+     * \brief Copy \p rhs into \p lhs level by level.
+     *
+     * \param lhs Destination vector updated in place.
+     * \param rhs Source vector.
+     */
     static void assign (VEC& lhs, VEC const& rhs);
 
-    //! lhs += a*rhs
+    /**
+     * \brief Add a scaled vector: \f$ \text{lhs} \mathrel{+}= a\,\text{rhs}\f$.
+     *
+     * \param lhs Accumulation target.
+     * \param rhs Source vector.
+     * \param a   Scalar multiplier applied to \p rhs.
+     */
     static void increment (VEC& lhs, VEC const& rhs, RT a);
 
-    //! lhs = a*rhs_a + b*rhs_b
+    /**
+     * \brief Form a linear combination: \f$ \text{lhs} = a\,\text{rhs}_a + b\,\text{rhs}_b\f$.
+     *
+     * \param lhs    Destination vector written in place.
+     * \param a      Scalar applied to \p rhs_a.
+     * \param rhs_a  First source vector.
+     * \param b      Scalar applied to \p rhs_b.
+     * \param rhs_b  Second source vector.
+     */
     static void linComb (VEC& lhs, RT a, VEC const& rhs_a, RT b, VEC const& rhs_b);
 
-    //! lhs = L(rhs)
+    /**
+     * \brief Apply the operator supplied to the constructor.
+     *
+     * \param lhs Destination vector receiving \f$L(\text{rhs})\f$.
+     * \param rhs Source vector.
+     */
     void apply (VEC& lhs, VEC const& rhs) const;
 
+    /**
+     * \brief Apply the MLMG-based preconditioner: \f$\text{lhs} = P^{-1}(\text{rhs})\f$.
+     *
+     * \param lhs Destination vector, zeroed before solving when the preconditioner is enabled.
+     * \param rhs Source vector passed to the preconditioner.
+     */
     void precond (VEC& lhs, VEC const& rhs) const;
 
-    //! Control whether or not to use MLMG as preconditioner.
+    /**
+     * \brief Enable or disable MLMG as a preconditioner.
+     *
+     * \param new_flag Set true to enable, false to disable.
+     * \return Previous flag value.
+     */
     bool usePrecond (bool new_flag) { return std::exchange(m_use_precond, new_flag); }
 
-    //! Set the number of MLMG preconditioner iterations per GMRES iteration.
+    /**
+     * \brief Adjust how many MLMG smoothing iterations run inside each GMRES iteration.
+     *
+     * \param precond_niters Number of MLMG iterations per GMRES iteration.
+     */
     void setPrecondNumIters (int precond_niters) { m_precond_niters = precond_niters; }
 
 private:
