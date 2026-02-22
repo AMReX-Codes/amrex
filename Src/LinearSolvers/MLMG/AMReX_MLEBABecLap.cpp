@@ -180,7 +180,7 @@ MLEBABecLap::setBCoeffs (int amrlev, Vector<Real> const& beta)
     const int ncomp = getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            m_b_coeffs[amrlev][0][idim].setVal(beta[icomp]);
+            m_b_coeffs[amrlev][0][idim].setVal(beta[icomp], icomp, 1, 0);
         }
     }
     m_needs_update = true;
