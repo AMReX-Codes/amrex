@@ -19,9 +19,16 @@ namespace amrex::EB2 {
 extern AMREX_EXPORT int max_grid_size;
 /// \endcond
 
-void useEB2 (bool);
+/**
+ * \brief Enable/disable EB2 (embedded boundary) support globally.
+ *
+ * \param use True to activate EB2, false to fall back to purely regular grids.
+ */
+void useEB2 (bool use);
 
+//! Initialize EB2’s global state (call before constructing geometries).
 void Initialize ();
+//! Tear down EB2 global resources (called automatically at shutdown).
 void Finalize ();
 
 class IndexSpace
@@ -70,7 +77,9 @@ protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
 
+//! Return the top IndexSpace if one has been built (nullptr otherwise).
 const IndexSpace* TopIndexSpaceIfPresent () noexcept;
+//! Convenience wrapper that assumes an IndexSpace has already been built.
 inline const IndexSpace* TopIndexSpace () noexcept { return TopIndexSpaceIfPresent(); }
 
 template <typename G>
@@ -122,10 +131,24 @@ private:
 
 #include <AMReX_EB2_IndexSpaceI.H>
 
+//! Return whether EB2 builders should extend the domain face when outlining geometry.
 bool ExtendDomainFace ();
+//! Default number of coarsening options to probe when building EB hierarchy.
 int NumCoarsenOpt ();
 
-/// \ingroup amrex_eb
+/**
+ * \brief Build EB geometry from a GeometryShop \p gshop and a single AMR Geometry.
+ *
+ * \tparam G GeometryShop type (see EB2::GeometryShop helpers).
+ * \param gshop  Construct describing the implicit surface.
+ * \param geom   Finest-level Geometry.
+ * \param required_coarsening_level Number of coarse levels required by the application.
+ * \param max_coarsening_level      Maximum level the implicit function supports.
+ * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
+ * \param extend_domain_face Whether to extend the EB description to domain faces.
+ * \param num_coarsen_opt Number of coarsening options explored to minimize memory.
+ */
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
@@ -141,7 +164,16 @@ Build (const G& gshop, const Geometry& geom,
                       num_coarsen_opt));
 }
 
-/// \ingroup amrex_eb
+/**
+ * \brief Build EB geometry from a GeometryShop and a vector of Geometries (one per level).
+ *
+ * \tparam G GeometryShop type.
+ * \param gshop  Construct describing the implicit surface.
+ * \param geom   Vector of Geometries from finest to coarsest (will be sorted by refinement).
+ * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param extend_domain_face Whether to extend the EB description to domain faces.
+ * \param num_coarsen_opt Number of coarsening options explored.
+ */
 template <typename G>
 void
 Build (const G& gshop, Vector<Geometry> geom,
@@ -155,7 +187,18 @@ Build (const G& gshop, Vector<Geometry> geom,
                      (gshop, geom, ngrow, extend_domain_face, num_coarsen_opt));
 }
 
-/// \ingroup amrex_eb
+/**
+ * \brief Build EB geometry from the implicit function stored in the Geometry object itself.
+ *
+ * \param geom   Finest-level Geometry.
+ * \param required_coarsening_level Number of coarse levels required by the application.
+ * \param max_coarsening_level      Maximum level the implicit function supports.
+ * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
+ * \param extend_domain_face Whether to extend the EB description to domain faces.
+ * \param num_coarsen_opt Number of coarsening options explored.
+ * \param support_mvmc Whether to build multi-valued multi-cut support.
+ */
 void Build (const Geometry& geom,
             int required_coarsening_level,
             int max_coarsening_level,
@@ -165,6 +208,11 @@ void Build (const Geometry& geom,
             int num_coarsen_opt = NumCoarsenOpt(),
             bool support_mvmc = false);
 
+/**
+ * \brief Build EB geometry dedicated to multi-valued multi-cut support.
+ *
+ * Parameters mirror Build() but always enables multi-valued structures.
+ */
 void BuildMultiValuedMultiCut (const Geometry& geom,
                                int required_coarsening_level,
                                int max_coarsening_level,
@@ -173,6 +221,17 @@ void BuildMultiValuedMultiCut (const Geometry& geom,
                                bool extend_domain_face = ExtendDomainFace(),
                                int num_coarsen_opt = NumCoarsenOpt());
 
+/**
+ * \brief Rebuild an IndexSpace from a checkpoint file.
+ *
+ * \param fname   Path to the checkpoint file.
+ * \param geom    Geometry describing the finest level.
+ * \param required_coarsening_level Number of coarse levels required.
+ * \param max_coarsening_level      Maximum supported by the stored implicit function.
+ * \param ngrow  Number of grow cells.
+ * \param build_coarse_level_by_coarsening Whether to coarsen or rebuild coarse levels.
+ * \param extend_domain_face Whether to extend the EB description to domain faces.
+ */
 void BuildFromChkptFile (std::string const& fname,
                          const Geometry& geom,
                          int required_coarsening_level,
@@ -181,11 +240,15 @@ void BuildFromChkptFile (std::string const& fname,
                          bool build_coarse_level_by_coarsening = true,
                          bool extend_domain_face = ExtendDomainFace());
 
+//! Return the maximum coarsening level supported by the implicit geometry stored in \p geom.
 int maxCoarseningLevel (const Geometry& geom);
+//! Same as above but for a specific IndexSpace pointer \p ebis.
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
 
+//! Add \p num_new_fine_levels to the top of the current IndexSpace hierarchy.
 void addFineLevels (int num_new_fine_levels);
 
+//! Add \p num_new_coarse_levels regular levels below the current coarsest level.
 void addRegularCoarseLevels (int num_new_coarse_levels);
 
 }

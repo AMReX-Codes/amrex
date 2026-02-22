@@ -7,6 +7,12 @@
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_GeometryShop.H>
 
+/**
+ * \file AMReX_EB_utils.H
+ *
+ * Convenience helpers for sampling implicit functions and signed distances.
+ */
+
 namespace amrex {
     /**
      * \brief Fill MultiFab with implicit function.

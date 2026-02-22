@@ -5,6 +5,12 @@
 #include <AMReX_YAFluxRegister.H>
 #include <AMReX_EBCellFlag.H>
 
+/**
+ * \file AMReX_EBFluxRegister.H
+ *
+ * Flux-register implementation that respects EB cut cells and supports re-redistribution.
+ */
+
 extern "C" {
     void amrex_eb_disable_reredistribution ();
     amrex::Real amrex_eb_get_reredistribution_threshold ();
@@ -60,23 +66,53 @@ public:
 
     EBFluxRegister () = default;
 
+    /**
+     * \brief Construct and immediately define the register geometry.
+     *
+     * \param fba       Fine BoxArray.
+     * \param cba       Coarse BoxArray.
+     * \param fdm       Fine DistributionMapping.
+     * \param cdm       Coarse DistributionMapping.
+     * \param fgeom     Fine Geometry.
+     * \param cgeom     Coarse Geometry.
+     * \param ref_ratio Refinement ratio from coarse to fine.
+     * \param fine_lev  Fine level index (for diagnostics).
+     * \param nvar      Number of state components stored.
+     */
     EBFluxRegister (const BoxArray& fba, const BoxArray& cba,
                     const DistributionMapping& fdm, const DistributionMapping& cdm,
                     const Geometry& fgeom, const Geometry& cgeom,
                     const IntVect& ref_ratio, int fine_lev, int nvar);
 
+    /**
+     * \brief Define the register geometry and allocate storage.
+     *
+     * Parameters mirror the constructor above.
+     */
     void define (const BoxArray& fba, const BoxArray& cba,
                  const DistributionMapping& fdm, const DistributionMapping& cdm,
                  const Geometry& fgeom, const Geometry& cgeom,
                  const IntVect& ref_ratio, int fine_lev, int nvar);
 
     using YAFluxRegister::CrseAdd;
+    /**
+     * \brief Add coarse fluxes for tiles containing cut cells (all components).
+     *
+     * \param mfi       Iterator identifying the coarse tile being processed.
+     * \param flux      Face-centered flux arrays (centroid-centered if cut cells).
+     * \param dx        Cell spacing.
+     * \param dt        Coarse time step.
+     * \param volfrac   Volume fractions.
+     * \param areafrac  Area-fraction arrays.
+     * \param runon     Execution target (CPU/GPU).
+     */
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
                   const FArrayBox& volfrac,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   RunOn runon);
+    //! Component-selective version of CrseAdd described above.
     void CrseAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
@@ -85,6 +121,18 @@ public:
                   int srccomp, int destcomp, int numcomp, RunOn runon);
 
     using YAFluxRegister::FineAdd;
+    /**
+     * \brief Add fine-level fluxes for tiles with cut cells and perform re-redistribution.
+     *
+     * \param mfi       Iterator identifying the fine tile being processed.
+     * \param flux      Centroid fluxes on fine faces.
+     * \param dx        Cell spacing.
+     * \param dt        Fine time step.
+     * \param volfrac   Fine volume fractions.
+     * \param areafrac  Fine area fractions.
+     * \param dm        Density/mass change (ghost-cell accumulation).
+     * \param runon     Execution target (CPU/GPU).
+     */
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
@@ -92,6 +140,7 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   const FArrayBox& dm,
                   RunOn runon);
+    //! Component-selective version of the re-redistributing FineAdd.
     void FineAdd (const MFIter& mfi,
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt,
@@ -107,8 +156,17 @@ public:
                   const std::array<FArrayBox const*, AMREX_SPACEDIM>& areafrac,
                   int srccomp, int destcomp, int numcomp, RunOn runon);
 
+    /**
+     * \brief Perform reflux and re-redistribution using accumulated data.
+     *
+     * \param crse_state  Coarse state to be updated near coarse/fine boundaries.
+     * \param crse_vfrac  Coarse volume fractions.
+     * \param fine_state  Fine state (only used for interpolation).
+     * \param fine_vfrac  Fine volume fractions.
+     */
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac);
+    //! Component-selective version of the reflux described above.
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  MultiFab& fine_state, const amrex::MultiFab& fine_vfrac,
                  int srccomp, int destcomp, int numcomp);
@@ -116,10 +174,12 @@ public:
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,
                  int srccomp, int destcomp, int numcomp);
 
+    //! Access coarse accumulation buffer for the tile referenced by \p mfi.
     FArrayBox* getCrseData (const MFIter& mfi) {
         return &(m_crse_data[mfi]);
     }
 
+    //! Flag FAB describing which coarse cells are covered/boundary/genuine.
     const IArrayBox* getCrseFlag (const MFIter& mfi) const {
         return &(m_crse_flag[mfi]);
     }
@@ -130,6 +190,7 @@ private:
 
 public: // for cuda
 
+    //! Allocate auxiliary masks/data structures required on GPUs.
     void defineExtra (const BoxArray& fba, const DistributionMapping& fdm);
 };
 

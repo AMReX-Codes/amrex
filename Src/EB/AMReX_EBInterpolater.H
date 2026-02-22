@@ -4,8 +4,15 @@
 
 #include <AMReX_Interpolater.H>
 
+/**
+ * \file AMReX_EBInterpolater.H
+ *
+ * EB-aware conservative cell interpolater used for AMR prolongation.
+ */
+
 namespace amrex {
 
+//! CellConservativeLinear interpolater customized for EB volume fractions.
 class EBCellConservativeLinear
     : public CellConservativeLinear
 {
@@ -13,6 +20,11 @@ public:
 
     using CellConservativeLinear::CellConservativeLinear;
 
+    /**
+     * \brief Conservatively interpolate coarse data \p crse into fine FAB \p fine.
+     *
+     * Identical signature to CellConservativeLinear::interp but respects EB metadata.
+     */
     void interp (const FArrayBox& crse,
                          int              crse_comp,
                          FArrayBox&       fine,
@@ -28,7 +40,9 @@ public:
                          RunOn            runon) override;
 };
 
+//! Global EB-aware linear conservative interpolater.
 extern AMREX_EXPORT EBCellConservativeLinear  eb_lincc_interp;
+//! Alias maintained for backward compatibility.
 extern AMREX_EXPORT EBCellConservativeLinear  eb_cell_cons_interp;
 
 }

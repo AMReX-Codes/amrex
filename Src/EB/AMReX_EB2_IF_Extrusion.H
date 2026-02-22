@@ -7,20 +7,29 @@
 
 #include <type_traits>
 
+/**
+ * \file AMReX_EB2_IF_Extrusion.H
+ *
+ * Helpers for extruding a lower-dimensional implicit function along one axis.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Extrude a 2-D implicit function uniformly along a coordinate direction.
 class ExtrusionIF
 {
 public:
 
+    //! Store the child implicit function and the axis to extrude (0/1/2).
     ExtrusionIF (F a_f, int direction)
         : m_f(std::move(a_f)),
           m_direction(direction)
         {}
 
+    //! Evaluate by zeroing the extruded coordinate.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const
     {
         RealArray x = p;
@@ -54,6 +63,7 @@ struct IsGPUable<ExtrusionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
+//! Deduction helper for creating ExtrusionIF instances.
 constexpr ExtrusionIF<std::decay_t<F>>
 extrude (F&&f, int direction)
 {

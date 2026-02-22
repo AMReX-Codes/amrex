@@ -172,6 +172,12 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
     return bPt[rangedir];
 }
 
+/**
+ * \brief Samples an implicit function on boxes and fills EB volume-fraction data.
+ *
+ * \tparam F Functor providing the signed-distance/implicit value.
+ * \tparam R Optional resource handle kept alive as long as the shop exists.
+ */
 template <class F, class R = int>
 class GeometryShop
 {
@@ -187,14 +193,26 @@ public:
 
     using FunctionType = F;
 
+    /**
+     * \brief Construct a GeometryShop that owns an implicit function \p f.
+     *
+     * \param f Implicit function whose sign distinguishes inside/outside.
+     */
     explicit GeometryShop (F f)
         : m_f(std::move(f)), m_resource()
         {}
 
+    /**
+     * \brief Construct a GeometryShop with an implicit function and resource handle.
+     *
+     * \param f Implicit function being sampled.
+     * \param r Auxiliary resource (e.g., Parser data) kept alive while \p f is in use.
+     */
     GeometryShop (F f, R r)
         : m_f(std::move(f)), m_resource(std::move(r))
         {}
 
+    //! Immutable access to the underlying implicit function.
     [[nodiscard]] F const& GetImpFunc () const& { return m_f; }
     F&& GetImpFunc () && { return std::move(m_f); }
 
@@ -234,6 +252,13 @@ public:
         }
     }
 
+    /**
+     * \brief Classify \p bx as regular, covered, or mixed (GPU-capable case).
+     *
+     * \param bx   Box to inspect.
+     * \param geom Geometry providing physical coordinates.
+     * \param run_on Whether to run on CPU or GPU.
+     */
     template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
@@ -281,6 +306,7 @@ public:
         }
     }
 
+    //! CPU-only fallback for getBoxType().
     template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
@@ -293,6 +319,14 @@ public:
     template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     static constexpr bool isGPUable () noexcept { return false; }
 
+    /**
+     * \brief Fill a level-set FAB by sampling the implicit function on each cell/ghost.
+     *
+     * \param levelset Destination BaseFab.
+     * \param geom     Geometry providing location metadata.
+     * \param run_on   Execution target.
+     * \param bounding_box Bounding box limiting the sampling region.
+     */
     template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
                   Box const& bounding_box) const noexcept
@@ -312,6 +346,7 @@ public:
         });
     }
 
+    //! CPU-only overload of fillFab().
     template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const noexcept
@@ -351,6 +386,15 @@ public:
     }
 
 
+    /**
+     * \brief Compute EB intercepts for irregular faces (GPU-capable case).
+     *
+     * \param inter_arr Array of intercept FABs per direction.
+     * \param type_arr  Cell-type arrays marking regular/covered/irregular cells.
+     * \param geom      Geometry providing metrics.
+     * \param run_on    Execution target.
+     * \param bounding_box Bounding box limiting evaluation.
+     */
     template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
@@ -387,6 +431,7 @@ public:
         }
     }
 
+    //! CPU-only overload of getIntercept().
     template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
@@ -455,6 +500,14 @@ public:
 
 
 
+    /**
+     * \brief Update intercepts when level-set data has been adjusted (e.g., FillBoundary).
+     *
+     * \param inter_arr Array of intercept FABs per direction.
+     * \param type_arr  Cell-type arrays marking regular/covered/irregular cells.
+     * \param lst       Level-set data used to determine zero crossings.
+     * \param geom      Geometry providing metrics.
+     */
     void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                           Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                           Array4<Real const> const& lst, Geometry const& geom) const noexcept
@@ -518,6 +571,11 @@ private:
                    // because F needs to be a simply type suitable for GPU.
 };
 
+/**
+ * \brief Helper that deduces template arguments for GeometryShop.
+ *
+ * \param f Implicit function callable.
+ */
 template <class F>
 GeometryShop<std::decay_t<F>>
 makeShop (F&& f)
@@ -525,6 +583,12 @@ makeShop (F&& f)
     return GeometryShop<std::decay_t<F>>(std::forward<F>(f));
 }
 
+/**
+ * \brief Helper that deduces template arguments when supplying an extra resource.
+ *
+ * \param f Implicit function callable.
+ * \param r Extra resource (e.g., Parser data) kept alive for \p f.
+ */
 template <class F, class R>
 GeometryShop<std::decay_t<F>, std::decay_t<R>>
 makeShop (F&& f, R&& r)
