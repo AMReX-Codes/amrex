@@ -11,6 +11,12 @@
 namespace amrex::FFT
 {
 
+/**
+ * \file AMReX_FFT_R2C.H
+ *
+ * Parallel real-to-complex FFT wrappers that operate on MultiFabs/FabArrays.
+ */
+
 template <typename T> class OpenBCSolver;
 template <typename T> class Poisson;
 template <typename T> class PoissonHybrid;
@@ -96,8 +102,8 @@ public:
      * This should only be called once unless the domain decomposition
      * changes.
      *
-     * local_start starting indices of the local domain
-     * local_size size of the local domain
+     * \param local_start Starting indices of the local domain in each direction.
+     * \param local_size  Extent of the local domain handled by this rank.
      */
     void setLocalDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
                          std::array<int,AMREX_SPACEDIM> const& local_size);
@@ -112,6 +118,11 @@ public:
      * This is needed, only if one uses the raw pointer interfaces, not the
      * amrex::MulitFab interfaces. Only one of the functions, setLocalDomain
      * and getLocalDomain, should be called.
+     */
+    /**
+     * \brief Domain decomposition chosen by AMReX for the real-space data.
+     *
+     * \return Pair of (local start indices, local extents).
      */
     std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
     getLocalDomain () const;
@@ -141,8 +152,8 @@ public:
      * This should only be called once unless the domain decomposition
      * changes.
      *
-     * local_start starting indices of the local domain
-     * local_size size of the local domain
+     * \param local_start Starting indices of the local spectral sub-domain.
+     * \param local_size  Extent of the spectral data handled by this rank.
      */
     void setLocalSpectralDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
                                  std::array<int,AMREX_SPACEDIM> const& local_size);
@@ -164,6 +175,11 @@ public:
      * of (nx+1)/2 * ny * nz, if the real domain is nx * ny * nz.
      *
      */
+    /**
+     * \brief Domain decomposition chosen by AMReX for spectral (complex) space.
+     *
+     * \return Pair of (local start indices, local extents).
+     */
     std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
     getLocalSpectralDomain () const;
 
@@ -181,7 +197,7 @@ public:
      * \param outmf        output data in MultiFab or FabArray<BaseFab<float>>
      * \param post_forward a callable object for processing the post-forward
      *                     data before the backward transform. Its interface
-     *                     is `(int,int,int,GpuComplex<T>&)`, where the integers
+     *                     is `void(int,int,int,GpuComplex<T>&)`, where the integers
      *                     are indices in the spectral space, and the reference
      *                     to the complex number allows for the modification of
      *                     the spectral data at that location.
@@ -240,6 +256,9 @@ public:
      * because it has better performance. All processes need to call this
      * function even if their local size is zero. If the local size is zero,
      * one can pass nullptrs.
+     *
+     * \param in  Real-domain samples laid out as specified by setLocalDomain.
+     * \param out Complex-domain buffer that receives the Hermitian half-spectrum.
      */
     template <typename RT, typename CT, Direction DIR=D, bool CP=C,
               std::enable_if_t<(DIR == Direction::forward ||
@@ -287,6 +306,9 @@ public:
      * because it has better performance. All processes need to call this
      * function even if their local size is zero. If the local size is zero,
      * one can pass nullptrs.
+     *
+     * \param in  Complex-domain coefficients matching the layout returned by getLocalSpectralDomain.
+     * \param out Real-domain buffer that receives the reconstructed data.
      */
     template <typename CT, typename RT, Direction DIR=D, bool CP=C,
               std::enable_if_t<(DIR == Direction::backward ||
@@ -295,9 +317,13 @@ public:
                                    (sizeof(RT) == sizeof(CT) && CP)), int> = 0>
     void backward (CT const* in, RT* out);
 
-    //! Scaling factor. If the data goes through forward and then backward,
-    //! the result multiplied by the scaling factor is equal to the original
-    //! data.
+    /**
+     * \brief Scaling factor. If the data goes through forward and then backward,
+     * the result multiplied by the scaling factor is equal to the original
+     * data.
+     *
+     * \return Normalization factor (1 divided by the logical domain size).
+     */
     [[nodiscard]] T scalingFactor () const;
 
     /**
@@ -308,6 +334,8 @@ public:
      * the returned data array does not have the usual ordering of
      * `(x,y,z)`. The order is specified in the second part of the return
      * value.
+     *
+     * \return Pair of (spectral MultiFab pointer, permutation describing storage order).
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
@@ -319,14 +347,25 @@ public:
      * The returned BoxArray and DistributionMapping can be used to build
      * FabArray<BaseFab<GpuComplex<T>>> for spectral data. The returned
      * BoxArray has the usual order of `(x,y,z)`.
+     *
+     * \return Layout describing the complex-space tiling and distribution.
      */
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
-    // This is a private function, but it's public for cuda.
+    /**
+     * \brief CUDA-visible hook that walks internal spectral data and applies \p post_forward.
+     *
+     * \param post_forward Functor invoked on each spectral coefficient (`void(int,int,int,GpuComplex<T>&)`).
+     */
     template <typename F>
     void post_forward_doit_0 (F const& post_forward);
 
     template <typename F>
+    /**
+     * \brief CUDA-visible helper that redistributes and applies \p post_forward for the batched layout.
+     *
+     * \param post_forward Functor invoked on each spectral coefficient (`void(int,int,int,GpuComplex<T>&)`).
+     */
     void post_forward_doit_1 (F const& post_forward);
 
 private:

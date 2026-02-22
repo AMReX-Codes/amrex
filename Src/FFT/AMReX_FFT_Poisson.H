@@ -7,6 +7,12 @@
 namespace amrex::FFT
 {
 
+/**
+ * \file AMReX_FFT_Poisson.H
+ *
+ * FFT-based Poisson solvers (periodic, mixed BC, hybrid, and open BC variants).
+ */
+
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename MF>
@@ -61,6 +67,12 @@ class Poisson
 {
 public:
 
+    /**
+     * \brief Construct a Poisson solver with explicit boundary types.
+     *
+     * \param geom Geometry describing the domain and metric information.
+     * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
@@ -81,6 +93,11 @@ public:
         }
     }
 
+    /**
+     * \brief Construct a purely periodic Poisson solver.
+     *
+     * \param geom Periodic geometry (all directions must be periodic).
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     explicit Poisson (Geometry const& geom)
         : m_domain_lo(geom.Domain().smallEnd()),
@@ -96,12 +113,15 @@ public:
         }
     }
 
-    /*
-     * \brief Solve del dot grad soln = rhs
+    /**
+     * \brief Solve del dot grad soln = rhs.
      *
-     * If soln has ghost cells, one layer of ghost cells will be filled
+     * If \p soln has ghost cells, one layer of ghost cells will be filled
      * except for the corners of the physical domain where they are not used
      * in the cross stencil of the operator. The two MFs could be the same MF.
+     *
+     * \param a_soln Solution MultiFab (updated in place).
+     * \param a_rhs  Right-hand side MultiFab.
      */
     void solve (MF& a_soln, MF const& a_rhs);
 
@@ -123,13 +143,29 @@ class PoissonOpenBC
 {
 public:
 
+    /**
+     * \brief Build an open-boundary FFT solver over the grown domain.
+     *
+     * \param geom    Geometry describing the problem domain.
+     * \param ixtype  Index type (cell vs. node) for the working arrays.
+     * \param ngrow   Number of grow cells applied prior to solving.
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
                             IntVect const& ngrow = IntVect(0));
 
+    /**
+     * \brief Solve the open-boundary Poisson problem.
+     *
+     * \param soln Solution MultiFab (cell- or node-centered to match constructor).
+     * \param rhs  Right-hand-side MultiFab.
+     */
     void solve (MF& soln, MF const& rhs);
 
+    /**
+     * \brief Initialize the discretized Green's function cache (public for CUDA kernels).
+     */
     void define_doit (); // has to be public for cuda
 
 private:
@@ -152,6 +188,12 @@ class PoissonHybrid
 public:
     using T = typename MF::value_type;
 
+    /**
+     * \brief Construct the hybrid Poisson solver (mixed BCs in z with optional nonuniform spacing).
+     *
+     * \param geom Geometry describing domain and spacing.
+     * \param bc   Boundary descriptors for each direction.
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
@@ -190,26 +232,68 @@ public:
         build_spmf();
     }
 
-    /*
-     * \brief Solve del dot grad soln = rhs
+    /**
+     * \brief Solve del dot grad soln = rhs for uniform spacing in all directions.
      *
-     * If soln has ghost cells, one layer of ghost cells will be filled
-     * except for the corners of the physical domain where they are not used
-     * in the cross stencil of the operator. The two MFs could be the same MF.
+     * If \p soln has ghost cells, one layer of ghost cells will be filled
+     * except for the domain-corner ghost zones the stencil does not use.
+     *
+     * \param soln Solution MultiFab.
+     * \param rhs  Right-hand side MultiFab.
      */
     void solve (MF& soln, MF const& rhs);
+    /**
+     * \brief Solve with user-specified layer spacing in the heterogeneous dimension.
+     *
+     * \param soln Solution MultiFab.
+     * \param rhs  Right-hand side MultiFab.
+     * \param dz   Vector of cell spacings along the hybrid dimension.
+     */
     void solve (MF& soln, MF const& rhs, Vector<T> const& dz);
+    /**
+     * \brief GPU-resident overload that accepts device storage for dz.
+     *
+     * \param soln Solution MultiFab.
+     * \param rhs  Right-hand side MultiFab.
+     * \param dz   Device vector of cell spacings along the hybrid dimension.
+     */
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
 
+    /**
+     * \brief 2-D specialized solve (used when one transverse dimension is length-1).
+     *
+     * \param a_soln Solution MultiFab.
+     * \param a_rhs  Right-hand side MultiFab.
+     */
     void solve_2d (MF& a_soln, MF const& a_rhs);
 
+    /**
+     * \brief Solve using arbitrary tridiagonal coefficients along the hybrid dimension.
+     *
+     * \param a_soln Solution MultiFab.
+     * \param a_rhs  Right-hand side MultiFab.
+     * \param tria   Functor providing sub-diagonal coefficients.
+     * \param tric   Functor providing super-diagonal coefficients.
+     */
     template <typename TRIA, typename TRIC>
     void solve (MF& a_soln, MF const& a_rhs, TRIA const& tria, TRIC const& tric);
 
     // This is public for cuda
+    /**
+     * \brief CUDA helper that applies the supplied tridiagonal operator along z.
+     *
+     * \param spmf Spectral MultiFab (either real or complex flavor).
+     * \param tria Sub-diagonal functor.
+     * \param tric Super-diagonal functor.
+     */
     template <typename FA, typename TRIA, typename TRIC>
     void solve_z (FA& spmf, TRIA const& tria, TRIC const& tric);
 
+    /**
+     * \brief Layout information for spectral storage used by the hybrid solver.
+     *
+     * \return BoxArray/DistributionMapping pair describing the complex space decomposition.
+     */
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
 private:

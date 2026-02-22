@@ -13,6 +13,12 @@
 #include <AMReX_Math.H>
 #include <AMReX_Periodicity.H>
 
+/**
+ * \file AMReX_FFT_Helper.H
+ *
+ * Internal helper types and vendor-plan abstractions shared by all FFT backends.
+ */
+
 #if defined(AMREX_USE_CUDA)
 #  include <cufft.h>
 #  include <cuComplex.h>
@@ -77,11 +83,47 @@ struct Info
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
 
+    /**
+     * \brief Select how the domain is decomposed across MPI ranks.
+     *
+     * \param s Strategy (automatic|slab|pencil).
+     * \return Reference to this Info.
+     */
     Info& setDomainStrategy (DomainStrategy s) { domain_strategy = s; return *this; }
+    /**
+     * \brief Override the slab→pencil break-even threshold for the automatic strategy.
+     *
+     * \param t Minimum cells per rank before switching to pencil decomposition.
+     * \return Reference to this Info.
+     */
     Info& setPencilThreshold (int t) { pencil_threshold = t; return *this; }
+    /**
+     * \brief Restrict transforms to the first two dimensions (3-D problems only).
+     *
+     * \param x True to operate on x/y planes while batching along z.
+     * \return Reference to this Info.
+     */
     Info& setTwoDMode (bool x) { twod_mode = x; return *this; }
+    /**
+     * \brief Flag the special case where exactly one transverse dimension has length one.
+     *
+     * \param x True when operating on effectively 1-D layouts within a 3-D domain.
+     * \return Reference to this Info.
+     */
     Info& setOneDMode (bool x) { oned_mode = x; return *this; }
+    /**
+     * \brief Specify the batch size for R2C transforms.
+     *
+     * \param bsize Number of independent transforms executed together.
+     * \return Reference to this Info.
+     */
     Info& setBatchSize (int bsize) { batch_size = bsize; return *this; }
+    /**
+     * \brief Cap the number of MPI ranks used by the FFT plans.
+     *
+     * \param n Maximum participating ranks.
+     * \return Reference to this Info.
+     */
     Info& setNumProcs (int n) { nprocs = n; return *this; }
 };
 
@@ -170,12 +212,21 @@ struct Plan
     void* pb = nullptr;
 
 #ifdef AMREX_USE_GPU
+    /**
+     * \brief Register device pointers used by the forward/backward executions.
+     *
+     * \param p0 Forward (real) buffer pointer.
+     * \param p1 Backward (complex) buffer pointer.
+     */
     void set_ptrs (void* p0, void* p1) {
         pf = p0;
         pb = p1;
     }
 #endif
 
+    /**
+     * \brief Release any vendor FFT plan objects owned by this Plan.
+     */
     void destroy ()
     {
         if (defined) {
@@ -190,6 +241,15 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Initialize a 1-D or 2-D real-to-complex plan over the supplied Box.
+     *
+     * \param box              Real-space domain (1-D line or 2-D tile).
+     * \param pr               Pointer to the real data buffer.
+     * \param pc               Pointer to the complex data buffer.
+     * \param is_2d_transform  True to treat the plane as 2-D (row-major ordering).
+     * \param ncomp            Number of real components packed into the buffer.
+     */
     template <Direction D>
     void init_r2c (Box const& box, T* pr, VendorComplex* pc, bool is_2d_transform = false, int ncomp = 1)
     {
@@ -314,9 +374,26 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Initialize an M-dimensional batched real-to-complex plan.
+     *
+     * \param fft_size Logical FFT extent per dimension.
+     * \param pbf      Forward (real) buffer pointer.
+     * \param pbb      Backward (complex) buffer pointer.
+     * \param cache    Whether to cache vendor plans (GPU backends only).
+     * \param ncomp    Number of transforms sharing the same plan.
+     */
     template <Direction D, int M>
-    void init_r2c (IntVectND<M> const& fft_size, void*, void*, bool cache, int ncomp = 1);
+    void init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool cache, int ncomp = 1);
 
+    /**
+     * \brief Initialize a complex-to-complex plan across 1/2/3 dimensions.
+     *
+     * \param box   Real-space Box describing the shape.
+     * \param p     Pointer to the complex buffer (in-place).
+     * \param ncomp Number of transforms batched together.
+     * \param ndims Dimensionality of the transform (1, 2, or 3).
+     */
     template <Direction D>
     void init_c2c (Box const& box, VendorComplex* p, int ncomp = 1, int ndims = 1)
     {
@@ -478,6 +555,12 @@ struct Plan
     }
 #endif
 
+    /**
+     * \brief Map boundary conditions to the Plan Kind for real-to-real transforms.
+     *
+     * \param bc Pair denoting (low, high) boundary type.
+     * \return Corresponding Kind enum (sine/cosine variants).
+     */
     template <Direction D>
     Kind get_r2r_kind (std::pair<Boundary,Boundary> const& bc)
     {
@@ -504,6 +587,14 @@ struct Plan
 
     }
 
+    /**
+     * \brief Initialize a real-to-real (cosine/sine) plan that operates on real buffers.
+     *
+     * \param box              1-D Box describing the line length and tiling.
+     * \param p                Pointer to the real input/output buffer.
+     * \param bc               Boundary-condition pair.
+     * \param howmany_initval  Number of transforms batched together.
+     */
     template <Direction D>
     void init_r2r (Box const& box, T* p, std::pair<Boundary,Boundary> const& bc,
                    int howmany_initval = 1)
@@ -600,6 +691,13 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Initialize a real-to-real plan that reads/writes complex storage.
+     *
+     * \param box  1-D Box describing the transform size.
+     * \param pc   Pointer to the complex buffer (two real components interleaved).
+     * \param bc   Boundary-condition pair.
+     */
     template <Direction D>
     void init_r2r (Box const& box, VendorComplex* pc,
                    std::pair<Boundary,Boundary> const& bc)
@@ -643,6 +741,11 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Execute the previously initialized real-to-complex plan.
+     *
+     * The direction is determined by the template parameter.
+     */
     template <Direction D>
     void compute_r2c ()
     {
@@ -692,6 +795,9 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Execute the complex-to-complex plan in place.
+     */
     template <Direction D>
     void compute_c2c ()
     {
@@ -732,6 +838,11 @@ struct Plan
     }
 
 #ifdef AMREX_USE_GPU
+    /**
+     * \brief Allocate GPU scratch space large enough to hold packed R2R data.
+     *
+     * \return Device pointer owned by The_Arena().
+     */
     [[nodiscard]] void* alloc_scratch_space () const
     {
         int nc = 0;
@@ -746,8 +857,17 @@ struct Plan
         return The_Arena()->alloc(sizeof(GpuComplex<T>)*nc*howmany);
     }
 
+    /**
+     * \brief Release GPU scratch allocated via alloc_scratch_space().
+     */
     static void free_scratch_space (void* p) { The_Arena()->free(p); }
 
+    /**
+     * \brief Expand the real R2R input into the symmetry-extended buffer expected by CUFFT/rocFFT.
+     *
+     * \param pbuf Destination buffer (scratch).
+     * \param psrc Source real data.
+     */
     void pack_r2r_buffer (void* pbuf, T const* psrc) const
     {
         auto* pdst = (T*) pbuf;
@@ -980,6 +1100,12 @@ struct Plan
         }
     }
 
+    /**
+     * \brief Collapse the spectral R2R result back into the original real layout.
+     *
+     * \param pdst Destination real buffer.
+     * \param pbuf Scratch buffer holding the spectral data.
+     */
     void unpack_r2r_buffer (T* pdst, void const* pbuf) const
     {
         auto const* psrc = (GpuComplex<T> const*) pbuf;
@@ -1129,6 +1255,9 @@ struct Plan
     }
 #endif
 
+    /**
+     * \brief Execute the real-to-real plan, including GPU packing/unpacking.
+     */
     template <Direction D>
     void compute_r2r ()
     {
@@ -1184,6 +1313,9 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Helper that destroys a vendor plan of the appropriate backend type.
+     */
     static void destroy_vendor_plan (VendorPlan plan)
     {
 #if defined(AMREX_USE_CUDA)

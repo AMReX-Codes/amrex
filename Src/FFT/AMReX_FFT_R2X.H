@@ -11,6 +11,12 @@
 namespace amrex::FFT
 {
 
+/**
+ * \file AMReX_FFT_R2X.H
+ *
+ * Parallel FFT wrapper that handles cosine/sine (R2X) transforms for non-periodic BCs.
+ */
+
 template <typename T> class Poisson;
 template <typename T> class PoissonHybrid;
 
@@ -32,10 +38,20 @@ public:
     template <typename U> friend class Poisson;
     template <typename U> friend class PoissonHybrid;
 
+    /**
+     * \brief Build an FFT plan for the given domain and boundary types.
+     *
+     * \param domain Cell- or node-centered domain describing the real data layout.
+     * \param bc     Boundary pair for each direction (periodic/even/odd).
+     * \param info   Optional tuning flags (domain strategy, batching, etc.).
+     */
     R2X (Box const& domain,
          Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc,
          Info const& info = Info{});
 
+    /**
+     * \brief Destroy any FFT resources held by this object.
+     */
     ~R2X ();
 
     R2X (R2X const&) = delete;
@@ -43,34 +59,106 @@ public:
     R2X& operator= (R2X const&) = delete;
     R2X& operator= (R2X &&) = delete;
 
+    /**
+     * \brief Normalization applied after a forward/backward sequence.
+     *
+     * \return Reciprocal of the total number of real-space points.
+     */
     [[nodiscard]] T scalingFactor () const;
 
     template <typename F>
+    /**
+     * \brief Execute forward transform, apply \p post_forward, then backward transform.
+     *
+     * \param inmf         Input MultiFab (real space).
+     * \param outmf        Output MultiFab (real space).
+     * \param post_forward Callable applied in spectral space; signature `void(int,int,int,GpuComplex<T>&)`.
+     */
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward);
 
     // public for cuda
     template <int dim, typename FAB, typename F>
+    /**
+     * \brief Apply a user functor to a FAB after the forward transform along dimension \p dim.
+     *
+     * \param fab Spectral FAB to mutate.
+     * \param f   Callable invoked on each spectral entry (`void(int,int,int,GpuComplex<T>&)`).
+     */
     void post_forward_doit (FAB* fab, F const& f);
 
     // private function made public for cuda
     template <typename F>
+    /**
+     * \brief CUDA-visible helper that performs the forward/modify/backward cycle.
+     *
+     * \param inmf         Input MultiFab.
+     * \param outmf        Output MultiFab.
+     * \param post_forward Spectral modifier functor.
+     * \param ngout        Grow cells to fill on output.
+     * \param period       Periodicity used for ghost exchange.
+     */
     void forwardThenBackward_doit_0 (MF const& inmf, MF& outmf, F const& post_forward,
                                      IntVect const& ngout = IntVect(0),
                                      Periodicity const& period = Periodicity::NonPeriodic());
     template <typename F>
+    /**
+     * \brief CUDA-visible helper that operates on the complex FAB path.
+     *
+     * \param inmf         Input MultiFab.
+     * \param outmf        Output MultiFab.
+     * \param post_forward Spectral modifier functor.
+     * \param ngout        Grow cells to fill on output.
+     * \param period       Periodicity used for ghost exchange.
+     */
     void forwardThenBackward_doit_1 (MF const& inmf, MF& outmf, F const& post_forward,
                                      IntVect const& ngout = IntVect(0),
                                      Periodicity const& period = Periodicity::NonPeriodic());
 
 private:
 
+    /**
+     * \brief Forward transform that leaves results in an internal temporary MultiFab.
+     *
+     * \param inmf Real-space input.
+     * \param outmf Real-space container receiving the redistributed data.
+     */
     void forward (MF const& inmf, MF& outmf);
+    /**
+     * \brief Forward transform writing directly into a supplied complex MultiFab.
+     *
+     * \param inmf Real-space input.
+     * \param outmf Complex spectral output.
+     */
     void forward (MF const& inmf, cMF& outmf);
+    /**
+     * \brief Forward transform feeding the object’s internal complex storage.
+     *
+     * \param inmf Real-space input.
+     */
     void forward (MF const& inmf);
+    /**
+     * \brief Inverse transform from real scratch storage back to \p outmf.
+     *
+     * \param inmf  Real-space source MultiFab.
+     * \param outmf Destination MultiFab (ghost cells filled per \p ngout).
+     * \param ngout Ghost-cell extent to populate.
+     * \param period Periodicity used for exchanges.
+     */
     void backward (MF const& inmf, MF& outmf, IntVect const& ngout,
                    Periodicity const& period);
+    /**
+     * \brief Inverse transform from complex spectral data into real space.
+     *
+     * \param inmf  Complex spectral input.
+     * \param outmf Real-space destination.
+     * \param ngout Ghost-cell extent to populate.
+     * \param period Periodicity used for exchanges.
+     */
     void backward (cMF const& inmf, MF& outmf, IntVect const& ngout,
                    Periodicity const& period);
+    /**
+     * \brief Inverse transform that writes into the internal real MultiFab.
+     */
     void backward ();
 
     Box m_dom_0;
