@@ -6,6 +6,11 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_GpuQualifiers.H>
 
+/**
+ * \file AMReX_BoundCond.H
+ * \brief Lightweight wrapper for integer boundary-condition identifiers.
+ */
+
 namespace amrex {
 
 /**
@@ -23,8 +28,7 @@ public:
     //! Initializes boundary condition type to default.
     BoundCond () noexcept = default;
     //
-    //! Initializes boundary condition type to specified value.
-    // Many codes rely on implicit conversion.  So no explicit here.
+    //! Initializes boundary condition type to specified value \p _bctype (implicit on purpose).
     BoundCond (int _bctype) noexcept : bctype(_bctype) {}
     //
     //! Return index of boundary condition type.
@@ -35,7 +39,7 @@ public:
         return bctype;
     }
     //
-    //! Set index of boundary condition type.
+    //! Set index of boundary condition type to \p _bctype.
     BoundCond& operator= (const int _bctype) noexcept
     {
         bctype = _bctype;

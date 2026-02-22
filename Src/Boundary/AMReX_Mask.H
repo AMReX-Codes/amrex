@@ -6,6 +6,11 @@
 #include <AMReX_BaseFab.H>
 #include <AMReX_FArrayBox.H>
 
+/**
+ * \file AMReX_Mask.H
+ * \brief Logical mask type used to classify regions of FABs.
+ */
+
 namespace amrex {
 
 /**
@@ -28,35 +33,50 @@ class Mask final
 {
 public:
 
+    //! Construct an empty mask with no allocation.
     Mask () noexcept = default;
 
+    //! Construct a mask that allocates from Arena \p ar.
     explicit Mask (Arena* ar) noexcept;
 
+    //! Construct a mask over Box \p bx with \p nc components using Arena \p ar.
     Mask (const Box& bx, int nc, Arena* ar);
 
+    /**
+     * \brief Construct a mask with fine-grained control over allocation.
+     *
+     * \param bx     Region covered by the mask.
+     * \param nc     Number of components (default 1).
+     * \param alloc  Whether to allocate storage immediately.
+     * \param shared Whether storage is shared by reference.
+     * \param ar     Arena used for allocations (or default if nullptr).
+     */
     explicit Mask (const Box& bx,
                    int        nc = 1,
                    bool       alloc=true,
                    bool       shared=false,
                    Arena*     ar = nullptr);
 
-    /**
-    * \brief construct from input stream
-    */
+    //! Construct from an input stream \p is.
     explicit Mask (std::istream& is);
 
+    //! Wrap an existing Array4 \p a without taking ownership.
     explicit Mask (Array4<int> const& a) noexcept : BaseFab<int>(a) {}
 
+    //! Wrap an existing Array4 \p a with IndexType \p t.
     explicit Mask (Array4<int> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
+    //! Wrap a const Array4 \p a without taking ownership.
     explicit Mask (Array4<int const> const& a) noexcept : BaseFab<int>(a) {}
 
+    //! Wrap a const Array4 \p a with IndexType \p t.
     explicit Mask (Array4<int const> const& a, IndexType t) noexcept : BaseFab<int>(a,t) {}
 
     ~Mask () noexcept override = default;
 
     Mask (Mask&& rhs) noexcept = default;
 
+    //! Construct by copying \p ncomp components starting at \p scomp from \p rhs using \p make_type semantics.
     Mask (Mask const& rhs, MakeType make_type, int scomp, int ncomp);
 
     Mask (const Mask&) = delete;
@@ -65,48 +85,55 @@ public:
 
 
     /**
-    * \brief Initialize from stream.
-    *
-    */
-    friend std::istream& operator>> (std::istream&, Mask&);
+     * \brief Initialize from stream in ASCII FAB format.
+     *
+     * \param is Input stream.
+     * \param m  Mask populated from \p is.
+     * \return The input stream for chaining.
+     */
+    friend std::istream& operator>> (std::istream& is, Mask& m);
 
     /**
-    * \brief initialize from stream, FAB-style
-    *
-    */
-    void readFrom (std::istream&);
+     * \brief Initialize from stream, FAB-style.
+     *
+     * \param is Input stream.
+     */
+    void readFrom (std::istream& is);
 
     /**
-    * \brief output to stream
-    *
-    */
-    friend std::ostream& operator<< (std::ostream&, const Mask&);
+     * \brief Output to stream in ASCII format.
+     *
+     * \param os Output stream receiving the data.
+     * \param m  Mask whose contents will be written.
+     */
+    friend std::ostream& operator<< (std::ostream& os, const Mask& m);
 
     /**
-    * \brief output to stream, FAB-style
-    *
-    */
-    void writeOn (std::ostream&) const;
+     * \brief Output to stream in FAB binary format.
+     *
+     * \param os Output stream.
+     */
+    void writeOn (std::ostream& os) const;
     //
-    //! in-place And operator
+    //! In-place logical AND with mask \p src.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& operator&= (const Mask& src) noexcept { return And<run_on>(src); }
 
     /**
-    * \brief in-place And
+    * \brief In-place logical AND over every component.
     *
-    * \param src
+    * \param src Source mask supplying the AND operand.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src) noexcept;
 
     /**
-    * \brief as above, but specify source/destination/number of components
+    * \brief As above, but specify source/destination component ranges.
     *
-    * \param src
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param src      Source mask.
+    * \param srccomp  Starting component in \p src.
+    * \param destcomp Starting component in this mask.
+    * \param numcomp  Number of components to combine.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src,
@@ -114,13 +141,13 @@ public:
                int         destcomp,
                int         numcomp = 1) noexcept;
     /**
-    * \brief as above, and specify subregion
+    * \brief As above, but restrict operation to a subbox.
     *
-    * \param src
-    * \param subbox
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param src      Source mask.
+    * \param subbox   Region where the operation is performed.
+    * \param srccomp  Starting component in \p src.
+    * \param destcomp Starting component in this mask.
+    * \param numcomp  Number of components.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src,
@@ -129,15 +156,14 @@ public:
                int         destcomp,
                int         numcomp = 1) noexcept;
     /**
-    * \brief in-pace And, over source components to destination components,
-    * and on intersection of source and destination boxes
+    * \brief In-place AND on potentially different source/destination boxes.
     *
-    * \param src
-    * \param srcbox
-    * \param destbox
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param src      Source mask.
+    * \param srcbox   Source region.
+    * \param destbox  Destination region.
+    * \param srccomp  Starting component in \p src.
+    * \param destcomp Starting component in this mask.
+    * \param numcomp  Number of components.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& And (const Mask& src,
@@ -147,25 +173,25 @@ public:
                int         destcomp,
                int         numcomp = 1) noexcept;
 
-    //! in-place Or operator
+    //! In-place logical OR with mask \p src.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& operator|= (const Mask& src) noexcept { return Or<run_on>(src); }
 
     /**
-    * \brief in-place Or
+    * \brief In-place logical OR over every component.
     *
-    * \param src
+    * \param src Source mask supplying the OR operand.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src) noexcept;
 
     /**
-    * \brief as above, but specify source/destination/number of components
+    * \brief As above, but specify source/destination component ranges.
     *
-    * \param src
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param src      Source mask.
+    * \param srccomp  Starting component in \p src.
+    * \param destcomp Starting component in this mask.
+    * \param numcomp  Number of components.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src,
@@ -173,13 +199,13 @@ public:
               int         destcomp,
               int         numcomp = 1) noexcept;
     /**
-    * \brief as above, and specify subregion
+    * \brief As above, and specify a subregion.
     *
-    * \param src
-    * \param subbox
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param src      Source mask.
+    * \param subbox   Region where to apply the OR.
+    * \param srccomp  Starting component in \p src.
+    * \param destcomp Starting component in this mask.
+    * \param numcomp  Number of components.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src,
@@ -188,15 +214,14 @@ public:
               int         destcomp,
               int         numcomp = 1) noexcept;
     /**
-    * \brief in-pace Or, over source components to destination components,
-    * and on intersection of source and destination boxes
+    * \brief In-place OR allowing separate source and destination boxes.
     *
-    * \param src
-    * \param srcbox
-    * \param destbox
-    * \param srccomp
-    * \param destcomp
-    * \param numcomp
+    * \param src      Source mask.
+    * \param srcbox   Source region.
+    * \param destbox  Destination region.
+    * \param srccomp  Starting component in \p src.
+    * \param destcomp Starting component in this mask.
+    * \param numcomp  Number of components.
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     Mask& Or (const Mask& src,

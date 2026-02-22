@@ -7,6 +7,11 @@
 #include <AMReX_BoundCond.H>
 #include <AMReX_MultiMask.H>
 
+/**
+ * \file AMReX_BndryData.H
+ * \brief Boundary data container that owns masks, boundary values, and metadata.
+ */
+
 #include <memory>
 #include <map>
 
@@ -40,8 +45,11 @@ class BndryDataT
     : public BndryRegisterT<MF>
 {
 public:
-    //! mask values enumeration
-    enum MaskVal { covered = 0, not_covered = 1, outside_domain = 2, NumMaskVals = 3 };
+    //! Mask classification used for each boundary cell.
+    enum MaskVal { covered = 0,        //!< Location coincides with a valid grid point at the same AMR level.
+                   not_covered = 1,    //!< Location is inside the domain but does not coincide with any valid grid points.
+                   outside_domain = 2, //!< Location lies outside the physical domain.
+                   NumMaskVals = 3 };
 
     using value_type = typename MF::value_type;
 
@@ -65,15 +73,23 @@ public:
     BndryDataT<MF>& operator= (const BndryDataT<MF>& src) = delete;
     BndryDataT<MF>& operator= (BndryDataT<MF>&& rhs) = delete;
 
-    //! allocate bndry fabs along given face
+    /**
+     * \brief Allocate masks and boundary registers for the supplied grids.
+     *
+     * \param grids Grid layout at the current AMR level.
+     * \param dmap  Distribution mapping for the grids.
+     * \param ncomp Number of boundary components.
+     * \param geom  Geometry describing the physical domain.
+     */
     void define (const BoxArray& grids,
                  const DistributionMapping& dmap,
                  int             ncomp,
                  const Geometry& geom);
-    //
+
+    //! Return the per-face mask built during define() for orientation \p face.
     const MultiMask& bndryMasks (Orientation face) const noexcept { return masks[face]; }
 
-    //! Return FabSet on given face.
+    //! Access the boundary values stored on orientation \p face.
     const FabSetT<MF>& bndryValues (Orientation face) const noexcept {
         return this->bndry[face];
     }
@@ -82,56 +98,65 @@ public:
     using RealTuple = Array<value_type,2*AMREX_SPACEDIM>;
 
     /**
-    * \brief Return boundary location on given face for grids we own.
-    * It's an error if we don't own that grid.
-    * RealTuple is indexed with Orientation.
-    */
+     * \brief Return physical boundary locations for all faces owned by a grid.
+     *
+     * \param igrid Index into the level's BoxArray (global grid id owned by this rank).
+     * \return Array indexed by Orientation giving the face locations.
+     */
     const RealTuple& bndryLocs (int igrid) const noexcept;
+
+    //! Same as bndryLocs(int) but uses iterator \p mfi to reference the grid.
     const RealTuple& bndryLocs (const MFIter& mfi) const noexcept;
 
     /**
-    * \brief Return boundary type specifier on given face for grids we own.
-    * It's an error if we don't own that grid.
-    */
+     * \brief Return boundary type specifiers stored for a grid.
+     *
+     * \param igrid Index into the level's BoxArray (global grid id owned by this rank).
+     * \return Vector per face, containing per-component BoundCond identifiers.
+     */
     const Vector< Vector<BoundCond> >& bndryConds (int igrid) const noexcept;
+
+    //! Same as bndryConds(int) but locates the grid via iterator \p mfi.
     const Vector< Vector<BoundCond> >& bndryConds (const MFIter& mfi) const noexcept;
 
-    //! return number of components for which this object is intended
+    //! Return number of components this boundary data manages.
     int nComp () const noexcept { return m_ncomp; }
 
-    //! return domain used to define masks
+    //! Return domain used to define masks.
     const Box& getDomain () const noexcept { return geom.Domain(); }
 
-    //! return geometry used to define masks
+    //! Return geometry used to define masks.
     const Geometry& getGeom () const noexcept { return geom; }
 
-    //! set values of boundary Fab for given orientation on nth grid
+    //! Set all components on boundary face \p face of grid \p n to scalar value \p val.
     void setValue (Orientation face, int n, Real val) noexcept;
 
-    //! set boundary type specifier for given orientation on nth grid
+    //! Set boundary type at grid index \p n, component \p comp, and face \p face to \p bcn.
     void setBoundCond (Orientation     face,
                        int              n,
                        int              comp,
                        const BoundCond& bcn) noexcept;
 
+    //! Set boundary type using MFIter \p mfi to identify the grid, component \p comp, and identifier \p bcn.
     void setBoundCond (Orientation     face,
                        const MFIter&    mfi,
                        int              comp,
                        const BoundCond& bcn) noexcept;
 
-    //! set boundary location for given orientation on nth grid
+    //! Set the physical boundary location \p val for grid index \p n and face \p face.
     void setBoundLoc (Orientation face,
                       int         n,
                       value_type val) noexcept;
 
+    //! Set the boundary location value \p val by MFIter \p mfi on face \p face.
     void setBoundLoc (Orientation face,
                       const MFIter& mfi,
                       value_type val) noexcept;
 
-    //! implement public access to const BndryRegister::operator[]
+    //! Provide access to boundary registers for orientation \p face.
     const FabSetT<MF>& operator[] (Orientation face) const noexcept { return BndryRegisterT<MF>::bndry[face]; }
 
-    //! implement public access to BndryRegister::operator[]
+    //! Provide mutable access to boundary registers for orientation \p face.
     FabSetT<MF>& operator[] (Orientation face) noexcept { return BndryRegisterT<MF>::bndry[face]; }
 
 protected:
