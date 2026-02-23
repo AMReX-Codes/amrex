@@ -515,9 +515,37 @@ Setting Default Via Environment Variable
 ----------------------------------------
 
 You can specify default parameter values using the environment variable
-`AMREX_DEFAULT_INIT`. This method has lower precedence than settings
-provided in the inputs file or via command-line arguments. Here is an
-example of how to use it.
+``AMREX_DEFAULT_INIT``. This is useful for setting site-wide or
+machine-specific defaults in HPC job scripts without modifying
+application input files or command-line arguments.
+
+The parameter value precedence, from highest to lowest, is:
+
+1. Function pointer passed to :cpp:`amrex::Initialize` (see
+   :ref:`sec:basics:parmparse:functions` below)
+2. Command-line arguments
+3. Input file settings
+4. ``AMREX_DEFAULT_INIT`` environment variable
+
+The function pointer is called after all other sources have been parsed,
+so values it sets with :cpp:`ParmParse::add` take effect unconditionally.
+However, the function can use :cpp:`ParmParse::queryAdd` or check
+:cpp:`ParmParse::contains` before calling :cpp:`ParmParse::add`,
+effectively lowering its own precedence for that parameter.
+
+Because ``AMREX_DEFAULT_INIT`` has the lowest precedence, it provides
+defaults that can always be overridden by any of the other sources.
+
+For example, on a machine where GPU-aware MPI is available, you can
+add the following to your job script:
+
+.. highlight:: console
+
+::
+
+   export AMREX_DEFAULT_INIT="amrex.use_gpu_aware_mpi=1"
+
+Multiple parameters can be set in a single value:
 
 .. highlight:: console
 
@@ -525,7 +553,7 @@ example of how to use it.
 
    export AMREX_DEFAULT_INIT="amrex.envfoo=0 amrex.envbar=1 amrex.envabc=1 2 3 amrex.envstr=\"a b c\""
 
-This is equivalent to setting the following in the inputs file.
+The above is equivalent to setting the following in the inputs file:
 
 .. highlight:: python
 
@@ -537,6 +565,8 @@ This is equivalent to setting the following in the inputs file.
     amrex.envstr = "a b c"
 
 
+.. _sec:basics:parmparse:functions:
+
 Setting Parameter Values Inside Functions
 -----------------------------------------
 
@@ -547,7 +577,7 @@ those in AMReX in a function. This is accomplished in two steps:
 
 - Second, pass the name of that function to :cpp:`amrex::Initialize`.
 
-The example function below sets variable values using two different
+The example function below sets variable values using different
 approaches to highlight subtle differences in implementation:
 
 .. code-block:: cpp
@@ -560,6 +590,10 @@ approaches to highlight subtle differences in implementation:
          pp.add("variable_one",false);
       }
 
+      // Equivalent shorthand for the above: query first, add the default only if not found.
+      bool variable_one_v2 = false;
+      pp.queryAdd("variable_one_v2", variable_one_v2);
+
       // The inputs file or command line arguments for `variable_two` are ignored.
       pp.add("variable_two",false);
    };
@@ -569,6 +603,9 @@ used to set variables. In the next section of code, we check if the value for
 ``variable_one`` has already been set elsewhere before writing to it. This
 approach prevents the function
 from overriding a value set in the inputs file or at the command line.
+The :cpp:`queryAdd` call for ``variable_one_v2`` does the same thing more
+concisely: it queries the database and, only if the parameter is not found,
+adds the value of its ``ref`` argument as a default.
 In the next section, we write a value to ``variable_two`` without a conditional
 statement. In this case, we will ignore values for ``variable_two`` set in the
 inputs file or as a command line argument ---effectively overriding them with
