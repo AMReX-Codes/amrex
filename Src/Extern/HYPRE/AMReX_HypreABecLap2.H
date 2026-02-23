@@ -7,14 +7,31 @@
 #include "_hypre_sstruct_mv.h"
 #include "_hypre_sstruct_ls.h"
 
+/**
+ * \file AMReX_HypreABecLap2.H
+ *
+ * Semi-structured Hypre solver for cell-centered ABec problems (SStruct API).
+ */
+
 namespace amrex
 {
 
+/**
+ * \brief Semi-structured ABec Laplacian operator built on Hypre's SStruct API.
+ */
 class HypreABecLap2 final
     : public Hypre
 {
 public:
 
+    /**
+     * \brief Bind the semi-structured solver to a single AMR level.
+     *
+     * \param grids  Grid layout for the level.
+     * \param dmap   Distribution map for \p grids.
+     * \param geom_  Level geometry.
+     * \param comm_  MPI communicator passed to Hypre.
+     */
     HypreABecLap2 (const BoxArray& grids, const DistributionMapping& dmap,
                    const Geometry& geom_, MPI_Comm comm_);
     ~HypreABecLap2 () override;
@@ -24,6 +41,17 @@ public:
     HypreABecLap2& operator= (HypreABecLap2 const&) = delete;
     HypreABecLap2& operator= (HypreABecLap2 &&) = delete;
 
+    /**
+     * \brief Solve `(a - b div beta grad) phi = rhs` via Hypre's SStruct interface.
+     *
+     * \param soln    Solution MultiFab written on return.
+     * \param rhs     SStruct right-hand side.
+     * \param reltol  Relative tolerance.
+     * \param abstol  Absolute tolerance.
+     * \param maxiter Maximum iterations.
+     * \param bndry   Boundary descriptor for ghost data.
+     * \param max_bndry_order Maximum derivative order encoded in \p bndry.
+     */
     void solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                 int maxiter, const BndryData& bndry, int max_bndry_order) override;
 
@@ -40,7 +68,9 @@ private :
     void getSolution (MultiFab& soln);
 
 public: // for cuda
+    //! Build the SStruct graph/matrix given the current coefficients.
     void prepareSolver ();
+    //! Copy AMReX solution guess \p soln and RHS \p rhs into the HYPRE vectors before solving.
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
 };
 

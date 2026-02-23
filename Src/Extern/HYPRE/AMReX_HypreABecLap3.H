@@ -10,14 +10,32 @@
 
 #include <algorithm>
 
+/**
+ * \file AMReX_HypreABecLap3.H
+ *
+ * IJ-interface ABec Laplacian that supports overset and EB-aware matrices.
+ */
+
 namespace amrex
 {
 
+/**
+ * \brief Hypre IJ solver for ABec Laplacians (optionally with overset masks).
+ */
 class HypreABecLap3 final
     : public Hypre
 {
 public:
 
+    /**
+     * \brief Construct the IJ-based solver and capture overset/EB context.
+     *
+     * \param grids         Grid layout for the AMR level.
+     * \param dmap          Distribution map for \p grids.
+     * \param geom_         Geometry describing the domain.
+     * \param comm_         MPI communicator forwarded to Hypre.
+     * \param overset_mask  Optional overset mask used to drop covered cells.
+     */
     HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
                    const Geometry& geom_, MPI_Comm comm_,
                    const iMultiFab* overset_mask = nullptr);
@@ -28,10 +46,22 @@ public:
     HypreABecLap3& operator= (HypreABecLap3 const&) = delete;
     HypreABecLap3& operator= (HypreABecLap3 &&) = delete;
 
+    /**
+     * \brief Solve with the IJ wrapper (supports overset/EB contributions).
+     *
+     * \param soln    Solution MultiFab (updated in place).
+     * \param rhs     Right-hand side data.
+     * \param rel_tol Relative tolerance.
+     * \param abs_tol Absolute tolerance.
+     * \param max_iter Maximum iterations.
+     * \param bndry   Boundary descriptor.
+     * \param max_bndry_order Maximum derivative order encoded in \p bndry.
+     */
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                 int max_iter, const BndryData& bndry, int max_bndry_order) override;
 
 #ifdef AMREX_USE_EB
+    //! Provide EB-specific Dirichlet data stored in \p beb.
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
 #endif
 
@@ -52,8 +82,11 @@ private :
     iMultiFab const* m_overset_mask = nullptr;
 
 public: // for CUDA
+    //! Build IJ structures and configure the Hypre solver/preconditioner.
     void prepareSolver ();
+    //! Copy Hypre solution back into AMReX storage (\p soln).
     void getSolution (MultiFab& soln);
+    //! Load RHS \p rhs and initial guess \p soln into Hypre vectors.
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
 };
 
