@@ -63,7 +63,7 @@ public:
     * FAB_NATIVE_32: write out values in the native 32 bit format.
     *
     */
-    enum Format
+    enum Format // NOLINT(readability-enum-initial-value)
     {
         FAB_ASCII,
         FAB_IEEE,

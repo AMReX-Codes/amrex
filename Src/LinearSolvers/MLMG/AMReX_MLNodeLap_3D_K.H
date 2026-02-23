@@ -6302,14 +6302,14 @@ void mlndlap_fillijmat_sten_cpu (Box const& ndbx,
                                  Real* mat, // NOLINT(readability-non-const-parameter)
                                  Array4<Real const> const& sten) noexcept
 {
-    constexpr int ist_000 = 1-1;
-    constexpr int ist_p00 = 2-1;
-    constexpr int ist_0p0 = 3-1;
-    constexpr int ist_00p = 4-1;
-    constexpr int ist_pp0 = 5-1;
-    constexpr int ist_p0p = 6-1;
-    constexpr int ist_0pp = 7-1;
-    constexpr int ist_ppp = 8-1;
+    constexpr int ist_000 = 0;
+    constexpr int ist_p00 = 1;
+    constexpr int ist_0p0 = 2;
+    constexpr int ist_00p = 3;
+    constexpr int ist_pp0 = 4;
+    constexpr int ist_p0p = 5;
+    constexpr int ist_0pp = 6;
+    constexpr int ist_ppp = 7;
 
     constexpr auto gidmax = std::numeric_limits<AtomicInt>::max();
     HypreInt nelems = 0;
