@@ -614,6 +614,8 @@ public:
     //! Add a key 'name' with value 'val' to the end of the PP table.
     void add (std::string_view name, const std::string& val);
 
+    //! Convert const char * to string, to prevent auto-conversion to bool
+    void add(const char* name, const char* val) { add(name, std::string(val)); }
 
     //! Similar to get() but store the whole line including empty spaces in
     //! the middle if present as a single string. For example, `foo = a b c`
