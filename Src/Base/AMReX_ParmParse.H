@@ -617,8 +617,8 @@ public:
     //! Convert const char * to string, to prevent auto-conversion to bool
     void add (std::string_view name, const char* val) { add(name, std::string(val)); }
 
-    //! Special overload for 0 to avoid issues with add("key", 0) calling                                                                                                    
-    //! the const char* version.                                                                                                                                             
+    //! Special overload for 0 to avoid issues with add("key", 0) calling
+    //! the const char* version.
     void add (std::string_view name, std::integral_constant<int, 0>) {
         add(name, int(0));
     }
