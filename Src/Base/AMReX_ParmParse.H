@@ -615,7 +615,13 @@ public:
     void add (std::string_view name, const std::string& val);
 
     //! Convert const char * to string, to prevent auto-conversion to bool
-    void add(const char* name, const char* val) { add(name, std::string(val)); }
+    void add (std::string_view name, const char* val) { add(name, std::string(val)); }
+
+    //! Special overload for 0 to avoid issues with add("key", 0) calling                                                                                                    
+    //! the const char* version.                                                                                                                                             
+    void add (std::string_view name, std::integral_constant<int, 0>) {
+        add(name, int(0));
+    }
 
     //! Similar to get() but store the whole line including empty spaces in
     //! the middle if present as a single string. For example, `foo = a b c`
