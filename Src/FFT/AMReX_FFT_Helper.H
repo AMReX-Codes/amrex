@@ -601,7 +601,7 @@ struct Plan
     /**
      * \brief Initialize a real-to-real (cosine/sine) plan that operates on real buffers.
      *
-     * \param box              1-D Box describing the line length and tiling.
+     * \param box              Box describing the transform size.
      * \param p                Pointer to the real input/output buffer.
      * \param bc               Boundary-condition pair.
      * \param howmany_initval  Number of transforms batched together.
