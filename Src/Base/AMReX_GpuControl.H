@@ -220,7 +220,7 @@ namespace Gpu {
     [[nodiscard]] constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
     struct [[nodiscard]] NoSyncRegion {
-        [[nodiscard]] constexpr bool inNoSyncRegionPreviously () const { return true; }
+        static constexpr bool inNoSyncRegionPreviously () { return true; }
     };
 
 #endif
