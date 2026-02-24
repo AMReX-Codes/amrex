@@ -72,7 +72,7 @@ public:
      *
      * \param inmf         Input MultiFab (real space).
      * \param outmf        Output MultiFab (real space).
-     * \param post_forward Callable applied in spectral space; signature `void(int,int,int,GpuComplex<T>&)`.
+     * \param post_forward Callable object.
      */
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward);
 
@@ -82,7 +82,7 @@ public:
      * \brief Apply a user functor to a FAB after the forward transform along dimension \p dim.
      *
      * \param fab Spectral FAB to mutate.
-     * \param f   Callable invoked on each spectral entry (`void(int,int,int,GpuComplex<T>&)`).
+     * \param f   Callable object.
      */
     void post_forward_doit (FAB* fab, F const& f);
 
