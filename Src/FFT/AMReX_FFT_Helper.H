@@ -105,9 +105,13 @@ struct Info
      */
     Info& setTwoDMode (bool x) { twod_mode = x; return *this; }
     /**
-     * \brief Flag the special case where exactly one transverse dimension has length one.
+     * \brief Flag the degenerate 2-D mode (`nx==1` or `ny==1`) that still batches along z.
      *
-     * \param x True when operating on effectively 1-D layouts within a 3-D domain.
+     * This keeps the solver in “two-dimensional” mode but makes it clear that
+     * only one transverse direction has more than one cell; the z-direction
+     * remains the batch axis.
+     *
+     * \param x True when running on effectively 1-D x/y planes while batching along z.
      * \return Reference to this Info.
      */
     Info& setOneDMode (bool x) { oned_mode = x; return *this; }
