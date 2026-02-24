@@ -118,9 +118,6 @@ public:
      * This is needed, only if one uses the raw pointer interfaces, not the
      * amrex::MulitFab interfaces. Only one of the functions, setLocalDomain
      * and getLocalDomain, should be called.
-     */
-    /**
-     * \brief Domain decomposition chosen by AMReX for the real-space data.
      *
      * \return Pair of (local start indices, local extents).
      */
@@ -173,10 +170,6 @@ public:
      * domain decomposition, while let AMReX choose the spectral data domain
      * decomposition. Also note that the entire spectral domain has the size
      * of (nx+1)/2 * ny * nz, if the real domain is nx * ny * nz.
-     *
-     */
-    /**
-     * \brief Domain decomposition chosen by AMReX for spectral (complex) space.
      *
      * \return Pair of (local start indices, local extents).
      */
@@ -257,7 +250,7 @@ public:
      * function even if their local size is zero. If the local size is zero,
      * one can pass nullptrs.
      *
-     * \param in  Real-domain samples laid out as specified by setLocalDomain.
+     * \param in  Real-domain input data laid out as specified by setLocalDomain.
      * \param out Complex-domain buffer that receives the Hermitian half-spectrum.
      */
     template <typename RT, typename CT, Direction DIR=D, bool CP=C,
@@ -307,8 +300,8 @@ public:
      * function even if their local size is zero. If the local size is zero,
      * one can pass nullptrs.
      *
-     * \param in  Complex-domain coefficients matching the layout returned by getLocalSpectralDomain.
-     * \param out Real-domain buffer that receives the reconstructed data.
+     * \param in  Complex-domain data.
+     * \param out Real-domain buffer that receives the transformed data.
      */
     template <typename CT, typename RT, Direction DIR=D, bool CP=C,
               std::enable_if_t<(DIR == Direction::backward ||
