@@ -1,5 +1,3 @@
-# -Wno-c++17-extensions: Clang complains about nodiscard if the standard is not set to c++17.
-
 name: SENSEI
 
 on:
