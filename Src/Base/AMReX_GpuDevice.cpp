@@ -766,6 +766,18 @@ Device::streamSynchronize () noexcept
 }
 
 void
+Device::streamSynchronizeActive () noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (Gpu::inSingleStreamRegion()) {
+        Gpu::streamSynchronize();
+    } else {
+        Gpu::streamSynchronizeAll();
+    }
+#endif
+}
+
+void
 Device::streamSynchronizeAll () noexcept
 {
 #ifdef AMREX_USE_GPU
