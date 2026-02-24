@@ -116,14 +116,14 @@ struct Info
      */
     Info& setOneDMode (bool x) { oned_mode = x; return *this; }
     /**
-     * \brief Specify the batch size for R2C transforms.
+     * \brief Specify the batch size for FFT.
      *
      * \param bsize Number of independent transforms executed together.
      * \return Reference to this Info.
      */
     Info& setBatchSize (int bsize) { batch_size = bsize; return *this; }
     /**
-     * \brief Cap the number of MPI ranks used by the FFT plans.
+     * \brief Cap the number of MPI ranks used by FFT.
      *
      * \param n Maximum participating ranks.
      * \return Reference to this Info.
@@ -219,8 +219,8 @@ struct Plan
     /**
      * \brief Register device pointers used by the forward/backward executions.
      *
-     * \param p0 Forward (real) buffer pointer.
-     * \param p1 Backward (complex) buffer pointer.
+     * \param p0 Forward buffer pointer.
+     * \param p1 Backward buffer pointer.
      */
     void set_ptrs (void* p0, void* p1) {
         pf = p0;
@@ -248,10 +248,10 @@ struct Plan
     /**
      * \brief Initialize a 1-D or 2-D real-to-complex plan over the supplied Box.
      *
-     * \param box              Real-space domain (1-D line or 2-D tile).
+     * \param box              Real-space domain
      * \param pr               Pointer to the real data buffer.
      * \param pc               Pointer to the complex data buffer.
-     * \param is_2d_transform  True to treat the plane as 2-D (row-major ordering).
+     * \param is_2d_transform  True for 2d tranfrom.
      * \param ncomp            Number of real components packed into the buffer.
      */
     template <Direction D>
@@ -393,9 +393,16 @@ struct Plan
     /**
      * \brief Initialize a complex-to-complex plan across 1/2/3 dimensions.
      *
-     * \param box   Real-space Box describing the shape.
-     * \param p     Pointer to the complex buffer (in-place).
-     * \param ncomp Number of transforms batched together.
+     * The batch size equals the number of components \p ncomp multiplied by
+     * the cell counts along directions that are not transformed. For example,
+     * in a 3-D build with \p ndims = 1 we perform an x-line transform batched
+     * over every y–z cell, so the batch count becomes
+     * `ncomp * box.length(1) * box.length(2)`. Likewise, a 2-D transform in a
+     * 3-D build batches along the remaining z slices.
+     *
+     * \param box   Box describing the logical FFT extents.
+     * \param p     Pointer to the in-place complex buffer.
+     * \param ncomp Number of independent components per cell.
      * \param ndims Dimensionality of the transform (1, 2, or 3).
      */
     template <Direction D>
