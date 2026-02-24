@@ -221,11 +221,7 @@ jobs:
 
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no --enable-fft yes
-        #
-        # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
-        #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
-        #
-        make -j4 CXXSTD=c++20 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter -Werror=deprecated-declarations" CCACHE=ccache CUDA_ARCH="8.0 9.0"
+        make -j4 CXXSTD=c++20 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Werror=deprecated-declarations" CCACHE=ccache CUDA_ARCH="8.0 9.0"
         make install
 
         ccache -s
