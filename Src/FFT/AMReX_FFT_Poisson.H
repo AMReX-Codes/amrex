@@ -260,9 +260,9 @@ public:
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
 
     /**
-     * \brief 2-D specialized solve (used when one transverse dimension is length-1).
+     * \brief Solve an independent 2-D Poisson problem on every z-plane.
      *
-     * \param a_soln Solution MultiFab.
+     * \param a_soln Solution MultiFab (updated plane-by-plane).
      * \param a_rhs  Right-hand side MultiFab.
      */
     void solve_2d (MF& a_soln, MF const& a_rhs);
