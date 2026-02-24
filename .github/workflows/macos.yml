@@ -46,6 +46,7 @@ jobs:
         ccache --version
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DBUILD_SHARED_LIBS=ON      \
             -DCMAKE_BUILD_TYPE=Release  \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
@@ -90,6 +91,7 @@ jobs:
         ccache --version
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \

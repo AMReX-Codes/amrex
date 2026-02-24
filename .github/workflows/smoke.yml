@@ -49,7 +49,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_SPACEDIM="1;2;3"              \
             -DAMReX_EB=ON                         \
-            -DCMAKE_CXX_STANDARD=17               \
+            -DCMAKE_CXX_STANDARD=20               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install
@@ -65,7 +65,7 @@ jobs:
         cmake .. \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_ROOT=${PWD}/../../../installdir      \
-            -DCMAKE_CXX_STANDARD=17               \
+            -DCMAKE_CXX_STANDARD=20               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         mpiexec -n 2 ./install_test ../../Amr/Advection_AmrCore/Exec/inputs-ci

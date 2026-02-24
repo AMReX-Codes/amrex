@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/check_changes.yml
 
   tests-hip:
-    name: HIP ROCm Flang C++17 [tests]
+    name: HIP ROCm Flang C++20 [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -63,7 +63,7 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
             -DCMAKE_Fortran_COMPILER=$(which flang)       \
-            -DCMAKE_CXX_STANDARD=17                       \
+            -DCMAKE_CXX_STANDARD=20                       \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
@@ -71,7 +71,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests-hip-wrapper:
-    name: HIP ROCm GFortran C++17 [tests-hipcc]
+    name: HIP ROCm GFortran C++20 [tests-hipcc]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -117,7 +117,7 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which hipcc)           \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)    \
-            -DCMAKE_CXX_STANDARD=17                       \
+            -DCMAKE_CXX_STANDARD=20                       \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build_full_legacywrapper -j 4
 
@@ -153,7 +153,7 @@ jobs:
         ./configure --dim 2 --with-hip yes --enable-eb yes --enable-xsdk-defaults yes \
                     --with-mpi no --with-omp no --single-precision yes \
                     --single-precision-particles yes --enable-fft yes
-        make -j4 WARN_ALL=TRUE AMD_ARCH=gfx90a CCACHE=ccache
+        make -j4 WARN_ALL=TRUE AMD_ARCH=gfx90a CCACHE=ccache CXXSTD=c++20
         make install
 
         ccache -s
@@ -186,7 +186,8 @@ jobs:
         ccache -z
 
         cd Tests/LinearSolvers/NodeEB
-        make -j4 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE WARN_ERROR=TRUE AMD_ARCH=gfx90a CCACHE=ccache
+        make -j4 USE_HIP=TRUE USE_MPI=FALSE BL_NO_FORT=TRUE WARN_ALL=TRUE \
+                 WARN_ERROR=TRUE AMD_ARCH=gfx90a CCACHE=ccache CXXSTD=c++20
 
         ccache -s
         du -hs ~/.cache/ccache
