@@ -16,7 +16,7 @@ jobs:
 
   # Build libamrex and all tests with CUDA 12.6
   tests-cuda12:
-    name: CUDA@12.6 C++20 Release [tests]
+    name: CUDA@12.6 Release [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -71,7 +71,7 @@ jobs:
 
   # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.7
   tests-cuda11-clang:
-    name: Clang@15 CUDA@11.7 C++20 Release [tests]
+    name: Clang@15 CUDA@11.7 Release [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -128,7 +128,7 @@ jobs:
 
   # Build libamrex and all tests with NVHPC (recent supported)
   tests-nvhpc-nvcc:
-    name: NVHPC NVCC/NVC++ C++20 Release [tests]
+    name: NVHPC NVCC/NVC++ Release [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'

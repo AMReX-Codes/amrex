@@ -20,7 +20,7 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library:
-    name: GNU@14 C++20 Release [lib]
+    name: GNU@14 Release [lib]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -80,7 +80,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_build_3D:
-    name: GNU@13 C++20 3D Debug Fortran [tests]
+    name: GNU@13 3D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -132,7 +132,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_build_2D:
-    name: GNU@13 C++20 2D Debug Fortran [tests]
+    name: GNU@13 2D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -184,7 +184,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_build_1D:
-    name: GNU@13 C++20 1D Debug Fortran [tests]
+    name: GNU@13 1D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -238,7 +238,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_cxx20:
-    name: GNU@14 C++20 OMP SIMD [tests]
+    name: GNU@14 OMP SIMD [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -281,6 +281,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ASSERTIONS=ON       \
@@ -293,7 +294,6 @@ jobs:
             -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
             -DAMReX_SIMD=ON             \
-            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-14)              \
             -DCMAKE_CXX_COMPILER=$(which g++-14)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-14)   \
@@ -312,7 +312,7 @@ jobs:
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
-    name: GNU@14 C++20 NOMPI [tests]
+    name: GNU@14 NOMPI [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -374,7 +374,7 @@ jobs:
 
   # Build libamrex and all tests
   tests-nofortran:
-    name: GNU@12 C++20 w/o Fortran [tests]
+    name: GNU@12 w/o Fortran [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -653,7 +653,7 @@ jobs:
 
   # Build libamrex and run all tests
   tests_run:
-    name: GNU@13 C++20 [tests]
+    name: GNU@13 [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'

@@ -16,7 +16,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_msvc:
-    name: MSVC C++20 w/o Fortran w/o MPI
+    name: MSVC w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -66,7 +66,7 @@ jobs:
 
   # Build libamrex and all test (static)
   test_msvc_static:
-    name: MSVC C++20 w/o Fortran w/o MPI static
+    name: MSVC w/o Fortran w/o MPI static
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -118,7 +118,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_clang:
-    name: MSVC Clang C++20 w/o Fortran w/o MPI
+    name: MSVC Clang w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'

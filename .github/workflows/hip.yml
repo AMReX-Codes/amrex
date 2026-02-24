@@ -15,7 +15,7 @@ jobs:
     uses: ./.github/workflows/check_changes.yml
 
   tests-hip:
-    name: HIP ROCm Flang C++20 [tests]
+    name: HIP ROCm Flang [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -51,6 +51,7 @@ jobs:
         which flang
 
         cmake -S . -B build                               \
+            -DCMAKE_CXX_STANDARD=20                       \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_FFT=ON                                \
             -DAMReX_EB=ON                                 \
@@ -63,7 +64,6 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which clang++)         \
             -DCMAKE_Fortran_COMPILER=$(which flang)       \
-            -DCMAKE_CXX_STANDARD=20                       \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
@@ -71,7 +71,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests-hip-wrapper:
-    name: HIP ROCm GFortran C++20 [tests-hipcc]
+    name: HIP ROCm GFortran [tests-hipcc]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -104,6 +104,7 @@ jobs:
         hipcc --version
 
         cmake -S . -B build_full_legacywrapper            \
+            -DCMAKE_CXX_STANDARD=20                       \
             -DCMAKE_VERBOSE_MAKEFILE=ON                   \
             -DAMReX_FFT=ON                                \
             -DAMReX_EB=OFF                                \
@@ -117,7 +118,6 @@ jobs:
             -DCMAKE_C_COMPILER=$(which clang)             \
             -DCMAKE_CXX_COMPILER=$(which hipcc)           \
             -DCMAKE_Fortran_COMPILER=$(which gfortran)    \
-            -DCMAKE_CXX_STANDARD=20                       \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build_full_legacywrapper -j 4
 

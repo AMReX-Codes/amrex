@@ -17,7 +17,7 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library_clang:
-    name: Clang@18 C++20 SP NOMPI Debug [lib]
+    name: Clang@18 SP NOMPI Debug [lib]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -81,7 +81,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_clang:
-    name: Clang@14.0 C++20 SP Particles DP Mesh Debug [tests]
+    name: Clang@14.0 SP Particles DP Mesh Debug [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -140,7 +140,7 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_cxx20:
-    name: Clang C++20 [tests]
+    name: Clang [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -171,6 +171,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                      \
+            -DCMAKE_CXX_STANDARD=20                   \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo         \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
             -DAMReX_FFT=ON                            \
@@ -178,7 +179,6 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=OFF                       \
             -DAMReX_MPI=ON                            \
-            -DCMAKE_CXX_STANDARD=20                   \
             -DCMAKE_C_COMPILER=$(which clang-15)      \
             -DCMAKE_CXX_COMPILER=$(which clang++-15)  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
