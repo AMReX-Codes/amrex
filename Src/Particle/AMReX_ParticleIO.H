@@ -763,9 +763,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(finest_level_in_file >= 0);
 
     // Determine whether this is a dual-grid restart or not.
-    Vector<DistributionMapping> old_dms(finest_level_in_file + 1);
-    Vector<BoxArray> old_bas(finest_level_in_file + 1);
-    Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
+    // Size the vectors to cover both the levels present in the checkpoint
+    // file and the levels present in the current container, since the
+    // loops below iterate up to finestLevel()
+    int const max_level = std::max(finest_level_in_file, finestLevel());
+    Vector<DistributionMapping> old_dms(max_level + 1);
+    Vector<BoxArray> old_bas(max_level + 1);
+    Vector<BoxArray> particle_box_arrays(max_level + 1);
     bool dual_grid = false;
 
     bool have_pheaders = false;
