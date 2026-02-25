@@ -60,11 +60,11 @@ namespace amrex
     * Example: Print(rank_, comm_) << " x = " << x << '\n';
     */
         Print (int rank_, MPI_Comm comm_, std::ostream& os_ = amrex::OutStream())
-            : to_print(rank_ == AllProcs ||
+            : to_print((rank_ == AllProcs) || (
 #ifdef AMREX_USE_MPI
-                       comm_ != MPI_COMM_NULL &&
+                        comm_ != MPI_COMM_NULL &&
 #endif
-                       rank_ == ParallelDescriptor::MyProc(comm_))
+                        rank_ == ParallelDescriptor::MyProc(comm_)))
             , os(os_)
         {
             ss.precision(os.precision());
@@ -138,11 +138,11 @@ namespace amrex
 
         PrintToFile (std::string file_name_, int rank_, MPI_Comm comm_)
             : file_name(std::move(file_name_))
-            , to_print(rank_ == AllProcs ||
+            , to_print((rank_ == AllProcs) || (
 #ifdef AMREX_USE_MPI
-                       comm_ != MPI_COMM_NULL &&
+                        comm_ != MPI_COMM_NULL &&
 #endif
-                       rank_ == ParallelDescriptor::MyProc(comm_))
+                        rank_ == ParallelDescriptor::MyProc(comm_)))
         { Initialize(); }
 
         ~PrintToFile () {
