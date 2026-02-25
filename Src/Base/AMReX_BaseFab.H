@@ -2185,7 +2185,7 @@ BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const n
         });
         Gpu::dtoh_memcpy_async(ha.data(), p, sizeof(int)*ha.size());
         Gpu::streamSynchronize();
-        return IntVect(AMREX_D_DECL(ha[1],ha[2],ha[2]));
+        return IntVect(AMREX_D_DECL(ha[1],ha[2],ha[3]));
     } else
 #endif
     {
