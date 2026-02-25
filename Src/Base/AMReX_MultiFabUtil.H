@@ -471,7 +471,8 @@ namespace amrex
      * \tparam F   callable type like a lambda function
      *
      * \param direction normal direction of the plane (e.g., 0, 1 and 2)
-     * \param domain    domain Box
+     * \param domain    domain Box. For patchy inputs this must cover the full
+     *                  extent of mf.boxArray() (subdomains are not supported).
      * \param mf        a FabArray/MultiFab object specifying the iteration space
      * \param f         a callable object returning data for reduction. It takes
      *                  four ints, where the first int is the local box index and
@@ -1457,12 +1458,15 @@ template <typename Op, typename FA, typename F,
 std::pair<FA,FA>
 ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const& f)
 {
-    using T = typename FA::value_type;
-
-    T initval;
-    Op().init(initval);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf.is_cell_centered(), "ReduceToPlaneMF2Patchy: only cell-centered data is supported.");
 
     Box const ndomain = amrex::convert(domain, mf.ixType());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ndomain.contains(mf.boxArray().minimalBox()),
+        "ReduceToPlaneMF2Patchy: subdomains are not supported; domain must cover the full extent of mf.boxArray().");
+
+    using T = typename FA::value_type;
+    T initval;
+    Op().init(initval);
 
     BoxList bl_patch2d = mf.boxArray().boxList();
     for (auto& b : bl_patch2d) {
