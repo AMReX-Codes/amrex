@@ -1259,7 +1259,7 @@ public:
       return usePrePost;
     }
 
-    int GetMaxNextIDPrePost () const { return maxnextidPrePost; }
+    Long GetMaxNextIDPrePost () const { return maxnextidPrePost; }
     Long GetNParticlesPrePost () const { return nparticlesPrePost; }
 
     void SetUseUnlink (bool tf) const {
@@ -1419,7 +1419,7 @@ public:
     mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
-    int maxnextidPrePost;
+    Long maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
     Vector<Long> nParticlesAtLevelPrePost;
