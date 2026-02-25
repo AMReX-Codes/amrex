@@ -566,8 +566,8 @@ Device::initialize_gpu (bool minimal)
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
         device_prop.maxGridSize[0] = -1; // xxxxx SYCL todo: unknown
-        device_prop.maxGridSize[0] = -1; // unknown
-        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.maxGridSize[1] = -1; // unknown
+        device_prop.maxGridSize[2] = -1; // unknown
         device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
