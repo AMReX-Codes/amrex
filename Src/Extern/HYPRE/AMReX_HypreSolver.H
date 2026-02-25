@@ -23,7 +23,7 @@ namespace amrex
  * specified using the compressed sparse row (CSR) format.
  *
  * An example of using HypreSolver to solve Poisson's equation is located in
- * Tests/LinearSolvers/Hypre
+ * Tests/LinearSolvers/Hypre (which exercises the HYPRE backend)
  *
  */
 template <int MSS>
@@ -54,7 +54,7 @@ public:
  *                                          (int boxno, int i, int j, int k, int n, Array4<HYPRE_Int const> const* gid, HYPRE_Int& ncols, HYPRE_Int* cols, HYPRE_Real* mat)
  *                                      \endcode
  * \param [in]      a_verbose           HYPRE verbosity (default 0)
- * \param [in]      a_options_namespace namespace to use when parsing runtime input parameters (default "hypre")
+ * \param [in]      a_options_namespace namespace to use when parsing runtime input parameters (default literal "hypre" used for HYPRE options)
  *
  */
     template <class Marker, class Filler>
@@ -112,7 +112,7 @@ public:
 #endif
     fill_local_id (Marker const& marker);
 
-    //! Convert the local ids to globally unique ids visible to Hypre.
+    //! Convert the local ids to globally unique ids visible to HYPRE.
     template <typename AI>
     void fill_global_id ();
 
@@ -183,7 +183,7 @@ private:
 
     std::unique_ptr<HypreIJIface> m_hypre_ij;
 
-    // Non-owning references to Hypre matrix, rhs, and solution data
+    // Non-owning references to HYPRE matrix, rhs, and solution data
     HYPRE_IJMatrix m_A = nullptr;
     HYPRE_IJVector m_b = nullptr;
     HYPRE_IJVector m_x = nullptr;
@@ -279,7 +279,7 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
     }
     AMREX_ASSERT(proc_end == proc_begin + m_nrows_proc);
 
-    // To generate global ids for Hypre, we need to remove duplicates on
+    // To generate global ids for HYPRE, we need to remove duplicates on
     // nodes shared by multiple Boxes with OverrideSync.  So we need to use
     // a type that supports atomicAdd.  HYPRE_Int is either int or long
     // long.  The latter (i.e., long long) does not have native atomicAdd

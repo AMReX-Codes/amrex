@@ -20,7 +20,7 @@ namespace amrex
 {
 
 /**
- * \brief Hypre IJ solver for ABecLaplacian (optionally with overset masks).
+ * \brief HYPRE IJ solver for ABecLaplacian (optionally with overset masks).
  */
 class HypreABecLap3 final
     : public Hypre
@@ -33,7 +33,7 @@ public:
      * \param grids         Grid layout for the AMR level.
      * \param dmap          Distribution map for \p grids.
      * \param geom_         Geometry describing the domain.
-     * \param comm_         MPI communicator forwarded to Hypre.
+     * \param comm_         MPI communicator forwarded to HYPRE.
      * \param overset_mask  Optional overset mask used to drop covered cells.
      */
     HypreABecLap3 (const BoxArray& grids, const DistributionMapping& dmap,
@@ -68,7 +68,7 @@ public:
 private :
     std::unique_ptr<HypreIJIface> hypre_ij;
 
-    // Non-owning references to hypre matrix, rhs, and solution data
+    // Non-owning references to HYPRE matrix, rhs, and solution data
     HYPRE_IJMatrix A = nullptr;
     HYPRE_IJVector b = nullptr;
     HYPRE_IJVector x = nullptr;
@@ -82,11 +82,11 @@ private :
     iMultiFab const* m_overset_mask = nullptr;
 
 public: // for CUDA
-    //! Build IJ structures and configure the Hypre solver/preconditioner.
+    //! Build IJ structures and configure the HYPRE solver/preconditioner.
     void prepareSolver ();
-    //! Copy Hypre solution back into AMReX storage (\p soln).
+    //! Copy HYPRE solution back into AMReX storage (\p soln).
     void getSolution (MultiFab& soln);
-    //! Load RHS \p rhs and initial guess \p soln into Hypre vectors.
+    //! Load RHS \p rhs and initial guess \p soln into HYPRE vectors.
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
 };
 

@@ -17,7 +17,7 @@
 /**
  * \file AMReX_HypreNodeLap.H
  *
- * Hypre IJ wrapper for nodal Laplacians used by MLNodeLinOp.
+ * HYPRE IJ wrapper for nodal Laplacians used by MLNodeLinOp.
  */
 
 namespace amrex {
@@ -39,9 +39,9 @@ public:
      * \param factory_         Fab factory referenced when creating workspace.
      * \param owner_mask_      Ownership mask used to deduplicate shared nodes.
      * \param dirichlet_mask_  Mask describing Dirichlet nodes.
-     * \param comm_            MPI communicator supplied to Hypre.
+     * \param comm_            MPI communicator supplied to HYPRE.
      * \param linop_           MLNodeLinOp used as the reference discretization.
-     * \param verbose_         Verbosity forwarded to Hypre.
+     * \param verbose_         Verbosity forwarded to HYPRE.
      * \param options_namespace_ ParmParse namespace for runtime options.
      */
     HypreNodeLap (const BoxArray& grids_, const DistributionMapping& dmap_,
@@ -57,14 +57,14 @@ public:
     HypreNodeLap& operator= (HypreNodeLap &&) = delete;
 
     using Int = HYPRE_Int;
-    // To generate global ids for Hypre, we need to remove duplicates on
+    // To generate global ids for HYPRE, we need to remove duplicates on
     // nodes shared by multiple Boxes.  So we need to use a type that
     // supports atomicAdd.  HYPRE_Int is either int or long long.  The
     // latter does not have native atomicAdd support in CUDA/HIP.
     using AtomicInt = std::conditional_t<sizeof(Int) == 4, unsigned int, unsigned long long>;
 
     /**
-     * \brief Solve the nodal Laplacian using Hypre's IJ interface.
+     * \brief Solve the nodal Laplacian using HYPRE's IJ interface.
      *
      * \param soln    Solution MultiFab (nodal) updated on return.
      * \param rhs     RHS MultiFab (nodal).
@@ -75,7 +75,7 @@ public:
     void solve (MultiFab& soln, const MultiFab& rhs,
                 Real rel_tol, Real abs_tol, int max_iter);
 
-    //! Override the ParmParse namespace used when configuring Hypre (\p ns).
+    //! Override the ParmParse namespace used when configuring HYPRE (\p ns).
     void setHypreOptionsNamespace(const std::string& ns)
     { options_namespace = ns; }
 
@@ -93,7 +93,7 @@ private:
 
     std::unique_ptr<HypreIJIface> hypre_ij;
 
-    // Non-owning references to Hypre matrix, rhs, and solution data
+    // Non-owning references to HYPRE matrix, rhs, and solution data
     HYPRE_IJMatrix A = nullptr;
     HYPRE_IJVector b = nullptr;
     HYPRE_IJVector x = nullptr;
@@ -120,10 +120,10 @@ public: // for CUDA
 #endif
     //! CPU fallback local-id fill routine; returns the owned-node count.
     Int fill_local_node_id_cpu ();
-    //! Convert local ids to globally unique ids recognized by Hypre.
+    //! Convert local ids to globally unique ids recognized by HYPRE.
     void fill_global_node_id ();
     /**
-     * \brief Apply the fix-up Hypre expects for singular matrices (Dirichlet pinning).
+     * \brief Apply the fix-up HYPRE expects for singular matrices (Dirichlet pinning).
      *
      * \param ncols Number of columns in each CSR row.
      * \param cols  Column indices.
@@ -131,9 +131,9 @@ public: // for CUDA
      * \param mat   Matrix entries updated in place.
      */
     static void adjust_singular_matrix (Int const* ncols, Int const* cols, Int const* rows, Real* mat);
-    //! Copy AMReX solution guess \p soln and RHS \p rhs into Hypre's IJ vectors prior to solving.
+    //! Copy AMReX solution guess \p soln and RHS \p rhs into HYPRE's IJ vectors prior to solving.
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
-    //! Copy the solved data \p soln out of Hypre and back into AMReX storage.
+    //! Copy the solved data \p soln out of HYPRE and back into AMReX storage.
     void getSolution (MultiFab& soln);
 };
 

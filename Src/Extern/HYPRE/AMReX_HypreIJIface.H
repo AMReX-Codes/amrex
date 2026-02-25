@@ -13,13 +13,13 @@
 /**
  * \file AMReX_HypreIJIface.H
  *
- * Thin wrapper around Hypre's IJ/ParCSR solvers (solver/preconditioner factory plus solve API).
+ * Thin wrapper around HYPRE's IJ/ParCSR solvers (solver/preconditioner factory plus solve API).
  */
 
 namespace amrex {
 
 /**
- * \brief Convenience interface for configuring and invoking Hypre IJ solvers.
+ * \brief Convenience interface for configuring and invoking HYPRE IJ solvers.
  */
 class HypreIJIface
 {
@@ -33,7 +33,7 @@ public:
      * \param comm   MPI communicator.
      * \param ilower Global row id lower bound (inclusive) owned by this rank.
      * \param iupper Global row id upper bound (inclusive) owned by this rank.
-     * \param verbose Verbosity level forwarded to Hypre.
+     * \param verbose Verbosity level forwarded to HYPRE.
      */
     HypreIJIface(MPI_Comm comm, HypreIntType ilower, HypreIntType iupper,
                  int verbose);
@@ -48,7 +48,7 @@ public:
     /**
      * \brief Parse runtime options (solver, preconditioner, tolerances).
      *
-     * \param prefix ParmParse prefix; defaults to "hypre".
+     * \param prefix ParmParse prefix; defaults to the literal "hypre" namespace used for HYPRE options.
      */
     void parse_inputs(const std::string& prefix = "hypre");
 

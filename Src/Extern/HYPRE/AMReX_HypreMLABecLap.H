@@ -16,7 +16,7 @@
 /**
  * \file AMReX_HypreMLABecLap.H
  *
- * Multilevel ABecLaplacian assembled into Hypre's SStruct interface, including
+ * Multilevel ABecLaplacian assembled into HYPRE's SStruct interface, including
  * coarse/fine coupling and optional SSAMG GPU solver support.
  */
 
@@ -29,7 +29,7 @@ enum struct HypreSolverID {
 // single component only, cell centered only
 
 /**
- * \brief Multilevel Hypre solver that mirrors MLMG's ABecLaplacian structure.
+ * \brief Multilevel HYPRE solver that mirrors MLMG's ABecLaplacian structure.
  */
 class HypreMLABecLap
 {
@@ -40,7 +40,7 @@ public:
     HypreMLABecLap& operator= (HypreMLABecLap &&) = delete;
 
     /**
-     * \brief Construct the multilevel Hypre wrapper and copy the hierarchy metadata.
+     * \brief Construct the multilevel HYPRE wrapper and copy the hierarchy metadata.
      *
      * \param a_geom       Per-level geometries (fine to coarse).
      * \param a_grids      Per-level BoxArrays.
@@ -56,15 +56,15 @@ public:
 
     ~HypreMLABecLap ();
 
-    //! Set Hypre's logging verbosity (\p v).
+    //! Set HYPRE's logging verbosity (\p v).
     void setVerbose (int v) { m_verbose = v; }
-    //! Override the maximum number of Hypre iterations (\p v).
+    //! Override the maximum number of HYPRE iterations (\p v).
     void setMaxIter (int v) { m_maxiter = v; }
     //! Flag whether the assembled operator is singular (\p v).
     void setIsSingular (bool v) { m_is_singular = v; }
 
     /**
-     * \brief Assemble the Hypre operators/storage for the provided coefficients.
+     * \brief Assemble the HYPRE operators/storage for the provided coefficients.
      *
      * \param a_ascalar   Scalar applied to the diagonal term.
      * \param a_bscalar   Scalar applied to the diffusive term.
@@ -84,7 +84,7 @@ public:
                 std::pair<MultiFab const*, IntVect> const& a_coarse_bc = {nullptr, IntVect(0)});
 
     /**
-     * \brief Solve the assembled system with Hypre (single-component).
+     * \brief Solve the assembled system with HYPRE (single-component).
      *
      * \param a_sol Vector of level solution MultiFabs (filled on return).
      * \param a_rhs Vector of level right-hand sides.

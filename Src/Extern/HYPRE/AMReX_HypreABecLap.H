@@ -16,13 +16,13 @@
 /**
  * \file AMReX_HypreABecLap.H
  *
- * Struct interface wrapper that solves cell-centered ABecLaplacian with Hypre.
+ * Struct interface wrapper that solves cell-centered ABecLaplacian with HYPRE.
  */
 
 namespace amrex {
 
 /**
- * \brief Struct-interface Hypre solver for `(a - b div beta grad) phi = rhs`.
+ * \brief Struct-interface HYPRE solver for `(a - b div beta grad) phi = rhs`.
  */
 class HypreABecLap final
     : public Hypre
@@ -73,7 +73,7 @@ private:
 public: // for cuda
     //! Build the HYPRE structures and apply runtime parameters.
     void prepareSolver ();
-    //! Copy AMReX solution guess \p soln and RHS \p rhs into Hypre vectors prior to a solve.
+    //! Copy AMReX solution guess \p soln and RHS \p rhs into HYPRE vectors prior to a solve.
     void loadVectors (MultiFab& soln, const MultiFab& rhs);
 };
 

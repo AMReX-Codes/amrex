@@ -22,7 +22,7 @@ namespace amrex
 {
 
 /**
- * \brief Lightweight base class shared by Hypre-backed linear solvers,
+ * \brief Lightweight base class shared by HYPRE-backed linear solvers,
  * HypreABecLap, HypreABecLap2, and HypreABecLap3.
  *
  * Stores geometry, coefficients, and solver-wide options that concrete
@@ -37,7 +37,7 @@ public:
     enum class Interface : int { structed, semi_structed, ij };
 
     /**
-     * \brief Construct a Hypre wrapper bound to the supplied grids.
+     * \brief Construct a HYPRE wrapper bound to the supplied grids.
      *
      * \param grids Grid layout on the AMR level being solved.
      * \param dmap  Distribution map for \p grids.
@@ -68,7 +68,7 @@ public:
      * \brief Install per-face `b` coefficients for each spatial direction.
      */
     void setBCoeffs (const Array<const MultiFab*,BL_SPACEDIM>& beta);
-    //! Set Hypre verbosity level (\p _verbose).
+    //! Set HYPRE verbosity level (\p _verbose).
     void setVerbose (int _verbose);
     //! Flag a singular operator (enables null-space handling in derived classes).
     void setIsMatrixSingular(bool flag) { is_matrix_singular = flag; }
@@ -117,18 +117,18 @@ public:
     }
 
 
-    //! Override the ParmParse namespace consulted for Hypre runtime options (\p ns).
+    //! Override the ParmParse namespace consulted for HYPRE runtime options (\p ns).
     void setHypreOptionsNamespace (const std::string& ns) noexcept
     { options_namespace = ns; }
-    //! Toggle Hypre's "old default" AMG setup (Falgout + modified classical interpolation) via \p l.
+    //! Toggle HYPRE's "old default" AMG setup (Falgout + modified classical interpolation) via \p l.
     void setHypreOldDefault (bool l) noexcept {old_default = l;}
-    //! Choose the relaxation type handed to Hypre (see Hypre docs for valid codes) via \p n.
+    //! Choose the relaxation type handed to HYPRE (see HYPRE docs for valid codes) via \p n.
     void setHypreRelaxType (int n) noexcept {relax_type = n;}
     //! Choose the relaxation ordering (C/F, lexicographic, etc.) via \p n.
     void setHypreRelaxOrder (int n) noexcept {relax_order = n;}
-    //! Set the number of pre/post smoothing sweeps Hypre executes on each level via \p n.
+    //! Set the number of pre/post smoothing sweeps HYPRE executes on each level via \p n.
     void setHypreNumSweeps (int n) noexcept {num_sweeps = n;}
-    //! Adjust Hypre's AMG strong-connection threshold used during coarsening via \p t.
+    //! Adjust HYPRE's AMG strong-connection threshold used during coarsening via \p t.
     void setHypreStrongThreshold (Real t) noexcept {strong_threshold = t;}
 
     //! Stencil size used on regular cells.
@@ -146,7 +146,7 @@ protected:
     int relax_type = 6;  // G-S/Jacobi hybrid relaxation
     int relax_order = 1; // uses C/F relaxation
     int num_sweeps = 2;  // Sweeeps on each level
-    Real strong_threshold = Real(0.25); // Hypre default is 0.25
+    Real strong_threshold = Real(0.25); // HYPRE default is 0.25
 
     std::string options_namespace{"hypre"};
 
@@ -164,15 +164,15 @@ protected:
 };
 
 /**
- * \brief Factory that instantiates the requested Hypre interface.
+ * \brief Factory that instantiates the requested HYPRE interface.
  *
  * \param grids         Grid layout for the solve.
  * \param dmap          Distribution map for \p grids.
  * \param geom          Geometry describing the domain.
- * \param comm_         MPI communicator used by Hypre.
+ * \param comm_         MPI communicator used by HYPRE.
  * \param interface     Interface flavor (Struct/SStruct/IJ).
  * \param overset_mask  Optional overset mask used by IJ solvers.
- * \return Owning pointer to the chosen Hypre implementation.
+ * \return Owning pointer to the chosen HYPRE implementation.
  */
 [[nodiscard]] std::unique_ptr<Hypre>
 makeHypre (const BoxArray& grids, const DistributionMapping& dmap,

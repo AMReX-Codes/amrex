@@ -10,14 +10,14 @@
 /**
  * \file AMReX_HypreABecLap2.H
  *
- * Semi-structured Hypre solver for cell-centered ABecLaplacian problems.
+ * Semi-structured HYPRE solver for cell-centered ABecLaplacian problems.
  */
 
 namespace amrex
 {
 
 /**
- * \brief Semi-structured ABecLaplacian operator built on Hypre's SStruct API.
+ * \brief Semi-structured ABecLaplacian operator built on HYPRE's SStruct API.
  */
 class HypreABecLap2 final
     : public Hypre
@@ -30,7 +30,7 @@ public:
      * \param grids  Grid layout for the level.
      * \param dmap   Distribution map for \p grids.
      * \param geom_  Level geometry.
-     * \param comm_  MPI communicator passed to Hypre.
+     * \param comm_  MPI communicator passed to HYPRE.
      */
     HypreABecLap2 (const BoxArray& grids, const DistributionMapping& dmap,
                    const Geometry& geom_, MPI_Comm comm_);
@@ -42,7 +42,7 @@ public:
     HypreABecLap2& operator= (HypreABecLap2 &&) = delete;
 
     /**
-     * \brief Solve `(a - b div beta grad) phi = rhs` via Hypre's SStruct interface.
+     * \brief Solve `(a - b div beta grad) phi = rhs` via HYPRE's SStruct interface.
      *
      * \param soln    Solution MultiFab written on return.
      * \param rhs     SStruct right-hand side.
