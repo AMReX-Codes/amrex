@@ -563,7 +563,8 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
     }
 
     // unpack the received data and put them into the proper neighbor buffers
