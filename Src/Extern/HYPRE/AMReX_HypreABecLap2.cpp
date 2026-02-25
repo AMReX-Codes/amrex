@@ -50,7 +50,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
         m_factory = &(rhs.Factory());
     }
 
-    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    // We have to do this repeatedly to avoid memory leak due to HYPRE bug
     HYPRE_SStructVectorCreate(comm, hgrid, &b);
     HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
     HYPRE_SStructVectorInitialize(b);
@@ -108,7 +108,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
 
     getSolution(soln);
 
-    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    // We have to do this repeatedly to avoid memory leak due to HYPRE bug
     HYPRE_SStructVectorDestroy(b);
     b = nullptr;
     HYPRE_SStructVectorDestroy(x);

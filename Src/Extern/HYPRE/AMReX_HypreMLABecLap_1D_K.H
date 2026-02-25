@@ -126,7 +126,7 @@ void hypmlabeclap_c2f (int i, int j, int k,
 
         // We must iterate the faces in the lexicographical order of fine
         // neighbor cells, because that's the order when non-stencil entries
-        // were added to Hypre's graph. Also note that a coarse cell will
+        // were added to HYPRE's graph. Also note that a coarse cell will
         // not have entries to fine cells at both ends of a direction. Thus
         // we do not have to worry about the order between fine cells at the
         // small and big ends of the same direction.
