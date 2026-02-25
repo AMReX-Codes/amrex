@@ -170,7 +170,7 @@ public:
         }
     }
     void SetBlockingFactor (const Vector<IntVect>& new_bf) noexcept {
-        AMREX_ALWAYS_ASSERT(new_bf.size() >= static_cast<std::size_t>(max_level+1));
+        AMREX_ALWAYS_ASSERT(new_bf.size() >= (max_level+1));
         blocking_factor.assign(new_bf.cbegin(), new_bf.cbegin()+max_level+1);
     }
 
