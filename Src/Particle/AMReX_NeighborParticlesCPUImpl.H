@@ -571,7 +571,7 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
-            const auto offset = int(rOffset[i]);
+            const std::size_t offset = rOffset[i];
             char* buffer = &recvdata[offset];
             int num_tiles, lev, gid, tid, size, np;
             std::memcpy(&num_tiles, buffer, sizeof(int)); buffer += sizeof(int);
