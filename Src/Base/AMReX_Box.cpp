@@ -173,7 +173,8 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
         }
     }
 
-    MPI_Bcast(&count_tot, 1, MPI_INT, root, comm);
+    MPI_Bcast(&count_tot, 1, ParallelDescriptor::Mpi_typemap<Long>::type(),
+              root, comm);
 
     if (count_tot == 0) { return; }
 
