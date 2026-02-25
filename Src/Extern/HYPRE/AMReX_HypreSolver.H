@@ -1,7 +1,5 @@
 /**
  * \file AMReX_HypreSolver.H
- *
- *  @{
  */
 
 #ifndef AMREX_HYPRE_SOLVER_H_
@@ -745,4 +743,3 @@ HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
 }
 
 #endif
-/** @} */

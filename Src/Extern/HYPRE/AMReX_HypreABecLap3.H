@@ -13,14 +13,14 @@
 /**
  * \file AMReX_HypreABecLap3.H
  *
- * IJ-interface ABec Laplacian that supports overset and EB-aware matrices.
+ * IJ-interface ABecLaplacian that supports overset and EB-aware matrices.
  */
 
 namespace amrex
 {
 
 /**
- * \brief Hypre IJ solver for ABec Laplacians (optionally with overset masks).
+ * \brief Hypre IJ solver for ABecLaplacian (optionally with overset masks).
  */
 class HypreABecLap3 final
     : public Hypre
@@ -54,8 +54,8 @@ public:
      * \param rel_tol Relative tolerance.
      * \param abs_tol Absolute tolerance.
      * \param max_iter Maximum iterations.
-     * \param bndry   Boundary descriptor.
-     * \param max_bndry_order Maximum derivative order encoded in \p bndry.
+     * \param bndry   Boundary data.
+     * \param max_bndry_order Maximum order at the boundary.
      */
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                 int max_iter, const BndryData& bndry, int max_bndry_order) override;

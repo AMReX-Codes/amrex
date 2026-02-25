@@ -16,7 +16,7 @@
 /**
  * \file AMReX_HypreMLABecLap.H
  *
- * Multilevel ABec Laplacian assembled into Hypre's SStruct interface, including
+ * Multilevel ABecLaplacian assembled into Hypre's SStruct interface, including
  * coarse/fine coupling and optional SSAMG GPU solver support.
  */
 
@@ -29,7 +29,7 @@ enum struct HypreSolverID {
 // single component only, cell centered only
 
 /**
- * \brief Multilevel Hypre solver that mirrors MLMG's ABec Laplacian structure.
+ * \brief Multilevel Hypre solver that mirrors MLMG's ABecLaplacian structure.
  */
 class HypreMLABecLap
 {
@@ -66,14 +66,14 @@ public:
     /**
      * \brief Assemble the Hypre operators/storage for the provided coefficients.
      *
-     * \param a_ascalar   Scalar applied to the zeroth-order term.
+     * \param a_ascalar   Scalar applied to the diagonal term.
      * \param a_bscalar   Scalar applied to the diffusive term.
      * \param a_acoefs    Level-by-level `a` coefficients.
      * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients.
      * \param a_lobc      Low-side boundary-condition types.
      * \param a_hibc      High-side boundary-condition types.
-     * \param a_levelbcdata Inhomogeneous BC data per level (optional).
-     * \param a_coarse_bc Optional coarse BC data used for FMG/lagged solves.
+     * \param a_levelbcdata BC data per level.
+     * \param a_coarse_bc Optional BC data from even coarser AMR level.
      */
     void setup (Real a_ascalar, Real a_bscalar,
                 Vector<MultiFab const*> const& a_acoefs,

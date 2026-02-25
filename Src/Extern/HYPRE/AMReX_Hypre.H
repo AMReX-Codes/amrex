@@ -22,7 +22,8 @@ namespace amrex
 {
 
 /**
- * \brief Lightweight base class shared by all Hypre-backed linear solvers.
+ * \brief Lightweight base class shared by Hypre-backed linear solvers,
+ * HypreABecLap, HypreABecLap2, and HypreABecLap3.
  *
  * Stores geometry, coefficients, and solver-wide options that concrete
  * implementations (Struct, SStruct, IJ) consume in their respective
@@ -32,7 +33,7 @@ class Hypre
 {
 public:
 
-    //! HYPRE interface modes supported by the factory.
+    //! HYPRE interface modes supported.
     enum class Interface : int { structed, semi_structed, ij };
 
     /**
@@ -56,11 +57,11 @@ public:
     Hypre& operator= (Hypre const&) = delete;
 
     /**
-     * \brief Store constant scalars applied to the `a` (zeroth order) and `b` (Laplacian) terms.
+     * \brief Store constant scalars applied to the `a` (diagonal) and `b` (Laplacian) terms.
      */
     void setScalars (Real sa, Real sb);
     /**
-     * \brief Install per-cell `a` coefficients; resized internally if needed.
+     * \brief Install per-cell `a` coefficients.
      */
     void setACoeffs (const MultiFab& alpha);
     /**
@@ -78,15 +79,15 @@ public:
      * \param rhs              Right-hand side.
      * \param rel_tol          Relative convergence tolerance.
      * \param abs_tol          Absolute convergence tolerance.
-     * \param max_iter         Maximum nonlinear iterations allowed.
-     * \param bndry            Boundary-condition helper describing ghost data.
-     * \param max_bndry_order  Maximum tangential derivative order represented.
+     * \param max_iter         Maximum iterations allowed.
+     * \param bndry            Boundary condition data.
+     * \param max_bndry_order  Maximum order at the boundary.
      */
     virtual void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                         int max_iter, const BndryData& bndry, int max_bndry_order) = 0;
 
     /**
-     * \brief Return 1 if \p i is a power of two (recursively), otherwise 0.
+     * \brief Return 1 if \p i is a power of two, otherwise 0.
      */
     static HYPRE_Int ispow2 (HYPRE_Int i)
     {

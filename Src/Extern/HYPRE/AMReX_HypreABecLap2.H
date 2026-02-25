@@ -10,14 +10,14 @@
 /**
  * \file AMReX_HypreABecLap2.H
  *
- * Semi-structured Hypre solver for cell-centered ABec problems (SStruct API).
+ * Semi-structured Hypre solver for cell-centered ABecLaplacian problems.
  */
 
 namespace amrex
 {
 
 /**
- * \brief Semi-structured ABec Laplacian operator built on Hypre's SStruct API.
+ * \brief Semi-structured ABecLaplacian operator built on Hypre's SStruct API.
  */
 class HypreABecLap2 final
     : public Hypre
@@ -49,8 +49,8 @@ public:
      * \param reltol  Relative tolerance.
      * \param abstol  Absolute tolerance.
      * \param maxiter Maximum iterations.
-     * \param bndry   Boundary descriptor for ghost data.
-     * \param max_bndry_order Maximum derivative order encoded in \p bndry.
+     * \param bndry   Boundary data.
+     * \param max_bndry_order Maximum order at the boundary.
      */
     void solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                 int maxiter, const BndryData& bndry, int max_bndry_order) override;

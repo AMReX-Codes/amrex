@@ -16,7 +16,7 @@
 /**
  * \file AMReX_HypreABecLap.H
  *
- * Struct interface wrapper that solves cell-centered ABec Laplacians with Hypre.
+ * Struct interface wrapper that solves cell-centered ABecLaplacian with Hypre.
  */
 
 namespace amrex {
@@ -54,8 +54,8 @@ public:
      * \param reltol  Relative tolerance.
      * \param abstol  Absolute tolerance.
      * \param maxiter Maximum number of iterations.
-     * \param bndry   Boundary descriptor for ghost data.
-     * \param max_bndry_order Maximum derivative order encoded in \p bndry.
+     * \param bndry   Boundary  data.
+     * \param max_bndry_order Maximum order at the boundary.
      */
     void solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abstol,
                 int maxiter, const BndryData& bndry, int max_bndry_order) override;
