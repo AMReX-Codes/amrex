@@ -28,9 +28,6 @@ int main (int argc, char* argv[])
         DistributionMapping dm(ba);
         MultiFab mf(ba, dm, 1, 0);
 
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion())
-#endif
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
             auto const& a = mf.array(mfi);
             Box const& bx = mfi.validbox();
@@ -64,9 +61,6 @@ int main (int argc, char* argv[])
 
         // Compare unique sparse result to reference plane on overlapping cells.
         Real max_err = 0.0;
-#ifdef AMREX_USE_OMP
-#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(max:max_err)
-#endif
         for (MFIter mfi(plane_unique); mfi.isValid(); ++mfi) {
             auto const& pa = plane_unique.const_array(mfi);
             Box const& bx = mfi.validbox();
