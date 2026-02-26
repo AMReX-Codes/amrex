@@ -426,7 +426,7 @@ int main (int argc, char* argv[])
         }
 
         // ================================================================
-        // Test 14: any_of, where, condition — portable single-source
+        // Test 14: any_of, where, select — portable single-source
         //   Uses SIMDReal<>, which is a SIMD vector when AMREX_USE_SIMD=ON
         //   and a plain scalar when OFF.  The same code path exercises
         //   both the real SIMD and the scalar fallback implementations.
@@ -437,8 +437,8 @@ int main (int argc, char* argv[])
             // safe reciprocal: 1/b where b != 0, else 0
             Real_t b(ParticleReal(2));
             auto mask = b != Real_t(ParticleReal(0));
-            auto safe_b = simd::select(mask, b, Real_t(ParticleReal(1)));
-            auto recip  = simd::select(mask,
+            auto safe_b = simd::stdx::select(mask, b, Real_t(ParticleReal(1)));
+            auto recip  = simd::stdx::select(mask,
                               Real_t(ParticleReal(1)) / safe_b,
                               Real_t(ParticleReal(0)));
 

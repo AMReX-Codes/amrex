@@ -28,6 +28,44 @@ namespace amrex::simd
 #   if __cplusplus >= 202002L
         using vir::cvt;
 #   endif
+
+        /** Vectorized ternary operator: select(mask, true_val, false_val)
+         *
+         * Selects elements from true_val where mask is true and from false_val
+         * where mask is false. Analogous to (mask ? true_val : false_val) for
+         * scalars.
+         *
+         * Note: both true_val and false_val are eagerly evaluated (function
+         * arguments). To guard against operations like division by zero,
+         * sanitize inputs before the operation rather than relying on
+         * conditional selection.
+         *
+         * Example:
+         * ```cpp
+         * template <typename T>
+         * T compute (T const& a, T const& b)
+         * {
+         *     auto safe_b = amrex::simd::stdx::select(b != T(0), b, T(1));
+         *     return amrex::simd::stdx::select(b != T(0), a / safe_b, T(0));
+         * }
+         * ```
+         *
+         * @see C++26 std::simd select
+         *
+         * @todo Remove when SIMD provider (vir-simd / C++26) provides select.
+         *       https://github.com/mattkretz/vir-simd/issues/49
+         */
+        template <typename T, typename Abi>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        vir::stdx::simd<T, Abi> select (
+            typename vir::stdx::simd<T, Abi>::mask_type const& mask,
+            vir::stdx::simd<T, Abi> const& true_val,
+            vir::stdx::simd<T, Abi> const& false_val)
+        {
+            vir::stdx::simd<T, Abi> result = false_val;
+            where(mask, result) = true_val;
+            return result;
+        }
 #else
         // fallback implementations for functions that are commonly used in portable code paths
 
@@ -81,6 +119,18 @@ namespace amrex::simd
         detail::where_expression<T> where (bool const mask, T& value)
         {
             return {mask, value};
+        }
+
+        /** Vectorized ternary operator (scalar fallback for simd select)
+         *
+         * @see select in the AMREX_USE_SIMD path above
+         * @see C++26 std::simd select
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T select (bool const mask, T const& true_val, T const& false_val)
+        {
+            return mask ? true_val : false_val;
         }
 #endif
     }
@@ -213,48 +263,6 @@ namespace amrex::simd
         constexpr bool val_arr[sizeof...(Args)] {!std::is_const_v<std::remove_reference_t<Args>>...};
         return val_arr[n];
     }
-
-    /** Vectorized ternary operator: select(mask, true_val, false_val)
-     *
-     * Selects elements from true_val where mask is true and from false_val where
-     * mask is false. Analogous to (mask ? true_val : false_val) for scalars.
-     *
-     * Note: both true_val and false_val are eagerly evaluated (function arguments).
-     * To guard against operations like division by zero, sanitize inputs before
-     * the operation rather than relying on conditional selection.
-     *
-     * Example:
-     * ```cpp
-     * template <typename T>
-     * T compute (T const& a, T const& b)
-     * {
-     *     auto safe_b = amrex::simd::select(b != T(0), b, T(1));
-     *     return amrex::simd::select(b != T(0), a / safe_b, T(0));
-     * }
-     * ```
-     *
-     * @see C++26 std::datapar::select
-     */
-#ifdef AMREX_USE_SIMD
-    template <typename T, typename Abi>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    stdx::simd<T, Abi> select (
-        typename stdx::simd<T, Abi>::mask_type const& mask,
-        stdx::simd<T, Abi> const& true_val,
-        stdx::simd<T, Abi> const& false_val)
-    {
-        stdx::simd<T, Abi> result = false_val;
-        stdx::where(mask, result) = true_val;
-        return result;
-    }
-#else
-    template <typename T>
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T select (bool const mask, T const& true_val, T const& false_val)
-    {
-        return mask ? true_val : false_val;
-    }
-#endif
 
     /** Load 1D contiguous data from array pointers
      *
