@@ -25,6 +25,7 @@ int main (int argc, char* argv[])
         bl.push_back(Box(IntVect(AMREX_D_DECL(6, 0, 0)), IntVect(AMREX_D_DECL(7, 7, 7))));
 
         BoxArray ba(std::move(bl));
+        ba.maxSize(4);
         DistributionMapping dm(ba);
         MultiFab mf(ba, dm, 1, 0);
 
