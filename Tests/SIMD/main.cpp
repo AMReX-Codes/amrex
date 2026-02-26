@@ -437,8 +437,8 @@ int main (int argc, char* argv[])
             // safe reciprocal: 1/b where b != 0, else 0
             Real_t b(ParticleReal(2));
             auto mask = b != Real_t(ParticleReal(0));
-            auto safe_b = simd::condition(mask, b, Real_t(ParticleReal(1)));
-            auto recip  = simd::condition(mask,
+            auto safe_b = simd::select(mask, b, Real_t(ParticleReal(1)));
+            auto recip  = simd::select(mask,
                               Real_t(ParticleReal(1)) / safe_b,
                               Real_t(ParticleReal(0)));
 
@@ -465,7 +465,7 @@ int main (int argc, char* argv[])
 #endif
 
             nerrors += err;
-            Print() << "any_of + where + condition (portable): "
+            Print() << "any_of + where + select (portable): "
                     << (err == 0 ? "PASSED" : "FAILED") << "\n";
         }
 

@@ -214,7 +214,7 @@ namespace amrex::simd
         return val_arr[n];
     }
 
-    /** Vectorized ternary operator: condition(mask, true_val, false_val)
+    /** Vectorized ternary operator: select(mask, true_val, false_val)
      *
      * Selects elements from true_val where mask is true and from false_val where
      * mask is false. Analogous to (mask ? true_val : false_val) for scalars.
@@ -228,15 +228,17 @@ namespace amrex::simd
      * template <typename T>
      * T compute (T const& a, T const& b)
      * {
-     *     auto safe_b = amrex::simd::condition(b != T(0), b, T(1));
-     *     return amrex::simd::condition(b != T(0), a / safe_b, T(0));
+     *     auto safe_b = amrex::simd::select(b != T(0), b, T(1));
+     *     return amrex::simd::select(b != T(0), a / safe_b, T(0));
      * }
      * ```
+     *
+     * @see C++26 std::datapar::select
      */
 #ifdef AMREX_USE_SIMD
     template <typename T, typename Abi>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    stdx::simd<T, Abi> condition (
+    stdx::simd<T, Abi> select (
         typename stdx::simd<T, Abi>::mask_type const& mask,
         stdx::simd<T, Abi> const& true_val,
         stdx::simd<T, Abi> const& false_val)
@@ -248,7 +250,7 @@ namespace amrex::simd
 #else
     template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    T condition (bool const mask, T const& true_val, T const& false_val)
+    T select (bool const mask, T const& true_val, T const& false_val)
     {
         return mask ? true_val : false_val;
     }
