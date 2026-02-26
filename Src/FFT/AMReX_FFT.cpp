@@ -62,6 +62,9 @@ void Clear ()
     for (auto& [k, p] : s_plans_f) {
         Plan<float>::destroy_vendor_plan(p);
     }
+
+    s_plans_d.clear();
+    s_plans_f.clear();
 }
 
 PlanD* get_vendor_plan_d (Key const& key)
