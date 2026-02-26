@@ -84,7 +84,8 @@ int main (int argc, char* argv[])
                                  {
                                      return {std::abs(res[b](i,j,k) - ref(i,j,k))};
                                  });
-        AMREX_ALWAYS_ASSERT(max_err == 0.0);
+        ParallelDescriptor::ReduceRealMax(max_err);
+        AMREX_ALWAYS_ASSERT(amrex::almostEqual(max_err, Real(0.0)));
     }
 
     amrex::Finalize();
