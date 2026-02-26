@@ -575,8 +575,8 @@ PETScABecLap::prepareSolver ()
             Gpu::synchronize();
 
             //Load in by row!
-            int matid = 0;
-            for (int rit = 0; rit < nrows; ++rit)
+            PetscInt matid = 0;
+            for (PetscInt rit = 0; rit < nrows; ++rit)
             {
                 MatSetValues(A->a, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
                 matid += ncols[rit];
