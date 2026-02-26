@@ -88,12 +88,13 @@ namespace amrex::simd
             template <typename T>
             struct where_expression {
                 bool mask;
-                T& value;
+                T* value;
 
                 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-                void operator= (T const& new_val)
+                where_expression& operator= (T const& new_val)
                 {
-                    if (mask) { value = new_val; }
+                    if (mask) { *value = new_val; }
+                    return *this;
                 }
             };
         }
@@ -118,7 +119,7 @@ namespace amrex::simd
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         detail::where_expression<T> where (bool const mask, T& value)
         {
-            return {mask, value};
+            return {mask, &value};
         }
 
         /** Vectorized ternary operator (scalar fallback for simd select)
