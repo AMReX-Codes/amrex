@@ -56,7 +56,7 @@ namespace {
         }
         else {
             std::free(mem);
-            memptr = nullptr;
+            *memptr = nullptr;
             return -1;
         }
 

@@ -278,7 +278,7 @@ private:
         }
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        flag = ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
@@ -352,7 +352,7 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
+        flag = ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Wrap fast integrator as an inner stepper
@@ -443,7 +443,7 @@ private:
         }
 
         // Set max number of steps between returns
-        MRIStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        flag = MRIStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
