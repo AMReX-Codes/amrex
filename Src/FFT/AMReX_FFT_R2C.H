@@ -202,6 +202,9 @@ public:
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward,
                               int incomp = 0, int outcomp = 0)
     {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            !m_info.twod_mode && m_info.batch_size == 1,
+            "FFT::R2C::forwardThenBackward(post_forward) currently supports only !twod_mode and batch_size==1");
         BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf, incomp);
         this->post_forward_doit_0(post_forward);

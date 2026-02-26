@@ -638,6 +638,9 @@ template <typename T>
 template <typename F>
 void R2X<T>::forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !m_info.twod_mode,
+        "FFT::R2X::forwardThenBackward(post_forward) does not support twod_mode yet");
     forwardThenBackward_doit_0(inmf, outmf, post_forward);
 }
 
