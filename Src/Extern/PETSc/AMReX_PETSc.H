@@ -14,7 +14,7 @@
 /**
  * \file AMReX_PETSc.H
  *
- * PETSc-backed ABec Laplacian solver hooks (constructor, coefficients, and helpers).
+ * PETSc-backed ABecLaplacian solver hooks (constructor, coefficients, and helpers).
  */
 
 namespace amrex {
@@ -24,7 +24,7 @@ class amrex_Mat;
 class amrex_Vec;
 
 /**
- * \brief PETSc wrapper that assembles/solves `(a - b div beta grad) phi = rhs`.
+ * \brief PETSc wrapper that assembles/solves `(a alpha - b div beta grad) phi = rhs`.
  */
 class PETScABecLap
 {
@@ -49,7 +49,7 @@ public:
     PETScABecLap& operator= (PETScABecLap &&) noexcept = delete;
 
     /**
-     * \brief Store constant scalars for the zeroth-order and diffusive terms.
+     * \brief Store constant scalars for the diagonal and diffusive terms.
      *
      * \param sa Scalar applied to the `a` term.
      * \param sb Scalar applied to the `b` term.
@@ -77,14 +77,14 @@ public:
      * \param rel_tol Relative tolerance.
      * \param abs_tol Absolute tolerance.
      * \param max_iter Maximum allowed iterations.
-     * \param bndry   Boundary descriptor for ghost data.
-     * \param max_bndry_order Maximum derivative order encoded in \p bndry.
+     * \param bndry   Boundary data.
+     * \param max_bndry_order Maximum order at the boundary.
      */
     void solve (MultiFab& soln, const MultiFab& rhs, Real rel_tol, Real abs_tol,
                 int max_iter, const BndryData& bndry, int max_bndry_order);
 
 #ifdef AMREX_USE_EB
-    //! Provide EB Dirichlet data stored in \p beb for embedded-boundary faces.
+    //! Provide `b` coefficients stored in \p beb for embedded-boundary faces.
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
 #endif
 

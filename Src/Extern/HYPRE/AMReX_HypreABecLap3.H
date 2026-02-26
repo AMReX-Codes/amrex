@@ -61,7 +61,7 @@ public:
                 int max_iter, const BndryData& bndry, int max_bndry_order) override;
 
 #ifdef AMREX_USE_EB
-    //! Provide EB-specific Dirichlet data stored in \p beb.
+    //! Provide `b` coefficients stored in \p beb for embedded-boundary faces.
     void setEBDirichlet (MultiFab const* beb) { m_eb_b_coeffs = beb; }
 #endif
 
