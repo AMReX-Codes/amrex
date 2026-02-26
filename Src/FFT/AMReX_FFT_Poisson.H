@@ -561,6 +561,10 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
 template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        int(dz.size()) == m_geom.Domain().length(2),
+        "FFT::PoissonHybrid: dz.size() must equal domain length in z");
+
     auto const* pdz = dz.dataPtr();
     solve(soln, rhs,
           fft_poisson_detail::TriA<T>{pdz},
@@ -571,6 +575,9 @@ template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 {
     AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        int(dz.size()) == m_geom.Domain().length(2),
+        "FFT::PoissonHybrid: dz.size() must equal domain length in z");
 
 #ifdef AMREX_USE_GPU
     Gpu::DeviceVector<T> d_dz(dz.size());
