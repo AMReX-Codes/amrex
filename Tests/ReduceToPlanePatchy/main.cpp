@@ -75,18 +75,15 @@ int main (int argc, char* argv[])
         Gpu::streamSynchronize();
 
         // Compare unique sparse result to reference plane on overlapping cells.
-        Real max_err = 0.0;
-        for (MFIter mfi(plane_unique); mfi.isValid(); ++mfi) {
-            auto const& pa = plane_unique.const_array(mfi);
-            Box const& bx = mfi.validbox();
-            Real local_max = 0.0;
-            AMREX_LOOP_3D(bx, i, j, k,
-            {
-                local_max = std::max(local_max, std::abs(pa(i,j,k) - ref_plane(IntVect(AMREX_D_DECL(i, j, k)))));
-            });
-            max_err = std::max(max_err, local_max);
-        }
-
+        auto const& res = plane_unique.const_arrays();
+        auto const& ref = ref_plane.const_array();
+        Real max_err = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{},
+                                 plane_unique,
+                                 [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+                                     -> GpuTuple<Real>
+                                 {
+                                     return {std::abs(res[b](i,j,k) - ref(i,j,k))};
+                                 });
         AMREX_ALWAYS_ASSERT(max_err == 0.0);
     }
 
