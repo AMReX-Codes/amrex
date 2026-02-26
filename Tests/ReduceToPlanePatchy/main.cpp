@@ -45,8 +45,23 @@ int main (int argc, char* argv[])
             {
                 return ma[box_no](i,j,k);
             });
-        ParallelDescriptor::ReduceRealSum(ref_plane.dataPtr(),
-                                          static_cast<int>(ref_plane.box().numPts()));
+        if (ParallelDescriptor::NProcs() > 1) {
+            auto npts = static_cast<int>(ref_plane.box().numPts());
+#ifdef AMREX_USE_GPU
+            auto* dp = ref_plane.dataPtr();
+            Gpu::PinnedVector<Real> hv(npts);
+            auto* hp = hv.data();
+            Gpu::copyAsync(Gpu::deviceToHost, dp, dp+npts, hp);
+            Gpu::streamSynchronize();
+#else
+            auto* hp = ref_plane.dataPtr();
+#endif
+            ParallelDescriptor::ReduceRealSum(hp, npts);
+#ifdef AMREX_USE_GPU
+            Gpu::copyAsync(Gpu::hostToDevice, hp, hp+npts, dp);
+            Gpu::streamSynchronize();
+#endif
+        }
 
         auto [plane_patch, plane_unique] = ReduceToPlaneMF2Patchy<ReduceOpSum>(dir, domain, mf,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
