@@ -426,6 +426,50 @@ int main (int argc, char* argv[])
         }
 
         // ================================================================
+        // Test 14: any_of, where, condition — portable single-source
+        //   Uses SIMDReal<>, which is a SIMD vector when AMREX_USE_SIMD=ON
+        //   and a plain scalar when OFF.  The same code path exercises
+        //   both the real SIMD and the scalar fallback implementations.
+        // ================================================================
+        {
+            using Real_t = simd::SIMDReal<>;
+
+            // safe reciprocal: 1/b where b != 0, else 0
+            Real_t b(ParticleReal(2));
+            auto mask = b != Real_t(ParticleReal(0));
+            auto safe_b = simd::condition(mask, b, Real_t(ParticleReal(1)));
+            auto recip  = simd::condition(mask,
+                              Real_t(ParticleReal(1)) / safe_b,
+                              Real_t(ParticleReal(0)));
+
+            // any_of: at least one lane should be nonzero
+            AMREX_ALWAYS_ASSERT(simd::stdx::any_of(mask));
+
+            // where: masked assignment
+            Real_t acc(ParticleReal(0));
+            simd::stdx::where(mask, acc) = recip;
+
+            // verify: b=2 everywhere → recip=0.5, acc=0.5
+            int err = 0;
+            auto check = [&] (ParticleReal got, ParticleReal expected) {
+                if (std::abs(got - expected) > ParticleReal(1.e-10)) { ++err; }
+            };
+#ifdef AMREX_USE_SIMD
+            for (int lane = 0; lane < static_cast<int>(Real_t::size()); ++lane) {
+                check(recip[lane], ParticleReal(0.5));
+                check(acc[lane],   ParticleReal(0.5));
+            }
+#else
+            check(recip, ParticleReal(0.5));
+            check(acc,   ParticleReal(0.5));
+#endif
+
+            nerrors += err;
+            Print() << "any_of + where + condition (portable): "
+                    << (err == 0 ? "PASSED" : "FAILED") << "\n";
+        }
+
+        // ================================================================
         // Final report
         // ================================================================
         if (nerrors > 0) {
