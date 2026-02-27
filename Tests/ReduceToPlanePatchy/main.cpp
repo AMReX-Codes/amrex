@@ -25,6 +25,7 @@ int main (int argc, char* argv[])
         bl.push_back(Box(IntVect(AMREX_D_DECL(6, 0, 0)), IntVect(AMREX_D_DECL(7, 7, 7))));
 
         BoxArray ba(std::move(bl));
+        ba.maxSize(4);
         DistributionMapping dm(ba);
         MultiFab mf(ba, dm, 1, 0);
 
@@ -45,8 +46,23 @@ int main (int argc, char* argv[])
             {
                 return ma[box_no](i,j,k);
             });
-        ParallelDescriptor::ReduceRealSum(ref_plane.dataPtr(),
-                                          static_cast<int>(ref_plane.box().numPts()));
+        if (ParallelDescriptor::NProcs() > 1) {
+            auto npts = static_cast<int>(ref_plane.box().numPts());
+#ifdef AMREX_USE_GPU
+            auto* dp = ref_plane.dataPtr();
+            Gpu::PinnedVector<Real> hv(npts);
+            auto* hp = hv.data();
+            Gpu::copyAsync(Gpu::deviceToHost, dp, dp+npts, hp);
+            Gpu::streamSynchronize();
+#else
+            auto* hp = ref_plane.dataPtr();
+#endif
+            ParallelDescriptor::ReduceRealSum(hp, npts);
+#ifdef AMREX_USE_GPU
+            Gpu::copyAsync(Gpu::hostToDevice, hp, hp+npts, dp);
+            Gpu::streamSynchronize();
+#endif
+        }
 
         auto [plane_patch, plane_unique] = ReduceToPlaneMF2Patchy<ReduceOpSum>(dir, domain, mf,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
@@ -60,19 +76,17 @@ int main (int argc, char* argv[])
         Gpu::streamSynchronize();
 
         // Compare unique sparse result to reference plane on overlapping cells.
-        Real max_err = 0.0;
-        for (MFIter mfi(plane_unique); mfi.isValid(); ++mfi) {
-            auto const& pa = plane_unique.const_array(mfi);
-            Box const& bx = mfi.validbox();
-            Real local_max = 0.0;
-            AMREX_LOOP_3D(bx, i, j, k,
-            {
-                local_max = std::max(local_max, std::abs(pa(i,j,k) - ref_plane(IntVect(AMREX_D_DECL(i, j, k)))));
-            });
-            max_err = std::max(max_err, local_max);
-        }
-
-        AMREX_ALWAYS_ASSERT(max_err == 0.0);
+        auto const& res = plane_unique.const_arrays();
+        auto const& ref = ref_plane.const_array();
+        Real max_err = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{},
+                                 plane_unique,
+                                 [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+                                     -> GpuTuple<Real>
+                                 {
+                                     return {std::abs(res[b](i,j,k) - ref(i,j,k))};
+                                 });
+        ParallelDescriptor::ReduceRealMax(max_err);
+        AMREX_ALWAYS_ASSERT(amrex::almostEqual(max_err, Real(0.0)));
     }
 
     amrex::Finalize();
