@@ -16,7 +16,8 @@
 
 #if defined(AMREX_USE_CUB)
 #include <cub/cub.cuh>
-#if defined(CCCL_MAJOR_VERSION) && (CCCL_MAJOR_VERSION >= 3)
+// CUB 2.6.0 corresponds to CCCL 3.0.0
+#if (defined(CCCL_MAJOR_VERSION) && (CCCL_MAJOR_VERSION >= 3)) || (defined(CUB_VERSION) && (CUB_VERSION >= 200600))
 #define AMREX_CUDA_CCCL_VER_GE_3 1
 #endif
 #elif defined(AMREX_USE_HIP)
