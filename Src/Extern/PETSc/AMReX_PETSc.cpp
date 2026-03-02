@@ -253,6 +253,7 @@ PETScABecLap::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
+            // Sync required: cell_id is passed to PETSc host APIs below
             Gpu::streamSynchronize();
         } else
 #endif
@@ -315,6 +316,7 @@ PETScABecLap::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
+            // Sync required: cell_id is passed to PETSc host APIs below
             Gpu::streamSynchronize();
         } else
 #endif
@@ -373,6 +375,7 @@ PETScABecLap::prepareSolver ()
             cell_id_ma[box_no](i,j,k) += poffset[box_no];
             cell_id_vec_ma[box_no](i,j,k) = cell_id_ma[box_no](i,j,k);
         });
+        // Sync required: cell_id/cell_id_vec are passed to PETSc host APIs below
         Gpu::streamSynchronize();
     } else
 #endif
@@ -641,6 +644,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     (flag_ma[box_no](i,j,k).isCovered()) ?
                     Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
             });
+            // Sync required: rhs_diag is passed to PETSc host API (VecSetValues) below
             Gpu::streamSynchronize();
         } else
 #endif

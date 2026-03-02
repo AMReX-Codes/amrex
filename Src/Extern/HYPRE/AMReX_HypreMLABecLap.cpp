@@ -1,4 +1,5 @@
 #include <AMReX_HypreMLABecLap.H>
+#include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
 
@@ -315,6 +316,8 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             Gpu::htod_memcpy_async(m_c2f_nentries[clev][mfi].dataPtr(),
                                    h_c2f_nentries.dataPtr(),
                                    h_c2f_nentries.nBytes());
+            // Must sync: h_c2f_offset_from/to/nentries are pinned-memory locals
+            // whose lifetime ends at the close of this MFIter loop body.
             Gpu::streamSynchronize();
 #endif
             AMREX_ASSERT(c2f_total_to < Long(std::numeric_limits<int>::max()));
@@ -740,7 +743,10 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 }
             }
 
-            if (need_sync) { Gpu::streamSynchronize(); }
+            if (need_sync) {
+                // Sync required: matfab.dataPtr() is passed to HYPRE host API below
+                Gpu::streamSynchronize();
+            }
 
             HYPRE_Int vbxlo[] = {AMREX_D_DECL(vbx.smallEnd(0), vbx.smallEnd(1), vbx.smallEnd(2))};
             HYPRE_Int vbxhi[] = {AMREX_D_DECL(vbx.bigEnd(0), vbx.bigEnd(1), vbx.bigEnd(2))};
@@ -940,6 +946,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                     tmp.resize(vbx, ncomp);
                     psol = tmp.dataPtr();
                     solsrc.template copyToMem<RunOn::Device>(vbx, 0, ncomp, psol);
+                    // Must sync before host API uses device-written data (psol).
                     Gpu::streamSynchronize();
                 } else {
                     psol = solsrc.dataPtr();
@@ -965,6 +972,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 {
                     hypmlabeclap_rhs(i, j, k, boxlo, boxhi, rhs1, rhs0, bcmsk, bcrhs);
                 });
+                // Must sync before host API uses device-written data (prhs).
                 Gpu::streamSynchronize();
                 HYPRE_SStructVectorSetBoxValues(m_ss_b, ilev, vbxlo, vbxhi, ivar, prhs);
                 Gpu::hypreSynchronize();
@@ -1045,7 +1053,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         HYPRE_SStructVectorGather(m_ss_x);
 
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
-            FArrayBox sol;
+            FArrayBox sol(The_Async_Arena());
             bool has_ghostcells = (a_sol[ilev]->nGrowVect() != 0);
             for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
                 Box const& vbx = mfi.validbox();
@@ -1065,7 +1073,6 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
                 if (has_ghostcells) {
                     dest.template copyFromMem<RunOn::Device>(vbx, 0, ncomp, p);
-                    Gpu::streamSynchronize();
                 }
             }
         }

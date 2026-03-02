@@ -1,4 +1,4 @@
-
+#include <AMReX_Arena.H>
 #include <AMReX_BArena.H>
 #include <AMReX_FluxRegister.H>
 #include <AMReX_FluxReg_C.H>
@@ -173,7 +173,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     const Orientation face_hi(dir,Orientation::high);
 
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
-                MFInfo(), mflx.Factory());
+                MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
@@ -185,7 +185,9 @@ FluxRegister::CrseInit (const MultiFab& mflx,
         {
             dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -272,7 +274,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
-                  MFInfo(), mflx.Factory());
+                  MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
     area.setVal(1, 0, 1, 0);
 
@@ -296,7 +298,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     const Orientation face_hi(dir,Orientation::high);
 
     MultiFab mf(mflx.boxArray(),mflx.DistributionMap(),numcomp,0,
-                MFInfo(), mflx.Factory());
+                MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mflx.isFusingCandidate()) {
@@ -308,7 +310,9 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
         {
             dma[box_no](i,j,k,n) = sma[box_no](i,j,k,n+srccomp)*mult*ama[box_no](i,j,k);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -348,7 +352,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
     MultiFab area(mflx.boxArray(), mflx.DistributionMap(), 1, 0,
-                  MFInfo(), mflx.Factory());
+                  MFInfo().SetArena(The_Async_Arena()), mflx.Factory());
 
     area.setVal(1, 0, 1, 0);
 
@@ -564,7 +568,7 @@ FluxRegister::Reflux (MultiFab&       mf,
     const Real* dx = geom.CellSize();
 
     MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
-                    MFInfo(), mf.Factory());
+                    MFInfo().SetArena(The_Async_Arena()), mf.Factory());
 
     volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
 
@@ -583,7 +587,7 @@ FluxRegister::Reflux (MultiFab&       mf,
     const Real* dx = geom.CellSize();
 
     MultiFab volume(mf.boxArray(), mf.DistributionMap(), 1, 0,
-                    MFInfo(), mf.Factory());
+                    MFInfo().SetArena(The_Async_Arena()), mf.Factory());
 
     volume.setVal(AMREX_D_TERM(dx[0],*dx[1],*dx[2]), 0, 1, 0);
 
@@ -599,7 +603,8 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
     int idir = face.coordDir();
 
     MultiFab flux(amrex::convert(mf.boxArray(), IntVect::TheDimensionVector(idir)),
-                  mf.DistributionMap(), nc, 0, MFInfo(), mf.Factory());
+                  mf.DistributionMap(), nc, 0,
+                  MFInfo().SetArena(The_Async_Arena()), mf.Factory());
     flux.setVal(0.0);
 
     bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity()); // NOLINT(clang-analyzer-security.ArrayBound)
@@ -619,7 +624,9 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
             fluxreg_reflux(Box(IntVect(AMREX_D_DECL(i,j,k)),IntVect(AMREX_D_DECL(i,j,k))),
                            sma[box_no], dcomp, fma[box_no], vma[box_no], nc, scale, face);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -750,7 +757,8 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
     constexpr int fine_cell = 1; // covered by fine
     constexpr int phbc_cell = 2;
     const BoxArray& cba = amrex::convert(crse_fluxes[0]->boxArray(), IntVect::TheCellVector());
-    iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1);
+    iMultiFab cc_mask(cba, crse_fluxes[0]->DistributionMap(), 1, 1,
+                      MFInfo().SetArena(The_Async_Arena()));
 
     bool inited = false;
 #ifdef AMREX_USE_GPU
@@ -830,7 +838,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
     {
         MultiFab& crse_flux = *crse_fluxes[idim];
         MultiFab fine_flux(crse_flux.boxArray(), crse_flux.DistributionMap(),
-                           numcomp, 0);
+                           numcomp, 0, MFInfo().SetArena(The_Async_Arena()));
         fine_flux.setVal(0.0);
 
         Orientation lo_face(idim, Orientation::low);
