@@ -415,8 +415,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
     auto coord = m_coord;
 
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
-                 rhs[0].DistributionMap(), 1, 0,
-                 MFInfo().SetAlloc(false).SetArena(The_Async_Arena()));
+                 rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
 
     if (m_bcoefs[amrlev][mglev][0]) {
         auto const& bcx = m_bcoefs[amrlev][mglev][0]->const_arrays();
@@ -469,8 +468,7 @@ void MLCurlCurl::smooth4 (int amrlev, int mglev, MF& sol, MF const& rhs,
     auto sinfo = getSymmetryInfo(amrlev,mglev);
 
     MultiFab nmf(amrex::convert(rhs[0].boxArray(),IntVect(1)),
-                 rhs[0].DistributionMap(), 1, 0,
-                 MFInfo().SetAlloc(false).SetArena(The_Async_Arena()));
+                 rhs[0].DistributionMap(), 1, 0, MFInfo().SetAlloc(false));
     if (m_lusolver[amrlev][mglev]) {
         auto* plusolver = m_lusolver[amrlev][mglev]->dataPtr();
         ParallelFor(nmf, [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k)
