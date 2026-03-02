@@ -28,7 +28,7 @@ CArena::~CArena ()
 void*
 CArena::alloc (std::size_t nbytes)
 {
-    std::lock_guard<std::mutex> lock(carena_mutex);
+    std::scoped_lock lock(carena_mutex);
     nbytes = Arena::align(nbytes == 0 ? 1 : nbytes);
     return alloc_protected(nbytes);
 }
@@ -162,7 +162,7 @@ CArena::alloc_protected (std::size_t nbytes)
 std::pair<void*,std::size_t>
 CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
 {
-    std::lock_guard<std::mutex> lock(carena_mutex);
+    std::scoped_lock lock(carena_mutex);
 
     std::size_t nbytes_max = Arena::align(szmax == 0 ? 1 : szmax);
 
@@ -239,7 +239,7 @@ CArena::shrink_in_place (void* pt, std::size_t new_size)
 
     new_size = Arena::align(new_size);
 
-    std::lock_guard<std::mutex> lock(carena_mutex);
+    std::scoped_lock lock(carena_mutex);
 
     auto busy_it = m_busylist.find(Node(pt,nullptr,0));
     if (busy_it == m_busylist.end()) {
@@ -300,7 +300,7 @@ CArena::free (void* vp)
         return;
     }
 
-    std::lock_guard<std::mutex> lock(carena_mutex);
+    std::scoped_lock lock(carena_mutex);
 
     //
     // `vp' had better be in the busy list.
@@ -368,6 +368,7 @@ CArena::free (void* vp)
 
     void* addr = static_cast<char*>((*free_it).block()) + (*free_it).size();
 
+    // NOLINTNEXTLINE(bugprone-inc-dec-in-conditions)
     if (++hi_it != m_freelist.end() && addr == (*hi_it).block() && hi_it->coalescable(*free_it))
     {
         //
@@ -383,7 +384,7 @@ CArena::free (void* vp)
 std::size_t
 CArena::freeUnused ()
 {
-    std::lock_guard<std::mutex> lock(carena_mutex);
+    std::scoped_lock lock(carena_mutex);
     return freeUnused_protected();
 }
 
@@ -446,7 +447,7 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 {
 #ifdef AMREX_USE_GPU
     if (isDevice() || isManaged()) {
-        std::lock_guard<std::mutex> lock(carena_mutex);
+        std::scoped_lock lock(carena_mutex);
 
         std::size_t nbytes = Arena::align(sz == 0 ? 1 : sz);
 

@@ -472,8 +472,8 @@ STLtools::read_binary_stl_file (std::string const& fname, Real scale,
             RealDescriptor::convertToNativeFormat(p, 9, tmp+12, real32_descr);
             for (int j = 0; j < 3; ++j) {
                 p[0] = p[0] * scale + center[0];
-                p[1] = p[1] * scale + center[1];
-                p[2] = p[2] * scale + center[2];
+                p[1] = p[1] * scale + center[1]; // NOLINT(clang-analyzer-security.ArrayBound)
+                p[2] = p[2] * scale + center[2]; // NOLINT(clang-analyzer-security.ArrayBound)
                 p += 3;
             }
             if (reverse_normal) {

@@ -626,11 +626,13 @@ const BoxArray&
 AmrLevel::getEdgeBoxArray (int dir) const noexcept
 {
     BL_ASSERT(dir >=0 && dir < AMREX_SPACEDIM);
+    // NOLINTBEGIN(clang-analyzer-security.ArrayBound)
     if (edge_grids[dir].empty()) {
         edge_grids[dir] = grids;
         edge_grids[dir].surroundingNodes(dir);
     }
     return edge_grids[dir];
+    // NOLINTEND(clang-analyzer-security.ArrayBound)
 }
 
 const BoxArray&

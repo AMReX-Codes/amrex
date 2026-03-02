@@ -66,7 +66,7 @@
 #endif
 
 namespace amrex {
-    enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu };
+    enum struct RunOn { Gpu, Cpu, Device=Gpu, Host=Cpu }; // NOLINT(readability-enum-initial-value)
 }
 
 #ifdef AMREX_USE_GPU
@@ -177,8 +177,8 @@ namespace Gpu {
 
     /**
      * This struct provides a RAII-style mechanism for disabling GPU
-     * synchronization in MFITer by default.  Note that explicit calls to
-     * Gpu::steramSynchronize and Gpu::deviceSynchronize still work.
+     * synchronization in MFIter by default.  Note that explicit calls to
+     * Gpu::streamSynchronize and Gpu::synchronize still work.
      */
     struct [[nodiscard]] NoSyncRegion
     {
@@ -188,19 +188,21 @@ namespace Gpu {
 
         ~NoSyncRegion () { in_nosync_region = m_prev_flag; }
 
-    private:
+        [[nodiscard]] bool inNoSyncRegionPreviously () const { return m_prev_flag; }
+
+    protected:
         bool m_prev_flag;
     };
 
 #else
 
-    [[nodiscard]] inline constexpr bool inLaunchRegion () { return false; }
-    [[nodiscard]] inline constexpr bool notInLaunchRegion () { return true; }
-    [[nodiscard]] inline constexpr bool setLaunchRegion (bool) { return false; }
+    [[nodiscard]] constexpr bool inLaunchRegion () { return false; }
+    [[nodiscard]] constexpr bool notInLaunchRegion () { return true; }
+    [[nodiscard]] constexpr bool setLaunchRegion (bool) { return false; }
 
-    [[nodiscard]] inline constexpr bool inGraphRegion () { return false; }
-    [[nodiscard]] inline constexpr bool notInGraphRegion () { return true; }
-    [[nodiscard]] inline constexpr bool setGraphRegion (bool) { return false; }
+    [[nodiscard]] constexpr bool inGraphRegion () { return false; }
+    [[nodiscard]] constexpr bool notInGraphRegion () { return true; }
+    [[nodiscard]] constexpr bool setGraphRegion (bool) { return false; }
 
     struct [[nodiscard]] LaunchSafeGuard
     {
@@ -212,12 +214,14 @@ namespace Gpu {
         explicit GraphSafeGuard (bool) {}
     };
 
-    [[nodiscard]] inline constexpr bool inSingleStreamRegion () { return false; }
-    [[nodiscard]] inline constexpr bool inNoSyncRegion () { return true; }
-    [[nodiscard]] inline constexpr bool setSingleStreamRegion (bool) { return false; }
-    [[nodiscard]] inline constexpr bool setNoSyncRegion (bool) { return true; }
+    [[nodiscard]] constexpr bool inSingleStreamRegion () { return false; }
+    [[nodiscard]] constexpr bool inNoSyncRegion () { return true; }
+    [[nodiscard]] constexpr bool setSingleStreamRegion (bool) { return false; }
+    [[nodiscard]] constexpr bool setNoSyncRegion (bool) { return true; }
     struct [[nodiscard]] SingleStreamRegion {};
-    struct [[nodiscard]] NoSyncRegion {};
+    struct [[nodiscard]] NoSyncRegion {
+        static constexpr bool inNoSyncRegionPreviously () { return true; }
+    };
 
 #endif
 

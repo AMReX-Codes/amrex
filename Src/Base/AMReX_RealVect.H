@@ -119,7 +119,7 @@ class RealVectND {
         Returns a modifiable lvalue reference to the <i>i</i>'th coordinate of the
         RealVectND.
     */
-    AMREX_GPU_HOST_DEVICE inline constexpr
+    AMREX_GPU_HOST_DEVICE constexpr
     Real& operator[] (int i) & noexcept {
         AMREX_ASSERT(i >= 0 && i < dim);
         return vect[i];
@@ -129,7 +129,7 @@ class RealVectND {
     /**
         Returns the <i>i</i>'th coordinate of the RealVectND.
     */
-    AMREX_GPU_HOST_DEVICE inline constexpr
+    AMREX_GPU_HOST_DEVICE constexpr
     const Real& operator[] (int i) const& noexcept {
         AMREX_ASSERT(i >= 0 && i < dim);
         return vect[i];
@@ -145,7 +145,7 @@ class RealVectND {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     const Real& get () const noexcept {static_assert(0<=i && i<dim); return vect[i];}
 
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     GpuArray<Real, dim> to_array () const noexcept {
         GpuArray<Real, dim> retval{};
         for (int i = 0; i < dim; ++i) {
@@ -165,28 +165,28 @@ class RealVectND {
     /**
         Return pointer to the first component.
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     Real* begin () noexcept { return vect; }
 
     ///
     /**
         Return pointer to the first component.
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     const Real* begin () const noexcept { return vect; }
 
     ///
     /**
         Return pointer to the one past last component
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     Real* end () noexcept { return vect + dim; }
 
     ///
     /**
         Return pointer to the one past last component
     */
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline constexpr
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE constexpr
     const Real* end () const noexcept {
         return vect + dim;
     }

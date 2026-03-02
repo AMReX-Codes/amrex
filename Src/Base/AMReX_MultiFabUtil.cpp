@@ -634,6 +634,7 @@ namespace amrex
                             crse_value, fine_value, info);
     }
 
+    namespace {
     template <typename FAB>
     void makeFineMask_doit (FabArray<FAB>& mask, const BoxArray& fba,
                             const IntVect& ratio, Periodicity const& period,
@@ -690,6 +691,7 @@ namespace amrex
             tag.dfab(i,j,k,n) = fine_value;
         });
 #endif
+    }
     }
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,

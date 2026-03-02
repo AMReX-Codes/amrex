@@ -887,7 +887,7 @@ struct SphThetaPhiRIndexMapping
         {
             return {i, j-ny, k};
         }
-        else if (imd && jmd & klo)
+        else if (imd && jmd && klo)
         {
             return {nx-1-i, (j+ny/2)%ny, -1-k};
         }

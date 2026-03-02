@@ -235,8 +235,8 @@ struct AmrAssignGrid
             if (grid >= 0) { return makeTuple(grid, lev); }
         }
 
-        for (int lev = lev_min; lev >= lev_min; --lev)
         {
+            int lev = lev_min;
             int grid = m_funcs[lev](p, nGrow, assignor);
             if (grid >= 0) { return makeTuple(grid, lev); }
         }

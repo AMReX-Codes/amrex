@@ -463,6 +463,40 @@ namespace amrex
     ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f);
 
     /**
+     * \brief Reduce FabArray/MultiFab data to plane FabArray for patchy BoxArrays
+     *
+     * This function is similar to ReduceToPlaneMF2, but it supports
+     * non-rectangular (patchy) input BoxArrays. The return data are a pair
+     * of FabArrays. The first FA stores local per-box reduction results on
+     * a projected BoxArray that can contain overlapping Boxes. The second
+     * FA stores globally accumulated results on a unique projected 2D
+     * BoxArray.
+     *
+     * \tparam Op  reduce operator (Must be ReduceSum for now.)
+     * \tparam FA  Type of FabArray
+     * \tparam F   callable type like a lambda function
+     *
+     * \param direction normal direction of the plane (e.g., 0, 1 and 2)
+     * \param domain    domain Box. For patchy inputs this must cover the full
+     *                  extent of mf.boxArray() (subdomains are not supported).
+     * \param mf        a FabArray/MultiFab object specifying the iteration space
+     * \param f         a callable object returning data for reduction. It takes
+     *                  four ints, where the first int is the local box index and
+     *                  the others are spatial indices for x, y, and z-directions.
+     *
+     * \return reduction result (std::pair<FA,FA>)
+     */
+    template <typename Op, typename FA, typename F,
+              std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                               && IsCallableR<typename FA::value_type,
+                                              F,int,int,int,int>::value
+#endif
+                               , int> FOO = 0>
+    std::pair<FA,FA>
+    ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const& f);
+
+    /**
      * \brief Sum MultiFab data to line
      *
      * Return a HostVector that contains the sum of the given MultiFab data in the plane
@@ -1415,6 +1449,58 @@ ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
 
     BoxArray ba2d(std::move(bl2d));
     DistributionMapping dm2d(std::move(procmap2d));
+
+    FA mf2d(ba2d, dm2d, 1, 0);
+    mf2d.setVal(initval);
+
+    static_assert(std::is_same_v<Op, ReduceOpSum>, "Currently only ReduceOpSum is supported.");
+    mf2d.ParallelAdd(tmpmf);
+
+    return std::make_pair(std::move(tmpmf), std::move(mf2d));
+}
+
+template <typename Op, typename FA, typename F,
+          std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                           && IsCallableR<typename FA::value_type,
+                                          F,int,int,int,int>::value
+#endif
+                           , int> FOO>
+std::pair<FA,FA>
+ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const& f)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf.is_cell_centered(), "ReduceToPlaneMF2Patchy: only cell-centered data is supported.");
+
+    Box const ndomain = amrex::convert(domain, mf.ixType());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ndomain.contains(mf.boxArray().minimalBox()),
+        "ReduceToPlaneMF2Patchy: subdomains are not supported; domain must cover the full extent of mf.boxArray().");
+
+    using T = typename FA::value_type;
+    T initval;
+    Op().init(initval);
+
+    BoxList bl_patch2d = mf.boxArray().boxList();
+    for (auto& b : bl_patch2d) {
+        b.setRange(direction, 0);
+    }
+    BoxArray ba_patch2d(std::move(bl_patch2d));
+    FA tmpmf(ba_patch2d, mf.DistributionMap(), 1, 0);
+    tmpmf.setVal(initval);
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox() & ndomain;
+        if (bx.ok()) {
+            int box_no = mfi.LocalIndex();
+            detail::reduce_to_plane<Op, T>(tmpmf.array(mfi), direction, bx, box_no, f);
+        }
+    }
+
+    BoxList bl_unique = ba_patch2d.boxList();
+    bl_unique.simplify();
+    BoxArray ba2d(std::move(bl_unique));
+    ba2d.removeOverlap();
+    DistributionMapping dm2d(ba2d);
 
     FA mf2d(ba2d, dm2d, 1, 0);
     mf2d.setVal(initval);

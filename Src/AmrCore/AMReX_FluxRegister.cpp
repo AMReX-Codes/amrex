@@ -213,11 +213,11 @@ FluxRegister::CrseInit (const MultiFab& mflx,
 
         if (op == FluxRegister::COPY)
         {
-            bndry[face].copyFrom(mf,0,0,destcomp,numcomp);
+            bndry[face].copyFrom(mf,0,0,destcomp,numcomp); // NOLINT(clang-analyzer-security.ArrayBound)
         }
         else
         {
-            FabSet fs(bndry[face].boxArray(),bndry[face].DistributionMap(),numcomp);
+            FabSet fs(bndry[face].boxArray(),bndry[face].DistributionMap(),numcomp);  // NOLINT(clang-analyzer-security.ArrayBound)
 
             fs.setVal(0);
 
@@ -335,7 +335,7 @@ FluxRegister::CrseAdd (const MultiFab& mflx,
     for (int pass = 0; pass < 2; pass++)
     {
         const Orientation face = ((pass == 0) ? face_lo : face_hi);
-        bndry[face].plusFrom(mf,0,0,destcomp,numcomp,geom.periodicity());
+        bndry[face].plusFrom(mf,0,0,destcomp,numcomp,geom.periodicity()); // NOLINT(clang-analyzer-security.ArrayBound)
     }
 }
 
@@ -409,8 +409,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
-    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
+    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno]; // NOLINT(clang-analyzer-security.ArrayBound)
+    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno]; // NOLINT(clang-analyzer-security.ArrayBound)
     const Box& lobox = loreg.box();
     const Box& hibox = hireg.box();
 
@@ -457,8 +457,8 @@ FluxRegister::FineAdd (const FArrayBox& flux,
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= flux.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
-    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
+    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno]; // NOLINT(clang-analyzer-security.ArrayBound)
+    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno]; // NOLINT(clang-analyzer-security.ArrayBound)
     const Box& lobox = loreg.box();
     const Box& hibox = hireg.box();
 
@@ -506,7 +506,7 @@ FluxRegister::FineSetVal (int              dir,
 {
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= ncomp);
 
-    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno];
+    FArrayBox& loreg = bndry[Orientation(dir,Orientation::low)][boxno]; // NOLINT(clang-analyzer-security.ArrayBound)
     BL_ASSERT(numcomp <= loreg.nComp());
     if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion()) {
         loreg.setVal<RunOn::Device>(val, loreg.box(), destcomp, numcomp);
@@ -514,7 +514,7 @@ FluxRegister::FineSetVal (int              dir,
         loreg.setVal<RunOn::Host>(val, loreg.box(), destcomp, numcomp);
     }
 
-    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno];
+    FArrayBox& hireg = bndry[Orientation(dir,Orientation::high)][boxno]; // NOLINT(clang-analyzer-security.ArrayBound)
     BL_ASSERT(numcomp <= hireg.nComp());
     if ((runon == RunOn::Gpu) && Gpu::inLaunchRegion()) {
         hireg.setVal<RunOn::Device>(val, hireg.box(), destcomp, numcomp);
@@ -607,7 +607,7 @@ FluxRegister::Reflux (MultiFab& mf, const MultiFab& volume, Orientation face,
                   MFInfo().SetArena(The_Async_Arena()), mf.Factory());
     flux.setVal(0.0);
 
-    bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity());
+    bndry[face].copyTo(flux, 0, scomp, 0, nc, geom.periodicity()); // NOLINT(clang-analyzer-security.ArrayBound)
 
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && mf.isFusingCandidate()) {

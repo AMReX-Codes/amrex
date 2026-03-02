@@ -482,7 +482,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     nparticlesPrePost = nparticles;
-    maxnextidPrePost  = int(maxnextid);
+    maxnextidPrePost  = maxnextid;
 
     nParticlesAtLevelPrePost.clear();
     nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
@@ -995,7 +995,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
     host_idcpu.reserve(15);
-    host_idcpu.resize(finestLevel()+1);
+    host_idcpu.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct

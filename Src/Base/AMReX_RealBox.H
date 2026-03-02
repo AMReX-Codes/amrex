@@ -13,6 +13,8 @@
 #include <iosfwd>
 #include <array>
 
+//NOLINTBEGIN(clang-analyzer-security.ArrayBound)
+
 namespace amrex {
 
 /**
@@ -160,5 +162,7 @@ bool AlmostEqual (const RealBox& box1,
                   Real eps = 0.0) noexcept;
 
 }
+
+//NOLINTEND(clang-analyzer-security.ArrayBound)
 
 #endif /*_RealBox_H_*/

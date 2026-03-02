@@ -372,11 +372,11 @@ template <int NB>
 void
 _pd_btrvout (char* out, Long  nitems)
 {
-    for (int jl = 0, nbo2 = NB >> 1; jl < nbo2; jl++)
+    for (int jlo = 0, nbo2 = NB >> 1; jlo < nbo2; jlo++)
     {
-        int jh  = NB - jl - 1;
-        char* p1 = out + jh;
-        char* p2 = out + jl;
+        int jhi  = NB - jlo - 1;
+        char* p1 = out + jhi;
+        char* p2 = out + jlo;
         for (Long i = 0L; i < nitems; i++)
         {
             char tmp = *p1;

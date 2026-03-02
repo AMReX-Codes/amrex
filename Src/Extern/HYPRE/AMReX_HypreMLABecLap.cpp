@@ -95,7 +95,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     constexpr HYPRE_Int ivar = 0;
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
-        // Which hypre solver has the limitation of power of 2 restrictions
+        // Which HYPRE solver has the limitation of power of 2 restrictions
         // for periodic domains?
         if (m_geom[ilev].isAnyPeriodic()) {
             Array<HYPRE_Int,AMREX_SPACEDIM> periodic;
@@ -321,7 +321,7 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             Gpu::streamSynchronize();
 #endif
             AMREX_ASSERT(c2f_total_to < Long(std::numeric_limits<int>::max()));
-            m_c2f_total_from[clev][mfi] = int(c2f_total_from);
+            m_c2f_total_from[clev][mfi] = c2f_total_from;
             m_c2f_total_to[clev][mfi] = int(c2f_total_to);
         }
 
@@ -922,7 +922,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     {
         BL_PROFILE("HypreMLABecLap::load_vector");
 
-        // Do we still have to do this repeatedly to avoid a hypre bug?
+        // Do we still have to do this repeatedly to avoid a HYPRE bug?
         HYPRE_SStructVectorCreate(m_comm, m_ss_grid, &m_ss_x);
         HYPRE_SStructVectorSetObjectType(m_ss_x, m_hypre_object_type);
         HYPRE_SStructVectorInitialize(m_ss_x);
@@ -1194,7 +1194,7 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
             {
                 IntVect ivm(AMREX_D_DECL(i,j,k));
                 ivm[idim] -= 1;
-                int is_cf = (fmask_a(i,j,k) != fmask_a(ivm));
+                bool is_cf = (fmask_a(i,j,k) != fmask_a(ivm));
                 int psum = tot;
                 tot += int(is_cf);
                 offset_a(i,j,k) = is_cf ? psum*nfaces : -1;

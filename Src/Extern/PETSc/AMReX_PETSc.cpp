@@ -403,6 +403,7 @@ PETScABecLap::prepareSolver ()
     PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
     // estimated amount of block off diag elements
     PetscInt o_nz  = d_nz / 2;
+    if (A->a) { MatDestroy(&A->a); }
     MatCreate(PETSC_COMM_WORLD, &A->a);
     MatSetType(A->a, MATMPIAIJ);
     MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world);
@@ -578,8 +579,8 @@ PETScABecLap::prepareSolver ()
             Gpu::synchronize();
 
             //Load in by row!
-            int matid = 0;
-            for (int rit = 0; rit < nrows; ++rit)
+            PetscInt matid = 0;
+            for (PetscInt rit = 0; rit < nrows; ++rit)
             {
                 MatSetValues(A->a, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
                 matid += ncols[rit];
@@ -590,6 +591,7 @@ PETScABecLap::prepareSolver ()
     MatAssemblyBegin(A->a, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(A->a, MAT_FINAL_ASSEMBLY);
     // create solver
+    if (solver->a) { KSPDestroy(&solver->a); }
     KSPCreate(PETSC_COMM_WORLD, &solver->a);
     KSPSetOperators(solver->a, A->a, A->a);
 
@@ -606,6 +608,8 @@ PETScABecLap::prepareSolver ()
 
 // we are not using command line options    KSPSetFromOptions(solver->a);
     // create b & x
+    if (x->a) { VecDestroy(&x->a); }
+    if (b->a) { VecDestroy(&b->a); }
     VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x->a);
     VecDuplicate(x->a, &b->a);
 }
@@ -629,14 +633,6 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-            Gpu::HostVector<FabType> hv_type;
-            for (MFIter mfi(rhs_diag); mfi.isValid(); ++mfi) {
-                const Box& reg = mfi.validbox();
-                hv_type.push_back((*flags)[mfi].getType(reg));
-            }
-            Gpu::DeviceVector<FabType> dv_type(hv_type.size());
-            Gpu::copyAsync(Gpu::hostToDevice, hv_type.begin(), hv_type.end(), dv_type.begin());
-            auto ptype = dv_type.data();
             auto const& rhs_diag_ma = rhs_diag.arrays();
             auto const& rhs_ma = rhs.const_arrays();
             auto const& diaginv_ma = diaginv.const_arrays();

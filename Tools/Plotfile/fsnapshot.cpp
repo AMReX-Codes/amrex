@@ -15,7 +15,7 @@ void main_main()
 {
     const int narg = amrex::command_argument_count();
 
-    std::string home(std::getenv("HOME"));
+    std::string home(std::getenv("HOME")); // NOLINT(clang-analyzer-cplusplus.StringChecker)
     if (home.empty()) {
         amrex::Abort("Failed to get environment variable HOME is");
     }
