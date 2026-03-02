@@ -14,6 +14,11 @@
 #define AMREX_LO_PERIODIC 200
 #define AMREX_LO_BOGUS    1729
 
+/**
+ * \file AMReX_LO_BCTYPES.H
+ * \brief Constants describing linear-operator boundary condition types.
+ */
+
 #ifdef __cplusplus
 
 #include <iosfwd>
@@ -34,6 +39,13 @@ namespace amrex {
         bogus            = AMREX_LO_BOGUS
     };
 
+    /**
+     * \brief Stream boundary-condition type names for debugging.
+     *
+     * \param os Output stream to receive the text label.
+     * \param t  Boundary-condition type to print.
+     * \return The output stream for chaining.
+     */
     std::ostream& operator<< (std::ostream& os, const amrex::LinOpBCType& t);
 }
 
