@@ -223,6 +223,9 @@ R2X<T>::R2X (Box const& domain,
     static_assert(std::is_same_v<float,T> || std::is_same_v<double,T>);
 
     AMREX_ALWAYS_ASSERT((m_dom_0.numPts() > 1) && (m_info.batch_size == 1));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        m_dom_0.smallEnd() == IntVect(AMREX_D_DECL(0,0,0)),
+        "FFT::R2X currently requires domain.smallEnd() == 0");
 #if (AMREX_SPACEDIM == 2)
     AMREX_ALWAYS_ASSERT(!m_info.twod_mode);
 #else
@@ -638,6 +641,9 @@ template <typename T>
 template <typename F>
 void R2X<T>::forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !m_info.twod_mode,
+        "FFT::R2X::forwardThenBackward(post_forward) does not support twod_mode yet");
     forwardThenBackward_doit_0(inmf, outmf, post_forward);
 }
 

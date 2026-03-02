@@ -278,7 +278,7 @@ private:
         }
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        flag = ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
@@ -313,10 +313,10 @@ private:
             if (fast_nonlinear_solver == "fixed-point") {
                 fast_NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
                 AMREX_ALWAYS_ASSERT(fast_NLS != nullptr);
-                flag = ARKStepSetNonlinearSolver(arkode_mem, fast_NLS);
+                flag = ARKStepSetNonlinearSolver(arkode_fast_mem, fast_NLS);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
-            flag = ARKStepSetMaxNonlinIters(arkode_mem, fast_max_nonlinear_iters);
+            flag = ARKStepSetMaxNonlinIters(arkode_fast_mem, fast_max_nonlinear_iters);
             AMREX_ALWAYS_ASSERT(flag == 0);
 
             if (fast_nonlinear_solver == "Newton") {
@@ -326,7 +326,7 @@ private:
                 }
                 fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
                 AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_mem, fast_LS, nullptr);
+                flag = ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
@@ -352,7 +352,7 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
+        flag = ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Wrap fast integrator as an inner stepper
@@ -411,10 +411,10 @@ private:
             if (nonlinear_solver == "fixed-point") {
                 NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
                 AMREX_ALWAYS_ASSERT(NLS != nullptr);
-                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                flag = MRIStepSetNonlinearSolver(arkode_mem, NLS);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
-            flag = ARKStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
+            flag = MRIStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
             AMREX_ALWAYS_ASSERT(flag == 0);
 
             if (nonlinear_solver == "Newton") {
@@ -424,7 +424,7 @@ private:
                 }
                 LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
                 AMREX_ALWAYS_ASSERT(LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                flag = MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
@@ -438,12 +438,12 @@ private:
         // Set a stop time
         if (set_stop_time) {
             if (amrex::Verbose()) { amrex::Print() << "Stop time: " << stop_time << "\n"; }
-          flag = ARKStepSetStopTime(arkode_mem, stop_time);
+          flag = MRIStepSetStopTime(arkode_mem, stop_time);
           AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        flag = MRIStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 

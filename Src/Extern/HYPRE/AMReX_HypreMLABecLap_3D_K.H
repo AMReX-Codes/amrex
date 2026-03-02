@@ -185,7 +185,7 @@ void hypmlabeclap_c2f (int i, int j, int k,
         // Fist, we need to figure out how many corner coarse cells are
         // involved. The coarse cell entries must be stored ahead of fine
         // cell entries because that's how we sorted the entried when
-        // building the hypre graph.
+        // building the HYPRE graph.
         bool corner[3] = {false, false, false};
         if ((fine_mask(i-1,j,k) || fine_mask(i+1,j,k)) &&
             (! fine_mask(i,j-1,k-1)) &&
@@ -228,7 +228,7 @@ void hypmlabeclap_c2f (int i, int j, int k,
 
         // We must iterate the faces in the lexicographical order of fine
         // neighbor cells, because that's the order when non-stencil entries
-        // were added to Hypre's graph. Also note that a coarse cell will
+        // were added to HYPRE's graph. Also note that a coarse cell will
         // not have entries to fine cells at both ends of a direction. Thus
         // we do not have to worry about the order between fine cells at the
         // small and big ends of the same direction.

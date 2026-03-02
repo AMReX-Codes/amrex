@@ -566,8 +566,8 @@ Device::initialize_gpu (bool minimal)
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
         device_prop.maxGridSize[0] = -1; // xxxxx SYCL todo: unknown
-        device_prop.maxGridSize[0] = -1; // unknown
-        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.maxGridSize[1] = -1; // unknown
+        device_prop.maxGridSize[2] = -1; // unknown
         device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
@@ -762,6 +762,18 @@ Device::streamSynchronize () noexcept
 {
 #ifdef AMREX_USE_GPU
     gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].sync();
+#endif
+}
+
+void
+Device::streamSynchronizeActive () noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (Gpu::inSingleStreamRegion()) {
+        Gpu::streamSynchronize();
+    } else {
+        Gpu::streamSynchronizeAll();
+    }
 #endif
 }
 

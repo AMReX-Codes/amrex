@@ -202,6 +202,9 @@ public:
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward,
                               int incomp = 0, int outcomp = 0)
     {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            !m_info.twod_mode && m_info.batch_size == 1,
+            "FFT::R2C::forwardThenBackward(post_forward) currently supports only !twod_mode and batch_size==1");
         BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf, incomp);
         this->post_forward_doit_0(post_forward);
@@ -759,15 +762,15 @@ R2C<T,D,C>::make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const&
     IntVect len(local_size);
     Box bx(lo, lo+len-1);
 #ifdef AMREX_USE_MPI
-    Vector<Box> allboxes(ParallelDescriptor::NProcs());
+    Vector<Box> allboxes(ParallelContext::NProcsSub());
     MPI_Allgather(&bx, 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
                   allboxes.data(), 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
-                  ParallelDescriptor::Communicator());
+                  ParallelContext::CommunicatorSub());
     Vector<int> pmap;
     pmap.reserve(allboxes.size());
     for (int i = 0; i < allboxes.size(); ++i) {
         if (allboxes[i].ok()) {
-            pmap.push_back(i);
+            pmap.push_back(ParallelContext::local_to_global_rank(i));
         }
     }
     allboxes.erase(std::remove_if(allboxes.begin(), allboxes.end(),
@@ -795,7 +798,7 @@ R2C<T,D,C>::getLocalDomain () const
     m_raw_mf = MF(m_rx.boxArray(), m_rx.DistributionMap(), m_rx.nComp(), 0,
                   MFInfo{}.SetAlloc(false));
 
-    auto const myproc = ParallelDescriptor::MyProc();
+    auto const myproc = ParallelContext::MyProcSub();
     if (myproc < m_rx.size()) {
         Box const& box = m_rx.box(myproc);
         return std::make_pair(box.smallEnd().toArray(),
@@ -823,7 +826,7 @@ R2C<T,D,C>::getLocalSpectralDomain () const
 
     m_raw_cmf = cMF(ba, dm, ncomp, 0, MFInfo{}.SetAlloc(false));
 
-    auto const myproc = ParallelDescriptor::MyProc();
+    auto const myproc = ParallelContext::MyProcSub();
     if (myproc < m_raw_cmf.size()) {
         Box const& box = m_raw_cmf.box(myproc);
         return std::make_pair(box.smallEnd().toArray(), box.length().toArray());

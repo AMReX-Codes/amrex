@@ -94,7 +94,7 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     constexpr HYPRE_Int ivar = 0;
 
     for (int ilev = 0; ilev < m_nlevels; ++ilev) {
-        // Which hypre solver has the limitation of power of 2 restrictions
+        // Which HYPRE solver has the limitation of power of 2 restrictions
         // for periodic domains?
         if (m_geom[ilev].isAnyPeriodic()) {
             Array<HYPRE_Int,AMREX_SPACEDIM> periodic;
@@ -916,7 +916,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     {
         BL_PROFILE("HypreMLABecLap::load_vector");
 
-        // Do we still have to do this repeatedly to avoid a hypre bug?
+        // Do we still have to do this repeatedly to avoid a HYPRE bug?
         HYPRE_SStructVectorCreate(m_comm, m_ss_grid, &m_ss_x);
         HYPRE_SStructVectorSetObjectType(m_ss_x, m_hypre_object_type);
         HYPRE_SStructVectorInitialize(m_ss_x);

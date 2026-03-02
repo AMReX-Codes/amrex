@@ -2478,9 +2478,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
-                        Real rdata;
-                        std::memcpy(&rdata, pbuf, sizeof(Real));
-                        pbuf += sizeof(Real);
+                        ParticleReal rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
+                        pbuf += sizeof(ParticleReal);
                         host_real_attribs[lev][ind][comp].push_back(rdata);
                     } else {
                         host_real_attribs[lev][ind][comp].push_back(0.0);

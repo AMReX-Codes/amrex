@@ -526,14 +526,6 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-            Gpu::HostVector<FabType> hv_type;
-            for (MFIter mfi(rhs_diag); mfi.isValid(); ++mfi) {
-                const Box& reg = mfi.validbox();
-                hv_type.push_back((*flags)[mfi].getType(reg));
-            }
-            Gpu::DeviceVector<FabType> dv_type(hv_type.size());
-            Gpu::copyAsync(Gpu::hostToDevice, hv_type.begin(), hv_type.end(), dv_type.begin());
-            auto ptype = dv_type.data();
             auto const& rhs_diag_ma = rhs_diag.arrays();
             auto const& rhs_ma = rhs.const_arrays();
             auto const& diaginv_ma = diaginv.const_arrays();
