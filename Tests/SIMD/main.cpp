@@ -427,26 +427,26 @@ int main (int argc, char* argv[])
 
         // ================================================================
         // Test 14: any_of, where, select — portable single-source
-        //   Uses SIMDReal<>, which is a SIMD vector when AMREX_USE_SIMD=ON
+        //   Uses SIMDParticleReal<>, which is a SIMD vector when AMREX_USE_SIMD=ON
         //   and a plain scalar when OFF.  The same code path exercises
         //   both the real SIMD and the scalar fallback implementations.
         // ================================================================
         {
-            using Real_t = simd::SIMDReal<>;
+            using PReal_t = simd::SIMDParticleReal<>;
 
             // safe reciprocal: 1/b where b != 0, else 0
-            Real_t b(ParticleReal(2));
-            auto mask = b != Real_t(ParticleReal(0));
-            auto safe_b = simd::stdx::select(mask, b, Real_t(ParticleReal(1)));
+            auto b = PReal_t(2);
+            auto mask = b != PReal_t(0);
+            auto safe_b = simd::stdx::select(mask, b, PReal_t(1));
             auto recip  = simd::stdx::select(mask,
-                              Real_t(ParticleReal(1)) / safe_b,
-                              Real_t(ParticleReal(0)));
+                              PReal_t(1) / safe_b,
+                              PReal_t(0));
 
             // any_of: at least one lane should be nonzero
             AMREX_ALWAYS_ASSERT(simd::stdx::any_of(mask));
 
             // where: masked assignment
-            Real_t acc(ParticleReal(0));
+            auto acc = PReal_t(0);
             simd::stdx::where(mask, acc) = recip;
 
             // verify: b=2 everywhere → recip=0.5, acc=0.5
@@ -455,7 +455,7 @@ int main (int argc, char* argv[])
                 if (std::abs(got - expected) > ParticleReal(1.e-10)) { ++err; }
             };
 #ifdef AMREX_USE_SIMD
-            for (int lane = 0; lane < static_cast<int>(Real_t::size()); ++lane) {
+            for (int lane = 0; lane < static_cast<int>(PReal_t::size()); ++lane) {
                 check(recip[lane], ParticleReal(0.5));
                 check(acc[lane],   ParticleReal(0.5));
             }
