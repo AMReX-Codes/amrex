@@ -246,9 +246,7 @@ template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::setVal (T val)
 {
     setValAsync(val);
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
-    }
+    Gpu::streamSynchronize();
 }
 
 template <typename T, typename Allocator>
@@ -263,9 +261,7 @@ template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::copy (AlgVector<T,Allocator> const& rhs)
 {
     copyAsync(rhs);
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
-    }
+    Gpu::streamSynchronize();
 }
 
 template <typename T, typename Allocator>
@@ -282,9 +278,7 @@ template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::plus (AlgVector<T,Allocator> const& rhs)
 {
     plusAsync(rhs);
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
-    }
+    Gpu::streamSynchronize();
 }
 
 template <typename T, typename Allocator>
@@ -301,9 +295,7 @@ template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::scale (T scale_factor)
 {
     scaleAsync(scale_factor);
-    if (!Gpu::inNoSyncRegion()) {
-        Gpu::streamSynchronize();
-    }
+    Gpu::streamSynchronize();
 }
 
 template <typename T, typename Allocator>
