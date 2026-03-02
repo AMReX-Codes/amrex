@@ -706,9 +706,10 @@ namespace amrex
 
     MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                            const BoxArray& fba, const IntVect& ratio,
-                           Real crse_value, Real fine_value)
+                           Real crse_value, Real fine_value,
+                           MFInfo const& info)
     {
-        MultiFab mask(cba, cdm, 1, 0);
+        MultiFab mask(cba, cdm, 1, 0, info);
         makeFineMask_doit(mask, fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
         return mask;
     }
