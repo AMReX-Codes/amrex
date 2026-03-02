@@ -1066,9 +1066,6 @@ namespace amrex
                     });
                 }
             }
-            if (!Gpu::inNoSyncRegion()) {
-                Gpu::streamSynchronize();
-            }
         }
 
         auto const& a = mf.back()->const_arrays();
