@@ -337,7 +337,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
 {
     tmpsoln.setVal(0.0);
 
-    Gpu::AsyncVector<Real> xvec;
+    Gpu::DeviceVector<Real> xvec;
     for (MFIter mfi(tmpsoln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
@@ -360,7 +360,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
                 }
             });
 
-            // Sync required: tmpsoln is used in ParallelAdd below
+            // Sync required: we resize xvec
             Gpu::streamSynchronize();
         }
     }
