@@ -119,12 +119,12 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
             if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
                 && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)
             {
-            adjust_singular_matrix(ncols, cols, rows, mat);
-        }
+                adjust_singular_matrix(ncols, cols, rows, mat);
+            }
 
-        // Must sync before host API uses device-written data (rows, cols, mat).
-        Gpu::streamSynchronize();
-        HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
+            // Must sync before host API uses device-written data (rows, cols, mat).
+            Gpu::streamSynchronize();
+            HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
             Gpu::hypreSynchronize();
         }
     }
@@ -317,16 +317,16 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             if (hypre_ij->adjustSingularMatrix() && linop->isBottomSingular()
                 && id_offset[mfi] == 0 && nnodes_grid[mfi] > 0)
             {
-            AMREX_HOST_DEVICE_FOR_1D(1, m,
-            {
-                amrex::ignore_unused(m);
-                bp[0] = 0.0;
-            });
-        }
+                AMREX_HOST_DEVICE_FOR_1D(1, m,
+                {
+                    amrex::ignore_unused(m);
+                    bp[0] = 0.0;
+                });
+            }
 
-        // Must sync before host API uses device-written data (bvec).
-        Gpu::streamSynchronize();
-        HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
+            // Must sync before host API uses device-written data (bvec).
+            Gpu::streamSynchronize();
+            HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
             Gpu::hypreSynchronize();
         }
     }
