@@ -173,7 +173,7 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
     BL_PROFILE("RungeKutta2");
 
     MF dUdt(Unew.boxArray(), Unew.DistributionMap(), Unew.nComp(), 0,
-            MFInfo(), Unew.Factory());
+            MFInfo().SetArena(The_Async_Arena()), Unew.Factory());
 
     // RK2 stage 1
     fillbndry(1, Uold, time);
@@ -213,7 +213,7 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
     Array<MF,3> rkk;
     for (auto& mf : rkk) {
         mf.define(Unew.boxArray(), Unew.DistributionMap(), Unew.nComp(), 0,
-                  MFInfo(), Unew.Factory());
+                  MFInfo().SetArena(The_Async_Arena()), Unew.Factory());
     }
 
     // RK3 stage 1
@@ -263,7 +263,7 @@ void RK4 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
     Array<MF,4> rkk;
     for (auto& mf : rkk) {
         mf.define(Unew.boxArray(), Unew.DistributionMap(), Unew.nComp(), 0,
-                  MFInfo(), Unew.Factory());
+                  MFInfo().SetArena(The_Async_Arena()), Unew.Factory());
     }
 
     // RK4 stage 1
