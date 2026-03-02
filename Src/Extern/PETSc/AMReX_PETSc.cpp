@@ -400,6 +400,7 @@ PETScABecLap::prepareSolver ()
     PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
     // estimated amount of block off diag elements
     PetscInt o_nz  = d_nz / 2;
+    if (A->a) { MatDestroy(&A->a); }
     MatCreate(PETSC_COMM_WORLD, &A->a);
     MatSetType(A->a, MATMPIAIJ);
     MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world);
@@ -587,6 +588,7 @@ PETScABecLap::prepareSolver ()
     MatAssemblyBegin(A->a, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(A->a, MAT_FINAL_ASSEMBLY);
     // create solver
+    if (solver->a) { KSPDestroy(&solver->a); }
     KSPCreate(PETSC_COMM_WORLD, &solver->a);
     KSPSetOperators(solver->a, A->a, A->a);
 
@@ -603,6 +605,8 @@ PETScABecLap::prepareSolver ()
 
 // we are not using command line options    KSPSetFromOptions(solver->a);
     // create b & x
+    if (x->a) { VecDestroy(&x->a); }
+    if (b->a) { VecDestroy(&b->a); }
     VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x->a);
     VecDuplicate(x->a, &b->a);
 }
