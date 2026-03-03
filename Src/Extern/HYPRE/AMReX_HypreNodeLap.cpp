@@ -301,7 +301,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     for (MFIter mfi(soln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
-        if (nrows >= 0)
+        if (nrows > 0)
         {
             const auto& rows_vec = node_id_vec[mfi];
             HYPRE_IJVectorSetValues(x, nrows, rows_vec.data(), soln[mfi].dataPtr());
@@ -341,7 +341,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
     for (MFIter mfi(tmpsoln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
-        if (nrows >= 0)
+        if (nrows > 0)
         {
             const auto& rows_vec = node_id_vec[mfi];
             xvec.clear();
