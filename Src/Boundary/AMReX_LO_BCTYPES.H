@@ -37,6 +37,7 @@ namespace amrex {
         symmetry         = AMREX_LO_SYMMETRY,
         Periodic         = AMREX_LO_PERIODIC,
         bogus            = AMREX_LO_BOGUS
+        // If we add a new type, we should update AMReX_lo_bctypes_mode.F90.
     };
 
     /**
