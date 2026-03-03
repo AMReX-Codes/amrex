@@ -94,6 +94,8 @@ const Level&
 IndexSpaceImp<G>::getLevel (const Geometry& geom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
+                                     "IndexSpaceImp::getLevel: Geometry not found");
     int i = std::distance(m_domain.begin(), it);
     return m_gslevel[i];
 }
@@ -103,6 +105,8 @@ const Geometry&
 IndexSpaceImp<G>::getGeometry (const Box& dom) const
 {
     auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
+                                     "IndexSpaceImp::getLevel: domain not found");
     int i = std::distance(m_domain.begin(), it);
     return m_geom[i];
 }
