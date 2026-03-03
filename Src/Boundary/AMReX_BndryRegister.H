@@ -180,8 +180,7 @@ BndryRegisterT<MF>::BndryRegisterT (const BoxArray& grids_, // NOLINT(modernize-
                                     int extent_rad, int ncomp)
     : grids(grids_)
 {
-    BL_ASSERT(ncomp > 0);
-    BL_ASSERT(grids[0].cellCentered());
+    AMREX_ASSERT(ncomp > 0 && !grids.empty() && grids[0].cellCentered());
 
     for (OrientationIter face; face; ++face)
     {
@@ -223,7 +222,7 @@ BndryRegisterT<MF>::define (Orientation _face, IndexType _typ, int _in_rad,
 
     FabSetT<MF>& fabs = bndry[_face];
 
-    BL_ASSERT(fabs.size() == 0);
+    AMREX_ASSERT(fabs.size() == 0);
 
     fabs.define(fsBA,dmap,_ncomp);
     //
@@ -239,9 +238,7 @@ template <typename MF>
 void
 BndryRegisterT<MF>::setBoxes (const BoxArray& _grids)
 {
-    BL_ASSERT(grids.empty());
-    BL_ASSERT(!_grids.empty());
-    BL_ASSERT(_grids[0].cellCentered());
+    AMREX_ASSERT(grids.empty() && !_grids.empty() && _grids[0].cellCentered());
 
     grids = _grids;
     //
@@ -249,7 +246,7 @@ BndryRegisterT<MF>::setBoxes (const BoxArray& _grids)
     //
     for (auto const& k : bndry) {
         amrex::ignore_unused(k);
-        BL_ASSERT(k.size() == 0);
+        AMREX_ASSERT(k.size() == 0);
     }
 }
 
@@ -266,7 +263,7 @@ template <typename MF>
 BndryRegisterT<MF>&
 BndryRegisterT<MF>::operator+= (const BndryRegisterT<MF>& rhs)
 {
-    BL_ASSERT(grids == rhs.grids);
+    AMREX_ASSERT(grids == rhs.grids);
     for (OrientationIter face; face; ++face) {
         const auto f = face();
         const int ncomp = bndry[f].nComp();
@@ -356,7 +353,7 @@ BndryRegisterT<MF>::write (const std::string& name, std::ostream& os) const
         // where n is the integer value of face().
         //
         const int i = face();
-        BL_ASSERT(i >= 0 && i <= 7);
+        AMREX_ASSERT(i >= 0 && i <= 7);
 
         std::string facename = amrex::Concatenate(name + '_', i, 1);
 
@@ -384,7 +381,7 @@ BndryRegisterT<MF>::read (const std::string& name, std::istream& is)
         // where n is the integer value of face().
         //
         const int i = face();
-        BL_ASSERT(i >= 0 && i <= 7);
+        AMREX_ASSERT(i >= 0 && i <= 7);
 
         std::string facename = amrex::Concatenate(name + '_', i, 1);
 
