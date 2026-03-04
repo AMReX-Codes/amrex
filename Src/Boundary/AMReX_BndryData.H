@@ -269,7 +269,9 @@ BndryDataT<MF>::define (const BoxArray& _grids,
     BL_PROFILE("BndryData::define()");
 
     if (m_defined) {
-        if (_grids == this->boxes() && m_ncomp == _ncomp && _geom.Domain() == geom.Domain()) {
+        if (m_ncomp == _ncomp && _geom.Domain() == geom.Domain() &&
+            _geom.periodicity() == geom.periodicity() &&
+            _grids == this->boxes() && _dmap == this->DistributionMap()) {
             // We want to allow reuse of BndryDataT objects that were define()d exactly as a previous call.
             return;
         }
