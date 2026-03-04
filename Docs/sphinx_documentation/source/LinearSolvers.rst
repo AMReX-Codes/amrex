@@ -380,7 +380,7 @@ Available choices of the bottom solver are
 - :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
   if cg fails.  The matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre;
+- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through HYPRE;
   see the section below on External Solvers
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
@@ -564,13 +564,13 @@ as living at face centroids, modify the setBCoeffs command to be
 External Solvers
 ================
 
-AMReX provides interfaces to the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
+AMReX provides interfaces to the `HYPRE <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
 solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as
 as bottom solvers for both cell-centered and node-based problems.
 
-If it is built with Hypre support, AMReX initializes Hypre by default in
-`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up Hypre
-to run on device by default.  The user can choose to disable the Hypre
+If it is built with HYPRE support, AMReX initializes HYPRE by default in
+`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up HYPRE
+to run on device by default.  The user can choose to disable the HYPRE
 initialization by AMReX with :cpp:`ParmParse` parameter
 ``amrex.init_hypre=[0|1]``.
 
@@ -581,9 +581,9 @@ passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
 residual correction form of the original problem.
 
-As of March 2025, AMReX supports and is tested with Hypre version 2.32.0 (check
+As of March 2025, AMReX supports and is tested with HYPRE version 2.32.0 (check
 ``amrex/.github/workflows/hypre.yml`` so see what versions are currently tested).
-To build Hypre, follow the next steps:
+To build HYPRE, follow the next steps:
 
 .. highlight:: console
 
@@ -593,12 +593,12 @@ To build Hypre, follow the next steps:
     2.- cd hypre/src
     3.- git checkout v2.32.0
     4.- ./configure
-        (if you want to build hypre with long long int, do ./configure --enable-bigint )
+        (if you want to build HYPRE with long long int, do ./configure --enable-bigint )
     5.- make install
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
+To use HYPRE with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for HYPRE matches with that of AMReX. By default, HYPRE assumes its architecture number to be 70 and it is best to build HYPRE for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
 ``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
 
 ::
@@ -613,8 +613,8 @@ To use Hypre with CUDA, nvcc compiler is needed along with all other requirement
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
-For examples of using hypre, we refer the reader to
+To use HYPRE, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
+For examples of using HYPRE, we refer the reader to
 `ABecLaplacian`_ or `NodeTensorLap`_.
 
 .. _`ABecLaplacian`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
@@ -623,7 +623,7 @@ For examples of using hypre, we refer the reader to
 
 The following parameter should be set to True if the problem to be solved has a singular matrix.
 In this case, the solution is only defined to within a constant.  Setting this parameter to True
-replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
+replaces one row in the matrix sent to HYPRE from AMReX by a row that sets the value at one cell to 0.
 
 - :cpp:`hypre.adjust_singular_matrix`:   Default is false.
 
@@ -664,7 +664,7 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 - :cpp:`hypre.bamg_interp_type`:  Default 0.  See `HYPRE_BoomerAMGSetInterpType`
 
 The user is referred to the
-`hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ Hypre Reference Manual for full details on the usage of the parameters described briefly above.
+`HYPRE <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ HYPRE Reference Manual for full details on the usage of the parameters described briefly above.
 
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
