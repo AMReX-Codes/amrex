@@ -1626,11 +1626,11 @@ StartTeams ()
     {
         MPI_Group grp, team_grp, lead_grp;
         BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
-        int team_ranks[team_size];
+        Vector<int> team_ranks(team_size);
         for (int i = 0; i < team_size; ++i) {
             team_ranks[i] = MyTeamLead() + i;
         }
-        BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks.data(), &team_grp) );
         BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
                                         team_grp, &m_Team.m_team_comm) );
 
