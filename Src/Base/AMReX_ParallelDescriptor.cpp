@@ -1509,7 +1509,8 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
 
     std::ifstream iss;
 
-    if (ParallelDescriptor::IOProcessor()) {
+    const int root = ParallelDescriptor::IOProcessorNumber(comm);
+    if (ParallelDescriptor::IOProcessor(comm)) {
         iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         iss.open(filename.c_str(), std::ios::in);
         if ( ! iss.good()) {
@@ -1524,8 +1525,7 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
           iss.seekg(0, std::ios::beg);
         }
     }
-    ParallelDescriptor::Bcast(&fileLength, 1,
-                              ParallelDescriptor::IOProcessorNumber(), comm);
+    ParallelDescriptor::Bcast(&fileLength, 1, root, comm);
 
     if(fileLength == -1) {
       return;
@@ -1534,12 +1534,11 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
     fileLengthPadded = fileLength + 1;
 //    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
-    if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor(comm)) {
         iss.read(charBuf.dataPtr(), fileLength);
         iss.close();
     }
-    ParallelDescriptor::Bcast(charBuf.dataPtr(), fileLengthPadded,
-                              ParallelDescriptor::IOProcessorNumber(), comm);
+    ParallelDescriptor::Bcast(charBuf.dataPtr(), fileLengthPadded, root, comm);
     charBuf[fileLength] = '\0';
 }
 
