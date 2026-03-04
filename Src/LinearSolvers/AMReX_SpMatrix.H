@@ -1654,13 +1654,18 @@ void SpMatrix<T,Allocator>::prepare_comm_mv (AlgPartition const& col_partition)
     for (int iproc = 0; iproc < nprocs; ++iproc) {
         if ( ! m_remote_cols_vv[iproc].empty()) {
             mpi_requests.push_back(MPI_REQUEST_NULL);
+            auto const sz = m_remote_cols_vv[iproc].size();
+            if (sz > static_cast<Long>(std::numeric_limits<int>::max())) {
+                amrex::Abort("SpMatrix::prepare_comm_mv: remote column payload exceeds MPI int count range.");
+            }
+            auto const msg_count = static_cast<int>(sz);
             // I need to let other processes know what I need from them.
             BL_MPI_REQUIRE(MPI_Isend(m_remote_cols_vv[iproc].data(),
-                                     int(m_remote_cols_vv[iproc].size()),
+                                     msg_count,
                                      mpi_long, iproc, mpi_tag, mpi_comm,
                                      &(mpi_requests.back())));
             m_comm_mv.recv_from.push_back(iproc);
-            m_comm_mv.recv_counts.push_back(int(m_remote_cols_vv[iproc].size()));
+            m_comm_mv.recv_counts.push_back(msg_count);
         }
     }
 
