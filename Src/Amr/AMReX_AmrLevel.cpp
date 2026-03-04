@@ -2204,7 +2204,7 @@ AmrLevel::FillPatch (AmrLevel& amrlevel,
                      int       dcomp)
 {
     BL_PROFILE("AmrLevel::FillPatch()");
-    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(dcomp >= 0 && ncomp > 0 && dcomp+ncomp <= leveldata.nComp());
     BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
@@ -2222,7 +2222,7 @@ AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
                         int       dcomp)
 {
     BL_PROFILE("AmrLevel::FillPatchAdd()");
-    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(dcomp >= 0 && ncomp > 0 && dcomp+ncomp <= leveldata.nComp());
     BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
