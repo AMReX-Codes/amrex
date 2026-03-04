@@ -84,7 +84,7 @@ namespace amrex::Gpu {
     using HostVector = PODVector<T>;
 
     template <class T>
-    using NonManagedVector = PODVector<T>;
+    using NonManagedDeviceVector = PODVector<T>;
 
     template <class T>
     using ManagedVector = PODVector<T>;
