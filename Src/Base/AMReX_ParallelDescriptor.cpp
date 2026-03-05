@@ -1104,7 +1104,7 @@ Waitall (Vector<MPI_Request>& reqs, Vector<MPI_Status>& status)
     BL_MPI_REQUIRE( MPI_Waitall(reqs.size(),
                                 reqs.dataPtr(),
                                 status.dataPtr()) );
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, status.size(), status, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, reqs.size(), status, false);
 }
 
 void
@@ -1133,7 +1133,7 @@ Waitsome (Vector<MPI_Request>& reqs, int& completed,
                                  &completed,
                                  indx.dataPtr(),
                                  status.dataPtr()));
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, indx.size(), status, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, completed, status, false);
 }
 
 void
