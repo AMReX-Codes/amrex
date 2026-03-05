@@ -116,12 +116,15 @@ void
 IndexSpaceImp<G>::addFineLevels (int num_new_fine_levels)
 {
     if (num_new_fine_levels <= 0) { return; }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(num_new_fine_levels <= 30,
+                                     "IndexSpaceImp::addFineLevels: num_new_fine_levels too large");
 
     if (m_num_coarsen_opt > 0) {
         m_num_coarsen_opt += num_new_fine_levels;
     }
 
-    IndexSpaceImp<G> fine_isp(m_gshop, amrex::refine(m_geom[0], 1<<num_new_fine_levels),
+    int rr_fine = static_cast<int>(1U << num_new_fine_levels);
+    IndexSpaceImp<G> fine_isp(m_gshop, amrex::refine(m_geom[0], rr_fine),
                               num_new_fine_levels-1, num_new_fine_levels-1,
                               m_ngrow[0], m_build_coarse_level_by_coarsening,
                               m_extend_domain_face, m_num_coarsen_opt);
@@ -142,6 +145,8 @@ void
 IndexSpaceImp<G>::addRegularCoarseLevels (int num_new_coarse_levels)
 {
     if (num_new_coarse_levels <= 0) { return; }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(num_new_coarse_levels <= 30,
+                                     "IndexSpaceImp::addRegularCoarseLevels: num_new_coarse_levels too large");
 
     auto nlevs_old = int(m_gslevel.size());
     int nlevs_new = nlevs_old + num_new_coarse_levels;
@@ -159,7 +164,7 @@ IndexSpaceImp<G>::addRegularCoarseLevels (int num_new_coarse_levels)
     new_ngrow.reserve(nlevs_new);
 
     for (int ilev = 0; ilev < num_new_coarse_levels; ++ilev) {
-        int rr = 1 << (num_new_coarse_levels-ilev); // 2^(num_new_coarse_levels-ilev)
+        int rr = static_cast<int>(1U << (num_new_coarse_levels-ilev)); // 2^(num_new_coarse_levels-ilev)
         new_geom.push_back(amrex::coarsen(m_geom[0], rr));
         new_domain.push_back(new_geom.back().Domain());
         new_ngrow.push_back(m_ngrow[0]);
