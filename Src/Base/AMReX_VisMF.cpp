@@ -606,7 +606,7 @@ VisMF::readFAB (int idx, int icomp)
 std::string
 VisMF::BaseName (const std::string& filename)
 {
-    BL_ASSERT(filename[filename.length() - 1] != '/');
+    BL_ASSERT(!filename.empty() && filename.back() != '/');
 
     if(const char *slash = strrchr(filename.c_str(), '/')) {
         //
@@ -624,7 +624,7 @@ VisMF::BaseName (const std::string& filename)
 std::string
 VisMF::DirName (const std::string& filename)
 {
-    BL_ASSERT(filename[filename.length() - 1] != '/');
+    BL_ASSERT(!filename.empty() && filename.back() != '/');
 
     static const std::string TheNullString;
 
@@ -982,7 +982,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
               bool               set_ghost)
 {
     BL_PROFILE("VisMF::Write(FabArray)");
-    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(!mf_name.empty() && mf_name.back() != '/');
     BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
     // ---- add stream retry
@@ -1185,7 +1185,7 @@ VisMF::WriteOnlyHeader (const FabArray<FArrayBox> & mf,
                         VisMF::How                  how)
 {
 //    BL_PROFILE("VisMF::WriteOnlyHeader(FabArray)");
-    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(!mf_name.empty() && mf_name.back() != '/');
     BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
 
@@ -2349,7 +2349,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 {
     BL_PROFILE("VisMF::AsyncWrite()");
 
-    AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    AMREX_ASSERT(!mf_name.empty() && mf_name.back() != '/');
     static_assert(sizeof(int64_t) == sizeof(Real)*2 || sizeof(int64_t) == sizeof(Real),
                   "AsyncWrite: unsupported Real size");
 
