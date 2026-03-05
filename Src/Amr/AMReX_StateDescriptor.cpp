@@ -150,6 +150,8 @@ DescriptorList::setComponent (int                               indx,
                               const StateDescriptor::BndryFunc& func,
                               InterpBase*                       interp)
 {
+    BL_ASSERT(nm.size() == bc.size());
+    BL_ASSERT(comp >= 0);
     for (int i = 0; i < nm.size(); i++)
     {
         const bool is_primary = (i == 0) ? true : false;
@@ -342,6 +344,7 @@ StateDescriptor::setComponent (int                               comp,
                                int                               max_map_start_comp_,
                                int                               min_map_end_comp_)
 {
+    BL_ASSERT(comp >= 0 && comp < ncomp);
     bc_func[comp] = std::make_unique<BndryFunc>(func);
 
     names[comp]       = nm;
