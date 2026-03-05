@@ -79,8 +79,9 @@ Mask::writeOn (std::ostream& os) const
 {
     os << "(Mask: " << domain << " " << nvar << "\n";
     const int* ptr = dataPtr();
-    auto len = domain.numPts();
-    os.write( (char*) ptr, static_cast<std::streamsize>(len*sizeof(int)) );
+    auto len = static_cast<std::size_t>(domain.numPts()) * static_cast<std::size_t>(nvar);
+    os.write(reinterpret_cast<char const*>(ptr),
+             static_cast<std::streamsize>(len*sizeof(int)));
     os << ")\n";
 }
 
@@ -95,8 +96,9 @@ Mask::readFrom (std::istream& is)
     is.ignore(BL_IGNORE_MAX, '\n');
     resize(b,ncomp);
     int *ptr = dataPtr();
-    auto len = domain.numPts();
-    is.read( (char*) ptr, static_cast<std::streamsize>(len*sizeof(int)) );
+    auto len = static_cast<std::size_t>(domain.numPts()) * static_cast<std::size_t>(nvar);
+    is.read(reinterpret_cast<char*>(ptr),
+            static_cast<std::streamsize>(len*sizeof(int)));
     is.ignore(BL_IGNORE_MAX, '\n');
 }
 
