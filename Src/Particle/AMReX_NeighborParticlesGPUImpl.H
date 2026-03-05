@@ -63,9 +63,9 @@ buildNeighborMask ()
 
     if (ba.size() == 1 && (! geom.isAnyPeriodic()) ) { return; }
 
-    if (m_neighbor_mask_ptr == nullptr ||
-        ! BoxArray::SameRefs(m_neighbor_mask_ptr->boxArray(), ba) ||
-        ! DistributionMapping::SameRefs(m_neighbor_mask_ptr->DistributionMap(), dmap))
+    if (!m_neighbor_mask_initialized ||
+        !BoxArray::SameRefs(m_cached_neighbor_ba, ba) ||
+        !DistributionMapping::SameRefs(m_cached_neighbor_dm, dmap))
     {
         const Periodicity& periodicity = geom.periodicity();
         const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
@@ -114,6 +114,9 @@ buildNeighborMask ()
             Gpu::streamSynchronize();
         }
 
+        m_cached_neighbor_ba = ba;
+        m_cached_neighbor_dm = dmap;
+        m_neighbor_mask_initialized = true;
         RemoveDuplicates(neighbor_procs);
     }
 }
