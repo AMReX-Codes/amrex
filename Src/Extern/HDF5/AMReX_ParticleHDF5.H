@@ -1324,7 +1324,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if (rank >= NReaders) {
                 H5Dclose(int_dset);
                 H5Dclose(real_dset);
-		H5Gclose(grp);
+        H5Gclose(grp);
                 continue;
             }
 
