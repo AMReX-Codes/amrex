@@ -1609,6 +1609,9 @@ StartTeams ()
     ParmParse pp("amrex.team");
     pp.query("size", team_size);
     pp.query("reduce", do_team_reduce);
+    if (team_size <= 0) {
+        amrex::Abort("amrex.team.size must be > 0");
+    }
     if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
     }
