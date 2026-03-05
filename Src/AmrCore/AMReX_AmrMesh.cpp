@@ -216,10 +216,11 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     //if sent in, this wins over everything.
     if(!a_refrat.empty())
     {
-      for (int i = 0; i < max_level; i++)
-      {
-          ref_ratio[i] = a_refrat[i];
-      }
+        AMREX_ALWAYS_ASSERT(a_refrat.size() >= max_level);
+        for (int i = 0; i < max_level; i++)
+        {
+            ref_ratio[i] = a_refrat[i];
+        }
     }
 
     // Read in max_grid_size.  Use defaults if not explicitly defined.
