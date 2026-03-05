@@ -110,9 +110,10 @@ buildNeighborMask ()
             m_isec_boxes[grid].resize(h_isec_boxes.size());
             Gpu::copyAsync(Gpu::hostToDevice, h_isec_boxes.begin(), h_isec_boxes.end(),
                       m_isec_boxes[grid].begin());
+
+            Gpu::streamSynchronize();
         }
 
-        Gpu::streamSynchronize();
         m_cached_neighbor_ba = ba;
         m_cached_neighbor_dm = dmap;
         m_neighbor_mask_initialized = true;
