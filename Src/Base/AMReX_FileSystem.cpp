@@ -189,7 +189,7 @@ CurrentPath ()
 bool
 Remove (std::string const& filename)
 {
-    return unlink(filename.c_str());
+    return (unlink(filename.c_str()) == 0);
 }
 
 bool
