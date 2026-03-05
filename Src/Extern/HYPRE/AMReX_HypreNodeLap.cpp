@@ -122,6 +122,7 @@ HypreNodeLap::HypreNodeLap (const BoxArray& grids_, const DistributionMapping& d
                 adjust_singular_matrix(ncols, cols, rows, mat);
             }
 
+            // Must sync before host API uses device-written data (rows, cols, mat).
             Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(A, nrows, ncols, rows, cols, mat);
             Gpu::hypreSynchronize();
@@ -300,7 +301,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     for (MFIter mfi(soln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
-        if (nrows >= 0)
+        if (nrows > 0)
         {
             const auto& rows_vec = node_id_vec[mfi];
             HYPRE_IJVectorSetValues(x, nrows, rows_vec.data(), soln[mfi].dataPtr());
@@ -323,6 +324,7 @@ HypreNodeLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                 });
             }
 
+            // Must sync before host API uses device-written data (bvec).
             Gpu::streamSynchronize();
             HYPRE_IJVectorSetValues(b, nrows, rows_vec.data(), bvec.data());
             Gpu::hypreSynchronize();
@@ -339,7 +341,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
     for (MFIter mfi(tmpsoln, MFItInfo{}.UseDefaultStream()); mfi.isValid(); ++mfi)
     {
         const Int nrows = nnodes_grid[mfi];
-        if (nrows >= 0)
+        if (nrows > 0)
         {
             const auto& rows_vec = node_id_vec[mfi];
             xvec.clear();
@@ -358,6 +360,7 @@ HypreNodeLap::getSolution (MultiFab& soln)
                 }
             });
 
+            // Sync required: we resize xvec
             Gpu::streamSynchronize();
         }
     }

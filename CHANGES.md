@@ -1,3 +1,164 @@
+# 26.03
+
+ ## Highlights:
+
+  * Fix a number of issues raised by AIs. Some are real bugs, and some are
+    are potenial bugs, detects, and robustness issues.
+    - 1D CurlCurl: Update variable beta smoother for consistence (#5082)
+    - FFT: Early abort for unsupported path (#5083)
+    - R2X: Assert zero-based domain indexing (#5084)
+    - PoissonHybrid: Validate length of dz (#5085)
+    - Fix impicit MRI configuration calls (#5093)
+    - SUNDIALS Stale Flag (#5092)
+    - SUNDIALS alloc-failure-output-pointer (#5094)
+    - AllGatherBoxes: Fix MPI type (#5081)
+    - Print/PrintToFile: Fix potential MPI_Comm issue (#5079)
+    - Use size_t instead of int for buffer offset in CPU fillNeighbors (#5078)
+    - assert that pureSoA containers have at least SpaceDim real components (#5076)
+    - Fix sub-communicator in CPU fillNeighbors() (#5077)
+    - Use Long instead of int for maxnextid in pre/post particle IO (#5073)
+    - Improve clarity of AMR assign grid function (#5072)
+    - AmrMesh: Fix invalid iterator range (#5068)
+    - EB VTK writer: Fix attribute name (#5069)
+    - BaseFab::indexFromValue: Fix index typo (#5067)
+    - Fix SYCL device property init (#5066)
+    - NonLocalBC: Fix Boolean condition (#5065)
+    - [LinearSolvers][1D Overset] Fix missing component index (#4967)
+    - [LinearSolvers] Fix bug in setBCoeffs(Vector) (#4968)
+    - Fix host_idcpu to use finest_level_in_file when restarting [Particles] [IO] (#4971)
+    - Fix (currently latent) bug with Particles + tiling + GPU (#4973) (#4978)
+    - Fix particle communication bug when calling RedistributeCPU but with USE_GPU enabled. (#4970)
+    - Fix (currently latent) bug with pure SoA particles if periodic_shift is not zero. (#4972)
+
+  * prevent auto-converting const char * to bool in ParmParse::add (#4969)
+
+    It used to be that `ParmParse::add("key", "value")` will result in
+    adding a boolean value (1) due to C++ converting pointer to bool. This
+    is almost certainly not intended. This is now fixed.
+
+  * SYCL: Add a new path for big kernels (#4952)
+
+    The SYCL kernel on Intel GPUs has a kernel parameter size limit of 2KB.
+    If this limit is exceeded, a runtime error will occur when if AOT is
+    off, and a compile time error will occur if AOT is on. Compiling with
+    AOT is very time consuming. Thus we usually compile with AOT off, and
+    this often results in run time errors.
+
+    We have implemented a workaround for this limitation. When the kernel
+    parameter is too large, we explicitly copy the kernel function object to
+    device memory.
+
+  * Generalize SIMD Single Source Design (#4924)
+
+    This adds another template overload to `ParallelForSIMD`.
+
+    A typical user pattern for maximum controls so far is:
+    ```C++
+    #ifdef AMREX_USE_SIMD
+    if constexpr (amrex::simd::is_vectorized<T>) {
+        amrex::ParallelForSIMD<T::simd_width>(np, pushSingleParticle);
+    } else
+    #endif
+    {
+        amrex::ParallelFor(np, pushSingleParticle);  // GPU & non-SIMD CPU
+    }
+    ```
+
+    This simplifies it to:
+    ```C++
+    amrex::ParallelForSIMD<T>(np, pushSingleParticle);
+    ```
+    indicating there _might_ be a SIMD path if `T` (e.g., a functor)
+    implements it.
+
+    One can still call `ParallelForSIMD` with an explicit SIMD width (int),
+    as before.
+
+ ## Other major changes:
+
+  * add ReduceToPlaneMF2Patchy (#4958) (#5086)
+
+  * Add Gpu::SyncAtExit and Gpu::streamSyncActive (#4956)
+
+  * Respect NoSync region in FabArray::Copy and setBndry (#4955)
+
+  * Guard againt potential OOB error in ParticleContainer OK() (#4951)
+
+  * SENSEI: Allocator (#4949)
+
+  * Fix: AMReX w/ OpenMP and Ignore FFTW OMP (#4941)
+
+  * ParticleContainerToBlueprint: Allocator (2) (#4948)
+
+  * Protect from using MarchingCubes if not 3D (#4946)
+
+  * FFTW CMake: Hint More Lib Paths (Windows) (#4940)
+
+  * `FindAMReXFFTW.cmake` Support Native Threading (#4934)
+
+  * Reducer: New wrapper class for ReduceOps and ReduceData (#4933)
+
+  * Added multi-array version of `EBData` (#4929)
+
+  * ParmParse: Add support for AMREX_USE_GPU macro (#4927)
+
+  * Fix access specifier with HDF5 enabled (#4921)
+
+# 26.02
+
+ ## Highlights:
+
+  * SpMatrix: The sparse matrix vector multiplication functionality has been
+    extended to support non-square matrix. A matrix transpose function for
+    amrex::SpMatrix has been been added.
+
+  * Add the marching cubes algorithm of "Efficient implementation of
+    Marching Cubes' cases with topological guarantees" by Lewiner, Lopes,
+    Vieira & Tavares, Journal of Graphics Tools 8(2): pp. 1-15 (2003). The
+    implementation is adapted from the source code available at
+    http://thomas.lewiner.org/publication_page.php%EF%B9%96pubkey=marching_cubes_jgt.html.
+    Given a signed distance function (e.g., from our STL tools), this
+    generates a list of topologically consistent triangles.
+
+  * ArrayND: The Array4 class has been generalized to N-dimensions, where N
+    is a compile time constant.
+
+  * ReduceOps.eval with BoxND. This enables the use of `ReduceOps.eval()`
+    with a BoxND of any dimension. This is achieved using BoxIndexerND, just
+    like ParallelForRNG, which also provides support for 64-bit indexing to
+    support very large boxes.
+
+ ## Other major changes:
+
+  * AMREX_HOST_DEVICE_FOR_[34]D_FLAG: Pass by reference in CPU code (#4920)
+
+  * Reserve space in particle redistribution (#4731)
+
+  * ParmParse: Print parsed values as comments in prettyPrint (#4827)
+
+  * Fix bug in multi-ghost FillBoundary for the Alamo code (#4906)
+
+  * FFTW: Always initialize FFTW for users when OMP is on (#4861)
+    FFTW: Remove cleanup to avoid potenial issues (#4908)
+
+  * Reuse Gpu tags in `MLCellLinOp::applyBC()` (#4899)
+
+  * MakeNewGrids: param to set number of grid iterations (#4903)
+
+  * Make `IntVectND` functions constexpr (#4905)
+
+  * DistributionMapping: ConvertCostFromRealToLong (#4894)
+
+  * MFIter: Device sync optimization (#4897)
+
+  * Reuse GPU tags in `MLEBABecLap::applyBC()` (#4882)
+
+  * Remove identity Lambdas in amrex::launch (#4891)
+
+  * Move MF ParallelFor out of namespace experimental (#4887)
+
+  * Correct verbose output with SUNDIALS MRI methods (#4876)
+
 # 26.01
 
  ## Highlights:

@@ -10,6 +10,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 std::atomic<Long> atomic_total_bytes_allocated_in_fabs     {0L};
 std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm {0L};
 std::atomic<Long> atomic_total_cells_allocated_in_fabs     {0L};
@@ -18,6 +19,7 @@ Long private_total_bytes_allocated_in_fabs     = 0L;
 Long private_total_bytes_allocated_in_fabs_hwm = 0L;
 Long private_total_cells_allocated_in_fabs     = 0L;
 Long private_total_cells_allocated_in_fabs_hwm = 0L;
+/// \endcond
 
 namespace
 {

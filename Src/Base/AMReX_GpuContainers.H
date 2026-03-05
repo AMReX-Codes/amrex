@@ -15,6 +15,7 @@ namespace amrex::Gpu {
 #ifdef AMREX_USE_GPU
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the standard memory Arena.
      * Note that the memory might or might not be managed depending
      * on the amrex.the_arena_is_managed ParmParse parameter.
@@ -23,6 +24,7 @@ namespace amrex::Gpu {
     using DeviceVector = PODVector<T, ArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the non-managed device memory arena.
      *
      */
@@ -30,6 +32,7 @@ namespace amrex::Gpu {
     using NonManagedDeviceVector = PODVector<T, DeviceArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the managed memory arena.
      *
      */
@@ -37,6 +40,7 @@ namespace amrex::Gpu {
     using ManagedVector = PODVector<T, ManagedArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the pinned memory arena.
      *
      */
@@ -44,6 +48,7 @@ namespace amrex::Gpu {
     using PinnedVector = PODVector<T, PinnedArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses the async memory arena.
      *        Maybe useful for temporary vectors inside MFIters
      *        that are accessed on the device.
@@ -53,6 +58,7 @@ namespace amrex::Gpu {
     using AsyncVector = PODVector<T, AsyncArenaAllocator<T> >;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief A PODVector that uses pinned host memory. Same as PinnedVector.
      * For a vector class that uses std::allocator by default, see amrex::Vector.
      *
@@ -61,6 +67,7 @@ namespace amrex::Gpu {
     using HostVector = PinnedVector<T>;
 
     /**
+     * \ingroup amrex_linear_containers
      * \brief This is identical to ManagedVector<T>. The ManagedDeviceVector
      * form is deprecated and will be removed in a future release.
      *
@@ -77,7 +84,7 @@ namespace amrex::Gpu {
     using HostVector = PODVector<T>;
 
     template <class T>
-    using NonManagedVector = PODVector<T>;
+    using NonManagedDeviceVector = PODVector<T>;
 
     template <class T>
     using ManagedVector = PODVector<T>;

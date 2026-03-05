@@ -22,6 +22,7 @@ struct CompileTimeOptions {
     using list_type = TypeList<std::integral_constant<int, ctr>...>;
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template<class F, int... ctr>
@@ -73,6 +74,7 @@ namespace detail
         AMREX_ASSERT(found_option);
     }
 }
+/// \endcond
 
 /**
  * \brief Compile time optimization of kernels with run time options.

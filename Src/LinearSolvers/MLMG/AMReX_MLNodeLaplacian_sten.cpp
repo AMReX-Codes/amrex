@@ -1,5 +1,6 @@
 #include <AMReX_MLNodeLaplacian.H>
 #include <AMReX_MLNodeLap_K.H>
+#include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 
 #ifdef AMREX_USE_EB
@@ -230,7 +231,8 @@ MLNodeLaplacian::buildStencil ()
             MultiFab cfine;
             if (need_parallel_copy) {
                 const BoxArray& ba = amrex::coarsen(fine.boxArray(), 2);
-                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 1);
+                cfine.define(ba, fine.DistributionMap(), fine.nComp(), 1,
+                             MFInfo().SetArena(The_Async_Arena()));
                 cfine.setVal(0.0);
             }
 
@@ -356,7 +358,9 @@ MLNodeLaplacian::buildStencil ()
         });
     }
 
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 
     // This is only needed at the bottom.
     m_s0_norm0[0].back() = m_stencil[0].back()->norm0(0,0) * m_normalization_threshold;

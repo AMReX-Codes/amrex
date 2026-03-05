@@ -22,6 +22,11 @@ Options/Control Variables
 ``AMReX_FFTW_IGNORE_OMP``
   Ignore FFTW3 OpenMP support, even if found.
 
+``AMReX_FFTW_OMP_SUFFIX``
+  Usually we want to use the same threads from OpenMP for AMReX and FFTW.
+  In a ditch, you can change this from "omp" to "threads" to use FFTW
+  with native threads implementation.
+
 Result Variables
 ^^^^^^^^^^^^^^^^
 
@@ -38,24 +43,26 @@ This will also create an imported target, AMReX::FFTW.
 #
 option(AMReX_FFTW_IGNORE_OMP "Ignore FFTW3's OpenMP support, even if found" OFF)
 mark_as_advanced(AMReX_FFTW_IGNORE_OMP)
+set(AMReX_FFTW_OMP_SUFFIX omp CACHE STRING "FFTW3's Thread Support variant (omp/threads)")
+mark_as_advanced(AMReX_FFTW_OMP_SUFFIX)
 
-# Set the AMREX_FFTW_OMP=1 define on AMReX::FFTW if TRUE and print
+# Set the AMREX_USE_MULTI_THREADED_FFTW=1 define on AMReX::FFTW if TRUE and print
 # a message
 #
 function(fftw_add_define HAS_FFTW_OMP_LIB)
     if(HAS_FFTW_OMP_LIB)
         message(STATUS "FFTW: Found OpenMP support")
-        target_compile_definitions(AMReX::FFTW INTERFACE AMREX_FFTW_OMP=1)
+        target_compile_definitions(AMReX::FFTW INTERFACE AMREX_USE_MULTI_THREADED_FFTW=1)
     else()
         message(STATUS "FFTW: Could NOT find OpenMP support")
     endif()
 endfunction()
 
 # Check if the found FFTW install location has an _omp library, e.g.,
-# libfftw3(f)_omp.(a|so) shipped and if yes, set the AMREX_FFTW_OMP=1 define.
+# libfftw3(f)_omp.(a|so) shipped and if yes, set the AMREX_USE_MULTI_THREADED_FFTW=1 define.
 #
 function(fftw_require_omp library_paths fftw_precision_suffix)
-    find_library(HAS_FFTW_OMP_LIB${fftw_precision_suffix} fftw3${fftw_precision_suffix}_omp
+    find_library(HAS_FFTW_OMP_LIB${fftw_precision_suffix} fftw3${fftw_precision_suffix}_${AMReX_FFTW_OMP_SUFFIX}
         PATHS ${library_paths}
         # this is intentional, so we don't mix different FFTW installs
         # and only check what is in the location hinted by the
@@ -76,7 +83,7 @@ function(fftw_require_omp library_paths fftw_precision_suffix)
     else()
         message(FATAL_ERROR
             "AMReX_OMP and AMReX_FFT are set, but provided FFTW does not provide OpenMP! "
-            "Re-compile FFTW or set AMReX_FFTW_IGNORE_OMP=OFF"
+            "Re-compile FFTW or set AMReX_FFTW_IGNORE_OMP=ON"
         )
     endif()
 
@@ -110,7 +117,7 @@ mark_as_advanced(AMReX_FFTW_SEARCH)
 function(fftw_find_precision HFFTWp)
     if(AMReX_FFTW_SEARCH STREQUAL CMAKE)
         find_package(FFTW3${HFFTWp} CONFIG REQUIRED)
-        set(AMReX_FFTW_LIBRARY_DIRS "${FFTW3${HFFTWp}_LIBRARY_DIRS}")
+        set(AMReX_FFTW_LIBRARY_DIRS "${FFTW3${HFFTWp}_LIBRARY_DIRS};${FFTW3${HFFTWp}_DIR}/../..")
         message(STATUS "Found FFTW: ${FFTW3${HFFTWp}_DIR} (found version \"${FFTW3${HFFTWp}_VERSION}\")")
     else()
         find_package(PkgConfig REQUIRED QUIET)

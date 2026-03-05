@@ -30,9 +30,11 @@ namespace {
     bool initialized = false;
     ParmParse::Table g_table;
     std::vector<std::set<std::string>> g_parser_recursive_symbols(1);
+    /// \cond DOXYGEN_IGNORE
     namespace pp_detail {
         int verbose = -1;
     }
+    /// \endcond
 }
 
 std::string const ParmParse::FileKeyword = "FILE";
@@ -48,12 +50,28 @@ namespace
 {
 
 std::string pp_to_pretty_string (std::string const& name,
-                                 std::vector<std::string> const& vals)
+                                 std::vector<std::string> const& vals,
+                                 ParmParse::PP_entry const* entry)
 {
     std::stringstream ss;
     ss << name << " =";
     for (auto const& v : vals) {
         ss << " " << v;
+    }
+    if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
+        int min_col = 36;
+        int pad = min_col - static_cast<int>(ss.str().size());
+        if (pad > 0) {
+            ss << std::string(pad, ' ');
+        }
+        ss.precision(17);
+        ss << "    #";
+        for (auto const& x : entry->m_last_vals) {
+            std::visit([&] (auto&& arg)
+            {
+                ss << " " << arg;
+            }, x);
+        }
     }
     return ss.str();
 }
@@ -71,11 +89,11 @@ std::string pp_to_string (std::string const& name,
     return ss.str();
 }
 
-enum PType
+enum class PType
 {
-    pDefn,
-    pEQ_sign,
-    pValue,
+    Defn,
+    EQ_sign,
+    Value,
     pEOF
 };
 
@@ -176,7 +194,7 @@ template <class T> const char* tok_name(std::vector<T>&) { return tok_name(T());
 // Simple lexical analyser.
 //
 
-enum lexState
+enum class lexState
 {
     START,
     STRING,
@@ -253,12 +271,12 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
    //
    if ( *str == 0 )
    {
-       return pEOF;
+       return PType::pEOF;
    }
    //
    // Start token scan.
    //
-   lexState state = START;
+   lexState state = lexState::START;
    int      pcnt  = 0; // Tracks nested parens
    int      cbcnt = 0; // Tracks nested curly braces
    while (true)
@@ -270,54 +288,54 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
        }
        switch (state)
        {
-       case START:
+       case lexState::START:
            if ( ch == '=' )
            {
                ostr += ch; str++;
-               return pEQ_sign;
+               return PType::EQ_sign;
            }
            else if ( ch == '"' )
            {
                str++;
-               state = QUOTED_STRING;
+               state = lexState::QUOTED_STRING;
            }
            else if ( ch == '(' )
            {
                ostr += ch; str++; pcnt = 1;
-               state = LIST;
+               state = lexState::LIST;
            }
            else if ( ch == '{' )
            {
                ostr += ch; str++; cbcnt = 1;
-               state = INITIALIZER;
+               state = lexState::INITIALIZER;
            }
            else if ( std::isalpha(ch) )
            {
                ostr += ch; str++;
-               state = IDENTIFIER;
+               state = lexState::IDENTIFIER;
            }
            else
            {
                ostr += ch; str++;
-               state = STRING;
+               state = lexState::STRING;
            }
            break;
-       case IDENTIFIER:
+       case lexState::IDENTIFIER:
            if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
            {
                ostr += ch; str++;
            }
            else if ( std::isspace(ch) || ch == '=' )
            {
-               return pDefn;
+               return PType::Defn;
            }
            else
            {
                ostr += ch; str++;
-               state = STRING;
+               state = lexState::STRING;
            }
            break;
-       case LIST:
+       case lexState::LIST:
            eat_comment(str);
            ch = *str;
            if ( ch == '(' )
@@ -329,7 +347,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++; pcnt--;
                if ( pcnt == 0 && cbcnt == 0 )
                {
-                   return pValue;
+                   return PType::Value;
                }
            }
            else
@@ -337,7 +355,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++;
            }
            break;
-       case INITIALIZER:
+       case lexState::INITIALIZER:
            eat_garbage(str);
            ch = *str;
            if ( ch == '{' )
@@ -349,7 +367,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++; cbcnt--;
                if ( cbcnt == 0 && pcnt == 0 )
                {
-                   return pValue;
+                   return PType::Value;
                }
            }
            else
@@ -357,21 +375,21 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++;
            }
            break;
-       case STRING:
+       case lexState::STRING:
            if ( std::isspace(ch) || ch == '=' )
            {
-               return pValue;
+               return PType::Value;
            }
            else
            {
                ostr += ch; str++;
            }
            break;
-       case QUOTED_STRING:
+       case lexState::QUOTED_STRING:
            if ( ch == '"' )
            {
                str++;
-               return pValue;
+               return PType::Value;
            }
            else
            {
@@ -474,11 +492,31 @@ read_file (const char* fname, ParmParse::Table& tab)
         std::regex elif_regex("^\\s*#\\s*elif\\s+\\(?\\s*AMREX_SPACEDIM\\s*(>|<|==|>=|<=)\\s*([1-3])\\s*\\)?\\s*$"); // NOLINT
         std::regex else_regex("^\\s*#\\s*else\\s*$"); // NOLINT
         std::regex endif_regex("^\\s*#\\s*endif\\s*$"); // NOLINT
+        std::regex if_gpu_regex("^\\s*#\\s*ifdef\\s+AMREX_USE_GPU\\s*$"); // NOLINT
+        std::regex if_not_gpu_regex("^\\s*#\\s*ifndef\\s+AMREX_USE_GPU\\s*$"); // NOLINT
         std::vector<bool> valid_region;  // Keep this block or not?
         std::vector<bool> has_true;      // Has previous if/elif ever been true?
         for (std::string line; std::getline(is, line); ) {
             std::smatch sm;
-            if (std::regex_match(line, sm, if_regex)) {
+            if (std::regex_match(line, if_gpu_regex)) {
+#ifdef AMREX_USE_GPU
+                bool r = true;
+#else
+                bool r = false;
+#endif
+                valid_region.push_back(r);
+                has_true.push_back(r);
+                continue;
+            } else if (std::regex_match(line, if_not_gpu_regex)) {
+#ifdef AMREX_USE_GPU
+                bool r = false;
+#else
+                bool r = true;
+#endif
+                valid_region.push_back(r);
+                has_true.push_back(r);
+                continue;
+            } else if (std::regex_match(line, sm, if_regex)) {
                 bool r = isTrue(sm);
                 valid_region.push_back(r);
                 has_true.push_back(r);
@@ -599,7 +637,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
 
         switch (token)
         {
-        case pEOF:
+        case PType::pEOF:
         {
             if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
             {
@@ -614,7 +652,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
             addDefn(cur_name,cur_list,tab);
             return;
         }
-        case pEQ_sign:
+        case PType::EQ_sign:
         {
             if ( !cur_list.empty() )
             {
@@ -640,7 +678,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
             cur_linefeeds.clear();
             break;
         }
-        case pDefn:
+        case PType::Defn:
         {
             if ( cur_name.empty() )
             {
@@ -652,7 +690,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
             //
             AMREX_FALLTHROUGH;
         }
-        case pValue:
+        case PType::Value:
         {
             cur_list.push_back(std::move(tokname));
             cur_linefeeds.push_back(num_linefeeds);
@@ -666,6 +704,21 @@ template <typename T>
 bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
                 const std::string& name, const std::string& val, T& ref,
                 bool use_querywithparser);
+
+template <typename T>
+void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, bool parsed)
+{
+#ifdef AMREX_USE_OMP
+#pragma omp single nowait
+#endif
+    {
+        if (ival >= int(entry.m_last_vals.size())) {
+            entry.m_last_vals.resize(ival+1);
+        }
+        entry.m_last_vals[ival] = ref;
+        if (parsed) { entry.m_parsed = true; }
+    }
+}
 
 template <class T>
 bool
@@ -684,6 +737,17 @@ squeryval (const ParmParse::Table& table,
     {
         return false;
     }
+
+    auto const& entry = table.at(name);
+
+#ifdef AMREX_USE_OMP
+#pragma omp single nowait
+#endif
+    {
+        using T_ptr = std::decay_t<T>*;
+        entry.m_typehint = static_cast<T_ptr>(nullptr);
+    }
+
     //
     // Does it have ival values?
     //
@@ -705,17 +769,21 @@ squeryval (const ParmParse::Table& table,
 
     const std::string& valname = (*def)[ival];
 
-    bool ok = is(valname, ref);
-    if ( !ok )
-    {
-        if constexpr (std::is_same_v<T,bool> ||
-                      std::is_same_v<T,int> ||
-                      std::is_same_v<T,long> ||
-                      std::is_same_v<T,long long> ||
-                      std::is_same_v<T,float> ||
-                      std::is_same_v<T,double>)
-        {
+    constexpr bool is_integral_floating = (std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>);
+
+    if (is(valname, ref)) {
+        if constexpr (is_integral_floating) {
+            pp_entry_set_last_val(entry, ival, ref, false);
+        }
+    } else {
+        if constexpr (is_integral_floating) {
             if (pp_parser(table, parser_prefix, name, valname, ref, false)) {
+                pp_entry_set_last_val(entry, ival, ref, true);
                 return true;
             }
         } else {
@@ -789,6 +857,17 @@ squeryarr (const ParmParse::Table& table,
     {
         return false;
     }
+
+    auto const& entry = table.at(name);
+
+#ifdef AMREX_USE_OMP
+#pragma omp single nowait
+#endif
+    {
+        using T_ptr = std::decay_t<T>*;
+        entry.m_typehint = static_cast<T_ptr>(nullptr);
+    }
+
     //
     // Does it have sufficient number of values and are they all
     // the same type?
@@ -799,6 +878,13 @@ squeryarr (const ParmParse::Table& table,
     }
 
     if ( num_val == 0 ) { return true; }
+
+    constexpr bool is_integral_floating = (std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>);
 
     int stop_ix = start_ix + num_val - 1;
     if ( static_cast<int>(ref.size()) <= stop_ix )
@@ -822,16 +908,14 @@ squeryarr (const ParmParse::Table& table,
     for ( int n = start_ix; n <= stop_ix; n++ )
     {
         const std::string& valname = (*def)[n];
-        bool ok = is(valname, ref[n]);
-        if ( !ok )
-        {
-            if constexpr (std::is_same_v<T,int> ||
-                          std::is_same_v<T,long> ||
-                          std::is_same_v<T,long long> ||
-                          std::is_same_v<T,float> ||
-                          std::is_same_v<T,double>)
-            {
+        if (is(valname, ref[n])) {
+            if constexpr (is_integral_floating) {
+                pp_entry_set_last_val(entry, n, ref[n], false);
+            }
+        } else {
+            if constexpr (is_integral_floating) {
                 if (pp_parser(table, parser_prefix, name, valname, ref[n], false)) {
+                    pp_entry_set_last_val(entry, n, ref[n], true);
                     continue;
                 }
             } else {
@@ -1283,7 +1367,7 @@ ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
         auto const& entry = g_table[name];
         if (prettyPrint && entry.m_count > 0) {
             for (auto const& vals : entry.m_vals) {
-                os << pp_to_pretty_string(name, vals) << '\n';
+                os << pp_to_pretty_string(name, vals, nullptr) << '\n';
             }
         }
         else {
@@ -1317,16 +1401,9 @@ void pretty_print_table (std::ostream& os, PPFlag pp_flag)
 
     for (auto const& name : sorted_names) {
         auto const& entry = g_table[name];
-        std::vector<std::string> value_string;
-        std::unordered_map<std::string,int> count;
-        for (auto const& vals : entry.m_vals) {
-            value_string.emplace_back(pp_to_pretty_string(name, vals));
-            ++count[value_string.back()];
-        }
-        for (auto const& s : value_string) {
-            if (--count[s] == 0) {
-                os << s << '\n';
-            }
+        if (! entry.m_vals.empty()) {
+            auto const& val = entry.m_vals.back();
+            os << pp_to_pretty_string(name, val, &entry) << '\n';
         }
     }
 }
@@ -2229,7 +2306,34 @@ bool squeryWithParser (const ParmParse::Table& table,
     for (auto const& v : vals) {
         combined_string.append(v);
     }
-    return pp_parser(table, parser_prefix, name, combined_string, ref, true);
+
+    constexpr bool is_integral_floating = (std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>);
+
+    auto const& entry = table.at(name);
+
+    if (pp_parser(table, parser_prefix, name, combined_string, ref, true))
+    {
+#ifdef AMREX_USE_OMP
+#pragma omp single nowait
+#endif
+        {
+            using T_ptr = std::decay_t<T>*;
+            entry.m_typehint = static_cast<T_ptr>(nullptr);
+        }
+
+        if constexpr (is_integral_floating) {
+            pp_entry_set_last_val(entry, 0, ref, true);
+        }
+
+        return true;
+    } else {
+        return false;
+    }
 }
 
 template <class T>
@@ -2244,11 +2348,35 @@ bool squeryarrWithParser (const ParmParse::Table& table,
                            ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
     if (!exist) { return false; }
 
+    constexpr bool is_integral_floating = (std::is_same_v<T,bool> ||
+                                           std::is_same_v<T,int> ||
+                                           std::is_same_v<T,long> ||
+                                           std::is_same_v<T,long long> ||
+                                           std::is_same_v<T,float> ||
+                                           std::is_same_v<T,double>);
+
+    auto const& entry = table.at(name);
+
     AMREX_ALWAYS_ASSERT(int(vals.size()) == nvals);
     for (int ival = 0; ival < nvals; ++ival) {
         bool r = pp_parser(table, parser_prefix, name, vals[ival], ptr[ival], true);
-        if (!r) { return false; }
+        if (r) {
+            if constexpr (is_integral_floating) {
+                pp_entry_set_last_val(entry, ival, ptr[ival], true);
+            }
+        } else {
+            return false;
+        }
     }
+
+#ifdef AMREX_USE_OMP
+#pragma omp single nowait
+#endif
+    {
+        using T_ptr = std::decay_t<T>*;
+        entry.m_typehint = static_cast<T_ptr>(nullptr);
+    }
+
     return true;
 }
 }

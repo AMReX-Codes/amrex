@@ -17,7 +17,9 @@
 #  include <sycl/sycl.hpp>
 #endif
 
-namespace amrex { inline namespace disabled {
+namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
+/// \cond DOXYGEN_IGNORE
+inline namespace disabled {
     // If it is inside namespace amrex, or amrex namespace is imported with using namespace amrex or
     // amrex::disabled, unqualified abs functions are disabled with a compile time error such as,
     // call of overload abs(int&) is ambiguous, or a link time error such as, undefined reference to
@@ -30,7 +32,9 @@ namespace amrex { inline namespace disabled {
     AMREX_GPU_HOST_DEVICE int abs (int);
     AMREX_GPU_HOST_DEVICE long abs (long);
     AMREX_GPU_HOST_DEVICE long long abs (long long);
-}}
+}
+/// \endcond
+}
 
 namespace amrex::Math {
 
@@ -114,6 +118,7 @@ float sinpi (float x)
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     AMREX_FORCE_INLINE void sincos (double x, double* sinx, double* cosx) {
 #if defined(_GNU_SOURCE) && !defined(__APPLE__)
@@ -133,6 +138,7 @@ namespace detail {
 #endif
     }
 }
+/// \endcond
 
 #ifdef AMREX_USE_SIMD
 //! Return sine and cosine of given number

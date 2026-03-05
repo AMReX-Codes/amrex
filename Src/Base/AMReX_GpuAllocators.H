@@ -108,36 +108,42 @@ namespace amrex {
         Arena* m_arena = nullptr;
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class ArenaAllocator
         : public ArenaAllocatorBase<T,ArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class DeviceArenaAllocator
         : public ArenaAllocatorBase<T,DeviceArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class PinnedArenaAllocator
         : public ArenaAllocatorBase<T,PinnedArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class ManagedArenaAllocator
         : public ArenaAllocatorBase<T,ManagedArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class AsyncArenaAllocator
         : public ArenaAllocatorBase<T,AsyncArenaWrapper>
     {
     };
 
+    /// \ingroup amrex_memory
     template<typename T>
     class PolymorphicArenaAllocator
         : public ArenaAllocatorBase<T,PolymorphicArenaWrapper>

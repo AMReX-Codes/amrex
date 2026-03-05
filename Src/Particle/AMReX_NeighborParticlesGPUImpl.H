@@ -4,6 +4,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     inline Vector<Box> getBoundaryBoxes(const Box& box, int ncells)
@@ -46,6 +47,7 @@ namespace detail
         return bl;
     }
 }
+/// \endcond
 
 template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
 void

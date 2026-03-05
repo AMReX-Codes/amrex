@@ -17,6 +17,7 @@ using amrex_enum_traits = decltype(amrex_get_enum_traits(std::declval<T>()));
 
 namespace amrex
 {
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename T, typename ET = amrex_enum_traits<T>,
@@ -59,6 +60,7 @@ namespace detail
         return r;
     }
 }  // namespace detail
+/// \endcond
 
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
@@ -205,12 +207,14 @@ namespace detail
 
 #define AMREX_ENUM(CLASS, ...) \
     enum class CLASS : int { __VA_ARGS__ }; \
+    /** \cond DOXYGEN_IGNORE */ \
     struct CLASS##_EnumTraits { \
         using enum_class_t = CLASS; \
         static constexpr bool value = true; \
         static constexpr std::string_view class_name{#CLASS}; \
         static constexpr std::string_view enum_names{#__VA_ARGS__}; \
     }; \
+    /** \endcond */ \
     CLASS##_EnumTraits amrex_get_enum_traits(CLASS)
 
 #endif

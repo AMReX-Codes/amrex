@@ -18,7 +18,8 @@ void FillSignedDistance (MultiFab& mf, bool fluid_has_positive_sign)
     }
 }
 
-namespace detail
+/// \cond DOXYGEN_IGNORE
+namespace
 {
 // Purpose: Given a collision between particle and EB surface, and
 // given that a neighbour cell owns the EB surface, a collision between
@@ -195,6 +196,7 @@ facets_nearest_pt (IntVect const& ind_pt, IntVect const& ind_loop, RealVect cons
     return c_vec;
 }
 }
+/// \endcond
 
 void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                          EBFArrayBoxFactory const& eb_factory, int refratio,
@@ -380,7 +382,7 @@ void FillSignedDistance (MultiFab& mf, EB2::Level const& ls_lev,
                         AMREX_D_TERM(vi_x = static_cast<int>(std::floor(eb_min_x * dxinv));,
                                      vi_y = static_cast<int>(std::floor(eb_min_y * dyinv));,
                                      vi_z = static_cast<int>(std::floor(eb_min_z * dzinv)));
-                        auto c_vec = detail::facets_nearest_pt
+                        auto c_vec = facets_nearest_pt
                             ({AMREX_D_DECL(vi_x,vi_y,vi_z)}, {AMREX_D_DECL(vi_cx, vi_cy, vi_cz)},
                              {AMREX_D_DECL(x,y,z)}, {AMREX_D_DECL(nx,ny,nz)},
                              {AMREX_D_DECL(cx,cy,cz)}, dx_eb);

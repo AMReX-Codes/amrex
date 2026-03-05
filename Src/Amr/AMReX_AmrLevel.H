@@ -30,6 +30,7 @@ class TagBox;
 class TagBoxArray;
 
 /**
+* \ingroup amrex_amrlevel
 * \brief Virtual base class for managing individual levels.
 * AmrLevel functions both as a container for state data on a level
 * and also manages the advancement of data in time.

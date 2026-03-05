@@ -7,7 +7,6 @@
 #include <AMReX_MultiFab.H>
 
 namespace amrex {
-// \cond CODEGEN
 class AuxBoundaryData
 {
 public:
@@ -90,7 +89,6 @@ private:
     bool     m_empty{false};
     bool     m_initialized{false};
 };
-// \endcond
 
 }
 

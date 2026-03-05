@@ -13,7 +13,7 @@ class VisMFBuffer
 {
 public:
     //! We try to do I/O with buffers of this size.
-    enum { IO_Buffer_Size = 262144 * 8 };
+    static constexpr int  IO_Buffer_Size = 262144 * 8;
     //! The type of a char buffer required by [p]setbuf().
 #ifdef BL_SETBUF_SIGNED_CHAR
     using Setbuf_Char_Type = signed char;

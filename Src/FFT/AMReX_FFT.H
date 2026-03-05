@@ -8,27 +8,43 @@
 #include <AMReX_FFT_R2C.H>
 #include <AMReX_FFT_R2X.H>
 
+/**
+ * \file AMReX_FFT.H
+ *
+ * Thin convenience layer that exposes FFT initialization/finalization helpers.
+ */
+
 namespace amrex
 {
+#ifdef AMREX_USE_MPI
     /**
-     * \brief Initialize FFT
+     * \brief Initialize FFT helpers without invoking the full AMReX runtime.
      *
      * This is needed only when the user wants to use amrex::FFT, but does
      * not want to call amrex::Initialize to initialize the full version of
      * AMReX. Note that one usually only needs to call Init_FFT and
      * Finalize_FFT once in the entire program.
+     *
+     * \param comm MPI communicator passed to amrex::Init_minimal.
      */
-#ifdef AMREX_USE_MPI
     inline void Init_FFT (MPI_Comm comm ) { amrex::Init_minimal(comm); }
 #else
+    /**
+     * \brief Initialize FFT helpers without invoking the full AMReX runtime.
+     *
+     * This overload is used in serial builds and has the same semantics as
+     * the MPI version minus the communicator argument.
+     */
     inline void Init_FFT () { amrex::Init_minimal(); }
 #endif
 
-    //! If Init_FFT is called, this should be called after all the FFT works
-    //! are done.
+    /**
+     * \brief Tear down the minimal FFT runtime previously started via Init_FFT().
+     */
     inline void Finalize_FFT () { amrex::Finalize_minimal(); }
 }
 
+/// \cond DOXYGEN_IGNORE
 //! Not to be called by the user
 namespace amrex::FFT::detail
 {
@@ -36,5 +52,6 @@ namespace amrex::FFT::detail
     void Finalize ();
     void Clear ();
 }
+/// \endcond
 
 #endif

@@ -55,8 +55,10 @@ struct AmrInfo {
     bool check_input = true;
     bool use_new_chop = false;
     bool iterate_on_new_grids = true;
+    int max_grid_iterations = 4;
 };
 
+/// \ingroup amrex_amrcore
 class AmrMesh
     : protected AmrInfo
 {
@@ -168,7 +170,8 @@ public:
         }
     }
     void SetBlockingFactor (const Vector<IntVect>& new_bf) noexcept {
-        blocking_factor.assign(new_bf.cbegin(), new_bf.cend()+max_level+1);
+        AMREX_ALWAYS_ASSERT(new_bf.size() >= (max_level+1));
+        blocking_factor.assign(new_bf.cbegin(), new_bf.cbegin()+max_level+1);
     }
 
     void SetGridEff (Real eff) noexcept { grid_eff = eff; }

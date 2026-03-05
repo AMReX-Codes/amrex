@@ -153,8 +153,8 @@ template<typename T = uint64_t>
 struct ParticleIDWrapper
 {
     /*
-    static_assert(std::is_same<T, uint64_t>::value ||
-                  std::is_same<T, simd::SIMDIdCpu<>>::value,  // note: this one will not work because users can change the SIMDIdCpu width
+    static_assert(std::is_same_v<T, uint64_t> ||
+                  std::is_same_v<T, simd::SIMDIdCpu<>>,  // note: this one will not work because users can change the SIMDIdCpu width
                   "ParticleIDWrapper only supports uint64_t or SIMD thereof"
     );
     */
@@ -391,7 +391,9 @@ struct SoAParticleBase
     static constexpr bool is_soa_particle = true;
 };
 
-/** \brief The struct used to store particles.
+/**
+ * \ingroup amrex_particles
+ * \brief The struct used to store particles.
  *
  * \tparam T_NReal The number of extra Real components
  * \tparam T_NInt The number of extra integer components
@@ -470,7 +472,7 @@ struct alignas(sizeof(double)) Particle
     RealType& rdata (int index) &
     {
         AMREX_ASSERT(index < NReal);
-        return this->m_rdata[index];
+        return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
@@ -486,7 +488,7 @@ struct alignas(sizeof(double)) Particle
     const RealType& rdata (int index) const &
     {
         AMREX_ASSERT(index < NReal);
-        return this->m_rdata[index];
+        return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
@@ -541,7 +543,7 @@ struct alignas(sizeof(double)) Particle
     int& idata (int index) &
     {
         AMREX_ASSERT(index < NInt);
-        return this->m_idata[index];
+        return this->m_idata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
@@ -557,7 +559,7 @@ struct alignas(sizeof(double)) Particle
     const int& idata (int index) const &
     {
         AMREX_ASSERT(index < NInt);
-        return this->m_idata[index];
+        return this->m_idata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
     template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>

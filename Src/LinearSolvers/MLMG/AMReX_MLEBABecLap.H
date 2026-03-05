@@ -9,8 +9,12 @@
 
 namespace amrex {
 
+template <typename T>
+struct MLMGABCEBTag;
+
 // (alpha * a - beta * (del dot b grad)) phi
 
+/// \ingroup amrex_eb
 class MLEBABecLap
     : public MLCellABecLap
 {
@@ -162,13 +166,15 @@ protected:
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
+
+    mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
 };
+
+/// \cond DOXYGEN_IGNORE
 
 // Tag for applyBC EB version
 template <typename T>
 struct MLMGABCEBTag {
-    amrex::Array4<T> fab;
-    amrex::Array4<T const> bcval;
     amrex::Array4<int const> mask;
     amrex::Array4<T const> area;
     T bcloc;
@@ -179,10 +185,13 @@ struct MLMGABCEBTag {
     int dir;
     int is_eb;
     int side;
+    int local_index;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     amrex::Box const& box() const noexcept { return bx; }
 };
+
+/// \endcond
 
 }
 

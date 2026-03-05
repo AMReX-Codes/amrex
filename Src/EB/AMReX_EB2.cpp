@@ -12,6 +12,9 @@
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IndexSpace_STL.H>
 #include <AMReX_EB2_IndexSpace_chkpt_file.H>
+#if (AMREX_SPACEDIM == 3)
+#  include <AMReX_MarchingCubes.H>
+#endif
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 #include <algorithm>
@@ -20,9 +23,14 @@ namespace amrex::EB2 {
 
 AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > IndexSpace::m_instance;
 
+/// \cond DOXYGEN_IGNORE
 AMREX_EXPORT int max_grid_size = 64;
-AMREX_EXPORT bool extend_domain_face = true;
-AMREX_EXPORT int num_coarsen_opt = 0;
+/// \endcond
+
+namespace {
+    bool extend_domain_face = true;
+    int num_coarsen_opt = 0;
+}
 
 void Initialize ()
 {
@@ -37,6 +45,9 @@ void Initialize ()
 void Finalize ()
 {
     IndexSpace::clear();
+#if (AMREX_SPACEDIM == 3)
+    amrex::MC::Finalize();
+#endif
 }
 
 bool ExtendDomainFace ()
@@ -63,6 +74,12 @@ IndexSpace::push (IndexSpace* ispace)
 }
 
 void
+IndexSpace::push (std::unique_ptr<IndexSpace> ispace)
+{
+    m_instance.push_back(std::move(ispace));
+}
+
+void
 IndexSpace::erase (IndexSpace* ispace)
 {
     auto r = std::find_if(m_instance.begin(), m_instance.end(),
@@ -83,11 +100,15 @@ const IndexSpace* TopIndexSpaceIfPresent() noexcept {
 void
 Build (const Geometry& geom, int required_coarsening_level,
        int max_coarsening_level, int ngrow, bool build_coarse_level_by_coarsening,
-       bool a_extend_domain_face, int a_num_coarsen_opt)
+       bool a_extend_domain_face, int a_num_coarsen_opt, bool support_mvmc)
 {
     ParmParse pp("eb2");
     std::string geom_type;
     pp.get("geom_type", geom_type);
+
+    if (amrex::Verbose() && support_mvmc && geom_type != "stl") {
+        amrex::Warning("EB2:Build: support_mvmc = true is ignored if eb2.geom_type is not stl.");
+    }
 
     if (geom_type == "all_regular")
     {
@@ -218,15 +239,12 @@ Build (const Geometry& geom, int required_coarsening_level,
         pp.queryAdd("stl_reverse_normal", stl_reverse_normal);
         bool stl_use_bvh = true;
         pp.queryAdd("stl_use_bvh", stl_use_bvh);
-        IndexSpace::push(new IndexSpaceSTL(stl_file, stl_scale, // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
-                                           {stl_center[0], stl_center[1], stl_center[2]},
-                                           int(stl_reverse_normal),
-                                           geom, required_coarsening_level,
-                                           max_coarsening_level, ngrow,
-                                           build_coarse_level_by_coarsening,
-                                           a_extend_domain_face,
-                                           a_num_coarsen_opt,
-                                           stl_use_bvh));
+        IndexSpace::push(std::make_unique<IndexSpaceSTL>
+                         (stl_file, stl_scale,
+                          Array<Real,3>{stl_center[0], stl_center[1], stl_center[2]},
+                          int(stl_reverse_normal), geom, required_coarsening_level,
+                          max_coarsening_level, ngrow, build_coarse_level_by_coarsening,
+                          a_extend_domain_face, a_num_coarsen_opt, stl_use_bvh, support_mvmc));
     }
     else
     {
@@ -258,12 +276,10 @@ BuildFromChkptFile (std::string const& fname,
                     bool a_extend_domain_face)
 {
     ChkptFile chkpt_file(fname);
-    IndexSpace::push(new IndexSpaceChkptFile(chkpt_file, // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
-                     geom, required_coarsening_level,
-                     max_coarsening_level, ngrow,
-                     build_coarse_level_by_coarsening,
-                     a_extend_domain_face));
-} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+    IndexSpace::push(std::make_unique<IndexSpaceChkptFile>
+                     (chkpt_file, geom, required_coarsening_level, max_coarsening_level,
+                      ngrow, build_coarse_level_by_coarsening, a_extend_domain_face));
+}
 
 namespace {
 int comp_max_crse_level (Box cdomain, const Box& domain)
@@ -292,6 +308,17 @@ maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom)
     const Box& domain = amrex::enclosedCells(geom.Domain());
     const Box& cdomain = ebis->coarsestDomain();
     return comp_max_crse_level(cdomain,domain);
+}
+
+void
+BuildMultiValuedMultiCut (const Geometry& geom, int required_coarsening_level,
+                          int max_coarsening_level, int ngrow,
+                          bool build_coarse_level_by_coarsening,
+                          bool a_extend_domain_face, int a_num_coarsen_opt)
+{
+    EB2::Build(geom, required_coarsening_level, max_coarsening_level, ngrow,
+               build_coarse_level_by_coarsening, a_extend_domain_face,
+               a_num_coarsen_opt, true);
 }
 
 }

@@ -127,6 +127,7 @@ template <bool is_const, typename T_ParticleType, int NArrayReal, int NArrayInt,
 class ParIterBase_impl;
 
 /**
+ * \ingroup amrex_particles
  * \brief A distributed container for Particles sorted onto the levels, grids,
  * and tiles of a block-structured AMR hierarchy.
  *
@@ -200,6 +201,9 @@ public:
 
     static constexpr bool has_polymorphic_allocator =
         IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
+
+    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM,
+                  "Pure SoA particle containers require at least AMREX_SPACEDIM real components for positions");
 
     //! \brief Default constructor - construct an empty particle container that has no concept
     //!  of a level hierarchy. Must be properly initialized later.
@@ -1258,7 +1262,7 @@ public:
       return usePrePost;
     }
 
-    int GetMaxNextIDPrePost () const { return maxnextidPrePost; }
+    Long GetMaxNextIDPrePost () const { return maxnextidPrePost; }
     Long GetNParticlesPrePost () const { return nparticlesPrePost; }
 
     void SetUseUnlink (bool tf) const {
@@ -1274,6 +1278,8 @@ public:
 
     void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                           bool remove_negative=true);
+
+    void ReserveForRedistribute (ParticleCopyPlan const& plan);
 
     Long superParticleSize() const { return superparticle_size; }
 
@@ -1416,7 +1422,7 @@ public:
     mutable bool levelDirectoriesCreated;
     mutable bool usePrePost;
     mutable bool doUnlink;
-    int maxnextidPrePost;
+    Long maxnextidPrePost;
     mutable int nOutFilesPrePost;
     Long nparticlesPrePost;
     Vector<Long> nParticlesAtLevelPrePost;
@@ -1466,10 +1472,12 @@ public:
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
                     const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
+
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticlesHDF5.H"
 #endif
 
+public: // NOLINT(readability-redundant-access-specifiers)
     /** Overwrite the default names for the compile-time SoA components */
     void SetSoACompileTimeNames (std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name);
 
@@ -1549,6 +1557,7 @@ private:
     std::vector<std::string> m_soa_idata_names;
 };
 
+/// \ingroup amrex_particles
 template <int T_NStructReal, int T_NStructInt, int T_NArrayReal, int T_NArrayInt, template<class> class Allocator, class CellAssignor>
 using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 

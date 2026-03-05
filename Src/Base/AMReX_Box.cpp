@@ -10,6 +10,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 //
@@ -95,7 +96,9 @@ box_read (std::istream& is,
 }
 
 } // namespace detail
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
     : p(p_)
 {
@@ -115,6 +118,7 @@ BoxCommHelper::BoxCommHelper (const Box& bx, int* p_)
                  p[1+AMREX_SPACEDIM*2] = typ[1],
                  p[2+AMREX_SPACEDIM*2] = typ[2]);
 }
+/// \endcond
 
 void
 AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
@@ -169,7 +173,8 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
         }
     }
 
-    MPI_Bcast(&count_tot, 1, MPI_INT, root, comm);
+    MPI_Bcast(&count_tot, 1, ParallelDescriptor::Mpi_typemap<Long>::type(),
+              root, comm);
 
     if (count_tot == 0) { return; }
 

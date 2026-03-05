@@ -6,6 +6,11 @@
 #include <AMReX_LayoutData.H>
 #include <AMReX_MultiFab.H>
 
+/**
+ * \file AMReX_EdgeFluxRegister.H
+ * \brief Flux register specialized for constrained-transport edge-centered updates.
+ */
+
 namespace amrex {
 
 /**
@@ -54,32 +59,69 @@ class EdgeFluxRegister
 {
 public:
 
+    //! Construct an empty register; call define() before using it.
     EdgeFluxRegister () = default;
 
+    /**
+     * \brief Fully construct the register for a coarse/fine pair.
+     *
+     * \param fba   Fine-level BoxArray
+     * \param cba   Coarse-level BoxArray
+     * \param fdm   Distribution mapping for the fine grids.
+     * \param cdm   Distribution mapping for the coarse grids.
+     * \param fgeom Fine-level Geometry.
+     * \param cgeom Coarse-level Geometry.
+     * \param nvar  Number of edge-centered components.
+     */
     EdgeFluxRegister (const BoxArray& fba, const BoxArray& cba,
                       const DistributionMapping& fdm, const DistributionMapping& cdm,
                       const Geometry& fgeom, const Geometry& cgeom,
                       int nvar = 1);
 
+    //! Define the register using \p fba, \p cba, \p fdm, \p cdm, \p fgeom, \p cgeom, and component count \p nvar.
     void define (const BoxArray& fba, const BoxArray& cba,
                  const DistributionMapping& fdm, const DistributionMapping& cdm,
                  const Geometry& fgeom, const Geometry& cgeom,
                  int nvar = 1);
 
+    //! Reset accumulated state at the start of a coarse step.
     void reset ();
 
 #if (AMREX_SPACEDIM == 3)
 
+    /**
+     * \brief Accumulate coarse edge-centered fluxes for tile \p mfi.
+     *
+     * \param mfi     Iterator identifying the coarse tile.
+     * \param E_crse  Array of pointers (Ex,Ey,Ez) to coarse-time edge data.
+     * \param dt_crse Time step scaling associated with the coarse advance.
+     */
     void CrseAdd (MFIter const& mfi, const Array<FArrayBox const*,3>& E_crse, Real dt_crse);
+
+    /**
+     * \brief Accumulate fine edge-centered fluxes for tile \p mfi.
+     *
+     * \param mfi     Iterator identifying the fine tile.
+     * \param E_fine  Array of pointers (Ex,Ey,Ez) to fine-time edge data.
+     * \param dt_fine Time step scaling associated with the fine advance.
+     */
     void FineAdd (MFIter const& mfi, const Array<FArrayBox const*,3>& E_fine, Real dt_fine);
 
 #else /* 2D */
 
+    //! 2D overload of CrseAdd that accepts a single Ez field \p E_crse.
     void CrseAdd (MFIter const& mfi, FArrayBox const& E_crse, Real dt_crse);
+
+    //! 2D overload of FineAdd that accepts a single Ez field \p E_fine.
     void FineAdd (MFIter const& mfi, FArrayBox const& E_fine, Real dt_fine);
 
 #endif
 
+    /**
+     * \brief Apply the accumulated edge fluxes to coarse face-centered data.
+     *
+     * \param B_crse Array of coarse face MultiFabs to update (Bx, By, Bz).
+     */
     void Reflux (Array<MultiFab*,AMREX_SPACEDIM> const& B_crse) const;
 
 private:

@@ -39,6 +39,7 @@ namespace Type {
 
 #if defined(AMREX_USE_GPU)
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <typename T>
@@ -185,6 +186,7 @@ struct BlockStatus<T, false>
 };
 
 }
+/// \endcond
 
 #if defined(AMREX_USE_SYCL)
 
@@ -279,7 +281,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
             // sum within this chunk.
             T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             T tmp_out = sum_prev_warp + sum_prev_chunk +
-                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+                (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ? x : x-x0);
             sum_prev_chunk += shared2[nwarps-1];
 
             if (offset < iend) {
@@ -393,8 +395,8 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -488,7 +490,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
             offset += threadIdxx;
             T x0 = (offset < iend) ? fin(offset) : 0;
-            if  (std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value && offset == n-1) {
+            if  (std::is_same_v<std::decay_t<TYPE>,Type::Exclusive> && offset == n-1) {
                 *totalsum_p += x0;
             }
             T x = x0;
@@ -528,7 +530,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
             // sum within this chunk.
             T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             tmp_out[ichunk] = sum_prev_warp + sum_prev_chunk +
-                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+                (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ? x : x-x0);
             sum_prev_chunk += shared2[nwarps-1];
         }
 
@@ -636,8 +638,8 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -740,7 +742,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         __syncthreads();
 
-        constexpr bool is_exclusive = std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value;
+        constexpr bool is_exclusive = std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>;
 
         if (virtual_block_id == 0) {
             T block_agg;
@@ -805,8 +807,8 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -891,7 +893,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
         __syncthreads();
 
-        constexpr bool is_exclusive = std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value;
+        constexpr bool is_exclusive = std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>;
 
         if (virtual_block_id == 0) {
             T block_agg;
@@ -953,10 +955,11 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 #else
 
+/// \ingroup amrex_collectives
 template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
           typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ||
-                                       std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value)> >
+                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1039,7 +1042,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
             offset += threadIdx.x;
             T x0 = (offset < iend) ? fin(offset) : 0;
-            if  (std::is_same<std::decay_t<TYPE>,Type::Exclusive>::value && offset == n-1) {
+            if  (std::is_same_v<std::decay_t<TYPE>,Type::Exclusive> && offset == n-1) {
                 *totalsum_p += x0;
             }
             T x = x0;
@@ -1097,7 +1100,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
             // sum within this chunk.
             T sum_prev_warp = (warp == 0) ? 0 : shared2[warp-1];
             tmp_out[ichunk] = sum_prev_warp + sum_prev_chunk +
-                (std::is_same<std::decay_t<TYPE>,Type::Inclusive>::value ? x : x-x0);
+                (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ? x : x-x0);
             sum_prev_chunk += shared2[nwarps-1];
         }
 
@@ -1201,7 +1204,17 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 #endif
 
-// The return value is the total sum if a_ret_sum is true.
+/**
+ * \ingroup amrex_collectives
+ *
+ * \brief Inclusive sum
+ *
+ * \param n number of elements
+ * \param in input
+ * \param out output
+ * \param a_ret_sum control the return value
+ * \return return the total sum if `a_ret_sum` is true
+ */
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
@@ -1250,8 +1263,8 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #else
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
         return PrefixSum<T>(static_cast<int>(n),
-                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
-                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                             Type::inclusive, a_ret_sum);
     } else {
         return PrefixSum<T>(n,
@@ -1262,7 +1275,17 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #endif
 }
 
-// The return value is the total sum if a_ret_sum is true.
+/**
+ * \ingroup amrex_collectives
+ *
+ * \brief Exclusive sum
+ *
+ * \param n number of elements
+ * \param in input
+ * \param out output
+ * \param a_ret_sum control the return value
+ * \return return the total sum if `a_ret_sum` is true
+ */
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
@@ -1324,8 +1347,8 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #else
     if (static_cast<Long>(n) <= static_cast<Long>(std::numeric_limits<int>::max())) {
         return PrefixSum<T>(static_cast<int>(n),
-                            [=] AMREX_GPU_DEVICE (N i) -> T { return in[i]; },
-                            [=] AMREX_GPU_DEVICE (N i, T const& x) { out[i] = x; },
+                            [=] AMREX_GPU_DEVICE (int i) -> T { return in[i]; },
+                            [=] AMREX_GPU_DEVICE (int i, T const& x) { out[i] = x; },
                             Type::exclusive, a_ret_sum);
     } else {
         return PrefixSum<T>(n,
@@ -1394,6 +1417,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 
 namespace Gpu
 {
+    /// \ingroup amrex_collectives
     template<class InIter, class OutIter>
     OutIter inclusive_scan (InIter begin, InIter end, OutIter result)
     {
@@ -1411,6 +1435,7 @@ namespace Gpu
 #endif
     }
 
+    /// \ingroup amrex_collectives
     template<class InIter, class OutIter>
     OutIter exclusive_scan (InIter begin, InIter end, OutIter result)
     {

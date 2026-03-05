@@ -34,6 +34,7 @@ template<int dim>
 class RealVectND;
 using RealVect = RealVectND<AMREX_SPACEDIM>;
 
+/// \cond DOXYGEN_IGNORE
 namespace ppdetail {
     template <class T, class Enable = void>
     struct ArithmeticOptional_TT : std::false_type {};
@@ -59,6 +60,7 @@ namespace ppdetail {
     template <class T>
     using underlying_type_t = typename ArithmeticOptional_TT<T>::value_type;
 }
+/// \endcond
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -228,6 +230,7 @@ namespace ppdetail {
 
 
 /**
+* \ingroup amrex_utilities
 * \brief  Parse Parameters From Command Line and Input Files
 *
 *  The ParmParse class is used to interpret parameters passed in to a program
@@ -322,6 +325,8 @@ namespace ppdetail {
 *    t = 1.5
 *    #endif
 * \endcode
+*
+* Preprocessing of `#ifdef AMREX_USE_GPU` and `#ifndef AMREX_USE_GPU` is also supported.
 *
 *  Math expression is supported for integers and reals. For example
 *
@@ -609,6 +614,8 @@ public:
     //! Add a key 'name' with value 'val' to the end of the PP table.
     void add (std::string_view name, const std::string& val);
 
+    //! Convert const char * to string, to prevent auto-conversion to bool
+    void add (std::string_view name, const char* val) { add(name, std::string(val)); }
 
     //! Similar to get() but store the whole line including empty spaces in
     //! the middle if present as a single string. For example, `foo = a b c`
@@ -1660,7 +1667,7 @@ public:
     */
     static void Initialize (int argc, char** argv, const char* parfile);
     static void Initialize (int argc, char** argv, const std::string& parfile) {
-        return Initialize(argc, argv, parfile.c_str());
+        Initialize(argc, argv, parfile.c_str());
     }
     /**
     * \brief The destructor.  The internal static table will only be deleted
@@ -1710,7 +1717,7 @@ public:
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
         mutable Long                          m_count = 0;
-        std::variant<
+        mutable std::variant<
             std::string*,
             bool*,
             int*,
@@ -1721,6 +1728,8 @@ public:
             float*,
             double*
         > m_typehint = static_cast<std::string*>(nullptr);
+        mutable std::vector<std::variant<bool, int, long, long long, float, double>> m_last_vals;
+        mutable bool m_parsed = false;
     };
     using Table = std::unordered_map<std::string, PP_entry>;
 

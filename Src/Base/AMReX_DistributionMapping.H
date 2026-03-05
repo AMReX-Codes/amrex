@@ -24,6 +24,8 @@ template <typename T> class LayoutData;
 class FabArrayBase;
 
 /**
+* \class amrex::DistributionMapping
+* \ingroup amrex_domain_decomposition
 * \brief Calculates the distribution of FABs to MPI processes.
 *
 *  This class calculates the distribution of FABs to MPI processes in a
@@ -124,7 +126,7 @@ class DistributionMapping
     [[nodiscard]] const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    [[nodiscard]] Long size () const noexcept { return m_ref->m_pmap.size(); }
     [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
     [[nodiscard]] bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
@@ -281,6 +283,10 @@ class DistributionMapping
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
                                                       const std::vector<T>& cost,
                                                       Real* efficiency);
+
+    //! Convert cost vector from Real to Long. Other than convenience, this
+    //! also provides a consistent way for the conversion.
+    static Vector<Long> ConvertCostRealToLong (const Vector<Real>& rcost);
 
     [[nodiscard]] std::weak_ptr<Ref> getWeakRef () const;
 

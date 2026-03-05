@@ -96,6 +96,7 @@ template <typename T> class MLPoissonT;
 template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLLinOpT
 {
@@ -619,6 +620,7 @@ protected:
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
     MPI_Comm m_bottom_comm = MPI_COMM_NULL;
+    /// \cond DOXYGEN_IGNORE
     struct CommContainer {
         MPI_Comm comm;
         CommContainer (MPI_Comm m) noexcept : comm(m) {}
@@ -632,6 +634,7 @@ protected:
 #endif
         }
     };
+    /// \endcond
     std::unique_ptr<CommContainer> m_raii_comm;
 
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
@@ -718,11 +721,11 @@ protected:
     [[nodiscard]] Array4<T> compactify (Array4<T> const& a) const noexcept
     {
         if (info.hidden_direction == 0) {
-            return Array4<T>(a.dataPtr(), {a.begin.y,a.begin.z,0}, {a.end.y,a.end.z,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[1],a.begin[2],0}, {a.end[1],a.end[2],1}, a.nComp());
         } else if (info.hidden_direction == 1) {
-            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.z,0}, {a.end.x,a.end.z,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[0],a.begin[2],0}, {a.end[0],a.end[2],1}, a.nComp());
         } else if (info.hidden_direction == 2) {
-            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.y,0}, {a.end.x,a.end.y,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[0],a.begin[1],0}, {a.end[0],a.end[1],1}, a.nComp());
         } else {
             return a;
         }
@@ -1681,6 +1684,7 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 
 extern template class MLLinOpT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLLinOp = MLLinOpT<MultiFab>;
 
 }

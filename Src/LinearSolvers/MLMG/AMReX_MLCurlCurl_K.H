@@ -181,6 +181,7 @@ namespace amrex {
                      + ex(i  ,j+1,k  ))
 */
 
+/// \cond DOXYGEN_IGNORE
 struct CurlCurlDirichletInfo
 {
     IntVect dirichlet_lo;
@@ -331,6 +332,8 @@ struct CurlCurlSymmetryInfo
 };
 
 enum struct CurlCurlStateType { x, b, r }; // x, b & r=b-Ax
+
+/// \endcond
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mlcurlcurl_adotx_x (int i, int j, int k, Array4<Real> const& Ax,
@@ -641,19 +644,15 @@ void mlcurlcurl_smooth_1d (int i, int j, int k,
                 Real ccey = cm * ey(i-1,j,k) + cp * ey(i+1,j,k);
                 Real res_y = rhsy(i,j,k) - ( gamma * ey(i,j,k) + ccey );
                 ey(i,j,k) += res_y/gamma;
-            }
 
-            if (i == 0) {
-                ez(0,0,0) = (rhsz(0,0,0) + Real(4.0)*dxx*ez(1,0,0)) / (betaz(0,0,0) + Real(4.0)*dxx);
-            } else if (! dinfo.is_dirichlet_node(i,j,k)) {
-                Real cm = dxx * (Real( 0.5)/Real(i) - Real(1.0));
-                Real cp = dxx * (Real(-0.5)/Real(i) - Real(1.0));
-
-                Real gamma = dxx * Real(2.0) + betaz(i,j,k);
+                gamma = dxx * Real(2.0) + betaz(i,j,k);
 
                 Real ccez = cm * ez(i-1,j,k) + cp * ez(i+1,j,k);
                 Real res_z = rhsz(i,j,k) - ( gamma * ez(i,j,k) + ccez );
                 ez(i,j,k) += res_z/gamma;
+            }
+            if ((i == 0) || (i == 1)) {
+                ez(0,0,0) = (rhsz(0,0,0) + Real(4.0)*dxx*ez(1,0,0)) / (betaz(0,0,0) + Real(4.0)*dxx);
             }
         }
         else

@@ -20,6 +20,7 @@
 
 namespace amrex
 {
+    /// \cond DOXYGEN_IGNORE
     namespace detail
     {
         template <typename T, typename Size, template<class> class Allocator>
@@ -244,6 +245,7 @@ namespace amrex
             }
         }
     }
+    /// \endcond
 
     AMREX_ENUM(GrowthStrategy, Poisson, Exact, Geometric);
 
@@ -253,10 +255,12 @@ namespace amrex
         inline Real GetGrowthFactor () { return growth_factor; }
         inline void SetGrowthFactor (Real a_factor);
 
+        /// \cond DOXYGEN_IGNORE
         namespace detail
         {
             void ValidateUserInput ();
         }
+        /// \endcond
 
         void Initialize ();
     }
@@ -292,6 +296,13 @@ namespace amrex
         return 0; // unreachable
     }
 
+    /**
+     * \class amrex::PODVector
+     * \ingroup amrex_linear_containers
+     * \brief Dynamically allocated vector for trivially copyable data.
+     *
+     * Unlike std::vector, the data in PODVector are uninitialized by default.
+     */
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {
@@ -400,7 +411,7 @@ namespace amrex
         ~PODVector ()
         {
             // let's not worry about other allocators
-            static_assert(std::is_same<Allocator,std::allocator<T>>::value ||
+            static_assert(std::is_same_v<Allocator,std::allocator<T>> ||
                           IsArenaAllocator<Allocator>::value);
             if (m_data != nullptr) {
                 deallocate(m_data, capacity());

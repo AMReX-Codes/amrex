@@ -96,5 +96,6 @@
         "adaptive mesh refinement",
         "finite difference",
         "finite volume"
-    ]
+    ],
+    "access_right": "open"
 }

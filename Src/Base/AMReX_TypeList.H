@@ -2,6 +2,7 @@
 #define AMREX_TYPELIST_H_
 #include <AMReX_Config.H>
 
+#include <type_traits>
 #include <utility>
 
 namespace amrex {
@@ -14,6 +15,7 @@ struct TypeList
     static constexpr std::size_t size () noexcept { return sizeof...(Ts); }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <std::size_t I, typename T> struct TypeListGet;
 
@@ -26,11 +28,13 @@ namespace detail {
         using type = Head;
     };
 }
+/// \endcond
 
 //! Type at position I of a TypeList
 template <std::size_t I, typename T>
 using TypeAt = typename detail::TypeListGet<I,T>::type;
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename TL, typename F, std::size_t...N>
@@ -45,6 +49,7 @@ namespace detail
         return (f(TypeAt<N,TL>{}) || ...);
     }
 }
+/// \endcond
 
 /**
  * \brief For each type t in TypeList, call f(t)
@@ -157,6 +162,7 @@ struct TypeArray {
     static constexpr std::size_t size () noexcept { return N; }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     // return TypeList<T, T, T, T, ... (N times)> by using the fast power algorithm
     template <class T, std::size_t N>
@@ -199,6 +205,7 @@ namespace detail {
         return TypeList<TParam<Args...>>{};
     }
 }
+/// \endcond
 
 /**
  * \brief Return the first template argument with the later arguments applied to it.
@@ -212,6 +219,22 @@ template <template <class...> class TParam, class... Types>
 using TypeMultiplier = TypeAt<0, decltype(detail::TApply<TParam>(
     (TypeList<>{} + ... + detail::SingleTypeMultiplier(std::declval<Types>()))
 ))>;
+
+/**
+ * \brief Wrap non-TypeList into TypeList
+ */
+template <typename T>
+struct ToTypeList { using type = TypeList<T>; };
+
+template <typename... Ts>
+struct ToTypeList<TypeList<Ts...>> { using type = TypeList<Ts...>; };
+
+template <typename T>
+using ToTypeList_t = typename ToTypeList<T>::type;
+
+template <typename T> struct IsTypeList : std::false_type {};
+template <typename... Ts> struct IsTypeList<TypeList<Ts...>> : std::true_type {};
+template <typename T> inline constexpr bool IsTypeList_v = IsTypeList<T>::value;
 
 }
 

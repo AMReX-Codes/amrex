@@ -675,8 +675,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(0); jj<=1; jj++){
             for(int ii(-1); ii<=1; ii++){
                 if ( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0) ) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
@@ -698,8 +698,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(-1); jj<=0; jj++){
             for(int ii(-1); ii<=1; ii++){
                 if ( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0) ) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
@@ -720,8 +720,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
             for(int ii(0); ii<=1; ii++){
                 if ( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0) ) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
@@ -742,8 +742,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
             for(int ii(-1); ii<=0; ii++){
                 if( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0)) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
