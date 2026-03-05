@@ -903,7 +903,6 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
 
     prepareLinOp();
 
-    const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MF* crse_bcdata = (alev > 0) ? &(sol[alev-1]) : nullptr;
@@ -924,9 +923,9 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
                          *a_res[alev+1], sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
 #ifdef AMREX_USE_EB
-                EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+                EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
 #else
-                average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, amrrr[alev]);
+                average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
 #endif
             }
         }
@@ -982,7 +981,6 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
         linop.applyInhomogNeumannTerm(alev, rh[alev]);
     }
 
-    const auto& amrrr = linop.AMRRefRatio();
 
     for (int alev = finest_amr_lev; alev >= 0; --alev) {
         const MF* crse_bcdata = (alev > 0) ? in[alev-1] : nullptr;
@@ -993,9 +991,9 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
             if (linop.isCellCentered()) {
                 if constexpr (IsMultiFabLike_v<MF>) {
 #ifdef AMREX_USE_EB
-                    EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
+                    EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
 #else
-                    average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), amrrr[alev]);
+                    average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
 #endif
                 } else {
                     amrex::Abort("MLMG: TODO average_down for non-MultiFab");

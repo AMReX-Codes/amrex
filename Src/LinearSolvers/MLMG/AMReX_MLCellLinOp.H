@@ -432,7 +432,7 @@ MLCellLinOpT<MF>::defineAuxData ()
 
     for (int amrlev = 0; amrlev < this->m_num_amr_levels-1; ++amrlev)
     {
-        const IntVect ratio{this->m_amr_ref_ratio[amrlev]};
+        const IntVect ratio{this->AMRRefRatioVect(amrlev)};
         m_fluxreg[amrlev].define(this->m_grids[amrlev+1][0],
                                  this->m_grids[amrlev][0],
                                  this->m_dmap[amrlev+1][0],
@@ -481,7 +481,7 @@ MLCellLinOpT<MF>::defineBC ()
         const int in_rad = 0;
         const int out_rad = 1;
         const int extent_rad = 2;
-        const int crse_ratio = this->m_amr_ref_ratio[amrlev-1];
+        const IntVect crse_ratio = this->AMRRefRatioVect(amrlev-1);
         BoxArray cba = this->m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
         m_crse_sol_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
@@ -493,7 +493,7 @@ MLCellLinOpT<MF>::defineBC ()
         const int in_rad = 0;
         const int out_rad = 1;
         const int extent_rad = 2;
-        const int crse_ratio = this->m_amr_ref_ratio[amrlev-1];
+        const IntVect crse_ratio = this->AMRRefRatioVect(amrlev-1);
         BoxArray cba = this->m_grids[amrlev][0];
         cba.coarsen(crse_ratio);
         m_crse_cor_br[amrlev] = std::make_unique<BndryRegisterT<MF>>
@@ -510,7 +510,7 @@ MLCellLinOpT<MF>::defineBC ()
         bc_data.setVal(0.0);
 
         m_bndry_cor[amrlev]->setBndryValues(*m_crse_cor_br[amrlev], 0, bc_data, 0, 0, ncomp,
-                                            IntVect(this->m_amr_ref_ratio[amrlev-1]),
+                                            this->AMRRefRatioVect(amrlev-1),
                                             InterpBndryDataT<MF>::IBD_max_order_DEF,
                                             m_interpbndry_halfwidth);
 
@@ -518,7 +518,7 @@ MLCellLinOpT<MF>::defineBC ()
             (ncomp,Array<LinOpBCType,AMREX_SPACEDIM>{{AMREX_D_DECL(BCType::Dirichlet,
                                                                    BCType::Dirichlet,
                                                                    BCType::Dirichlet)}});
-        m_bndry_cor[amrlev]->setLOBndryConds(bclohi, bclohi, this->m_amr_ref_ratio[amrlev-1], RealVect{});
+        m_bndry_cor[amrlev]->setLOBndryConds(bclohi, bclohi, this->AMRRefRatioVect(amrlev-1), RealVect{});
     }
 
     m_bcondloc.resize(this->m_num_amr_levels);
@@ -602,7 +602,7 @@ MLCellLinOpT<MF>::setLevelBC (int amrlev, const MF* a_levelbcdata, const MF* rob
     else
     {
         this->m_bndry_sol[amrlev]->setPhysBndryValues(bcdata,0,0,ncomp);
-        br_ref_ratio = IntVect(this->m_amr_ref_ratio[amrlev-1]);
+        br_ref_ratio = this->AMRRefRatioVect(amrlev-1);
     }
 
     auto crse_fine_bc_type = (amrlev == 0) ? this->m_coarse_fine_bc_type : LinOpBCType::Dirichlet;
@@ -685,7 +685,7 @@ MLCellLinOpT<MF>::updateSolBC (int amrlev, const MF& crse_bcdata) const
     m_crse_sol_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, ncomp,
                                     this->m_geom[amrlev-1][0].periodicity());
     m_bndry_sol[amrlev]->updateBndryValues(*m_crse_sol_br[amrlev], 0, 0, ncomp,
-                                           IntVect(this->m_amr_ref_ratio[amrlev-1]),
+                                           this->AMRRefRatioVect(amrlev-1),
                                            InterpBndryDataT<MF>::IBD_max_order_DEF,
                                            m_interpbndry_halfwidth);
 }
@@ -700,7 +700,7 @@ MLCellLinOpT<MF>::updateCorBC (int amrlev, const MF& crse_bcdata) const
     m_crse_cor_br[amrlev]->copyFrom(crse_bcdata, 0, 0, 0, ncomp,
                                     this->m_geom[amrlev-1][0].periodicity());
     m_bndry_cor[amrlev]->updateBndryValues(*m_crse_cor_br[amrlev], 0, 0, ncomp,
-                                           IntVect(this->m_amr_ref_ratio[amrlev-1]),
+                                           this->AMRRefRatioVect(amrlev-1),
                                            InterpBndryDataT<MF>::IBD_max_order_DEF,
                                            m_interpbndry_halfwidth);
 }
@@ -1132,7 +1132,10 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                     IntVect const& /*nghost*/) const
 {
     const int ncomp = this->getNComp();
-    const int refratio = this->AMRRefRatio(famrlev-1);
+    const IntVect refratioV = this->AMRRefRatioVect(famrlev-1);
+    // AMRRefRatioVect sets hidden direction to 1 and active directions to the
+    // scalar ratio; max() cleanly recovers the active ratio in all cases.
+    const int refratio = refratioV.max();
 
 #ifdef AMREX_USE_EB
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(this->Factory(famrlev));
@@ -1191,25 +1194,54 @@ MLCellLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
 #endif
         if (call_lincc)
         {
-            switch(refratio) {
-            case 2:
-            {
-                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
+#if (AMREX_SPACEDIM == 3)
+            if (this->hasHiddenDimension()) {
+                Box const& bx_2d = this->compactify(bx);
+                auto const& ff_2d = this->compactify(ff);
+                auto const& cc_2d = this->compactify(cc);
+                switch(refratio) {
+                case 2:
                 {
-                    mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
-                });
-                break;
-            }
-            case 4:
-            {
-                AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
+                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx_2d, tbx,
+                    {
+                        TwoD::mlmg_lin_cc_interp_r2(tbx, ff_2d, cc_2d, ncomp);
+                    });
+                    break;
+                }
+                case 4:
                 {
-                    mlmg_lin_cc_interp_r4(tbx, ff, cc, ncomp);
-                });
-                break;
-            }
-            default:
-                amrex::Abort("mlmg_lin_cc_interp: only refratio 2 and 4 are supported");
+                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx_2d, tbx,
+                    {
+                        TwoD::mlmg_lin_cc_interp_r4(tbx, ff_2d, cc_2d, ncomp);
+                    });
+                    break;
+                }
+                default:
+                    amrex::Abort("mlmg_lin_cc_interp: only refratio 2 and 4 are supported");
+                }
+            } else
+#endif
+            {
+                switch(refratio) {
+                case 2:
+                {
+                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
+                    {
+                        mlmg_lin_cc_interp_r2(tbx, ff, cc, ncomp);
+                    });
+                    break;
+                }
+                case 4:
+                {
+                    AMREX_GPU_LAUNCH_HOST_DEVICE_LAMBDA_RANGE (bx, tbx,
+                    {
+                        mlmg_lin_cc_interp_r4(tbx, ff, cc, ncomp);
+                    });
+                    break;
+                }
+                default:
+                    amrex::Abort("mlmg_lin_cc_interp: only refratio 2 and 4 are supported");
+                }
             }
         }
     }
@@ -1220,7 +1252,7 @@ void
 MLCellLinOpT<MF>::averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
                                           const MF& fine_sol, const MF& fine_rhs)
 {
-    const auto amrrr = this->AMRRefRatio(camrlev);
+    const auto amrrr = this->AMRRefRatioVect(camrlev);
     const int ncomp = this->getNComp();
     amrex::average_down(fine_sol, crse_sol, 0, ncomp, amrrr);
     amrex::average_down(fine_rhs, crse_rhs, 0, ncomp, amrrr);
@@ -2174,14 +2206,14 @@ MLCellLinOpT<MF>::averageDownAndSync (Vector<MF>& sol) const
 #ifdef AMREX_USE_EB
         if (!sol[falev].isAllRegular()) {
             if constexpr (std::is_same<MF,MultiFab>()) {
-                amrex::EB_average_down(sol[falev], sol[falev-1], 0, ncomp, this->AMRRefRatio(falev-1));
+                amrex::EB_average_down(sol[falev], sol[falev-1], 0, ncomp, this->AMRRefRatioVect(falev-1));
             } else {
                 amrex::Abort("EB_average_down only works with MultiFab");
             }
         } else
 #endif
         {
-            amrex::average_down(sol[falev], sol[falev-1], 0, ncomp, this->AMRRefRatio(falev-1));
+            amrex::average_down(sol[falev], sol[falev-1], 0, ncomp, this->AMRRefRatioVect(falev-1));
         }
     }
 }
@@ -2194,7 +2226,7 @@ MLCellLinOpT<MF>::avgDownResAmr (int clev, MF& cres, MF const& fres) const
     if (!fres.isAllRegular()) {
         if constexpr (std::is_same<MF,MultiFab>()) {
             amrex::EB_average_down(fres, cres, 0, this->getNComp(),
-                                   this->AMRRefRatio(clev));
+                                   this->AMRRefRatioVect(clev));
         } else {
             amrex::Abort("EB_average_down only works with MultiFab");
         }
@@ -2202,7 +2234,7 @@ MLCellLinOpT<MF>::avgDownResAmr (int clev, MF& cres, MF const& fres) const
 #endif
     {
         amrex::average_down(fres, cres, 0, this->getNComp(),
-                            this->AMRRefRatio(clev));
+                            this->AMRRefRatioVect(clev));
     }
 }
 
