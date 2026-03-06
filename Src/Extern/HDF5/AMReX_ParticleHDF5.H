@@ -1221,12 +1221,24 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         H5Dclose(dset);
         H5Gclose(grp);
 
-        /* particle_box_arrays[lev].readFrom(phdr_file); */
-        particle_box_arrays[lev] = ParticleBoxArray(lev);
-        for (int i = 0; i < (int)ngrid; i++) {
-            Box tmp (IntVect{AMREX_D_DECL(boxes[i*AMREX_SPACEDIM], boxes[i*AMREX_SPACEDIM+1], boxes[i*AMREX_SPACEDIM+2])},
-                     IntVect{AMREX_D_DECL(boxes[i*AMREX_SPACEDIM*2], boxes[i*AMREX_SPACEDIM*2+1], boxes[i*AMREX_SPACEDIM*2+2])});
-            particle_box_arrays[lev][i] = tmp;
+        // Build the BoxArray from the boxes stored in the file.
+        // Note: the compound dtype lays out each box as
+        //   (lo_0, lo_1, lo_2, hi_0, hi_1, hi_2) stored consecutively,
+        // so lo[d] is at index i*2*AMREX_SPACEDIM+d and
+        //    hi[d] is at index i*2*AMREX_SPACEDIM+AMREX_SPACEDIM+d.
+        {
+            BoxList bl;
+            for (int i = 0; i < (int)ngrid; i++) {
+                const int base = i * 2 * AMREX_SPACEDIM;
+                Box tmp(IntVect{AMREX_D_DECL(boxes[base+0],
+                                             boxes[base+1],
+                                             boxes[base+2])},
+                        IntVect{AMREX_D_DECL(boxes[base+AMREX_SPACEDIM+0],
+                                             boxes[base+AMREX_SPACEDIM+1],
+                                             boxes[base+AMREX_SPACEDIM+2])});
+                bl.push_back(tmp);
+            }
+            particle_box_arrays[lev] = BoxArray(bl);
         }
 
         if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev)))
@@ -1321,7 +1333,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             const int rank = ParallelDescriptor::MyProc();
             const int NReaders = MaxReaders();
-            if (rank >= NReaders) { return; }
+            if (rank >= NReaders) {
+		H5Dclose(int_dset);
+		H5Dclose(real_dset);
+		H5Gclose(grp);
+		continue;
+	    }
 
             const int Navg = ngrids[lev] / NReaders;
             const int Nleft = ngrids[lev] - Navg * NReaders;
