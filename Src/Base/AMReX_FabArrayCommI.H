@@ -1045,6 +1045,92 @@ void fbv_copy (Vector<TagT> const& tags)
 }
 /// \endcond
 
+template <class MF>
+std::enable_if_t<IsFabArray<MF>::value>
+FillBoundary_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
+                     Vector<int> const& ncomp, Vector<IntVect> const& nghost,
+                     Vector<Periodicity> const& period,
+                     Vector<int> const& cross = {})
+{
+    BL_PROFILE("FillBoundary_nowait(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundary_nowait(scomp[i], ncomp[i], nghost[i], period[i],
+                                   cross.empty() ? 0 : cross[i]);
+    }
+}
+
+template <class MF>
+std::enable_if_t<IsFabArray<MF>::value>
+FillBoundary_nowait (Vector<MF*> const& mf,
+                     const Periodicity& a_period = Periodicity::NonPeriodic())
+{
+    Vector<int> scomp(mf.size(), 0);
+    Vector<int> ncomp;
+    Vector<IntVect> nghost;
+    Vector<Periodicity> period(mf.size(), a_period);
+    ncomp.reserve(mf.size());
+    nghost.reserve(mf.size());
+    for (auto const& x : mf) {
+        ncomp.push_back(x->nComp());
+        nghost.push_back(x->nGrowVect());
+    }
+    FillBoundary_nowait(mf, scomp, ncomp, nghost, period);
+}
+
+template <class MF>
+std::enable_if_t<IsFabArray<MF>::value>
+FillBoundary_finish (Vector<MF*> const& mf)
+{
+    BL_PROFILE("FillBoundary_finish(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundary_finish();
+    }
+}
+
+template <class MF>
+std::enable_if_t<IsFabArray<MF>::value>
+FillBoundaryAndSync_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
+                            Vector<int> const& ncomp, Vector<IntVect> const& nghost,
+                            Vector<Periodicity> const& period)
+{
+    BL_PROFILE("FillBoundaryAndSync_nowait(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundaryAndSync_nowait(scomp[i], ncomp[i], nghost[i], period[i]);
+    }
+}
+
+template <class MF>
+std::enable_if_t<IsFabArray<MF>::value>
+FillBoundaryAndSync_nowait (Vector<MF*> const& mf,
+                            const Periodicity& a_period = Periodicity::NonPeriodic())
+{
+    Vector<int> scomp(mf.size(), 0);
+    Vector<int> ncomp;
+    Vector<IntVect> nghost;
+    Vector<Periodicity> period(mf.size(), a_period);
+    ncomp.reserve(mf.size());
+    nghost.reserve(mf.size());
+    for (auto const& x : mf) {
+        ncomp.push_back(x->nComp());
+        nghost.push_back(x->nGrowVect());
+    }
+    FillBoundaryAndSync_nowait(mf, scomp, ncomp, nghost, period);
+}
+
+template <class MF>
+std::enable_if_t<IsFabArray<MF>::value>
+FillBoundaryAndSync_finish (Vector<MF*> const& mf)
+{
+    BL_PROFILE("FillBoundaryAndSync_finish(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundaryAndSync_finish();
+    }
+}
+
 /** \brief Perform FillBoundary on a batch of FabArrays (e.g., MultiFabs).
  *
  *  Prefer this helper over invoking FillBoundary on each FabArray
@@ -1347,17 +1433,8 @@ template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundary (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::NonPeriodic())
 {
-    Vector<int> scomp(mf.size(), 0);
-    Vector<int> ncomp;
-    Vector<IntVect> nghost;
-    Vector<Periodicity> period(mf.size(), a_period);
-    ncomp.reserve(mf.size());
-    nghost.reserve(mf.size());
-    for (auto const& x : mf) {
-        ncomp.push_back(x->nComp());
-        nghost.push_back(x->nGrowVect());
-    }
-    FillBoundary(mf, scomp, ncomp, nghost, period);
+    FillBoundary_nowait(mf, a_period);
+    FillBoundary_finish(mf);
 }
 
 /** \brief Convenience overload that fills/syncs every component/ghost cell on each FabArray. */
@@ -1365,17 +1442,8 @@ template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundaryAndSync (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::NonPeriodic())
 {
-    Vector<int> scomp(mf.size(), 0);
-    Vector<int> ncomp;
-    Vector<IntVect> nghost;
-    Vector<Periodicity> period(mf.size(), a_period);
-    ncomp.reserve(mf.size());
-    nghost.reserve(mf.size());
-    for (auto const& x : mf) {
-        ncomp.push_back(x->nComp());
-        nghost.push_back(x->nGrowVect());
-    }
-    FillBoundaryAndSync(mf, scomp, ncomp, nghost, period);
+    FillBoundaryAndSync_nowait(mf, a_period);
+    FillBoundaryAndSync_finish(mf);
 }
 
 }
