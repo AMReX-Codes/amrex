@@ -1045,6 +1045,19 @@ void fbv_copy (Vector<TagT> const& tags)
 }
 /// \endcond
 
+/** \brief Launch FillBoundary_nowait across a vector of FabArrays.
+ *
+ *  Invoke FillBoundary_finish on the same vector before reusing the data to
+ *  ensure the exchanges have completed.
+ *
+ *  \param mf     FabArray pointers that should be updated.
+ *  \param scomp  Starting component for each FabArray.
+ *  \param ncomp  Number of components to fill per FabArray.
+ *  \param nghost Number of ghost cells to populate per FabArray.
+ *  \param period Periodicity description per FabArray.
+ *  \param cross  Optional cross-stencil flags; non-zero entries skip
+ *                corner ghost cells for the corresponding FabArray.
+ */
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundary_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
@@ -1060,6 +1073,14 @@ FillBoundary_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
     }
 }
 
+/** \brief Launch FillBoundary_nowait across a vector of FabArrays.
+ *
+ *  Invoke FillBoundary_finish on the same vector before reusing the data to
+ *  ensure the exchanges have completed.
+ *
+ *  \param mf       FabArray pointers that should be updated.
+ *  \param a_period Periodicity applied to every FabArray.
+ */
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundary_nowait (Vector<MF*> const& mf,
@@ -1078,6 +1099,11 @@ FillBoundary_nowait (Vector<MF*> const& mf,
     FillBoundary_nowait(mf, scomp, ncomp, nghost, period);
 }
 
+/** \brief Wait for outstanding FillBoundary_nowait operations launched with
+ *         the vector helper to complete.
+ *
+ *  \param mf FabArray pointers whose FillBoundary_nowait calls should finish.
+ */
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundary_finish (Vector<MF*> const& mf)
@@ -1089,6 +1115,18 @@ FillBoundary_finish (Vector<MF*> const& mf)
     }
 }
 
+/** \brief Launch FillBoundaryAndSync_nowait across a vector of FabArrays.
+ *
+ *  Similar to FillBoundary_nowait, this helper batches the asynchronous
+ *  FillBoundaryAndSync invocation while leaving completion to
+ *  FillBoundaryAndSync_finish.
+ *
+ *  \param mf     FabArray pointers that should be updated.
+ *  \param scomp  Starting component for each FabArray.
+ *  \param ncomp  Number of components to fill/sync per FabArray.
+ *  \param nghost Number of ghost cells to populate per FabArray.
+ *  \param period Periodicity description per FabArray.
+ */
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundaryAndSync_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
@@ -1102,6 +1140,12 @@ FillBoundaryAndSync_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
     }
 }
 
+/** \brief Convenience overload that launches FillBoundaryAndSync_nowait for
+ *         every component/ghost cell on each FabArray in the vector.
+ *
+ *  \param mf       FabArray pointers that should be updated.
+ *  \param a_period Periodicity applied to every FabArray.
+ */
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundaryAndSync_nowait (Vector<MF*> const& mf,
@@ -1120,6 +1164,11 @@ FillBoundaryAndSync_nowait (Vector<MF*> const& mf,
     FillBoundaryAndSync_nowait(mf, scomp, ncomp, nghost, period);
 }
 
+/** \brief Wait for outstanding FillBoundaryAndSync_nowait operations launched
+ *         with the vector helper to complete.
+ *
+ *  \param mf FabArray pointers whose FillBoundaryAndSync_nowait calls should finish.
+ */
 template <class MF>
 std::enable_if_t<IsFabArray<MF>::value>
 FillBoundaryAndSync_finish (Vector<MF*> const& mf)
