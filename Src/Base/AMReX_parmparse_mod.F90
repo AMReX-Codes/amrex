@@ -236,7 +236,11 @@ module amrex_parmparse_module
 
   interface amrex_parmparse_destroy
      module procedure amrex_parmparse_destroy
-  end interface amrex_parmparse_destroy
+#ifdef __NVCOMPILER
+interface amrex_parmparse_destroy
+module procedure amrex_parmparse_destroy
+end interface amrex_parmparse_destroy
+#endif
 
 contains
 
