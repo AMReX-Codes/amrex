@@ -63,15 +63,17 @@ colors = [ "red", "yellow", "green" ]
 # ParmParse does allow
 # colors = red yellow green # ParmParse-only format
 
-# Array of strings containing '[' and ']'
+# Array of strings containing ',', '[' and ']'
 array_of_strings = ["face[0]", "face[1]", "face[2]"]
+array_of_strings_2 = ["face[-1]", "f,ace[0]", "fa,ce[1]", "face[2],",]
 
 # Arrays can be nested. ParmParse only supports array of array, not more
 # deeply nested arrays.
 nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]
 nested_arrays_of_strings = [["aaa", "bbb"], ["ccc"]]
 nested_arrays_of_strings_2 = [["aaa", "bbb"], ["ccc]"]]
-nested_arrays_of_strings_3 = [["aa[a", "bbb"], ["ccc"]]
+nested_arrays_of_strings_3 = [["aa[a", " bbb"], ["c\"c\" c "]] # Note that in ParmParse we treat "c\"c" as a raw string that is the same as C++ string "c\\\"c".
+nested_arrays_of_strings_4 = [["aa]a", " b,bb"], ["ccc["]]
 
 # Arrays can span multiple lines.
 integers2 = [

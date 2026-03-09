@@ -802,10 +802,10 @@ bldTable (const char*& str, ParmParse::Table& tab)
             auto table_key = is_valid_table_key(tokvalue);
             bool table_header_on_newline = (num_linefeeds > 0) || newline_from_comment;
             if (cur_value.empty() && cur_list.empty() && !table_key.empty()) {
-                g_toml_table_key = table_key;
+                g_toml_table_key = std::move(table_key);
             } else if ((table_header_on_newline) && !cur_list.empty() && !table_key.empty()) {
                 addDefn(cur_value,cur_list,tab);
-                g_toml_table_key = table_key;
+                g_toml_table_key = std::move(table_key);
             } else {
                 cur_list.push_back(std::move(tokvalue));
                 cur_linefeeds.push_back(num_linefeeds);
@@ -942,7 +942,7 @@ void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
     ref.clear();
     std::string::size_type pos = find_next_unquoted(str, 0, '[');
     if (pos == std::string::npos) { return; }
-    for (int row_index = 0; row_index < 1000000; ++row_index) {
+    for (int row_index = 0; row_index < 1000000; ++row_index) { // NOLINT
         pos = find_next_unquoted(str, pos+1, '[');
         if (pos != std::string::npos) {
             auto open_pos = pos;
@@ -1092,8 +1092,15 @@ sgetval (const ParmParse::Table& table,
 
 bool is_toml_array (std::string const& token)
 {
-    return (token.size() >= 7 && token.compare(0,6,"ARRAY[") == 0 &&
-            token.back() == ']');
+    return token.size() >= 7 && token.compare(0,6,"ARRAY[") == 0 &&
+        token.back() == ']';
+}
+
+bool is_toml_2d_array (std::string const& token)
+{
+    auto sz = token.size();
+    return sz >= 9 && token.compare(0,7,"ARRAY[[") == 0 &&
+        token.compare(sz-2,2,"]]") == 0;
 }
 
 template <class T>
@@ -1725,40 +1732,39 @@ ParmParse::countval (std::string_view name,
 
     if (!(def->empty()) && is_toml_array((*def)[0])) {
         auto const& token = (*def)[0];
-
-        std::vector<std::vector<std::string>> arr_arr_str;
-        try {
-            read_array_2d(arr_arr_str, token);
-            if (!arr_arr_str.empty()) {
-                return static_cast<int>(arr_arr_str.size());
+        std::size_t count = 0;
+        if (is_toml_2d_array(token)) {
+            std::string::size_type pos = find_next_unquoted(token, 0, '[');
+            while (true) {
+                pos = find_next_unquoted(token, pos+1, '[');
+                if (pos != std::string::npos) {
+                    pos = find_next_unquoted(token, pos+1, ']');
+                    if (pos != std::string::npos) {
+                        ++count;
+                    } else {
+                        throw std::runtime_error("ParmParse: unmatched [] in nested arrays\n");
+                    }
+                } else {
+                    break;
+                }
             }
-        } catch (std::runtime_error const& e) {
-            amrex::ignore_unused(e);
-        }
-
-        std::vector<std::vector<double>> arr_arr_num;
-        try {
-            read_array_2d(arr_arr_num, token);
-            if (!arr_arr_num.empty()) {
-                return static_cast<int>(arr_arr_num.size());
+        } else {
+            std::string::size_type pos = find_next_unquoted(token, 0, '[');
+            while (true) {
+                pos = find_next_unquoted(token, pos+1, ',');
+                if (pos != std::string::npos) {
+                    if (pos+1 < token.size() && token[pos+1] != ']') {
+                        ++count;
+                    }
+                } else {
+                    break;
+                }
             }
-        } catch (std::runtime_error const& e) {
-            amrex::ignore_unused(e);
+            if (token != "ARRAY[]") {
+                ++count; // unless it's an empty array, increase by 1 because we counted commas, not really the number of elements
+            }
         }
-
-        std::vector<std::string> arr_str;
-        read_array_1d(arr_str, token);
-        if (!arr_str.empty()) {
-            return static_cast<int>(arr_str.size());
-        }
-
-        std::vector<double> arr_num;
-        try {
-            read_array_1d(arr_num, token);
-            return static_cast<int>(arr_num.size());
-        } catch (std::runtime_error const&) {
-            return 0;
-        }
+        return static_cast<int>(count);
     } else {
         return static_cast<int>(def->size());
     }
