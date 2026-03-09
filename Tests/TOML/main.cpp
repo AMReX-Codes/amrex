@@ -117,6 +117,24 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(x == 10 && y == 20 && z == 30);
     }
 
+    // Error handling
+    {
+        ParmParse pp("invalid");
+        std::vector<int> val;
+        try {
+            pp.getarr("empty_array", val);
+            amrex::Abort("Should not get here, because getarr should raise an exception on an empty array");
+        } catch (std::runtime_error const& e) {
+            amrex::ignore_unused(e);
+        }
+        try {
+            pp.getarr("invalid_array", val);
+            amrex::Abort("Should not get here, because getarr should raise an exception on an invalid array");
+        } catch (std::runtime_error const& e) {
+            amrex::ignore_unused(e);
+        }
+    }
+
     // command line
     {
         ParmParse pp;

@@ -5,3 +5,8 @@ config-2.x = 10
 [config-2]
 y = 20
 z = 30
+
+[invalid] # This is invalid. We use it to test error handling
+empty_array = []
+invalid_array = [1,foo]
+

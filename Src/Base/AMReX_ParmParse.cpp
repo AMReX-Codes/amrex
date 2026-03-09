@@ -807,9 +807,14 @@ void read_array_1d (std::vector<T>& ref, std::string const& str)
 {
     ref.clear();
     std::istringstream is(str);
+    auto throw_parse_error = [&str]() {
+        throw std::runtime_error("ParmParse: failed to parse array element in " + str);
+    };
     T v{};
     is.ignore(100000, '[');
-    is >> v;
+    if (!(is >> v)) {
+        throw_parse_error();
+    }
     ref.push_back(v);
     while (true) {
         is >> std::ws;
@@ -819,7 +824,9 @@ void read_array_1d (std::vector<T>& ref, std::string const& str)
             is >> std::ws;
             nc = is.peek();
             if (nc == ']') { return; }
-            is >> v;
+            if (!(is >> v)) {
+                throw_parse_error();
+            }
             ref.push_back(v);
             continue;
         } else {
