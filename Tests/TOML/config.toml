@@ -88,9 +88,10 @@ integers3 = [
 
 ### Table
 
+foo = 5 # inline comment just before a table header. This used to break ParmParse.
 [table-1]  # table 1
-key1 = "some string"
-key2 = 123
+key1 = "some string"  # inline comment
+key2 = 123            # more comment
 
 [table-2]
 key1 = "another string"

@@ -103,6 +103,9 @@ int main(int argc, char* argv[])
         std::string key1;
         int key2;
         ParmParse pp;
+        int foo_val = -1;
+        pp.get("foo", foo_val);
+        AMREX_ALWAYS_ASSERT(foo_val == 5);
         pp.get("table-1.key1", key1);
         pp.get("table-1.key2", key2);
         AMREX_ALWAYS_ASSERT(key1 == "some string" && key2 == 123);

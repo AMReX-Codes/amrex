@@ -208,9 +208,10 @@ enum class lexState
 };
 
 int
-eat_garbage (const char*& str)
+eat_garbage (const char*& str, bool* newline_from_comment = nullptr)
 {
     int num_linefeeds = 0;
+    if (newline_from_comment) { *newline_from_comment = false; }
     for (;;)
     {
         if ( *str == 0 ) { break; } // NOLINT
@@ -220,7 +221,10 @@ eat_garbage (const char*& str)
             {
                 str++;
             }
-            if (*str == '\n') { str++; }
+            if (*str == '\n') {
+                if (newline_from_comment) { *newline_from_comment = true; }
+                str++;
+            }
             continue;
         }
         else if ( std::isspace(*str) )
@@ -263,12 +267,13 @@ void eat_comment (const char*& str)
 }
 
 PType
-getToken (const char*& str, std::string& ostr, int& num_linefeeds)
+getToken (const char*& str, std::string& ostr, int& num_linefeeds,
+          bool& newline_from_comment)
 {
-    //
-    // Eat white space and comments.
-    //
-    num_linefeeds = eat_garbage(str);
+   //
+   // Eat white space and comments.
+   //
+   num_linefeeds = eat_garbage(str, &newline_from_comment);
     //
     // Check for end of file.
     //
@@ -733,8 +738,9 @@ bldTable (const char*& str, ParmParse::Table& tab)
     {
         std::string tokvalue;
         int num_linefeeds;
+        bool newline_from_comment = false;
 
-        PType toktype = getToken(str, tokvalue, num_linefeeds);
+        PType toktype = getToken(str, tokvalue, num_linefeeds, newline_from_comment);
 
         switch (toktype)
         {
@@ -794,9 +800,10 @@ bldTable (const char*& str, ParmParse::Table& tab)
         case PType::Value:
         {
             auto table_key = is_valid_table_key(tokvalue);
+            bool table_header_on_newline = (num_linefeeds > 0) || newline_from_comment;
             if (cur_value.empty() && cur_list.empty() && !table_key.empty()) {
                 g_toml_table_key = table_key;
-            } else if (num_linefeeds > 0 && !cur_list.empty() && !table_key.empty()) {
+            } else if ((table_header_on_newline) && !cur_list.empty() && !table_key.empty()) {
                 addDefn(cur_value,cur_list,tab);
                 g_toml_table_key = table_key;
             } else {
