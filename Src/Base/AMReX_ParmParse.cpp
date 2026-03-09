@@ -1090,12 +1090,14 @@ sgetval (const ParmParse::Table& table,
     }
 }
 
+// Checks if token matches ARRAY[...]
 bool is_toml_array (std::string const& token)
 {
     return token.size() >= 7 && token.compare(0,6,"ARRAY[") == 0 &&
         token.back() == ']';
 }
 
+// Checks if token matches ARRAY[[...]]
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
@@ -1754,6 +1756,8 @@ ParmParse::countval (std::string_view name,
                 pos = find_next_unquoted(token, pos+1, ',');
                 if (pos != std::string::npos) {
                     if (pos+1 < token.size() && token[pos+1] != ']') {
+                        // Note that we don't need to worry about ", ]",
+                        // because getToken eats garbage.
                         ++count;
                     }
                 } else {
