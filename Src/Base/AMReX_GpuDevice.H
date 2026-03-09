@@ -453,6 +453,9 @@ void memcpy_from_device_global_to_host_async (void* dst, T const& dg,
 
 #ifdef AMREX_USE_GPU
 
+//! Check if the given stream is active.
+bool isStreamActive (gpuStream_t s);
+
 /**
  * This struct provides a RAII-style mechanism for disabling GPU
  * synchronization and calling Gpu::streamSynchronizeActive when going out
