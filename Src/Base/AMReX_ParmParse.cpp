@@ -971,6 +971,8 @@ void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
     }
 }
 
+bool is_toml_1d_array (std::string const& token);
+
 template <class T>
 bool
 squeryval (const ParmParse::Table& table,
@@ -997,6 +999,27 @@ squeryval (const ParmParse::Table& table,
     {
         using T_ptr = std::decay_t<T>*;
         entry.m_typehint = static_cast<T_ptr>(nullptr);
+    }
+
+    //
+    // Handle TOML array: stored as single token "ARRAY[v0,v1,...]"
+    //
+    if (!(def->empty()) && is_toml_1d_array((*def)[0])) {
+        std::vector<T> toml_vals;
+        read_array_1d(toml_vals, (*def)[0]);
+        if (ival >= static_cast<int>(toml_vals.size())) {
+            amrex::ErrorStream() << "ParmParse::queryval no value number "
+                                 << ival << " for ";
+            if ( occurrence ==  ParmParse::LAST ) {
+                amrex::ErrorStream() << "last occurrence of ";
+            } else {
+                amrex::ErrorStream() << " occurrence " << occurrence << " of ";
+            }
+            amrex::ErrorStream() << name << '\n' << pp_to_string(name,*def) << '\n';
+            amrex::Abort();
+        }
+        ref = toml_vals[ival];
+        return true;
     }
 
     //
@@ -1103,6 +1126,12 @@ bool is_toml_2d_array (std::string const& token)
     auto sz = token.size();
     return sz >= 9 && token.compare(0,7,"ARRAY[[") == 0 &&
         token.compare(sz-2,2,"]]") == 0;
+}
+
+// Checks if token matches ARRAY[...] but not ARRAY[[...]]
+bool is_toml_1d_array (std::string const& token)
+{
+    return is_toml_array(token) && !is_toml_2d_array(token);
 }
 
 template <class T>
