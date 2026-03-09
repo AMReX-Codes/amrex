@@ -805,6 +805,7 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
 template <typename T>
 void read_array_1d (std::vector<T>& ref, std::string const& str)
 {
+    ref.clear();
     std::istringstream is(str);
     T v{};
     is.ignore(100000, '[');
@@ -1049,9 +1050,13 @@ squeryarr (const ParmParse::Table& table,
         return false;
     }
 
-    if ((def->size() == 1) && ((*def)[0].find("ARRAY[") == 0) && ((*def)[0].back() == ']')) {
-        read_array_1d(ref, (*def)[0]);
-        return true;
+    bool const toml_array = (def->size() == 1) &&
+        ((*def)[0].find("ARRAY[") == 0) &&
+        ((*def)[0].back() == ']');
+
+    std::vector<T> toml_vals;
+    if (toml_array) {
+        read_array_1d(toml_vals, (*def)[0]);
     }
 
     auto const& entry = table.at(name);
@@ -1068,9 +1073,11 @@ squeryarr (const ParmParse::Table& table,
     // Does it have sufficient number of values and are they all
     // the same type?
     //
+    int available = toml_array ? static_cast<int>(toml_vals.size())
+                               : static_cast<int>(def->size());
     if ( num_val == ParmParse::ALL )
     {
-        num_val = static_cast<int>(def->size());
+        num_val = available;
     }
 
     if ( num_val == 0 ) { return true; }
@@ -1087,7 +1094,7 @@ squeryarr (const ParmParse::Table& table,
     {
         ref.resize(stop_ix + 1);
     }
-    if ( stop_ix >= static_cast<int>(def->size()) )
+    if ( stop_ix >= available )
     {
         amrex::ErrorStream() << "ParmParse::queryarr too many values requested for";
         if ( occurrence == ParmParse::LAST )
@@ -1101,6 +1108,16 @@ squeryarr (const ParmParse::Table& table,
         amrex::ErrorStream() << name << '\n' << pp_to_string(name,*def) << '\n';
         amrex::Abort();
     }
+    if (toml_array) {
+        for (int n = start_ix; n <= stop_ix; ++n) {
+            ref[n] = toml_vals[n];
+            if constexpr (is_integral_floating) {
+                pp_entry_set_last_val(entry, n, ref[n], true);
+            }
+        }
+        return true;
+    }
+
     for ( int n = start_ix; n <= stop_ix; n++ )
     {
         const std::string& valname = (*def)[n];
