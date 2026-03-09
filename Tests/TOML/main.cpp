@@ -50,28 +50,51 @@ int main(int argc, char* argv[])
         ParmParse pp;
         std::vector<int> iv;
         pp.getarr("integers", iv);
-        AMREX_ALWAYS_ASSERT(iv == std::vector<int>({1,2,3}));
+        int n = pp.countval("integers");
+        AMREX_ALWAYS_ASSERT(n == 3 && iv == std::vector<int>({1,2,3}));
 
         std::vector<std::string> colors;
         pp.getarr("colors", colors);
-        AMREX_ALWAYS_ASSERT(colors == std::vector<std::string>({"red","yellow","green"}));
+        n = pp.countval("colors");
+        AMREX_ALWAYS_ASSERT(n == 3 && colors == std::vector<std::string>({"red","yellow","green"}));
+
+        std::vector<std::string> aos;
+        pp.getarr("array_of_strings", aos);
+        n = pp.countval("array_of_strings");
+        AMREX_ALWAYS_ASSERT(n == 3 && aos == std::vector<std::string>({"face[0]","face[1]","face[2]"}));
 
         std::vector<std::vector<int>> ivv;
         pp.getarr("nested_arrays_of_ints", ivv);
-        AMREX_ALWAYS_ASSERT(ivv == std::vector<std::vector<int>>({{1,2},{3,4,5}}));
+        n = pp.countval("nested_arrays_of_ints"); // size of the outer array
+        AMREX_ALWAYS_ASSERT(n == 2 && ivv == std::vector<std::vector<int>>({{1,2},{3,4,5}}));
 
         std::vector<std::vector<std::string>> svv;
         pp.getarr("nested_arrays_of_strings", svv);
-        AMREX_ALWAYS_ASSERT(svv == std::vector<std::vector<std::string>>(
+        n = pp.countval("nested_arrays_of_strings");
+        AMREX_ALWAYS_ASSERT(n == 2 && svv == std::vector<std::vector<std::string>>(
                                 {{"aaa","bbb"},{"ccc"}}));
+
+        std::vector<std::vector<std::string>> svv2;
+        pp.getarr("nested_arrays_of_strings_2", svv2);
+        n = pp.countval("nested_arrays_of_strings_2");
+        AMREX_ALWAYS_ASSERT(n == 2 && svv2 == std::vector<std::vector<std::string>>(
+                                {{"aaa","bbb"},{"ccc]"}}));
+
+        std::vector<std::vector<std::string>> svv3;
+        pp.getarr("nested_arrays_of_strings_3", svv3);
+        n = pp.countval("nested_arrays_of_strings_3");
+        AMREX_ALWAYS_ASSERT(n == 2 && svv3 == std::vector<std::vector<std::string>>(
+                                {{"aa[a","bbb"},{"ccc"}}));
 
         std::vector<int> iv2;
         pp.getarr("integers2", iv2);
-        AMREX_ALWAYS_ASSERT(iv == iv2);
+        n = pp.countval("integers2");
+        AMREX_ALWAYS_ASSERT(n == 3 && iv == iv2);
 
         std::vector<int> iv3;
         pp.getarr("integers3", iv3);
-        AMREX_ALWAYS_ASSERT(iv3 == std::vector<int>({1,2}));
+        n = pp.countval("integers3");
+        AMREX_ALWAYS_ASSERT(n == 2 && iv3 == std::vector<int>({1,2}));
     }
 #endif
 

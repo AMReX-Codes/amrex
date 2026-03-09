@@ -283,6 +283,8 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
    int      pcnt  = 0; // Tracks nested parens
    int      cbcnt = 0; // Tracks nested curly braces
    int      sbcnt = 0; // Tracks nested square brackets
+   bool     array_in_string = false;
+   bool     array_escape = false;
    while (true)
    {
        char ch = *str;
@@ -327,6 +329,8 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
            {
                ostr += "ARRAY[";
                str++; sbcnt = 1;
+               array_in_string = false;
+               array_escape = false;
                state = lexState::ARRAY;
            }
            else if ( std::isalpha(ch) )
@@ -395,26 +399,49 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds)
                ostr += ch; str++;
            }
            break;
-       case lexState::ARRAY:
-           eat_garbage(str);
-           ch = *str;
-           if ( ch == '[' )
-           {
-               ostr += ch; str++; sbcnt++;
-           }
-           else if ( ch == ']' )
-           {
-               ostr += ch; str++; sbcnt--;
-               if ( sbcnt == 0 && pcnt == 0 && cbcnt == 0)
-               {
-                   return PType::Value;
-               }
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
+      case lexState::ARRAY:
+      {
+          if (!array_in_string) {
+              eat_garbage(str);
+              ch = *str;
+          } else {
+              ch = *str;
+          }
+
+          if (array_in_string) {
+              ostr += ch; str++;
+              if (array_escape) {
+                  array_escape = false;
+              } else if (ch == '\\') {
+                  array_escape = true;
+              } else if (ch == '"') {
+                  array_in_string = false;
+              }
+          }
+          else if ( ch == '"' )
+          {
+              array_in_string = true;
+              array_escape = false;
+              ostr += ch; str++;
+          }
+          else if ( ch == '[' )
+          {
+              ostr += ch; str++; sbcnt++;
+          }
+          else if ( ch == ']' )
+          {
+              ostr += ch; str++; sbcnt--;
+              if ( sbcnt == 0 && pcnt == 0 && cbcnt == 0)
+              {
+                  return PType::Value;
+              }
+          }
+          else
+          {
+              ostr += ch; str++;
+          }
+          break;
+      }
        case lexState::STRING:
            if ( std::isspace(ch) || ch == '=' )
            {
@@ -843,6 +870,22 @@ bool is_escaped_quote (std::string const& str, std::string::size_type pos)
     return (bs % 2) == 1;
 }
 
+std::size_t find_next_unquoted (std::string const& str, std::size_t start, char target)
+{
+    bool in_string = false;
+    for (std::size_t i = start; i < str.size(); ++i) {
+        char c = str[i];
+        if (c == '"' && !is_escaped_quote(str, i)) {
+            in_string = !in_string;
+            continue;
+        }
+        if (!in_string && c == target) {
+            return i;
+        }
+    }
+    return std::string::npos;
+}
+
 void read_array_1d (std::vector<std::string>& ref, std::string const& str)
 {
     ref.clear();
@@ -890,14 +933,14 @@ template <typename T>
 void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
 {
     ref.clear();
-    std::string::size_type pos = str.find('[');
+    std::string::size_type pos = find_next_unquoted(str, 0, '[');
     if (pos == std::string::npos) { return; }
     for (int row_index = 0; row_index < 1000000; ++row_index) {
-        pos = str.find('[', pos+1);
+        pos = find_next_unquoted(str, pos+1, '[');
         if (pos != std::string::npos) {
             auto open_pos = pos;
             while (true) {
-                pos = str.find(']', pos+1);
+                pos = find_next_unquoted(str, pos+1, ']');
                 if (pos != std::string::npos) {
                     if constexpr (std::is_same_v<T,std::string>) {
                         if (!balanced_brackets(str, open_pos, pos)) {
@@ -905,12 +948,14 @@ void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
                         }
                     }
                     ref.resize(row_index+1);
-                    read_array_1d(ref[row_index], str.substr(open_pos, pos-open_pos+1));
+                    try {
+                        read_array_1d(ref[row_index], str.substr(open_pos, pos-open_pos+1));
+                    } catch (std::runtime_error const& e) {
+                        throw e;
+                    }
                     break;
                 } else {
-                    amrex::ErrorStream() << "ParmParse: unmatched [] in nested arrays\n";
-                    amrex::Abort();
-                    return;
+                    throw std::runtime_error("ParmParse: unmatched [] in nested arrays\n");
                 }
             }
         } else {
@@ -1038,6 +1083,12 @@ sgetval (const ParmParse::Table& table,
     }
 }
 
+bool is_toml_array (std::string const& token)
+{
+    return (token.size() >= 7 && token.compare(0,6,"ARRAY[") == 0 &&
+            token.back() == ']');
+}
+
 template <class T>
 bool
 squeryarr (const ParmParse::Table& table,
@@ -1057,10 +1108,7 @@ squeryarr (const ParmParse::Table& table,
         return false;
     }
 
-    bool const toml_array = (def->size() == 1) &&
-        ((*def)[0].find("ARRAY[") == 0) &&
-        ((*def)[0].back() == ']');
-
+    bool const toml_array = !(def->empty()) && is_toml_array((*def)[0]);
     std::vector<T> toml_vals;
     if (toml_array) {
         read_array_1d(toml_vals, (*def)[0]);
@@ -1666,7 +1714,47 @@ ParmParse::countval (std::string_view name,
     // First find n'th occurrence of name in table.
     //
     auto const* def = ppindex(*m_table, n, prefixedName(name));
-    return def == nullptr ? 0 : static_cast<int>(def->size());
+    if (def == nullptr) { return 0; }
+
+    if (!(def->empty()) && is_toml_array((*def)[0])) {
+        auto const& token = (*def)[0];
+
+        std::vector<std::vector<std::string>> arr_arr_str;
+        try {
+            read_array_2d(arr_arr_str, token);
+            if (!arr_arr_str.empty()) {
+                return static_cast<int>(arr_arr_str.size());
+            }
+        } catch (std::runtime_error const& e) {
+            amrex::ignore_unused(e);
+        }
+
+        std::vector<std::vector<double>> arr_arr_num;
+        try {
+            read_array_2d(arr_arr_num, token);
+            if (!arr_arr_num.empty()) {
+                return static_cast<int>(arr_arr_num.size());
+            }
+        } catch (std::runtime_error const& e) {
+            amrex::ignore_unused(e);
+        }
+
+        std::vector<std::string> arr_str;
+        read_array_1d(arr_str, token);
+        if (!arr_str.empty()) {
+            return static_cast<int>(arr_str.size());
+        }
+
+        std::vector<double> arr_num;
+        try {
+            read_array_1d(arr_num, token);
+            return static_cast<int>(arr_num.size());
+        } catch (std::runtime_error const&) {
+            return 0;
+        }
+    } else {
+        return static_cast<int>(def->size());
+    }
 }
 
 // BOOL
