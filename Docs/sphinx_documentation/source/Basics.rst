@@ -559,7 +559,7 @@ table header is defined, it will continue until another one is introduced.
    p.k = 2
 
    [a]
-   k = 3   # the full key/pair is a.k1 = 3
+   k = 3   # the full key/pair is a.k = 3
    b.k = 4 # the full key/pair is a.b.k = 4
 
    [b.c]

@@ -265,223 +265,223 @@ void eat_comment (const char*& str)
 PType
 getToken (const char*& str, std::string& ostr, int& num_linefeeds)
 {
-   //
-   // Eat white space and comments.
-   //
-   num_linefeeds = eat_garbage(str);
-   //
-   // Check for end of file.
-   //
-   if ( *str == 0 )
-   {
-       return PType::pEOF;
-   }
-   //
-   // Start token scan.
-   //
-   lexState state = lexState::START;
-   int      pcnt  = 0; // Tracks nested parens
-   int      cbcnt = 0; // Tracks nested curly braces
-   int      sbcnt = 0; // Tracks nested square brackets
-   bool     array_in_string = false;
-   bool     array_escape = false;
-   while (true)
-   {
-       char ch = *str;
-       if ( ch == 0 )
-       {
-           amrex::Error("ParmParse::getToken: EOF while parsing");
-       }
-       switch (state)
-       {
-       case lexState::START:
-           if ( ch == '=' )
-           {
-               ostr += ch; str++;
-               return PType::EQ_sign;
-           }
-           else if ( ch == '"' )
-           {
-               if (*(str+1) == '"' && *(str+2) == '"') {
-                   str += 3;
-                   if ((*str) == '\n') {
-                       // A newline immediately following the opening
-                       // delimiter will be trimmed.
-                       ++str;
-                   }
-                   state = lexState::TRIPLY_QUOTED_STRING;
-               } else {
-                   str++;
-                   state = lexState::QUOTED_STRING;
-               }
-           }
-           else if ( ch == '(' )
-           {
-               ostr += ch; str++; pcnt = 1;
-               state = lexState::LIST;
-           }
-           else if ( ch == '{' )
-           {
-               ostr += ch; str++; cbcnt = 1;
-               state = lexState::INITIALIZER;
-           }
-           else if ( ch == '[' )
-           {
-               ostr += "ARRAY[";
-               str++; sbcnt = 1;
-               array_in_string = false;
-               array_escape = false;
-               state = lexState::ARRAY;
-           }
-           else if ( std::isalpha(ch) )
-           {
-               ostr += ch; str++;
-               state = lexState::IDENTIFIER;
-           }
-           else
-           {
-               ostr += ch; str++;
-               state = lexState::STRING;
-           }
-           break;
-       case lexState::IDENTIFIER:
-           if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
-           {
-               ostr += ch; str++;
-           }
-           else if ( std::isspace(ch) || ch == '=' )
-           {
-               return PType::Defn;
-           }
-           else
-           {
-               ostr += ch; str++;
-               state = lexState::STRING;
-           }
-           break;
-       case lexState::LIST:
-           eat_comment(str);
-           ch = *str;
-           if ( ch == '(' )
-           {
-               ostr += ch; str++; pcnt++;
-           }
-           else if ( ch == ')' )
-           {
-               ostr += ch; str++; pcnt--;
-               if ( pcnt == 0 && cbcnt == 0 && sbcnt == 0 )
-               {
-                   return PType::Value;
-               }
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
-       case lexState::INITIALIZER:
-           eat_garbage(str);
-           ch = *str;
-           if ( ch == '{' )
-           {
-               ostr += ch; str++; cbcnt++;
-           }
-           else if ( ch == '}' )
-           {
-               ostr += ch; str++; cbcnt--;
-               if ( cbcnt == 0 && pcnt == 0 && sbcnt == 0 )
-               {
-                   return PType::Value;
-               }
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
-      case lexState::ARRAY:
-      {
-          if (!array_in_string) {
-              eat_garbage(str);
-              ch = *str;
-          } else {
-              ch = *str;
-          }
+    //
+    // Eat white space and comments.
+    //
+    num_linefeeds = eat_garbage(str);
+    //
+    // Check for end of file.
+    //
+    if ( *str == 0 )
+    {
+        return PType::pEOF;
+    }
+    //
+    // Start token scan.
+    //
+    lexState state = lexState::START;
+    int      pcnt  = 0; // Tracks nested parens
+    int      cbcnt = 0; // Tracks nested curly braces
+    int      sbcnt = 0; // Tracks nested square brackets
+    bool     array_in_string = false;
+    bool     array_escape = false;
+    while (true)
+    {
+        char ch = *str;
+        if ( ch == 0 )
+        {
+            amrex::Error("ParmParse::getToken: EOF while parsing");
+        }
+        switch (state)
+        {
+        case lexState::START:
+            if ( ch == '=' )
+            {
+                ostr += ch; str++;
+                return PType::EQ_sign;
+            }
+            else if ( ch == '"' )
+            {
+                if (*(str+1) == '"' && *(str+2) == '"') {
+                    str += 3;
+                    if ((*str) == '\n') {
+                        // A newline immediately following the opening
+                        // delimiter will be trimmed.
+                        ++str;
+                    }
+                    state = lexState::TRIPLY_QUOTED_STRING;
+                } else {
+                    str++;
+                    state = lexState::QUOTED_STRING;
+                }
+            }
+            else if ( ch == '(' )
+            {
+                ostr += ch; str++; pcnt = 1;
+                state = lexState::LIST;
+            }
+            else if ( ch == '{' )
+            {
+                ostr += ch; str++; cbcnt = 1;
+                state = lexState::INITIALIZER;
+            }
+            else if ( ch == '[' )
+            {
+                ostr += "ARRAY[";
+                str++; sbcnt = 1;
+                array_in_string = false;
+                array_escape = false;
+                state = lexState::ARRAY;
+            }
+            else if ( std::isalpha(ch) )
+            {
+                ostr += ch; str++;
+                state = lexState::IDENTIFIER;
+            }
+            else
+            {
+                ostr += ch; str++;
+                state = lexState::STRING;
+            }
+            break;
+        case lexState::IDENTIFIER:
+            if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
+            {
+                ostr += ch; str++;
+            }
+            else if ( std::isspace(ch) || ch == '=' )
+            {
+                return PType::Defn;
+            }
+            else
+            {
+                ostr += ch; str++;
+                state = lexState::STRING;
+            }
+            break;
+        case lexState::LIST:
+            eat_comment(str);
+            ch = *str;
+            if ( ch == '(' )
+            {
+                ostr += ch; str++; pcnt++;
+            }
+            else if ( ch == ')' )
+            {
+                ostr += ch; str++; pcnt--;
+                if ( pcnt == 0 && cbcnt == 0 && sbcnt == 0 )
+                {
+                    return PType::Value;
+                }
+            }
+            else
+            {
+                ostr += ch; str++;
+            }
+            break;
+        case lexState::INITIALIZER:
+            eat_garbage(str);
+            ch = *str;
+            if ( ch == '{' )
+            {
+                ostr += ch; str++; cbcnt++;
+            }
+            else if ( ch == '}' )
+            {
+                ostr += ch; str++; cbcnt--;
+                if ( cbcnt == 0 && pcnt == 0 && sbcnt == 0 )
+                {
+                    return PType::Value;
+                }
+            }
+            else
+            {
+                ostr += ch; str++;
+            }
+            break;
+        case lexState::ARRAY:
+        {
+            if (!array_in_string) {
+                eat_garbage(str);
+                ch = *str;
+            } else {
+                ch = *str;
+            }
 
-          if (array_in_string) {
-              ostr += ch; str++;
-              if (array_escape) {
-                  array_escape = false;
-              } else if (ch == '\\') {
-                  array_escape = true;
-              } else if (ch == '"') {
-                  array_in_string = false;
-              }
-          }
-          else if ( ch == '"' )
-          {
-              array_in_string = true;
-              array_escape = false;
-              ostr += ch; str++;
-          }
-          else if ( ch == '[' )
-          {
-              ostr += ch; str++; sbcnt++;
-          }
-          else if ( ch == ']' )
-          {
-              ostr += ch; str++; sbcnt--;
-              if ( sbcnt == 0 && pcnt == 0 && cbcnt == 0)
-              {
-                  return PType::Value;
-              }
-          }
-          else
-          {
-              ostr += ch; str++;
-          }
-          break;
-      }
-       case lexState::STRING:
-           if ( std::isspace(ch) || ch == '=' )
-           {
-               return PType::Value;
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
-       case lexState::TRIPLY_QUOTED_STRING:
-           if ( (ch == '"') && (*(str+1) == '"') && (*(str+2) == '"') )
-           {
-               str += 3;
-               return PType::Value;
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
-       case lexState::QUOTED_STRING:
-           if ( ch == '"' )
-           {
-               str++;
-               return PType::Value;
-           }
-           else
-           {
-               ostr += ch; str++;
-           }
-           break;
-       default:
-           amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'
-                                << "STATE = " << static_cast<int>(state)
-                                << ", next char = " << ch << '\n'
-                                << ", rest of input = \n" << str << '\n';
-           amrex::Abort();
-       }
-   }
+            if (array_in_string) {
+                ostr += ch; str++;
+                if (array_escape) {
+                    array_escape = false;
+                } else if (ch == '\\') {
+                    array_escape = true;
+                } else if (ch == '"') {
+                    array_in_string = false;
+                }
+            }
+            else if ( ch == '"' )
+            {
+                array_in_string = true;
+                array_escape = false;
+                ostr += ch; str++;
+            }
+            else if ( ch == '[' )
+            {
+                ostr += ch; str++; sbcnt++;
+            }
+            else if ( ch == ']' )
+            {
+                ostr += ch; str++; sbcnt--;
+                if ( sbcnt == 0 && pcnt == 0 && cbcnt == 0)
+                {
+                    return PType::Value;
+                }
+            }
+            else
+            {
+                ostr += ch; str++;
+            }
+            break;
+        }
+        case lexState::STRING:
+            if ( std::isspace(ch) || ch == '=' )
+            {
+                return PType::Value;
+            }
+            else
+            {
+                ostr += ch; str++;
+            }
+            break;
+        case lexState::TRIPLY_QUOTED_STRING:
+            if ( (ch == '"') && (*(str+1) == '"') && (*(str+2) == '"') )
+            {
+                str += 3;
+                return PType::Value;
+            }
+            else
+            {
+                ostr += ch; str++;
+            }
+            break;
+        case lexState::QUOTED_STRING:
+            if ( ch == '"' )
+            {
+                str++;
+                return PType::Value;
+            }
+            else
+            {
+                ostr += ch; str++;
+            }
+            break;
+        default:
+            amrex::ErrorStream() << "ParmParse::getToken(): invalid string = " << ostr << '\n'
+                                 << "STATE = " << static_cast<int>(state)
+                                 << ", next char = " << ch << '\n'
+                                 << ", rest of input = \n" << str << '\n';
+            amrex::Abort();
+        }
+    }
 }
 
 std::string is_valid_table_key (std::string const& str)
@@ -950,8 +950,8 @@ void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
                     ref.resize(row_index+1);
                     try {
                         read_array_1d(ref[row_index], str.substr(open_pos, pos-open_pos+1));
-                    } catch (std::runtime_error const& e) {
-                        throw e;
+                    } catch (...) {
+                        throw;
                     }
                     break;
                 } else {
