@@ -63,6 +63,11 @@ int main(int argc, char* argv[])
         n = pp.countval("array_of_strings");
         AMREX_ALWAYS_ASSERT(n == 3 && aos == std::vector<std::string>({"face[0]","face[1]","face[2]"}));
 
+        std::vector<std::string> aos2;
+        pp.getarr("array_of_strings_2", aos2);
+        n = pp.countval("array_of_strings_2");
+        AMREX_ALWAYS_ASSERT(n == 4 && aos2 == std::vector<std::string>({"face[-1]","f,ace[0]","fa,ce[1]","face[2],"}));
+
         std::vector<std::vector<int>> ivv;
         pp.getarr("nested_arrays_of_ints", ivv);
         n = pp.countval("nested_arrays_of_ints"); // size of the outer array
@@ -84,7 +89,13 @@ int main(int argc, char* argv[])
         pp.getarr("nested_arrays_of_strings_3", svv3);
         n = pp.countval("nested_arrays_of_strings_3");
         AMREX_ALWAYS_ASSERT(n == 2 && svv3 == std::vector<std::vector<std::string>>(
-                                {{"aa[a","bbb"},{"ccc"}}));
+                                {{"aa[a"," bbb"},{"c\\\"c\\\" c "}}));
+
+        std::vector<std::vector<std::string>> svv4;
+        pp.getarr("nested_arrays_of_strings_4", svv4);
+        n = pp.countval("nested_arrays_of_strings_4");
+        AMREX_ALWAYS_ASSERT(n == 2 && svv4 == std::vector<std::vector<std::string>>(
+                                {{"aa]a"," b,bb"},{"ccc["}}));
 
         std::vector<int> iv2;
         pp.getarr("integers2", iv2);
