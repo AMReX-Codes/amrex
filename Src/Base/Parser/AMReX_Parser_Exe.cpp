@@ -655,7 +655,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             t->fd = pp.second;
         }
         exe_size += sizeof(ParserExeUserFn);
-        stack_size -= (argc-1);;
+        stack_size -= (argc-1);
         break;
     }
     default:

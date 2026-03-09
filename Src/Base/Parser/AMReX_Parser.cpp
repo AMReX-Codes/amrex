@@ -165,7 +165,7 @@ Parser::userFunctions () const
 void
 Parser::printExe () const
 {
-    if (m_data->m_host_executor) {
+    if (m_data && m_data->m_host_executor) {
         parser_exe_print(m_data->m_host_executor, m_vars, m_data->m_locals);
     }
 }
