@@ -577,9 +577,9 @@ in :cpp:`ParmParse`. If you want compatibility with TOML, you should avoid it.
 
    # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
    [a]
-   k = 1
+   b = 1
    [a.b]
-   k = 2
+   c = 2
 
 .. highlight:: python
 
