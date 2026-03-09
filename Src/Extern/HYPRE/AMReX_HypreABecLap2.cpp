@@ -255,6 +255,7 @@ HypreABecLap2::prepareSolver ()
         });
 
         Real* mat = (Real*) rfab.dataPtr();
+        // Sync required: mat is passed to HYPRE host API below
         Gpu::streamSynchronize();
 
         auto reglo = Hypre::loV(reg);
@@ -304,6 +305,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
         {
             rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
         });
+        // Sync required: rhs_diag is passed to HYPRE host API in loadVectors
         Gpu::streamSynchronize();
     } else
 #endif

@@ -229,46 +229,6 @@ public:
                             const BndryFunc& func);
 
     /**
-    * \brief Set interpolaters for a subset of the state vector components.
-    *
-    * \param use_default_map
-    * \param default_map
-    * \param start_comp
-    * \param num_comp
-    * \param maps
-    * \param nmaps
-    * \param map_start_comp
-    * \param map_num_comp
-    * \param max_start_comp
-    * \param min_end_comp
-    */
-    void setUpMaps (int&                use_default_map,
-                    const InterpBase*   default_map,
-                    int                 start_comp,
-                    int                 num_comp,
-                    InterpBase**&       maps,
-                    int&                nmaps,
-                    int*&               map_start_comp,
-                    int*&               map_num_comp,
-                    int*&               max_start_comp,
-                    int*&               min_end_comp) const;
-
-    /**
-    * \brief Cleanup interpolaters for a subset of the state vector components.
-    *
-    * \param maps
-    * \param map_start_comp
-    * \param map_num_comp
-    * \param max_start_comp
-    * \param min_end_comp
-    */
-    static void cleanUpMaps (InterpBase**&   maps,
-                      int*&           map_start_comp,
-                      int*&           map_num_comp,
-                      int*&           max_start_comp,
-                      int*&           min_end_comp) ;
-
-    /**
     * \brief Output names of components.
     *
     * \param os

@@ -15,7 +15,7 @@ chapter, AMReX also supports solving Poisson equations using Fast Fourier
 Transform (FFT) (see chapter :ref:`Chap:FFT` for more information).
 
 The default solution technique is geometric multigrid. AMReX also provides
-BiCGStab solvers, GMRES, and interfaces to the hypre and PETSc libraries.
+BiCGStab solvers, GMRES, and interfaces to the HYPRE and PETSc libraries.
 
 In this Chapter we give an overview of the linear solvers in AMReX
 that solve linear systems in the canonical form
