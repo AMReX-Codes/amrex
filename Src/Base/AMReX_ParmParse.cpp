@@ -1229,6 +1229,8 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
         bldTable(s, table);
     }
 
+    g_toml_table_key.clear();
+
     if ( parfile != nullptr )
     {
         read_file(parfile, table);
