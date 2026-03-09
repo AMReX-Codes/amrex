@@ -234,12 +234,10 @@ module amrex_parmparse_module
      end subroutine amrex_parmparse_add_stringarr
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_parmparse_destroy
      module procedure amrex_parmparse_destroy
-#ifdef __NVCOMPILER
-interface amrex_parmparse_destroy
-module procedure amrex_parmparse_destroy
-end interface amrex_parmparse_destroy
+  end interface amrex_parmparse_destroy
 #endif
 
 contains
