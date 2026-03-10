@@ -76,7 +76,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
-    if (coord == -1) {
+    if (coord <= -1 || coord > 2) {
         c_sys = gg->Coord();
     } else {
         c_sys = static_cast<CoordType>(coord);
@@ -200,7 +200,7 @@ Geometry::ResetDefaultCoord (int coord) noexcept
 {
     AMREX_ASSERT(coord >= -1 && coord <= 2);
     Geometry* gg = AMReX::top()->getDefaultGeometry();
-    gg->SetCoord(static_cast<CoordType>(coord));
+    gg->SetCoord(static_cast<CoordType>(coord)); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }
 
 void
@@ -233,7 +233,9 @@ Geometry::GetVolume (MultiFab& vol) const
             {
                 amrex_setvol(makeSingleCellBox(i,j,k), ma[box_no], a_offset, a_dx, coord);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {
@@ -279,7 +281,9 @@ Geometry::GetDLogA (MultiFab&       dloga,
         {
             amrex_setdloga(makeSingleCellBox(i,j,k), ma[box_no], a_offset, a_dx, dir, coord);
         });
-        Gpu::streamSynchronize();
+        if (!Gpu::inNoSyncRegion()) {
+            Gpu::streamSynchronize();
+        }
     } else
 #endif
     {
@@ -339,7 +343,9 @@ Geometry::GetFaceArea (MultiFab&       area,
             {
                 amrex_setarea(makeSingleCellBox(i,j,k), ma[box_no], a_offset, a_dx, dir, coord);
             });
-            Gpu::streamSynchronize();
+            if (!Gpu::inNoSyncRegion()) {
+                Gpu::streamSynchronize();
+            }
         } else
 #endif
         {

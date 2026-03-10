@@ -51,12 +51,12 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
         {
             auto const& fab = m_fa.array(mfi);
             Box const fbx{fab};
-            AMREX_HOST_DEVICE_FOR_3D(fbx, i, j, k,
+            AMREX_HOST_DEVICE_FOR_4D(fbx, ncomp, i, j, k, n,
             {
                 if (domain.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                    fab(i,j,k) = bndrydata_not_covered;
+                    fab(i,j,k,n) = bndrydata_not_covered;
                 } else {
-                    fab(i,j,k) = bndrydata_outside_domain;
+                    fab(i,j,k,n) = bndrydata_outside_domain;
                 }
             });
         }
@@ -66,7 +66,7 @@ MultiMask::define (const BoxArray& regba, const DistributionMapping& dm, const G
                                                    regmf,
                                                    IntVect::TheZeroVector(),
                                                    geom.periodicity());
-        m_fa.setVal(bndrydata_covered, cpc, 0, 1);
+        m_fa.setVal(bndrydata_covered, cpc, 0, ncomp);
     }
 }
 

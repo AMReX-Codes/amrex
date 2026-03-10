@@ -124,10 +124,7 @@ FabArrayBase::Initialize ()
     }
 
     pp.query("maxcomp", FabArrayBase::MaxComp);
-
-    if (MaxComp < 1) {
-        MaxComp = 1;
-    }
+    MaxComp = std::max(MaxComp, 1);
 
     ParmParse ppmf("amrex.mf");
     ppmf.queryAdd("alloc_single_chunk", FabArrayBase::m_alloc_single_chunk);

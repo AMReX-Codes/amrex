@@ -201,7 +201,7 @@ void EBToPVD::WriteEBVTP(const int myID) const
       myfile << "<VTKFile type=\"PolyData\" version=\"0.1\" byte_order=\"LittleEndian\">\n";
       myfile << "<PolyData>\n";
       myfile << "<Piece NumberOfPoints=\"" << m_points.size() << "\" NumberOfVerts=\"0\" " // NOLINT
-         << "NumberOfLines=\"0\" NumberOfString=\"0\" NumberOfPolys=\" " // NOLINT
+         << "NumberOfLines=\"0\" NumberOfStrips=\"0\" NumberOfPolys=\" " // NOLINT
          << m_connectivity.size() << "\">\n";
       print_points(myfile);
       print_connectivity(myfile);

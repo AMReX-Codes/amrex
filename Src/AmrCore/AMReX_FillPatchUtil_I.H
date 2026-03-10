@@ -80,11 +80,11 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 {
     BL_PROFILE("FillPatchSingleLevel");
 
-    AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
-    AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
-    AMREX_ASSERT(smf.size() == stime.size());
-    AMREX_ASSERT(!smf.empty());
-    AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
+    AMREX_ASSERT((!smf.empty()) &&
+                 (scomp+ncomp <= smf[0]->nComp()) &&
+                 (dcomp+ncomp <= mf.nComp()) &&
+                 (smf.size() == stime.size()) &&
+                 nghost.allLE(mf.nGrowVect()));
 
     IntVect src_ghost(0);
     if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {

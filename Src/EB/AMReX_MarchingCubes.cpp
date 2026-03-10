@@ -955,12 +955,12 @@ void write_stl (std::string const& filename, std::map<int,std::unique_ptr<MCFab>
         Gpu::PinnedVector<Real> vert_x(nvert);
         Gpu::PinnedVector<Real> vert_y(nvert);
         Gpu::PinnedVector<Real> vert_z(nvert);
-        Gpu::copyAsync(Gpu::hostToDevice, p->m_triangles.v1.begin(), p->m_triangles.v1.end(), tri_v1.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, p->m_triangles.v2.begin(), p->m_triangles.v2.end(), tri_v2.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, p->m_triangles.v3.begin(), p->m_triangles.v3.end(), tri_v3.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, p->m_vertices.x.begin(), p->m_vertices.x.end(), vert_x.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, p->m_vertices.y.begin(), p->m_vertices.y.end(), vert_y.begin());
-        Gpu::copyAsync(Gpu::hostToDevice, p->m_vertices.z.begin(), p->m_vertices.z.end(), vert_z.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v1.begin(), p->m_triangles.v1.end(), tri_v1.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v2.begin(), p->m_triangles.v2.end(), tri_v2.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v3.begin(), p->m_triangles.v3.end(), tri_v3.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.x.begin(), p->m_vertices.x.end(), vert_x.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.y.begin(), p->m_vertices.y.end(), vert_y.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.z.begin(), p->m_vertices.z.end(), vert_z.begin());
         Gpu::streamSynchronize();
 #else
         auto const& tri_v1 = p->m_triangles.v1;

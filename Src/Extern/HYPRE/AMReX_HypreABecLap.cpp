@@ -228,6 +228,7 @@ HypreABecLap::prepareSolver ()
         });
 
         Real* mat = (Real*) rfab.dataPtr();
+        // Must sync before host API uses device-written data (mat).
         Gpu::streamSynchronize();
 
         auto reglo = Hypre::loV(reg);
@@ -271,6 +272,7 @@ HypreABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
         {
             rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
         });
+        // Must sync before host uses rhs_diag (e.g. in HYPRE load).
         Gpu::streamSynchronize();
     } else
 #endif

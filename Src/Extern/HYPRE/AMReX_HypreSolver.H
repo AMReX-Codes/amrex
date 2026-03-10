@@ -1,7 +1,5 @@
 /**
  * \file AMReX_HypreSolver.H
- *
- *  @{
  */
 
 #ifndef AMREX_HYPRE_SOLVER_H_
@@ -25,7 +23,7 @@ namespace amrex
  * specified using the compressed sparse row (CSR) format.
  *
  * An example of using HypreSolver to solve Poisson's equation is located in
- * Tests/LinearSolvers/Hypre
+ * Tests/LinearSolvers/Hypre (which exercises the HYPRE backend)
  *
  */
 template <int MSS>
@@ -56,7 +54,7 @@ public:
  *                                          (int boxno, int i, int j, int k, int n, Array4<HYPRE_Int const> const* gid, HYPRE_Int& ncols, HYPRE_Int* cols, HYPRE_Real* mat)
  *                                      \endcode
  * \param [in]      a_verbose           HYPRE verbosity (default 0)
- * \param [in]      a_options_namespace namespace to use when parsing runtime input parameters (default "hypre")
+ * \param [in]      a_options_namespace namespace to use when parsing runtime input parameters (default literal "hypre" used for HYPRE options)
  *
  */
     template <class Marker, class Filler>
@@ -74,31 +72,38 @@ public:
                                          std::is_same_v<typename MF::value_type,
                                                         HYPRE_Real>, int> = 0>
 /**
- * Solve Ax=b
+ * \brief Solve Ax=b after the constructor assembled the IJ matrix.
  *
- * \param [out]      a_soln        the solution (i.e. x)
- * \param [in]       a_rhs         the right-hand side (i.e. b)
- * \param [in]       rel_tol       relative convergence tolerance
- * \param [in]       abs_tol       absolute convergence tolerance
- * \param [in]       max_iter      maximum number of iterations
- *
+ * \param [out]      a_soln        Solution vectors (updated in place).
+ * \param [in]       a_rhs         Right-hand-side vectors.
+ * \param [in]       rel_tol       Relative convergence tolerance.
+ * \param [in]       abs_tol       Absolute convergence tolerance.
+ * \param [in]       max_iter      Maximum iterations.
  */
     void solve (Vector<MF      *> const& a_soln,
                 Vector<MF const*> const& a_rhs,
                 HYPRE_Real rel_tol, HYPRE_Real abs_tol, int max_iter);
 
+    //! Number of iterations from the last solve().
     int getNumIters () const { return m_hypre_ij->getNumIters(); }
 
+    //! Final residual norm from the last solve().
     HYPRE_Real getFinalResidualNorm () const {
         return m_hypre_ij->getFinalResidualNorm();
     }
 
+    //! Access the assembled IJ matrix handle (non-owning).
     HYPRE_IJMatrix getA () const { return m_hypre_ij->A(); }
+    //! Access the assembled IJ RHS handle (non-owning).
     HYPRE_IJVector getb () const { return m_hypre_ij->b(); }
+    //! Access the IJ solution handle (non-owning).
     HYPRE_IJVector getx () const { return m_hypre_ij->x(); }
 
 // public: // for cuda
 
+    /**
+     * \brief Assign local ids to each owned DOF by invoking \p marker.
+     */
     template <class Marker>
 #ifdef AMREX_USE_CUDA
     std::enable_if_t<IsCallable<Marker,int,int,int,int,int>::value>
@@ -107,9 +112,18 @@ public:
 #endif
     fill_local_id (Marker const& marker);
 
+    //! Convert the local ids to globally unique ids visible to HYPRE.
     template <typename AI>
     void fill_global_id ();
 
+    /**
+     * \brief Fill each CSR row using the supplied \p filler functor.
+     *
+     * \param filler Functor with signature
+     *        `(int boxno, int i, int j, int k, int n, Array4<HYPRE_Int const> const* gid,`
+     *        `HYPRE_Int& ncols, HYPRE_Int* cols, HYPRE_Real* mat)` that emits the nonzeros
+     *        for each DOF.
+     */
     template <class Filler,
               std::enable_if_t<IsCallable<Filler,int,int,int,int,int,
                                           Array4<HYPRE_Int const> const*,
@@ -117,12 +131,23 @@ public:
                                           HYPRE_Real*>::value,int> FOO = 0>
     void fill_matrix (Filler const& filler);
 
+    /**
+     * \brief Copy AMReX RHS/initial guess data into the IJ vectors.
+     *
+     * \param a_soln Solution MultiFabs (initial guess overwritten).
+     * \param a_rhs  RHS MultiFabs.
+     */
     template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
                                          std::is_same_v<typename MF::value_type,
                                                         HYPRE_Real>, int> = 0>
     void load_vectors (Vector<MF      *> const& a_soln,
                        Vector<MF const*> const& a_rhs);
 
+    /**
+     * \brief Copy IJ solution entries back into AMReX storage.
+     *
+     * \param a_soln Solution MultiFabs populated in place.
+     */
     template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
                                          std::is_same_v<typename MF::value_type,
                                                         HYPRE_Real>, int> = 0>
@@ -158,7 +183,7 @@ private:
 
     std::unique_ptr<HypreIJIface> m_hypre_ij;
 
-    // Non-owning references to Hypre matrix, rhs, and solution data
+    // Non-owning references to HYPRE matrix, rhs, and solution data
     HYPRE_IJMatrix m_A = nullptr;
     HYPRE_IJVector m_b = nullptr;
     HYPRE_IJVector m_x = nullptr;
@@ -254,7 +279,7 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
     }
     AMREX_ASSERT(proc_end == proc_begin + m_nrows_proc);
 
-    // To generate global ids for Hypre, we need to remove duplicates on
+    // To generate global ids for HYPRE, we need to remove duplicates on
     // nodes shared by multiple Boxes with OverrideSync.  So we need to use
     // a type that supports atomicAdd.  HYPRE_Int is either int or long
     // long.  The latter (i.e., long long) does not have native atomicAdd
@@ -718,4 +743,3 @@ HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
 }
 
 #endif
-/** @} */

@@ -6,6 +6,19 @@
 namespace amrex::FFT
 {
 
+/**
+ * \file AMReX_FFT_OpenBCSolver.H
+ *
+ * FFT-based solver for open-boundary convolution problems via Green's functions.
+ */
+
+/**
+ * \ingroup amrex_fft
+ * \brief Convolution-based solver for open boundary conditions using Green's functions.
+ *
+ * The class wraps an internal `R2C` plan and multiplies spectral data by a user-provided
+ * Green's function to solve Laplace/Poisson problems on a rectangular domain.
+ */
 template <typename T = Real>
 class OpenBCSolver
 {
@@ -13,13 +26,36 @@ public:
     using MF = typename R2C<T>::MF;
     using cMF = typename R2C<T>::cMF;
 
+    /**
+     * \brief Build a solver over \p domain using the FFT Info settings in \p info.
+     *
+     * \param domain Physical domain (cell or nodal indexing).
+     * \param info   Optional FFT configuration (domain strategy, batching, etc.).
+     */
     explicit OpenBCSolver (Box const& domain, Info const& info = Info{});
 
+    /**
+     * \brief Populate the spectral Green's function used by subsequent solves.
+     *
+     * \tparam F Callable type satisfying `T(int i, int j, int k)`.
+     * \param greens_function Functor that evaluates the physical-space Green's function.
+     */
     template <class F>
     void setGreensFunction (F const& greens_function);
 
+    /**
+     * \brief Solve for \p phi given right-hand side \p rho.
+     *
+     * \param phi Solution MultiFab (overwritten in place).
+     * \param rho Right-hand-side MultiFab.
+     */
     void solve (MF& phi, MF const& rho);
 
+    /**
+     * \brief Access the physical domain this solver was built for.
+     *
+     * \return Original (un-extended) problem domain.
+     */
     [[nodiscard]] Box const& Domain () const { return m_domain; }
 
 private:

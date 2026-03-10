@@ -14,22 +14,12 @@ struct HypreOptParse
     //! Input file parser instance for the given namespace
     amrex::ParmParse pp;
 
-    //! Hypre solver/preconditioner whose options are being set
+    //! HYPRE solver/preconditioner whose options are being set
     HYPRE_Solver solver;
 
     HypreOptParse (const std::string& prefix, HYPRE_Solver sinp)
         : pp(prefix), solver(sinp)
     {}
-
-    template <typename F>
-    void operator() (const std::string& key, F&& func)
-    {
-        if (pp.contains(key)) {
-            int val;
-            pp.query(key, val);
-            std::forward<F>(func)(solver, val);
-        }
-    }
 
     template <typename F, typename T>
     void operator() (const std::string& key, F&& func, T default_val)
@@ -248,8 +238,8 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_precond);
-    hpp("bamg_verbose", HYPRE_BoomerAMGSetPrintLevel);
-    hpp("bamg_logging", HYPRE_BoomerAMGSetLogging);
+    hpp.set<int>("bamg_verbose", HYPRE_BoomerAMGSetPrintLevel);
+    hpp.set<int>("bamg_logging", HYPRE_BoomerAMGSetLogging);
 
     hpp("bamg_max_iterations", HYPRE_BoomerAMGSetMaxIter, 1);
     hpp("bamg_precond_tolerance", HYPRE_BoomerAMGSetTol, 0.0);
@@ -278,19 +268,19 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
         (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
     hpp("bamg_interp_type", HYPRE_BoomerAMGSetInterpType, 0);
 
-    hpp("bamg_variant", HYPRE_BoomerAMGSetVariant);
-    hpp("bamg_keep_transpose", HYPRE_BoomerAMGSetKeepTranspose);
-    hpp("bamg_min_coarse_size", HYPRE_BoomerAMGSetMinCoarseSize);
-    hpp("bamg_max_coarse_size", HYPRE_BoomerAMGSetMaxCoarseSize);
-    hpp("bamg_pmax_elmts", HYPRE_BoomerAMGSetPMaxElmts);
-    hpp("bamg_agg_num_levels", HYPRE_BoomerAMGSetAggNumLevels);
-    hpp("bamg_agg_interp_type", HYPRE_BoomerAMGSetAggInterpType);
-    hpp("bamg_agg_pmax_elmts", HYPRE_BoomerAMGSetAggPMaxElmts);
+    hpp.set<int>("bamg_variant", HYPRE_BoomerAMGSetVariant);
+    hpp.set<int>("bamg_keep_transpose", HYPRE_BoomerAMGSetKeepTranspose);
+    hpp.set<int>("bamg_min_coarse_size", HYPRE_BoomerAMGSetMinCoarseSize);
+    hpp.set<int>("bamg_max_coarse_size", HYPRE_BoomerAMGSetMaxCoarseSize);
+    hpp.set<int>("bamg_pmax_elmts", HYPRE_BoomerAMGSetPMaxElmts);
+    hpp.set<int>("bamg_agg_num_levels", HYPRE_BoomerAMGSetAggNumLevels);
+    hpp.set<int>("bamg_agg_interp_type", HYPRE_BoomerAMGSetAggInterpType);
+    hpp.set<int>("bamg_agg_pmax_elmts", HYPRE_BoomerAMGSetAggPMaxElmts);
     hpp("bamg_trunc_factor", HYPRE_BoomerAMGSetTruncFactor, 0.1);
     hpp("bamg_set_restriction", HYPRE_BoomerAMGSetRestriction, 0);
 
     if (hpp.pp.contains("bamg_non_galerkin_tol")) {
-        hpp("bamg_non_galerkin_tol", HYPRE_BoomerAMGSetNonGalerkinTol);
+        hpp.set<HypreRealType>("bamg_non_galerkin_tol", HYPRE_BoomerAMGSetNonGalerkinTol);
 
         if (hpp.pp.contains("bamg_non_galerkin_level_tols")) {
             std::vector<int> levels;
@@ -315,32 +305,32 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
         int smooth_type;
         hpp.pp.get("bamg_smooth_type", smooth_type);
 
-        hpp("bamg_smooth_type", HYPRE_BoomerAMGSetSmoothType);
+        hpp.set<int>("bamg_smooth_type", HYPRE_BoomerAMGSetSmoothType);
 
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
         // Process ILU smoother parameters
         if (smooth_type == 5) { // ParILUK
-            hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
-            hpp("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
-            hpp("bamg_ilu_type", HYPRE_BoomerAMGSetILUType);
-            hpp("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
-            hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
+            hpp.set<int>("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
+            hpp.set<int>("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
+            hpp.set<int>("bamg_ilu_type", HYPRE_BoomerAMGSetILUType);
+            hpp.set<int>("bamg_ilu_level", HYPRE_BoomerAMGSetILULevel);
+            hpp.set<int>("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
-            hpp("bamg_ilu_iterative_algorithm_type", HYPRE_BoomerAMGSetILUIterSetupType);
-            hpp("bamg_ilu_iterative_setup_type", HYPRE_BoomerAMGSetILUIterSetupOption);
-            hpp("bamg_ilu_iterative_max_iter", HYPRE_BoomerAMGSetILUIterSetupMaxIter);
-            hpp("bamg_ilu_iterative_tolerance", HYPRE_BoomerAMGSetILUIterSetupTolerance);
-            hpp("bamg_ilu_reordering_type", HYPRE_BoomerAMGSetILULocalReordering);
-            hpp("bamg_ilu_tri_solve", HYPRE_BoomerAMGSetILUTriSolve);
-            hpp("bamg_ilu_lower_jacobi_iters", HYPRE_BoomerAMGSetILULowerJacobiIters);
-            hpp("bamg_ilu_upper_jacobi_iters", HYPRE_BoomerAMGSetILUUpperJacobiIters);
+            hpp.set<int>("bamg_ilu_iterative_algorithm_type", HYPRE_BoomerAMGSetILUIterSetupType);
+            hpp.set<int>("bamg_ilu_iterative_setup_type", HYPRE_BoomerAMGSetILUIterSetupOption);
+            hpp.set<int>("bamg_ilu_iterative_max_iter", HYPRE_BoomerAMGSetILUIterSetupMaxIter);
+            hpp.set<HypreRealType>("bamg_ilu_iterative_tolerance", HYPRE_BoomerAMGSetILUIterSetupTolerance);
+            hpp.set<int>("bamg_ilu_reordering_type", HYPRE_BoomerAMGSetILULocalReordering);
+            hpp.set<int>("bamg_ilu_tri_solve", HYPRE_BoomerAMGSetILUTriSolve);
+            hpp.set<int>("bamg_ilu_lower_jacobi_iters", HYPRE_BoomerAMGSetILULowerJacobiIters);
+            hpp.set<int>("bamg_ilu_upper_jacobi_iters", HYPRE_BoomerAMGSetILUUpperJacobiIters);
 #endif
         }
         else if (smooth_type == 7) { // Pilut
-            hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
-            hpp("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
-            hpp("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
-            hpp("bamg_ilu_max_row_nnz", HYPRE_BoomerAMGSetILUMaxRowNnz);
+            hpp.set<int>("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
+            hpp.set<int>("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
+            hpp.set<int>("bamg_ilu_max_iter", HYPRE_BoomerAMGSetILUMaxIter);
+            hpp.set<int>("bamg_ilu_max_row_nnz", HYPRE_BoomerAMGSetILUMaxRowNnz);
             hpp("bamg_ilu_drop_tol", HYPRE_BoomerAMGSetILUDroptol, 1.e-10);
         }
 #endif
@@ -353,8 +343,8 @@ void HypreIJIface::boomeramg_precond_configure (const std::string& prefix)
                 HYPRE_BoomerAMGSetEuclidFile(
                     m_precond, const_cast<char*>(euclid_file.c_str()));
             }
-            hpp("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
-            hpp("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
+            hpp.set<int>("bamg_smooth_num_levels", HYPRE_BoomerAMGSetSmoothNumLevels);
+            hpp.set<int>("bamg_smooth_num_sweeps", HYPRE_BoomerAMGSetSmoothNumSweeps);
         }
     }
 }
@@ -396,25 +386,25 @@ void HypreIJIface::ilu_precond_configure (const std::string& prefix)
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22100)
     // Process ILU smoother parameters
     // ParILUK
-    hpp("ilu_type", HYPRE_ILUSetType);
-    hpp("ilu_max_iter", HYPRE_ILUSetMaxIter);
-    hpp("ilu_tolerance", HYPRE_ILUSetTol);
-    hpp("ilu_reordering_type", HYPRE_ILUSetLocalReordering);
-    hpp("ilu_print_level", HYPRE_ILUSetPrintLevel);
+    hpp.set<int>("ilu_type", HYPRE_ILUSetType);
+    hpp.set<int>("ilu_max_iter", HYPRE_ILUSetMaxIter);
+    hpp.set<HypreRealType>("ilu_tolerance", HYPRE_ILUSetTol);
+    hpp.set<int>("ilu_reordering_type", HYPRE_ILUSetLocalReordering);
+    hpp.set<int>("ilu_print_level", HYPRE_ILUSetPrintLevel);
 
     // ILUK
-    hpp("ilu_fill", HYPRE_ILUSetLevelOfFill);
+    hpp.set<int>("ilu_fill", HYPRE_ILUSetLevelOfFill);
     // ILUT
-    hpp("ilu_max_nnz_per_row", HYPRE_ILUSetMaxNnzPerRow);
-    hpp("ilu_drop_threshold", HYPRE_ILUSetDropThreshold);
+    hpp.set<int>("ilu_max_nnz_per_row", HYPRE_ILUSetMaxNnzPerRow);
+    hpp.set<HypreRealType>("ilu_drop_threshold", HYPRE_ILUSetDropThreshold);
 #if defined(HYPRE_RELEASE_NUMBER) && (HYPRE_RELEASE_NUMBER >= 22900)
-    hpp("ilu_iterative_algorithm_type", HYPRE_ILUSetIterativeSetupType);
-    hpp("ilu_iterative_setup_type", HYPRE_ILUSetIterativeSetupOption);
-    hpp("ilu_iterative_max_iter", HYPRE_ILUSetIterativeSetupMaxIter);
-    hpp("ilu_iterative_tolerance", HYPRE_ILUSetIterativeSetupTolerance);
-    hpp("ilu_tri_solve", HYPRE_ILUSetTriSolve);
-    hpp("ilu_lower_jacobi_iters", HYPRE_ILUSetLowerJacobiIters);
-    hpp("ilu_upper_jacobi_iters", HYPRE_ILUSetUpperJacobiIters);
+    hpp.set<int>("ilu_iterative_algorithm_type", HYPRE_ILUSetIterativeSetupType);
+    hpp.set<int>("ilu_iterative_setup_type", HYPRE_ILUSetIterativeSetupOption);
+    hpp.set<int>("ilu_iterative_max_iter", HYPRE_ILUSetIterativeSetupMaxIter);
+    hpp.set<HypreRealType>("ilu_iterative_tolerance", HYPRE_ILUSetIterativeSetupTolerance);
+    hpp.set<int>("ilu_tri_solve", HYPRE_ILUSetTriSolve);
+    hpp.set<int>("ilu_lower_jacobi_iters", HYPRE_ILUSetLowerJacobiIters);
+    hpp.set<int>("ilu_upper_jacobi_iters", HYPRE_ILUSetUpperJacobiIters);
 #endif
 #endif
 }
@@ -443,8 +433,8 @@ void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_BoomerAMGSetPrintLevel);
-    hpp("logging", HYPRE_BoomerAMGSetLogging);
+    hpp.set<int>("verbose", HYPRE_BoomerAMGSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_BoomerAMGSetLogging);
     hpp("bamg_relax_order", HYPRE_BoomerAMGSetRelaxOrder, 1);
 
     if (hpp.pp.contains("bamg_down_relax_type") && hpp.pp.contains("bamg_up_relax_type") && hpp.pp.contains("bamg_coarse_relax_type")) {
@@ -465,9 +455,9 @@ void HypreIJIface::boomeramg_solver_configure (const std::string& prefix)
 
     hpp("bamg_strong_threshold", HYPRE_BoomerAMGSetStrongThreshold,
         (AMREX_SPACEDIM == 3) ? 0.57 : 0.25);
-    hpp("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType);
-    hpp("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType);
-    hpp("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels);
+    hpp.set<int>("bamg_coarsen_type", HYPRE_BoomerAMGSetCoarsenType);
+    hpp.set<int>("bamg_cycle_type", HYPRE_BoomerAMGSetCycleType);
+    hpp.set<int>("bamg_max_levels", HYPRE_BoomerAMGSetMaxLevels);
 
     bool use_old_default = true;
     hpp.pp.queryAdd("bamg_use_old_default", use_old_default);
@@ -498,8 +488,8 @@ void HypreIJIface::gmres_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRGMRESSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRGMRESSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRGMRESSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRGMRESSetKDim, 50);
     hpp("max_iterations", HYPRE_ParCSRGMRESSetMaxIter, 200);
@@ -526,8 +516,8 @@ void HypreIJIface::cogmres_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRCOGMRESSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRCOGMRESSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRCOGMRESSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRCOGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRCOGMRESSetKDim, 50);
     hpp("max_iterations", HYPRE_ParCSRCOGMRESSetMaxIter, 200);
@@ -554,8 +544,8 @@ void HypreIJIface::lgmres_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRLGMRESSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRLGMRESSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRLGMRESSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRLGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRLGMRESSetKDim, 50);
     hpp("max_iterations", HYPRE_ParCSRLGMRESSetMaxIter, 200);
@@ -582,8 +572,8 @@ void HypreIJIface::flex_gmres_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRFlexGMRESSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRFlexGMRESSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRFlexGMRESSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRFlexGMRESSetLogging);
 
     hpp("num_krylov", HYPRE_ParCSRFlexGMRESSetKDim, 50);
     hpp("max_iterations", HYPRE_ParCSRFlexGMRESSetMaxIter, 200);
@@ -610,8 +600,8 @@ void HypreIJIface::bicgstab_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRBiCGSTABSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRBiCGSTABSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRBiCGSTABSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRBiCGSTABSetLogging);
 
     hpp("max_iterations", HYPRE_ParCSRBiCGSTABSetMaxIter, 200);
     hpp.set<amrex::Real>("rtol", HYPRE_ParCSRBiCGSTABSetTol);
@@ -636,8 +626,8 @@ void HypreIJIface::pcg_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRPCGSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRPCGSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRPCGSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRPCGSetLogging);
 
     hpp("max_iterations", HYPRE_ParCSRPCGSetMaxIter, 200);
     hpp.set<amrex::Real>("rtol", HYPRE_ParCSRPCGSetTol);
@@ -662,21 +652,21 @@ void HypreIJIface::hybrid_solver_configure (const std::string& prefix)
 
     // Parse options
     HypreOptParse hpp(prefix, m_solver);
-    hpp("verbose", HYPRE_ParCSRHybridSetPrintLevel);
-    hpp("logging", HYPRE_ParCSRHybridSetLogging);
+    hpp.set<int>("verbose", HYPRE_ParCSRHybridSetPrintLevel);
+    hpp.set<int>("logging", HYPRE_ParCSRHybridSetLogging);
 
     hpp.set<amrex::Real>("rtol", HYPRE_ParCSRHybridSetTol);
     hpp.set<amrex::Real>("atol", HYPRE_ParCSRHybridSetAbsoluteTol);
 
     hpp("num_krylov", HYPRE_ParCSRHybridSetKDim, 50);
-    hpp("hybrid_dscg_max_iter", HYPRE_ParCSRHybridSetDSCGMaxIter);
-    hpp("hybrid_pcg_max_iter", HYPRE_ParCSRHybridSetPCGMaxIter);
-    hpp("hybrid_setup_type", HYPRE_ParCSRHybridSetSetupType);
-    hpp("hybrid_solver_type", HYPRE_ParCSRHybridSetSolverType);
+    hpp.set<int>("hybrid_dscg_max_iter", HYPRE_ParCSRHybridSetDSCGMaxIter);
+    hpp.set<int>("hybrid_pcg_max_iter", HYPRE_ParCSRHybridSetPCGMaxIter);
+    hpp.set<int>("hybrid_setup_type", HYPRE_ParCSRHybridSetSetupType);
+    hpp.set<int>("hybrid_solver_type", HYPRE_ParCSRHybridSetSolverType);
     hpp.set<HypreRealType>(
         "hybrid_set_strong_threshold", HYPRE_ParCSRHybridSetStrongThreshold);
-    hpp("hybrid_recompute_residual", HYPRE_ParCSRHybridSetRecomputeResidual);
-    hpp("hybrid_recompute_residual_period", HYPRE_ParCSRHybridSetRecomputeResidualP);
+    hpp.set<int>("hybrid_recompute_residual", HYPRE_ParCSRHybridSetRecomputeResidual);
+    hpp.set<int>("hybrid_recompute_residual_period", HYPRE_ParCSRHybridSetRecomputeResidualP);
 }
 
 } // namespace amrex

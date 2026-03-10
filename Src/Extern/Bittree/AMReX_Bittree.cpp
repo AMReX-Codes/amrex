@@ -118,10 +118,12 @@ void btUnit::btCalculateLevel (BittreeAmr* const mesh, int lev,
       //Get coordinates and morton index.
       auto b = tree1->locate(i);
 
+#if 0
       if(b.level != lev) {
           std::string msg = "Error identifying block in btCalculateGrids";
           //throw error?
       }
+#endif
 
       IntVect coordVec{AMREX_D_DECL(static_cast<int>(b.coord[0]),
                                     static_cast<int>(b.coord[1]),

@@ -37,14 +37,14 @@ void BackgroundThread::do_job ()
 
 void BackgroundThread::Submit (std::function<void()>&& a_f)
 {
-    std::lock_guard<std::mutex> lck(m_mutx);
+    std::scoped_lock lck(m_mutx);
     m_func.emplace(std::move(a_f));
     m_job_cond.notify_one();
 }
 
 void BackgroundThread::Submit (std::function<void()> const& a_f)
 {
-    std::lock_guard<std::mutex> lck(m_mutx);
+    std::scoped_lock lck(m_mutx);
     m_func.emplace(a_f);
     m_job_cond.notify_one();
 }
