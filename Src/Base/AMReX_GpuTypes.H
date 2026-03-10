@@ -245,23 +245,23 @@ struct LaunchHandler
 #endif
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto handler () const {
 #if defined(AMREX_USE_SYCL)
         return Gpu::Handler(m_item, reinterpret_cast<void*>(m_shared_mem), threads_per_block);
 #elif defined(AMREX_USE_GPU)
         return Gpu::Handler(threads_per_block);
 #else
-        return int{0};
+        return 0;
 #endif
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto sycl_item () const {
 #if defined(AMREX_USE_SYCL)
         return m_item;
 #else
-        return int{0};
+        return 0;
 #endif
     }
 
