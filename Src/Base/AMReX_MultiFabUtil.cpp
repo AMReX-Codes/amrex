@@ -872,7 +872,7 @@ namespace amrex
                 int nblocks = n2dblocks * b.length(direction);
 
                 amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, amrex::Real>(amrex::IntVectND<1>{nblocks},
-                    AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+                    AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
                     [=] AMREX_GPU_DEVICE (auto lh) noexcept
                 {
                     int i1d = lh.blockIdx1D() / n2dblocks;
@@ -900,7 +900,7 @@ namespace amrex
                     for (int n = 0; n < ncomp; ++n) {
                         Real r = (i2d < n2d) ? fab(i,j,k,n+icomp) : Real(0.0);
                         Gpu::deviceReduceSum_full(p+n+ncomp*idir, r
-                            AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                            AMREX_IF_SYCL(, lh.handler()));
                     }
                 });
             }

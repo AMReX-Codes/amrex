@@ -1255,7 +1255,7 @@ void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box
             auto nblocks = static_cast<int>(b2d.numPts());
 
             amrex::LaunchRaw<nthreads, T>(amrex::IntVectND<1>{nblocks},
-                AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+                AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
                 [=] AMREX_GPU_DEVICE (auto lh)
             {
                 int bid = lh.blockIdx1D();

@@ -448,7 +448,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         const char* tags = (*this)[fai].dataPtr();
 
         amrex::LaunchRaw<block_size, int>(amrex::IntVectND<1>{nblocks[li]},
-        AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+        AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
         [=] AMREX_GPU_DEVICE (auto lh) noexcept
         {
             int bid = lh.blockIdx1D();
@@ -462,7 +462,7 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
 
             t = Gpu::blockReduce<Gpu::Device::warp_size>
                 (t, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0
-                AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                AMREX_IF_SYCL(, lh.handler()));
             if (tid == 0) {
                 ntags[bid] = t;
             }

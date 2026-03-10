@@ -47,6 +47,14 @@
 #endif
 
 #ifdef AMREX_USE_SYCL
+#define AMREX_IF_SYCL(...) __VA_ARGS__
+#define AMREX_IF_NOT_SYCL(...)
+#else
+#define AMREX_IF_SYCL(...)
+#define AMREX_IF_NOT_SYCL(...) __VA_ARGS__
+#endif
+
+#ifdef AMREX_USE_SYCL
 #define AMREX_SYCL_ONLY(a) a
 #else
 #define AMREX_SYCL_ONLY(a) ((void)0)

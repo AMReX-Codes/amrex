@@ -229,10 +229,6 @@ namespace Reduce::detail {
         P().parallel_update(amrex::get<I>(d), amrex::get<I>(s), h);
         for_each_parallel<I+1,T,P1,Ps...>(d, s, h);
     }
-
-#define AMREX_SYCL_REDUCE_SMEM(warp_size) warp_size
-#define AMREX_SYCL_REDUCE_HANDLER(launch_handler) , launch_handler
-
 #else
     template <std::size_t I, typename T, typename P>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -248,10 +244,6 @@ namespace Reduce::detail {
         P().parallel_update(amrex::get<I>(d), amrex::get<I>(s));
         for_each_parallel<I+1,T,P1,Ps...>(d, s);
     }
-
-#define AMREX_SYCL_REDUCE_SMEM(warp_size) 0
-#define AMREX_SYCL_REDUCE_HANDLER(launch_handler)
-
 #endif
 #endif
 
@@ -615,7 +607,7 @@ public:
             // device reduce needs local(i.e., shared) memory
             amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, unsigned long long>(
                 amrex::IntVectND<1>{nblocks_ec},
-                AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+                AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
                 [=] AMREX_GPU_DEVICE (auto lh) noexcept
             {
                 ReduceTuple r;
@@ -637,7 +629,7 @@ public:
                     }
                 }
                 Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r
-                    AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                    AMREX_IF_SYCL(, lh.handler()));
             });
         }
     }
@@ -659,7 +651,7 @@ public:
         reduce_data.updateMaxStreamIndex(stream);
         amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, unsigned long long>(
             amrex::IntVectND<1>{static_cast<int>(nblocks_ec)},
-            AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+            AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
             [=] AMREX_GPU_DEVICE (auto lh) noexcept
         {
             ReduceTuple r;
@@ -687,7 +679,7 @@ public:
                 }
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r
-                AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                AMREX_IF_SYCL(, lh.handler()));
         });
         nblocks = std::max(nblocks, static_cast<int>(nblocks_ec));
     }
@@ -782,7 +774,7 @@ public:
         // device reduce needs local(i.e., shared) memory
         amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, unsigned long long>(
             amrex::IntVectND<1>{nblocks_ec},
-            AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+            AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
             [=] AMREX_GPU_DEVICE (auto lh) noexcept
         {
             ReduceTuple r;
@@ -800,7 +792,7 @@ public:
                 Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r,pr);
             }
             Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r
-                AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                AMREX_IF_SYCL(, lh.handler()));
         });
         nblocks = amrex::max(nblocks, nblocks_ec);
     }
@@ -844,7 +836,7 @@ public:
 #endif
             amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, unsigned long long>(
                 amrex::IntVectND<1>{1},
-                AMREX_SYCL_REDUCE_SMEM(Gpu::Device::warp_size),
+                AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
                 [=] AMREX_GPU_DEVICE (auto lh) noexcept
             {
                 ReduceTuple r;
@@ -858,7 +850,7 @@ public:
                     }
                 }
                 Reduce::detail::for_each_parallel<0, ReduceTuple, Ps...>(dst, r
-                    AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                    AMREX_IF_SYCL(, lh.handler()));
                 if (lh.threadIdx1D() == 0) { *presult = dst; }
             });
 #if !defined(AMREX_NO_SYCL_REDUCE_WORKAROUND) && defined(AMREX_USE_SYCL)
@@ -999,10 +991,10 @@ bool AnyOf (N n, T const* v, P const& pred)
 
     amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, int>(
         amrex::IntVectND<1>{nblocks_ec},
-        AMREX_SYCL_REDUCE_SMEM(num_ints) + 1,
+        AMREX_IF_SYCL(num_ints + 1) AMREX_IF_NOT_SYCL(1),
         [=] AMREX_GPU_DEVICE (auto lh) noexcept
     {
-        int& has_any = *(lh.shared_memory() + AMREX_SYCL_REDUCE_SMEM(num_ints));
+        int& has_any = *(lh.shared_memory() AMREX_IF_SYCL(+ num_ints));
         if (lh.threadIdx1D() == 0) { has_any = *dp; }
         lh.syncthreads();
 
@@ -1017,7 +1009,7 @@ bool AnyOf (N n, T const* v, P const& pred)
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0
-                AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                AMREX_IF_SYCL(, lh.handler()));
             if (lh.threadIdx1D() == 0 && r) *dp = 1;
         }
     });
@@ -1039,10 +1031,10 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
 
     amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, int>(
         amrex::IntVectND<1>{nblocks_ec},
-        AMREX_SYCL_REDUCE_SMEM(num_ints) + 1,
+        AMREX_IF_SYCL(num_ints + 1) AMREX_IF_NOT_SYCL(1),
         [=] AMREX_GPU_DEVICE (auto lh) noexcept
     {
-        int& has_any = *(lh.shared_memory() + AMREX_SYCL_REDUCE_SMEM(num_ints));
+        int& has_any = *(lh.shared_memory() AMREX_IF_SYCL(+ num_ints));
         if (lh.threadIdx1D() == 0) { has_any = *dp; }
         lh.syncthreads();
 
@@ -1060,7 +1052,7 @@ bool AnyOf (BoxND<dim> const& box, P const& pred)
             }
             r = Gpu::blockReduce<Gpu::Device::warp_size>
                 (r, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0
-                AMREX_SYCL_REDUCE_HANDLER(lh.handler()));
+                AMREX_IF_SYCL(, lh.handler()));
             if (lh.threadIdx1D() == 0 && r) *dp = 1;
         }
     });
