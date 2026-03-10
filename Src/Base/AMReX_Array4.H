@@ -820,7 +820,7 @@ namespace amrex {
 #if defined(AMREX_USE_HIP)
         AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 #else
-        AMREX_GPU_HOST_DEVICE inline
+        AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert (IntVectND<N> const& iv) const
         {
@@ -860,7 +860,7 @@ namespace amrex {
 #if defined(AMREX_USE_HIP)
         AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 #else
-        AMREX_GPU_HOST_DEVICE inline
+        AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert (IntVectND<M> const& iv) const
         {
@@ -878,7 +878,7 @@ namespace amrex {
 #if defined(AMREX_USE_HIP)
         AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 #else
-        AMREX_GPU_HOST_DEVICE inline
+        AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert (IntVectND<M> const& iv, int n) const
         {
@@ -1235,7 +1235,7 @@ namespace amrex {
 #if defined(AMREX_USE_HIP)
         AMREX_GPU_HOST_DEVICE AMREX_NO_INLINE
 #else
-        AMREX_GPU_HOST_DEVICE inline
+        AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert_print_error_message (int i, int j, int k, int n) const
         {

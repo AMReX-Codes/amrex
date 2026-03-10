@@ -19,7 +19,7 @@ public:
 
     LatheIF (F a_f) : m_f(std::move(a_f)) {}
 
-    [[nodiscard]] inline Real operator() (const RealArray& p) const noexcept
+    [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         Real r = std::hypot(p[0],p[1]);
 #if (AMREX_SPACEDIM == 2)
@@ -30,7 +30,7 @@ public:
     }
 
     template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
-    [[nodiscard]] AMREX_GPU_HOST_DEVICE inline
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         Real r = std::hypot(x,y);

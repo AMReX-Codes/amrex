@@ -95,6 +95,22 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
                  node->r->l->type == PARSER_NUMBER &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // b + a*x => fma(a, x, b)
+            if (p) {
+                auto *t = new(p) ParserExeFMA_VPV;
+                p      += sizeof(ParserExeFMA_VPV);
+                t->i = parser_symbol_idx(node->r->r);
+                t->a = parser_get_number(node->r->l);
+                t->b = parser_get_number(node->l);
+            }
+            exe_size += sizeof(ParserExeFMA_VPV);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_NUMBER &&
+                 node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_NUMBER &&
                  parser_get_number(node->r->l) == -1.0)
         { // 3 + (-1)*f(x) => 3 - f(x)
             parser_compile_exe_size(node->r->r, p, exe_size, max_stack_size,
@@ -655,7 +671,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             t->fd = pp.second;
         }
         exe_size += sizeof(ParserExeUserFn);
-        stack_size -= (argc-1);;
+        stack_size -= (argc-1);
         break;
     }
     default:
@@ -664,11 +680,11 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
 }
 
 namespace {
-    enum paren_t {
-        paren_plusminus,
-        paren_muldiv,
-        paren_pow,
-        paren_atom
+    enum class paren_t {
+        plusminus,
+        muldiv,
+        pow,
+        atom
     };
 
     std::pair<bool,bool> need_parens (paren_t lhs, paren_t op, paren_t rhs)
@@ -677,7 +693,7 @@ namespace {
         if (lhs < op) {
             r.first = true;
         } else if (lhs == op) {
-            if (op == paren_pow) {
+            if (op == paren_t::pow) {
                 r.first = true;
             } else {
                 r.first = false;
@@ -688,7 +704,7 @@ namespace {
         if (op < rhs) {
             r.second = false;
         } else if (op == rhs) {
-            if (op == paren_pow) {
+            if (op == paren_t::pow) {
                 r.second = false;
             } else {
                 r.second = true;
@@ -727,7 +743,7 @@ namespace {
     {
         std::string r{f};
         r.append("(").append(a).append(")");
-        return {r,paren_atom};
+        return {r,paren_t::atom};
     }
 
     std::pair<std::string,paren_t> make_f2_string (std::string_view const& f, std::string const& a,
@@ -735,7 +751,7 @@ namespace {
     {
         std::string r{f};
         r.append("(").append(a).append(",").append(b).append(")");
-        return {r,paren_atom};
+        return {r,paren_t::atom};
     }
 }
 
@@ -750,15 +766,15 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
     auto get_sym = [&] (int i) -> std::pair<std::string,paren_t>
     {
         if (i >= AMREX_PARSER_LOCAL_IDX0) {
-            return {locals[i-AMREX_PARSER_LOCAL_IDX0],paren_atom};
+            return {locals[i-AMREX_PARSER_LOCAL_IDX0],paren_t::atom};
         } else {
-            return {vars[i],paren_atom};
+            return {vars[i],paren_t::atom};
         }
     };
 
     auto get_val = [&] (double v) -> std::pair<std::string,paren_t>
     {
-        return {std::to_string(v), paren_atom};
+        return {std::to_string(v), paren_t::atom};
     };
 
     while (*((parser_exe_t*)p) != PARSER_EXE_NULL) { // NOLINT
@@ -794,7 +810,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_ADD:
         {
             auto n = pstack.size();
-            pstack[n-2] = make_op_string(pstack[n-2],{"+",paren_plusminus}, pstack[n-1]); // NOLINT
+            pstack[n-2] = make_op_string(pstack[n-2],{"+",paren_t::plusminus}, pstack[n-1]); // NOLINT
             pstack.pop_back();
             os << std::setw(3) << count++
                << std::setw(16) << "add"
@@ -807,7 +823,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_SUB_F:
         {
             auto n = pstack.size();
-            pstack[n-2] = make_op_string(pstack[n-2], {"-",paren_plusminus}, pstack[n-1]); // NOLINT
+            pstack[n-2] = make_op_string(pstack[n-2], {"-",paren_t::plusminus}, pstack[n-1]); // NOLINT
             pstack.pop_back();
             os << std::setw(3) << count++
                << std::setw(16) << "sub"
@@ -820,7 +836,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_SUB_B:
         {
             auto n = pstack.size();
-            pstack[n-2] = make_op_string(pstack[n-1], {"-",paren_plusminus}, pstack[n-2]); // NOLINT
+            pstack[n-2] = make_op_string(pstack[n-1], {"-",paren_t::plusminus}, pstack[n-2]); // NOLINT
             pstack.pop_back();
             os << std::setw(3) << count++
                << std::setw(16) << "rsub"
@@ -833,7 +849,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_MUL:
         {
             auto n = pstack.size();
-            pstack[n-2] = make_op_string(pstack[n-2], {"*",paren_muldiv}, pstack[n-1]); // NOLINT
+            pstack[n-2] = make_op_string(pstack[n-2], {"*",paren_t::muldiv}, pstack[n-1]); // NOLINT
             pstack.pop_back();
             os << std::setw(3) << count++
                << std::setw(16) << "mul"
@@ -846,7 +862,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_DIV_F:
         {
             auto n = pstack.size();
-            pstack[n-2] = make_op_string(pstack[n-2], {"/",paren_muldiv}, pstack[n-1]); // NOLINT
+            pstack[n-2] = make_op_string(pstack[n-2], {"/",paren_t::muldiv}, pstack[n-1]); // NOLINT
             pstack.pop_back();
             os << std::setw(3) << count++
                << std::setw(16) << "div"
@@ -859,7 +875,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_DIV_B:
         {
             auto n = pstack.size();
-            pstack[n-2] = make_op_string(pstack[n-1], {"/",paren_muldiv}, pstack[n-2]); // NOLINT
+            pstack[n-2] = make_op_string(pstack[n-1], {"/",paren_t::muldiv}, pstack[n-2]); // NOLINT
             pstack.pop_back();
             os << std::setw(3) << count++
                << std::setw(16) << "rdiv"
@@ -914,7 +930,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeADD_VP*)p)->i;
             auto v = ((ParserExeADD_VP*)p)->v;
-            pstack.push_back(make_op_string(get_val(v), {"+",paren_plusminus}, get_sym(i)));
+            pstack.push_back(make_op_string(get_val(v), {"+",paren_t::plusminus}, get_sym(i)));
             os << std::setw(3) << count++
                << std::setw(16) << "addvp"
                << std::setw(12) << pstack.size()
@@ -927,7 +943,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeSUB_VP*)p)->i;
             auto v = ((ParserExeSUB_VP*)p)->v;
-            pstack.push_back(make_op_string(get_val(v), {"-",paren_plusminus}, get_sym(i)));
+            pstack.push_back(make_op_string(get_val(v), {"-",paren_t::plusminus}, get_sym(i)));
             os << std::setw(3) << count++
                << std::setw(16) << "subvp"
                << std::setw(12) << pstack.size()
@@ -940,7 +956,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeMUL_VP*)p)->i;
             auto v = ((ParserExeMUL_VP*)p)->v;
-            pstack.push_back(make_op_string(get_val(v), {"*",paren_muldiv}, get_sym(i)));
+            pstack.push_back(make_op_string(get_val(v), {"*",paren_t::muldiv}, get_sym(i)));
             os << std::setw(3) << count++
                << std::setw(16) << "mulvp"
                << std::setw(12) << pstack.size()
@@ -953,7 +969,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeDIV_VP*)p)->i;
             auto v = ((ParserExeDIV_VP*)p)->v;
-            pstack.push_back(make_op_string(get_val(v), {"/",paren_muldiv}, get_sym(i)));
+            pstack.push_back(make_op_string(get_val(v), {"/",paren_t::muldiv}, get_sym(i)));
             os << std::setw(3) << count++
                << std::setw(16) << "divvp"
                << std::setw(12) << pstack.size()
@@ -966,7 +982,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeADD_PP*)p)->i1;
             int j = ((ParserExeADD_PP*)p)->i2;
-            pstack.push_back(make_op_string(get_sym(i), {"+",paren_plusminus}, get_sym(j)));
+            pstack.push_back(make_op_string(get_sym(i), {"+",paren_t::plusminus}, get_sym(j)));
             os << std::setw(3) << count++
                << std::setw(16) << "addpp"
                << std::setw(12) << pstack.size()
@@ -979,7 +995,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeSUB_PP*)p)->i1;
             int j = ((ParserExeSUB_PP*)p)->i2;
-            pstack.push_back(make_op_string(get_sym(i), {"-",paren_plusminus}, get_sym(j)));
+            pstack.push_back(make_op_string(get_sym(i), {"-",paren_t::plusminus}, get_sym(j)));
             os << std::setw(3) << count++
                << std::setw(16) << "subpp"
                << std::setw(12) << pstack.size()
@@ -992,7 +1008,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeMUL_PP*)p)->i1;
             int j = ((ParserExeMUL_PP*)p)->i2;
-            pstack.push_back(make_op_string(get_sym(i), {"*",paren_muldiv}, get_sym(j)));
+            pstack.push_back(make_op_string(get_sym(i), {"*",paren_t::muldiv}, get_sym(j)));
             os << std::setw(3) << count++
                << std::setw(16) << "mulpp"
                << std::setw(12) << pstack.size()
@@ -1005,7 +1021,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         {
             int i = ((ParserExeDIV_PP*)p)->i1;
             int j = ((ParserExeDIV_PP*)p)->i2;
-            pstack.push_back(make_op_string(get_sym(i), {"/",paren_muldiv}, get_sym(j)));
+            pstack.push_back(make_op_string(get_sym(i), {"/",paren_t::muldiv}, get_sym(j)));
             os << std::setw(3) << count++
                << std::setw(16) << "divpp"
                << std::setw(12) << pstack.size()
@@ -1017,7 +1033,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_ADD_VN:
         {
             auto v = ((ParserExeADD_VN*)p)->v;
-            pstack.back() = make_op_string(get_val(v), {"+",paren_plusminus}, pstack.back());
+            pstack.back() = make_op_string(get_val(v), {"+",paren_t::plusminus}, pstack.back());
             os << std::setw(3) << count++
                << std::setw(16) << "addvn"
                << std::setw(12) << pstack.size()
@@ -1029,7 +1045,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_SUB_VN:
         {
             auto v = ((ParserExeSUB_VN*)p)->v;
-            pstack.back() = make_op_string(get_val(v), {"-",paren_plusminus}, pstack.back());
+            pstack.back() = make_op_string(get_val(v), {"-",paren_t::plusminus}, pstack.back());
             os << std::setw(3) << count++
                << std::setw(16) << "subvn"
                << std::setw(12) << pstack.size()
@@ -1041,7 +1057,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_MUL_VN:
         {
             auto v = ((ParserExeMUL_VN*)p)->v;
-            pstack.back() = make_op_string(get_val(v), {"*",paren_muldiv}, pstack.back());
+            pstack.back() = make_op_string(get_val(v), {"*",paren_t::muldiv}, pstack.back());
             os << std::setw(3) << count++
                << std::setw(16) << "mulvn"
                << std::setw(12) << pstack.size()
@@ -1053,7 +1069,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_DIV_VN:
         {
             auto v = ((ParserExeDIV_VN*)p)->v;
-            pstack.back() = make_op_string(get_val(v), {"/",paren_muldiv}, pstack.back());
+            pstack.back() = make_op_string(get_val(v), {"/",paren_t::muldiv}, pstack.back());
             os << std::setw(3) << count++
                << std::setw(16) << "divvn"
                << std::setw(12) << pstack.size()
@@ -1065,7 +1081,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_ADD_PN:
         {
             int i = ((ParserExeADD_PN*)p)->i;
-            pstack.back() = make_op_string(get_sym(i), {"+",paren_plusminus}, pstack.back());
+            pstack.back() = make_op_string(get_sym(i), {"+",paren_t::plusminus}, pstack.back());
             os << std::setw(3) << count++
                << std::setw(16) << "addpn"
                << std::setw(12) << pstack.size()
@@ -1080,9 +1096,9 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
             auto sign = ((ParserExeSUB_PN*)p)->sign;
             std::string op;
             if (sign > 0.0) {
-                pstack.back() = make_op_string(get_sym(i), {"-",paren_plusminus}, pstack.back());
+                pstack.back() = make_op_string(get_sym(i), {"-",paren_t::plusminus}, pstack.back());
             } else {
-                pstack.back() = make_op_string(pstack.back(), {"-",paren_plusminus}, get_sym(i));
+                pstack.back() = make_op_string(pstack.back(), {"-",paren_t::plusminus}, get_sym(i));
                 op = "r";
             }
             op.append("subpn");
@@ -1097,7 +1113,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_MUL_PN:
         {
             int i = ((ParserExeMUL_PN*)p)->i;
-            pstack.back() = make_op_string(get_sym(i), {"*",paren_muldiv}, pstack.back());
+            pstack.back() = make_op_string(get_sym(i), {"*",paren_t::muldiv}, pstack.back());
             os << std::setw(3) << count++
                << std::setw(16) << "mulpn"
                << std::setw(12) << pstack.size()
@@ -1111,10 +1127,10 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
             int i = ((ParserExeDIV_PN*)p)->i;
             std::string op;
             if (((ParserExeDIV_PN*)p)->reverse) {
-                pstack.back() = make_op_string(pstack.back(), {"/",paren_muldiv}, get_sym(i));
+                pstack.back() = make_op_string(pstack.back(), {"/",paren_t::muldiv}, get_sym(i));
                 op = "r";
             } else {
-                pstack.back() = make_op_string(get_sym(i), {"/",paren_muldiv}, pstack.back());
+                pstack.back() = make_op_string(get_sym(i), {"/",paren_t::muldiv}, pstack.back());
             }
             op.append("divpn");
             os << std::setw(3) << count++
@@ -1127,7 +1143,7 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         }
         case PARSER_EXE_SQUARE:
         {
-            pstack.back() = make_op_string(pstack.back(), {"^",paren_pow}, {"2",paren_atom});
+            pstack.back() = make_op_string(pstack.back(), {"^",paren_t::pow}, {"2",paren_t::atom});
             os << std::setw(3) << count++
                << std::setw(16) << "square"
                << std::setw(12) << pstack.size()
@@ -1139,14 +1155,29 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
         case PARSER_EXE_POWI:
         {
             int n = ((ParserExePOWI*)p)->i;
-            pstack.back() = make_op_string(pstack.back(), {"^",paren_pow},
-                                           {std::to_string(n),paren_atom});
+            pstack.back() = make_op_string(pstack.back(), {"^",paren_t::pow},
+                                           {std::to_string(n),paren_t::atom});
             os << std::setw(3) << count++
                << std::setw(16) << "powi"
                << std::setw(12) << pstack.size()
                << "   "
                << pstack.back().first << "\n";
             p += sizeof(ParserExePOWI);
+            break;
+        }
+        case PARSER_EXE_FMA_VPV:
+        {
+            int i = ((ParserExeFMA_VPV*)p)->i;
+            auto a = ((ParserExeFMA_VPV*)p)->a;
+            auto b = ((ParserExeFMA_VPV*)p)->b;
+            auto tmp = make_op_string(get_val(a), {"*",paren_t::muldiv}, get_sym(i));
+            pstack.push_back(make_op_string(tmp, {"+",paren_t::plusminus}, get_val(b)));
+            os << std::setw(3) << count++
+               << std::setw(16) << "fmavpv"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeFMA_VPV);
             break;
         }
         case PARSER_EXE_IF:

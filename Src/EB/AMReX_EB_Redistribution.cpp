@@ -14,6 +14,7 @@ namespace amrex {
     //
     // Do small cell redistribution on one FAB
     //
+    namespace {
     void apply_eb_redistribution ( const Box& bx,
                                    MultiFab& div_mf,
                                    MultiFab& divc_mf,
@@ -53,6 +54,7 @@ namespace amrex {
         auto const&        vfrac = volfrac->array(*mfi);
 
         apply_flux_redistribution ( bx, div, divc, wt, icomp, ncomp, flags, vfrac, geom, use_wts_in_divnc);
+    }
     }
 
     //

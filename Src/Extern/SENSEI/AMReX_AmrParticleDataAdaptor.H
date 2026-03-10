@@ -16,7 +16,7 @@
 
 namespace amrex
 {
-template<typename ParticleType, int NArrayReal, int NArrayInt>
+template<typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
 class AmrParticleDataAdaptor : public sensei::DataAdaptor
 {
 public:
@@ -25,7 +25,7 @@ public:
 
   int SetDataSource(
     Amr *amr,
-    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt> * particles,
+    amrex::ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator> * particles,
     const std::map<std::string, std::vector<int>> & rStructs = {},
     const std::map<std::string, int> & iStructs = {},
     const std::map<std::string, std::vector<int>> & rArrays = {},
@@ -53,7 +53,7 @@ protected:
   AmrParticleDataAdaptor()
   {
     m_meshAdaptor = AmrDataAdaptor::New();
-    m_particleAdaptor = ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>::New();
+    m_particleAdaptor = ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::New();
   }
 
   ~AmrParticleDataAdaptor()
@@ -63,7 +63,7 @@ protected:
   }
 
 private:
-  ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt>* m_particleAdaptor;
+  ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>* m_particleAdaptor;
   AmrDataAdaptor* m_meshAdaptor;
 
   const std::string m_meshName = "mesh";

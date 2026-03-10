@@ -9,6 +9,11 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_VisMF.H>
 
+/**
+ * \file AMReX_FabSet.H
+ * \brief Convenience wrapper for groups of FArrayBoxes located on grid boundaries.
+ */
+
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
@@ -54,7 +59,7 @@ public:
     //! The default constructor -- you must later call define().
     FabSetT () noexcept = default;
     //
-    //! Construct a FabSetT<MF> of specified number of components on the grids.
+    //! Construct a FabSetT<MF> covering \p grids with mapping \p dmap and \p ncomp components.
     FabSetT (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
     ~FabSetT () = default;
@@ -66,85 +71,211 @@ public:
     FabSetT<MF>& operator= (FabSetT<MF>&& rhs) = delete;
 
     //
-    //! Define a FabSetT<MF> constructed via default constructor.
+    //! Define a FabSetT<MF> constructed via default constructor on \p grids/\p dmap with \p ncomp components.
     void define (const BoxArray& grids, const DistributionMapping& dmap, int ncomp);
 
+    //! Access the FAB referenced by iterator \p mfi (const).
     FAB const& operator[] (const MFIter& mfi) const noexcept { return m_mf[mfi]; }
+
+    //! Access the FAB referenced by iterator \p mfi (mutable).
     FAB      & operator[] (const MFIter& mfi)       noexcept { return m_mf[mfi]; }
+
+    //! Access the FAB with index \p i (const).
     FAB const& operator[] (int i)             const noexcept { return m_mf[i]; }
+
+    //! Access the FAB with index \p i (mutable).
     FAB      & operator[] (int i)                   noexcept { return m_mf[i]; }
 
+    //! Return an Array4 view for iterator \p mfi (const).
     Array4<value_type const> array (const MFIter& mfi) const noexcept { return m_mf.const_array(mfi); }
+
+    //! Return an Array4 view for iterator \p mfi (mutable).
     Array4<value_type      > array (const MFIter& mfi)       noexcept { return m_mf.array(mfi); }
+
+    //! Return an Array4 view for FAB index \p i (const).
     Array4<value_type const> array (int i) const noexcept { return m_mf.const_array(i);   }
+
+    //! Return an Array4 view for FAB index \p i (mutable).
     Array4<value_type      > array (int i)       noexcept { return m_mf.array(i);   }
+
+    //! Return a const Array4 view for iterator \p mfi.
     Array4<value_type const> const_array (const MFIter& mfi) const noexcept { return m_mf.const_array(mfi); }
+
+    //! Return a const Array4 view for FAB index \p i.
     Array4<value_type const> const_array (int i)             const noexcept { return m_mf.const_array(i); }
 
+    //! Return multi-fab const Array4 views to every FAB.
     MultiArray4<value_type const> arrays () const noexcept { return m_mf.const_arrays(); }
+
+    //! Return multi-fab mutable Array4 views to every FAB.
     MultiArray4<value_type      > arrays ()       noexcept { return m_mf.arrays(); }
+
+    //! Return multi-fab const Array4 views (alias of arrays()).
     MultiArray4<value_type const> const_arrays () const noexcept { return m_mf.const_arrays(); }
 
+    //! Get the bounding Box of FAB index \p K.
     [[nodiscard]] Box fabbox (int K) const noexcept { return m_mf.fabbox(K); }
 
+    //! Return number of FABs stored in this set.
     [[nodiscard]] int size () const noexcept { return m_mf.size(); }
 
+    //! Return the BoxArray defining FAB locations.
     [[nodiscard]] const BoxArray& boxArray () const noexcept { return m_mf.boxArray(); }
 
+    //! Return the DistributionMapping describing FAB ownership.
     [[nodiscard]] const DistributionMapping& DistributionMap () const noexcept
         { return m_mf.DistributionMap(); }
 
+    //! Mutable access to the underlying MultiFab.
     [[nodiscard]] MF      & multiFab ()       noexcept { return m_mf; }
+
+    //! Const access to the underlying MultiFab.
     [[nodiscard]] MF const& multiFab () const noexcept { return m_mf; }
 
+    //! Number of components carried by each FAB.
     [[nodiscard]] int nComp () const noexcept { return m_mf.nComp(); }
 
+    //! Release storage and reset the internal MultiFab.
     void clear () { m_mf.clear(); }
 
+    /**
+     * \brief Copy components from another FabSet with identical layout.
+     *
+     * \param src   Source FabSet.
+     * \param scomp Starting component in \p src.
+     * \param dcomp Destination component index.
+     * \param ncomp Number of components to copy.
+     * \return Reference to this set.
+     */
     FabSetT<MF>& copyFrom (const FabSetT<MF>& src, int scomp, int dcomp, int ncomp);
 
+    /**
+     * \brief Copy boundary data from a MultiFab intersecting the same boxes.
+     *
+     * \param src    Source MultiFab.
+     * \param ngrow  Number of ghost cells pulled from \p src.
+     * \param scomp  Source component index.
+     * \param dcomp  Destination component index.
+     * \param ncomp  Number of components.
+     * \param period Periodicity description.
+     */
     FabSetT<MF>& copyFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
                            const Periodicity& period = Periodicity::NonPeriodic());
 
+    /**
+     * \brief Accumulate data from another FabSet with identical layout.
+     *
+     * \param src   Source FabSet.
+     * \param scomp Source component index.
+     * \param dcomp Destination component index.
+     * \param ncomp Number of components to accumulate.
+     */
     FabSetT<MF>& plusFrom (const FabSetT<MF>& src, int scomp, int dcomp, int ncomp);
 
+    /**
+     * \brief Accumulate data from a MultiFab into this boundary set.
+     *
+     * \param src    Source MultiFab.
+     * \param ngrow  Number of ghost cells read from \p src.
+     * \param scomp  Source component index.
+     * \param dcomp  Destination component index.
+     * \param ncomp  Number of components.
+     * \param period Periodicity description.
+     * \param deterministic Whether GPU operations must be deterministic.
+     */
     FabSetT<MF>& plusFrom (const MF& src, int ngrow, int scomp, int dcomp, int ncomp,
                            const Periodicity& period = Periodicity::NonPeriodic(),
                            bool deterministic = false);
 
+    /**
+     * \brief Copy data from this boundary set back into a MultiFab.
+     *
+     * \param dest   Destination MultiFab.
+     * \param ngrow  Number of grow cells on \p dest to fill.
+     * \param scomp  Source component index inside this set.
+     * \param dcomp  Destination component index.
+     * \param ncomp  Number of components.
+     * \param period Periodicity description.
+     */
     void copyTo (MF& dest, int ngrow, int scomp, int dcomp, int ncomp,
                  const Periodicity& period = Periodicity::NonPeriodic()) const;
 
+    /**
+     * \brief Add this boundary data back into a MultiFab.
+     *
+     * \param dest   Destination MultiFab.
+     * \param ngrow  Number of grow cells to cover on \p dest.
+     * \param scomp  Source component index inside this set.
+     * \param dcomp  Destination component index.
+     * \param ncomp  Number of components.
+     * \param period Periodicity description.
+     */
     void plusTo (MF& dest, int ngrow, int scomp, int dcomp, int ncomp,
                  const Periodicity& period = Periodicity::NonPeriodic()) const;
 
+    //! Fill every component of every FAB with scalar value \p val.
     void setVal (value_type val);
 
+    //! Fill \p num_comp components starting at \p comp with scalar value \p val.
     void setVal (value_type val, int comp, int num_comp);
 
-    //!< Linear combination: this := a*this + b*src (FabSetT<MF>s must be commensurate).
+    /**
+     * \brief Linear combination: this := a*this + b*src.
+     *
+     * \param a     Scaling applied to the current FabSet.
+     * \param b     Scaling applied to \p src.
+     * \param src   Source FabSet (must match layout).
+     * \param scomp Source component offset.
+     * \param dcomp Destination component offset.
+     * \param ncomp Number of components.
+     */
     FabSetT<MF>& linComb (value_type a, value_type b, const FabSetT<MF>& src,
                           int scomp, int dcomp, int ncomp);
 
-    //!< Linear combination: this := a*mfa + b*mfb
+    /**
+     * \brief Boundary linear combination from two MultiFabs: this := a*mfa + b*mfb.
+     *
+     * \param a      Scale applied to \p mfa.
+     * \param mfa    First MultiFab input.
+     * \param a_comp Component offset in \p mfa.
+     * \param b      Scale applied to \p mfb.
+     * \param mfb    Second MultiFab input.
+     * \param b_comp Component offset in \p mfb.
+     * \param dcomp  Destination component offset.
+     * \param ncomp  Number of components.
+     * \param ngrow  Number of grow cells required in inputs.
+     */
     FabSetT<MF>& linComb (value_type a, const MF& mfa, int a_comp,
                           value_type b, const MF& mfb, int b_comp,
                           int dcomp, int ncomp, int ngrow);
 
-    //
-    //! Write (used for writing to checkpoint)
+    /**
+     * \brief Write (used for writing to checkpoint).
+     *
+     * \param name Base filename to write.
+     */
     void write (const std::string& name) const;
-    //
-    //! Read (used for reading from checkpoint)
+
+    /**
+     * \brief Read (used for reading from checkpoint).
+     *
+     * \param name Base filename previously written by write().
+     */
     void read (const std::string& name);
 
-    //!< Local copy function
+    /**
+     * \brief Local copy function.
+     *
+     * \param dst Destination FabSet.
+     * \param src Source FabSet.
+     */
     static void Copy (FabSetT<MF>& dst, const FabSetT<MF>& src);
 
 private:
     MF m_mf;
 };
 
+//! Convenience iterator that reuses MFIter semantics for FabSet traversal.
 class FabSetIter
     : public MFIter
 {

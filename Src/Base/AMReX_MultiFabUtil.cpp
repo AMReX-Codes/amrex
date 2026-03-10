@@ -628,12 +628,13 @@ namespace amrex
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
-                            int crse_value, int fine_value)
+                            int crse_value, int fine_value, MFInfo const& info)
     {
         return makeFineMask(cba, cdm, IntVect{0}, fba, ratio, Periodicity::NonPeriodic(),
-                            crse_value, fine_value);
+                            crse_value, fine_value, info);
     }
 
+    namespace {
     template <typename FAB>
     void makeFineMask_doit (FabArray<FAB>& mask, const BoxArray& fba,
                             const IntVect& ratio, Periodicity const& period,
@@ -691,21 +692,24 @@ namespace amrex
         });
 #endif
     }
+    }
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value)
+                            Periodicity const& period, int crse_value, int fine_value,
+                            MFInfo const& info)
     {
-        iMultiFab mask(cba, cdm, 1, cnghost);
+        iMultiFab mask(cba, cdm, 1, cnghost, info);
         makeFineMask_doit(mask, fba, ratio, period, crse_value, fine_value);
         return mask;
     }
 
     MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                            const BoxArray& fba, const IntVect& ratio,
-                           Real crse_value, Real fine_value)
+                           Real crse_value, Real fine_value,
+                           MFInfo const& info)
     {
-        MultiFab mask(cba, cdm, 1, 0);
+        MultiFab mask(cba, cdm, 1, 0, info);
         makeFineMask_doit(mask, fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
         return mask;
     }
@@ -982,7 +986,8 @@ namespace amrex
         for (int ilev = 0; ilev < nlevels-1; ++ilev) {
             iMultiFab mask = makeFineMask(*mf[ilev], *mf[ilev+1], IntVect(0),
                                           ratio[ilev],Periodicity::NonPeriodic(),
-                                          0, 1);
+                                          0, 1,
+                                          MFInfo().SetArena(The_Async_Arena()));
             auto const& m = mask.const_arrays();
             auto const& a = mf[ilev]->const_arrays();
             auto const dx = geom[ilev].CellSizeArray();
@@ -1051,7 +1056,6 @@ namespace amrex
                     });
                 }
             }
-            Gpu::streamSynchronize();
         }
 
         auto const& a = mf.back()->const_arrays();

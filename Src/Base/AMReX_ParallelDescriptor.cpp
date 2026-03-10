@@ -1104,7 +1104,7 @@ Waitall (Vector<MPI_Request>& reqs, Vector<MPI_Status>& status)
     BL_MPI_REQUIRE( MPI_Waitall(reqs.size(),
                                 reqs.dataPtr(),
                                 status.dataPtr()) );
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, status.size(), status, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitall, reqs, reqs.size(), status, false);
 }
 
 void
@@ -1133,7 +1133,7 @@ Waitsome (Vector<MPI_Request>& reqs, int& completed,
                                  &completed,
                                  indx.dataPtr(),
                                  status.dataPtr()));
-    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, indx.size(), status, false);
+    BL_COMM_PROFILE_WAITSOME(BLProfiler::Waitsome, reqs, completed, status, false);
 }
 
 void
@@ -1495,7 +1495,7 @@ void
 ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
                   bool bExitOnError, const MPI_Comm&comm)
 {
-    enum { IO_Buffer_Size = 262144 * 8 };
+    constexpr int IO_Buffer_Size = 262144 * 8;
 
 #ifdef BL_SETBUF_SIGNED_CHAR
     using Setbuf_Char_Type = signed char;
@@ -1509,7 +1509,8 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
 
     std::ifstream iss;
 
-    if (ParallelDescriptor::IOProcessor()) {
+    const int root = ParallelDescriptor::IOProcessorNumber(comm);
+    if (ParallelDescriptor::IOProcessor(comm)) {
         iss.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
         iss.open(filename.c_str(), std::ios::in);
         if ( ! iss.good()) {
@@ -1524,8 +1525,7 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
           iss.seekg(0, std::ios::beg);
         }
     }
-    ParallelDescriptor::Bcast(&fileLength, 1,
-                              ParallelDescriptor::IOProcessorNumber(), comm);
+    ParallelDescriptor::Bcast(&fileLength, 1, root, comm);
 
     if(fileLength == -1) {
       return;
@@ -1534,12 +1534,11 @@ ReadAndBcastFile (const std::string& filename, Vector<char>& charBuf,
     fileLengthPadded = fileLength + 1;
 //    fileLengthPadded += fileLengthPadded % 8;
     charBuf.resize(fileLengthPadded);
-    if (ParallelDescriptor::IOProcessor()) {
+    if (ParallelDescriptor::IOProcessor(comm)) {
         iss.read(charBuf.dataPtr(), fileLength);
         iss.close();
     }
-    ParallelDescriptor::Bcast(charBuf.dataPtr(), fileLengthPadded,
-                              ParallelDescriptor::IOProcessorNumber(), comm);
+    ParallelDescriptor::Bcast(charBuf.dataPtr(), fileLengthPadded, root, comm);
     charBuf[fileLength] = '\0';
 }
 
@@ -1609,6 +1608,9 @@ StartTeams ()
     ParmParse pp("amrex.team");
     pp.query("size", team_size);
     pp.query("reduce", do_team_reduce);
+    if (team_size <= 0) {
+        amrex::Abort("amrex.team.size must be > 0");
+    }
     if (nprocs % team_size != 0) {
         amrex::Abort("Number of processes not divisible by team size");
     }
@@ -1626,11 +1628,11 @@ StartTeams ()
     {
         MPI_Group grp, team_grp, lead_grp;
         BL_MPI_REQUIRE( MPI_Comm_group(ParallelDescriptor::Communicator(), &grp) );
-        int team_ranks[team_size];
+        Vector<int> team_ranks(team_size);
         for (int i = 0; i < team_size; ++i) {
             team_ranks[i] = MyTeamLead() + i;
         }
-        BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks, &team_grp) );
+        BL_MPI_REQUIRE( MPI_Group_incl(grp, team_size, team_ranks.data(), &team_grp) );
         BL_MPI_REQUIRE( MPI_Comm_create(ParallelDescriptor::Communicator(),
                                         team_grp, &m_Team.m_team_comm) );
 

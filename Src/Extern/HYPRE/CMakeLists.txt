@@ -31,7 +31,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           AMReX_HypreABecLap2.cpp
           AMReX_HypreABecLap2.H
           AMReX_HypreABecLap3.cpp
-          AMReX_HypreABecLap2.H
+          AMReX_HypreABecLap3.H
           AMReX_Hypre.cpp
           AMReX_Hypre.H
           AMReX_Habec_${D}D_K.H

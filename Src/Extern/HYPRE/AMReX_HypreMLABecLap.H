@@ -13,6 +13,13 @@
 #include <limits>
 #include <utility>
 
+/**
+ * \file AMReX_HypreMLABecLap.H
+ *
+ * Multilevel ABecLaplacian assembled into HYPRE's SStruct interface, including
+ * coarse/fine coupling and optional SSAMG GPU solver support.
+ */
+
 namespace amrex {
 
 enum struct HypreSolverID {
@@ -21,6 +28,9 @@ enum struct HypreSolverID {
 
 // single component only, cell centered only
 
+/**
+ * \brief Multilevel HYPRE solver that mirrors MLMG's ABecLaplacian structure.
+ */
 class HypreMLABecLap
 {
 public:
@@ -29,6 +39,15 @@ public:
     HypreMLABecLap& operator= (HypreMLABecLap const&) = delete;
     HypreMLABecLap& operator= (HypreMLABecLap &&) = delete;
 
+    /**
+     * \brief Construct the multilevel HYPRE wrapper and copy the hierarchy metadata.
+     *
+     * \param a_geom       Per-level geometries (fine to coarse).
+     * \param a_grids      Per-level BoxArrays.
+     * \param a_dmap       Per-level DistributionMappings.
+     * \param a_hypre_solver_id Solver type (BoomerAMG or SSAMG).
+     * \param a_parmparse_prefix ParmParse prefix for runtime options.
+     */
     HypreMLABecLap (Vector<Geometry> a_geom,
                     Vector<BoxArray> a_grids,
                     Vector<DistributionMapping> a_dmap,
@@ -37,10 +56,25 @@ public:
 
     ~HypreMLABecLap ();
 
+    //! Set HYPRE's logging verbosity (\p v).
     void setVerbose (int v) { m_verbose = v; }
+    //! Override the maximum number of HYPRE iterations (\p v).
     void setMaxIter (int v) { m_maxiter = v; }
+    //! Flag whether the assembled operator is singular (\p v).
     void setIsSingular (bool v) { m_is_singular = v; }
 
+    /**
+     * \brief Assemble the HYPRE operators/storage for the provided coefficients.
+     *
+     * \param a_ascalar   Scalar applied to the diagonal term.
+     * \param a_bscalar   Scalar applied to the diffusive term.
+     * \param a_acoefs    Level-by-level `a` coefficients.
+     * \param a_bcoefs    Level-by-level arrays of face-centered `b` coefficients.
+     * \param a_lobc      Low-side boundary-condition types.
+     * \param a_hibc      High-side boundary-condition types.
+     * \param a_levelbcdata BC data per level.
+     * \param a_coarse_bc Optional BC data from even coarser AMR level.
+     */
     void setup (Real a_ascalar, Real a_bscalar,
                 Vector<MultiFab const*> const& a_acoefs,
                 Vector<Array<MultiFab const*,AMREX_SPACEDIM>> const& a_bcoefs,
@@ -49,6 +83,14 @@ public:
                 Vector<MultiFab const*> const& a_levelbcdata,
                 std::pair<MultiFab const*, IntVect> const& a_coarse_bc = {nullptr, IntVect(0)});
 
+    /**
+     * \brief Solve the assembled system with HYPRE (single-component).
+     *
+     * \param a_sol Vector of level solution MultiFabs (filled on return).
+     * \param a_rhs Vector of level right-hand sides.
+     * \param a_reltol Relative tolerance.
+     * \param a_abstol Absolute tolerance.
+     */
     void solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                 Real a_reltol, Real a_abstol);
 
@@ -56,7 +98,20 @@ public:
 
     // public for cuda
 
+    /**
+     * \brief Communicate `b` coefficients needed by level \p flev at coarse/fine interfaces.
+     *
+     * \param flev     Finest AMR level whose coarse/fine stencils are being prepared.
+     * \param a_bcoefs Face-centered coefficients for that level (per direction).
+     */
     void commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs);
+    /**
+     * \brief Local portion of commBCoefs used to issue device-friendly copies.
+     *
+     * \param flev     AMR level whose coarse/fine data are exchanged.
+     * \param a_bcoefs Face arrays for that level.
+     * \param tags     Cached copy tags extracted from FabArray communications.
+     */
     void commBCoefs_local (int flev, Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs,
                            Vector<FabArrayBase::CopyComTag> const& tags);
 

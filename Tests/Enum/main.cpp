@@ -36,6 +36,8 @@ int main (int argc, char* argv[])
         }
         amrex::Print() << "\n";
 
+        // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
+
         ParmParse pp;
         {
             auto color = static_cast<MyColor>(999);
@@ -102,6 +104,8 @@ int main (int argc, char* argv[])
             }
             amrex::Print() << "\n";
         }
+
+        // NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
     }
     {
         auto names2 = amrex::getEnumNameStrings<MyColor2>();

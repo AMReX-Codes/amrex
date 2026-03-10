@@ -21,7 +21,7 @@ void Initialize ()
     {
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
-#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
+#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_MULTI_THREADED_FFTW)
         fftw_init_threads();
         fftwf_init_threads();
         fftw_plan_with_nthreads(amrex::OpenMP::get_max_threads());
@@ -62,6 +62,9 @@ void Clear ()
     for (auto& [k, p] : s_plans_f) {
         Plan<float>::destroy_vendor_plan(p);
     }
+
+    s_plans_d.clear();
+    s_plans_f.clear();
 }
 
 PlanD* get_vendor_plan_d (Key const& key)

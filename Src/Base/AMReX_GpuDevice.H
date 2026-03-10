@@ -119,6 +119,13 @@ public:
     static void streamSynchronize () noexcept;
 
     /**
+     * Halt execution of code until all active AMReX GPU streams have finished processing all
+     * previously requested tasks. If we are in single stream region, only stream 0 is
+     * considered active. Otherwise all streams are active.
+     */
+    static void streamSynchronizeActive () noexcept;
+
+    /**
      * Halt execution of code until all AMReX GPU streams have finished processing all
      * previously requested tasks.
      */
@@ -263,6 +270,12 @@ inline void
 streamSynchronize () noexcept
 {
     Device::streamSynchronize();
+}
+
+inline void
+streamSynchronizeActive () noexcept
+{
+    Device::streamSynchronizeActive();
 }
 
 inline void
@@ -437,6 +450,33 @@ void memcpy_from_device_global_to_host_async (void* dst, T const& dg,
     std::memcpy(dst, p+offset, nbytes);
 #endif
 }
+
+#ifdef AMREX_USE_GPU
+
+//! Check if the given stream is active.
+bool isStreamActive (gpuStream_t s);
+
+/**
+ * This struct provides a RAII-style mechanism for disabling GPU
+ * synchronization and calling Gpu::streamSynchronizeActive when going out
+ * of scope if we are in sync region previously. Note that explicit calls to
+ * Gpu::streamSynchronize and Gpu::synchronize still work.
+ */
+struct [[nodiscard]] SyncAtExitOnly
+    : public NoSyncRegion
+{
+    ~SyncAtExitOnly () {
+        if (! inNoSyncRegionPreviously()) {
+            Gpu::streamSynchronizeActive();
+        }
+    }
+};
+
+#else
+
+struct [[nodiscard]] SyncAtExitOnly {};
+
+#endif
 
 }
 

@@ -126,8 +126,9 @@ else()
    # List of subdirectories to search for CMakeLists.
    #
    set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut CallNoinline CLZ CommType CTOParFor DeviceGlobal
-                            Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser
-                            Parser2 ParserUserFn Reducer Reinit RoundoffDomain SIMD SmallMatrix SumBoundary)
+                            Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser Parser2
+                            ParserUserFn Reducer ReduceToPlanePatchy Reinit RoundoffDomain SIMD
+                            SmallMatrix SumBoundary TOML)
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)

@@ -739,6 +739,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           Real a1_jj_kk = Real(1.0) - a0_jj_kk;                             // coefficient of phi(i-1,jj,kk,n)
 
           Real phi01       = a0       *   phi(i, j, k,n)  + a1       *   phi(i-1, j, k,n); // interpolation in x-dir of phi
+          // NOLINTNEXTLINE(misc-confusable-identifiers)
           Real y01         = a0       * ccent(i, j, k,1)  + a1       * ccent(i-1, j, k,1); // interpolation in x-dir of y-loc
           Real z01         = a0       * ccent(i, j, k,2)  + a1       * ccent(i-1, j, k,2); // interpolation in x-dir of z-loc
 

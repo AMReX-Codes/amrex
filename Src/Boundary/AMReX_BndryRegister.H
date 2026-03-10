@@ -10,6 +10,11 @@
 #include <AMReX_Utility.H>
 #include <utility>
 
+/**
+ * \file AMReX_BndryRegister.H
+ * \brief Infrastructure for storing per-face boundary data in FabSets.
+ */
+
 namespace amrex {
 
 class Orientation;
@@ -60,14 +65,35 @@ public:
     BndryRegisterT& operator= (const BndryRegisterT<MF>& src) = delete;
     BndryRegisterT& operator= (BndryRegisterT<MF>&& rhs) = delete;
 
+    /**
+     * \brief Allocate boundary FabSets for all faces.
+     *
+     * \param grids_  Grid layout for this register.
+     * \param dmap    Distribution mapping for the grids.
+     * \param in_rad  Number of layers inside each grid face.
+     * \param out_rad Number of layers outside each grid face.
+     * \param extent_rad Tangential stencil extent.
+     * \param ncomp   Number of components.
+     */
     void define (const BoxArray& grids_, const DistributionMapping& dmap,
                  int in_rad, int out_rad, int extent_rad, int ncomp);
 
-    //! Build FABs along given face, specifying the DistributionMapping.
+    /**
+     * \brief Build FABs along a particular face orientation.
+     *
+     * \param face  Orientation to populate.
+     * \param typ   IndexType describing staggering.
+     * \param in_rad  Number of inward cells.
+     * \param out_rad Number of outward cells.
+     * \param extent_rad Tangential stencil width.
+     * \param ncomp Number of components.
+     * \param dm    Distribution mapping for this face.
+     */
     void define (Orientation face, IndexType typ,
                  int in_rad, int out_rad, int extent_rad, int ncomp,
                  const DistributionMapping& dm);
 
+    //! Release all FABs and clear the associated BoxArray.
     void clear ();
 
     //! Get box domain (as an array of boxes).
@@ -76,47 +102,68 @@ public:
     //! Return the number of grids in this domain.
     int size () const noexcept { return grids.size(); }
 
-    //! Return const set of FABs bounding the domain grid boxes on a given orientation
+    //! Return const set of FABs bounding the domain grid boxes on orientation \p face.
     const FabSetT<MF>& operator[] (Orientation face) const noexcept { return bndry[face]; }
 
-    //! Return set of FABs bounding the domain grid boxes on a given orientation
+    //! Return set of FABs bounding the domain grid boxes on orientation \p face.
     FabSetT<MF>& operator[] (Orientation face) noexcept { return bndry[face]; }
 
-    //! Set all boundary FABs to given value.
+    //! Set all boundary FABs to the scalar value \p v across every component.
     void setVal (value_type v);
 
-    //! register += rhs
+    //! Accumulate another register with identical layout into this one.
     BndryRegisterT<MF>& operator+= (const BndryRegisterT<MF>& rhs);
+
+    //! Convenience alias for operator+=.
     BndryRegisterT<MF>& plus (const BndryRegisterT<MF>& rhs);
 
-    //! Fill the boundary FABs on intersection with given MF.
+    //! Fill boundary FABs with `num_comp` components copied from `src` (component `src_comp`) into `dest_comp`, sampling `nghost` layers and honoring `period`.
     BndryRegisterT<MF>& copyFrom (const MF& src, int nghost,
                                   int src_comp, int dest_comp, int num_comp,
                                   const Periodicity& period = Periodicity::NonPeriodic());
 
-    //! Increment the boundary FABs on intersect with given MF.
+    //! Increment boundary FABs with `num_comp` components from `src`, using the same arguments as copyFrom().
     BndryRegisterT<MF>& plusFrom (const MF& src, int nghost,
                                   int src_comp, int dest_comp, int num_comp,
                                   const Periodicity& period = Periodicity::NonPeriodic());
 
-    //! Linear combination: this := a*mfa + b*mfb on intersection of MFs with the boundary FABs
+    //! Linear combination: this := `a` * `mfa` + `b` * `mfb` on the boundary, using components `a_comp`/`b_comp` and writing to `dest_comp` for `num_comp` entries with `n_ghost` layers.
     BndryRegisterT<MF>& linComb (value_type a, const MF& mfa, int a_comp,
                                  value_type b, const MF& mfb, int b_comp,
                                  int dest_comp, int num_comp, int n_ghost = 0);
 
-    //! Set box domain, if not set previously.
+    /**
+     * \brief Set the BoxArray domain to \p grids once prior to calling define().
+     *
+     * \param grids Cell-centered grid layout that subsequent define() calls will honor.
+     */
     void setBoxes (const BoxArray& grids);
 
-    //! Returns constant reference to associated DistributionMapping.
+    //! Returns the DistributionMapping describing which MPI ranks own each boundary FAB.
     const DistributionMapping& DistributionMap () const noexcept { return bndry[0].DistributionMap(); }
 
-    //! Write (used for writing to checkpoint)
+    /**
+     * \brief Write all FabSets to disk (used for checkpoint data).
+     *
+     * \param name Base name for the output file per orientation.
+     * \param os   Output stream already opened by the caller.
+     */
     void write (const std::string& name, std::ostream& os) const;
 
-    //! Read (used for reading from checkpoint)
+    /**
+     * \brief Read all FabSets from disk (used for checkpoint data).
+     *
+     * \param name Base name for the saved data.
+     * \param is   Input stream describing the register metadata.
+     */
     void read (const std::string& name, std::istream& is);
 
-    //! Local copy function
+    /**
+     * \brief Local copy function for duplicating boundary registers.
+     *
+     * \param dst Destination register to populate.
+     * \param src Source register supplying data.
+     */
     static void Copy (BndryRegisterT<MF>& dst, const BndryRegisterT<MF>& src);
 
 protected:
@@ -133,8 +180,7 @@ BndryRegisterT<MF>::BndryRegisterT (const BoxArray& grids_, // NOLINT(modernize-
                                     int extent_rad, int ncomp)
     : grids(grids_)
 {
-    BL_ASSERT(ncomp > 0);
-    BL_ASSERT(grids[0].cellCentered());
+    AMREX_ASSERT(ncomp > 0 && !grids.empty() && grids[0].cellCentered());
 
     for (OrientationIter face; face; ++face)
     {
@@ -176,7 +222,7 @@ BndryRegisterT<MF>::define (Orientation _face, IndexType _typ, int _in_rad,
 
     FabSetT<MF>& fabs = bndry[_face];
 
-    BL_ASSERT(fabs.size() == 0);
+    AMREX_ASSERT(fabs.size() == 0);
 
     fabs.define(fsBA,dmap,_ncomp);
     //
@@ -192,9 +238,7 @@ template <typename MF>
 void
 BndryRegisterT<MF>::setBoxes (const BoxArray& _grids)
 {
-    BL_ASSERT(grids.empty());
-    BL_ASSERT(!_grids.empty());
-    BL_ASSERT(_grids[0].cellCentered());
+    AMREX_ASSERT(grids.empty() && !_grids.empty() && _grids[0].cellCentered());
 
     grids = _grids;
     //
@@ -202,7 +246,7 @@ BndryRegisterT<MF>::setBoxes (const BoxArray& _grids)
     //
     for (auto const& k : bndry) {
         amrex::ignore_unused(k);
-        BL_ASSERT(k.size() == 0);
+        AMREX_ASSERT(k.size() == 0);
     }
 }
 
@@ -219,7 +263,7 @@ template <typename MF>
 BndryRegisterT<MF>&
 BndryRegisterT<MF>::operator+= (const BndryRegisterT<MF>& rhs)
 {
-    BL_ASSERT(grids == rhs.grids);
+    AMREX_ASSERT(grids == rhs.grids);
     for (OrientationIter face; face; ++face) {
         const auto f = face();
         const int ncomp = bndry[f].nComp();
@@ -309,7 +353,7 @@ BndryRegisterT<MF>::write (const std::string& name, std::ostream& os) const
         // where n is the integer value of face().
         //
         const int i = face();
-        BL_ASSERT(i >= 0 && i <= 7);
+        AMREX_ASSERT(i >= 0 && i <= 7);
 
         std::string facename = amrex::Concatenate(name + '_', i, 1);
 
@@ -337,7 +381,7 @@ BndryRegisterT<MF>::read (const std::string& name, std::istream& is)
         // where n is the integer value of face().
         //
         const int i = face();
-        BL_ASSERT(i >= 0 && i <= 7);
+        AMREX_ASSERT(i >= 0 && i <= 7);
 
         std::string facename = amrex::Concatenate(name + '_', i, 1);
 

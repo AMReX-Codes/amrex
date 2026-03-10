@@ -9,6 +9,12 @@ namespace amrex::FFT
 {
 
 /**
+ * \file AMReX_FFT_LocalR2C.H
+ *
+ * Local (single-process) real-to-complex/complex-to-real FFT wrappers.
+ */
+
+/**
  * \ingroup amrex_fft
  * \brief Local Discrete Fourier Transform
  *
@@ -31,7 +37,7 @@ public:
     /**
      * \brief Constructor
      *
-     * Given the diverse interfaces of FFT libraries we use, this constructo
+     * Given the diverse interfaces of FFT libraries we use, this constructor
      * has a number of optional arguments.
      *
      * The user can provide the data pointers to the constructor. They are
@@ -45,7 +51,7 @@ public:
      * \param fft_size The forward domain size (i.e., the domain of the real data)
      * \param p_fwd Forward domain data pointer (optional)
      * \param p_bwd Backward domain data pointer (optional)
-     * \param cache_plan Try to cache the plan or not (optionl)
+     * \param cache_plan Try to cache the plan or not (optional)
      */
     explicit LocalR2C (IntVectND<M> const& fft_size,
                        T* p_fwd = nullptr,
@@ -59,7 +65,18 @@ public:
     ~LocalR2C ();
 
     LocalR2C () = default;
+
+    /**
+     * \brief Move constructor; transfers plan ownership without reallocation.
+     */
     LocalR2C (LocalR2C &&) noexcept;
+
+    /**
+     * \brief Move assignment; releases current plans and adopts those from \p rhs.
+     *
+     * \param rhs Temporary whose resources should be moved.
+     * \return Reference to this object.
+     */
     LocalR2C& operator= (LocalR2C &&) noexcept;
 
     LocalR2C (LocalR2C const&) = delete;
@@ -79,6 +96,9 @@ public:
                                                 DIR == Direction::both, int> = 0>
     void forward (T const* indata, GpuComplex<T>* outdata);
 
+    /**
+     * \brief Destroy any cached FFT plans; leaves the object in an uninitialized state.
+     */
     void clear ();
 
     /**
@@ -95,12 +115,22 @@ public:
                                                 DIR == Direction::both, int> = 0>
     void backward (GpuComplex<T> const* indata, T* outdata);
 
-    //! Scaling factor. If the data goes through forward and then backward,
-    //! the result multiplied by the scaling factor is equal to the original
-    //! data.
+    /**
+     * \brief Scaling factor for normalization.
+     *
+     * If the data goes through forward and then backward,
+     * the result multiplied by the scaling factor is equal to the original
+     * data.
+     *
+     * \return Normalization factor (1 divided by the real-domain size).
+     */
     [[nodiscard]] T scalingFactor () const;
 
-    //! Spectral domain size
+    /**
+     * \brief Spectral domain extents associated with this plan.
+     *
+     * \return Number of spectral coefficients per direction (with Hermitian storage along x).
+     */
     [[nodiscard]] IntVectND<M> const& spectralSize () const {
         return m_spectral_size;
     }

@@ -1447,8 +1447,7 @@ public:
     static_assert(sizeof...(Ops) == sizeof...(Ts));
 
     ReducerImpl ()
-        : m_reduce_op{},
-          m_reduce_data(m_reduce_op)
+        : m_reduce_data(m_reduce_op)
         {}
 
 protected:

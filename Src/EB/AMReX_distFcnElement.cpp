@@ -419,14 +419,17 @@ void LineDistFcnElement2d::single_seg_cpdist(amrex::RealVect pt,
   amrex::RealVect B(AMREX_D_DECL(x1-x0, y1-y0,Real(0.0)));
 
   amrex::Real magBsq = B[0]*B[0] + B[1]*B[1];
-  amrex::Real t =  (A[0]*B[0] + A[1]*B[1])/magBsq;
-
-  if (t < 0) {
-    cp = amrex::RealVect(AMREX_D_DECL(x0,y0,Real(0.0)));
-  } else if (t > Real(1.0)) {
-    cp = amrex::RealVect(AMREX_D_DECL(x1,y1,Real(0.0)));
+  if (magBsq < std::numeric_limits<amrex::Real>::epsilon()) {
+      cp = amrex::RealVect(AMREX_D_DECL(x0,y0,Real(0.0)));
   } else {
-    cp  = amrex::RealVect(AMREX_D_DECL(x0,y0,Real(0.0))) + t*B;
+      amrex::Real t =  (A[0]*B[0] + A[1]*B[1])/magBsq;
+      if (t < 0) {
+          cp = amrex::RealVect(AMREX_D_DECL(x0,y0,Real(0.0)));
+      } else if (t > Real(1.0)) {
+          cp = amrex::RealVect(AMREX_D_DECL(x1,y1,Real(0.0)));
+      } else {
+          cp  = amrex::RealVect(AMREX_D_DECL(x0,y0,Real(0.0))) + t*B;
+      }
   }
 
   amrex::RealVect delta = pt - cp;

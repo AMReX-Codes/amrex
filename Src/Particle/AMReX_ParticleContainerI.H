@@ -84,7 +84,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
         }
 
-        static_assert(std::is_standard_layout<ParticleType>::value,
+        static_assert(std::is_standard_layout_v<ParticleType>,
                       "Particle type must be standard layout");
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
@@ -856,7 +856,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         return;
     }
 
-    std::string aggregation_type = AggregationType();
+    std::string const& aggregation_type = AggregationType();
     int aggregation_buffer = AggregationBuffer();
 
     if (aggregation_type == "None")
@@ -2478,9 +2478,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
-                        Real rdata;
-                        std::memcpy(&rdata, pbuf, sizeof(Real));
-                        pbuf += sizeof(Real);
+                        ParticleReal rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
+                        pbuf += sizeof(ParticleReal);
                         host_real_attribs[lev][ind][comp].push_back(rdata);
                     } else {
                         host_real_attribs[lev][ind][comp].push_back(0.0);
@@ -2563,7 +2563,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         lev_max = finestLevel();
     }
 
-    return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+    return (m_dummy_mf.size() >= lev_max+1 && numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,

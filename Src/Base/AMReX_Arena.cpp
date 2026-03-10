@@ -868,7 +868,7 @@ void Arena::ArenaProfiler::profile_alloc ([[maybe_unused]] void* ptr,
                                           [[maybe_unused]] std::size_t nbytes) {
 #ifdef AMREX_TINY_PROFILING
     if (m_do_profiling) {
-        std::lock_guard<std::mutex> lock(m_arena_profiler_mutex);
+        std::scoped_lock lock(m_arena_profiler_mutex);
         MemStat* stat = TinyProfiler::memory_alloc(nbytes, m_profiling_stats);
         if (stat) {
             m_currently_allocated.insert({ptr, {stat, nbytes}});
@@ -880,7 +880,7 @@ void Arena::ArenaProfiler::profile_alloc ([[maybe_unused]] void* ptr,
 void Arena::ArenaProfiler::profile_free ([[maybe_unused]] void* ptr) {
 #ifdef AMREX_TINY_PROFILING
     if (m_do_profiling) {
-        std::lock_guard<std::mutex> lock(m_arena_profiler_mutex);
+        std::scoped_lock lock(m_arena_profiler_mutex);
         auto it = m_currently_allocated.find(ptr);
         if (it != m_currently_allocated.end()) {
             auto [stat, nbytes] = it->second;

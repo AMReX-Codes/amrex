@@ -50,7 +50,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
         m_factory = &(rhs.Factory());
     }
 
-    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    // We have to do this repeatedly to avoid memory leak due to HYPRE bug
     HYPRE_SStructVectorCreate(comm, hgrid, &b);
     HYPRE_SStructVectorSetObjectType(b, HYPRE_PARCSR);
     HYPRE_SStructVectorInitialize(b);
@@ -108,7 +108,7 @@ HypreABecLap2::solve (MultiFab& soln, const MultiFab& rhs, Real reltol, Real abs
 
     getSolution(soln);
 
-    // We have to do this repeatedly to avoid memory leak due to Hypre bug
+    // We have to do this repeatedly to avoid memory leak due to HYPRE bug
     HYPRE_SStructVectorDestroy(b);
     b = nullptr;
     HYPRE_SStructVectorDestroy(x);
@@ -255,6 +255,7 @@ HypreABecLap2::prepareSolver ()
         });
 
         Real* mat = (Real*) rfab.dataPtr();
+        // Sync required: mat is passed to HYPRE host API below
         Gpu::streamSynchronize();
 
         auto reglo = Hypre::loV(reg);
@@ -304,6 +305,7 @@ HypreABecLap2::loadVectors (MultiFab& soln, const MultiFab& rhs)
         {
             rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
         });
+        // Sync required: rhs_diag is passed to HYPRE host API in loadVectors
         Gpu::streamSynchronize();
     } else
 #endif

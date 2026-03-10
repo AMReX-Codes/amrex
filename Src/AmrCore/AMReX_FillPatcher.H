@@ -263,8 +263,9 @@ FillPatcher<MF>::fill (MF& mf, IntVect const& nghost, Real time,
 {
     BL_PROFILE("FillPatcher::fill()");
 
-    AMREX_ALWAYS_ASSERT(m_fba == fmf[0]->boxArray() &&
-                        m_fdm == fmf[0]->DistributionMap());
+    AMREX_ALWAYS_ASSERT(!cmf.empty() && cmf.size() == ct.size() &&
+                        !fmf.empty() && fmf.size() == ft.size() &&
+                        m_fba == fmf[0]->boxArray() && m_fdm == fmf[0]->DistributionMap());
 
     fillCoarseFineBoundary(mf, nghost, time, cmf, ct, scomp, dcomp, ncomp,
                            cbc, cbccomp, bcs, bcscomp, pre_interp, post_interp);
@@ -296,7 +297,8 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 {
     BL_PROFILE("FillPatcher::fillCFB");
 
-    AMREX_ALWAYS_ASSERT(nghost.allLE(m_nghost) &&
+    AMREX_ALWAYS_ASSERT(!cmf.empty() && cmf.size() == ct.size() &&
+                        nghost.allLE(m_nghost) &&
                         m_fba == mf.boxArray() &&
                         m_fdm == mf.DistributionMap() &&
                         m_cba == cmf[0]->boxArray() &&
@@ -390,6 +392,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
         {
             amrex::Abort("FillPatcher: High order interpolation in time not supported.  Or FillPatcher was not properly deleted.");
         }
+        // Sync required: user callback cbc may read fab on host (e.g. if pinned)
         Gpu::streamSynchronize();
 
         cbc(*m_cf_crse_data_tmp, 0, ncomp, m_cf_crse_data_tmp->nGrowVect(), time, cbccomp);
@@ -593,6 +596,7 @@ void FillPatcher<MF>::fillRK (int stage, int iteration, int ncycle,
             });
         }
     }
+    // Sync required: user callback cbc may read fab on host (e.g. if pinned)
     Gpu::streamSynchronize();
 
     cbc(*m_cf_crse_data_tmp, 0, m_ncomp, m_cf_crse_data_tmp->nGrowVect(), time, 0);

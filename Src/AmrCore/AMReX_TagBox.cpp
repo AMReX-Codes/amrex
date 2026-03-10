@@ -610,9 +610,10 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
 #if !(defined(__FUJITSU) || defined(__CLANG_FUJITSU))
     ParallelDescriptor::Gatherv(psend, static_cast<int>(count), precv, countvec, offset, IOProcNumber);
 #else
-    const int* psend_int = psend->begin();
-    int* precv_int = precv->begin();
-    Long count_int = count * AMREX_SPACEDIM;
+    const int* psend_int = (count > 0) ? psend->begin() : nullptr;
+    int* precv_int = ParallelDescriptor::IOProcessor() ? precv->begin() : nullptr;
+    AMREX_ALWAYS_ASSERT(count <= (std::numeric_limits<int>::max() / AMREX_SPACEDIM));
+    int count_int = static_cast<int>(count) * AMREX_SPACEDIM;
     auto countvec_int = std::vector<int>(countvec.size());
     auto offset_int = std::vector<int>(offset.size());
     const auto mul_funct = [](const auto el){return el*AMREX_SPACEDIM;};
