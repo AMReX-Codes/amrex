@@ -252,7 +252,7 @@ struct LaunchHandler
 #elif defined(AMREX_USE_GPU)
         return Gpu::Handler(threads_per_block);
 #else
-        return 0;
+        return int{0};
 #endif
     }
 
@@ -261,7 +261,7 @@ struct LaunchHandler
 #if defined(AMREX_USE_SYCL)
         return m_item;
 #else
-        return 0;
+        return int{0};
 #endif
     }
 
