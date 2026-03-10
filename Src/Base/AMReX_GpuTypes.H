@@ -119,6 +119,9 @@ struct LaunchHandler
         : m_blockid{a_blockid}, m_griddim{a_griddim}, m_shared_mem{a_shared_mem} {}
 #endif
 
+    /**
+     * \brief Returns the thread ID in the local block.
+     */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     unsigned int threadIdx1D () const {
         return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
@@ -128,6 +131,10 @@ struct LaunchHandler
         ));
     }
 
+    /**
+     * \brief Splits the local thread ID into N dimensions.
+     * The sizes of the dimensions are supplied as template arguments.
+     */
     template<int ...nd_block_size>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> threadIdxND () const {
@@ -148,6 +155,9 @@ struct LaunchHandler
         return ret;
     }
 
+    /**
+     * \brief Returns the block ID flattened to 1D.
+     */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     unsigned int blockIdx1D () const {
         if constexpr (dim == 1) {
@@ -172,6 +182,9 @@ struct LaunchHandler
         }
     }
 
+    /**
+     * \brief Returns the 1D/2D/3D block ID.
+     */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> blockIdxND () const {
         if constexpr (dim == 1) {
@@ -201,11 +214,18 @@ struct LaunchHandler
         }
     }
 
+    /**
+     * \brief Returns the number of threads inside a block.
+     */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     static constexpr unsigned int blockDim1D () {
         return threads_per_block;
     }
 
+    /**
+     * \brief Analogous to threadIdxND but returns the ND block size.
+     * This effectively just returns the template arguments as an IntVectND.
+     */
     template<int ...nd_block_size>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVectND<dim> blockDimND () {
@@ -214,17 +234,27 @@ struct LaunchHandler
         return {nd_block_size...};
     }
 
+    /**
+     * \brief Returns the global thread index flattened to 1D.
+     */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     unsigned int globalIdx1D () const {
         return blockIdx1D() * threads_per_block + threadIdx1D();
     }
 
+    /**
+     * \brief Returns the global 1D/2D/3D thread index.
+     */
     template<int ...nd_block_size>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> globalIdxND () const {
         return blockIdxND() * blockDimND<nd_block_size...>() + threadIdxND<nd_block_size...>();
     }
 
+    /**
+     * \brief Synchronizes all threads within a block. This is needed before
+     * accessing (shared) memory that was previously written by another thread in the block.
+     */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void syncthreads () const {
         AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
@@ -234,6 +264,12 @@ struct LaunchHandler
         );
     }
 
+    /**
+     * \brief Returns a pointer to block-local shared memory. If multiple shared memory
+     * allocations are needed in a block, then the allocation must be manually split by adding
+     * offsets to it. For CUDA and HIP the memory is aligned to 32 bytes,
+     * for SYCL to the alignment of the chosen data type.
+     */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T* shared_memory () const {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
@@ -245,6 +281,9 @@ struct LaunchHandler
 #endif
     }
 
+    /**
+     * \brief Returns an amrex::Gpu::Handler object, which is sometimes needed for reductions.
+     */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto handler () const {
 #if defined(AMREX_USE_SYCL)
@@ -256,6 +295,9 @@ struct LaunchHandler
 #endif
     }
 
+    /**
+     * \brief Returns the internal sycl::nd_item.
+     */
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto sycl_item () const {
 #if defined(AMREX_USE_SYCL)

@@ -187,6 +187,7 @@
  * - \ref amrex::ParallelFor
  * - \ref amrex::ParallelForOMP
  * - \ref amrex::ParallelForRNG
+ * - \ref amrex::LaunchRaw
  */
 
 /**

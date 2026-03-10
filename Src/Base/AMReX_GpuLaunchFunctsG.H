@@ -1348,6 +1348,24 @@ ParallelFor (Gpu::KernelInfo const&,
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ * that provides low-level access to GPU thread blocks through \ref amrex::Gpu::LaunchHandler.
+ *
+ * The number of threads per block is a compile-time-known one-dimensional value that usually
+ * should be one of 128, 256, 512 or 1024.
+ *
+ * The number of total blocks can be a 1D, 2D or 3D IntVectND. Internally this uses the native
+ * way to split the index, such as blockIdx.x, blockIdx.y and blockIdx.z.
+ * Note that this uses types int and unsigned int which might overflow if many blocks or
+ * total threads are needed. In case this is an issue, it is necessary to explicitly add
+ * a 64-bit grid-strided loop or to call LaunchRaw multiple times with fewer blocks.
+ *
+ * \tparam MT number of threads per GPU block.
+ * \param nblocks number of GPU blocks to launch.
+ * \param f a callable object that takes amrex::Gpu::LaunchHandler as input.
+ */
 template<int MT, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 {
@@ -1367,6 +1385,31 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
     AMREX_GPU_ERROR_CHECK();
 }
 
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ * that provides low-level access to GPU thread blocks and shared memory
+ * through \ref amrex::Gpu::LaunchHandler.
+ *
+ * The number of threads per block is a compile-time-known one-dimensional value that usually
+ * should be one of 128, 256, 512 or 1024.
+ *
+ * The number of total blocks can be a 1D, 2D or 3D IntVectND. Internally this uses the native
+ * way to split the index, such as blockIdx.x, blockIdx.y and blockIdx.z.
+ * Note that this uses types int and unsigned int which might overflow if many blocks or
+ * total threads are needed. In case this is an issue, it is necessary to explicitly add
+ * a 64-bit grid-strided loop or to call LaunchRaw multiple times with fewer blocks.
+ *
+ * This version of LaunchRaw supports the use of dynamic shared memory inside the thread block.
+ * Shared memory is a fast cache local to thread blocks. It has different names in
+ * different GPU backends (CUDA: shared memory, HIP: local data share, SYCL: local memory).
+ *
+ * \tparam MT number of threads per GPU block.
+ * \tparam T data type of shared memory elements.
+ * \param nblocks number of GPU blocks to launch.
+ * \param shared_mem_elements number of shared memory elements per block to allocate.
+ * \param f a callable object that takes amrex::Gpu::LaunchHandler as input.
+ */
 template<int MT, typename T, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
 {
