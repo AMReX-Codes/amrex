@@ -119,7 +119,7 @@ struct LaunchHandler
         : m_blockid{a_blockid}, m_griddim{a_griddim}, m_shared_mem{a_shared_mem} {}
 #endif
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     unsigned int threadIdx1D () const {
         return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
             threadIdx.x,
@@ -129,7 +129,7 @@ struct LaunchHandler
     }
 
     template<int ...nd_block_size>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> threadIdxND () const {
         static_assert(sizeof...(nd_block_size) == dim &&
                       (1 * ... * nd_block_size) == threads_per_block);
@@ -148,7 +148,7 @@ struct LaunchHandler
         return ret;
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     unsigned int blockIdx1D () const {
         if constexpr (dim == 1) {
             return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
@@ -172,7 +172,7 @@ struct LaunchHandler
         }
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> blockIdxND () const {
         if constexpr (dim == 1) {
             return AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
@@ -201,31 +201,31 @@ struct LaunchHandler
         }
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     static constexpr unsigned int blockDim1D () {
         return threads_per_block;
     }
 
     template<int ...nd_block_size>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     static constexpr IntVectND<dim> blockDimND () {
         static_assert(sizeof...(nd_block_size) == dim &&
                       (1 * ... * nd_block_size) == threads_per_block);
         return {nd_block_size...};
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     unsigned int globalIdx1D () const {
         return blockIdx1D() * threads_per_block + threadIdx1D();
     }
 
     template<int ...nd_block_size>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> globalIdxND () const {
         return blockIdxND() * blockDimND<nd_block_size...>() + threadIdxND<nd_block_size...>();
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void syncthreads () const {
         AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
             __syncthreads(),
@@ -234,7 +234,7 @@ struct LaunchHandler
         );
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T* shared_memory () const {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
         static_assert(32 >= alignof(T));
@@ -245,7 +245,7 @@ struct LaunchHandler
 #endif
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto handler () const {
 #if defined(AMREX_USE_SYCL)
         return Gpu::Handler(m_item, reinterpret_cast<void*>(m_shared_mem), threads_per_block);
@@ -256,7 +256,7 @@ struct LaunchHandler
 #endif
     }
 
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE [[nodiscard]]
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     auto sycl_item () const {
 #if defined(AMREX_USE_SYCL)
         return m_item;
