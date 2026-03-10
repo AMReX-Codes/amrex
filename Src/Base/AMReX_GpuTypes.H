@@ -225,7 +225,7 @@ struct LaunchHandler
         return blockIdxND() * blockDimND<nd_block_size...>() + threadIdxND<nd_block_size...>();
     }
 
-    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void syncthreads () const {
         AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
             __syncthreads(),
