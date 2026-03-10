@@ -667,13 +667,16 @@ public:
                  icell += stride)
             {
                 auto iv = indexer.intVect(icell);
-                amrex::ignore_unused(f,ncomp,ixtype); // work around first-capture
+                // work around first-capture
+                auto f2 = f;
+                auto ncomp2 = ncomp;
+                auto ixtype2 = ixtype;
                 if constexpr (std::is_same_v<Reduce::detail::iterate_box,I>) {
-                    auto pr = Reduce::detail::call_f_intvect_box(f, iv, ixtype);
+                    auto pr = Reduce::detail::call_f_intvect_box(f2, iv, ixtype2);
                     Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                 } else {
-                    for (int n = 0; n < ncomp; ++n) {
-                        auto pr = Reduce::detail::call_f_intvect_n(f, iv, n);
+                    for (int n = 0; n < ncomp2; ++n) {
+                        auto pr = Reduce::detail::call_f_intvect_n(f2, iv, n);
                         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, pr);
                     }
                 }
