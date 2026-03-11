@@ -139,19 +139,22 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
     static_assert(MT == 1);
     if constexpr(dim == 1) {
         for (int bx=0; bx < nblocks[0]; ++bx) {
-            f(Gpu::LaunchHandler<MT, void, dim>{{bx}, nblocks, nullptr});
+            f(Gpu::LaunchHandler<MT, void, dim>{
+                IntVectND<1>{bx}, nblocks, nullptr});
         }
     } else if constexpr(dim == 2) {
         for (int by=0; by < nblocks[1]; ++by) {
             for (int bx=0; bx < nblocks[0]; ++bx) {
-                f(Gpu::LaunchHandler<MT, void, dim>{{bx, by}, nblocks, nullptr});
+                f(Gpu::LaunchHandler<MT, void, dim>{
+                    IntVectND<2>{bx, by}, nblocks, nullptr});
             }
         }
     } else {
         for (int bz=0; bz < nblocks[2]; ++bz) {
             for (int by=0; by < nblocks[1]; ++by) {
                 for (int bx=0; bx < nblocks[0]; ++bx) {
-                    f(Gpu::LaunchHandler<MT, void, dim>{{bx, by, bz}, nblocks, nullptr});
+                    f(Gpu::LaunchHandler<MT, void, dim>{
+                        IntVectND<3>{bx, by, bz}, nblocks, nullptr});
                 }
             }
         }
@@ -165,19 +168,22 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
     std::vector<T> smem(shared_mem_elements);
     if constexpr(dim == 1) {
         for (int bx=0; bx < nblocks[0]; ++bx) {
-            f(Gpu::LaunchHandler<MT, T, dim>{{bx}, nblocks, smem.data()});
+            f(Gpu::LaunchHandler<MT, T, dim>{
+                IntVectND<1>{bx}, nblocks, smem.data()});
         }
     } else if constexpr(dim == 2) {
         for (int by=0; by < nblocks[1]; ++by) {
             for (int bx=0; bx < nblocks[0]; ++bx) {
-                f(Gpu::LaunchHandler<MT, T, dim>{{bx, by}, nblocks, smem.data()});
+                f(Gpu::LaunchHandler<MT, T, dim>{
+                    IntVectND<2>{bx, by}, nblocks, smem.data()});
             }
         }
     } else {
         for (int bz=0; bz < nblocks[2]; ++bz) {
             for (int by=0; by < nblocks[1]; ++by) {
                 for (int bx=0; bx < nblocks[0]; ++bx) {
-                    f(Gpu::LaunchHandler<MT, T, dim>{{bx, by, bz}, nblocks, smem.data()});
+                    f(Gpu::LaunchHandler<MT, T, dim>{
+                        IntVectND<3>{bx, by, bz}, nblocks, smem.data()});
                 }
             }
         }
