@@ -279,7 +279,7 @@ The following code shows how to use :cpp:`ParmParse` to get/query the values.
      amrex::Print() << numcells.size() << "\n";  // 3
 
      Vector<Real> xr {-1.0, 1.0};
-     if (!queryarr("xrange", xr)) {
+     if (!pp.queryarr("xrange", xr)) {
          amrex::Print() << "Cannot find xrange in inputs, "
                         << "so the default {-1.0,1.0} will be used\n";
      }
@@ -493,6 +493,44 @@ The following code shows how to query the enumerators.
        MyColor default_color; // MyColor::none
        pp.query("color3", default_color); // Still MyColor::none
    }
+
+Other Useful Functions
+----------------------
+
+:cpp:`ParmParse` provides several additional member functions:
+
+- :cpp:`queryAdd(name, ref)` queries the database. If the name is
+  found, its value is stored in ``ref``. If not, the current value of ``ref``
+  is added to the database as a default. This is useful for setting
+  parameter defaults inside functions (see
+  :ref:`sec:basics:parmparse:functions`).
+
+- :cpp:`getline(name, ref)` / :cpp:`queryline(name, ref)` retrieve the
+  entire value list as a single whitespace-joined string. For example, if
+  the input contains ``foo = a b c``, then :cpp:`getline("foo", s)` sets
+  ``s`` to ``"a b c"``, whereas :cpp:`get("foo", s)` would set ``s`` to
+  ``"a"`` only.
+
+- :cpp:`queryAsDouble(name, ref)` / :cpp:`getAsDouble(name, ref)` parse
+  the value as a ``double`` math expression and then cast the result to the
+  type of ``ref`` (which can be an integer type). This avoids integer
+  truncation issues when the expression involves division.
+
+- :cpp:`eval(expr)` evaluates a math expression string directly, looking
+  up any unknown symbols in the :cpp:`ParmParse` database.
+
+  .. highlight:: c++
+
+  ::
+
+     ParmParse pp;
+     pp.add("two", 2.0);
+     double result = pp.eval<double>("two * 3.14"); // 6.28
+
+- :cpp:`remove(name)` removes a parameter from the database.
+
+- :cpp:`contains(name)` returns ``true`` if the parameter exists, without
+  retrieving its value.
 
 TOML-Like Features
 ------------------

@@ -621,7 +621,7 @@ public:
     //! the middle if present as a single string. For example, `foo = a b c`
     //! is treated by this function as a single string "a b c", whereas
     //! get() will give only "a" and getarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -631,7 +631,7 @@ public:
     //! in the middle if present as a single string. For example, `foo = a b
     //! c` is treated by this function as a single string "a b c", whereas
     //! query() will give only "a" and queryarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -911,7 +911,7 @@ public:
                      std::vector<std::string>& ref,
                      int                       start_ix = FIRST,
                      int                       num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view          name,
                   std::vector<std::string>& ref,
                   int                       start_ix = FIRST,
@@ -946,7 +946,7 @@ public:
                      std::vector<IntVect>& ref,
                      int                   start_ix = FIRST,
                      int                   num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view      name,
                   std::vector<IntVect>& ref,
                   int                   start_ix = FIRST,
@@ -981,7 +981,7 @@ public:
                      std::vector<Box>& ref,
                      int               start_ix = FIRST,
                      int               num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view  name,
                   std::vector<Box>& ref,
                   int               start_ix = FIRST,
