@@ -17,7 +17,7 @@ void test1d () {
 #endif
     static constexpr int num_threads = blockdim[0];
 
-    Gpu::DeviceVector<int> vect(num_threads * num_blocks[0], -999);
+    Gpu::DeviceVector<int> vect(static_cast<std::size_t>(num_threads) * num_blocks[0], -999);
 
     auto * data = vect.dataPtr();
 
@@ -71,7 +71,8 @@ void test2d () {
 #endif
     static constexpr int num_threads = blockdim[0] * blockdim[1];
 
-    Gpu::DeviceVector<int> vect(num_threads * num_blocks[0] * num_blocks[1], -999);
+    Gpu::DeviceVector<int> vect(static_cast<std::size_t>(num_threads)
+        * num_blocks[0] * num_blocks[1], -999);
 
     auto * data = vect.dataPtr();
 
@@ -128,7 +129,8 @@ void test3d () {
 #endif
     static constexpr int num_threads = blockdim[0] * blockdim[1] * blockdim[2];
 
-    Gpu::DeviceVector<int> vect(num_threads * num_blocks[0] * num_blocks[1] * num_blocks[2], -999);
+    Gpu::DeviceVector<int> vect(static_cast<std::size_t>(num_threads)
+         * num_blocks[0] * num_blocks[1] * num_blocks[2], -999);
 
     auto * data = vect.dataPtr();
 

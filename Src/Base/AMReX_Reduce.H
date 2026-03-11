@@ -653,7 +653,7 @@ public:
             amrex::IntVectND<1>{static_cast<int>(nblocks_ec)},
             AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
             [=] AMREX_GPU_DEVICE (
-                amrex::LaunchHandler<AMREX_GPU_MAX_THREADS, unsigned long long, 1> lh
+                Gpu::LaunchHandler<AMREX_GPU_MAX_THREADS, unsigned long long, 1> lh
             ) noexcept
         {
             ReduceTuple r;
