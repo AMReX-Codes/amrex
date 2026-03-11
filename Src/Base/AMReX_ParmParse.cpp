@@ -143,6 +143,19 @@ template <class T>
 bool
 is (const std::string& str, T& val)
 {
+    if constexpr (std::is_integral_v<T>) {
+        auto const lo_str = amrex::toLower(str);
+        if ( lo_str == "true" || lo_str == "t" )
+            {
+                val = 1;
+                return true;
+            }
+        else if ( lo_str == "false" || lo_str == "f" )
+            {
+                val = 0;
+                return true;
+            }
+    }
     return isT(str, val);
 }
 

@@ -149,6 +149,48 @@ int main(int argc, char* argv[])
         pp.queryAsDouble("do_that", o_do_that);
         AMREX_ALWAYS_ASSERT(!o_do_that.has_value());
     }
+    { // boolean strings queried as int
+        ParmParse pp("bool");
+        int v = -1;
+        pp.get("true_val", v);
+        AMREX_ALWAYS_ASSERT(v == 1);
+        pp.get("false_val", v);
+        AMREX_ALWAYS_ASSERT(v == 0);
+        pp.get("True_val", v);
+        AMREX_ALWAYS_ASSERT(v == 1);
+        pp.get("FALSE_val", v);
+        AMREX_ALWAYS_ASSERT(v == 0);
+        pp.get("t_val", v);
+        AMREX_ALWAYS_ASSERT(v == 1);
+        pp.get("f_val", v);
+        AMREX_ALWAYS_ASSERT(v == 0);
+        long lv = -1;
+        pp.get("true_val", lv);
+        AMREX_ALWAYS_ASSERT(lv == 1);
+        pp.get("false_val", lv);
+        AMREX_ALWAYS_ASSERT(lv == 0);
+        long long llv = -1;
+        pp.get("true_val", llv);
+        AMREX_ALWAYS_ASSERT(llv == 1);
+        pp.get("false_val", llv);
+        AMREX_ALWAYS_ASSERT(llv == 0);
+    }
+    { // boolean strings queried as bool
+        ParmParse pp("bool");
+        bool v = false;
+        pp.get("true_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("false_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+        pp.get("True_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("FALSE_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+        pp.get("t_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("f_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+    }
     {
         ParmParse pp;
         bool my_bool_flag_1 = false;
