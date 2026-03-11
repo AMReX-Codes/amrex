@@ -203,11 +203,14 @@ N_Vector N_VClone_MultiFab(N_Vector w)
 
 void N_VDestroy_MultiFab(N_Vector v)
 {
+    if (v == nullptr) { return; }
     if (amrex::sundials::N_VGetOwnMF_MultiFab(v) == SUNTRUE)
     {
          delete amrex::sundials::getMFptr(v);
          amrex::sundials::getMFptr(v) = nullptr;
     }
+    std::free(v->content);
+    v->content = nullptr;
     N_VFreeEmpty(v);
 }
 
