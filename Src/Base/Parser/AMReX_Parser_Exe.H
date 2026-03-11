@@ -53,6 +53,7 @@ enum parser_exe_t {
     PARSER_EXE_DIV_PN,
     PARSER_EXE_SQUARE,
     PARSER_EXE_POWI,
+    PARSER_EXE_FMA_VPV,
     PARSER_EXE_IF,
     PARSER_EXE_JUMP,
     PARSER_EXE_USER_FN
@@ -208,6 +209,13 @@ struct alignas(8) ParserExeSquare {
 struct alignas(8) ParserExePOWI {
     enum parser_exe_t type = PARSER_EXE_POWI;
     int i;
+};
+
+struct alignas(8) ParserExeFMA_VPV {
+    enum parser_exe_t type = PARSER_EXE_FMA_VPV;
+    int i;       // variable index
+    double a;    // multiplier
+    double b;    // addend
 };
 
 struct alignas(8) ParserExeIF {
@@ -533,6 +541,14 @@ double parser_exe_eval (const char* p, double const* x)
                 d = 1.0;
             }
             p += sizeof(ParserExePOWI);
+            break;
+        }
+        case PARSER_EXE_FMA_VPV:
+        {
+            int i = ((ParserExeFMA_VPV*)p)->i;
+            double d = AMREX_PARSER_GET_DATA(i);
+            pstack.push(((ParserExeFMA_VPV*)p)->a * d + ((ParserExeFMA_VPV*)p)->b);
+            p += sizeof(ParserExeFMA_VPV);
             break;
         }
         case PARSER_EXE_IF:

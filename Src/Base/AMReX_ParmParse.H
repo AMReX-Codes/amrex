@@ -621,7 +621,7 @@ public:
     //! the middle if present as a single string. For example, `foo = a b c`
     //! is treated by this function as a single string "a b c", whereas
     //! get() will give only "a" and getarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -631,7 +631,7 @@ public:
     //! in the middle if present as a single string. For example, `foo = a b
     //! c` is treated by this function as a single string "a b c", whereas
     //! query() will give only "a" and queryarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -911,7 +911,7 @@ public:
                      std::vector<std::string>& ref,
                      int                       start_ix = FIRST,
                      int                       num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view          name,
                   std::vector<std::string>& ref,
                   int                       start_ix = FIRST,
@@ -946,7 +946,7 @@ public:
                      std::vector<IntVect>& ref,
                      int                   start_ix = FIRST,
                      int                   num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view      name,
                   std::vector<IntVect>& ref,
                   int                   start_ix = FIRST,
@@ -981,7 +981,7 @@ public:
                      std::vector<Box>& ref,
                      int               start_ix = FIRST,
                      int               num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view  name,
                   std::vector<Box>& ref,
                   int               start_ix = FIRST,
@@ -1652,6 +1652,31 @@ public:
     {
         if (this->querytable(name, ref) == 0) {
             amrex::ErrorStream() << "ParmParse::gettable: " << name
+                                 << " not found in database\n";
+            ParmParse::dumpTable(amrex::ErrorStream());
+            amrex::Abort();
+        }
+    }
+
+    /**
+     * \brief Query vector of vector. The return value indicates whether
+     * it's found. The vector of vector is in the format of
+     * `[[a00, a01, a02...], [a10, a11, a12...], ...]`.
+     */
+    int queryarr (std::string_view name, std::vector<std::vector<double>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<float>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<int>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<std::string>>& ref) const;
+
+    /**
+     * \brief Get vector of vector. It's an error if it is not found.  The
+     * vector of vector is in the format of `[[a00, a01, a02...], [a10, a11, a12...], ...]`.
+     */
+    template <typename T>
+    void getarr (std::string_view name, std::vector<std::vector<T>>& ref) const
+    {
+        if (this->queryarr(name, ref) == 0) {
+            amrex::ErrorStream() << "ParmParse::getarr: " << name
                                  << " not found in database\n";
             ParmParse::dumpTable(amrex::ErrorStream());
             amrex::Abort();

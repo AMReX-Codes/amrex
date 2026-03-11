@@ -279,7 +279,7 @@ The following code shows how to use :cpp:`ParmParse` to get/query the values.
      amrex::Print() << numcells.size() << "\n";  // 3
 
      Vector<Real> xr {-1.0, 1.0};
-     if (!queryarr("xrange", xr)) {
+     if (!pp.queryarr("xrange", xr)) {
          amrex::Print() << "Cannot find xrange in inputs, "
                         << "so the default {-1.0,1.0} will be used\n";
      }
@@ -494,6 +494,150 @@ The following code shows how to query the enumerators.
        pp.query("color3", default_color); // Still MyColor::none
    }
 
+Other Useful Functions
+----------------------
+
+:cpp:`ParmParse` provides several additional member functions:
+
+- :cpp:`queryAdd(name, ref)` queries the database. If the name is
+  found, its value is stored in ``ref``. If not, the current value of ``ref``
+  is added to the database as a default. This is useful for setting
+  parameter defaults inside functions (see
+  :ref:`sec:basics:parmparse:functions`).
+
+- :cpp:`getline(name, ref)` / :cpp:`queryline(name, ref)` retrieve the
+  entire value list as a single whitespace-joined string. For example, if
+  the input contains ``foo = a b c``, then :cpp:`getline("foo", s)` sets
+  ``s`` to ``"a b c"``, whereas :cpp:`get("foo", s)` would set ``s`` to
+  ``"a"`` only.
+
+- :cpp:`queryAsDouble(name, ref)` / :cpp:`getAsDouble(name, ref)` parse
+  the value as a ``double`` math expression and then cast the result to the
+  type of ``ref`` (which can be an integer type). This avoids integer
+  truncation issues when the expression involves division.
+
+- :cpp:`eval(expr)` evaluates a math expression string directly, looking
+  up any unknown symbols in the :cpp:`ParmParse` database.
+
+  .. highlight:: c++
+
+  ::
+
+     ParmParse pp;
+     pp.add("two", 2.0);
+     double result = pp.eval<double>("two * 3.14"); // 6.28
+
+- :cpp:`remove(name)` removes a parameter from the database.
+
+- :cpp:`contains(name)` returns ``true`` if the parameter exists, without
+  retrieving its value.
+
+TOML-Like Features
+------------------
+
+Our :cpp:`ParmParse` format is somewhat similar to TOML. A subset of TOML
+can be processed by :cpp:`ParmParse`. For a key/value pair, the key starts
+with an alphabetical letter (a-zA-Z) followed by zero or more allowed
+characters (alphabetical letters, numbers, ``_``, ``-``, and ``.``).
+
+In TOML, the same key cannot appear more than once. In :cpp:`ParmParse`,
+this is allowed and the last one will overwrite previous ones.
+
+.. highlight:: python
+
+::
+
+   # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
+   a = 1
+   a = 2
+
+In :cpp:`ParmParse`, quotes (``"``) are optional for strings, whereas in TOML
+they are required. In :cpp:`ParmParse`, a basic string is a raw string. For
+compatibility, you should avoid special escape sequences in strings. UTF-8
+strings are allowed, but it might be better to avoid them unless it's
+absolutely necessary.
+
+In TOML, arrays are values inside square brackets and they can be
+nested. :cpp:`ParmParse` supports TOML-like arrays and arrays of arrays, but
+not more deeply nested arrays. :cpp:`ParmParse` also does not support mixed
+types in an array.
+
+Although math expressions are allowed in :cpp:`ParmParse`'s native array
+format, they are not allowed in arrays started by square brackets.
+
+.. highlight:: python
+
+::
+
+  a = [3+4, 5+6] # Not allowed
+  b = 3+4  5+6  # Allowed in ParmParse, but not in TOML. Same as b = [7,11].
+
+Table in TOML are started by headers (e.g., ``[amr]`` in a line). By default,
+an entry before the table header is in the nameless top level table. Once a
+table header is defined, it will continue until another one is introduced.
+
+.. highlight:: python
+
+::
+
+   k = 1
+   p.k = 2
+
+   [a]
+   k = 3   # the full key/pair is a.k = 3
+   b.k = 4 # the full key/pair is a.b.k = 4
+
+   [b.c]
+   k = 5     # the full key/pair is b.c.k = 5
+   d.e.k = 6 # the full key/pair is b.c.d.e.k = 6
+
+The file above is the same as the following:
+
+.. highlight:: python
+
+::
+
+   k = 1
+   p.k = 2
+
+   a.k = 3
+   a.b.k = 4
+
+   b.c.k = 5
+   b.c.d.e.k = 6
+
+In TOML, it's not allowed to define a table more than once. But it's allowed
+in :cpp:`ParmParse`. If you want compatibility with TOML, you should avoid it.
+
+.. highlight:: python
+
+::
+
+   # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
+   [a]
+   b = 1
+   [a.b]     # a.b already defined
+   c = 2
+
+.. highlight:: python
+
+::
+
+   # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
+   [a]
+   k = 1
+   [a]      # [a] already defined
+   b = 2
+
+Including Another File
+----------------------
+
+In :cpp:`ParmParse`, you can use ``FILE = another_file`` to add the contents
+in another file into the :cpp:`ParmParse` database of key/value pairs. Note
+that TOML-like table headers defined in the included file have no effect on
+the current environment. Likewise, the included file also does not inherit
+the active table header from the including file.
+
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
 
@@ -673,29 +817,51 @@ They are briefly introduced in the table below.
 Parser
 ======
 
-AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
-expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
-``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
-``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``, ``sinh``, ``cosh``,
-``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil``, ``fmod``,
-and ``erf``. The minimum and maximum of two
-numbers can be computed with ``min`` and ``max``, respectively.  It supports
-the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
-``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
-It supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``, and the Bessel function of the second kind of order ``n`` ``yn(n,x)``.
-Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` and ``comp_ellint_2(k)``,
-are supported.
-There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
-``a``.  A number of comparison operators are supported, including ``<``,
-``>``, ``==``, ``!=``, ``<=``, and ``>=``, and they can be chained.
-The Boolean results from
-comparison can be combined by ``and`` and ``or``, and they hold the value ``1``
-for true and ``0`` for false.  The precedence of the operators follows the
-convention of the C and C++ programming languages.  Here is an example of using
-the parser.
+AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to
+evaluate mathematical expressions given in the form of string. The parser
+compiles expressions into a compact executable form that can be evaluated
+efficiently on both CPU and GPU. When :cpp:`compile` is called, the parser
+automatically performs constant folding and algebraic simplification.
 
-.. highlight: c++
+Supported Operators and Functions
+---------------------------------
+
+**Arithmetic operators:** ``+``, ``-``, ``*``, ``/``, ``**`` (power), ``^``
+(power).
+
+**Basic math functions:** ``sqrt``, ``abs``, ``floor``, ``ceil``, ``fmod``,
+``pow``, ``min``, ``max``.
+
+**Exponential and logarithmic:** ``exp``, ``log``, ``log10``.
+
+**Trigonometric:** ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``,
+``atan2``.
+
+**Hyperbolic:** ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``.
+
+**Special functions:** ``erf``, ``jn(n,x)`` (Bessel function of the first
+kind of order ``n``), ``yn(n,x)`` (Bessel function of the second kind of
+order ``n``), ``comp_ellint_1(k)`` and ``comp_ellint_2(k)`` (complete
+elliptic integrals of the first and second kind).
+
+**Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
+``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
+
+**Conditional:** ``if(a,b,c)`` returns ``b`` if ``a`` is nonzero (true),
+``c`` if ``a`` is zero (false).
+
+**Comparison operators:** ``<``, ``>``, ``==``, ``!=``, ``<=``, ``>=``.
+Comparisons return ``1.0`` for true and ``0.0`` for false. They can be
+chained (e.g., ``a < x < b`` is equivalent to ``a < x and x < b``).
+
+**Logical operators:** ``and``, ``or``. A value is considered true if it is
+nonzero. The precedence of operators follows the convention of the C and C++
+programming languages.
+
+Basic Usage
+-----------
+
+.. highlight:: c++
 
 ::
 
@@ -706,7 +872,7 @@ the parser.
    parser.registerVariables({"x","y","z"});
    auto f = parser.compile<3>();  // 3 because there are three variables.
 
-   // ParserExecutor<3> f is thread-safe, and can be used in both host and
+   // ParserExecutor<3> f is thread safe, and can be used in both host and
    // device code. It takes 3 arguments in this example. The parser object
    // must be alive for f to be valid.
    for (int k = 0; ...) {
@@ -717,9 +883,22 @@ the parser.
      }
    }
 
-Local automatic variables can be defined in the expression.  For example,
+Constants are set with :cpp:`setConstant` and are substituted into the
+expression when :cpp:`compile` is called (i.e., at parser compile time, not
+C++ compile time). Variables are registered with
+:cpp:`registerVariables` and their values are provided at evaluation time.
+The template parameter to :cpp:`compile` must match the number of registered
+variables.
 
-.. highlight: c++
+If the compiled executor is only needed on the host, :cpp:`compileHost` can
+be used instead of :cpp:`compile` to skip the GPU copy.
+
+Local Variables
+---------------
+
+Local automatic variables can be defined in the expression. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -728,24 +907,73 @@ Local automatic variables can be defined in the expression.  For example,
    parser.registerVariables({"x","y"});
    auto f = parser.compile<2>();  // 2 because there are two variables.
 
-Note that an assignment to an automatic variable must be terminated with
-``;``, and one should avoid name conflict between the local variables and
-the constants set by :cpp:`setConstant` and the variables registered by
-:cpp:`registerVariables`.
+An assignment to a local variable must be terminated with ``;``. The final
+expression in the string (without a trailing ``;``) is the return value.
+One should avoid name conflicts between local variables and the constants set
+by :cpp:`setConstant` or the variables registered by :cpp:`registerVariables`.
+
+User-Defined Functions
+----------------------
+
+User-defined functions with one to four arguments can be registered with the
+parser. When the parser encounters an unknown function name in the expression,
+it is treated as a user-defined function. The user must then register a
+function pointer (for both host and device) before compiling.
+
+.. highlight:: c++
+
+::
+
+   Parser parser("my_fn(x, y) + z");
+   parser.registerVariables({"x","y","z"});
+
+   // Register host and device function pointers for my_fn (2 arguments).
+   parser.registerUserFn2("my_fn", my_host_fn, my_device_fn);
+
+   auto f = parser.compile<3>();
+
+The registration functions are :cpp:`registerUserFn1`, :cpp:`registerUserFn2`,
+:cpp:`registerUserFn3`, and :cpp:`registerUserFn4` for functions with one, two,
+three, and four arguments, respectively. In CPU-only builds, either function
+pointer argument may be ``nullptr`` and the non-null one will be used.
+
+Querying the Parser
+-------------------
+
+The :cpp:`Parser` class provides several methods for introspection:
+
+- :cpp:`symbols()` returns a ``std::set<std::string>`` of all variable names
+  found in the expression (excluding local variables and constants already set).
+- :cpp:`expr()` returns the original expression string.
+- :cpp:`print()` prints the abstract syntax tree (AST) of the expression.
+- :cpp:`printExe()` prints the compiled instruction sequence.
+
+Integer Parser
+--------------
 
 Besides :cpp:`amrex::Parser` for floating point numbers, AMReX also provides
-:cpp:`amrex::IParser` for integers.  The two parsers have a lot of
-similarity, but floating point number specific functions (e.g., ``sqrt``,
-``sin``, etc.) are not supported in ``IParser``.  In addition to ``/`` whose
-result truncates towards zero, the integer parser also supports ``//`` whose
-result truncates towards negative infinity. Single quotes ``'`` are allowed
-as a separator for :cpp:`IParser` numbers just like C++ integer
-literals. Additionally, a floating point like number with a positive
-exponent may be accepted as an integer if it is reasonable to do so. For
-example, it's okay to have ``1.234e3``, but ``1.234e2`` is an error.
+:cpp:`amrex::IParser` for integers. The two parsers have a lot of similarity,
+but floating point number specific functions (e.g., ``sqrt``, ``sin``, etc.)
+are not supported in ``IParser``. In addition to ``/`` whose result truncates
+towards zero, the integer parser also supports ``//`` whose result truncates
+towards negative infinity. Single quotes ``'`` are allowed as a separator for
+:cpp:`IParser` numbers just like C++ integer literals. Additionally, a
+floating point like number with a positive exponent may be accepted as an
+integer if it is reasonable to do so. For example, it's okay to have
+``1.234e3``, but ``1.234e2`` is an error.
 
   .. versionadded:: 24.08
      Support for ``'`` and ``e`` in :cpp:`IParser` integers.
+
+Thread Safety
+-------------
+
+Constructing a :cpp:`Parser` (or :cpp:`IParser`) object is **not** thread safe
+because the underlying lex/yacc parser uses global state. If multiple threads
+need to construct parsers concurrently, external synchronization is required.
+Once compiled, the :cpp:`ParserExecutor` returned by :cpp:`compile` or
+:cpp:`compileHost` is thread safe and can be called concurrently from multiple
+threads or GPU kernels.
 
 .. _sec:basics:initialize:
 

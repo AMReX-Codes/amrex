@@ -334,7 +334,7 @@ public:
     */
     [[nodiscard]] bool contains (const BaseFab<T>& fab) const noexcept
     {
-        return box().contains(fab.box()) && this->nvar <= fab.nvar;
+        return box().contains(fab.box()) && this->nvar >= fab.nvar;
     }
 
     /**

@@ -1,0 +1,129 @@
+# AMReX's ParmParse file format is similar but also different from TOML. In
+# this file, we explain some differences between the two
+# formats. Nevertheless, a subset of TOML is supported. Below are some
+# examples that work in both TOML and ParmParse. Most of them are collected
+# from the specification of TOML (https://toml.io/en/latest).
+
+# === WARNING === AMReX is developed on Unix systems. If anything does not
+# work on Windows system, please let us know.
+
+#if (AMREX_SPACEDIM != 2)
+
+# The purpose of the macro here is that we can test the case with [table-1]
+# as the first entry. TOML will treat the CPP macros as comments. So it's
+# okay to have it here for ParmParse only.
+
+### Keys
+
+# Best practice is to use bare keys (e.g., foo), not quoted keys (e.g.,
+# "foo"). In ParmParse, a key starts with an alphabetical letter (a-zA-Z)
+# followed by zero or more allowed characters (alphabetical letters,
+# numbers, '_', '-', and '.').
+
+### String
+
+# For compatibility, avoid special escape sequences. A basic strings inside
+# a pair of `"` in ParmParse is a raw string. UTF-8 strings are allowed, but
+# it might be better to avoid them unless it's absolutely necessary.
+
+# Multi-line basic strings are the same.
+a.str="""
+Roses are red
+Violets are blue"""
+
+# In TOML, on a Unix system, the above multi-line string will most likely be
+# the same as:
+a.str2 = "Roses are red\nViolets are blue"
+# But in ParmParse, '\n' as part of a string has no special meaning. The
+# string above is treated as a raw string. So str and str2 are not exactly
+# the same.
+
+# In TOML, an unescaped backslash (\) as the last character of a line has a
+# special meaning in multi-line strings started by `"""`. This is not
+# supported in ParmParse.
+
+# You can write a quotation mark, or two adjacent quotation marks, anywhere
+# inside a multi-line basic string
+a.str3 = """Here is one quotation mark: ". Simple enough."""  # Single "
+a.str4 = """Here are two quotation marks: "". Simple enough."""
+
+### Integers
+
+# For compatibility, avoid binary, octal and hexadecimal numbers, and
+# underscores.
+
+### Array
+
+# For compatibility, avoid mixed type arrays
+
+integers = [ 1, 2, 3 ]
+
+colors = [ "red", "yellow", "green" ]
+# If [] is used for an array of strings, quotes must be used even though
+# ParmParse does allow
+# colors = red yellow green # ParmParse-only format
+
+# Array of strings containing ',', '[' and ']'
+array_of_strings = ["face[0]", "face[1]", "face[2]"]
+array_of_strings_2 = ["face[-1]", "f,ace[0]", "fa,ce[1]", "face[2],", ]
+
+# Arrays can be nested. ParmParse only supports array of array, not more
+# deeply nested arrays.
+nested_arrays_of_ints = [ [ 1, 2 ], [3, 4, 5] ]
+nested_arrays_of_strings = [["aaa", "bbb"], ["ccc"]]
+nested_arrays_of_strings_2 = [["aaa", "bbb"], ["ccc]"]]
+nested_arrays_of_strings_3 = [["aa[a", " bbb"], ["c\"c\" c "]] # Note that in ParmParse we treat "c\"c" as a raw string that is the same as C++ string "c\\\"c".
+nested_arrays_of_strings_4 = [["aa]a", " b,bb"], ["ccc["]]
+
+# Arrays can span multiple lines.
+integers2 = [
+  1, 2, 3
+]
+
+# A terminating comma is permitted after the last value of the array.
+integers3 = [
+  1,
+  2, # this is ok
+]
+
+#endif
+
+### Table
+
+foo = 5 # inline comment just before a table header. This used to break ParmParse.
+[table-1]  # table 1
+key1 = "some string"  # inline comment
+key2 = 123            # more comment
+
+[table-2]
+key1 = "another string"
+key2 = 456
+
+# For simplicity, we avoid names like [dog."tater.man"], [ d.e  . f].
+
+# [x] you
+# [x.y] don't
+# [x.y.z] need these
+[x.y.z.w] # for this to work
+v = 1
+
+[x] # defining a super-table afterward is ok
+v = 2
+
+# In TOML, this defines x.FILE = "config-2.toml". In ParmParse, FILE is a
+# special keyword. It will include "config-2.toml". The current table
+# environment is not affected in any way by the inclusion.
+FILE = "config-2.toml"
+
+[fruit]
+apple.color = "red"
+apple.taste.sweet = true
+
+[fruit.apple.texture]  # you can add sub-tables
+smooth = true
+
+### Inline Table
+# Not supported
+
+### Array of Tables
+# Not supported
