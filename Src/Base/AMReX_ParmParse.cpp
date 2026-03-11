@@ -133,6 +133,19 @@ template <class T>
 bool
 is (const std::string& str, T& val)
 {
+    if constexpr (std::is_integral_v<T>) {
+        auto const lo_str = amrex::toLower(str);
+        if ( lo_str == "true" || lo_str == "t" )
+            {
+                val = 1;
+                return true;
+            }
+        else if ( lo_str == "false" || lo_str == "f" )
+            {
+                val = 0;
+                return true;
+            }
+    }
     return isT(str, val);
 }
 
@@ -186,48 +199,6 @@ is (const std::string& str, bool& val)
         return true;
     }
     return false;
-}
-
-template <typename T>
-bool
-is_bool_to_int (const std::string& str, T& val)
-{
-    auto const lo_str = amrex::toLower(str);
-    if ( lo_str == "true" || lo_str == "t" )
-    {
-        val = 1;
-        return true;
-    }
-    if ( lo_str == "false" || lo_str == "f" )
-    {
-        val = 0;
-        return true;
-    }
-    return false;
-}
-
-template <>
-bool
-is (const std::string& str, int& val)
-{
-    if (is_bool_to_int(str, val)) { return true; }
-    return isT(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, long& val)
-{
-    if (is_bool_to_int(str, val)) { return true; }
-    return isT(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, long long& val)
-{
-    if (is_bool_to_int(str, val)) { return true; }
-    return isT(str, val);
 }
 
 template <class T> const char* tok_name(const T&) { return typeid(T).name(); }
