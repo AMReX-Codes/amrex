@@ -41,7 +41,7 @@ void test3d () {
                 thread[2] + thread[1] * blockdim[2] +
                 thread[0] * blockdim[2] * blockdim[1]
             ];
-            lh.synctheads();
+            lh.syncthreads();
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] = tmp;
         });
 
@@ -61,10 +61,11 @@ void test3d () {
 
     LaunchRaw<num_threads>(num_blocks,
         [=](auto lh){
-            data[lh.globalIdx1D()] = data[lh.globalIdx1D()] == (lh.blockIdx1D() + lh.threadIdx1D());
+            data[lh.globalIdx1D()] =
+                data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });
 
-    AMREX_ALWAYS_ASSERT(Reduce::Sum(vect.size(), data, 0) == vect.size());
+    AMREX_ALWAYS_ASSERT(Reduce::Sum(vect.size(), data, 0) == static_cast<int>(vect.size()));
 }
 
 int main (int argc, char* argv[])
