@@ -399,6 +399,7 @@ amrex::Real N_VMaxNorm_MultiFab(N_Vector x)
 amrex::Real N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
 {
     auto N = amrex::sundials::N_VGetLength_MultiFab(x);
+    if (N <= 0) { return amrex::Real(0.0); }
     return N_VWL2Norm_MultiFab(x, w)*std::sqrt(1.0_rt/Real(N));
 }
 
@@ -470,7 +471,7 @@ amrex::Real N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
 {
     using namespace amrex;
 
-    return NormHelper_NVector_MultiFab(x, w, N_VCloneEmpty_MultiFab(x), false, false);
+    return NormHelper_NVector_MultiFab(x, w, nullptr, false, false);
 }
 
 amrex::Real N_VL1Norm_MultiFab(N_Vector x)
