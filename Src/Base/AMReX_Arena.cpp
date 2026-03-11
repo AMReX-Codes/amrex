@@ -239,6 +239,9 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
 
         if (arena_info.device_use_managed_memory)
         {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(Gpu::Device::managedMemorySupported(),
+                                             "Managed memory is not supported on this system");
+
             AMREX_HIP_OR_CUDA_OR_SYCL(
                 auto ret = hipMallocManaged(&p, nbytes);
                 if (ret != hipSuccess) { p = nullptr; },
@@ -538,7 +541,11 @@ Arena::Initialize (bool minimal)
         the_device_arena->ResetMaxUsageCounter();
     }
 
-    if (the_managed_arena_init_size > 0 && the_managed_arena != the_arena) {
+    if (the_managed_arena_init_size > 0 && the_managed_arena != the_arena
+#ifdef AMREX_USE_GPU
+        && Gpu::Device::managedMemorySupported()
+#endif
+        ) {
         BL_PROFILE("The_Managed_Arena::Initialize()");
         void *p = the_managed_arena->alloc(the_managed_arena_init_size);
         the_managed_arena->free(p);
