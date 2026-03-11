@@ -1367,6 +1367,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         H5Gclose(grp);
     } // end for level
 
+    H5Tclose(comp_dtype);
+    H5Pclose(fapl);
     H5Fclose(fid);
 
     Redistribute();
