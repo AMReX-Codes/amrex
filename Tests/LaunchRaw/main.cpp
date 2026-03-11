@@ -71,7 +71,7 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     {
-        test3d()
+        test3d();
 
         amrex::Print() << "Passed! \n";
     }
