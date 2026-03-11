@@ -50,6 +50,8 @@ ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
 namespace
 {
 
+bool is_toml_array (std::string const& token);
+
 std::string pp_to_pretty_string (std::string const& name,
                                  std::vector<std::string> const& vals,
                                  ParmParse::PP_entry const* entry)
@@ -57,7 +59,11 @@ std::string pp_to_pretty_string (std::string const& name,
     std::stringstream ss;
     ss << name << " =";
     for (auto const& v : vals) {
-        ss << " " << v;
+        if (is_toml_array(v)) {
+            ss << " " << v.substr(5); // length of $$ARR is 5.
+        } else {
+            ss << " " << v;
+        }
     }
     if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
         int min_col = 36;
@@ -82,9 +88,13 @@ std::string pp_to_string (std::string const& name,
 {
     std::stringstream ss;
     ss << name << "(nvals = " << vals.size() << ") " << " :: [";
-    for (std::size_t i = 0; i < vals.size(); ++i) {
-        ss << vals[i];
-        if ( i < vals.size()-1 ) { ss << ", "; }
+    if (vals.size() == 1 && is_toml_array(vals[0])) {
+        ss << vals[0].substr(5); // length of $$ARR is 5.
+    } else {
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            ss << vals[i];
+            if ( i < vals.size()-1 ) { ss << ", "; }
+        }
     }
     ss << "]";
     return ss.str();
@@ -332,7 +342,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             }
             else if ( ch == '[' )
             {
-                ostr += "ARRAY[";
+                ostr += "$$ARR[";
                 str++; sbcnt = 1;
                 array_in_string = false;
                 array_escape = false;
@@ -491,7 +501,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
 
 std::string is_valid_table_key (std::string const& str)
 {
-    if (str.size() >= 8 && str.substr(0,6) == "ARRAY[" && str.back() == ']') {
+    if (str.size() >= 8 && str.substr(0,6) == "$$ARR[" && str.back() == ']') {
         auto key = str.substr(6, str.size()-7);
         bool r = std::isalpha(key[0]);
         for (std::size_t i = 1; i < key.size() && r; ++i) {
@@ -1002,7 +1012,7 @@ squeryval (const ParmParse::Table& table,
     }
 
     //
-    // Handle TOML array: stored as single token "ARRAY[v0,v1,...]"
+    // Handle TOML array: stored as single token "$$ARR[v0,v1,...]"
     //
     if (!(def->empty()) && is_toml_1d_array((*def)[0])) {
         std::vector<T> toml_vals;
@@ -1113,22 +1123,22 @@ sgetval (const ParmParse::Table& table,
     }
 }
 
-// Checks if token matches ARRAY[...]
+// Checks if token matches $$ARR[...]
 bool is_toml_array (std::string const& token)
 {
-    return token.size() >= 7 && token.compare(0,6,"ARRAY[") == 0 &&
+    return token.size() >= 7 && token.compare(0,6,"$$ARR[") == 0 &&
         token.back() == ']';
 }
 
-// Checks if token matches ARRAY[[...]]
+// Checks if token matches $$ARR[[...]]
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
-    return sz >= 9 && token.compare(0,7,"ARRAY[[") == 0 &&
+    return sz >= 9 && token.compare(0,7,"$$ARR[[") == 0 &&
         token.compare(sz-2,2,"]]") == 0;
 }
 
-// Checks if token matches ARRAY[...] but not ARRAY[[...]]
+// Checks if token matches $$ARR[...] but not $$ARR[[...]]
 bool is_toml_1d_array (std::string const& token)
 {
     return is_toml_array(token) && !is_toml_2d_array(token);
@@ -1793,7 +1803,7 @@ ParmParse::countval (std::string_view name,
                     break;
                 }
             }
-            if (token != "ARRAY[]") {
+            if (token != "$$ARR[]") {
                 ++count; // unless it's an empty array, increase by 1 because we counted commas, not really the number of elements
             }
         }
