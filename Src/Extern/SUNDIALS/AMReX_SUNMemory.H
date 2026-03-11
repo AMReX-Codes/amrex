@@ -20,7 +20,7 @@ public:
     MemoryHelper(const MemoryHelper& rhs);
     MemoryHelper(MemoryHelper&& rhs) noexcept;
     MemoryHelper& operator=(MemoryHelper const& rhs) = delete;
-    MemoryHelper& operator=(MemoryHelper&& rhs) noexcept;
+    MemoryHelper& operator=(MemoryHelper&& rhs) noexcept = delete;
     operator SUNMemoryHelper() const { return helper; }
 
     static void Initialize(int nthreads);
