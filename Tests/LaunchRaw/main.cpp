@@ -11,11 +11,11 @@ void test1d () {
 
     const IntVectND<1> num_blocks {31};
 #ifdef AMREX_USE_GPU
-    static constexpr IntVectND<1> blockdim {256};
+    constexpr IntVectND<1> blockdim {256};
 #else
-    static constexpr IntVectND<1> blockdim {1};
+    constexpr IntVectND<1> blockdim {1};
 #endif
-    static constexpr int num_threads = blockdim[0];
+    constexpr int num_threads = blockdim[0];
 
     Gpu::DeviceVector<int> vect(static_cast<std::size_t>(num_threads) * num_blocks[0], -999);
 
@@ -65,11 +65,11 @@ void test2d () {
 
     const IntVectND<2> num_blocks {31, 23};
 #ifdef AMREX_USE_GPU
-    static constexpr IntVectND<2> blockdim {8, 32};
+    constexpr IntVectND<2> blockdim {8, 32};
 #else
-    static constexpr IntVectND<2> blockdim {1, 1};
+    constexpr IntVectND<2> blockdim {1, 1};
 #endif
-    static constexpr int num_threads = blockdim[0] * blockdim[1];
+    constexpr int num_threads = blockdim[0] * blockdim[1];
 
     Gpu::DeviceVector<int> vect(static_cast<std::size_t>(num_threads)
         * num_blocks[0] * num_blocks[1], -999);
@@ -123,11 +123,11 @@ void test3d () {
 
     const IntVectND<3> num_blocks {31, 23, 11};
 #ifdef AMREX_USE_GPU
-    static constexpr IntVectND<3> blockdim {2, 8, 16};
+    constexpr IntVectND<3> blockdim {2, 8, 16};
 #else
-    static constexpr IntVectND<3> blockdim {1, 1, 1};
+    constexpr IntVectND<3> blockdim {1, 1, 1};
 #endif
-    static constexpr int num_threads = blockdim[0] * blockdim[1] * blockdim[2];
+    constexpr int num_threads = blockdim[0] * blockdim[1] * blockdim[2];
 
     Gpu::DeviceVector<int> vect(static_cast<std::size_t>(num_threads)
          * num_blocks[0] * num_blocks[1] * num_blocks[2], -999);
