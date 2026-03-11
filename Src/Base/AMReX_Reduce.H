@@ -526,19 +526,19 @@ namespace Reduce::detail {
 
     template <typename F, int dim>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim>) noexcept //->
-        // decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
+    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim>) noexcept ->
+        decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
         return amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
     }
 
-    // template <typename F, int dim>
-    // AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    // auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim> t) noexcept ->
-    //     decltype(f(BoxND<dim>(iv, iv, t)))
-    // {
-    //     return f(BoxND<dim>(iv, iv, t));
-    // }
+    template <typename F, int dim>
+    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim> t) noexcept ->
+        decltype(f(BoxND<dim>(iv, iv, t)))
+    {
+        return f(BoxND<dim>(iv, iv, t));
+    }
 
     // call_f_intvect_n
     template <typename F, typename T, int dim>
@@ -652,7 +652,9 @@ public:
         amrex::LaunchRaw<AMREX_GPU_MAX_THREADS, unsigned long long>(
             amrex::IntVectND<1>{static_cast<int>(nblocks_ec)},
             AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
-            [=] AMREX_GPU_DEVICE (auto lh) noexcept
+            [=] AMREX_GPU_DEVICE (
+                amrex::LaunchHandler<AMREX_GPU_MAX_THREADS, unsigned long long, 1> lh
+            ) noexcept
         {
             ReduceTuple r;
             Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
