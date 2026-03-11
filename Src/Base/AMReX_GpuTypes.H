@@ -284,28 +284,30 @@ struct LaunchHandler
     /**
      * \brief Returns an amrex::Gpu::Handler object, which is sometimes needed for reductions.
      */
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto handler () const {
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    Gpu::Handler handler () const {
 #if defined(AMREX_USE_SYCL)
         return Gpu::Handler(m_item, reinterpret_cast<void*>(m_shared_mem), threads_per_block);
 #elif defined(AMREX_USE_GPU)
         return Gpu::Handler(threads_per_block);
 #else
-        return 0;
+        return Gpu::Handler{};
 #endif
     }
 
     /**
      * \brief Returns the internal sycl::nd_item.
      */
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto sycl_item () const {
+    [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 #if defined(AMREX_USE_SYCL)
+    sycl::nd_item<dim> sycl_item () const {
         return m_item;
-#else
-        return 0;
-#endif
     }
+#else
+    int sycl_item () const {
+        return 0;
+    }
+#endif
 
 private:
 
