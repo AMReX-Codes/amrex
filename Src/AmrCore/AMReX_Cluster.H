@@ -208,7 +208,7 @@ public:
     /**
     * \brief Chop all clusters in list that have poor efficiency.
     *
-    * \param eff Minimum acceptable tagging efficiency (clusters below are refined).
+    * \param eff Minimum acceptable tagging efficiency.
     */
     void chop (Real eff);
 
@@ -216,7 +216,7 @@ public:
     * \brief Chop all clusters in list that have poor efficiency.
     * This version calls new_chop() instead of chop()
     *
-    * \param eff Minimum acceptable tagging efficiency (clusters below are refined).
+    * \param eff Minimum acceptable tagging efficiency.
     */
     void new_chop (Real eff);
 

@@ -31,7 +31,7 @@ public:
     FluxRegister();
 
     /**
-    * \brief Construct registers spanning a coarse/fine interface.
+    * \brief Constructor.
     *
     * \param fine_boxes Fine-level BoxArray.
     * \param dm        DistributionMapping describing ownership of fine boxes.
@@ -154,7 +154,7 @@ public:
     * \brief Add coarse fluxes to the register without overwriting existing data.
     *
     * Unlike CrseInit(ADD), this path is used when fine-grid fluxes are unavailable
-    * on regions covered by fine levels.
+    * on regions covered by fine levels (e.g., the FLASH code).
     *
     * \param mflx    Coarse flux MultiFab.
     * \param area    Coarse face areas.
@@ -230,11 +230,11 @@ public:
                   Real            mult);
 
     /**
-    * \brief Increment flux correction with fine data supplied as a single tile.
+    * \brief Increment flux correction with fine data.
     *
     * This overload assumes areas have already been multiplied into \p flux.
     *
-    * \param flux    Fine flux FAB (single tile).
+    * \param flux    Fine flux FAB.
     * \param dir     Direction index.
     * \param boxno   Index of the owning FAB in the register.
     * \param srccomp Starting component in \p flux.
@@ -253,10 +253,10 @@ public:
                   RunOn            runon) noexcept;
 
     /**
-    * \brief Increment flux correction with fine data supplying both flux and area tiles.
+    * \brief Increment flux correction with fine flux and area.
     *
-    * \param flux    Fine flux FAB (single tile).
-    * \param area    Area FAB (single tile).
+    * \param flux    Fine flux FAB.
+    * \param area    Area FAB.
     * \param dir     Direction index.
     * \param boxno   Index of the owning FAB in the register.
     * \param srccomp Starting component in \p flux.

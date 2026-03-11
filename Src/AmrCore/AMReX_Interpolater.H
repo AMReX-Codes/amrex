@@ -36,8 +36,8 @@ public:
     * \param ncomp       Number of components to interpolate.
     * \param fine_region Region of the fine FAB to fill.
     * \param ratio       Refinement ratio between coarse and fine.
-    * \param crse_geom   Geometry describing the coarse tile.
-    * \param fine_geom   Geometry describing the fine tile.
+    * \param crse_geom   Coarse Geometry.
+    * \param fine_geom   Fine Geometry.
     * \param bcr         Boundary-condition records per component.
     * \param actual_comp Component offset into the state vector (for BC lookup).
     * \param actual_state Index of the state being interpolated (for query hooks).

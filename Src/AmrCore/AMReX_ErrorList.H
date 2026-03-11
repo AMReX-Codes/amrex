@@ -49,7 +49,7 @@ extern "C"
     * \param thi      Upper bounds of the tag array.
     * \param tagval   Value that indicates a tagged cell.
     * \param clearval Value that indicates an untagged cell.
-    * \param data     Pointer to state data (arranged like a MultiFab tile).
+    * \param data     Pointer to data.
     * \param data_lo  Lower bounds of the data array.
     * \param data_hi  Upper bounds of the data array.
     * \param lo       Lower bounds of the tile being tagged.
@@ -155,7 +155,7 @@ public:
         * \param thi      Upper bounds of the tag array.
         * \param tagval   Value that indicates a tagged cell.
         * \param clearval Value that indicates an untagged cell.
-        * \param data     Pointer to state data (arranged like a MultiFab tile).
+        * \param data     Pointer to data.
         * \param dlo      Lower bounds of the data array.
         * \param dhi      Upper bounds of the data array.
         * \param lo       Lower bounds of the tile being tagged.
@@ -224,7 +224,7 @@ public:
         * \param thi      Upper bounds of the tag array.
         * \param tagval   Value indicating a tagged cell.
         * \param clearval Value indicating an untagged cell.
-        * \param data     Pointer to state data for the tile.
+        * \param data     Pointer to data.
         * \param data_lo  Lower bounds of the data array.
         * \param data_hi  Upper bounds of the data array.
         * \param lo       Lower bounds of the tile being tagged.
