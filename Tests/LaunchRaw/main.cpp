@@ -22,17 +22,17 @@ void test1d () {
     auto * data = vect.dataPtr();
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] = lh.blockIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] += lh.threadIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             auto block = lh.blockIdxND();
             auto thread = lh.template threadIdxND<blockdim[0]>();
             auto tmp = data[
@@ -43,7 +43,7 @@ void test1d () {
         });
 
     LaunchRaw<num_threads, int>(num_blocks, num_threads,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             auto smem = lh.shared_memory();
             auto thread = lh.template threadIdxND<blockdim[0]>();
             auto locid = thread[0];
@@ -53,7 +53,7 @@ void test1d () {
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] =
                 data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });
@@ -76,17 +76,17 @@ void test2d () {
     auto * data = vect.dataPtr();
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] = lh.blockIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] += lh.threadIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             auto block = lh.blockIdxND();
             auto thread = lh.template threadIdxND<blockdim[0], blockdim[1]>();
             auto tmp = data[
@@ -98,7 +98,7 @@ void test2d () {
         });
 
     LaunchRaw<num_threads, int>(num_blocks, num_threads,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             auto smem = lh.shared_memory();
             auto thread1 = lh.template threadIdxND<blockdim[1], blockdim[0]>();
             auto locid1 = thread1[1] + thread1[0] * blockdim[0];
@@ -110,7 +110,7 @@ void test2d () {
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] =
                 data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });
@@ -133,17 +133,17 @@ void test3d () {
     auto * data = vect.dataPtr();
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] = lh.blockIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] += lh.threadIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             auto block = lh.blockIdxND();
             auto thread = lh.template threadIdxND<blockdim[0], blockdim[1], blockdim[2]>();
             auto tmp = data[
@@ -157,7 +157,7 @@ void test3d () {
         });
 
     LaunchRaw<num_threads, int>(num_blocks, num_threads,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             auto smem = lh.shared_memory();
             auto thread1 = lh.template threadIdxND<blockdim[2], blockdim[1], blockdim[0]>();
             auto locid1 = thread1[2] + thread1[1] * blockdim[0] +
@@ -171,7 +171,7 @@ void test3d () {
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=](auto lh){
+        [=] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] =
                 data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });

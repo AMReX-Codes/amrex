@@ -526,19 +526,19 @@ namespace Reduce::detail {
 
     template <typename F, int dim>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim>) noexcept ->
-        decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
+    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim>) noexcept //->
+        // decltype(amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv))
     {
         return amrex::detail::call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv);
     }
 
-    template <typename F, int dim>
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim> t) noexcept ->
-        decltype(f(BoxND<dim>(iv, iv, t)))
-    {
-        return f(BoxND<dim>(iv, iv, t));
-    }
+    // template <typename F, int dim>
+    // AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+    // auto call_f_intvect_box (F const& f, IntVectND<dim> iv, IndexTypeND<dim> t) noexcept ->
+    //     decltype(f(BoxND<dim>(iv, iv, t)))
+    // {
+    //     return f(BoxND<dim>(iv, iv, t));
+    // }
 
     // call_f_intvect_n
     template <typename F, typename T, int dim>
