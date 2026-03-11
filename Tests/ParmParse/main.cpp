@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(!o_do_that.has_value());
     }
     { // boolean strings queried as int
-        ParmParse pp("bool_int");
+        ParmParse pp("bool");
         int v = -1;
         pp.get("true_val", v);
         AMREX_ALWAYS_ASSERT(v == 1);
@@ -174,6 +174,22 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(llv == 1);
         pp.get("false_val", llv);
         AMREX_ALWAYS_ASSERT(llv == 0);
+    }
+    { // boolean strings queried as bool
+        ParmParse pp("bool");
+        bool v = false;
+        pp.get("true_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("false_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+        pp.get("True_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("FALSE_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+        pp.get("t_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("f_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
     }
     {
         ParmParse pp;

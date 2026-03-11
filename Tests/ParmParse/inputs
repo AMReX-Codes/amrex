@@ -64,13 +64,13 @@ ny = nx
 
 do_this = 1
 
-# boolean strings queried as int
-bool_int.true_val = true
-bool_int.false_val = false
-bool_int.True_val = True
-bool_int.FALSE_val = FALSE
-bool_int.t_val = t
-bool_int.f_val = f
+# boolean strings
+bool.true_val = true
+bool.false_val = false
+bool.True_val = True
+bool.FALSE_val = FALSE
+bool.t_val = t
+bool.f_val = f
 
 # query bool with parser
 my_value = 10
