@@ -231,7 +231,7 @@ struct LaunchHandler
     static constexpr IntVectND<dim> blockDimND () {
         static_assert(sizeof...(nd_block_size) == dim &&
                       (1 * ... * nd_block_size) == threads_per_block);
-        return {nd_block_size...};
+        return IntVectND<dim>{nd_block_size...};
     }
 
     /**
