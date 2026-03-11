@@ -100,6 +100,7 @@ namespace {
 
     void ActuallyDestroySUNMemoryHelper(SUNMemoryHelper helper)
     {
+        if (helper == nullptr) { return; }
         if (helper->ops) { std::free(helper->ops); }
         std::free(helper);
     }
@@ -155,20 +156,6 @@ MemoryHelper::MemoryHelper(MemoryHelper&& rhs) noexcept
 {
     rhs.helper = nullptr;
     rhs.sunctx = nullptr;
-}
-
-MemoryHelper& MemoryHelper::operator=(MemoryHelper&& rhs) noexcept
-{
-    if (this != &rhs)
-    {
-        ActuallyDestroySUNMemoryHelper(helper);
-        helper = rhs.helper;
-        rhs.helper = nullptr;
-        delete sunctx;
-        sunctx = rhs.sunctx;
-        rhs.sunctx = nullptr;
-    }
-    return *this;
 }
 
 void MemoryHelper::Initialize(int nthreads)
