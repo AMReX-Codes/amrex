@@ -2,8 +2,6 @@ AMREX_HOME = ../../../
 
 DEBUG	= FALSE
 
-DIM	= 3
-
 USE_MPI   = FALSE
 USE_OMP   = FALSE
 
