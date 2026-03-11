@@ -171,7 +171,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 }
 
 /**
- * \brief Deposit particles onto a hierarchy of MultiFabs, including refluxing between levels.
+ * \brief Deposit particles onto a hierarchy of MultiFabs.
  *
  * \tparam PC Particle container type satisfying IsParticleContainer.
  * \tparam F  Functor invoked per particle to accumulate into the field.
@@ -304,14 +304,14 @@ public:
     {
     }
 
-    //! Construct by borrowing the particle database from \p amr_core.
+    //! Construct from \p amr_core.
     AmrParticleContainer_impl (AmrCore* amr_core)
         : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(amr_core->GetParGDB())
     {
     }
 
     /**
-     * \brief Construct from explicit geometry/mapping metadata (for tests).
+     * \brief Construct from explicit Geometry, DistributionMapping and BoxArray.
      *
      * \param geom  Per-level geometries.
      * \param dmap  Per-level distribution maps.
@@ -348,7 +348,7 @@ class AmrTracerParticleContainer
 {
 public:
 
-    //! Construct by borrowing the particle database from \p amr_core.
+    //! Construct from \p amr_core.
     AmrTracerParticleContainer (AmrCore* amr_core)
         : TracerParticleContainer(amr_core->GetParGDB())
     {
