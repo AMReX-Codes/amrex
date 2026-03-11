@@ -564,7 +564,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
         const amrex::Box& bx = mfi.validbox();
         Array4<Real> const& x_fab = mf_x->array(mfi);
         Array4<Real> const& a_fab = mf_a->array(mfi);
-        Array4<Real> const& m_fab = mf_a->array(mfi);
+        Array4<Real> const& m_fab = mf_m->array(mfi);
         //Changing continue to if check, temp calculation should be changed to reduction
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
