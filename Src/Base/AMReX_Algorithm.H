@@ -177,7 +177,7 @@ namespace amrex
             ++n;
         }
 
-        AMREX_ASSERT_WITH_MESSAGE(n < max_iter,
+        AMREX_ASSERT_WITH_MESSAGE(n <= max_iter,
             "Error - maximum number of iterations reached in bisect.");
 
         return mi;
