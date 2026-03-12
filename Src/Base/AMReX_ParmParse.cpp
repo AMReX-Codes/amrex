@@ -176,19 +176,24 @@ is (const std::string& str, T& val)
         if (isT(str, val)) {
             return true;
         }
-        double dbl_val = 0.0;
-        if (is_floating_point(str, dbl_val)) {
-            if (std::isfinite(dbl_val)) {
-                auto const truncated = std::trunc(dbl_val);
-                auto const lo = static_cast<long double>(std::numeric_limits<T>::min());
-                auto const hi = static_cast<long double>(std::numeric_limits<T>::max());
-                if (truncated == dbl_val && truncated >= lo && truncated <= hi) {
-                    val = static_cast<T>(truncated);
-                    return true;
-                }
-            }
+        // Treat 123., 123.0, 123.00 etc. as integer.
+        auto dec = str.find('.');
+        if (dec == std::string::npos) {
+            return false;
         }
-        return false;
+        if (dec+1 == str.size()) {
+            std::string stripped = str;
+            stripped.pop_back();
+            return isT(stripped, val);
+        }
+        auto begin_it = str.begin() + static_cast<std::ptrdiff_t>(dec+1);
+        auto end_it = str.end();
+        if (!std::all_of(begin_it, end_it, [] (char c) { return c == '0'; })) {
+            return false;
+        }
+        std::string stripped = str;
+        stripped.erase(dec);
+        return isT(stripped, val);
     } else {
         return isT(str, val);
     }
