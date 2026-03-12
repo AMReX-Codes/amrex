@@ -89,6 +89,7 @@ public:
     void swap (ArrayOfStructs& other) noexcept
     {
         m_data.swap(other.m_data);
+        std::swap(m_num_neighbor_particles, other.m_num_neighbor_particles);
     }
 
     void resize (size_t count, GrowthStrategy strategy = GrowthStrategy::Poisson) {
