@@ -1,8 +1,9 @@
 /**
- * Test for dual-grid particle checkpoint/restart capability.
+ * Test for dual-grid particle checkpoint/restart capability..
  *
- * Verifies that particles are preserved correctly when reading a checkpoint
- * file into a ParticleContainer with a different mesh structure, covering:
+ * Verifies that particles are preserved correctly when reading a
+ * checkpoint file into a ParticleContainer with a different mesh structure,
+ * covering:
  *   1. Restart with fewer AMR levels than the checkpoint
  *   2. Restart with more AMR levels than the checkpoint
  *   3. Restart with the same number of levels but different BoxArrays
@@ -33,7 +34,7 @@ struct MeshData {
  * Build a nested AMR hierarchy with `nlevs` levels over a [0,1]^d domain
  * discretised by `ncells` cells in each direction. The coarse BoxArray is
  * decomposed into boxes of at most `max_grid_size` cells; the fine level
- * covers the central eighth of the domain.
+ * covers the central half of the domain.
  */
 MeshData build_mesh (int ncells, int nlevs, int max_grid_size)
 {
@@ -169,7 +170,11 @@ void test_fewer_levels ()
     pc_write.SetVerbose(false);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
 
     ParallelDescriptor::Barrier();
 
@@ -177,7 +182,11 @@ void test_fewer_levels ()
     auto mesh1 = build_mesh(ncells, 1, max_grid_size);
     MyPC pc_read(mesh1.geom, mesh1.dmap, mesh1.ba, mesh1.ref_ratio);
     pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
     pc_read.Restart(chkdir, "particles");
+#endif
 
     verify_same(pc_write, pc_read);
 
@@ -218,7 +227,11 @@ void test_more_levels ()
     pc_write.SetVerbose(false);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
 
     ParallelDescriptor::Barrier();
 
@@ -226,7 +239,11 @@ void test_more_levels ()
     auto mesh2 = build_mesh(ncells, 2, max_grid_size);
     MyPC pc_read(mesh2.geom, mesh2.dmap, mesh2.ba, mesh2.ref_ratio);
     pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
     pc_read.Restart(chkdir, "particles");
+#endif
 
     verify_same(pc_write, pc_read);
 
@@ -234,8 +251,8 @@ void test_more_levels ()
 }
 
 /**
- * Test 3: Write a checkpoint with one BoxArray decomposition, restart into
- * a container with the same number of levels but a different BoxArray
+ * Test 3: Write a checkpoint with one BoxArray decomposition, restart
+ * into a container with the same number of levels but a different BoxArray
  * (different max_grid_size). This is the canonical dual-grid scenario: the
  * Particle_H header written at checkpoint time differs from the BoxArray
  * of the new container, so AMReX uses temporary grids while reading and
@@ -270,7 +287,11 @@ void test_different_boxarrays ()
     pc_write.SetVerbose(false);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
 
     ParallelDescriptor::Barrier();
 
@@ -279,7 +300,11 @@ void test_different_boxarrays ()
     MyPC pc_read(mesh_fine.geom, mesh_fine.dmap, mesh_fine.ba,
                  mesh_fine.ref_ratio);
     pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
     pc_read.Restart(chkdir, "particles");
+#endif
 
     verify_same(pc_write, pc_read);
 
