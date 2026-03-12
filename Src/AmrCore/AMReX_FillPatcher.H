@@ -5,6 +5,11 @@
 #include <AMReX_FillPatchUtil.H>
 #include <utility>
 
+/**
+ * \file AMReX_FillPatcher.H
+ * \brief Helper class that caches coarse/fine data for repeated FillPatch operations.
+ */
+
 namespace amrex {
 
 /**

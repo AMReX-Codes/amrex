@@ -12,6 +12,11 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
 
+/**
+ * \file AMReX_TagBox.H
+ * \brief Tag storage used for AMR error estimation and refinement decisions.
+ */
+
 namespace amrex {
 
 
@@ -53,18 +58,18 @@ public:
 
 
     /**
-    * \brief Construct and return a new tagbox in which the coarsened cell
-    * is tagged of any of the corresponding fine cells are tagged.
+    * \brief Coarsen the TagBox in-place and mark coarse cells as tagged if any fine cell was tagged.
+    *
+    * \param ratio Refinement ratio used to coarsen the data.
+    * \param cbox  Coarse box describing the region that should remain after coarsening.
     */
     void coarsen (const IntVect& ratio, const Box& cbox) noexcept;
 
     /**
-    * \brief Mark neighbors of every tagged cell a distance nbuff away
-    * only search interior for initial tagged points where nwid
-    * is given as the width of the bndry region.
+    * \brief Grow tags by \p a_nbuff cells, ignoring seed tags within \p nwid of the boundary.
     *
-    * \param a_nbuff
-    * \param nwid
+    * \param a_nbuff Number of buffer cells to add in each direction.
+    * \param nwid    Width of the boundary region to examine for seed tags.
     */
     void buffer (const IntVect& a_nbuff, const IntVect& nwid) noexcept;
 
@@ -92,10 +97,9 @@ public:
     void get_itags(Vector<int>& ar, const Box& tilebx) const noexcept;
 
     /**
-    * \brief Set values as specified by the array -- this only tags.
-    * It's an error if ar.length() != domain.numPts().
+    * \brief Set values as specified by \p ar, tagging cells only.
     *
-    * \param ar
+    * \param ar Flat array of tag values; must match the size of the TagBox.
     */
 //#if (__cplusplus >= 201402L)
 //    [[deprecated("No need to use this unless calling Fortran < 2003")]]
@@ -103,10 +107,9 @@ public:
     void tags (const Vector<int>& ar) noexcept;
 
     /**
-    * \brief Set values as specified by the array -- this tags and untags.
-    * It's an error if ar.length() != domain.numPts().
+    * \brief Set values as specified by \p ar, allowing both tagging and untagging.
     *
-    * \param ar
+    * \param ar Flat array of tag values; must match the size of the TagBox.
     */
 //#if (__cplusplus >= 201402L)
 //    [[deprecated("No need to use this unless calling Fortran < 2003")]]
@@ -114,11 +117,10 @@ public:
     void tags_and_untags (const Vector<int>& ar) noexcept;
 
     /**
-    * \brief Set values as specified by the array -- this only tags.
-    * only changes values in the tilebx region
+    * \brief Same as tags(Vector<int>) but only modifies the region \p tilebx.
     *
-    * \param ar
-    * \param tilebx
+    * \param ar      Flat array of tag values.
+    * \param tilebx  Box describing the subregion to update.
     */
 //#if (__cplusplus >= 201402L)
 //    [[deprecated("No need to use this unless calling Fortran < 2003")]]
@@ -126,11 +128,10 @@ public:
     void tags (const Vector<int>& ar, const Box& tilebx) noexcept;
 
     /**
-    * \brief Set values as specified by the array -- this tags and untags.
-    * only changes values in the tilebx region
+    * \brief Same as tags_and_untags(Vector<int>) but restricted to \p tilebx.
     *
-    * \param ar
-    * \param tilebx
+    * \param ar      Flat array of tag values.
+    * \param tilebx  Box describing the subregion to update.
     */
 //#if (__cplusplus >= 201402L)
 //    [[deprecated("No need to use this unless calling Fortran < 2003")]]
@@ -154,11 +155,7 @@ public:
     using TagType = TagBox::TagType;
 
     /**
-    * \brief The constructor.
-    *
-    * \param ba
-    * \param dm
-    * \param _ngrow
+    * \brief Construct a TagBoxArray on BoxArray \p ba / DistributionMapping \p dm with grow vector \p _ngrow.
     */
     TagBoxArray (const BoxArray& ba, const DistributionMapping& dm, int _ngrow=0);
     TagBoxArray (const BoxArray& ba, const DistributionMapping& dm, const IntVect& _ngrow);
@@ -172,44 +169,36 @@ public:
     TagBoxArray& operator= (const TagBoxArray& rhs) = delete;
 
     /**
-    * \brief Calls buffer() on all contained TagBoxes.
-    *
-    * \param nbuf
+    * \brief Call TagBox::buffer() on every FAB in the array with grow vector \p nbuf.
     */
     void buffer (const IntVect& nbuf);
 
     /**
-    * \brief This function does two things.  Map tagged cells through a periodic boundary to other
-    * grids in TagBoxArray cells, and remove duplicates.
-    *
-    * \param geom
+    * \brief Map tags across periodic boundaries and remove duplicates using \p geom.
     */
     void mapPeriodicRemoveDuplicates (const Geometry& geom);
 
     /**
-    * \brief Set values in ba to val.
-    *
-    * \param ba
-    * \param val
+    * \brief Set all tags inside BoxArray \p ba to value \p val.
     */
     void setVal (const BoxArray& ba, TagBox::TagVal val);
     using FabArray<TagBox>::setVal;
 
     /**
-    * \brief Calls coarsen() on all contained TagBoxes.
-    *
-    * \param ratio
-    */
+     * \brief Calls TagBox::coarsen() on every FAB using ratio \p ratio.
+     *
+     * \param ratio Refinement ratio to apply when coarsening the tag layout.
+     */
     void coarsen (const IntVect& ratio);
 
     /**
-    * \brief Calls collate() on all contained TagBoxes.
-    *
-    * \param TheGlobalCollateSpace
-    */
+     * \brief Calls TagBox::collate() across all FABs, storing indices in \p TheGlobalCollateSpace.
+     *
+     * \param TheGlobalCollateSpace Output pinned vector that receives the global list of tag locations.
+     */
     void collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const;
 
-    // \brief Are there tags in the region defined by bx?
+    //! Return true if any cells inside \p bx are tagged (SET or BUF), false otherwise.
     bool hasTags (Box const& bx) const;
 
     void local_collate_cpu (Gpu::PinnedVector<IntVect>& v) const;

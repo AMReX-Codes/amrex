@@ -8,6 +8,11 @@
 
 #include <list>
 
+/**
+ * \file AMReX_Cluster.H
+ * \brief Utilities for clustering tagged AMR cells into bounding boxes.
+ */
+
 namespace amrex {
 
 class BoxDomain;
@@ -34,8 +39,8 @@ public:
     * The Cluster object does NOT take over memory management
     * of array; i.e. that's the user's ultimate responsibility.
     *
-    * \param a
-    * \param len
+    * \param a   Pointer to an array of tagged IntVects (owned by caller).
+    * \param len Length of the tagged array.
     */
     Cluster (IntVect* a, Long len) noexcept;
 
@@ -43,8 +48,8 @@ public:
     * \brief Construct new cluster by removing all points from c that lie
     * in box b.  Cluster c is modified and may become invalid.
     *
-    * \param c
-    * \param b
+    * \param c Source cluster supplying the tagged points.
+    * \param b Box describing the region to remove from \p c.
     */
     Cluster (Cluster& c, const Box& b);
 
@@ -104,8 +109,8 @@ public:
     * Note that this cluster will be modified and possibly become
     * invalid in the process.
     *
-    * \param clst
-    * \param bd
+    * \param clst Destination list that receives the generated clusters.
+    * \param bd   Box domain used to clip the intersections.
     */
     void distribute (ClusterList&     clst,
                      const BoxDomain& bd);
@@ -149,8 +154,8 @@ public:
     /**
     * \brief Construct a list containing Cluster(pts,len).
     *
-    * \param pts
-    * \param len
+    * \param pts Pointer to tagged IntVects (owned by caller).
+    * \param len Number of tagged entries in \p pts.
     */
     ClusterList (IntVect* pts, Long len);
 
@@ -172,7 +177,7 @@ public:
     /**
     * \brief Add cluster to end of list.
     *
-    * \param c
+    * \param c Cluster pointer transferred into the list (caller retains ownership).
     */
     void append (Cluster* c) { lst.push_back(c); }
 
@@ -184,7 +189,7 @@ public:
     /**
     * \brief Return array of boxes corresponding to clusters in argument.
     *
-    * \param ba
+    * \param ba Output BoxArray filled with cluster bounding boxes.
     */
     void boxArray (BoxArray& ba) const;
 
@@ -196,14 +201,14 @@ public:
     /**
     * \brief Return list of boxes corresponding to clusters in argument.
     *
-    * \param blst
+    * \param blst Output BoxList filled with cluster bounding boxes.
     */
     void boxList (BoxList& blst) const;
 
     /**
     * \brief Chop all clusters in list that have poor efficiency.
     *
-    * \param eff
+    * \param eff Minimum acceptable tagging efficiency.
     */
     void chop (Real eff);
 
@@ -211,7 +216,7 @@ public:
     * \brief Chop all clusters in list that have poor efficiency.
     * This version calls new_chop() instead of chop()
     *
-    * \param eff
+    * \param eff Minimum acceptable tagging efficiency.
     */
     void new_chop (Real eff);
 
@@ -220,7 +225,7 @@ public:
     * boxes are interior to the domain of BoxArray.  Note that
     * ba is modified during the process.
     *
-    * \param ba
+    * \param ba BoxArray to intersect against (modified in place).
     */
     void intersect (BoxArray& ba);
 

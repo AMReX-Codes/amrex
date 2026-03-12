@@ -5,6 +5,11 @@
 #include <AMReX_ParGDB.H>
 #include <AMReX_AmrCore.H>
 
+/**
+ * \file AMReX_AmrParGDB.H
+ * \brief Particle Geometry, DistributionMapping and BoxArray helper shared by AmrCore-based apps.
+ */
+
 namespace amrex {
 
 class AmrParGDB
@@ -14,6 +19,11 @@ class AmrParGDB
 
 public:
 
+    /**
+     * \brief Construct a AmrParGDB connected to \p amr.
+     *
+     * \param amr Owning AmrCore (used to fetch default metadata).
+     */
     explicit AmrParGDB (AmrCore* amr) noexcept
         : m_amrcore(amr),
           m_geom(amr->maxLevel()+1),
@@ -22,39 +32,63 @@ public:
           m_ba(amr->maxLevel()+1)
     { }
 
+    //! Return particle geometry on level \p level (could be different from mesh geometry).
     [[nodiscard]] const Geometry& ParticleGeom (int level) const override;
+    //! Return the mesh geometry (always the same as AmrCore::Geom()) for level \p level.
     [[nodiscard]] const Geometry&         Geom (int level) const override;
 
+    //! Return all particle geometries.
     [[nodiscard]] const Vector<Geometry>& ParticleGeom () const override;
+    //! Return all mesh geometries from the underlying AmrCore.
     [[nodiscard]] const Vector<Geometry>&         Geom () const override;
 
+    //! Return the particle DistributionMapping for level \p level (could be different from mesh DistributionMapping).
     [[nodiscard]] const DistributionMapping& ParticleDistributionMap (int level) const override;
+    //! Return the mesh DistributionMapping for level \p level.
     [[nodiscard]] const DistributionMapping&         DistributionMap (int level) const override;
 
+    //! Return particle DistributionMappings for all levels.
     [[nodiscard]] const Vector<DistributionMapping>& ParticleDistributionMap () const override;
+    //! Return mesh DistributionMappings for all levels.
     [[nodiscard]] const Vector<DistributionMapping>&         DistributionMap () const override;
 
+    //! Return particle BoxArray for level \p level (could be different from mesh BoxArray).
     [[nodiscard]] const BoxArray& ParticleBoxArray (int level) const override;
+    //! Return mesh BoxArray for level \p level.
     [[nodiscard]] const BoxArray&         boxArray (int level) const override;
 
+    //! Return particle BoxArrays for all levels.
     [[nodiscard]] const Vector<BoxArray>& ParticleBoxArray () const override;
+    //! Return mesh BoxArrays for all levels.
     [[nodiscard]] const Vector<BoxArray>&         boxArray () const override;
 
+    //! Set a particle BoxArray for level \p level.
     void SetParticleBoxArray (int level, const BoxArray& new_ba) override;
+    //! Set a particle DistributionMapping for level \p level.
     void SetParticleDistributionMap (int level, const DistributionMapping& new_dm) override;
+    //! Set a particle Geometry for level \p level.
     void SetParticleGeometry (int level, const Geometry& new_geom) override;
 
+    //! Clear the cached particle BoxArray on level \p level.
     void ClearParticleBoxArray (int level) override;
+    //! Clear the cached particle DistributionMapping on level \p level.
     void ClearParticleDistributionMap (int level) override;
+    //! Clear the cached particle Geometry on level \p level.
     void ClearParticleGeometry (int level) override;
 
+    //! Return true if level \p level has been defined.
     [[nodiscard]] bool LevelDefined (int level) const override;
+    //! Return the current finest level known to the owning AmrCore.
     [[nodiscard]] int finestLevel () const override;
+    //! Return the maximum level configured on the owning AmrCore.
     [[nodiscard]] int maxLevel () const override;
 
+    //! Return the refinement ratio vector for level \p level.
     [[nodiscard]] IntVect refRatio (int level) const override;
+    //! Return the maximum scalar refinement ratio encountered up to level \p level.
     [[nodiscard]] int MaxRefRatio (int level) const override;
 
+    //! Return the refinement ratios for all levels.
     [[nodiscard]] Vector<IntVect> refRatio () const override;
 
 protected:
