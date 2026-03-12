@@ -9,6 +9,7 @@
 #include <AMReX_Utility.H>
 
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
@@ -158,36 +159,57 @@ is_floating_point (const std::string& str, T& val)
 
 template <class T>
 bool
+is_literal_bool (const std::string& str, T& val)
+{
+    auto const lo_str = amrex::toLower(str);
+    if ( lo_str == "true" || lo_str == "t" ) {
+        val = static_cast<T>(1);
+        return true;
+    } else if ( lo_str == "false" || lo_str == "f" ) {
+        val = static_cast<T>(0);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <class T>
+bool
 is (const std::string& str, T& val)
 {
     if constexpr (std::is_integral_v<T>) {
-        auto const lo_str = amrex::toLower(str);
-        if ( lo_str == "true" || lo_str == "t" )
-            {
-                val = 1;
-                return true;
-            }
-        else if ( lo_str == "false" || lo_str == "f" )
-            {
-                val = 0;
-                return true;
-            }
+        if (is_literal_bool(str, val)) {
+            return true;
+        }
+        if (isT(str, val)) {
+            return true;
+        }
+        // Treat 123., 123.0, 123.00 etc. as integer.
+        auto dec = str.find('.');
+        if (dec == std::string::npos) {
+            return false;
+        }
+        if (dec+1 == str.size()) {
+            std::string stripped = str;
+            stripped.pop_back();
+            return isT(stripped, val);
+        }
+        auto begin_it = str.begin() + static_cast<std::ptrdiff_t>(dec+1);
+        auto end_it = str.end();
+        if (!std::all_of(begin_it, end_it, [] (char c) { return c == '0'; })) {
+            return false;
+        }
+        std::string stripped = str;
+        stripped.erase(dec);
+        return isT(stripped, val);
+    } else if constexpr (std::is_floating_point_v<T>) {
+        if (is_literal_bool(str, val)) {
+            return true;
+        }
+        return is_floating_point(str, val);
+    } else {
+        return isT(str, val);
     }
-    return isT(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, float& val)
-{
-    return is_floating_point(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, double& val)
-{
-    return is_floating_point(str, val);
 }
 
 template <>
@@ -202,15 +224,7 @@ template <>
 bool
 is (const std::string& str, bool& val)
 {
-    auto const lo_str = amrex::toLower(str);
-    if ( lo_str == "true" || lo_str == "t" )
-    {
-        val = true;
-        return true;
-    }
-    if ( lo_str == "false" || lo_str == "f" )
-    {
-        val = false;
+    if (is_literal_bool(str, val)) {
         return true;
     }
     int int_val;
@@ -1335,15 +1349,36 @@ sgetarr (const ParmParse::Table& table,
 }
 
 template <class T>
+std::string to_toml_value (const T& ref)
+{
+    using TT = std::remove_reference_t<T>;
+    std::stringstream ss;
+    if constexpr (std::is_floating_point_v<TT>) {
+        ss << std::setprecision(std::numeric_limits<TT>::max_digits10);
+    } else if constexpr (std::is_same_v<TT,bool>) {
+        ss << std::boolalpha;
+    }
+    ss << ref;
+    std::string s = ss.str();
+    if constexpr (std::is_floating_point_v<TT>) {
+        const std::regex digits_only(R"([+-]?\d+)");
+        if (std::regex_match(s, digits_only)) {
+            s += ".0";
+        }
+    }
+    return s;
+}
+
+template <class T>
 void
 saddval (const std::string& name, const T& ref)
 {
-    std::stringstream val;
-    val << std::setprecision(17) << ref;
-
+    std::string s = to_toml_value(ref);
     auto& entry = g_table[name];
-    entry.m_vals.emplace_back(std::vector<std::string>{val.str()});
-    entry.m_quotes.emplace_back(std::vector<ParmParse::QuoteType>{ParmParse::QuoteType::None});
+    entry.m_vals.emplace_back(1, std::move(s));
+    auto qt = std::is_same_v<std::remove_reference_t<T>,std::string>
+        ? ParmParse::QuoteType::Double : ParmParse::QuoteType::None;
+    entry.m_quotes.emplace_back(1, qt);
     ++entry.m_count;
     using T_ptr = std::decay_t<T>*;
     entry.m_typehint = static_cast<T_ptr>(nullptr);
@@ -1356,15 +1391,15 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     std::vector<std::string> arr;
     arr.reserve(ref.size());
     for (auto const& item : ref) {
-        std::stringstream val;
-        val << std::setprecision(17) << item;
-        arr.push_back(val.str());
+        arr.push_back(to_toml_value(item));
     }
 
     auto& entry = g_table[name];
     auto arr_size = arr.size();
     entry.m_vals.emplace_back(std::move(arr));
-    entry.m_quotes.emplace_back(arr_size, ParmParse::QuoteType::None);
+    auto qt = std::is_same_v<std::remove_reference_t<T>,std::string>
+        ? ParmParse::QuoteType::Double : ParmParse::QuoteType::None;
+    entry.m_quotes.emplace_back(arr_size, qt);
     ++entry.m_count;
     using T_ptr = std::decay_t<T>*;
     entry.m_typehint = static_cast<T_ptr>(nullptr);
@@ -1594,8 +1629,8 @@ ParmParse::addfile (std::string const& filename) {
 
     // add the file
     auto file = FileKeyword;
-    std::vector<std::string> val{{filename}};
-    std::vector<ParmParse::QuoteType> val_quotes{ParmParse::QuoteType::None};
+    std::vector<std::string> val(1, filename);
+    std::vector<ParmParse::QuoteType> val_quotes(1, ParmParse::QuoteType::None);
     addDefn(file, val, val_quotes, g_table);
 
     g_toml_table_key.clear();
@@ -1735,6 +1770,7 @@ ParmParse::SetParserPrefix (std::string a_prefix)
 }
 
 // dumpTable is a diagnostic view and its output is not intended to be fed back to ParmParse.
+// Use prettyPrintTable when you need canonical, re-readable ParmParse syntax.
 void
 ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
 {
