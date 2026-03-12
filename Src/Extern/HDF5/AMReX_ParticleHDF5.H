@@ -1238,7 +1238,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                              boxes[base+AMREX_SPACEDIM+2])});
                 bl.push_back(tmp);
             }
-            particle_box_arrays[lev] = std::move(BoxArray(bl));
+            particle_box_arrays[lev] = BoxArray(std::move(bl));
         }
 
         if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev)))
