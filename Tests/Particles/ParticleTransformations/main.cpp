@@ -669,7 +669,7 @@ void testTransformations ()
 {
     BL_PROFILE("testTransformations");
     TestParams params;
-    get_test_params(params, "reduce");
+    get_test_params(params, "transform");
 
     RealBox real_box;
     for (int n = 0; n < BL_SPACEDIM; n++)
