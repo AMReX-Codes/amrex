@@ -52,7 +52,7 @@ public:
     AuxBoundaryData& operator= (const AuxBoundaryData& rhs) = delete;
 
     /**
-     * \brief Copy components from the auxiliary storage into \p destmf.
+     * \brief Copy data from the auxiliary storage into \p destmf.
      *
      * \param destmf   Destination MultiFab.
      * \param src_comp Starting component inside this container.
@@ -126,12 +126,12 @@ public:
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs.DistributionMap();
     }
 
-    //! Mutable access to the boundary data covering the tile addressed by \p mfi.
+    //! Mutable access to the boundary data at given \p mfi.
     FArrayBox&       operator[] (const MFIter& mfi) noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];
     }
-    //! Read-only access to the boundary data covering the tile addressed by \p mfi.
+    //! Read-only access to the boundary data at given \p mfi.
     const FArrayBox& operator[] (const MFIter& mfi) const noexcept
     {
         BL_ASSERT(!m_empty); BL_ASSERT(m_initialized); return m_fabs[mfi];

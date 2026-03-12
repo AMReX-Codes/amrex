@@ -407,9 +407,9 @@ public:
      * \param nghost    Number of ghost cells to fill (default 0).
      */
     void FillCoarsePatch (MultiFab& mf,
-                         int       dcomp,
-                         Real      time,
-                         int       state_idx,
+                          int       dcomp,
+                          Real      time,
+                          int       state_idx,
                           int       scomp,
                           int       ncomp,
                           int       nghost = 0);

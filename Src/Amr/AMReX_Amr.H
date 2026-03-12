@@ -112,7 +112,7 @@ public:
     //! Override the maximum allowable dt (typically CFL-limited) for each level using \p dt_min_in.
     void setDtMin (const Vector<Real>& dt_min_in) noexcept;
 
-    //! Provide the number of time subcycles per level (refinement ratio) via \p ns.
+    //! Provide the number of time subcycles per level via \p ns.
     void setNCycle (const Vector<int>& ns) noexcept;
 
     //! Subcycle in time?
@@ -311,7 +311,7 @@ public:
     /**
      * \brief Rebuild grid hierarchy finer than \p lbase.
      *
-     * \param lbase  Coarsest level that will be regenerated (levels < \p lbase are unchanged).
+     * \param lbase  Base level (levels <= \p lbase are unchanged).
      * \param time   Physical time used when tagging/refining.
      * \param initial Whether this call happens during initialization (affects logging and I/O).
      */
