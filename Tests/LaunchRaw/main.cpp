@@ -11,9 +11,9 @@ void test1d () {
 
     const IntVectND<1> num_blocks {31};
 #ifdef AMREX_USE_GPU
-    static constexpr IntVectND<1> blockdim {256};
+    static constexpr int blockdim[1] {256};
 #else
-    static constexpr IntVectND<1> blockdim {1};
+    static constexpr int blockdim[1] {1};
 #endif
     static constexpr int num_threads = blockdim[0];
 
@@ -65,9 +65,9 @@ void test2d () {
 
     const IntVectND<2> num_blocks {31, 23};
 #ifdef AMREX_USE_GPU
-    static constexpr IntVectND<2> blockdim {8, 32};
+    static constexpr int blockdim[2] {8, 32};
 #else
-    static constexpr IntVectND<2> blockdim {1, 1};
+    static constexpr int blockdim[2] {1, 1};
 #endif
     static constexpr int num_threads = blockdim[0] * blockdim[1];
 
@@ -123,9 +123,9 @@ void test3d () {
 
     const IntVectND<3> num_blocks {31, 23, 11};
 #ifdef AMREX_USE_GPU
-    static constexpr IntVectND<3> blockdim {2, 8, 16};
+    static constexpr int blockdim[3] {2, 8, 16};
 #else
-    static constexpr IntVectND<3> blockdim {1, 1, 1};
+    static constexpr int blockdim[3] {1, 1, 1};
 #endif
     static constexpr int num_threads = blockdim[0] * blockdim[1] * blockdim[2];
 
