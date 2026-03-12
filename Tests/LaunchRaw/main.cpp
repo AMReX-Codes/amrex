@@ -22,17 +22,17 @@ void test1d () {
     auto * data = vect.dataPtr();
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] = lh.blockIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] += lh.threadIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             auto block = lh.blockIdxND();
             auto thread = lh.template threadIdxND<blockdim_x>();
             auto tmp = data[
@@ -43,7 +43,7 @@ void test1d () {
         });
 
     LaunchRaw<num_threads, int>(num_blocks, num_threads,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             auto smem = lh.shared_memory();
             auto thread = lh.template threadIdxND<blockdim_x>();
             auto locid = thread[0];
@@ -53,7 +53,7 @@ void test1d () {
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] =
                 data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });
@@ -79,17 +79,17 @@ void test2d () {
     auto * data = vect.dataPtr();
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] = lh.blockIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] += lh.threadIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data, num_blocks] AMREX_GPU_DEVICE (auto lh) {
             auto block = lh.blockIdxND();
             auto thread = lh.template threadIdxND<blockdim_x, blockdim_y>();
             auto tmp = data[
@@ -101,7 +101,7 @@ void test2d () {
         });
 
     LaunchRaw<num_threads, int>(num_blocks, num_threads,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             auto smem = lh.shared_memory();
             auto thread1 = lh.template threadIdxND<blockdim_y, blockdim_x>();
             auto locid1 = thread1[1] + thread1[0] * blockdim_x;
@@ -113,7 +113,7 @@ void test2d () {
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] =
                 data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });
@@ -141,17 +141,17 @@ void test3d () {
     auto * data = vect.dataPtr();
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] = lh.blockIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.blockIdx1D() * lh.blockDim1D() + lh.threadIdx1D()] += lh.threadIdx1D();
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data, num_blocks] AMREX_GPU_DEVICE (auto lh) {
             auto block = lh.blockIdxND();
             auto thread = lh.template threadIdxND<blockdim_x, blockdim_y, blockdim_z>();
             auto tmp = data[
@@ -165,7 +165,7 @@ void test3d () {
         });
 
     LaunchRaw<num_threads, int>(num_blocks, num_threads,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             auto smem = lh.shared_memory();
             auto thread1 = lh.template threadIdxND<blockdim_z, blockdim_y, blockdim_x>();
             auto locid1 = thread1[2] + thread1[1] * blockdim_x +
@@ -179,7 +179,7 @@ void test3d () {
         });
 
     LaunchRaw<num_threads>(num_blocks,
-        [=] AMREX_GPU_DEVICE (auto lh) {
+        [data] AMREX_GPU_DEVICE (auto lh) {
             data[lh.globalIdx1D()] =
                 data[lh.globalIdx1D()] == static_cast<int>(lh.blockIdx1D() + lh.threadIdx1D());
         });
