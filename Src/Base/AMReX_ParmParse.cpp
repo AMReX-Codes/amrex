@@ -159,20 +159,28 @@ is_floating_point (const std::string& str, T& val)
 
 template <class T>
 bool
+is_literal_bool (const std::string& str, T& val)
+{
+    auto const lo_str = amrex::toLower(str);
+    if ( lo_str == "true" || lo_str == "t" ) {
+        val = static_cast<T>(1);
+        return true;
+    } else if ( lo_str == "false" || lo_str == "f" ) {
+        val = static_cast<T>(0);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <class T>
+bool
 is (const std::string& str, T& val)
 {
     if constexpr (std::is_integral_v<T>) {
-        auto const lo_str = amrex::toLower(str);
-        if ( lo_str == "true" || lo_str == "t" )
-            {
-                val = 1;
-                return true;
-            }
-        else if ( lo_str == "false" || lo_str == "f" )
-            {
-                val = 0;
-                return true;
-            }
+        if (is_literal_bool(str, val)) {
+            return true;
+        }
         if (isT(str, val)) {
             return true;
         }
@@ -194,23 +202,14 @@ is (const std::string& str, T& val)
         std::string stripped = str;
         stripped.erase(dec);
         return isT(stripped, val);
+    } else if constexpr (std::is_floating_point_v<T>) {
+        if (is_literal_bool(str, val)) {
+            return true;
+        }
+        return is_floating_point(str, val);
     } else {
         return isT(str, val);
     }
-}
-
-template <>
-bool
-is (const std::string& str, float& val)
-{
-    return is_floating_point(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, double& val)
-{
-    return is_floating_point(str, val);
 }
 
 template <>
@@ -225,15 +224,7 @@ template <>
 bool
 is (const std::string& str, bool& val)
 {
-    auto const lo_str = amrex::toLower(str);
-    if ( lo_str == "true" || lo_str == "t" )
-    {
-        val = true;
-        return true;
-    }
-    if ( lo_str == "false" || lo_str == "f" )
-    {
-        val = false;
+    if (is_literal_bool(str, val)) {
         return true;
     }
     int int_val;
