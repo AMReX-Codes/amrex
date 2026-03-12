@@ -464,6 +464,8 @@ template <typename PC>
 void testFilterAndTransformWithOffsets (const PC& pc)
 {
     using ParticleTileType = typename PC::ParticleTileType;
+    using ParticleTileDataType = typename ParticleTileType::ParticleTileDataType;
+    using ConstParticleTileDataType = typename ParticleTileType::ConstParticleTileDataType;
     using ParIter = typename PC::ParConstIterType;
 
     // Use non-zero offsets: src particles are read starting at src_start,
@@ -520,13 +522,14 @@ void testFilterAndTransformWithOffsets (const PC& pc)
             // iterations of the internal loop (where tile_index >= np - src_start).
             auto num_output = amrex::filterAndTransformParticles(
                 ptile_dst, ptile_src,
-                [src_start, np] AMREX_GPU_HOST_DEVICE (const auto& src, int i) noexcept
+                [src_start, np] AMREX_GPU_HOST_DEVICE (const ConstParticleTileDataType& src, int i) noexcept
                 {
                     const int tile_i = i - src_start;
                     if (tile_i >= np - src_start) { return false; }
                     return src.m_aos[tile_i].id() % 2 == 1;
                 },
-                [src_start, factor] AMREX_GPU_HOST_DEVICE (auto& dst, const auto& src,
+                [src_start, factor] AMREX_GPU_HOST_DEVICE (const ParticleTileDataType& dst,
+                                                            const ConstParticleTileDataType& src,
                                                             int src_i, int dst_i) noexcept
                 {
                     const int tile_i = src_i - src_start;
@@ -537,10 +540,10 @@ void testFilterAndTransformWithOffsets (const PC& pc)
                     for (int j = 0; j < dst.m_num_runtime_int; ++j) {
                         dst.m_runtime_idata[j][dst_i] = src.m_runtime_idata[j][tile_i];
                     }
-                    for (int j = 0; j < std::remove_reference_t<decltype(dst)>::NAR; ++j) {
+                    for (int j = 0; j < ParticleTileDataType::NAR; ++j) {
                         dst.m_rdata[j][dst_i] = src.m_rdata[j][tile_i];
                     }
-                    for (int j = 0; j < std::remove_reference_t<decltype(dst)>::NAI; ++j) {
+                    for (int j = 0; j < ParticleTileDataType::NAI; ++j) {
                         dst.m_idata[j][dst_i] = factor * src.m_idata[j][tile_i];
                     }
                 },
@@ -651,7 +654,7 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
-    amrex::Print() << "Running particle reduction test \n";
+    amrex::Print() << "Running particle transformation test \n";
     testTransformations();
 
     amrex::Finalize();
