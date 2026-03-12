@@ -12,6 +12,7 @@ sa = abc xyz 123
 sb = "abc" "xyz" "123"
 
 b = ((1, 2, 3) (7, 8,9) (1,0,   1))
+b2 = "((1, 2, 3)(7,8,9)(1,0,1))"
 
 # three numbers. whitespaces inside `""` are okay.
 f = 3+4  99  "5 + 6"

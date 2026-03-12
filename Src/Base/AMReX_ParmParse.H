@@ -1707,10 +1707,13 @@ public:
     static void SetVerbose (int v);
 
     //! Write the contents of the table in ASCII to the ostream (diagnostic only, not valid ParmParse syntax).
+    //! Diagnostic view of the internal table. This text is not valid ParmParse syntax
+    //! and is meant for debugging only; use prettyPrintTable() for canonical, re-readable output.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
     //! Write all entries in ParmParse syntax suitable for re-reading. If
-    //! there are duplicates, only the last one is printed.
+    //! there are duplicates, only the last one is printed; the output can be fed
+    //! back to ParmParse via addfile/Initialize.
     static void prettyPrintTable (std::ostream& os);
 
     //! Write unused inputs in a pretty way to the ostream. If there are

@@ -48,6 +48,9 @@ int main(int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(box == Box(IntVect(AMREX_D_DECL(1,2,3)),
                                        IntVect(AMREX_D_DECL(7,8,9)),
                                        IntVect(AMREX_D_DECL(1,0,1))));
+        Box box2;
+        pp.get("b2", box2);
+        AMREX_ALWAYS_ASSERT(box == box2);
 
         double f0 = -1;
         pp.query("f", f0);
@@ -284,6 +287,53 @@ int main(int argc, char* argv[])
 #else
         AMREX_ALWAYS_ASSERT(foo == 32 && bar == "use_cpu" && spacedim == AMREX_SPACEDIM);
 #endif
+    }
+    { // add & addarr
+        ParmParse pp;
+        pp.add("bt", true);
+        pp.add("bf", false);
+        std::string s;
+        pp.get("bt", s); // It is intentional to read bool as string
+        AMREX_ALWAYS_ASSERT(s == "true");
+        pp.get("bf", s); // It is intentional to read bool as string
+        AMREX_ALWAYS_ASSERT(s == "false");
+
+        pp.add("doubleone",double(1));
+        pp.get("doubleone", s); // It is intentional to read double as string
+        AMREX_ALWAYS_ASSERT(s == "1.0");
+        int intone;
+        pp.query("doubleone", intone); // We are allowed to read 1.0 as 1.
+        AMREX_ALWAYS_ASSERT(intone == 1);
+
+        pp.add("string_scalar", "An string with white spaces");
+        pp.get("string_scalar", s);
+        AMREX_ALWAYS_ASSERT(s == "An string with white spaces");
+
+        std::vector<std::string> sv{"string a", " string b", " string c ", "string-d"};
+        pp.addarr("string_vector", sv);
+        for (int i = 0; i < int(sv.size()); ++i) {
+            pp.get("string_vector", s, i);
+            AMREX_ALWAYS_ASSERT(s == sv[i]);
+        }
+    }
+    if (ParallelDescriptor::IOProcessor()) // print & addfile
+    {
+        {
+            ParmParse pp;
+            pp.add("string-for-testing-addfile", "string for testing addfile");
+            pp.add("string-for-testing-addfile", "string for testing addfile");
+            int n = pp.countname("string-for-testing-addfile");
+            AMREX_ALWAYS_ASSERT(n==2);
+        }
+        std::ofstream ofs("my-inputs");
+        ParmParse::prettyPrintTable(ofs);
+        ofs.close();
+        ParmParse::addfile("my-inputs");
+        std::string s;
+        ParmParse pp;
+        pp.get("string-for-testing-addfile", s);
+        int n = pp.countname("string-for-testing-addfile");
+        AMREX_ALWAYS_ASSERT(n==3 && s == "string for testing addfile");
     }
     {
         amrex::Print() << "SUCCESS\n";
