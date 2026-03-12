@@ -140,8 +140,6 @@ protected:
 
     int m_ncomp = 1;
 
-    bool m_needs_update = true;
-
     Location m_beta_loc; // Location of coefficients: face centers or face centroids
     Location m_phi_loc;  // Location of solution variable: cell centers or cell centroids
 
@@ -168,6 +166,11 @@ protected:
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 
     mutable Vector<Vector<TagVector<MLMGABCEBTag<RT>>>> m_eb_bc_tags;
+
+private:
+
+    bool m_needs_update = true;
+
 };
 
 /// \cond DOXYGEN_IGNORE
