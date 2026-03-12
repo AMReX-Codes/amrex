@@ -137,17 +137,18 @@ struct LaunchHandler
      */
     template<int ...nd_block_size>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    IntVectND<dim> threadIdxND () const {
-        static_assert(sizeof...(nd_block_size) == dim &&
+    IntVectND<sizeof...(nd_block_size)> threadIdxND () const {
+        static_assert(sizeof...(nd_block_size) <= 3 &&
                       (1 * ... * nd_block_size) == threads_per_block);
-        constexpr IntVectND<dim> iv_block_size = blockDimND<nd_block_size...>();
-        IntVectND<dim> ret(0);
+        constexpr IntVectND<sizeof...(nd_block_size)> iv_block_size =
+            blockDimND<nd_block_size...>();
+        IntVectND<sizeof...(nd_block_size)> ret(0);
         unsigned int idx = threadIdx1D();
-        if constexpr (dim == 3) {
+        if constexpr (sizeof...(nd_block_size) == 3) {
             ret[2] = idx / iv_block_size[1];
             idx = idx - ret[2] * iv_block_size[1];
         }
-        if constexpr (dim >= 2) {
+        if constexpr (sizeof...(nd_block_size) >= 2) {
             ret[1] = idx / iv_block_size[0];
             idx = idx - ret[1] * iv_block_size[0];
         }
@@ -228,10 +229,9 @@ struct LaunchHandler
      */
     template<int ...nd_block_size>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    static constexpr IntVectND<dim> blockDimND () {
-        static_assert(sizeof...(nd_block_size) == dim &&
-                      (1 * ... * nd_block_size) == threads_per_block);
-        return IntVectND<dim>{nd_block_size...};
+    static constexpr IntVectND<sizeof...(nd_block_size)> blockDimND () {
+        static_assert((1 * ... * nd_block_size) == threads_per_block);
+        return IntVectND<sizeof...(nd_block_size)>{nd_block_size...};
     }
 
     /**
@@ -248,6 +248,8 @@ struct LaunchHandler
     template<int ...nd_block_size>
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     IntVectND<dim> globalIdxND () const {
+        static_assert(sizeof...(nd_block_size) == dim &&
+                      (1 * ... * nd_block_size) == threads_per_block);
         return blockIdxND() * blockDimND<nd_block_size...>() + threadIdxND<nd_block_size...>();
     }
 
