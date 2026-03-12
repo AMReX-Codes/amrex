@@ -1361,14 +1361,6 @@ template <class T>
 std::string to_toml_value (const T& ref)
 {
     using TT = std::remove_reference_t<T>;
-    if constexpr (std::is_floating_point_v<TT>) {
-        if (std::isnan(ref)) {
-            return "nan";
-        }
-        if (std::isinf(ref)) {
-            return std::signbit(ref) ? "-inf" : "inf";
-        }
-    }
     std::stringstream ss;
     if constexpr (std::is_floating_point_v<TT>) {
         ss << std::setprecision(std::numeric_limits<TT>::max_digits10);
@@ -1378,8 +1370,8 @@ std::string to_toml_value (const T& ref)
     ss << ref;
     std::string s = ss.str();
     if constexpr (std::is_floating_point_v<TT>) {
-        // If it has neither a decimal point nor exponent, TOML would parse it as integer.
-        if (s.find_first_of(".eE") == std::string::npos) {
+        const std::regex digits_only(R"([+-]?\d+)");
+        if (std::regex_match(s, digits_only)) {
             s += ".0";
         }
     }
