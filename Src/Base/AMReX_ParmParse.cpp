@@ -73,7 +73,7 @@ std::string pp_to_pretty_string (std::string const& name,
                 ss << " \"" << v << "\"";
                 break;
             case ParmParse::QuoteType::Triple:
-                ss << " \"\"\"" << v << "\"\"\"";
+                ss << R"( """)" << v << R"(""")";
                 break;
             case ParmParse::QuoteType::None:
             default:
@@ -1364,7 +1364,7 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     auto& entry = g_table[name];
     auto arr_size = arr.size();
     entry.m_vals.emplace_back(std::move(arr));
-    entry.m_quotes.emplace_back(std::vector<ParmParse::QuoteType>(arr_size, ParmParse::QuoteType::None));
+    entry.m_quotes.emplace_back(arr_size, ParmParse::QuoteType::None);
     ++entry.m_count;
     using T_ptr = std::decay_t<T>*;
     entry.m_typehint = static_cast<T_ptr>(nullptr);
@@ -1595,7 +1595,7 @@ ParmParse::addfile (std::string const& filename) {
     // add the file
     auto file = FileKeyword;
     std::vector<std::string> val{{filename}};
-    std::vector<ParmParse::QuoteType> val_quotes{{ParmParse::QuoteType::None}};
+    std::vector<ParmParse::QuoteType> val_quotes{ParmParse::QuoteType::None};
     addDefn(file, val, val_quotes, g_table);
 
     g_toml_table_key.clear();
