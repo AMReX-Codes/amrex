@@ -37,6 +37,12 @@ int main(int argc, char* argv[])
         pp.query("name", name, 1);
         AMREX_ALWAYS_ASSERT(name == "line 2");
 
+        std::vector<std::string> sa;
+        std::vector<std::string> sb;
+        pp.getarr("sa", sa);
+        pp.getarr("sa", sb);
+        AMREX_ALWAYS_ASSERT(sa == sb && (sa == std::vector<std::string>{"abc","xyz","123"}));
+
         Box box;
         pp.query("b", box);
         AMREX_ALWAYS_ASSERT(box == Box(IntVect(AMREX_D_DECL(1,2,3)),

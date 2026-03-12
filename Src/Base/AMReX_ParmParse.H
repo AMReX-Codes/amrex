@@ -1706,11 +1706,11 @@ public:
     static int Verbose ();
     static void SetVerbose (int v);
 
-    //! Write the contents of the table in ASCII to the ostream.
+    //! Write the contents of the table in ASCII to the ostream (diagnostic only, not valid ParmParse syntax).
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
-    //! Write all entries in the table in a pretty way to the ostream. If there are
-    //! duplicates, only the last one is printed.
+    //! Write all entries in ParmParse syntax suitable for re-reading. If
+    //! there are duplicates, only the last one is printed.
     static void prettyPrintTable (std::ostream& os);
 
     //! Write unused inputs in a pretty way to the ostream. If there are
@@ -1735,12 +1735,19 @@ public:
     //! Returns [prefix.]* parameters.
     [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
+    enum class QuoteType : unsigned char {
+        None = 0,
+        Double,
+        Triple
+    };
+
     struct PP_entry {
         // There can be multiple occurrences for a given name (e.g.,
         // multiple lines starting with `foo =` in inputs. For each
         // occurrence, there can be multiple values. Thus, the use of
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
+        std::vector<std::vector<QuoteType>>   m_quotes;
         mutable Long                          m_count = 0;
         mutable std::variant<
             std::string*,

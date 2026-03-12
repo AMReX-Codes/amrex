@@ -652,7 +652,21 @@ run with:
 
 ::
 
-        myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
+        myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9 my_string=\"A String\"
+
+Note that the shell strips the quoting characters before the arguments reach
+:cpp:`main(int argc, char** argv)`. The quotes in ``ncells="64 32 16"`` only
+ensure that the spaces stay inside a single argument; the literal ``"``
+never arrives in :cpp:`argv`. If you actually need to pass a single string
+to the code (e.g., for :cpp:`my_string`), you must escape them as shown
+above. The example command line is equivalent to putting the following
+entries in an inputs file:
+
+.. code-block:: none
+
+   ncells = 64 32 16
+   hydro.cfl = 0.9
+   my_string = "A String"
 
 
 Setting Default Via Environment Variable
