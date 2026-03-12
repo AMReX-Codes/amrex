@@ -606,9 +606,9 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
     case PARSER_ASSIGN:
     {
         auto *asgn = (struct parser_assign*)node;
-        local_variables.push_back(asgn->s->name);
         parser_compile_exe_size(asgn->v, p, exe_size, max_stack_size, stack_size,
                                 local_variables, ufs);
+        local_variables.push_back(asgn->s->name);
         break;
     }
     case PARSER_LIST:
