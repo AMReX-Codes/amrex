@@ -1,6 +1,7 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX_PlotFileUtil.H>
+#include <AMReX_PlotFileUtilHDF5.H>
 #include <AMReX_FPC.H>
 #include <AMReX_FabArrayUtility.H>
 
