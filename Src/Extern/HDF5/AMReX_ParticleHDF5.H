@@ -973,9 +973,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     H5Sselect_hyperslab (offset_space, H5S_SELECT_SET, &my_int_offset, NULL, &my_int_count, NULL);
 
 #ifdef AMREX_USE_HDF5_ASYNC
-    ret = H5Dwrite_async(offset_id, H5T_NATIVE_INT, int_mem_space, offset_space, dxpl_col, &(my_nparticles[0]), es_par_g);
+    ret = H5Dwrite_async(offset_id, H5T_NATIVE_INT, int_mem_space, offset_space, dxpl_col, my_nparticles.dataPtr(), es_par_g);
 #else
-    ret = H5Dwrite(offset_id, H5T_NATIVE_INT, int_mem_space, offset_space, dxpl_col, &(my_nparticles[0]));
+    ret = H5Dwrite(offset_id, H5T_NATIVE_INT, int_mem_space, offset_space, dxpl_col, my_nparticles.dataPtr());
 #endif
     if (ret < 0) { amrex::Abort("H5Dwrite offset failed!"); }
 
