@@ -522,15 +522,15 @@ void testFilterAndTransformWithOffsets (const PC& pc)
             // iterations of the internal loop (where tile_index >= np - src_start).
             auto num_output = amrex::filterAndTransformParticles(
                 ptile_dst, ptile_src,
-                [src_start, np] AMREX_GPU_HOST_DEVICE (const ConstParticleTileDataType& src, int i) noexcept
+                [=] AMREX_GPU_HOST_DEVICE (const ConstParticleTileDataType& src, int i) noexcept
                 {
                     const int tile_i = i - src_start;
                     if (tile_i >= np - src_start) { return false; }
                     return src.m_aos[tile_i].id() % 2 == 1;
                 },
-                [src_start, factor] AMREX_GPU_HOST_DEVICE (const ParticleTileDataType& dst,
-                                                            const ConstParticleTileDataType& src,
-                                                            int src_i, int dst_i) noexcept
+                [=] AMREX_GPU_HOST_DEVICE (const ParticleTileDataType& dst,
+                                           const ConstParticleTileDataType& src,
+                                           int src_i, int dst_i) noexcept
                 {
                     const int tile_i = src_i - src_start;
                     dst.m_aos[dst_i] = src.m_aos[tile_i];
