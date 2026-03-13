@@ -626,11 +626,13 @@ const BoxArray&
 AmrLevel::getEdgeBoxArray (int dir) const noexcept
 {
     BL_ASSERT(dir >=0 && dir < AMREX_SPACEDIM);
+    // NOLINTBEGIN(clang-analyzer-security.ArrayBound)
     if (edge_grids[dir].empty()) {
         edge_grids[dir] = grids;
         edge_grids[dir].surroundingNodes(dir);
     }
     return edge_grids[dir];
+    // NOLINTEND(clang-analyzer-security.ArrayBound)
 }
 
 const BoxArray&
@@ -1505,12 +1507,14 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                          dcomp,
                                          m_scomp,
                                          m_ncomp);
+        // Must be unconditional: user kernels may write to fab (e.g. pinned); host may read.
         Gpu::streamSynchronize();  // In case this runs on GPU
     }
 
     if (m_FixUpCorners)
     {
         FixUpPhysCorners(fab,*m_amrlevel,m_index,m_time,m_scomp,dcomp,m_ncomp);
+        // Must be unconditional: same as above.
         Gpu::streamSynchronize();  // In case this runs on GPU
     }
 }
@@ -2200,7 +2204,7 @@ AmrLevel::FillPatch (AmrLevel& amrlevel,
                      int       dcomp)
 {
     BL_PROFILE("AmrLevel::FillPatch()");
-    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(dcomp >= 0 && ncomp > 0 && dcomp+ncomp <= leveldata.nComp());
     BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
@@ -2218,7 +2222,7 @@ AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
                         int       dcomp)
 {
     BL_PROFILE("AmrLevel::FillPatchAdd()");
-    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(dcomp >= 0 && ncomp > 0 && dcomp+ncomp <= leveldata.nComp());
     BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();

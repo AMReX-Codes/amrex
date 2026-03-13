@@ -17,6 +17,7 @@
 namespace amrex {
 
 /**
+* \ingroup amrex_memory
 * \brief A Concrete Class for Dynamic Memory Management using first fit.
 * This is a coalescing memory manager.  It allocates (possibly) large
 * chunks of heap space and apportions it out as requested.  It merges
@@ -46,13 +47,41 @@ public:
     [[nodiscard]] void* alloc (std::size_t nbytes) final;
 
     /**
-     * Try to allocate in-place by extending the capacity of given pointer.
+     * \brief Allocate memory in-place if possible
+     *
+     * This function tries to allocate in-place by extending the capacity of
+     * an existing pointer. If it's possible to extend the given pointer to
+     * the minimum required size without performing a new allocation, this
+     * function will return the original pointer back along with the new
+     * size (which may be in the range of `[szmin,szmax]`); otherwise a new
+     * allocation is performed to allocate the maximum requested size.
+     *
+     * Note that this function does NOT free the existing allocation, even
+     * when a new memory allocation is performed. So it's the caller's
+     * responsibility to free the original pointer when appropriate. A new
+     * allocation can be detected by comparing the returned pointer with the
+     * input pointer.
+     *
+     * \param pt existing pointer
+     * \param szmin minimum required size in bytes
+     * \param szmax maximum requested size in bytes
+     * \return pair of pointer and allocation size in bytes
      */
     [[nodiscard]] std::pair<void*,std::size_t>
     alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax) final;
 
     /**
-     * Try to shrink in-place
+     * \brief Shrink allocation size in-place
+     *
+     * This function shrinks the existing allocation of the given pointer to
+     * a new size. It's a runtime error, if the requested new size is larger
+     * than the original size. In the special case of pt == nullptr or
+     * new_size == 0, this does not do anything other than returning nullptr.
+     *
+     * \param pt existing pointer
+     * \param new_size new size after shrinking
+     * \return either the original pointer or `nullptr` if the requested new
+     *         size is zero.
      */
     [[nodiscard]] void*
     shrink_in_place (void* pt, std::size_t new_size) final;
@@ -63,6 +92,10 @@ public:
     */
     void free (void* vp) final;
 
+    /**
+    * \brief Free unused memory back to the system.  Return value is the
+    * amount of memory freed.
+    */
     std::size_t freeUnused () final;
 
     //! Return the amount of memory that can be freed
@@ -85,10 +118,38 @@ public:
     //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
     std::size_t sizeOf (void* p) const noexcept;
 
+    /**
+     * \brief Print memory usage information of this arena
+     *
+     * This function reports memory usage statistics for this `CArena`.  It
+     * contains MPI collective calls and therefore must be called by all
+     * processes. The output is printed on the I/O process only.
+     *
+     * Depending on the value of `print_max_usage`, the function prints
+     * either the current memory usage (when false) or the maximum memory
+     * usage recoreded (when true).
+     *
+     * \param name name of the arena used in printing.
+     * \param print_max_usage whether to print the maximum usage or the
+     *        current usage.
+     */
     void PrintUsage (std::string const& name, bool print_max_usage) const;
 
+    /**
+     * \brief Print memory usage information of this arena to a given output
+     * stream
+     *
+     * This function reports memory usage statistics this `CArena`. Unlike
+     * `PrintUsage`, this does not contain MPI calls and therefore may be
+     * called independently on individual processes.
+     *
+     * \param os output stream
+     * \param name name of the arena used in printing.
+     * \param space indentation prepended to printed lines
+     */
     void PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const;
 
+    /// Reset the maximum usage counter.
     void ResetMaxUsageCounter () final {
         m_max_actually_used = 0;
     }

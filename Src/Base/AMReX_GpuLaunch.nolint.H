@@ -293,13 +293,13 @@
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
+    amrex::LoopConcurrentOnCpu(box, [&] (int i, int j, int k) noexcept \
         block \
     );
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+    amrex::LoopConcurrentOnCpu(box, nc, [&] (int i, int j, int k, int n) noexcept \
         block \
     );
 
@@ -312,13 +312,13 @@
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
+    amrex::LoopOnCpu(box, [&] (int i, int j, int k) noexcept \
         block \
     );
 
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
     amrex::ignore_unused(where_to_run); \
-    amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
+    amrex::LoopOnCpu(box, nc, [&] (int i, int j, int k, int n) noexcept \
         block \
     );
 

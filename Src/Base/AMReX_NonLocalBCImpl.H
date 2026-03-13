@@ -781,9 +781,11 @@ Box get_dst_subbox (DTOS const& dtos, std::pair<Box,Box> const& sdboxes,
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     void split_boxes (BoxList& bl, Box const& domain);
 }
+/// \endcond
 
 template <typename FAB, typename DTOS>
 std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3,DTOS,Dim3>(),
@@ -885,7 +887,7 @@ struct SphThetaPhiRIndexMapping
         {
             return {i, j-ny, k};
         }
-        else if (imd && jmd & klo)
+        else if (imd && jmd && klo)
         {
             return {nx-1-i, (j+ny/2)%ny, -1-k};
         }

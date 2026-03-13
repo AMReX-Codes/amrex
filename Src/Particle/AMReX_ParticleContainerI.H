@@ -84,7 +84,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
         }
 
-        static_assert(std::is_standard_layout<ParticleType>::value,
+        static_assert(std::is_standard_layout_v<ParticleType>,
                       "Particle type must be standard layout");
         //                   && std::is_trivial<ParticleType>::value,
         //                      "Particle type must be standard layout and trivial.");
@@ -856,7 +856,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         return;
     }
 
-    std::string aggregation_type = AggregationType();
+    std::string const& aggregation_type = AggregationType();
     int aggregation_buffer = AggregationBuffer();
 
     if (aggregation_type == "None")
@@ -976,9 +976,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if(imf_arr(i,j,k,0)!=0)
             {
                 const auto idx = last_offset + offsets_ptr[
-                    ((i-imf_arr.begin.x)
-                    +(j-imf_arr.begin.y)*imf_arr.jstride
-                    +(k-imf_arr.begin.z)*imf_arr.kstride)
+                    imf_arr.get_offset(IntVectND<3>{i,j,k})
                 ];
 
                 dst.cpu(idx) = 0;
@@ -1510,6 +1508,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     {
         plan.buildMPIFinish(BufferMap());
         communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
+        this->ReserveForRedistribute(plan);
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);
         unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
@@ -1532,6 +1531,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
         }
 
+        this->ReserveForRedistribute(plan);
+
         rcv_buffer.resize(pinned_rcv_buffer.size());
         unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
         communicateParticlesFinish(plan);
@@ -1544,6 +1545,43 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #else
     amrex::ignore_unused(lev_min,lev_max,nGrow,local,remove_negative);
 #endif
+}
+
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::ReserveForRedistribute (ParticleCopyPlan const& plan)
+{
+    BL_PROFILE("ParticleContainer::ReserveForRedistribute()");
+
+    std::map<ParticleTileType*, int> addsizes;
+
+    for (int lev = 0; lev < this->BufferMap().numLevels(); ++lev) {
+        for (MFIter mfi = this->MakeMFIter(lev); mfi.isValid(); ++mfi) {
+            int gid = mfi.index();
+            int tid = mfi.LocalTileIndex();
+            auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
+            int num_copies = plan.m_box_counts_h[this->BufferMap().gridAndLevToBucket(gid, lev)];
+            if (num_copies > 0) {
+                addsizes[&tile] += num_copies;
+            }
+        }
+    }
+
+    if (plan.m_nrcvs > 0) {
+        AMREX_ALWAYS_ASSERT(do_tiling == false);
+        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i) {
+            int copy_size = plan.m_rcv_box_counts[i];
+            int lev = plan.m_rcv_box_levs[i];
+            int gid = plan.m_rcv_box_ids[i];
+            int tid = 0; // It's always 0 because this function is for RedistributeGPU only and the tiling is off.
+            auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
+            addsizes[&tile] += copy_size;
+        }
+    }
+
+    ParticleTileType::reserve(addsizes);
 }
 
 //
@@ -1613,7 +1651,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ptile_local[lev][index].resize(num_threads);
             for (int t = 0; t < num_threads; ++t) {
                 ptile_local[lev][index][t].define(m_num_runtime_real, m_num_runtime_int,
-                     &m_soa_rdata_names, &m_soa_idata_names, arena());
+                    &m_soa_rdata_names, &m_soa_idata_names, arena());
             }
         }
     }
@@ -1694,7 +1732,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             auto& dst = ptile_local[pld.m_lev][index][thread_num];
                             auto old_size = dst.size();
                             auto new_size = old_size + 1;
-                            dst.resize(new_size);
+                            dst.resize(new_size, GrowthStrategy::Geometric);
                             auto dst_ptd = dst.getParticleTileData();
 
                             copyParticle(dst_ptd, ptd, pindex, old_size);
@@ -1723,7 +1761,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     ++pindex;
                 }
 
-                auto tot_npart = ptile_ptrs[pmap_it]->numTotalParticles();
+                auto tot_npart = particle_tile->numTotalParticles();
 
                 if (last != npart - 1) {
                     pindex = last + 1;
@@ -1779,6 +1817,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 }
 
                 src_ptile[i].resize(0);
+                src_ptile[i].shrink_to_fit();
             }
         }
     }
@@ -2031,7 +2070,7 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                                                                           rcv_tile[ipart])];
                 auto old_size = ptile.numTotalParticles();
                 auto new_size = old_size + 1;
-                ptile.resize(new_size);
+                ptile.resize(new_size, GrowthStrategy::Geometric);
 
                 char* pbuf = ((char*) &recvdata[offset]) + j*superparticle_size;
 
@@ -2134,9 +2173,9 @@ RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                 }
                 for (int comp = 0; comp < NumRealComps(); ++comp) {
                     if (h_redistribute_real_comp[array_comp_start + comp]) {
-                        Real rdata;
-                        std::memcpy(&rdata, pbuf, sizeof(Real));
-                        pbuf += sizeof(Real);
+                        ParticleReal rdata;
+                        std::memcpy(&rdata, pbuf, sizeof(ParticleReal));
+                        pbuf += sizeof(ParticleReal);
                         host_real_attribs[lev][ind][comp].push_back(rdata);
                     } else {
                         host_real_attribs[lev][ind][comp].push_back(0.0);
@@ -2219,7 +2258,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         lev_max = finestLevel();
     }
 
-    return (numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+    return (m_dummy_mf.size() >= lev_max+1 && numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,

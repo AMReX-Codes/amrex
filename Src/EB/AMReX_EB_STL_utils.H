@@ -18,22 +18,26 @@ namespace amrex
 class STLtools
 {
 public:
+
+    /// \cond DOXYGEN_IGNORE
     struct Triangle {
         XDim3 v1, v2, v3;
 
         [[nodiscard]] Real cent (int d) const
         {
             static_assert(sizeof(XDim3) == sizeof(Real)*3);
-            return Real(1./3.)*((&v1.x)[d] + (&v2.x)[d] + (&v3.x)[d]);
+            return Real(1./3.)*((&v1.x)[d] + (&v2.x)[d] + (&v3.x)[d]); // NOLINT(clang-analyzer-security.ArrayBound)
         }
 
         [[nodiscard]] std::pair<Real,Real> minmax (int d) const
         {
             static_assert(sizeof(XDim3) == sizeof(Real)*3);
-            return std::minmax({(&v1.x)[d], (&v2.x)[d], (&v3.x)[d]});
+            return std::minmax({(&v1.x)[d], (&v2.x)[d], (&v3.x)[d]}); // NOLINT(clang-analyzer-security.ArrayBound)
         }
     };
+    /// \endcond
 
+    /// \cond DOXYGEN_IGNORE
     template <int M, int N>
     struct BVHNodeT
     {
@@ -49,6 +53,7 @@ public:
         std::int8_t ntriangles = 0;
         std::int8_t nchildren = 0;
     };
+    /// \endcond
 
     static constexpr int m_bvh_max_size = 4; // max # of triangles in a leaf node
     static constexpr int m_bvh_max_splits = 4; // max # of children

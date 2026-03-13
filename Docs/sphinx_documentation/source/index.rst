@@ -8,7 +8,9 @@ massively parallel, block-structured adaptive mesh refinement (AMR)
 applications. AMReX is freely available `on Github
 <https://github.com/AMReX-Codes/amrex>`_.
 
-AMReX is developed at LBNL.
+AMReX is a project of the `High Performance Software Foundation (HPSF)
+<https://hpsf.io/>`_, which is part of the nonprofit `Linux Foundation
+<https://www.linuxfoundation.org/>`_.
 
 All of AMReX's development is done in the GitHub repository under the
 development branch; anyone can see the latest updates. A monthly release is tagged at the beginning
@@ -71,8 +73,8 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    :caption: API
 
 The copyright notice of AMReX is included in the AMReX home directory
-as README.txt.
+as README.md.
 Your use of this software is under the 3-clause BSD license -- the license agreement is included in the
-AMReX home directory as license.txt.
+AMReX home directory as LICENSE.
 
 For a pdf version of this documentation, click :download:`here <amrex.pdf>`.

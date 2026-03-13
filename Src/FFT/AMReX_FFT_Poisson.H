@@ -7,6 +7,13 @@
 namespace amrex::FFT
 {
 
+/**
+ * \file AMReX_FFT_Poisson.H
+ *
+ * FFT-based Poisson solvers (periodic, mixed BC, hybrid, and open BC variants).
+ */
+
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
@@ -48,8 +55,10 @@ void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
 }
 
 }
+/// \endcond
 
 /**
+ * \ingroup amrex_fft
  * \brief Poisson solver for periodic, Dirichlet & Neumann boundaries using
  * FFT.
  */
@@ -58,6 +67,12 @@ class Poisson
 {
 public:
 
+    /**
+     * \brief Construct a Poisson solver with explicit boundary types.
+     *
+     * \param geom Geometry describing the domain and metric information.
+     * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
@@ -78,6 +93,11 @@ public:
         }
     }
 
+    /**
+     * \brief Construct a purely periodic Poisson solver.
+     *
+     * \param geom Periodic geometry (all directions must be periodic).
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     explicit Poisson (Geometry const& geom)
         : m_domain_lo(geom.Domain().smallEnd()),
@@ -93,12 +113,15 @@ public:
         }
     }
 
-    /*
-     * \brief Solve del dot grad soln = rhs
+    /**
+     * \brief Solve del dot grad soln = rhs.
      *
-     * If soln has ghost cells, one layer of ghost cells will be filled
+     * If \p soln has ghost cells, one layer of ghost cells will be filled
      * except for the corners of the physical domain where they are not used
      * in the cross stencil of the operator. The two MFs could be the same MF.
+     *
+     * \param a_soln Solution MultiFab (updated in place).
+     * \param a_rhs  Right-hand side MultiFab.
      */
     void solve (MF& a_soln, MF const& a_rhs);
 
@@ -112,6 +135,7 @@ private:
 
 #if (AMREX_SPACEDIM == 3)
 /**
+ * \ingroup amrex_fft
  * \brief Poisson solve for Open BC using FFT.
  */
 template <typename MF = MultiFab>
@@ -119,13 +143,29 @@ class PoissonOpenBC
 {
 public:
 
+    /**
+     * \brief Build an open-boundary FFT solver over the grown domain.
+     *
+     * \param geom    Geometry describing the problem domain.
+     * \param ixtype  Index type (cell vs. node) for the working arrays.
+     * \param ngrow   Number of grow cells applied prior to solving.
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
                             IntVect const& ngrow = IntVect(0));
 
+    /**
+     * \brief Solve the open-boundary Poisson problem.
+     *
+     * \param soln Solution MultiFab (cell- or node-centered to match constructor).
+     * \param rhs  Right-hand-side MultiFab.
+     */
     void solve (MF& soln, MF const& rhs);
 
+    /**
+     * \brief Initialize the discretized Green's function cache (public for CUDA kernels).
+     */
     void define_doit (); // has to be public for cuda
 
 private:
@@ -137,6 +177,7 @@ private:
 #endif
 
 /**
+ * \ingroup amrex_fft
  * \brief 3D Poisson solver for periodic, Dirichlet & Neumann boundaries in
  * the first two dimensions, and Dirichlet & Neumann in the last
  * dimension. The last dimension could have non-uniform mesh.
@@ -147,6 +188,12 @@ class PoissonHybrid
 public:
     using T = typename MF::value_type;
 
+    /**
+     * \brief Construct the hybrid Poisson solver (mixed BCs in z with optional nonuniform spacing).
+     *
+     * \param geom Geometry describing domain and spacing.
+     * \param bc   Boundary descriptors for each direction.
+     */
     template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
@@ -185,26 +232,68 @@ public:
         build_spmf();
     }
 
-    /*
-     * \brief Solve del dot grad soln = rhs
+    /**
+     * \brief Solve del dot grad soln = rhs for uniform spacing in all directions.
      *
-     * If soln has ghost cells, one layer of ghost cells will be filled
-     * except for the corners of the physical domain where they are not used
-     * in the cross stencil of the operator. The two MFs could be the same MF.
+     * If \p soln has ghost cells, one layer of ghost cells will be filled
+     * except for the domain-corner ghost zones the stencil does not use.
+     *
+     * \param soln Solution MultiFab.
+     * \param rhs  Right-hand side MultiFab.
      */
     void solve (MF& soln, MF const& rhs);
+    /**
+     * \brief Solve with user-specified layer spacing in the heterogeneous dimension.
+     *
+     * \param soln Solution MultiFab.
+     * \param rhs  Right-hand side MultiFab.
+     * \param dz   Vector of cell spacings along the hybrid dimension.
+     */
     void solve (MF& soln, MF const& rhs, Vector<T> const& dz);
+    /**
+     * \brief GPU-resident overload that accepts device storage for dz.
+     *
+     * \param soln Solution MultiFab.
+     * \param rhs  Right-hand side MultiFab.
+     * \param dz   Device vector of cell spacings along the hybrid dimension.
+     */
     void solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz);
 
+    /**
+     * \brief Solve an independent 2-D Poisson problem on every z-plane.
+     *
+     * \param a_soln Solution MultiFab (updated plane-by-plane).
+     * \param a_rhs  Right-hand side MultiFab.
+     */
     void solve_2d (MF& a_soln, MF const& a_rhs);
 
+    /**
+     * \brief Solve using arbitrary tridiagonal coefficients along the hybrid dimension.
+     *
+     * \param a_soln Solution MultiFab.
+     * \param a_rhs  Right-hand side MultiFab.
+     * \param tria   Functor providing sub-diagonal coefficients.
+     * \param tric   Functor providing super-diagonal coefficients.
+     */
     template <typename TRIA, typename TRIC>
     void solve (MF& a_soln, MF const& a_rhs, TRIA const& tria, TRIC const& tric);
 
     // This is public for cuda
+    /**
+     * \brief CUDA helper that applies the supplied tridiagonal operator along z.
+     *
+     * \param spmf Spectral MultiFab (either real or complex flavor).
+     * \param tria Sub-diagonal functor.
+     * \param tric Super-diagonal functor.
+     */
     template <typename FA, typename TRIA, typename TRIC>
     void solve_z (FA& spmf, TRIA const& tria, TRIC const& tric);
 
+    /**
+     * \brief Layout information for spectral storage used by the hybrid solver.
+     *
+     * \return BoxArray/DistributionMapping pair describing the complex space decomposition.
+     */
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
 private:
@@ -354,6 +443,7 @@ void PoissonOpenBC<MF>::solve (MF& soln, MF const& rhs)
 
 #endif /* AMREX_SPACEDIM == 3 */
 
+/// \cond DOXYGEN_IGNORE
 namespace fft_poisson_detail {
     template <typename T>
     struct Tri_Zero {
@@ -396,6 +486,7 @@ namespace fft_poisson_detail {
         int m_size;
     };
 }
+/// \endcond
 
 template <typename MF>
 std::pair<BoxArray,DistributionMapping>
@@ -470,6 +561,10 @@ void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs)
 template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Gpu::DeviceVector<T> const& dz)
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        int(dz.size()) == m_geom.Domain().length(2),
+        "FFT::PoissonHybrid: dz.size() must equal domain length in z");
+
     auto const* pdz = dz.dataPtr();
     solve(soln, rhs,
           fft_poisson_detail::TriA<T>{pdz},
@@ -480,6 +575,9 @@ template <typename MF>
 void PoissonHybrid<MF>::solve (MF& soln, MF const& rhs, Vector<T> const& dz)
 {
     AMREX_ASSERT(soln.is_cell_centered() && rhs.is_cell_centered());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        int(dz.size()) == m_geom.Domain().length(2),
+        "FFT::PoissonHybrid: dz.size() must equal domain length in z");
 
 #ifdef AMREX_USE_GPU
     Gpu::DeviceVector<T> d_dz(dz.size());
@@ -761,6 +859,7 @@ void PoissonHybrid<MF>::solve_z (FA& spmf, TRIA const& tria, TRIC const& tric)
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <class T>
@@ -832,6 +931,7 @@ void fill_physbc (MF& mf, Geometry const& geom,
 #endif
 }
 }
+/// \endcond
 
 }
 

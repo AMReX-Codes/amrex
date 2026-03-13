@@ -740,6 +740,7 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
+/// \cond DOXYGEN_IGNORE
 namespace particle_detail
 {
 template <typename C>
@@ -752,6 +753,7 @@ void clearEmptyEntries (C& c)
     }
 }
 }
+/// \endcond
 
 template <class index_type, typename F>
 void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type nitems,

@@ -333,6 +333,29 @@ struct StructOfArrays {
         return arr;
     }
 
+    void collectVectors (Vector<IdCPU*>& idcpuv, Vector<RealVector*>& rv,
+                         Vector<IntVector*>& iv)
+
+    {
+        if constexpr (use64BitIdCpu == true) {
+            idcpuv.push_back(&m_idcpu);
+        } else {
+            amrex::ignore_unused(idcpuv);
+        }
+        if constexpr (NReal > 0) {
+            for (int i = 0; i < NReal; ++i) { rv.push_back(&(m_rdata[i])); }
+        }
+        if constexpr (NInt > 0) {
+            for (int i = 0; i < NInt;  ++i) { iv.push_back(&(m_idata[i])); }
+        }
+        for (int i = 0; i < int(m_runtime_rdata.size()); ++i) {
+            rv.push_back(&(m_runtime_rdata[i]));
+        }
+        for (int i = 0; i < int(m_runtime_idata.size()); ++i) {
+            iv.push_back(&(m_runtime_idata[i]));
+        }
+    }
+
     int m_num_neighbor_particles{0};
 
 private:

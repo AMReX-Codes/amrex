@@ -164,6 +164,7 @@ HypreABecLap3::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
                 }
             });
+            // Sync required: cell_id/cell_id_vec are passed to HYPRE host APIs below
             Gpu::streamSynchronize();
         } else
 #endif
@@ -226,6 +227,7 @@ HypreABecLap3::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<HYPRE_Int>::lowest();
                 }
             });
+            // Sync required: cell_id is passed to HYPRE host APIs below
             Gpu::streamSynchronize();
         } else
 #endif
@@ -280,6 +282,7 @@ HypreABecLap3::prepareSolver ()
             cell_id_ma[box_no](i,j,k) += poffset[box_no];
             cell_id_vec_ma[box_no](i,j,k) = cell_id_ma[box_no](i,j,k);
         });
+        // Sync required: cell_id/cell_id_vec are passed to HYPRE host APIs below
         Gpu::streamSynchronize();
     } else
 #endif
@@ -499,6 +502,7 @@ HypreABecLap3::prepareSolver ()
                 });
             }
 
+            // Must sync before host API uses device-written data (rows, cols, mat).
             Gpu::streamSynchronize();
             HYPRE_IJMatrixSetValues(A,nrows,ncols,rows,cols,mat);
             Gpu::hypreSynchronize();
@@ -526,14 +530,6 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-            Gpu::HostVector<FabType> hv_type;
-            for (MFIter mfi(rhs_diag); mfi.isValid(); ++mfi) {
-                const Box& reg = mfi.validbox();
-                hv_type.push_back((*flags)[mfi].getType(reg));
-            }
-            Gpu::DeviceVector<FabType> dv_type(hv_type.size());
-            Gpu::copyAsync(Gpu::hostToDevice, hv_type.begin(), hv_type.end(), dv_type.begin());
-            auto ptype = dv_type.data();
             auto const& rhs_diag_ma = rhs_diag.arrays();
             auto const& rhs_ma = rhs.const_arrays();
             auto const& diaginv_ma = diaginv.const_arrays();
@@ -556,6 +552,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                         Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
                 });
             }
+            // Must sync before host API uses device-written rhs_diag (see loop below).
             Gpu::streamSynchronize();
         } else
 #endif
@@ -627,6 +624,8 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
                 });
             }
+            // Sync required: rhs_diag is passed to HYPRE host API below
+            Gpu::streamSynchronize();
         } else
 #endif
         {
@@ -675,6 +674,7 @@ HypreABecLap3::loadVectors (MultiFab& soln, const MultiFab& rhs)
                         bp[0] = Real(0.0);
                     }
                 });
+                // Must sync before host API uses device-written bp (rhs_diag).
                 Gpu::streamSynchronize();
             }
 

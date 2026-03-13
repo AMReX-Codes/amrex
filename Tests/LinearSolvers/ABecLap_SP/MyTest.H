@@ -84,7 +84,7 @@ MyTest::solvePoisson ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     using T = typename MF::value_type;
-    const T tol_rel = std::is_same<double,typename MF::value_type>::value ?
+    const T tol_rel = std::is_same_v<double,typename MF::value_type> ?
         T(1.e-10) : T(1.e-4);
     const Real tol_abs = 0.0;
 
@@ -193,7 +193,7 @@ MyTest::solveABecLaplacian ()
     info.setMaxCoarseningLevel(max_coarsening_level);
 
     using T = typename MF::value_type;
-    const T tol_rel = std::is_same<double,typename MF::value_type>::value ?
+    const T tol_rel = std::is_same_v<double,typename MF::value_type> ?
         T(1.e-10) : T(1.e-4);
     const T tol_abs = T(0.0);
 

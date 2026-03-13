@@ -1,6 +1,10 @@
 name: codespell
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-codespell
@@ -11,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install codespell
         run: |

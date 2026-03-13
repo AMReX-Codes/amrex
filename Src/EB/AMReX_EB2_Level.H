@@ -11,6 +11,9 @@
 #include <AMReX_Array.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
+#if (AMREX_SPACEDIM == 3)
+#  include <AMReX_MarchingCubes.H>
+#endif
 #include <AMReX_EB2_MultiGFab.H>
 #include <AMReX_EB2_C.H>
 #include <AMReX_EB2_IF_AllRegular.H>
@@ -19,10 +22,16 @@
 #include <omp.h>
 #endif
 
-#include <unordered_map>
-#include <limits>
 #include <cmath>
+#include <limits>
+#include <map>
 #include <type_traits>
+#include <unordered_map>
+
+namespace amrex
+{
+    class STLtools;
+}
 
 namespace amrex::EB2 {
 
@@ -83,6 +92,10 @@ protected:
     BoxArray m_grids;
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
+    MultiFab m_sdf;
+#if (AMREX_SPACEDIM == 3)
+    std::map<int,std::unique_ptr<MC::MCFab>> m_marching_cubes;
+#endif
     MultiGFab m_mgf;
     MultiFab m_levelset;
     FabArray<EBCellFlagFab> m_cellflag;
@@ -125,6 +138,12 @@ public:
     void define_fine (G const& gshop, const Geometry& geom,
                       int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 
+#if (AMREX_SPACEDIM == 3)
+    template <typename GS = G, std::enable_if_t<std::is_same_v<GS,STLtools>,int> FOO = 0>
+    void define_fine_mvmc (GS const& gshop, const Geometry& geom,
+                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
+#endif
+
     static GShopLevel<G>
     makeAllRegular(IndexSpace const* is, const Geometry& geom)
     {
@@ -132,6 +151,14 @@ public:
         r.setRegularLevel();
         return r;
     }
+
+private:
+
+    Box m_bounding_box;
+
+    void prepare_grids (G const& gshop, Geometry const& geom, int max_grid_size, int ngrow,
+                        bool extend_domain_face, int num_crse_opt);
+
 };
 
 template <typename G>
@@ -144,7 +171,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
     : Level(is, geom)
 {
-    if (std::is_same<typename G::FunctionType, AllRegularIF>::value) {
+    if (std::is_same_v<typename G::FunctionType, AllRegularIF>) {
         m_allregular = true;
         m_ok = true;
         return;
@@ -155,29 +182,14 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, G const& gshop, const Geometry&
 
 template <typename G>
 void
-GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
-                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
+GShopLevel<G>::prepare_grids (G const& gshop, const Geometry& geom,
+                              int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
 {
     if (amrex::Verbose() > 0 && extend_domain_face == false) {
         amrex::Print() << "AMReX WARNING: extend_domain_face=false is not recommended!\n";
     }
 
-    BL_PROFILE("EB2::GShopLevel()-fine");
-
-#ifdef AMREX_USE_FLOAT
-    Real small_volfrac = 1.e-5_rt;
-#else
-    Real small_volfrac = 1.e-14;
-#endif
-    bool cover_multiple_cuts = false;
-    int maxiter = 32;
-    {
-        ParmParse pp("eb2");
-        pp.queryAdd("small_volfrac", small_volfrac);
-        pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
-        pp.queryAdd("maxiter", maxiter);
-    }
-    maxiter = std::min(100000, maxiter);
+    BL_PROFILE("EB2::GShopLevel()-prepare_grids");
 
     // make sure ngrow is multiple of 16
     m_ngrow = IntVect{static_cast<int>(std::ceil(ngrow/16.)) * 16};
@@ -192,8 +204,8 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
         }
     }
     domain_grown.grow(m_ngrow);
-    Box bounding_box = (extend_domain_face) ? domain : domain_grown;
-    bounding_box.surroundingNodes();
+    m_bounding_box = (extend_domain_face) ? domain : domain_grown;
+    m_bounding_box.surroundingNodes();
 
     BoxList cut_boxes;
     BoxList covered_boxes;
@@ -205,7 +217,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
     for (int clev = num_crse_opt; clev >= 0; --clev) {
         IntVect crse_ratio(1 << clev);
         if (domain.coarsenable(crse_ratio)) {
-            Box const& crse_bounding_box = amrex::coarsen(bounding_box, crse_ratio);
+            Box const& crse_bounding_box = amrex::coarsen(m_bounding_box, crse_ratio);
             Geometry const& crse_geom = amrex::coarsen(geom, crse_ratio);
             BoxList test_boxes;
             if (cut_boxes.isEmpty()) {
@@ -277,11 +289,37 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
         m_dmap = DistributionMapping();
         m_allregular = true;
         m_ok = true;
-        return;
+    } else {
+        m_grids = BoxArray(std::move(cut_boxes));
+        m_dmap = DistributionMapping(m_grids);
     }
+}
 
-    m_grids = BoxArray(std::move(cut_boxes));
-    m_dmap = DistributionMapping(m_grids);
+template <typename G>
+void
+GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
+                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
+{
+    BL_PROFILE("EB2::GShopLevel()-fine");
+
+#ifdef AMREX_USE_FLOAT
+    Real small_volfrac = 1.e-5_rt;
+#else
+    Real small_volfrac = 1.e-14;
+#endif
+    bool cover_multiple_cuts = false;
+    int maxiter = 32;
+    {
+        ParmParse pp("eb2");
+        pp.queryAdd("small_volfrac", small_volfrac);
+        pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
+        pp.queryAdd("maxiter", maxiter);
+    }
+    maxiter = std::min(100000, maxiter);
+
+    prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
+
+    if (m_allregular) { return; }
 
     m_mgf.define(m_grids, m_dmap);
     const int ng = GFab::ng;
@@ -305,6 +343,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
     const auto dx = geom.CellSizeArray();
     const auto problo = geom.ProbLoArray();
 
+    auto bounding_box = m_bounding_box;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         if (!extend_domain_face || geom.isPeriodic(idim)) {
             bounding_box.grow(idim,GFab::ng);
@@ -537,6 +576,43 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
     m_ok = true;
 }
 
+#if (AMREX_SPACEDIM == 3)
+template <typename G>
+template <typename GS, std::enable_if_t<std::is_same_v<GS,STLtools>,int> FOO>
+void
+GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
+                                 int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
+{
+    BL_PROFILE("EB2::GShopLevel()-fine-mvmc");
+
+    prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
+
+    if (m_allregular) { return; }
+
+    MC::Initialize();
+
+    m_sdf.define(amrex::convert(m_grids,IntVect(1)), m_dmap, 1, IntVect(1));
+    gshop.fillSignedDistance(m_sdf, m_sdf.nGrowVect(), geom);
+
+    for (MFIter mfi(m_sdf,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
+        m_marching_cubes[mfi.index()] = std::make_unique<MC::MCFab>();
+    }
+
+    MFItInfo info{};
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    info.SetDynamic(true);
+#pragma omp parallel
+#endif
+    for (MFIter mfi(m_sdf,info); mfi.isValid(); ++mfi) {
+        amrex::MC::marching_cubes(geom, m_sdf[mfi], *m_marching_cubes[mfi.index()]);
+    }
+
+    MC::write_stl("test.stl", m_marching_cubes);
+
+    m_ok = false; // xxxxx TODO
+}
+#endif
 
 template <typename G>
 GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size, int /*ngrow*/,

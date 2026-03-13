@@ -110,6 +110,9 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_WriteEBSurface.H
        AMReX_EBToPVD.H
        AMReX_EBToPVD.cpp
+       AMReX_mc_jgt_table.H
+       AMReX_MarchingCubes.H
+       AMReX_MarchingCubes.cpp
        )
     endif ()
 

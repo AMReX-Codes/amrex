@@ -528,8 +528,8 @@ iparser_compile_exe_size (struct iparser_node* node, char*& p, std::size_t& exe_
     case IPARSER_ASSIGN:
     {
         auto *asgn = (struct iparser_assign*)node;
-        local_variables.push_back(asgn->s->name);
         iparser_compile_exe_size(asgn->v, p, exe_size, max_stack_size, stack_size, local_variables);
+        local_variables.push_back(asgn->s->name);
         break;
     }
     case IPARSER_LIST:

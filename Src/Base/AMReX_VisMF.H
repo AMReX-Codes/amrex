@@ -26,6 +26,7 @@ namespace amrex {
 class IArrayBox;
 
 /**
+* \ingroup amrex_io
 * \brief File I/O for FabArray<FArrayBox>.
 *  Wrapper class for reading/writing FabArray<FArrayBox> objects to disk in various "smart" ways.
 */
@@ -391,7 +392,7 @@ std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
-    AMREX_ASSERT(name.back() != '/');
+    AMREX_ASSERT(!name.empty() && name.back() != '/');
 
     auto data_descriptor = FAB::getDataDescriptor();
     int data_bytes = data_descriptor->numBytes();
@@ -527,6 +528,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename FAB>
 void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
@@ -544,6 +546,7 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
     fab.readFrom(ifs);
 }
 }
+/// \endcond
 
 /**
  * \brief Read `iMultiFab/FabArray<IArrayBox>`
@@ -568,7 +571,7 @@ std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");
-    AMREX_ASSERT(name.back() != '/');
+    AMREX_ASSERT(!name.empty() && name.back() != '/');
 
     BoxArray ba;
     int ncomp;

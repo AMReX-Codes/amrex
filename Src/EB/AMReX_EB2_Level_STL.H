@@ -13,7 +13,8 @@ class STLLevel
 public:
 
     STLLevel (IndexSpace const* is, STLtools const& stl_tools, const Geometry& geom,
-              int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
+              int max_grid_size, int ngrow, bool extend_domain_face,
+              int num_crse_opt, bool support_mvmc);
 
     STLLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
               const Geometry& geom, STLLevel& fineLevel);

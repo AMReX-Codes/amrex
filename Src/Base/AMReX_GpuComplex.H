@@ -16,6 +16,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 T norm (const GpuComplex<T>& a_z) noexcept;
 
 /**
+ * \ingroup amrex_arithmetic_types
  * \brief A host / device complex number type, because std::complex doesn't
  *  work in device code with Cuda yet.
  *
@@ -429,6 +430,7 @@ GpuComplex<T> pow (const GpuComplex<T>& a_z, const T& a_y) noexcept
     return amrex::polar<T>(std::exp(a_y * t.real()), a_y * t.imag());
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     template <typename T>
@@ -448,6 +450,7 @@ namespace detail
         return y;
     }
 }
+/// \endcond
 
 /**
  * \brief Raise a complex number to an integer power.

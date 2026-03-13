@@ -516,7 +516,8 @@ StateData::FillBoundary (FArrayBox&     dest,
 
 #ifdef AMREX_USE_GPU
     // Add a streamSynchronize here in case the user code launched kernels
-    // to handle the boundary fills.
+    // to handle the boundary fills (e.g. kernel writing to pinned memory).
+    // Must be unconditional: host may read dest after this.
     Gpu::streamSynchronize();
 #endif
 }
@@ -951,49 +952,22 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 Elixir elitmp = tmp.elixir();
                                 Array4<Real> const& tmpa = tmp.array();
                                 const int ishift = -geom->period(dir);
-                                amrex::launch(lo_slab,
-                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
-                                {
-                                    const Box db = amrex::shift(tbx, dir, ishift);
-                                    const auto dlo = amrex::lbound(db);
-                                    const auto tlo = amrex::lbound(tbx);
-                                    const auto len = amrex::length(db);
-                                    for (int n = 0; n < num_comp; ++n) {
-                                        for         (int k = 0; k < len.z; ++k) {
-                                            for     (int j = 0; j < len.y; ++j) {
-                                                AMREX_PRAGMA_SIMD
-                                                for (int i = 0; i < len.x; ++i) {
-                                                    tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n)
-                                                        = desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
+                                const IntVect shift_iv = ishift * IntVect::TheDimensionVector(dir);
+                                amrex::ParallelFor(lo_slab, num_comp,
+                                    [=] AMREX_GPU_DEVICE (const IntVect& iv, int n) noexcept
+                                    {
+                                        tmpa(iv, n) = desta(iv + shift_iv, n + dest_comp);
+                                    });
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(lo_slab, tmp, time, *geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                amrex::launch(lo_slab,
-                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
-                                {
-                                    const Box db = amrex::shift(tbx, dir, ishift);
-                                    const auto dlo = amrex::lbound(db);
-                                    const auto tlo = amrex::lbound(tbx);
-                                    const auto len = amrex::length(db);
-                                    for (int n = 0; n < num_comp; ++n) {
-                                        for         (int k = 0; k < len.z; ++k) {
-                                            for     (int j = 0; j < len.y; ++j) {
-                                                AMREX_PRAGMA_SIMD
-                                                for (int i = 0; i < len.x; ++i) {
-                                                    desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp)
-                                                        = tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
+                                amrex::ParallelFor(lo_slab, num_comp,
+                                    [=] AMREX_GPU_DEVICE (const IntVect& iv, int n) noexcept
+                                    {
+                                        desta(iv + shift_iv, n + dest_comp) = tmpa(iv, n);
+                                    });
                             }
                             else
 #endif
@@ -1019,49 +993,22 @@ StateDataPhysBCFunct::operator() (MultiFab& mf, int dest_comp, int num_comp, Int
                                 Elixir elitmp = tmp.elixir();
                                 Array4<Real> const& tmpa = tmp.array();
                                 const int ishift = geom->period(dir);
-                                amrex::launch(hi_slab,
-                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
-                                {
-                                    const Box db = amrex::shift(tbx, dir, ishift);
-                                    const auto dlo = amrex::lbound(db);
-                                    const auto tlo = amrex::lbound(tbx);
-                                    const auto len = amrex::length(db);
-                                    for (int n = 0; n < num_comp; ++n) {
-                                        for         (int k = 0; k < len.z; ++k) {
-                                            for     (int j = 0; j < len.y; ++j) {
-                                                AMREX_PRAGMA_SIMD
-                                                for (int i = 0; i < len.x; ++i) {
-                                                    tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n)
-                                                        = desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
+                                const IntVect shift_iv = ishift * IntVect::TheDimensionVector(dir);
+                                amrex::ParallelFor(hi_slab, num_comp,
+                                    [=] AMREX_GPU_DEVICE (const IntVect& iv, int n) noexcept
+                                    {
+                                        tmpa(iv, n) = desta(iv + shift_iv, n + dest_comp);
+                                    });
                                 if (has_bndryfunc_fab) {
                                     statedata->FillBoundary(hi_slab, tmp, time, *geom, 0, src_comp, num_comp);
                                 } else {
                                     statedata->FillBoundary(tmp, time, dx, prob_domain, 0, src_comp, num_comp);
                                 }
-                                amrex::launch(hi_slab,
-                                [=] AMREX_GPU_DEVICE (Box const& tbx) noexcept
-                                {
-                                    const Box db = amrex::shift(tbx, dir, ishift);
-                                    const auto dlo = amrex::lbound(db);
-                                    const auto tlo = amrex::lbound(tbx);
-                                    const auto len = amrex::length(db);
-                                    for (int n = 0; n < num_comp; ++n) {
-                                        for         (int k = 0; k < len.z; ++k) {
-                                            for     (int j = 0; j < len.y; ++j) {
-                                                AMREX_PRAGMA_SIMD
-                                                for (int i = 0; i < len.x; ++i) {
-                                                    desta(i+dlo.x,j+dlo.y,k+dlo.z,n+dest_comp)
-                                                        = tmpa(i+tlo.x,j+tlo.y,k+tlo.z,n);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
+                                amrex::ParallelFor(hi_slab, num_comp,
+                                    [=] AMREX_GPU_DEVICE (const IntVect& iv, int n) noexcept
+                                    {
+                                        desta(iv + shift_iv, n + dest_comp) = tmpa(iv, n);
+                                    });
                             }
                             else
 #endif

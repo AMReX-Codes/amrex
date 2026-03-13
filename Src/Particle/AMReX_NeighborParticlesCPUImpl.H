@@ -563,14 +563,15 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
         AMREX_ASSERT(Who >= 0 && Who < NProcs);
         AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
 
-        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum);
+        ParallelDescriptor::Send(kv.second.data(), Cnt, Who, SeqNum,
+                                 ParallelContext::CommunicatorSub());
     }
 
     // unpack the received data and put them into the proper neighbor buffers
     if (nrcvs > 0) {
         ParallelDescriptor::Waitall(rreqs, stats);
         for (int i = 0; i < nrcvs; ++i) {
-            const auto offset = int(rOffset[i]);
+            const std::size_t offset = rOffset[i];
             char* buffer = &recvdata[offset];
             int num_tiles, lev, gid, tid, size, np;
             std::memcpy(&num_tiles, buffer, sizeof(int)); buffer += sizeof(int);

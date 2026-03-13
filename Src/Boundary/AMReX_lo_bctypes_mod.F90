@@ -9,6 +9,9 @@ module amrex_lo_bctypes_module
   integer, parameter :: amrex_lo_marshak           = AMREX_LO_MARSHAK
   integer, parameter :: amrex_lo_sanchez_pomraning = AMREX_LO_SANCHEZ_POMRANING
   integer, parameter :: amrex_lo_inflow            = AMREX_LO_INFLOW
+  integer, parameter :: amrex_lo_inhomog_neumann   = AMREX_LO_INHOMOG_NEUMANN
+  integer, parameter :: amrex_lo_robin             = AMREX_LO_ROBIN
+  integer, parameter :: amrex_lo_symmetry          = AMREX_LO_SYMMETRY
   integer, parameter :: amrex_lo_periodic          = AMREX_LO_PERIODIC
   integer, parameter :: amrex_lo_bogus             = AMREX_LO_BOGUS
 

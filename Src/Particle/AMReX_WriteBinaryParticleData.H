@@ -19,6 +19,7 @@ struct KeepValidFilter
     }
 };
 
+/// \cond DOXYGEN_IGNORE
 namespace particle_detail {
 
 template <typename ParticleReal>
@@ -398,9 +399,9 @@ packIODataGpu (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, in
         });
 
         Gpu::copyAsync(Gpu::deviceToHost, idata_d.begin(), idata_d.end(),
-                       idata.begin() + static_cast<Long>(poffset));
+                       idata.begin() + static_cast<Long>(poffset * iChunkSize));
         Gpu::copyAsync(Gpu::deviceToHost, rdata_d.begin(), rdata_d.end(),
-                       rdata.begin() + static_cast<Long>(poffset));
+                       rdata.begin() + static_cast<Long>(poffset * rChunkSize));
         Gpu::Device::streamSynchronize();
 
         poffset += num_copies;
@@ -478,6 +479,7 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 }
 
 }
+/// \endcond
 
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void WriteBinaryParticleDataSync (PC const& pc,

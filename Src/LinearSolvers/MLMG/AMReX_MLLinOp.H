@@ -96,6 +96,7 @@ template <typename T> class MLPoissonT;
 template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLLinOpT
 {
@@ -619,6 +620,7 @@ protected:
 
     MPI_Comm m_default_comm = MPI_COMM_NULL;
     MPI_Comm m_bottom_comm = MPI_COMM_NULL;
+    /// \cond DOXYGEN_IGNORE
     struct CommContainer {
         MPI_Comm comm;
         CommContainer (MPI_Comm m) noexcept : comm(m) {}
@@ -632,6 +634,7 @@ protected:
 #endif
         }
     };
+    /// \endcond
     std::unique_ptr<CommContainer> m_raii_comm;
 
     Array<Real, AMREX_SPACEDIM> m_domain_bloc_lo {{AMREX_D_DECL(0._rt,0._rt,0._rt)}};
@@ -651,6 +654,13 @@ protected:
 
     //! Return AMR refinement ratio at given AMR level
     [[nodiscard]] int AMRRefRatio (int amr_lev) const noexcept { return m_amr_ref_ratio[amr_lev]; }
+
+    //! Return AMR refinement ratio as IntVect (1 in hidden direction)
+    [[nodiscard]] IntVect AMRRefRatioVect (int amr_lev) const noexcept {
+        IntVect rr(m_amr_ref_ratio[amr_lev]);
+        if (info.hasHiddenDimension()) { rr[info.hidden_direction] = 1; }
+        return rr;
+    }
 
     [[nodiscard]] FabFactory<FAB> const* Factory (int amr_lev, int mglev=0) const noexcept {
         return m_factory[amr_lev][mglev].get();
@@ -718,11 +728,11 @@ protected:
     [[nodiscard]] Array4<T> compactify (Array4<T> const& a) const noexcept
     {
         if (info.hidden_direction == 0) {
-            return Array4<T>(a.dataPtr(), {a.begin.y,a.begin.z,0}, {a.end.y,a.end.z,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[1],a.begin[2],0}, {a.end[1],a.end[2],1}, a.nComp());
         } else if (info.hidden_direction == 1) {
-            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.z,0}, {a.end.x,a.end.z,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[0],a.begin[2],0}, {a.end[0],a.end[2],1}, a.nComp());
         } else if (info.hidden_direction == 2) {
-            return Array4<T>(a.dataPtr(), {a.begin.x,a.begin.y,0}, {a.end.x,a.end.y,1}, a.nComp());
+            return Array4<T>(a.dataPtr(), {a.begin[0],a.begin[1],0}, {a.end[0],a.end[1],1}, a.nComp());
         } else {
             return a;
         }
@@ -851,8 +861,8 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
     IntVect mg_box_min_width_v(mg_box_min_width);
     IntVect mg_domain_min_width_v(mg_domain_min_width);
     if (hasHiddenDimension()) {
-        AMREX_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3 && m_num_amr_levels == 1,
-                                  "Hidden direction only supported for 3d level solve");
+        AMREX_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3,
+                                  "Hidden direction only supported for 3d");
         mg_coarsen_ratio_v[info.hidden_direction] = 1;
         mg_box_min_width_v[info.hidden_direction] = 0;
         mg_domain_min_width_v[info.hidden_direction] = 0;
@@ -895,7 +905,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
 #if (AMREX_SPACEDIM > 1)
         if (hasHiddenDimension()) {
-            m_amr_ref_ratio[amrlev-1] = rr[AMREX_SPACEDIM-info.hidden_direction];
+            m_amr_ref_ratio[amrlev-1] = rr[(info.hidden_direction+1) % AMREX_SPACEDIM];
         } else
 #endif
         {
@@ -1177,7 +1187,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 
     for (int amrlev = 1; amrlev < m_num_amr_levels; ++amrlev)
     {
-        AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(m_amr_ref_ratio[amrlev-1]),
+        AMREX_ASSERT_WITH_MESSAGE(m_grids[amrlev][0].coarsenable(AMRRefRatioVect(amrlev-1)),
                                   "MLLinOp: grids not coarsenable between AMR levels");
     }
 }
@@ -1547,7 +1557,7 @@ MLLinOpT<MF>::makeCoarseAmr (int famrlev, IntVect const& ng) const
 {
     if constexpr (IsMultiFabLike_v<MF>) {
         BoxArray cba = m_grids[famrlev][0];
-        IntVect ratio(AMRRefRatio(famrlev-1));
+        IntVect ratio(AMRRefRatioVect(famrlev-1));
         cba.coarsen(ratio);
         cba.convert(m_ixtype);
         return MF(cba, m_dmap[famrlev][0], getNComp(), ng);
@@ -1681,6 +1691,7 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 
 extern template class MLLinOpT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLLinOp = MLLinOpT<MultiFab>;
 
 }

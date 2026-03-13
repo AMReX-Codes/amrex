@@ -20,11 +20,12 @@ namespace amrex
 // Note:
 // This is a helper function, it's not part of the AMReX Blueprint Interface.
 //---------------------------------------------------------------------------//
-template <typename ParticleType, int NArrayReal, int NArrayInt>
+template <typename ParticleType, int NArrayReal, int NArrayInt, template<class> class Allocator=DefaultAllocator>
 void
 ParticleTileToBlueprint(const ParticleTile<ParticleType,
                                            NArrayReal,
-                                           NArrayInt> &ptile,
+                                           NArrayInt,
+                                           Allocator> &ptile,
                         const Vector<std::string> &real_comp_names,
                         const Vector<std::string> &int_comp_names,
                         conduit::Node &res,
@@ -280,7 +281,7 @@ ParticleContainerToBlueprint(const ParticleContainer_impl<ParticleType,
     int rank   = ParallelDescriptor::MyProc();
     int nprocs = ParallelDescriptor::NProcs();
 
-    using MyParConstIter = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt>;
+    using MyParConstIter = ParConstIter_impl<ParticleType, NArrayReal, NArrayInt, Allocator>;
 
     //
     // blueprint expects unique ids for each domain published

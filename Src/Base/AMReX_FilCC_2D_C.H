@@ -25,10 +25,10 @@ struct FilccCell
         const int jlo = domain_lo[1];
         const int ihi = domain_hi[0];
         const int jhi = domain_hi[1];
-        const int is = amrex::max(q.begin.x,ilo);
-        const int js = amrex::max(q.begin.y,jlo);
-        const int ie = amrex::min(q.end.x-1,ihi);
-        const int je = amrex::min(q.end.y-1,jhi);
+        const int is = amrex::max(q.begin[0],ilo);
+        const int js = amrex::max(q.begin[1],jlo);
+        const int ie = amrex::min(q.end[0]-1,ihi);
+        const int je = amrex::min(q.end[1]-1,jhi);
 
         for (int n = dcomp; n < numcomp+dcomp; ++n)
         {

@@ -1,6 +1,8 @@
 #ifndef AMREX_PCI_H_
 #define AMREX_PCI_H_
 
+namespace amrex {
+
 template <class FAB>
 void
 FabArray<FAB>::PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -168,5 +170,7 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
 }
 #endif
+
+}
 
 #endif

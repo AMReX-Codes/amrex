@@ -124,10 +124,7 @@ FabArrayBase::Initialize ()
     }
 
     pp.query("maxcomp", FabArrayBase::MaxComp);
-
-    if (MaxComp < 1) {
-        MaxComp = 1;
-    }
+    MaxComp = std::max(MaxComp, 1);
 
     ParmParse ppmf("amrex.mf");
     ppmf.queryAdd("alloc_single_chunk", FabArrayBase::m_alloc_single_chunk);
@@ -2801,6 +2798,7 @@ FabArrayBase::getNextCommMetaDataId ()
     return comm_meta_data_id++;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     SingleChunkArena::SingleChunkArena (Arena* a_arena, std::size_t a_size)
@@ -2848,6 +2846,7 @@ namespace detail {
         return m_dallocator.arena()->isPinned();
     }
 }
+/// \endcond
 
 int nComp (FabArrayBase const& fa)
 {

@@ -36,6 +36,8 @@ int main (int argc, char* argv[])
         }
         amrex::Print() << "\n";
 
+        // NOLINTBEGIN(clang-analyzer-optin.core.EnumCastOutOfRange)
+
         ParmParse pp;
         {
             auto color = static_cast<MyColor>(999);
@@ -96,12 +98,25 @@ int main (int argc, char* argv[])
                                 color[0] == my_namespace::MyColor::cyan &&
                                 color[1] == my_namespace::MyColor::yellow &&
                                 color[2] == my_namespace::MyColor::orange);
+            pp.getarr("colors_quoted", color);
+            AMREX_ALWAYS_ASSERT(color.size() == 3 &&
+                                color[0] == my_namespace::MyColor::cyan &&
+                                color[1] == my_namespace::MyColor::yellow &&
+                                color[2] == my_namespace::MyColor::orange);
+            pp.queryarr("colors_quoted", color2);
+            AMREX_ALWAYS_ASSERT(color.size() == 3 &&
+                                color == color2 &&
+                                color[0] == my_namespace::MyColor::cyan &&
+                                color[1] == my_namespace::MyColor::yellow &&
+                                color[2] == my_namespace::MyColor::orange);
             amrex::Print() << "colors:";
             for (auto const& c : color) {
                 amrex::Print() << " " << amrex::getEnumNameString(c);
             }
             amrex::Print() << "\n";
         }
+
+        // NOLINTEND(clang-analyzer-optin.core.EnumCastOutOfRange)
     }
     {
         auto names2 = amrex::getEnumNameStrings<MyColor2>();
@@ -162,6 +177,10 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::entry) == "entry");
         AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::exit) == "exit");
         AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::after_exit) == "after_exit");
+    }
+
+    {
+        amrex::Print() << "SUCCESS\n";
     }
 
     amrex::Finalize();

@@ -52,7 +52,7 @@ struct Table1D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (IDX i) const
     {
         if (i < begin || i >= end) {
@@ -134,7 +134,7 @@ struct Table2D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (int i, int j) const
     {
         if (i < begin[0] || i >= end[0] ||
@@ -217,7 +217,7 @@ struct Table3D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (int i, int j, int k) const
     {
         if (i < begin[0] || i >= end[0] ||
@@ -312,7 +312,7 @@ struct Table4D
     }
 
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
-    AMREX_GPU_HOST_DEVICE inline
+    AMREX_GPU_HOST_DEVICE
     void index_assert (int i, int j, int k, int n) const
     {
         if (i < begin[0] || i >= end[0] ||
@@ -580,6 +580,7 @@ TableData<T,N,ORDER>::define ()
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     template <typename T, Order>
     Table1D<T> make_table (T* p, Array<int,1> const& lo, Array<int,1> const& hi) {
@@ -598,6 +599,7 @@ namespace detail {
         return Table4D<T,ORDER>(p, {lo[0],lo[1],lo[2],lo[3]}, {hi[0]+1,hi[1]+1,hi[2]+1,hi[3]+1});
     }
 }
+/// \endcond
 
 template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::table_type

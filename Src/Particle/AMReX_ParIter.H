@@ -229,6 +229,7 @@ using ParConstIter = ParConstIter_impl<Particle<T_NStructReal, T_NStructInt>, T_
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParConstIterSoA = ParConstIter_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
+/// \ingroup amrex_particles
 template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
 using ParConstIterRTSoA = ParConstIter_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 

@@ -3,7 +3,11 @@
 
 name: LinuxGCC
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-linux-gcc
@@ -21,14 +25,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 14
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -62,7 +66,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         export PATH=/tmp/my-amrex/bin:$PATH
@@ -80,14 +84,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 13
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -117,7 +121,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --test-dir build --output-on-failure
@@ -131,14 +135,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -168,7 +172,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --test-dir build --output-on-failure
@@ -182,14 +186,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -220,7 +224,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --test-dir build --output-on-failure
@@ -230,26 +234,38 @@ jobs:
 
   # Build libamrex and all tests
   tests_cxx20:
-    name: GNU@10.1 C++20 OMP [tests]
+    name: GNU@14 C++20 OMP SIMD [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 10
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_gcc.sh 14
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
+    - name: install vir-simd
+      run: |
+        wget https://github.com/mattkretz/vir-simd/archive/refs/tags/v0.4.4.tar.gz
+        tar -xvf v0.4.4.tar.gz
+        rm -rf v0.4.4.tar.gz
+        cmake -S vir-simd-0.4.4 -B vir-simd-build
+        sudo cmake --build vir-simd-build --target install
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
+      # We could put -Wnull-dereference back once this uses GCC >= 15.
+      # Right now, vector::resize in packIODataCpu triggers a false positive warning.
+      # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108860
+      #
+      # `-fno-operator-names` is not used here because the SIMD headers use `and` and `or`.
+      env: {CXXFLAGS: "-Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wno-array-bounds -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -272,18 +288,18 @@ jobs:
             -DAMReX_FPE=ON              \
             -DAMReX_FORTRAN=ON          \
             -DAMReX_OMP=ON              \
+            -DAMReX_SIMD=ON             \
             -DCMAKE_CXX_STANDARD=20     \
-            -DCMAKE_C_COMPILER=$(which gcc-10)              \
-            -DCMAKE_CXX_COMPILER=$(which g++-10)            \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-10)   \
+            -DCMAKE_C_COMPILER=$(which gcc-14)              \
+            -DCMAKE_CXX_COMPILER=$(which g++-14)            \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-14)   \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
-        # Let's not use clang-tidy for this test because it wants to use C++20.
-        # ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
-        # make -j4 -k -f clang-tidy-ccache-misses.mak \
-        #     CLANG_TIDY=clang-tidy-17 \
-        #     CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
+        ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
+        make -j4 -k -f clang-tidy-ccache-misses.mak \
+            CLANG_TIDY=clang-tidy-21 \
+            CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
 
@@ -297,14 +313,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 14
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -343,7 +359,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
@@ -358,15 +374,15 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_gcc.sh 12
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -377,7 +393,11 @@ jobs:
       # /home/runner/work/amrex/amrex/Src/Base/AMReX_IntVect.H:194:92: error: array subscript -1 is below array bounds of ‘int [3]’ [-Werror=array-bounds]
       # int& operator[] (int i) noexcept { BL_ASSERT(i>=0 && i < AMREX_SPACEDIM); return vect[i]; }
       #
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
+      # /home/runner/work/amrex/amrex/Src/Particle/AMReX_Particle_mod_K.H:101:49: error: ‘p’ may be used uninitialized [-Werror=maybe-uninitialized]
+      # /home/runner/work/amrex/amrex/Src/Particle/AMReX_ParticleContainerI.H:2652:26: note: ‘p’ declared here
+      # auto p = ptd[i];
+      #
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-maybe-uninitialized"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -407,7 +427,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
@@ -422,14 +442,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -451,7 +471,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -464,14 +484,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -493,7 +513,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -506,14 +526,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -536,7 +556,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -549,14 +569,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -578,7 +598,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -591,14 +611,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -619,7 +639,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -632,14 +652,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 13
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -667,7 +687,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -687,7 +707,7 @@ jobs:
       CXX: h5pcc
       CC: h5cc
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh

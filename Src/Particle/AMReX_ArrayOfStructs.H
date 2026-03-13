@@ -89,6 +89,7 @@ public:
     void swap (ArrayOfStructs& other) noexcept
     {
         m_data.swap(other.m_data);
+        std::swap(m_num_neighbor_particles, other.m_num_neighbor_particles);
     }
 
     void resize (size_t count, GrowthStrategy strategy = GrowthStrategy::Poisson) {
@@ -111,6 +112,11 @@ public:
     [[nodiscard]] typename ParticleVector::iterator end () { return m_data.end(); }
     [[nodiscard]] typename ParticleVector::const_iterator end () const { return m_data.end(); }
     [[nodiscard]] typename ParticleVector::const_iterator cend () const { return m_data.cend(); }
+
+    void collectVectors (Vector<ParticleVector*>& pvs)
+    {
+        pvs.push_back(&m_data);
+    }
 
     int m_num_neighbor_particles{0};
 

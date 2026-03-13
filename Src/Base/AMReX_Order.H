@@ -4,7 +4,6 @@
 
 namespace amrex
 {
-    enum struct Order { C, F, RowMajor=C, ColumnMajor=F };
+    enum struct Order { C, F, RowMajor=C, ColumnMajor=F }; // NOLINT(readability-enum-initial-value)
 }
 #endif
-

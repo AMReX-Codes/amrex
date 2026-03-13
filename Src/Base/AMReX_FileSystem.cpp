@@ -83,7 +83,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
 
     const char* path_sep_str = "/";
 
-    if (path.length() == 0 || path == path_sep_str) {
+    if (path.empty() || path == path_sep_str) {
         return true;
     }
 
@@ -189,7 +189,7 @@ CurrentPath ()
 bool
 Remove (std::string const& filename)
 {
-    return unlink(filename.c_str());
+    return (unlink(filename.c_str()) == 0);
 }
 
 bool

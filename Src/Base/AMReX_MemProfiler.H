@@ -46,17 +46,21 @@ private:
 
     void report_ (const std::string& prefix, const std::string& memory_log_name) const;
 
+    /// \cond DOXYGEN_IGNORE
     struct Bytes {
         Long mn;
         Long mx;
     };
+    /// \endcond
     friend std::ostream& operator<< (std::ostream& os,
                                      const MemProfiler::Bytes& bytes);
 
+    /// \cond DOXYGEN_IGNORE
     struct Builds {
         int mn;
         int mx;
     };
+    /// \endcond
     friend std::ostream& operator<< (std::ostream& os,
                                      const MemProfiler::Builds& builds);
 

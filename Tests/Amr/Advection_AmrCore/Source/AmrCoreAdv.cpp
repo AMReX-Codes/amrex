@@ -346,10 +346,10 @@ void AmrCoreAdv::MakeNewLevelFromScratch (int lev, Real time, const BoxArray& ba
         Array4<Real> fab = state[mfi].array();
         const Box& box = mfi.tilebox();
 
-        amrex::launch(box,
-        [=] AMREX_GPU_DEVICE (Box const& tbx)
+        amrex::ParallelFor(box,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k)
         {
-            initdata(tbx, fab, problo, dx);
+            initdata(i, j, k, fab, problo, dx);
         });
     }
 }

@@ -24,19 +24,19 @@
 #include <iomanip>
 
 namespace {
-int flag_verbose_mapper;
-}
-
-namespace amrex {
+    int flag_verbose_mapper;
 
     bool initialized = false;
     //
     // Set default values for these in Initialize()!!!
     //
-    int    verbose;
-    int    sfc_threshold;
-    Real   max_efficiency;
-    int    node_size;
+    int verbose;
+    int sfc_threshold;
+    int node_size;
+    amrex::Real max_efficiency;
+}
+
+namespace amrex {
 
 // We default to SFC.
 DistributionMapping::Strategy DistributionMapping::m_Strategy = DistributionMapping::SFC;
@@ -528,6 +528,7 @@ DistributionMapping::RoundRobinProcessorMap (const std::vector<Long>& wgts,
     RoundRobinDoIt(static_cast<int>(wgts.size()), nprocs, &LIpairV, sort);
 }
 
+/// \cond DOXYGEN_IGNORE
 class WeightedBox
 {
     int  m_boxid;
@@ -542,7 +543,9 @@ public:
         return weight() > rhs.weight();
     }
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct WeightedBoxList
 {
     Vector<WeightedBox>* m_lb     = nullptr;
@@ -575,6 +578,7 @@ struct WeightedBoxList
         return weight() > rhs.weight();
     }
 };
+/// \endcond
 
 namespace {
 void
@@ -1451,7 +1455,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
         for (int i = 0; i < nteams; ++i)
         {
             const Long W = LIpairV[i].first;
-            if (W > max_wgt) { max_wgt = W; }
+            max_wgt = std::max(W, max_wgt);
             sum_wgt += W;
         }
         Real efficiency = static_cast<Real>(sum_wgt)/static_cast<Real>(nteams*max_wgt);
@@ -1581,6 +1585,21 @@ DistributionMapping::RRSFCProcessorMap (const BoxArray&          boxes,
     RRSFCDoIt(boxes,nprocs);
 }
 
+Vector<Long>
+DistributionMapping::ConvertCostRealToLong (const Vector<Real>& rcost)
+{
+    Vector<Long> cost(rcost.size());
+
+    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
+
+    for (Long i = 0; i < rcost.size(); ++i) {
+        cost[i] = Long(rcost[i]*scale) + 1L;
+    }
+
+    return cost;
+}
+
 DistributionMapping
 DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
 {
@@ -1588,14 +1607,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, int nmax)
 
     DistributionMapping r;
 
-    Vector<Long> cost(rcost.size());
-
-    Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-
-    for (int i = 0; i < rcost.size(); ++i) {
-        cost[i] = Long(rcost[i]*scale) + 1L;
-    }
+    Vector<Long> cost = ConvertCostRealToLong(rcost);
 
     int nprocs = ParallelContext::NProcsSub();
     Real eff;
@@ -1612,14 +1624,7 @@ DistributionMapping::makeKnapSack (const Vector<Real>& rcost, Real& eff, int nma
 
     DistributionMapping r;
 
-    Vector<Long> cost(rcost.size());
-
-    Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-
-    for (int i = 0; i < rcost.size(); ++i) {
-        cost[i] = Long(rcost[i]*scale) + 1L;
-    }
+    Vector<Long> cost = ConvertCostRealToLong(rcost);
 
     int nprocs = ParallelContext::NProcsSub();
 
@@ -1651,14 +1656,7 @@ DistributionMapping::makeKnapSack (const LayoutData<Real>& rcost_local,
     DistributionMapping r;
     if (ParallelDescriptor::MyProc() == root)
     {
-        Vector<Long> cost(rcost.size());
-
-        Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-
-        for (int i = 0; i < rcost.size(); ++i) {
-            cost[i] = Long(rcost[i]*scale) + 1L;
-        }
+        Vector<Long> cost = ConvertCostRealToLong(rcost);
 
         if (keep_ratio > Real(0.0)) {
             r.KnapSackProcessorMap(rcost_local.DistributionMap(), cost, keep_ratio,
@@ -1713,13 +1711,7 @@ gather_weights (const MultiFab& weight)
     ParallelDescriptor::GatherLayoutDataToVector(costld, rcost,
                                                  ParallelContext::IOProcessorNumberSub());
     ParallelDescriptor::Bcast(rcost.data(), rcost.size(), ParallelContext::IOProcessorNumberSub());
-    Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-    Vector<Long> lcost(rcost.size());
-    for (int i = 0; i < rcost.size(); ++i) {
-        lcost[i] = static_cast<Long>(rcost[i]*scale) + 1L;
-    }
-    return lcost;
+    return DistributionMapping::ConvertCostRealToLong(rcost);
 #else
     return Vector<Long>(weight.size(), 1L);
 #endif
@@ -1789,14 +1781,7 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, boo
 
     DistributionMapping r;
 
-    Vector<Long> cost(rcost.size());
-
-    Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-
-    for (int i = 0; i < rcost.size(); ++i) {
-        cost[i] = Long(rcost[i]*scale) + 1L;
-    }
+    Vector<Long> cost = ConvertCostRealToLong(rcost);
 
     int nprocs = ParallelContext::NProcsSub();
 
@@ -1812,14 +1797,7 @@ DistributionMapping::makeSFC (const Vector<Real>& rcost, const BoxArray& ba, Rea
 
     DistributionMapping r;
 
-    Vector<Long> cost(rcost.size());
-
-    Real wmax = *std::max_element(rcost.begin(), rcost.end());
-    Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-
-    for (int i = 0; i < rcost.size(); ++i) {
-        cost[i] = Long(rcost[i]*scale) + 1L;
-    }
+    Vector<Long> cost = ConvertCostRealToLong(rcost);
 
     int nprocs = ParallelContext::NProcsSub();
 
@@ -1850,14 +1828,7 @@ DistributionMapping::makeSFC (const LayoutData<Real>& rcost_local,
     DistributionMapping r;
     if (ParallelDescriptor::MyProc() == root)
     {
-        Vector<Long> cost(rcost.size());
-
-        Real wmax = *std::max_element(rcost.begin(), rcost.end());
-        Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
-
-        for (int i = 0; i < rcost.size(); ++i) {
-            cost[i] = Long(rcost[i]*scale) + 1L;
-        }
+        Vector<Long> cost = ConvertCostRealToLong(rcost);
 
         // `sort` needs to be false here since there's a parallel reduce function
         // in the processor map function, but we are executing only on root

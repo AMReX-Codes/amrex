@@ -336,9 +336,11 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
             AMREX_D_TERM(auto const& cfcx = m_facecent[0].array(mfi);,
                          auto const& cfcy = m_facecent[1].array(mfi);,
                          auto const& cfcz = m_facecent[2].array(mfi););
-            AMREX_D_TERM(auto const& cecx = m_edgecent[0].array(mfi);,
-                         auto const& cecy = m_edgecent[1].array(mfi);,
-                         auto const& cecz = m_edgecent[2].array(mfi););
+            // We use MultiArray4 instead of Array4 here
+            // to be below the 2 kB kernel parameter limit for SYCL
+            AMREX_D_TERM(auto const& cecx = m_edgecent[0].arrays();,
+                         auto const& cecy = m_edgecent[1].arrays();,
+                         auto const& cecz = m_edgecent[2].arrays(););
             auto const& cflag = m_cellflag.array(mfi);
 
             auto const& fvol = f_volfrac.const_array(mfi);
@@ -352,11 +354,12 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
             AMREX_D_TERM(auto const& ffcx = f_facecent[0].const_array(mfi);,
                          auto const& ffcy = f_facecent[1].const_array(mfi);,
                          auto const& ffcz = f_facecent[2].const_array(mfi););
-            AMREX_D_TERM(auto const& fecx = f_edgecent[0].const_array(mfi);,
-                         auto const& fecy = f_edgecent[1].const_array(mfi);,
-                         auto const& fecz = f_edgecent[2].const_array(mfi););
+            AMREX_D_TERM(auto const& fecx = f_edgecent[0].const_arrays();,
+                         auto const& fecy = f_edgecent[1].const_arrays();,
+                         auto const& fecz = f_edgecent[2].const_arrays(););
             auto const& fflag = f_cellflag.const_array(mfi);
 
+            const int lidx = mfi.LocalIndex();
             Box const& bx = mfi.validbox();
             Box const& gbx = amrex::grow(bx,2);
             Box const& ndgbx = amrex::surroundingNodes(gbx);
@@ -369,11 +372,11 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                              cvol,ccent,cba,cbc,cbn,
                                              AMREX_D_DECL(capx,capy,capz),
                                              AMREX_D_DECL(cfcx,cfcy,cfcz),
-                                             AMREX_D_DECL(cecx,cecy,cecz),
+                                             AMREX_D_DECL(cecx[lidx],cecy[lidx],cecz[lidx]),
                                              cflag,fvol,fcent,fba,fbc,fbn,
                                              AMREX_D_DECL(fapx,fapy,fapz),
                                              AMREX_D_DECL(ffcx,ffcy,ffcz),
-                                             AMREX_D_DECL(fecx,fecy,fecz),
+                                             AMREX_D_DECL(fecx[lidx],fecy[lidx],fecz[lidx]),
                                              fflag);
                 return {ierr};
             });

@@ -216,10 +216,11 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     //if sent in, this wins over everything.
     if(!a_refrat.empty())
     {
-      for (int i = 0; i < max_level; i++)
-      {
-          ref_ratio[i] = a_refrat[i];
-      }
+        AMREX_ALWAYS_ASSERT(a_refrat.size() >= max_level);
+        for (int i = 0; i < max_level; i++)
+        {
+            ref_ratio[i] = a_refrat[i];
+        }
     }
 
     // Read in max_grid_size.  Use defaults if not explicitly defined.
@@ -375,6 +376,7 @@ AmrMesh::InitAmrMesh (int max_level_in, const Vector<int>& n_cell_in,
     }
 
     pp.queryAdd("check_input", check_input);
+    pp.queryAdd("max_grid_iterations", max_grid_iterations);
 
     finest_level = -1;
 
@@ -1010,7 +1012,7 @@ AmrMesh::MakeNewGrids (Real time)
         // Iterate grids to ensure fine grids encompass all interesting junk.
         if (iterate_on_new_grids)
         {
-            for (int it=0; it<4; ++it)  // try at most 4 times
+            for (int it=0; it<max_grid_iterations; ++it)  // try at most max_grid_iterations times
             {
                 for (int i = 1; i <= finest_level; ++i) {
                     new_grids[i] = grids[i];
@@ -1257,6 +1259,7 @@ std::ostream& operator<< (std::ostream& os, AmrMesh const& amr_mesh)
     os << "  check_input = " << amr_mesh.check_input  << "\n";
     os << "  use_new_chop = " << amr_mesh.use_new_chop << "\n";
     os << "  iterate_on_new_grids = " << amr_mesh.iterate_on_new_grids << "\n";
+    os << "  max_grid_iterations = " << amr_mesh.max_grid_iterations << "\n";
     return os;
 }
 

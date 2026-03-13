@@ -14,12 +14,15 @@ static int CreateWriteHDF5Attr(hid_t loc, const char *name, hsize_t n, void *dat
     attr = H5Acreate(loc, name, dtype, attr_space, H5P_DEFAULT, H5P_DEFAULT);
     if (attr < 0) {
         amrex::Print() << " Error with H5Acreate [" << name << "]\n";
+        H5Sclose(attr_space);
         return -1;
     }
 
     ret  = H5Awrite(attr, dtype, (void*)data);
     if (ret < 0) {
         amrex::Print() << " Error with H5Awrite [" << name << "]\n";
+        H5Sclose(attr_space);
+        H5Aclose(attr);
         return -1;
     }
     H5Sclose(attr_space);

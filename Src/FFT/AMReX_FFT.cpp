@@ -4,6 +4,7 @@
 
 #include <map>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::FFT::detail
 {
 
@@ -20,7 +21,7 @@ void Initialize ()
     {
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
-#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
+#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_MULTI_THREADED_FFTW)
         fftw_init_threads();
         fftwf_init_threads();
         fftw_plan_with_nthreads(amrex::OpenMP::get_max_threads());
@@ -41,10 +42,12 @@ void Finalize ()
 
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
-#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) && defined(AMREX_USE_FFT)
-        fftw_cleanup_threads();
-        fftwf_cleanup_threads();
 #endif
+        // We are not calling fftw[f]_cleanup_threads and fftw_cleanup here
+        // to deallocate a small amount of persist data used by FFTW. This
+        // can be regarded as a benign memory "leak". Trying to clean up
+        // fftw data here sometimes causes memory issues when application
+        // codes still have ffftw plans to be destroyed.
     }
 
     if (s_initialized > 0) { --s_initialized; }
@@ -59,6 +62,9 @@ void Clear ()
     for (auto& [k, p] : s_plans_f) {
         Plan<float>::destroy_vendor_plan(p);
     }
+
+    s_plans_d.clear();
+    s_plans_f.clear();
 }
 
 PlanD* get_vendor_plan_d (Key const& key)
@@ -354,3 +360,4 @@ GpuArray<int,3> SubHelper::xyz_order () const
 }
 
 }
+/// \endcond

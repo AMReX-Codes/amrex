@@ -1,5 +1,6 @@
 #include "AMReX_NonLocalBC.H"
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::NonLocalBC::detail {
 void split_boxes (BoxList& bl, Box const& domain)
 {
@@ -33,6 +34,7 @@ void split_boxes (BoxList& bl, Box const& domain)
     }
 }
 }
+/// \endcond
 
 namespace amrex::NonLocalBC {
 

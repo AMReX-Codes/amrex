@@ -29,6 +29,10 @@
 #include <AMReX_Sundials.H>
 #endif
 
+#ifdef AMREX_USE_PETSC
+#include <petscsys.h>
+#endif
+
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
 #endif
@@ -134,6 +138,12 @@ namespace {
     std::string command_line;
     std::vector<std::string> command_arguments;
 }
+
+#ifdef AMREX_USE_PETSC
+namespace {
+    bool petsc_initialized_by_amrex = false;
+}
+#endif
 
 namespace {
     std::streamsize  prev_out_precision;
@@ -762,6 +772,20 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     }
 #endif
 
+#ifdef AMREX_USE_PETSC
+    {
+        PetscBool petsc_is_initialized = PETSC_FALSE;
+        PetscInitialized(&petsc_is_initialized);
+        if (!petsc_is_initialized) {
+            PetscErrorCode ierr = PetscInitialize(&argc, &argv, nullptr, nullptr);
+            if (ierr != 0) {
+                amrex::Abort("PetscInitialize failed");
+            }
+            petsc_initialized_by_amrex = true;
+        }
+    }
+#endif
+
 #ifdef AMREX_USE_SUNDIALS
     sundials::Initialize(amrex::OpenMP::get_max_threads());
 #endif
@@ -772,7 +796,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 
     BL_TINY_PROFILE_INITIALIZE();
 
-    AMReX::push(new AMReX()); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+    AMReX::push(std::make_unique<AMReX>());
     return AMReX::top(); // NOLINT
 }
 
@@ -796,6 +820,13 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #endif
 
     AMReX::erase(pamrex);
+
+#ifdef AMREX_USE_PETSC
+    if (petsc_initialized_by_amrex) {
+        PetscFinalize();
+        petsc_initialized_by_amrex = false;
+    }
+#endif
 
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) { HYPRE_Finalize(); }
@@ -979,6 +1010,12 @@ AMReX::push (AMReX* pamrex)
     } else if (r+1 != m_instance.end()) {
         std::rotate(r, r+1, m_instance.end());
     }
+}
+
+void
+AMReX::push (std::unique_ptr<AMReX> pamrex)
+{
+    m_instance.push_back(std::move(pamrex));
 }
 
 void

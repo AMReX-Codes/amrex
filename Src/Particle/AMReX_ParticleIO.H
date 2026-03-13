@@ -43,6 +43,7 @@ struct FilterPositiveID {
     }
 };
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -104,6 +105,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             FilterPositiveID{}, true);
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -133,6 +135,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             FilterPositiveID{});
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -165,6 +168,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             FilterPositiveID{});
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -201,6 +205,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             FilterPositiveID{});
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -236,6 +241,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             FilterPositiveID{});
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -254,6 +260,7 @@ WritePlotFile (const std::string& dir, const std::string& name,
                             FilterPositiveID{});
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>*>
@@ -284,6 +291,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             std::forward<F>(f));
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F>
@@ -317,6 +325,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             std::forward<F>(f));
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>*>
@@ -354,6 +363,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             std::forward<F>(f));
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F>
@@ -389,6 +399,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                             std::forward<F>(f));
 }
 
+/// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F>
@@ -471,7 +482,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ParallelDescriptor::ReduceLongMax(maxnextid, IOProcNumber);
 
     nparticlesPrePost = nparticles;
-    maxnextidPrePost  = int(maxnextid);
+    maxnextidPrePost  = maxnextid;
 
     nParticlesAtLevelPrePost.clear();
     nParticlesAtLevelPrePost.resize(finestLevel() + 1, 0);
@@ -605,7 +616,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         which[grid] = fnum;
         where[grid] = VisMF::FileOffset(ofs);
 
-        if (count[grid] == 0) { continue; }
+        if (count[grid] <= 0) { continue; }
 
         Vector<int> istuff;
         Vector<ParticleReal> rstuff;
@@ -752,9 +763,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(finest_level_in_file >= 0);
 
     // Determine whether this is a dual-grid restart or not.
-    Vector<DistributionMapping> old_dms(finest_level_in_file + 1);
-    Vector<BoxArray> old_bas(finest_level_in_file + 1);
-    Vector<BoxArray> particle_box_arrays(finest_level_in_file + 1);
+    // Size the vectors to cover both the levels present in the checkpoint
+    // file and the levels present in the current container, since the
+    // loops below iterate up to finestLevel()
+    int const max_level = std::max(finest_level_in_file, finestLevel());
+    Vector<DistributionMapping> old_dms(max_level + 1);
+    Vector<BoxArray> old_bas(max_level + 1);
+    Vector<BoxArray> particle_box_arrays(max_level + 1);
     bool dual_grid = false;
 
     bool have_pheaders = false;
@@ -841,7 +856,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             const int rank = ParallelDescriptor::MyProc();
             const int NReaders = MaxReaders();
-            if (rank >= NReaders) { return; }
+            if (rank >= NReaders) { continue; }
 
             const int Navg = ngrids[lev] / NReaders;
             const int Nleft = ngrids[lev] - Navg * NReaders;
@@ -984,7 +999,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     Vector<std::map<std::pair<int, int>, Gpu::HostVector<uint64_t> > > host_idcpu;
     host_idcpu.reserve(15);
-    host_idcpu.resize(finestLevel()+1);
+    host_idcpu.resize(finest_level_in_file+1);
 
     for (int i = 0; i < cnt; i++) {
         // note: for pure SoA particle layouts, we do write the id, cpu and positions as a struct

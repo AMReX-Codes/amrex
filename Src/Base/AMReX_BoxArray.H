@@ -11,6 +11,7 @@
 
 #include <iosfwd>
 #include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <unordered_map>
@@ -74,6 +75,7 @@ namespace amrex
                                       = {AMREX_D_DECL(true,true,true)},
                                       bool no_overlap = false);
 
+/// \cond DOXYGEN_IGNORE
 struct BARef
 {
     BARef ();
@@ -100,7 +102,7 @@ struct BARef
     void updateMemoryUsage_hash (int s);
 #endif
 
-    [[nodiscard]] inline bool HasHashMap () const {
+    [[nodiscard]] bool HasHashMap () const {
         bool r;
 #ifdef AMREX_USE_OMP
 #pragma omp atomic read
@@ -136,7 +138,9 @@ struct BARef
     static void Finalize ();
     static bool initialized;
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct BATnull
 {
     [[nodiscard]] Box operator() (const Box& bx) const noexcept { return bx; }
@@ -146,7 +150,9 @@ struct BATnull
     [[nodiscard]] static constexpr IndexType index_type () { return IndexType(); }
     [[nodiscard]] static constexpr IntVect coarsen_ratio () { return IntVect::TheUnitVector(); }
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct BATindexType
 {
     explicit BATindexType (IndexType a_typ) : m_typ(a_typ) {}
@@ -158,7 +164,9 @@ struct BATindexType
     [[nodiscard]] static constexpr IntVect coarsen_ratio () { return IntVect::TheUnitVector(); }
     IndexType m_typ;
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct BATcoarsenRatio
 {
     explicit BATcoarsenRatio (IntVect const& a_crse_ratio) : m_crse_ratio(a_crse_ratio) {}
@@ -170,7 +178,9 @@ struct BATcoarsenRatio
     [[nodiscard]] IntVect coarsen_ratio () const noexcept { return m_crse_ratio; }
     IntVect m_crse_ratio;
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct BATindexType_coarsenRatio
 {
     BATindexType_coarsenRatio (IndexType a_typ, IntVect const& a_crse_ratio)
@@ -191,7 +201,9 @@ struct BATindexType_coarsenRatio
     IndexType m_typ;
     IntVect m_crse_ratio;
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct BATbndryReg
 {
     BATbndryReg (Orientation a_face, IndexType a_typ,
@@ -272,10 +284,12 @@ struct BATbndryReg
     IntVect m_doilo;
     IntVect m_doihi;
 };
+/// \endcond
 
+/// \cond DOXYGEN_IGNORE
 struct BATransformer
 {
-    enum struct BATType { null, indexType, coarsenRatio, indexType_coarsenRatio, bndryReg};
+    enum struct BATType : std::int8_t { null, indexType, coarsenRatio, indexType_coarsenRatio, bndryReg};
 
     union BATOp {
         BATOp () noexcept
@@ -533,6 +547,7 @@ struct BATransformer
     BATType m_bat_type{BATType::null};
     BATOp m_op;
 };
+/// \endcond
 
 // for backward compatibility
 using BndryBATransformer = BATransformer;
@@ -542,6 +557,8 @@ class AmrMesh;
 class FabArrayBase;
 
 /**
+ * \class amrex::BoxArray
+ * \ingroup amrex_domain_decomposition
  * \brief A collection of Boxes stored in an Array.
  *
  * It is a reference-counted concrete class, not a polymorphic one; i.e. you

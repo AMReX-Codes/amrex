@@ -898,10 +898,10 @@ for debugging.
 Extern
 ------
 
-Hypre
+HYPRE
 ^^^^^
 
-These parameters are relevant only when Hypre support is enabled.
+These parameters are relevant only when HYPRE support is enabled.
 
 .. py:data:: amrex.init_hypre
    :type: bool

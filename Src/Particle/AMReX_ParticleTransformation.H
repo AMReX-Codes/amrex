@@ -530,7 +530,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
     {
         if (mask[i]) {
             f(dst_data, src_data, src_start+i,
-              dst_start+p_offsets[src_start+i]);
+              dst_start+p_offsets[i]);
         }
     });
 

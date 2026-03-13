@@ -8,6 +8,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     class CutFabFactory final
         : public DefaultFabFactory<CutFab>
@@ -44,7 +45,7 @@ namespace detail {
         const FabArray<EBCellFlagFab>* m_cellflags = nullptr;
     };
 }
-
+/// \endcond
 
 MultiCutFab::MultiCutFab () = default;
 

@@ -1,4 +1,5 @@
 #include <AMReX_EdgeFluxRegister.H>
+#include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 
 namespace amrex {
@@ -69,7 +70,8 @@ void EdgeFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             LayoutData<int> tmp_has_cf;
             // We use IntVect(1) as ref ratio because fmf has already be coarsened
             auto tmp_mask = makeFineMask(m_E_crse[idim], *fmf[m], IntVect(0), IntVect(1),
-                                         m_crse_geom.periodicity(), 0, 1, tmp_has_cf);
+                                         m_crse_geom.periodicity(), 0, 1, tmp_has_cf,
+                                         MFInfo().SetArena(The_Async_Arena()));
             if (m == 0) {
                 m_fine_mask[idim] = std::move(tmp_mask);
             } else {
@@ -98,7 +100,8 @@ void EdgeFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
         LayoutData<int> tmp_has_cf;
         // We use IntVect(1) as ref ratio because fmf has already be coarsened
         auto tmp_mask = makeFineMask(m_E_crse, m_E_fine[face], IntVect(0), IntVect(1),
-                                     m_crse_geom.periodicity(), 0, 1, tmp_has_cf);
+                                     m_crse_geom.periodicity(), 0, 1, tmp_has_cf,
+                                     MFInfo().SetArena(The_Async_Arena()));
         if (int(face) == 0) {
             m_fine_mask = std::move(tmp_mask);
         } else {

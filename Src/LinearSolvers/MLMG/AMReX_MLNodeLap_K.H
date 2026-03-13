@@ -11,6 +11,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace nodelap_detail {
 
 #if (BL_USE_FLOAT)
@@ -22,6 +23,7 @@ namespace nodelap_detail {
     constexpr Real almostzero = Real(1.) - almostone;
 
 }
+/// \endcond
 
 inline void
 mlndlap_scale_neumann_bc (Real s, Box const& bx, Array4<Real> const& rhs, Box const& nddom,
