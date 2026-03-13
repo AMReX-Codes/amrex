@@ -495,27 +495,45 @@ public:
 
     Type* devicePtr () { return m_device_tuple; }
     Type* devicePtr (gpuStream_t const& s) {
-        return m_device_tuple+(Gpu::Device::streamIndex(s))*m_max_blocks;
+        return m_device_tuple+streamIndexChecked(s)*m_max_blocks;
     }
 
     Type* hostPtr () { return m_host_tuple; }
 
     GpuArray<int,AMREX_GPU_MAX_STREAMS>& nBlocks () { return m_nblocks; }
-    int& nBlocks (gpuStream_t const& s) { return m_nblocks[Gpu::Device::streamIndex(s)]; }
+    int& nBlocks (gpuStream_t const& s) { return m_nblocks[streamIndexChecked(s)]; }
 
     int maxBlocks () const { return m_max_blocks; }
 
     int maxStreamIndex () const { return m_max_stream_index; }
     void updateMaxStreamIndex (gpuStream_t const& s) {
-        m_max_stream_index = std::max(m_max_stream_index,Gpu::Device::streamIndex(s));
+        m_max_stream_index = std::max(m_max_stream_index,streamIndexChecked(s));
     }
 
 private:
+    int streamIndexChecked (gpuStream_t const& s)
+    {
+        int const idx = Gpu::Device::streamIndex(s);
+        if (idx == 0) {
+            if (m_stream_index_zero_set) {
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_stream_index_zero == s,
+                    "ReduceData cannot be reused across different external GPU streams "
+                    "or between an external GPU stream and AMReX stream 0.");
+            } else {
+                m_stream_index_zero = s;
+                m_stream_index_zero_set = true;
+            }
+        }
+        return idx;
+    }
+
     int m_max_blocks;
     int m_max_stream_index = 0;
     Type* m_host_tuple = nullptr;
     Type* m_device_tuple = nullptr;
     GpuArray<int,AMREX_GPU_MAX_STREAMS> m_nblocks;
+    gpuStream_t m_stream_index_zero{};
+    bool m_stream_index_zero_set = false;
     std::function<Type()> m_fn_value;
 };
 

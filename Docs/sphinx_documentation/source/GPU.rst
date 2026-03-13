@@ -1549,6 +1549,10 @@ Limitations and best practices:
   stream to still be managed when the free occurs.  If that stream was
   external and has already been popped, AMReX aborts instead of guessing where
   to enqueue the deferred free.
+* Likewise, reuse a given :cpp:`Reducer` or :cpp:`ReduceData` object only on a
+  single external stream.  Reusing the same object across different external
+  stream regions, or across an external stream and AMReX stream 0, is not
+  supported and triggers an assertion.
 * Make sure the external stream remains valid for the duration of the override.
   Destroying it before the RAII guard goes out of scope is undefined behavior.
 
