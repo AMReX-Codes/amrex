@@ -1523,7 +1523,7 @@ it is reset, at which point AMReX restores the previous external stream.
   the previous external stream, if any.  Passing
   :cpp:`amrex::Gpu::ExternalStreamSync::No` to
   ``sync_stream``/``sync_on_exit`` skips the final
-  :cpp:`gpuStreamSynchronize` unless deferred frees recorded by
+  :cpp:`Gpu::streamSynchronize` unless deferred frees recorded by
   :cpp:`The_Async_Arena` are still pending, in which case AMReX forces a
   synchronization to keep the arena safe.
 * All asynchronous frees recorded through :cpp:`amrex::Gpu::freeAsync` and
@@ -1539,6 +1539,16 @@ Limitations and best practices:
   keeps :cpp:`MFIter` from trying to pipeline across multiple AMReX-managed
   streams, but it also means you cannot currently provide a *set* of external
   streams for MFIter to round-robin across.
+* Objects that use stream-ordered memory (for example, a :cpp:`BaseFab`
+  allocated from :cpp:`The_Async_Arena`) should generally be created and
+  destroyed within the same external-stream region.  In particular, avoid
+  creating or resizing such an object inside an external-stream region and
+  then destroying it after that region has exited, or creating it outside and
+  then resizing or destroying it inside the region.  Stream-ordered frees
+  remember the stream associated with the allocation, and AMReX requires that
+  stream to still be managed when the free occurs.  If that stream was
+  external and has already been popped, AMReX aborts instead of guessing where
+  to enqueue the deferred free.
 * Make sure the external stream remains valid for the duration of the override.
   Destroying it before the RAII guard goes out of scope is undefined behavior.
 

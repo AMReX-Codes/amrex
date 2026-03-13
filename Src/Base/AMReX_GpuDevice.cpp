@@ -898,6 +898,31 @@ Device::freeAsync (Arena* arena, void* mem) noexcept
 #endif
 }
 
+#ifdef AMREX_USE_GPU
+void
+Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noexcept
+{
+    for (auto it = external_stream_stack.rbegin(); it != external_stream_stack.rend(); ++it) {
+        AMREX_ASSERT(it->manager != nullptr);
+        if (it->manager->getStream() == stream) {
+            it->manager->free_async(arena, mem);
+            return;
+        }
+    }
+
+    for (auto& mgr : gpu_stream_pool) {
+        if (mgr.getStream() == stream) {
+            mgr.free_async(arena, mem);
+            return;
+        }
+    }
+
+    amrex::Abort("Gpu::Device::streamOrderedFreeAsync: stream is not managed by AMReX. "
+                 "If this is an external stream, it must still be active when stream-ordered "
+                 "memory is freed.");
+}
+#endif
+
 bool
 Device::clearFreeAsyncBuffer () noexcept
 {

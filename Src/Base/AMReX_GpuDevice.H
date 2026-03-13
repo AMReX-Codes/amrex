@@ -159,6 +159,9 @@ public:
     static void streamSynchronizeAll () noexcept;
 
     static void freeAsync (Arena* arena, void* mem) noexcept;
+#ifdef AMREX_USE_GPU
+    static void streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noexcept;
+#endif
 
     static bool clearFreeAsyncBuffer () noexcept;
 

@@ -3,6 +3,9 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Arena.H>
+#ifdef AMREX_USE_GPU
+#include <AMReX_GpuControl.H>
+#endif
 
 
 namespace amrex {
@@ -52,6 +55,7 @@ public:
 #ifdef AMREX_USE_GPU
     //! Is this a GPU stream ordered memory allocator?
     [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
+    void streamOrderedFree (void* pt, gpuStream_t stream);
 #endif
 };
 

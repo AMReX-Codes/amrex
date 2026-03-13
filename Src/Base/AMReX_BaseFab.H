@@ -11,6 +11,7 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
+#include <AMReX_SArena.H>
 #include <AMReX_DataAllocator.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
@@ -1706,13 +1707,13 @@ BaseFab<T>::clear () noexcept
             placementDelete(this->dptr, this->truesize);
 
 #ifdef AMREX_USE_GPU
-            auto current_stream = Gpu::Device::gpuStream();
-            Gpu::Device::setStream(alloc_stream);
+            if (auto* s_arena = dynamic_cast<SArena*>(this->arena())) {
+                s_arena->streamOrderedFree(this->dptr, alloc_stream);
+            } else
 #endif
-            this->free(this->dptr);
-#ifdef AMREX_USE_GPU
-            Gpu::Device::setStream(current_stream);
-#endif
+            {
+                this->free(this->dptr);
+            }
 
             if (this->nvar > 1) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));
