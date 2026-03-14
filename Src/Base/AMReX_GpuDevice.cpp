@@ -771,13 +771,13 @@ Device::setExternalStream (gpuStream_t s)
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!OpenMP::in_parallel(),
         "Gpu::setExternalGpuStream is not supported inside OpenMP parallel regions.");
 #if defined(AMREX_USE_CUDA)
-#  if defined(CUDART_VERSION) && (CUDART_VERSION >= 12000)
+#  if defined(CUDART_VERSION) && (CUDART_VERSION >= 12080)
     int stream_device = -1;
     AMREX_CUDA_SAFE_CALL(cudaStreamGetDevice(s, &stream_device));
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stream_device == Device::deviceId(),
         "Gpu::setExternalGpuStream: external CUDA stream must belong to the active device.");
 #  else
-    amrex::ignore_unused(s); // cudaStreamGetDevice arrived in CUDA 12.0.
+    amrex::ignore_unused(s); // cudaStreamGetDevice arrived in CUDA 12.8.
 #  endif
 #elif defined(AMREX_USE_HIP)
 #  if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && \
