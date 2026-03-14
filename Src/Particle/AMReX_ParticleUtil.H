@@ -821,8 +821,9 @@ void PermutationForDeposition (Gpu::DeviceVector<index_type>& perm, index_type n
                     current_idx = pllist_next[current_idx];
                 }
 
-                index_type num_particles_block =
-                    Gpu::blockReduceSum<gpu_block_size>(num_particles_thread);
+                index_type num_particles_block = Gpu::blockReduceSum
+                    AMREX_IF_NOT_SYCL(<gpu_block_size>)
+                    (num_particles_thread AMREX_IF_SYCL(, lh.handler()));
 
                 if (lh.threadIdx1D() == 0) {
                     global_idx_start = Gpu::Atomic::Add(pglobal_idx, num_particles_block);

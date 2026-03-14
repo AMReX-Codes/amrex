@@ -899,6 +899,10 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
 template<int MT, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 {
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     auto& q = Gpu::Device::streamQueue();
 
     sycl::range<dim> threads_per_block;
@@ -916,10 +920,17 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
-                    f(Gpu::LaunchHandler<MT, void, dim>{
-                        &item,
-                        nullptr
-                    });
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        (*pf)(Gpu::LaunchHandler<MT, void, dim>{
+                            &item,
+                            nullptr
+                        });
+                    } else {
+                        f(Gpu::LaunchHandler<MT, void, dim>{
+                            &item,
+                            nullptr
+                        });
+                    }
                 });
         });
     } catch (sycl::exception const& ex) {
@@ -930,7 +941,15 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 template<int MT, typename T, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
 {
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
     auto& q = Gpu::Device::streamQueue();
+    // use double4 for shared memory as it has the largest alignment of types that might be used
+    using ST = sycl::double4;
+    static_assert(alignof(ST) >= alignof(T));
+    const std::size_t shared_mem_num = (shared_mem_elements*sizeof(T)+sizeof(ST)-1) / sizeof(ST);
 
     sycl::range<dim> threads_per_block;
     sycl::range<dim> threads_total;
@@ -942,16 +961,25 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
 
     try {
         q.submit([&] (sycl::handler& h) {
-            sycl::local_accessor<T> shared_data(sycl::range<1>(shared_mem_elements), h);
+            sycl::local_accessor<ST> shared_data(sycl::range<1>(shared_mem_num), h);
             h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
                 [=] (sycl::nd_item<dim> item)
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
-                    f(Gpu::LaunchHandler<MT, T, dim>{
-                        &item,
-                        shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get()
-                    });
+                    T* shared_mem = reinterpret_cast<T*>(
+                        shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get());
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        (*pf)(Gpu::LaunchHandler<MT, T, dim>{
+                            &item,
+                            shared_mem
+                        });
+                    } else {
+                        f(Gpu::LaunchHandler<MT, T, dim>{
+                            &item,
+                            shared_mem
+                        });
+                    }
                 });
         });
     } catch (sycl::exception const& ex) {

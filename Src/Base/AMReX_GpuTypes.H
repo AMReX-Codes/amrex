@@ -269,12 +269,12 @@ struct LaunchHandler
     /**
      * \brief Returns a pointer to block-local shared memory. If multiple shared memory
      * allocations are needed in a block, then the allocation must be manually split by adding
-     * offsets to it. For CUDA and HIP the memory is aligned to 32 bytes,
-     * for SYCL to the alignment of the chosen data type.
+     * offsets to it. The memory is aligned to 32 bytes.
      */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T* shared_memory () const {
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+        // 32 bytes is sufficient for double4_32a
         static_assert(32 >= alignof(T));
         alignas(32) extern __shared__ char smem[];
         return reinterpret_cast<T*>(smem);
