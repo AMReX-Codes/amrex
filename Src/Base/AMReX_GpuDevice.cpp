@@ -156,21 +156,6 @@ StreamManager::getStream () const {
 }
 
 void
-StreamManager::drainFreeList () {
-    decltype(m_free_wait_list) new_empty_wait_list{};
-
-    {
-        // lock mutex before accessing and modifying member variables
-        std::lock_guard<std::mutex> lock(m_mutex);
-        m_free_wait_list.swap(new_empty_wait_list);
-    }
-    // unlock mutex before memory free to avoid deadlocks from the CArena mutex
-    for (auto [arena, mem] : new_empty_wait_list) {
-        arena->free(mem);
-    }
-}
-
-void
 StreamManager::sync () {
     decltype(m_free_wait_list) new_empty_wait_list{};
 
@@ -849,22 +834,11 @@ void
 Device::synchronize () noexcept
 {
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_SYCL
-    streamSynchronizeAll();
-#else
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
-    // The device-wide sync already completed all queued work, so only
-    // drain deferred frees instead of synchronizing each stream again.
-    for (auto& ext : external_stream_stack) {
-        if (ext.manager) {
-            ext.manager->drainFreeList();
-        }
-    }
-    for (auto& s : gpu_stream_pool) {
-        s.drainFreeList();
-    }
-#endif
+    // After the device-wide sync completes, synchronizing all AMReX-managed
+    // streams is cheap and drains deferred frees queued on their managers.
+    streamSynchronizeAll();
 #endif
 }
 
