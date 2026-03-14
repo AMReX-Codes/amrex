@@ -1465,10 +1465,13 @@ BaseFab<T>::define ()
     if (this->nvar == 0) { return; }
     AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
 #ifdef AMREX_USE_GPU
-    if (dynamic_cast<PArena*>(this->arena()) != nullptr) {
-        // Intentional for now: BaseFab does not support PArena in the
-        // external-stream work.
-        amrex::Abort("BaseFab does not support PArena.");
+    if (dynamic_cast<PArena*>(this->arena()) != nullptr &&
+        Gpu::Device::usingExternalStream() &&
+        Gpu::Device::memoryPoolsSupported())
+    {
+        // Intentional for now: BaseFab does not support PArena inside an
+        // external-stream region when PArena uses stream-ordered allocation.
+        amrex::Abort("BaseFab does not support PArena inside an external GPU stream region.");
     }
 #endif
 
