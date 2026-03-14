@@ -68,6 +68,7 @@ class StreamManager {
 public:
     [[nodiscard]] gpuStream_t& getStream ();
     [[nodiscard]] gpuStream_t const& getStream () const;
+    void drainFreeList ();
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
