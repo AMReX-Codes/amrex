@@ -1,5 +1,6 @@
 #ifndef AMREX_YAFLUXREGISTER_K_H_
 #define AMREX_YAFLUXREGISTER_K_H_
+// IWYU pragma: private, include "AMReX_YAFluxRegister.H"
 #include <AMReX_Config.H>
 
 // must be same as in AMReX_YAFluxRegister.H

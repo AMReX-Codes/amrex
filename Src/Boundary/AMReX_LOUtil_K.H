@@ -1,5 +1,6 @@
 #ifndef AMREX_LO_UTIL_K_H_
 #define AMREX_LO_UTIL_K_H_
+// IWYU pragma: private, include "AMReX_InterpBndryData.H"
 #include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>

@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_InterpFaceRegister.H"
 #ifndef AMREX_INTERP_FACE_REG_C_H_
 #define AMREX_INTERP_FACE_REG_C_H_
 

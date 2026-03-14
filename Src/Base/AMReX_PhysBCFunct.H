@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BCRec.H> // IWYU pragma: export
+#include <AMReX_FArrayBox.H> // IWYU pragma: export
 #include <AMReX_Geometry.H> // IWYU pragma: export
 #include <AMReX_MultiFab.H> // IWYU pragma: export
 #include <AMReX_ArrayLim.H>

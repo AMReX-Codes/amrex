@@ -2,14 +2,14 @@
 #define AMREX_ErrorList_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Array.H>
+#include <AMReX_Array.H> // IWYU pragma: export
 #include <AMReX_ArrayLim.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_Parser.H>
+#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_Parser.H> // IWYU pragma: export
 #include <AMReX_REAL.H>
-#include <AMReX_TagBox.H>
-#include <AMReX_Vector.H>
+#include <AMReX_TagBox.H> // IWYU pragma: export
+#include <AMReX_Vector.H> // IWYU pragma: export
 
 #include <string>
 #include <memory>

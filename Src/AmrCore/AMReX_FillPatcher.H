@@ -2,7 +2,7 @@
 #define AMREX_FILLPATCHER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FillPatchUtil.H>
+#include <AMReX_FillPatchUtil.H> // IWYU pragma: export
 #include <utility>
 
 /**

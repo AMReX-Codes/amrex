@@ -2,8 +2,8 @@
 #define AMREX_FLUXREGISTER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_BndryRegister.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_BndryRegister.H> // IWYU pragma: export
+#include <AMReX_Geometry.H> // IWYU pragma: export
 #include <AMReX_Array.H>
 
 /**

@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_MFInterpolater.H"
 #ifndef AMREX_MF_INTERP_C_H_
 #define AMREX_MF_INTERP_C_H_
 #include <AMReX_Config.H>

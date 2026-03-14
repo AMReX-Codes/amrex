@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Extension.H>
-#include <AMReX_InterpBase.H>
+#include <AMReX_InterpBase.H> // IWYU pragma: export
 
 /**
  * \file AMReX_MFInterpolater.H

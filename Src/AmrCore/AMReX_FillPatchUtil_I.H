@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_FillPatchUtil.H"
 #ifndef AMREX_FillPatchUtil_I_H_
 #define AMREX_FillPatchUtil_I_H_
 #include <AMReX_Config.H>

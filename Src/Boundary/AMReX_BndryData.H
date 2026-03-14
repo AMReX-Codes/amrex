@@ -3,9 +3,9 @@
 #define AMREX_BNDRYDATA_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_BndryRegister.H>
-#include <AMReX_BoundCond.H>
-#include <AMReX_MultiMask.H>
+#include <AMReX_BndryRegister.H> // IWYU pragma: export
+#include <AMReX_BoundCond.H> // IWYU pragma: export
+#include <AMReX_MultiMask.H> // IWYU pragma: export
 
 /**
  * \file AMReX_BndryData.H

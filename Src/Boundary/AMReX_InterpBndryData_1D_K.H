@@ -1,5 +1,6 @@
 #ifndef AMREX_INTERP_BNDRYDATA_1D_K_H_
 #define AMREX_INTERP_BNDRYDATA_1D_K_H_
+// IWYU pragma: private, include "AMReX_InterpBndryData_K.H"
 #include <AMReX_Config.H>
 
 #include <AMReX_Array4.H>

@@ -2,9 +2,9 @@
 #define AMREX_MULTIMASK_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Mask.H>
-#include <AMReX_FabArray.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_Mask.H> // IWYU pragma: export
+#include <AMReX_FabArray.H> // IWYU pragma: export
+#include <AMReX_Geometry.H> // IWYU pragma: export
 
 /**
  * \file AMReX_MultiMask.H

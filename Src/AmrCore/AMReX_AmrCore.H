@@ -2,7 +2,7 @@
 #define BL_AMRCORE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_AmrMesh.H>
+#include <AMReX_AmrMesh.H> // IWYU pragma: export
 
 /**
  * \file AMReX_AmrCore.H

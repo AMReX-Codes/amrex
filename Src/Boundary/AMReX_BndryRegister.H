@@ -3,10 +3,10 @@
 #define AMREX_BNDRYREGISTER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_BoxArray.H>
-#include <AMReX_FabSet.H>
+#include <AMReX_BoxArray.H> // IWYU pragma: export
+#include <AMReX_FabSet.H> // IWYU pragma: export
 #include <AMReX_LO_BCTYPES.H>
-#include <AMReX_Orientation.H>
+#include <AMReX_Orientation.H> // IWYU pragma: export
 #include <AMReX_Utility.H>
 #include <utility>
 
