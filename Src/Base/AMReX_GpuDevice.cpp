@@ -752,6 +752,9 @@ Device::setExternalStream (gpuStream_t s)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!OpenMP::in_parallel(),
         "Gpu::setExternalGpuStream is not supported inside OpenMP parallel regions.");
+    // External stream overrides intentionally do not try to synchronize
+    // OpenACC stream state. AMReX does not support mixing OpenACC work into
+    // these regions.
     external_stream_stack.emplace_back(ExternalStream{std::make_unique<StreamManager>()});
     external_stream_stack.back().manager->getStream() = s;
 }
