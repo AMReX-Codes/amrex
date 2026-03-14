@@ -1527,7 +1527,15 @@ it is reset, at which point AMReX restores the previous external stream.
   :cpp:`The_Async_Arena` are still pending, in which case AMReX forces a
   synchronization to keep the arena safe.  The external stream or queue must
   belong to the active AMReX device.  For SYCL, the queue must also use the
-  same SYCL context as AMReX and must be an in-order queue.
+  same SYCL context as AMReX and must be an in-order queue.  AMReX selects the
+  active GPU during :cpp:`amrex::Initialize`, whose overloads accept an
+  optional trailing :cpp:`int device_id` argument; pass the desired GPU there
+  if an external runtime needs AMReX to adopt a specific device before the
+  stream is created.  Conversely, if AMReX should drive the selection, query
+  :cpp:`amrex::Gpu::Device::deviceId()` and configure the external runtime
+  (for example, by calling :cpp:`cudaSetDevice` or :cpp:`hipSetDevice` before
+  constructing the stream) so that the stream is associated with the device
+  AMReX is already using.
 * All asynchronous frees recorded through :cpp:`amrex::Gpu::freeAsync` and
   The_Async_Arena continue to work because AMReX tracks the external stream with
   an internal :cpp:`StreamManager`.
