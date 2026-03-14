@@ -7,6 +7,8 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+
 ErrorRec::ErrorFunc::ErrorFunc () = default;
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
@@ -540,5 +542,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
         }
     }
 }
+
+/// \endcond
 
 }

@@ -17,6 +17,11 @@
 #include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H>
 
+/**
+ * \file AMReX_StateData.H
+ * \brief Manages the old/new time slices of a state descriptor on a single AMR level.
+ */
+
 #include <memory>
 
 namespace amrex {
@@ -41,16 +46,16 @@ public:
     StateData ();
 
     /**
-    * \brief Constructor that properly initializes data members.
-    *
-    * \param p_domain
-    * \param grds
-    * \param dm
-    * \param d
-    * \param cur_time
-    * \param dt
-    * \param factory
-    */
+     * \brief Construct and allocate state storage for a level.
+     *
+     * \param p_domain  Domain box of the AMR problem (used for BCs).
+     * \param grds      Cell-centered BoxArray for this level.
+     * \param dm        Distribution mapping describing ownership of grids.
+     * \param d         State descriptor providing metadata (components, BCs, etc.).
+     * \param cur_time  Current simulation time.
+     * \param dt        Initial time step (dt_old = dt_new = dt).
+     * \param factory   Fab factory controlling allocation (EB-aware, etc.).
+     */
     StateData (const Box&             p_domain,
                const BoxArray&        grds,
                const DistributionMapping& dm,
@@ -64,23 +69,27 @@ public:
     */
     ~StateData ();
 
+    //! Move constructor; transfers ownership of stored MultiFabs and metadata.
     StateData (StateData&& rhs) noexcept;
+    //! Copy-assignment; deep-copies metadata and allocates new FAB storage.
     StateData& operator= (StateData const& rhs);
 
+    //! Copy construction is disabled to avoid ambiguous ownership of state buffers.
     StateData (StateData const& rhs) = delete;
+    //! Move assignment is disabled (use define()/swap helpers instead).
     StateData& operator= (StateData && rhs) = delete;
 
     /**
-    * \brief Initializes data members if you used default constructor.
-    *
-    * \param p_domain
-    * \param grds
-    * \param dm
-    * \param d
-    * \param cur_time
-    * \param dt
-    * \param factory
-    */
+     * \brief Initialize the object after default construction.
+     *
+     * \param p_domain  Domain box of the AMR problem (used for BCs).
+     * \param grds      Cell-centered BoxArray for this level.
+     * \param dm        Distribution mapping for that grid layout.
+     * \param d         State descriptor describing component layout.
+     * \param cur_time  Current simulation time.
+     * \param dt        Initial dt (applied to both old/new slots).
+     * \param factory   Fab factory used for allocation.
+     */
     void define (const Box&             p_domain,
                  const BoxArray&        grds,
                  const DistributionMapping& dm,
@@ -90,19 +99,17 @@ public:
                  const FabFactory<FArrayBox>& factory);
 
     /**
-    * \brief Copies old data from another StateData object and sets the same time level.
-    * If old data is uninitialized, allocates it with same properties as the input data.
-    *
-    * \param state
-    */
+     * \brief Copy the "old" time slice from \p state, allocating storage if needed.
+     *
+     * \param state Source StateData whose old data/time level are cloned.
+     */
     void copyOld (const StateData& state);
 
     /**
-    * \brief Copies new data from another StateData object and sets the same time level.
-    * If new data is uninitialized, allocates it with the same properties as the input data.
-    *
-    * \param state
-    */
+     * \brief Copy the "new" time slice from \p state, allocating storage if needed.
+     *
+     * \param state Source StateData whose new data/time level are cloned.
+     */
     void copyNew (const StateData& state);
 
     /**
@@ -121,9 +128,9 @@ public:
     void reset ();
 
     /**
-    * \brief Old data becomes new data and new time is incremented by dt.
+    * \brief Old data becomes new data and new time is incremented by \p dt.
     *
-    * \param dt
+    * \param dt Time step separating the old and new slots.
     */
     void swapTimeLevels (Real dt);
 
@@ -131,7 +138,7 @@ public:
     * \brief Swaps old data with a new MultiFab.
     * Deletes the previous old data.
     *
-    * \param mf
+    * \param mf MultiFab that will replace the stored old data (ownership transferred).
     */
     void replaceOldData ( MultiFab&& mf );
 
@@ -139,7 +146,7 @@ public:
     * \brief Swaps old data with another StateData.
     * Does not delete the previous old data.
     *
-    * \param s
+    * \param s Peer whose old data will be exchanged with this instance.
     */
     void replaceOldData ( StateData& s );
 
@@ -147,7 +154,7 @@ public:
     * \brief Swaps new data with a new MultiFab.
     * Deletes the previous new data.
     *
-    * \param mf
+    * \param mf MultiFab that will replace the stored new data (ownership transferred).
     */
     void replaceNewData ( MultiFab&& mf );
 
@@ -155,7 +162,7 @@ public:
     * \brief Swaps new data with another StateData.
     * Does not delete the previous new data.
     *
-    * \param s
+    * \param s Peer whose new data will be exchanged with this instance.
     */
     void replaceNewData ( StateData& s );
 
@@ -163,9 +170,9 @@ public:
     /**
     * \brief Sets time of old and new data.
     *
-    * \param time
-    * \param dt_old
-    * \param dt_new
+    * \param time    New-time value.
+    * \param dt_old  Dt associated with the old time interval.
+    * \param dt_new  Dt associated with the new time interval.
     */
     void setTimeLevel (Real time,
                        Real dt_old,
@@ -173,19 +180,44 @@ public:
 
     /**
     * \brief Sets time of old data.
+    *
+    * \param time Old-time value to record.
     */
     void setOldTimeLevel (Real time);
 
     /**
     * \brief Sets time of new data.
+    *
+    * \param time New-time value to record.
     */
     void setNewTimeLevel (Real time);
 
+    //! Set both start/stop endpoints of the new-time interval to \p time.
     void syncNewTimeLevel (Real time);
 
+    /**
+     * \brief Register the state data with a MultiFabCopyDescriptor for later interpolation/fills.
+     *
+     * \param multiFabCopyDesc Descriptor that tracks MultiFabs participating in copy/interp operations.
+     * \param mfid             Output vector receiving identifiers for the registered MultiFabs.
+     */
     void RegisterData (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Vector<MultiFabId>&      mfid);
 
+    /**
+     * \brief Request interpolation/copied data covering \p subbox.
+     *
+     * \param multiFabCopyDesc Descriptor returned by RegisterData().
+     * \param mfid             Identifiers previously produced by RegisterData().
+     * \param returnedUnfillableBoxes Optional output list of boxes that could not be filled.
+     * \param returnedFillBoxIds      Output fill-box identifiers referencing queued requests.
+     * \param subbox           Region that needs to be populated.
+     * \param time             Physical time at which data should be sampled.
+     * \param src_comp         Source component index in the state data.
+     * \param dest_comp        Destination component index inside the caller's buffers.
+     * \param num_comp         Number of components requested.
+     * \param extrap           If true, allow extrapolation beyond old/new time intervals.
+     */
     void InterpAddBox (MultiFabCopyDescriptor& multiFabCopyDesc,
                        Vector<MultiFabId>&      mfid,
                        BoxList*                returnedUnfillableBoxes,
@@ -197,6 +229,19 @@ public:
                        int                     num_comp,
                        bool                    extrap = false);
 
+    /**
+     * \brief Complete outstanding interpolation requests and fill \p dest.
+     *
+     * \param fabCopyDesc Descriptor produced by RegisterData().
+     * \param mfid        Identifiers previously produced by RegisterData().
+     * \param fillBoxIds  Identifiers returned by InterpAddBox().
+     * \param dest        Destination FAB.
+     * \param time        Physical time at which data should be sampled.
+     * \param src_comp    Source component offset in the state data.
+     * \param dest_comp   Destination component offset inside \p dest.
+     * \param num_comp    Number of components to fill.
+     * \param extrap      If true, allow extrapolation beyond old/new time intervals.
+     */
     void InterpFillFab (MultiFabCopyDescriptor&  fabCopyDesc,
                         const Vector<MultiFabId>& mfid,
                         const Vector<FillBoxId>&  fillBoxIds,
@@ -209,15 +254,15 @@ public:
 
 
     /**
-    * \brief Set physical bndry values
+    * \brief Set physical boundary values for a FAB extracted from the MultiFab.
     *
-    * \param dest
-    * \param time
-    * \param dx
-    * \param prob_domain
-    * \param dest_comp
-    * \param src_comp
-    * \param num_comp
+    * \param dest         Destination FAB to modify.
+    * \param time         Physical time at which BCs are evaluated.
+    * \param dx           Cell spacing array.
+    * \param prob_domain  Real-space domain extents.
+    * \param dest_comp    Destination component offset in \p dest.
+    * \param src_comp     Source component offset in the state data.
+    * \param num_comp     Number of components to update (default 1).
     */
     void FillBoundary (FArrayBox&     dest,
                        Real           time,
@@ -227,6 +272,8 @@ public:
                        int            src_comp,
                        int            num_comp = 1);
 
+    //! Variant that fills data on region \p bx into \p dest at components starting \p dest_comp,
+    //! sampling state components beginning at \p src_comp for \p num_comp values using geometry \p geom at \p time.
     void FillBoundary (Box const&      bx,
                        FArrayBox&      dest,
                        Real            time,
@@ -238,11 +285,11 @@ public:
     /**
     * \brief Write the state data to a checkpoint file.
     *
-    * \param name
-    * \param fullpathname
-    * \param os
-    * \param how
-    * \param dump_old
+    * \param name         State name (prefix for component folders).
+    * \param fullpathname Directory that will hold the data.
+    * \param os           Output stream for metadata.
+    * \param how          VisMF write mode.
+    * \param dump_old     Whether to include the old-time slot.
     */
     void checkPoint (const std::string& name,
                      const std::string& fullpathname,
@@ -251,15 +298,15 @@ public:
                      bool               dump_old = true);
 
     /**
-    * \brief Restart with domain box, grids, and dmap provided
+    * \brief Restart with domain box, grids, and dmap provided.
     *
-    * \param is
-    * \param p_domain
-    * \param grds
-    * \param dm
-    * \param factory
-    * \param d
-    * \param chkfile
+    * \param is        Input stream tied to the checkpoint data.
+    * \param p_domain  Domain box for the level.
+    * \param grds      Cell-centered grid layout.
+    * \param dm        Distribution mapping describing ownership of grids.
+    * \param factory   Fab factory controlling allocation strategy.
+    * \param d         State descriptor describing components/BCs.
+    * \param chkfile   Name of the checkpoint file (for logging).
     */
     void restart (std::istream&          is,
                   const Box&             p_domain,
@@ -270,10 +317,10 @@ public:
                   const std::string&     chkfile);
 
     /**
-    * \brief or from another similar state
+    * \brief Initialize from another StateData sharing descriptor \p d.
     *
-    * \param d
-    * \param rhs
+    * \param d   State descriptor describing the components.
+    * \param rhs Source data that will be cloned.
     */
     void restart (const StateDescriptor& d,
                   const StateData& rhs);
@@ -293,18 +340,17 @@ public:
     */
     const BoxArray& boxArray () const noexcept { return grids; }
 
+    //! Replace the stored BoxArray layout with \p a_grids (no redistribution occurs).
     void setBoxArray (BoxArray const& a_grids) noexcept { grids = a_grids; }
 
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
 
-    /**
-    *
-    * \param new_dmap
-    */
+    //! Replace the stored DistributionMapping with \p new_dmap (no redistribution occurs).
     void setDistributionMap ( DistributionMapping& new_dmap ) noexcept { dmap = new_dmap; }
 
     const FabFactory<FArrayBox>& Factory () const noexcept { return *m_factory; }
 
+    //! Replace the internal factory with a clone of \p a_factory.
     void setFactory (FabFactory<FArrayBox> const& a_factory) {
         m_factory.reset(a_factory.clone());
     }
@@ -345,32 +391,24 @@ public:
     */
     const MultiFab& oldData () const noexcept { BL_ASSERT(old_data != nullptr); return *old_data; }
 
-    /**
-    * \brief Returns the FAB of new data at grid index `i'.
-    *
-    * \param i
-    */
+    //! Returns the FAB of new data at grid index \p i.
     FArrayBox& newGrid (int i) noexcept { BL_ASSERT(new_data != nullptr); return (*new_data)[i]; }
 
-    /**
-    * \brief Returns the FAB of old data at grid index `i'.
-    *
-    * \param i
-    */
+    //! Returns the FAB of old data at grid index \p i.
     FArrayBox& oldGrid (int i) noexcept { BL_ASSERT(old_data != nullptr); return (*old_data)[i]; }
 
     /**
     * \brief Returns boundary conditions of specified component on the specified grid.
     *
-    * \param comp
-    * \param i
+    * \param comp Component index.
+    * \param i    Grid index.
     */
     BCRec getBC (int comp, int i) const noexcept;
 
     /**
     * \brief Prints out the time interval.
     *
-    * \param os
+    * \param os Output stream receiving a textual summary of old/new times.
     */
     void printTimeInterval (std::ostream& os) const;
 
@@ -384,6 +422,13 @@ public:
     */
     bool hasNewData () const noexcept { return new_data != nullptr; }
 
+    /**
+     * \brief Gather data pointers and their time stamps corresponding to \p time.
+     *
+     * \param data      Output list receiving pointers to MultiFabs.
+     * \param datatime  Output list receiving the associated times.
+     * \param time      Requested interpolation time.
+     */
     void getData (Vector<MultiFab*>& data,
                   Vector<Real>& datatime,
                   Real time) const;
@@ -393,18 +438,19 @@ public:
     */
     Arena* getArena () const noexcept { return arena; }
 
-    /**
-    * \brief Set the Arena used.
-    */
+    //! Set the Arena used for subsequent allocations to \p ar.
     void setArena (Arena* ar) noexcept { arena = ar; }
 
     /**
     * \brief These facilitate prereading FabArray headers to avoid
     * synchronization when reading multiple FabArrays
     */
+    //! View of FabArray header filenames recorded during the last checkpoint write.
     static const Vector<std::string> &FabArrayHeaderNames() { return fabArrayHeaderNames; }
+    //! Clear the cached list of FabArray header names.
     static void ClearFabArrayHeaderNames() { fabArrayHeaderNames.clear(); }
 
+    //! Install a pointer \p fahmp to the global map storing pre-read FabArray headers.
     static void SetFAHeaderMapPtr(std::map<std::string, Vector<char> > *fahmp) { faHeaderMap = fahmp; }
 
 
@@ -453,6 +499,7 @@ private:
     //! This is used to store preread FabArray headers
     static std::map<std::string, Vector<char> > *faHeaderMap;  // ---- [faheader name, the header]
 
+    //! Internal helper that reads FAB headers/data from a checkpoint stream.
     void restartDoit (std::istream& is, const std::string& chkfile);
 };
 
@@ -460,8 +507,25 @@ class StateDataPhysBCFunct
 {
 public:
 
+    /**
+     * \brief Helper that applies physical BCs for a particular StateData component range.
+     *
+     * \param sd     StateData whose data will be modified.
+     * \param sc     Starting component index within \p sd.
+     * \param geom_  Geometry describing the level.
+     */
     StateDataPhysBCFunct (StateData& sd, int sc, const Geometry& geom_);
 
+    /**
+     * \brief Apply BCs to \p mf for components [\p dest_comp, dest_comp+\p num_comp).
+     *
+     * \param mf        MultiFab to modify.
+     * \param dest_comp Destination component offset.
+     * \param num_comp  Number of components to update.
+     * \param nghost    How many ghost cells should be filled.
+     * \param time      Physical time at which BCs are evaluated.
+     * \param bccomp    Component offset into the descriptor's BC array.
+     */
     void operator() (MultiFab& mf, int dest_comp, int num_comp, IntVect const& nghost,
                      Real time, int bccomp);
 

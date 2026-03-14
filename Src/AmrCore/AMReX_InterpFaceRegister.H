@@ -6,6 +6,11 @@
 #include <AMReX_iMultiFab.H>
 #include <AMReX_Geometry.H>
 
+/**
+ * \file AMReX_InterpFaceRegister.H
+ * \brief Helper that interpolates face-centered data across coarse/fine interfaces.
+ */
+
 namespace amrex {
 
 /**

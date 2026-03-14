@@ -9,6 +9,11 @@
 #include <AMReX_Amr.H>
 #include <AMReX_AmrLevel.H>
 
+/**
+ * \file AMReX_LevelBld.H
+ * \brief Factory interface for creating problem-specific AmrLevel objects.
+ */
+
 namespace amrex {
 
 
@@ -22,7 +27,9 @@ class LevelBld
 {
 public:
 
+    //! Polymorphic base classes need virtual destructors.
     virtual ~LevelBld () = default;
+    //! Defaulted special members keep the factory trivially constructible/copyable.
     LevelBld () noexcept = default;
     LevelBld (LevelBld const&) = default;
     LevelBld (LevelBld &&) noexcept = default;
@@ -36,6 +43,7 @@ public:
     * be implemented by derived classes.
     */
     virtual void variableSetUp () = 0;
+    //! Optional hook invoked when new compute processes join (multi-job setups).
     virtual void variableSetUpForNewCompProcs () { }
 
     /**
@@ -55,19 +63,15 @@ public:
     virtual AmrLevel* operator() () = 0;
 
     /**
-    * \brief This is a virtual constructor for types derived
-    * from AmrLevel.  The derived type is initialized
-    * with the five specified variables.
-    * This is a pure virtual function and hence MUST
-    * be implemented by derived classes.
-    *
-    * \param papa
-    * \param lev
-    * \param geom_lev
-    * \param ba
-    * \param dm
-    * \param time
-    */
+     * \brief Create a new AmrLevel instance for level \p lev using the supplied metadata.
+     *
+     * \param papa     Owning Amr object.
+     * \param lev      Level index being constructed.
+     * \param geom_lev Geometry describing the level.
+     * \param ba       Grid layout for the level.
+     * \param dm       Distribution mapping for the level.
+     * \param time     Simulation time at which the level is initialized.
+     */
     virtual AmrLevel* operator() (Amr&                       papa,
                                   int                        lev,
                                   const Geometry&            geom_lev,

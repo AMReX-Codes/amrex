@@ -194,6 +194,8 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+    static int managedMemorySupported () noexcept { return device_prop.managedMemory; }
+
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
 #if defined(AMREX_USE_HIP)

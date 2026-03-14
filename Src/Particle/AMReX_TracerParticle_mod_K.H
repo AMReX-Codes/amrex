@@ -330,6 +330,7 @@ void linear_interpolate_to_particle_z (const P& p,
                 ++yctr;
             }
         }
+        // it is safe to assume the divisors here are not zero or near zero.
         amrex::Real hint_ilo = (p.pos(1) - ht[0]) / (ht[1] - ht[0]);
         amrex::Real hint_ihi = (p.pos(1) - ht[2]) / (ht[3] - ht[2]);
 
@@ -408,7 +409,7 @@ void linear_interpolate_to_particle_z (const P& p,
              );
             ++zctr;
         }}}
-
+        // it is safe to assume the divisors here are not zero or near zero.
         amrex::Real hint_ilojlo = ( p.pos(2) - ht[0] ) / (ht[1] - ht[0]);
         amrex::Real hint_ilojhi = ( p.pos(2) - ht[2] ) / (ht[3] - ht[2]);
         amrex::Real hint_ihijlo = ( p.pos(2) - ht[4] ) / (ht[5] - ht[4]);

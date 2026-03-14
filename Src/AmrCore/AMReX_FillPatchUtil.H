@@ -11,6 +11,11 @@
 #include <AMReX_Array.H>
 #include <AMReX_Utility.H>
 
+/**
+ * \file AMReX_FillPatchUtil.H
+ * \brief High-level FillPatch helpers for AMR coarse-to-fine synchronization.
+ */
+
 #ifdef AMREX_USE_EB
 #include <AMReX_EB2.H>
 #include <AMReX_EBFabFactory.H>

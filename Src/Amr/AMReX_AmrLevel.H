@@ -17,6 +17,11 @@
 #include <AMReX_VisMF.H>
 #include <AMReX_RungeKutta.H>
 #include <AMReX_FillPatcher.H>
+
+/**
+ * \file AMReX_AmrLevel.H
+ * \brief Virtual base class that owns data and time-stepping logic for a single AMR level.
+ */
 #ifdef AMREX_USE_EB
 #include <AMReX_EBSupport.H>
 #endif
@@ -52,21 +57,36 @@ public:
     //! The destructor.
     virtual ~AmrLevel ();
 
+    //! Disable copying because AmrLevel owns state data and geometry caches.
     AmrLevel (const AmrLevel&) = delete;
+    //! Disable moving; derived classes manage non-movable FillPatch caches.
     AmrLevel (AmrLevel&&) = delete;
+    //! Copy assignment is undefined for the same ownership reasons.
     AmrLevel& operator= (const AmrLevel&) = delete;
+    //! Move assignment is also disabled—use factory methods instead.
     AmrLevel& operator= (AmrLevel&&) = delete;
 
-    //! Get the level directory names
+    /**
+     * \brief Derive the directory name for this level inside a plot/checkpoint tree.
+     *
+     * \param dir       Root directory (typically plot or checkpoint folder).
+     * \param LevelDir  Output: relative level directory (e.g., Level_3).
+     * \param FullPath  Output: absolute path combining \p dir and \p LevelDir.
+     */
     void LevelDirectoryNames (const std::string &dir,
                               std::string &LevelDir,
                               std::string &FullPath) const;
-    //! Create the Level_ directory for checkpoint and plot files
+    /**
+     * \brief Create the Level_* directory inside \p dir (if needed) before writing plots/checkpoints.
+     *
+     * \param dir Base output directory (plot or checkpoint root).
+     */
     virtual void CreateLevelDirectory (const std::string &dir);
     /**
-    * \brief Set if the Level_ directory was created or to clear the value.
-    * CreateLevelDirectory sets levelDirectoryCreated = true
-    */
+     * \brief Record whether CreateLevelDirectory() has already created the folder.
+     *
+     * \param ldc True if the level directory exists; false to clear the flag.
+     */
     void SetLevelDirectoryCreated(bool ldc) noexcept { levelDirectoryCreated = ldc; }
     /**
     * \brief A string written as the first item in writePlotFile() at
@@ -78,59 +98,122 @@ public:
     */
     virtual std::string thePlotFileType () const
     {
-        static const std::string the_plot_file_type("HyperCLaw-V1.1");
+        static const std::string the_plot_file_type("HyperCLaw-V1.1"); //!< Default identifier consumed by VisIt and AMReX tools.
         return the_plot_file_type;
     }
     /**
-    * \brief Write plot file stuff to specified directory.
-    */
+     * \brief Write plot file data for this level into directory \p dir.
+     *
+     * \param dir Output root (e.g., plt00010).
+     * \param os  Metadata stream shared across levels.
+     * \param how VisMF write mode (NFiles or OneFilePerCPU).
+     */
     virtual void writePlotFile (const std::string& dir,
                                 std::ostream&      os,
                                 VisMF::How         how = VisMF::NFiles);
 
-    //! Do pre-plotfile work to avoid synchronizations while writing the amr hierarchy
+    /**
+     * \brief Perform pre-plotfile operations (e.g., gather metadata) for directory \p dir using \p os.
+     *
+     * \param dir Plotfile directory about to be written.
+     * \param os  Stream receiving metadata (often the Header).
+     */
     virtual void writePlotFilePre (const std::string& dir,
                                    std::ostream&      os);
 
-    //! Do post-plotfile work to avoid synchronizations while writing the amr hierarchy
+    /**
+     * \brief Perform post-plotfile cleanup for directory \p dir once writes complete.
+     *
+     * \param dir Plotfile directory that was just written.
+     * \param os  Metadata stream (same one passed to writePlotFilePre()).
+     */
     virtual void writePlotFilePost (const std::string& dir,
                                     std::ostream&      os);
 
     /**
-    * \brief Write small plot file stuff to specified directory.
-    */
-    virtual void writeSmallPlotFile (const std::string& /*dir*/,
-                                     std::ostream&      /*os*/,
-                                     VisMF::How         /*how*/ = VisMF::NFiles) {}
-    //! Write current state to checkpoint file.
+     * \brief Write a reduced plot file (same parameters as writePlotFile()) to \p dir.
+     *
+     * \param dir Target directory.
+     * \param os  Metadata stream.
+     * \param how VisMF write mode.
+     */
+    virtual void writeSmallPlotFile (const std::string& dir,
+                                     std::ostream&      os,
+                                     VisMF::How         how = VisMF::NFiles)
+    {
+        (void)dir;
+        (void)os;
+        (void)how;
+    }
+    /**
+     * \brief Write current state to a checkpoint directory.
+     *
+     * \param dir       Destination directory (e.g., chk00010).
+     * \param os        Metadata stream shared across levels.
+     * \param how       VisMF write mode.
+     * \param dump_old  Whether to include the "old" state data.
+     */
     virtual void checkPoint (const std::string& dir,
                              std::ostream&      os,
                              VisMF::How         how = VisMF::NFiles,
                              bool               dump_old = true);
-    //! Do pre-checkpoint work to avoid synchronizations while writing the amr hierarchy
+    /**
+     * \brief Do pre-checkpoint work (e.g., directory creation) for \p dir using \p os.
+     *
+     * \param dir Checkpoint directory being created.
+     * \param os  Metadata stream for header output.
+     */
     virtual void checkPointPre (const std::string& dir,
                                 std::ostream&      os);
-    //! Do post-checkpoint work to avoid synchronizations while writing the amr hierarchy
+    /**
+     * \brief Do post-checkpoint cleanup for \p dir once writes complete.
+     *
+     * \param dir Checkpoint directory that was just written.
+     * \param os  Metadata stream used during writing.
+     */
     virtual void checkPointPost (const std::string& dir,
                                  std::ostream&      os);
-    //! Restart from a checkpoint file.
+    /**
+     * \brief Populate this level from checkpoint input stream \p is.
+     *
+     * \param papa          Owning Amr driver (provides geometry and config).
+     * \param is            Input stream pointing at the level's checkpoint data.
+     * \param bReadSpecial  Whether to parse additional application-specific fields.
+     */
     virtual void restart (Amr&          papa,
                           std::istream& is,
                           bool          bReadSpecial = false);
 
-    //! Old checkpoint may have different number of states than the new source code.
+    /**
+     * \brief Hook to adjust which state descriptors are expected in checkpoint streams.
+     *
+     * \param state_in_checkpoint Array of flags (one per descriptor) that this level may modify.
+     */
     virtual void set_state_in_checkpoint (Vector<int>& state_in_checkpoint);
 
-    //! Is name a state variable?
+    /**
+     * \brief Return true if \p name matches a registered state variable, also providing descriptor info.
+     *
+     * \param name        State variable identifier.
+     * \param state_indx  Output: descriptor index when found.
+     * \param ncomp       Output: number of components associated with that state.
+     */
     static bool isStateVariable (const std::string& name,
                                 int&               state_indx,
                                 int&               ncomp);
 
+    //! Resize/clear cached FillPatchIterator state in preparation for new fill operations.
     static void FlushFPICache ();
     /**
-    * \brief Compute the initial time step.  This is a pure virtual function
-    * and hence MUST be implemented by derived classes.
-    */
+     * \brief Compute the initial time step size for each level.
+     *
+     * \param finest_level Finest AMR level existing so far.
+     * \param sub_cycle    Whether subcycling is enabled.
+     * \param n_cycle      In/out: number of subcycles per level.
+     * \param ref_ratio    Level-to-level refinement ratios.
+     * \param dt_level     Output per-level dt.
+     * \param stop_time    Simulation stop time (used to clamp dt if needed).
+     */
     virtual void computeInitialDt (int                   finest_level,
                                    int                   sub_cycle,
                                    Vector<int>&           n_cycle,
@@ -138,9 +221,17 @@ public:
                                    Vector<Real>&          dt_level,
                                    Real                  stop_time) = 0;
     /**
-    * \brief Compute the next time step.  This is a pure virtual function
-    * and hence MUST be implemented by derived classes.
-    */
+     * \brief Compute the next time step sizes after an advance.
+     *
+     * \param finest_level     Finest AMR level existing.
+     * \param sub_cycle        Whether subcycling is enabled.
+     * \param n_cycle          In/out: number of subcycles per level.
+     * \param ref_ratio        Level-to-level refinement ratios.
+     * \param dt_min           Output per-level dt upper bounds (physics-limited).
+     * \param dt_level         Output per-level dt to use.
+     * \param stop_time        Simulation stop time (used to clamp dt).
+     * \param post_regrid_flag Flag describing regrid state (0 normal, 1 immediate post-regrid).
+     */
     virtual void computeNewDt (int                   finest_level,
                                int                   sub_cycle,
                                Vector<int>&           n_cycle,
@@ -150,51 +241,58 @@ public:
                                Real                  stop_time,
                                int                   post_regrid_flag) = 0;
     /**
-    * \brief Do an integration step on this level.  Returns maximum safe
-    * time step.  This is a pure virtual function and hence MUST
-    * be implemented by derived classes.
-    */
+     * \brief Advance solution on this level by \p dt and return the next stable dt.
+     *
+     * \param time      Start time of the advance.
+     * \param dt        Step size to take.
+     * \param iteration Sub-step counter within the coarse step.
+     * \param ncycle    Number of fine subcycles per coarse step.
+     * \return Recommended dt for the next call (based on CFL, etc.).
+     */
     virtual Real advance (Real time,
                           Real dt,
                           int  iteration,
                           int  ncycle) = 0;
 
     /**
-    * \brief Contains operations to be done after a timestep.  If this
-    * function is overridden, don't forget to reset FillPatcher.
-    */
+     * \brief Perform level-specific updates after each subcycle.
+     *
+     * \param iteration Sub-step index within the coarse step.
+     *
+     * \note Override implementations should reset any FillPatcher caches they own.
+     */
     virtual void post_timestep (int iteration);
     /**
-    * \brief Contains operations to be done only after a full coarse
-    * timestep.  The default implementation does nothing.
-    */
+     * \brief Called once per coarse step after fine levels finish refluxing.
+     *
+     * \param time Current coarse-level time.
+     */
     virtual void postCoarseTimeStep (Real time);
-    /**
-    * \brief Operations to be done after restart.
-    */
+    //! Override to perform any fixups immediately after restart (default: no-op).
     virtual void post_restart () {}
     /**
-    * \brief Operations to be done after regridding
-    * This is a pure virtual function and hence MUST be
-    * implemented by derived classes.
-    */
+     * \brief Operations to be performed immediately after regridding completes.
+     *
+     * \param lbase      Coarsest level that triggered the regrid.
+     * \param new_finest New finest level index after regridding.
+     */
     virtual  void post_regrid (int lbase,
                                int new_finest) = 0;
     /**
-    * \brief Operations to be done after initialization.
-    * This is a pure virtual function and hence MUST be
-    * implemented by derived classes.
-    */
+     * \brief Operations to run after initialization finishes.
+     *
+     * \param stop_time Simulation stop time (useful for multi-stage inits).
+     */
     virtual  void post_init (Real stop_time) = 0;
     /**
-    * \brief Is it ok to continue the calculation?
-    */
+     * \brief Return nonzero to continue advancing; zero to halt the run.
+     */
     virtual  int okToContinue () { return 1; }
     /**
-    * \brief Should I regrid with this level as base level?
-    * This test is only evaluated if regrid_int > 0 and
-    * level_count >= regrid_int as well. Defaults to true.
-    */
+     * \brief Return nonzero if refinement starting from this level is allowed this cycle.
+     *
+     * Only evaluated when `regrid_int > 0` and `level_count >= regrid_int`. Default returns true.
+     */
     virtual  int okToRegrid ();
     /**
     * \brief Init grid data at problem start-up.
@@ -202,18 +300,26 @@ public:
     * implemented by derived classes.
     */
     virtual void initData () = 0;
-    //! Set the time levels of state data.
+    /**
+     * \brief Set the time metadata stored in the state data arrays (old/new).
+     *
+     * \param time    New-time value to record.
+     * \param dt_old  Dt associated with the old slot.
+     * \param dt_new  Dt associated with the new slot.
+     */
     virtual void setTimeLevel (Real time,
                                Real dt_old,
                                Real dt_new);
-    //! Alloc space for old time data.
+    //! Allocate storage for "old" time slices before an advance.
     virtual void allocOldData ();
-    //! Delete old-time data.
+    //! Delete the old-time slots once they are no longer needed.
     virtual void removeOldData ();
     /**
     * \brief Init data on this level from another AmrLevel (during regrid).
     * This is a pure virtual function and hence MUST be
     * implemented by derived classes.
+    *
+    * \param old Source level to interpolate from.
     */
     virtual void init (AmrLevel &old) = 0;
     /**
@@ -222,13 +328,15 @@ public:
     * and hence MUST be implemented by derived classes.
     */
     virtual void init () = 0;
-    //! Reset data to initial time by swapping new and old time data.
+    //! Reset data to initial time by swapping new and old time slots.
     void reset ();
-    //! Returns this AmrLevel.
+    //! Returns this AmrLevel index (0 = coarsest).
     int Level () const noexcept { return level; }
     //! List of grids at this level.
     const BoxArray& boxArray () const noexcept { return grids; }
+    //! Return the edge-centered grid layout for direction \p dir (cached).
     const BoxArray& getEdgeBoxArray (int dir) const noexcept;
+    //! Return the nodal grid layout for this level (cached).
     const BoxArray& getNodalBoxArray () const noexcept;
     //
     const DistributionMapping& DistributionMap () const noexcept { return dmap; }
@@ -241,7 +349,7 @@ public:
         return static_cast<amrex::EBFArrayBoxFactory const&>(*m_factory);
     }
 #endif
-
+    //
     //! Number of grids at this level.
     int numGrids () const noexcept { return static_cast<int>(grids.size()); }
     //! Number of states at this level.
@@ -254,22 +362,31 @@ public:
     const Geometry& Geom () const noexcept { return geom; }
     //
     const IntVect& fineRatio () const noexcept { return fine_ratio; }
-    //! Returns number of cells on level.
+    //! Returns number of valid cells on this level.
     Long countCells () const noexcept;
 
-    //! Get the area not to tag.
+    //! Get the cached BoxArray describing regions that should not be tagged.
     const BoxArray& getAreaNotToTag () noexcept;
+    //! Get the Box (single region) that is permitted to be tagged.
     const Box& getAreaToTag () noexcept;
-    //! Construct the area not to tag.
+    //! Build internal data structures defining the area not to tag.
     void constructAreaNotToTag ();
-    //! Set the area not to tag.
+    //! Override the area-not-to-tag cache with user-supplied BoxArray \p ba.
     void setAreaNotToTag (BoxArray& ba) noexcept;
 
+    //! Clear cached FillPatcher objects (call after reflux/averaging).
     void resetFillPatcher ();
 
     /**
     * \brief Error estimation for regridding. This is a pure virtual
     * function and hence MUST be implemented by derived classes.
+    *
+    * \param tb          Tag array to mark for refinement (output).
+    * \param clearval    Value that clears a tag entry.
+    * \param tagval      Value that marks a cell for refinement.
+    * \param time        Physical time at which tagging occurs.
+    * \param n_error_buf Number of grow cells added around tagged features (default 0).
+    * \param ngrow       Number of ghost layers available in \p tb (default 0).
     */
     virtual void errorEst (TagBoxArray& tb,
                            int          clearval,
@@ -278,6 +395,17 @@ public:
                            int          n_error_buf = 0,
                            int          ngrow = 0) = 0;
     //! Interpolate from coarse level to the valid area in mf.
+    /**
+     * \brief Fill \p mf on this level using data interpolated from the coarser level.
+     *
+     * \param mf        Destination MultiFab.
+     * \param dcomp     Destination component offset in \p mf.
+     * \param time      Time at which to sample coarse data.
+     * \param state_idx State descriptor index selecting which state to fill.
+     * \param scomp     Source component index within the coarse state.
+     * \param ncomp     Number of components to fill.
+     * \param nghost    Number of ghost cells to fill (default 0).
+     */
     void FillCoarsePatch (MultiFab& mf,
                           int       dcomp,
                           Real      time,
@@ -285,7 +413,16 @@ public:
                           int       scomp,
                           int       ncomp,
                           int       nghost = 0);
-    //! Function to set physical boundary conditions.
+    /**
+     * \brief Apply physical boundary conditions to cell-centered data.
+     *
+     * \param dest        Destination FArrayBox.
+     * \param state_indx  State descriptor index associated with \p dest.
+     * \param time        Physical time at which BCs should be evaluated.
+     * \param dest_comp   Destination component offset in \p dest.
+     * \param src_comp    Component offset in the state data.
+     * \param num_comp    Number of components to update.
+     */
     virtual void setPhysBoundaryValues (FArrayBox& dest,
                                         int        state_indx,
                                         Real       time,
@@ -294,51 +431,90 @@ public:
                                         int        num_comp);
     /**
     * \brief Returns a MultiFab containing the derived data for this level.
-    * The user is responsible for deleting this pointer when done
-    * with it.  If ngrow>0 the MultiFab is built on the appropriately
+    * If ngrow>0 the MultiFab is built on the appropriately
     * grown BoxArray.
+    *
+    * \param name  Derived quantity identifier.
+    * \param time  Physical time at which to evaluate the quantity.
+    * \param ngrow How many ghost cells to include.
+    * \return Owning pointer to a freshly allocated MultiFab.
     */
     virtual std::unique_ptr<MultiFab> derive (const std::string& name,
                                               Real               time,
                                               int                ngrow);
     /**
-    * \brief This version of derive() fills the dcomp'th component of mf
+    * \brief This version of derive() fills the dcomp'th component of \p mf
     * with the derived quantity.
+    *
+    * \param name Derived quantity identifier.
+    * \param time Physical time at which to evaluate the quantity.
+    * \param mf   Destination MultiFab.
+    * \param dcomp Destination component index.
     */
     virtual void derive (const std::string& name,
                          Real               time,
                          MultiFab&          mf,
                          int                dcomp);
-    //! State data object.
+    //! State data object accessor for descriptor \p state_indx.
     StateData& get_state_data (int state_indx) noexcept { return state[state_indx]; }
-    //! State data at old time.
+    //! Mutable access to the MultiFab at the old time slot for state \p state_indx.
     MultiFab& get_old_data (int state_indx) noexcept { return state[state_indx].oldData(); }
-    //! State data at old time.
+    //! Const access to the MultiFab at the old time slot for state \p state_indx.
     const MultiFab& get_old_data (int state_indx) const noexcept { return state[state_indx].oldData(); }
-    //! State data at new time.
+    //! Mutable access to the MultiFab at the new time slot for state \p state_indx.
     MultiFab& get_new_data (int state_indx) noexcept { return state[state_indx].newData(); }
-    //! State data at new time.
+    //! Const access to the MultiFab at the new time slot for state \p state_indx.
     const MultiFab& get_new_data (int state_indx) const noexcept { return state[state_indx].newData(); }
     //! Returns list of Descriptors.
     static const DescriptorList& get_desc_lst () noexcept { return desc_lst; }
     //! Returns list of derived variables.
     static DeriveList& get_derive_lst () noexcept;
-    //! Returns whether or not we want a post-timestep regrid.
+    //! Returns whether a post-timestep regrid is currently requested (nonzero for true).
     int postStepRegrid () const noexcept { return post_step_regrid; }
-    //! Sets a new value for the post-timestep regrid trigger.
+    /**
+     * \brief Set the post-timestep regrid trigger (nonzero requests a regrid).
+     *
+     * \param new_val Trigger value applied after each step.
+     */
     void setPostStepRegrid (int new_val) noexcept { post_step_regrid = new_val; }
 
-    //! Update the distribution maps in StateData based on the size of the map
+    /**
+     * \brief Update every StateData's DistributionMapping to match \p dmap (e.g., after rebalancing).
+     *
+     * \param dmap Distribution mapping describing the new ownership.
+     */
     void UpdateDistributionMaps ( DistributionMapping& dmap );
 
-    //! Boundary condition access function.
+    /**
+     * \brief Return an array describing boundary types for components [strt_comp,strt_comp+ncomp).
+     *
+     * \param State_Type State descriptor index.
+     * \param gridno     Grid index on this level.
+     * \param strt_comp  Starting component.
+     * \param ncomp      Number of components.
+     */
     Vector<int> getBCArray (int State_Type,
                             int gridno,
                             int strt_comp,
                             int ncomp);
-    //! Get state data at specified index and time.
+    /**
+     * \brief Fetch the MultiFab (old or new) that best matches \p time for state \p state_indx.
+     *
+     * \param state_indx State descriptor index.
+     * \param time       Target physical time.
+     * \return Reference to either the old or new MultiFab, whichever brackets \p time.
+     */
     MultiFab& get_data (int  state_indx, Real time) noexcept;
-    //! Hack to allow override of (non-fine-fine) fillpatched boundary data
+    /**
+     * \brief Hook to override fillpatched boundary values before applying physical BCs (default no-op).
+     *
+     * \param S            MultiFab to edit.
+     * \param state_index  State descriptor index.
+     * \param scomp        Source component offset.
+     * \param dcomp        Destination component offset.
+     * \param ncomp        Number of components to adjust.
+     * \param time         Physical time at which BCs are evaluated.
+     */
     virtual void set_preferred_boundary_values (MultiFab& S,
                                                 int       state_index,
                                                 int       scomp,
@@ -346,58 +522,97 @@ public:
                                                 int       ncomp,
                                                 Real      time) const;
     /**
-    * \brief Called in grid_places after other tagging routines to modify
-    * the list of tagged points.  Default implementation does nothing.
-    */
+     * \brief Adjust tags after core tagging routines run (default: no-op).
+     *
+     * \param tags   Tag arrays built on this level.
+     * \param bf_lev Buffer sizes per level from Amr.
+     */
     virtual void manual_tags_placement (TagBoxArray&    tags,
                                         const Vector<IntVect>& bf_lev);
-    //! Modify list of variables to be plotted
+    //! Override to customize which variables appear in full plotfiles on this level (default uses global list).
     virtual void setPlotVariables ();
-    //! Modify list of variables to be plotted
+    //! Override to customize which variables appear in small plotfiles on this level.
     virtual void setSmallPlotVariables ();
     /**
-    * \brief Estimate the amount of work required to advance Just this level
-    * based on the number of cells.
-    * This estimate can be overwritten with different methods
-    */
+     * \brief Estimate the amount of work required to advance just this level, typically based on cell counts.
+     *
+     * \return Work units proportional to the expected compute effort (higher means more expensive).
+     */
     virtual Real estimateWork();
 
-    //! Which state data type is for work estimates? -1 means none
+    /**
+     * \brief Select which state descriptor drives work estimates.
+     *
+     * \return State descriptor index used for estimateWork() sampling, or -1 to disable.
+     */
     virtual int WorkEstType () { return -1; }
 
     /**
     * \brief Returns one the TimeLevel enums.
     * Asserts that time is between AmrOldTime and AmrNewTime.
+    *
+    * \param state_indx State descriptor index providing time metadata.
+    * \param time       Target physical time.
     */
     TimeLevel which_time (int  state_indx, Real time) const noexcept;
 
+    /**
+     * \brief Return true if this level requests an immediate checkpoint (default false).
+     *
+     * Overrides can trigger checkpointing after conditional events.
+     */
     virtual bool checkPointNow ();
 
-    //! Does the AmrLevel want Amr to write a plotfile now?
+    /**
+     * \brief Return true if this level requests an immediate plotfile (default false).
+     */
     virtual bool writePlotNow ();
 
-    //! Does the AmrLevel want Amr to write a small plotfile now?
+    /**
+     * \brief Return true if this level requests an immediate small-plot file (default false).
+     */
     virtual bool writeSmallPlotNow ();
 
 #ifdef AMREX_PARTICLES
-    //! This function can be called from the parent
-    virtual void particle_redistribute (int /*lbase*/ = 0, bool /*a_init*/ = false) {;}
+    /**
+     * \brief Optional particle redistribution hook called by the parent Amr object.
+     *
+     * \param lbase Coarsest level whose particles should be considered.
+     * \param a_init Whether the call happens during initialization.
+     */
+    virtual void particle_redistribute (int lbase = 0, bool a_init = false)
+    {
+        (void)lbase;
+        (void)a_init;
+    }
 #endif
 
     /**
-     * \brief Fill with FillPatcher on level > 0 and AmrLevel::FillPatch on level 0.
+     * \brief Fill ghost cells using cached FillPatcher (level>0) or FillPatch (level 0).
      *
-     * \param mf     destination MultiFab
-     * \param dcomp  starting component for the destination
-     * \param ncomp  number of component to fill
-     * \param nghost number of ghost cells to fill
-     * \param time   time
-     * \param state_index StateData index
-     * \param scomp  starting component in the StateData
+     * \param mf          Destination MultiFab.
+     * \param dcomp       Destination component offset.
+     * \param ncomp       Number of components to fill.
+     * \param nghost      Number of ghost cells to fill.
+     * \param time        Time at which to sample data.
+     * \param state_index State descriptor index to pull from.
+     * \param scomp       Source component offset within the state.
      */
     void FillPatcherFill (amrex::MultiFab& mf, int dcomp, int ncomp, int nghost,
                           amrex::Real time, int state_index, int scomp);
 
+    /**
+     * \brief Convenience wrapper around FillPatchSingleLevel/TwoLevels.
+     *
+     * \param amrlevel  Level providing state data.
+     * \param leveldata Destination MultiFab to fill.
+     * \param boxGrow   Number of grow cells to request.
+     * \param time      Time at which to sample.
+     * \param index     State descriptor index.
+     * \param scomp     Source component.
+     * \param ncomp     Number of components.
+     * \param dcomp     Destination component (default 0).
+     */
     static void FillPatch (AmrLevel& amrlevel,
                            MultiFab& leveldata,
                            int       boxGrow,
@@ -407,6 +622,18 @@ public:
                            int       ncomp,
                            int       dcomp=0);
 
+    /**
+     * \brief Same as FillPatch(), but adds into \p leveldata instead of overwriting.
+     *
+     * \param amrlevel  Level providing state data.
+     * \param leveldata Destination MultiFab to accumulate into.
+     * \param boxGrow   Number of grow cells to request.
+     * \param time      Time at which to sample.
+     * \param index     State descriptor index.
+     * \param scomp     Source component.
+     * \param ncomp     Number of components.
+     * \param dcomp     Destination component (default 0).
+     */
     static void FillPatchAdd (AmrLevel& amrlevel,
                               MultiFab& leveldata,
                               int       boxGrow,
@@ -442,6 +669,7 @@ public:
              int ncycle, F&& f, P&& p = RungeKutta::PostStageNoOp());
 
 #ifdef AMREX_USE_EB
+    //! Configure the ghost-cell requirements (basic/volume/full) for EB FillPatch operations.
     static void SetEBMaxGrowCells (int nbasic, int nvolume, int nfull) noexcept {
         m_eb_basic_grow_cells = nbasic;
         m_eb_volume_grow_cells = nvolume;
@@ -450,11 +678,20 @@ public:
     static int            m_eb_basic_grow_cells;
     static int            m_eb_volume_grow_cells;
     static int            m_eb_full_grow_cells;
+    //! Select which level of EB data to build (basic, volume, full) via \p ebs.
     static void SetEBSupportLevel (EBSupport ebs) { m_eb_support_level = ebs; }
     static EBSupport      m_eb_support_level;
 #endif
 
-    //! Recommendation of a proper blocking factor
+    /**
+     * \brief Recommendation of a proper blocking factor for filling.
+     *
+     * \param amr_level Owning level supplying geometry.
+     * \param boxGrow   Grow cells requested by the caller.
+     * \param boxType   Index type (cell-centered, nodal, etc.).
+     * \param desc      State descriptor tied to the data.
+     * \param SComp     Starting component index.
+     */
     static IntVect ProperBlockingFactor (AmrLevel const& amr_level, int boxGrow,
                                          IndexType const& boxType,
                                          StateDescriptor const& desc, int SComp);
@@ -525,9 +762,26 @@ class FillPatchIterator
 
     friend class AmrLevel;
 
+    /**
+     * \brief Construct an iterator that fills the default state (new-time data) from scratch.
+     *
+     * \param amrlevel Owning level that provides state data.
+     * \param leveldata Destination MultiFab that will hold the filled tiles.
+     */
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata);
 
+    /**
+     * \brief Construct and immediately fill ghost cells using specified state components.
+     *
+     * \param amrlevel Owning level.
+     * \param leveldata Destination MultiFab.
+     * \param boxGrow  Number of grow cells to request.
+     * \param time     Time at which to sample data.
+     * \param idx      State descriptor index.
+     * \param scomp    Source component offset.
+     * \param ncomp    Number of components.
+     */
     FillPatchIterator (AmrLevel& amrlevel,
                        MultiFab& leveldata,
                        int       boxGrow,
@@ -536,16 +790,28 @@ class FillPatchIterator
                        int       scomp,
                        int       ncomp);
 
+    /**
+     * \brief Prepare another round of fill operations using the cached buffers.
+     *
+     * \param boxGrow Number of grow cells to request.
+     * \param time    Time at which to sample state data.
+     * \param idx     State descriptor index.
+     * \param scomp   Source component offset.
+     * \param ncomp   Number of components to fill.
+     */
     void Initialize (int  boxGrow,
                      Real time,
                      int  idx,
                      int  scomp,
                      int  ncomp);
 
+    //! Access the filled FAB for the current tile.
     FArrayBox& operator() () noexcept { return m_fabs[MFIter::index()]; }
 
+    //! Return the un-grown valid box for the current tile.
     Box UngrownBox () const noexcept { return MFIter::validbox(); }
 
+    //! Mutable reference to the internal MultiFab holding filled tiles.
     MultiFab& get_mf() noexcept { return m_fabs; }
 
 private:
@@ -569,9 +835,22 @@ public:
 
     friend class FillPatchIterator;
 
+    //! Build a helper bound to \p amrlevel and destination MultiFab \p leveldata.
     FillPatchIteratorHelper (AmrLevel& amrlevel,
                              MultiFab& leveldata);
 
+    /**
+     * \brief Construct a helper and immediately populate ghost cells.
+     *
+     * \param amrlevel Source level providing state data.
+     * \param leveldata Destination MultiFab.
+     * \param boxGrow  Number of grow cells to request.
+     * \param time     Time at which to sample data.
+     * \param index    State descriptor index.
+     * \param scomp    Source component offset.
+     * \param ncomp    Number of components to fill.
+     * \param mapper   Interpolater override (defaults to descriptor's mapper when null).
+     */
     FillPatchIteratorHelper (AmrLevel&     amrlevel,
                              MultiFab&     leveldata,
                              int           boxGrow,
@@ -581,6 +860,16 @@ public:
                              int           ncomp,
                              InterpBase*   mapper);
 
+    /**
+     * \brief Prepare another fill using cached metadata.
+     *
+     * \param boxGrow Number of grow cells to request.
+     * \param time    Time at which to sample data.
+     * \param idx     State descriptor index.
+     * \param scomp   Source component offset.
+     * \param ncomp   Number of components to fill.
+     * \param mapper  Interpolater override (may be null).
+     */
     void Initialize (int           boxGrow,
                      Real          time,
                      int           idx,
@@ -588,6 +877,13 @@ public:
                      int           ncomp,
                      InterpBase*   mapper);
 
+    /**
+     * \brief Fill the provided FAB using cached data.
+     *
+     * \param fab   Destination FAB.
+     * \param dcomp Destination component offset.
+     * \param idx   State descriptor index.
+     */
     void fill (FArrayBox& fab, int dcomp, int idx);
 
 private:
