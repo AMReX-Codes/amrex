@@ -4,18 +4,18 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_MultiFab.H>
-#include <AMReX_MFCopyDescriptor.H>
-#include <AMReX_BCRec.H>
+#include <AMReX_BoxArray.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_MFCopyDescriptor.H> // IWYU pragma: export
+#include <AMReX_BCRec.H> // IWYU pragma: export
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
-#include <AMReX_VisMF.H>
-#include <AMReX_DistributionMapping.H>
+#include <AMReX_VisMF.H> // IWYU pragma: export
+#include <AMReX_DistributionMapping.H> // IWYU pragma: export
 #include <AMReX_PhysBCFunct.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_RealBox.H>
-#include <AMReX_StateDescriptor.H>
+#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_RealBox.H> // IWYU pragma: export
+#include <AMReX_StateDescriptor.H> // IWYU pragma: export
 
 /**
  * \file AMReX_StateData.H

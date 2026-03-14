@@ -9,7 +9,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
-#include <AMReX_AmrCore.H>
+#include <AMReX_AmrCore.H> // IWYU pragma: export
 
 /**
  * \file AMReX_Amr.H

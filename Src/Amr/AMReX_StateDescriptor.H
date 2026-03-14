@@ -7,8 +7,8 @@
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
-#include <AMReX_PhysBCFunct.H>
-#include <AMReX_Interpolater.H>
+#include <AMReX_PhysBCFunct.H> // IWYU pragma: export
+#include <AMReX_Interpolater.H> // IWYU pragma: export
 #include <AMReX_MFInterpolater.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBInterpolater.H>

@@ -8,14 +8,14 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_Derive.H>
+#include <AMReX_Derive.H> // IWYU pragma: export
 #include <AMReX_BCRec.H>
-#include <AMReX_Amr.H>
+#include <AMReX_Amr.H> // IWYU pragma: export
 #include <AMReX_DistributionMapping.H>
-#include <AMReX_StateDescriptor.H>
-#include <AMReX_StateData.H>
-#include <AMReX_VisMF.H>
-#include <AMReX_RungeKutta.H>
+#include <AMReX_StateDescriptor.H> // IWYU pragma: export
+#include <AMReX_StateData.H> // IWYU pragma: export
+#include <AMReX_VisMF.H> // IWYU pragma: export
+#include <AMReX_RungeKutta.H> // IWYU pragma: export
 #include <AMReX_FillPatcher.H>
 
 /**

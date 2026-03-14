@@ -1,5 +1,6 @@
 #ifndef AMReX_extrapolater_K_H_
 #define AMReX_extrapolater_K_H_
+// IWYU pragma: private, include "AMReX_Extrapolater.H"
 #include <AMReX_Config.H>
 
 #include <AMReX_REAL.H>
