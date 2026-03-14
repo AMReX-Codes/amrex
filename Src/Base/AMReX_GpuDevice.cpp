@@ -770,6 +770,16 @@ Device::setExternalStream (gpuStream_t s)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!OpenMP::in_parallel(),
         "Gpu::setExternalGpuStream is not supported inside OpenMP parallel regions.");
+#ifdef AMREX_USE_SYCL
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue != nullptr,
+        "Gpu::setExternalGpuStream: null SYCL queue is not supported.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue->get_context() == Device::syclContext(),
+        "Gpu::setExternalGpuStream: external SYCL queue must use AMReX's SYCL context.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue->get_device() == Device::syclDevice(),
+        "Gpu::setExternalGpuStream: external SYCL queue must use AMReX's SYCL device.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue->has_property<sycl::property::queue::in_order>(),
+        "Gpu::setExternalGpuStream: external SYCL queue must be in-order.");
+#endif
     // External stream overrides intentionally do not try to synchronize
     // OpenACC stream state. AMReX does not support mixing OpenACC work into
     // these regions.
