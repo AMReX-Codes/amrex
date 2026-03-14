@@ -24,7 +24,7 @@
 #include <AMReX_MFIter.H> // IWYU pragma: export
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
-#include <AMReX_LayoutData.H>
+#include <AMReX_LayoutData.H> // IWYU pragma: export
 #include <AMReX_BaseFab.H> // IWYU pragma: export
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H> // IWYU pragma: export

@@ -10,7 +10,6 @@
 
 #include <AMReX_ParmParse.H>
 
-#include <iostream>
 #include <limits>
 #include <algorithm>
 #include <new>

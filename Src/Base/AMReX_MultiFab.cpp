@@ -17,9 +17,6 @@
 
 #include <algorithm>
 #include <cfloat>
-#include <iostream>
-#include <iomanip>
-#include <map>
 #include <limits>
 
 namespace amrex {

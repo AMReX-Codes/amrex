@@ -18,7 +18,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
 #if !(defined(_MSC_VER) && defined(__CUDACC__))

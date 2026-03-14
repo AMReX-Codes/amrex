@@ -1,8 +1,10 @@
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Random.H>
-#include <sstream>
-#include <iostream>
+
+#include <memory>
+#include <utility>
+#include <vector>
 
 namespace {
 

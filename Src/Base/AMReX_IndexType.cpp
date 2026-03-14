@@ -2,7 +2,6 @@
 #include <AMReX_IndexType.H>
 
 #include <iostream>
-#include <iomanip>
 
 /// \cond DOXYGEN_IGNORE
 namespace amrex::detail {

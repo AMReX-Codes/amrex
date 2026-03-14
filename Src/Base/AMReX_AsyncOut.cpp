@@ -4,6 +4,11 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
 
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+
 namespace amrex::AsyncOut {
 
 namespace {

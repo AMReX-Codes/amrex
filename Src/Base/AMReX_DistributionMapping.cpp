@@ -8,17 +8,14 @@
 #include <AMReX_Morton.H>
 
 #include <iostream>
-#include <fstream>
-#include <sstream>
 #include <cstdlib>
-#include <map>
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <memory>
 #include <numeric>
 #include <string>
 #include <cstring>
-#include <iomanip>
 
 namespace {
     int flag_verbose_mapper;

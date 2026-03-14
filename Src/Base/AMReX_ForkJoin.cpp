@@ -2,6 +2,10 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Print.H>
 
+#include <fstream>
+#include <memory>
+#include <sstream>
+
 using namespace amrex;
 
 namespace {

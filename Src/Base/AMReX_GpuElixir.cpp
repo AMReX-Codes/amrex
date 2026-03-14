@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <cstring>
 #include <cstdlib>
-#include <memory>
 
 namespace amrex::Gpu {
 

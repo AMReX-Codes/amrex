@@ -9,6 +9,11 @@
 #include <cerrno>
 #include <cstdio>
 #include <limits>
+#include <map>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <string>
 #include <vector>
 #include <utility>
 

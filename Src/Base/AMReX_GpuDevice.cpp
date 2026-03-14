@@ -14,6 +14,7 @@
 #include <iostream>
 #include <map>
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <unordered_set>
 #include <exception>

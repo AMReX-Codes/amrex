@@ -24,6 +24,9 @@
 #define AMREX_MUNLOCK(x,y) munlock(x,y)
 #endif
 
+#include <fstream>
+#include <sstream>
+
 namespace amrex {
 
 namespace {

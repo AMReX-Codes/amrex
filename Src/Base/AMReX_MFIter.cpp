@@ -4,6 +4,10 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_OpenMP.H>
 
+#include <limits>
+#include <memory>
+#include <utility>
+
 namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
