@@ -913,7 +913,7 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
         q.submit([&] (sycl::handler& h) {
             h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
                 [=] (sycl::nd_item<dim> item)
-                [[sycl::reqd_work_group_size(1, 1, MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     f(Gpu::LaunchHandler<MT, void, dim>{
@@ -945,7 +945,7 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
             sycl::local_accessor<T> shared_data(sycl::range<1>(shared_mem_elements), h);
             h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
                 [=] (sycl::nd_item<dim> item)
-                [[sycl::reqd_work_group_size(1, 1, MT)]]
+                [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     f(Gpu::LaunchHandler<MT, T, dim>{

@@ -145,8 +145,8 @@ struct LaunchHandler
         IntVectND<sizeof...(nd_block_size)> ret(0);
         unsigned int idx = threadIdx1D();
         if constexpr (sizeof...(nd_block_size) == 3) {
-            ret[2] = idx / iv_block_size[1];
-            idx = idx - ret[2] * iv_block_size[1];
+            ret[2] = idx / (iv_block_size[0] * iv_block_size[1]);
+            idx = idx - ret[2] * (iv_block_size[0] * iv_block_size[1]);
         }
         if constexpr (sizeof...(nd_block_size) >= 2) {
             ret[1] = idx / iv_block_size[0];
@@ -302,7 +302,7 @@ struct LaunchHandler
      */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 #if defined(AMREX_USE_SYCL)
-    sycl::nd_item<dim> sycl_item () const {
+    const sycl::nd_item<dim>* sycl_item () const {
         return m_item;
     }
 #else
