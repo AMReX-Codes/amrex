@@ -1525,7 +1525,9 @@ it is reset, at which point AMReX restores the previous external stream.
   ``sync_stream``/``sync_on_exit`` skips the final
   :cpp:`Gpu::streamSynchronize` unless deferred frees recorded by
   :cpp:`The_Async_Arena` are still pending, in which case AMReX forces a
-  synchronization to keep the arena safe.
+  synchronization to keep the arena safe.  The external stream or queue must
+  belong to the active AMReX device.  For SYCL, the queue must also use the
+  same SYCL context as AMReX and must be an in-order queue.
 * All asynchronous frees recorded through :cpp:`amrex::Gpu::freeAsync` and
   The_Async_Arena continue to work because AMReX tracks the external stream with
   an internal :cpp:`StreamManager`.
@@ -1535,6 +1537,10 @@ Limitations and best practices:
 * Entering or exiting the override inside an OpenMP parallel region is
   illegal and will trigger an assertion.  Configure the stream on the main
   thread before launching GPU work, if OpenMP threading is used.
+* Backend compatibility rules are checked when the override is installed.
+  CUDA and HIP external streams must be associated with the current
+  :cpp:`amrex::Gpu::Device::deviceId()`.  SYCL external queues must use
+  AMReX's SYCL device and SYCL context, and must be in-order.
 * While an override is active, :cpp:`Gpu::numGpuStreams()` reports ``1``.  This
   keeps :cpp:`MFIter` from trying to pipeline across multiple AMReX-managed
   streams, but it also means you cannot currently provide a *set* of external
