@@ -3,9 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_FabArray.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_Print.H>
-#include <AMReX_ParReduce.H>
 #include <limits>
 
 namespace amrex {

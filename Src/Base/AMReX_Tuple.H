@@ -11,7 +11,7 @@
 
 #include <array>
 #include <functional>
-#include <tuple>
+#include <tuple> // IWYU pragma: export
 
 namespace amrex {
     template <class... Ts>

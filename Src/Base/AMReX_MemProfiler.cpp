@@ -8,7 +8,6 @@
 #include <numeric>
 #include <algorithm>
 #include <iomanip>
-#include <iostream>
 #include <fstream>
 
 #ifdef __linux__

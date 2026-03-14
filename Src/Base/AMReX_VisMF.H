@@ -5,10 +5,11 @@
 
 #include <AMReX_AsyncOut.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_FabArray.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_FabConv.H>
-#include <AMReX_NFiles.H>
+#include <AMReX_FabArray.H> // IWYU pragma: export
+#include <AMReX_FArrayBox.H> // IWYU pragma: export
+#include <AMReX_FabConv.H> // IWYU pragma: export
+#include <AMReX_IArrayBox.H> // IWYU pragma: export
+#include <AMReX_NFiles.H> // IWYU pragma: export
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMFBuffer.H>
 
@@ -17,6 +18,7 @@
 #include <sstream>
 #include <deque>
 #include <map>
+#include <memory>
 #include <numeric>
 #include <string>
 #include <type_traits>

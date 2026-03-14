@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_ccse-mpi.H>
-#include <AMReX_ParallelContext.H>
+#include <AMReX_ParallelContext.H> // IWYU pragma: export
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BLassert.H>

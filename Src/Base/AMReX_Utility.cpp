@@ -1,4 +1,3 @@
-#include <AMReX_BLFort.H>
 #include <AMReX_REAL.H>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
@@ -6,7 +5,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_FileSystem.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_BoxArray.H>
 #include <AMReX_Print.H>
 
 #ifdef AMREX_USE_OMP

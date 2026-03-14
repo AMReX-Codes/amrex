@@ -4,7 +4,7 @@
 
 #include <AMReX_Extension.H>
 #include <vector>
-#include <type_traits>
+#include <type_traits> // IWYU pragma: export
 
 // In case they are still used by applications
 #define AMREX_IS_TRIVIALLY_COPYABLE(T) std::is_trivially_copyable_v<T>

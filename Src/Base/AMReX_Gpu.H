@@ -9,28 +9,28 @@ namespace amrex::Hip {}
 namespace amrex::Cuda {}
 #endif
 
-#include <AMReX_GpuQualifiers.H>
-#include <AMReX_GpuKernelInfo.H>
-#include <AMReX_GpuPrint.H>
-#include <AMReX_GpuAssert.H>
-#include <AMReX_GpuTypes.H>
-#include <AMReX_GpuControl.H>
-#include <AMReX_GpuLaunch.H>
-#include <AMReX_GpuError.H>
+#include <AMReX_GpuQualifiers.H> // IWYU pragma: export
+#include <AMReX_GpuKernelInfo.H> // IWYU pragma: export
+#include <AMReX_GpuPrint.H> // IWYU pragma: export
+#include <AMReX_GpuAssert.H> // IWYU pragma: export
+#include <AMReX_GpuTypes.H> // IWYU pragma: export
+#include <AMReX_GpuControl.H> // IWYU pragma: export
+#include <AMReX_GpuLaunch.H> // IWYU pragma: export
+#include <AMReX_GpuError.H> // IWYU pragma: export
 
-#include <AMReX_GpuAtomic.H>
-#include <AMReX_GpuUtility.H>
-#include <AMReX_GpuDevice.H>
-#include <AMReX_GpuBuffer.H>
-#include <AMReX_GpuAsyncArray.H>
-#include <AMReX_GpuElixir.H>
-#include <AMReX_GpuMemory.H>
-#include <AMReX_GpuRange.H>
-#include <AMReX_GpuReduce.H>
+#include <AMReX_GpuAtomic.H> // IWYU pragma: export
+#include <AMReX_GpuUtility.H> // IWYU pragma: export
+#include <AMReX_GpuDevice.H> // IWYU pragma: export
+#include <AMReX_GpuBuffer.H> // IWYU pragma: export
+#include <AMReX_GpuAsyncArray.H> // IWYU pragma: export
+#include <AMReX_GpuElixir.H> // IWYU pragma: export
+#include <AMReX_GpuMemory.H> // IWYU pragma: export
+#include <AMReX_GpuRange.H> // IWYU pragma: export
+#include <AMReX_GpuReduce.H> // IWYU pragma: export
 
-#include <AMReX_GpuAllocators.H>
-#include <AMReX_GpuContainers.H>
-#include <AMReX_CudaGraph.H>
+#include <AMReX_GpuAllocators.H> // IWYU pragma: export
+#include <AMReX_GpuContainers.H> // IWYU pragma: export
+#include <AMReX_CudaGraph.H> // IWYU pragma: export
 
 namespace amrex::Gpu {
 #ifdef AMREX_USE_HIP

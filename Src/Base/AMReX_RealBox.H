@@ -7,7 +7,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
-#include <AMReX_RealVect.H>
+#include <AMReX_RealVect.H> // IWYU pragma: export
 #include <AMReX_SPACE.H>
 
 #include <iosfwd>

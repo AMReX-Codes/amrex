@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_ConstexprFor.H>
+#include <AMReX_ConstexprFor.H> // IWYU pragma: export
 #include <AMReX_Extension.H>
 
 namespace amrex {

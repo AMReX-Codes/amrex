@@ -7,10 +7,10 @@
 #include <AMReX_ArrayLim.H>
 #include <AMReX_BoxIterator.H>
 #include <AMReX_ccse-mpi.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_IndexType.H>
+#include <AMReX_IntVect.H> // IWYU pragma: export
+#include <AMReX_IndexType.H> // IWYU pragma: export
 #include <AMReX_Orientation.H>
-#include <AMReX_SPACE.H>
+#include <AMReX_SPACE.H> // IWYU pragma: export
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H>
 #include <AMReX_Vector.H>

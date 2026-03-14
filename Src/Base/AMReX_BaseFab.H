@@ -6,6 +6,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
+#include <AMReX_Array4.H> // IWYU pragma: export
 #include <AMReX_Box.H>
 #include <AMReX_Loop.H>
 #include <AMReX_BoxList.H>
@@ -15,10 +16,10 @@
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>
-#include <AMReX_MakeType.H>
+#include <AMReX_MakeType.H> // IWYU pragma: export
 #include <AMReX_Utility.H>
 #include <AMReX_Reduce.H>
-#include <AMReX_Gpu.H>
+#include <AMReX_Gpu.H> // IWYU pragma: export
 #include <AMReX_Scan.H>
 #include <AMReX_Math.H>
 #include <AMReX_OpenMP.H>

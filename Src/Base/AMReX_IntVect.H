@@ -2,11 +2,11 @@
 #define AMREX_INTVECT_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_INT.H>
-#include <AMReX_SPACE.H>
+#include <AMReX_INT.H> // IWYU pragma: export
+#include <AMReX_SPACE.H> // IWYU pragma: export
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
-#include <AMReX_Dim3.H>
+#include <AMReX_Dim3.H> // IWYU pragma: export
 #include <AMReX_BLassert.H>
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>

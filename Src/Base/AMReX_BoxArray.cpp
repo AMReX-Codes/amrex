@@ -4,7 +4,6 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_MFIter.H>
-#include <AMReX_BaseFab.H>
 
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>

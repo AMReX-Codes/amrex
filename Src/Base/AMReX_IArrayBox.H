@@ -4,10 +4,12 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_BaseFab.H>
+#include <AMReX_BaseFab.H> // IWYU pragma: export
 #include <AMReX_SPACE.H>
 
 #include <iosfwd>
+#include <memory>
+#include <string>
 
 namespace amrex {
 

@@ -5,10 +5,11 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_MFIter.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFabUtil_C.H>
+
+#include <memory>
 
 #include <AMReX_MultiFabUtilI.H>
 

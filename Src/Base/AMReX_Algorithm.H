@@ -8,7 +8,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Math.H>
 
-#include <algorithm>
+#include <algorithm> // IWYU pragma: export
 #include <limits>
 #include <type_traits>
 #include <cstdint>

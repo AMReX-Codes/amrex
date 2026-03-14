@@ -5,7 +5,7 @@
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_RandomEngine.H>
+#include <AMReX_RandomEngine.H> // IWYU pragma: export
 #include <limits>
 #include <cmath>
 #include <cstdint>

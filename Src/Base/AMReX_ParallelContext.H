@@ -4,7 +4,7 @@
 
 #include <AMReX_Extension.H>
 #include <AMReX_Vector.H>
-#include <AMReX_ccse-mpi.H>
+#include <AMReX_ccse-mpi.H> // IWYU pragma: export
 
 #include <iosfwd>
 #include <memory>

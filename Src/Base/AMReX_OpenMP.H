@@ -4,7 +4,7 @@
 
 #ifdef AMREX_USE_OMP
 #include <AMReX_Extension.H>
-#include <omp.h>
+#include <omp.h> // IWYU pragma: export
 
 namespace amrex::OpenMP {
 

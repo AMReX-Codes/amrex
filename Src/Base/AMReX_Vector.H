@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <memory>
 #include <string>
-#include <vector>
+#include <vector> // IWYU pragma: export
 
 namespace amrex {
 /**

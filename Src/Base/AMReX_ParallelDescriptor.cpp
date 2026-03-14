@@ -10,7 +10,6 @@
 #include <AMReX_Arena.H>
 
 #ifdef BL_USE_MPI
-#include <AMReX_ccse-mpi.H>
 #if __has_include(<mpi-ext.h>) && defined(OPEN_MPI)
 #         include <mpi-ext.h>
 #endif

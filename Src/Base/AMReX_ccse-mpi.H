@@ -11,7 +11,7 @@
 
 #ifdef BL_USE_MPI
 
-#include <mpi.h>
+#include <mpi.h> // IWYU pragma: export
 
 namespace amrex::ParallelDescriptor
 {

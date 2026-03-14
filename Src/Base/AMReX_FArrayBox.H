@@ -3,9 +3,14 @@
 #define BL_FARRAYBOX_H
 #include <AMReX_Config.H>
 
-#include <AMReX_BaseFab.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
+#include <AMReX_BaseFab.H> // IWYU pragma: export
 #include <AMReX_FabConv.H>
-#include <AMReX_FabFactory.H>
+#include <AMReX_FabFactory.H> // IWYU pragma: export
+
+#include <iosfwd>
+#include <memory>
+#include <string>
 
 namespace amrex {
 

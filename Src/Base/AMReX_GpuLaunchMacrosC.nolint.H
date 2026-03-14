@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_GpuLaunchMacrosC.H"
 // Do not include this header anywhere other than AMReX_GpuLaunchMacrosC.H.
 // The purpose of this file is to avoid clang-tidy.
 

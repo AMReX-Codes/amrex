@@ -1,5 +1,6 @@
 
 #include <AMReX_Algorithm.H>
+#include <AMReX.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_ParmParse.H>

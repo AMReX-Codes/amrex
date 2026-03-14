@@ -3,10 +3,10 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Array.H>
-#include <AMReX_CoordSys.H>
+#include <AMReX_CoordSys.H> // IWYU pragma: export
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_RealBox.H>
-#include <AMReX_Periodicity.H>
+#include <AMReX_RealBox.H> // IWYU pragma: export
+#include <AMReX_Periodicity.H> // IWYU pragma: export
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>

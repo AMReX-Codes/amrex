@@ -2,12 +2,12 @@
 #define BL_FABARRAYBASE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_BoxArray.H>
+#include <AMReX_BoxArray.H> // IWYU pragma: export
 #include <AMReX_DataAllocator.H>
-#include <AMReX_DistributionMapping.H>
+#include <AMReX_DistributionMapping.H> // IWYU pragma: export
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
-#include <AMReX_Periodicity.H>
+#include <AMReX_Periodicity.H> // IWYU pragma: export
 #include <AMReX_Print.H>
 #include <AMReX_Arena.H>
 #include <AMReX_Gpu.H>
@@ -17,6 +17,7 @@
 #endif
 
 #include <cstdint>
+#include <memory>
 #include <ostream>
 #include <string>
 #include <utility>

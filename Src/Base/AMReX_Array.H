@@ -12,7 +12,7 @@
 #include <AMReX_Dim3.H>
 #include <AMReX_Order.H>
 
-#include <array>
+#include <array> // IWYU pragma: export
 #include <memory>
 #include <utility>
 #include <sstream>

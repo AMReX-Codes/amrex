@@ -4,7 +4,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
-#include <AMReX_IntVect.H>
+#include <AMReX_IntVect.H> // IWYU pragma: export
 #include <AMReX_GpuPrint.H>
 #include <AMReX_ConstexprFor.H>
 

@@ -1,5 +1,4 @@
 #include <AMReX_BaseFab.H>
-#include <AMReX_BLFort.H>
 
 #ifdef AMREX_MEM_PROFILING
 #include <AMReX_MemProfiler.H>

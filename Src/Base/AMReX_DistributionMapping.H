@@ -7,7 +7,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX_REAL.H>
-#include <AMReX_ParallelDescriptor.H>
+#include <AMReX_ParallelDescriptor.H> // IWYU pragma: export
 
 #include <map>
 #include <limits>

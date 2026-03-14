@@ -3,8 +3,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_REAL.H>
-#include <AMReX_SPACE.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
+#include <AMReX_SPACE.H> // IWYU pragma: export
 #include <AMReX_IntVect.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Math.H>

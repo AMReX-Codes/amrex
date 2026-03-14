@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_PlotFileUtil.H"
 #ifndef AMREX_PLOT_FILE_DATA_IMPL_H_
 #define AMREX_PLOT_FILE_DATA_IMPL_H_
 #include <AMReX_Config.H>

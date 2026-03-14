@@ -3,11 +3,8 @@
 #ifdef BL_PROFILING
 
 #include <AMReX_BLProfiler.H>
-#include <AMReX_REAL.H>
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
 #include <AMReX_NFiles.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParmParse.H>
@@ -1698,7 +1695,6 @@ BL_FORT_PROC_DECL(BL_PROFFORTFUNCSTOP_CPP_INT,bl_proffortfuncstop_cpp_int)
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_ParallelContext.H>
 
 namespace amrex {
 

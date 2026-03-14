@@ -1,5 +1,6 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
+// IWYU pragma: private, include "AMReX_FabArray.H"
 
 namespace amrex {
 

@@ -2,7 +2,7 @@
 #define AMREX_STRING_H_
 #include <AMReX_Config.H>
 
-#include <string>
+#include <string> // IWYU pragma: export
 #include <vector>
 
 namespace amrex {

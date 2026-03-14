@@ -1,4 +1,5 @@
 
+// IWYU pragma: private, include "AMReX_MultiFabUtil.H"
 // Used by EB_LSCore only.  Might be removed in the future.  So don't use.
 
 /// \cond DOXYGEN_IGNORE
@@ -121,4 +122,3 @@ namespace amrex::MFUtil {
 }
 
 /// \endcond
-

@@ -1,4 +1,5 @@
 
+// IWYU pragma: private, include "AMReX_FabArray.H"
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 

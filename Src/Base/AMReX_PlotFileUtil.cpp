@@ -1,10 +1,7 @@
 
 #include "AMReX_ParallelDescriptor.H"
-#include <AMReX_VisMF.H>
 #include <AMReX_AsyncOut.H>
 #include <AMReX_PlotFileUtil.H>
-#include <AMReX_FPC.H>
-#include <AMReX_FabArrayUtility.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>

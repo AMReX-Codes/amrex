@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_Parser.H"
 #ifndef AMREX_PARSER_Y_H_
 #define AMREX_PARSER_Y_H_
 #include <AMReX_Config.H>

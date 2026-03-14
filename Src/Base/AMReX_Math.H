@@ -7,7 +7,7 @@
 #include <AMReX_INT.H>
 #include <AMReX_SIMD.H>
 #include <AMReX_REAL.H>
-#include <cmath>
+#include <cmath> // IWYU pragma: export
 #include <cstdlib>
 #include <limits>
 #include <type_traits>

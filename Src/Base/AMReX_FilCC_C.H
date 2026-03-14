@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_PhysBCFunct.H"
 #ifndef AMREX_FILL_CC_H_
 #define AMREX_FILL_CC_H_
 #include <AMReX_Config.H>

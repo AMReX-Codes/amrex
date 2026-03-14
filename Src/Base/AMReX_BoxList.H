@@ -5,7 +5,7 @@
 
 #include <AMReX_IntVect.H>
 #include <AMReX_IndexType.H>
-#include <AMReX_Box.H>
+#include <AMReX_Box.H> // IWYU pragma: export
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 

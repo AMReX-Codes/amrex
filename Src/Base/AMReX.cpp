@@ -2,9 +2,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX.H>
 #include <AMReX_BaseFab.H>
-#include <AMReX_Box.H>
+#include <AMReX_BoxArray.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_BLFort.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Random.H>
 #include <AMReX_Print.H>

@@ -4,14 +4,15 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
-#include <AMReX_BaseFab.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_FabArray.H>
+#include <AMReX_BaseFab.H> // IWYU pragma: export
+#include <AMReX_FArrayBox.H> // IWYU pragma: export
+#include <AMReX_FabArray.H> // IWYU pragma: export
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_NonLocalBC.H>
 
 #include <cstdint>
+#include <memory>
 
 namespace amrex
 {

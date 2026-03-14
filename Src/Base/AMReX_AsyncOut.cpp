@@ -1,9 +1,7 @@
 #include <AMReX_AsyncOut.H>
 #include <AMReX_BackgroundThread.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Vector.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_Utility.H>
 #include <AMReX.H>
 
 namespace amrex::AsyncOut {

@@ -8,11 +8,11 @@
 #include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX.H>
-#include <AMReX_BoxArray.H>
+#include <AMReX_BoxArray.H> // IWYU pragma: export
 #include <AMReX_BoxDomain.H>
-#include <AMReX_FabFactory.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_FabFactory.H> // IWYU pragma: export
+#include <AMReX_DistributionMapping.H> // IWYU pragma: export
+#include <AMReX_Geometry.H> // IWYU pragma: export
 #include <AMReX_GpuComplex.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
@@ -20,16 +20,16 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Periodicity.H>
 #include <AMReX_Print.H>
-#include <AMReX_FabArrayBase.H>
-#include <AMReX_MFIter.H>
+#include <AMReX_FabArrayBase.H> // IWYU pragma: export
+#include <AMReX_MFIter.H> // IWYU pragma: export
 #include <AMReX_MakeType.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_BaseFab.H>
+#include <AMReX_BaseFab.H> // IWYU pragma: export
 #include <AMReX_BaseFabUtility.H>
-#include <AMReX_MFParallelFor.H>
+#include <AMReX_MFParallelFor.H> // IWYU pragma: export
 #include <AMReX_TagParallelFor.H>
-#include <AMReX_ParReduce.H>
+#include <AMReX_ParReduce.H> // IWYU pragma: export
 
 #include <AMReX_Gpu.H>
 

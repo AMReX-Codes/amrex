@@ -14,7 +14,7 @@
 #include <AMReX_Arena.H>
 #include <AMReX_Tuple.H>
 #include <AMReX_Box.H>
-#include <AMReX_Loop.H>
+#include <AMReX_Loop.H> // IWYU pragma: export
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_TypeTraits.H>

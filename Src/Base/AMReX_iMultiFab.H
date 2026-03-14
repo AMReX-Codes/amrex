@@ -4,8 +4,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
-#include <AMReX_IArrayBox.H>
-#include <AMReX_FabArray.H>
+#include <AMReX_IArrayBox.H> // IWYU pragma: export
+#include <AMReX_FabArray.H> // IWYU pragma: export
 #include <AMReX_FabArrayUtility.H>
 #include <AMReX_Geometry.H>
 #include <memory>

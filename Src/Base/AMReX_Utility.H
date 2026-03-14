@@ -32,7 +32,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <type_traits>
-#include <utility>
+#include <utility> // IWYU pragma: export
 
 namespace amrex
 {
