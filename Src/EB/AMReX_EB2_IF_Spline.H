@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_EB2_IF.H"
 
 #ifndef AMREX_EB2_IF_SPLINE_H_
 #define AMREX_EB2_IF_SPLINE_H_

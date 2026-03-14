@@ -1,4 +1,5 @@
 
+// IWYU pragma: private, include "AMReX_EB2.H"
 template <typename G>
 IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
                                  int required_coarsening_level,

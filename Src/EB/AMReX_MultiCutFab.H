@@ -2,9 +2,8 @@
 #define AMREX_MULTICUTFAB_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FabArray.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_EBCellFlag.H>
+#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_EBCellFlag.H> // IWYU pragma: export
 
 namespace amrex {
 

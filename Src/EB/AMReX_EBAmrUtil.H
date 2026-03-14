@@ -2,8 +2,8 @@
 #define AMREX_EBAMRUTIL_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_TagBox.H>
-#include <AMReX_MultiFab.H>
+#include <AMReX_TagBox.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H> // IWYU pragma: export
 
 namespace amrex {
 
