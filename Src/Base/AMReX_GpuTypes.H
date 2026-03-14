@@ -5,6 +5,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_BaseFwd.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_IntVect.H>
 
 #ifdef AMREX_USE_GPU
 
@@ -112,8 +113,8 @@ struct LaunchHandler
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
     LaunchHandler() = default;
 #elif defined(AMREX_USE_SYCL)
-    LaunchHandler(sycl::nd_item<dim> const* a_item, T * a_shared_mem)
-        : m_item{a_item}, m_shared_mem{a_shared_mem} {}
+    LaunchHandler(sycl::nd_item<1> const* a_item, IntVectND<dim> a_blockid, T * a_shared_mem)
+        : m_item{a_item}, m_blockid{a_blockid}, m_shared_mem{a_shared_mem} {}
 #else
     LaunchHandler(IntVectND<dim> a_blockid, IntVectND<dim> a_griddim, T * a_shared_mem)
         : m_blockid{a_blockid}, m_griddim{a_griddim}, m_shared_mem{a_shared_mem} {}
@@ -170,13 +171,13 @@ struct LaunchHandler
         } else if constexpr (dim == 2) {
             return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 blockIdx.x + gridDim.x * blockIdx.y,
-                m_item->get_group_linear_id(),
+                m_item->get_group(0),
                 m_blockid[0] + m_griddim[0] * m_blockid[1]
             ));
         } else {
             return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 blockIdx.x + gridDim.x * blockIdx.y + gridDim.x * gridDim.y * blockIdx.z,
-                m_item->get_group_linear_id(),
+                m_item->get_group(0)),
                 m_blockid[0] + m_griddim[0] * m_blockid[1] +
                 m_griddim[0] * m_griddim[1] * m_blockid[2]
             ));
@@ -191,15 +192,14 @@ struct LaunchHandler
         if constexpr (dim == 1) {
             return AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 IntVectND<dim>(static_cast<int>(blockIdx.x)),
-                IntVectND<dim>(static_cast<int>(m_item->get_group(0))),
+                m_blockid,
                 m_blockid
             );
         } else if constexpr (dim == 2) {
             return AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 IntVectND<dim>(static_cast<int>(blockIdx.x),
                                static_cast<int>(blockIdx.y)),
-                IntVectND<dim>(static_cast<int>(m_item->get_group(1)),
-                               static_cast<int>(m_item->get_group(0))),
+                m_blockid,
                 m_blockid
             );
         } else {
@@ -207,9 +207,7 @@ struct LaunchHandler
                 IntVectND<dim>(static_cast<int>(blockIdx.x),
                                static_cast<int>(blockIdx.y),
                                static_cast<int>(blockIdx.z)),
-                IntVectND<dim>(static_cast<int>(m_item->get_group(2)),
-                               static_cast<int>(m_item->get_group(1)),
-                               static_cast<int>(m_item->get_group(0))),
+                m_blockid,
                 m_blockid
             );
         }
@@ -298,11 +296,11 @@ struct LaunchHandler
     }
 
     /**
-     * \brief Returns the internal sycl::nd_item.
+     * \brief Returns the internal sycl::nd_item<1>.
      */
     [[nodiscard]] AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 #if defined(AMREX_USE_SYCL)
-    const sycl::nd_item<dim>* sycl_item () const {
+    const sycl::nd_item<1>* sycl_item () const {
         return m_item;
     }
 #else
@@ -314,7 +312,8 @@ struct LaunchHandler
 private:
 
 #if defined(AMREX_USE_SYCL)
-    sycl::nd_item<dim> const* m_item;
+    sycl::nd_item<1> const* m_item;
+    IntVectND<dim> m_blockid;
     T * m_shared_mem;
 #elif !defined(AMREX_USE_GPU)
     IntVectND<dim> m_blockid;

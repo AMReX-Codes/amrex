@@ -905,29 +905,35 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 
     auto& q = Gpu::Device::streamQueue();
 
-    sycl::range<dim> threads_per_block;
-    sycl::range<dim> threads_total;
+    sycl::range<1> threads_per_block{MT};
+    sycl::range<1> threads_total{MT};
 
     for (int i=0; i<dim; ++i) {
-        threads_per_block[i] = (i == dim-1) ? MT : 1;
-        threads_total[i] = nblocks[dim-1-i] * threads_per_block[i];
+        threads_total[0] *= static_cast<std::size_t>(nblocks[i]);
     }
+
+    // With SYCL it is difficult to combine a 1D blockDim with an ND gridDim,
+    // so we use a 1D sycl range and split the blockID with BoxIndexerND. Note that
+    // BoxIndexerND is a bit inefficient since it is adding the smallEnd which is always zero here.
+    BoxIndexerND<dim> bxi(BoxND<dim>{IntVectND<dim>(0), nblocks - 1});
 
     try {
         q.submit([&] (sycl::handler& h) {
-            h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
-                [=] (sycl::nd_item<dim> item)
+            h.parallel_for(sycl::nd_range<1>(threads_total, threads_per_block),
+                [=] (sycl::nd_item<1> item)
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
                     if constexpr (detail::is_big_kernel<L>()) {
                         (*pf)(Gpu::LaunchHandler<MT, void, dim>{
                             &item,
+                            bxi.intVect(item.get_group(0)),
                             nullptr
                         });
                     } else {
                         f(Gpu::LaunchHandler<MT, void, dim>{
                             &item,
+                            bxi.intVect(item.get_group(0)),
                             nullptr
                         });
                     }
@@ -951,19 +957,23 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
     static_assert(alignof(ST) >= alignof(T));
     const std::size_t shared_mem_num = (shared_mem_elements*sizeof(T)+sizeof(ST)-1) / sizeof(ST);
 
-    sycl::range<dim> threads_per_block;
-    sycl::range<dim> threads_total;
+    sycl::range<1> threads_per_block{MT};
+    sycl::range<1> threads_total{MT};
 
     for (int i=0; i<dim; ++i) {
-        threads_per_block[i] = (i == dim-1) ? MT : 1;
-        threads_total[i] = nblocks[dim-1-i] * threads_per_block[i];
+        threads_total[0] *= static_cast<std::size_t>(nblocks[i]);
     }
+
+    // With SYCL it is difficult to combine a 1D blockDim with an ND gridDim,
+    // so we use a 1D sycl range and split the blockID with BoxIndexerND. Note that
+    // BoxIndexerND is a bit inefficient since it is adding the smallEnd which is always zero here.
+    BoxIndexerND<dim> bxi(BoxND<dim>{IntVectND<dim>(0), nblocks - 1});
 
     try {
         q.submit([&] (sycl::handler& h) {
             sycl::local_accessor<ST> shared_data(sycl::range<1>(shared_mem_num), h);
-            h.parallel_for(sycl::nd_range<dim>(threads_total, threads_per_block),
-                [=] (sycl::nd_item<dim> item)
+            h.parallel_for(sycl::nd_range<1>(threads_total, threads_per_block),
+                [=] (sycl::nd_item<1> item)
                 [[sycl::reqd_work_group_size(MT)]]
                 [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
                 {
@@ -972,11 +982,13 @@ void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const
                     if constexpr (detail::is_big_kernel<L>()) {
                         (*pf)(Gpu::LaunchHandler<MT, T, dim>{
                             &item,
+                            bxi.intVect(item.get_group(0)),
                             shared_mem
                         });
                     } else {
                         f(Gpu::LaunchHandler<MT, T, dim>{
                             &item,
+                            bxi.intVect(item.get_group(0)),
                             shared_mem
                         });
                     }
@@ -1385,7 +1397,7 @@ ParallelFor (Gpu::KernelInfo const&,
  * should be one of 128, 256, 512 or 1024.
  *
  * The number of total blocks can be a 1D, 2D or 3D IntVectND. Internally this uses the native
- * way to split the index, such as blockIdx.x, blockIdx.y and blockIdx.z.
+ * way to split the index for CUDA and HIP, using blockIdx.x, blockIdx.y and blockIdx.z.
  * Note that this uses types int and unsigned int which might overflow if many blocks or
  * total threads are needed. In case this is an issue, it is necessary to explicitly add
  * a 64-bit grid-strided loop or to call LaunchRaw multiple times with fewer blocks.
@@ -1423,7 +1435,7 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
  * should be one of 128, 256, 512 or 1024.
  *
  * The number of total blocks can be a 1D, 2D or 3D IntVectND. Internally this uses the native
- * way to split the index, such as blockIdx.x, blockIdx.y and blockIdx.z.
+ * way to split the index for CUDA and HIP, using blockIdx.x, blockIdx.y and blockIdx.z.
  * Note that this uses types int and unsigned int which might overflow if many blocks or
  * total threads are needed. In case this is an issue, it is necessary to explicitly add
  * a 64-bit grid-strided loop or to call LaunchRaw multiple times with fewer blocks.

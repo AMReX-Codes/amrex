@@ -1,3 +1,4 @@
+#include <AMReX_GpuTypes.H>
 #include <AMReX.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuContainers.H>
