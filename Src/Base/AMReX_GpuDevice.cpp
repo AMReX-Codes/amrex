@@ -742,8 +742,16 @@ Device::resetStream () noexcept
 gpuStream_t
 Device::setStream (gpuStream_t s) noexcept
 {
+    int const tid = OpenMP::get_thread_num();
     gpuStream_t r = gpuStream();
-    gpu_stream_index[OpenMP::get_thread_num()] = streamIndex(s);
+    for (auto it = external_stream_stack.rbegin(); it != external_stream_stack.rend(); ++it) {
+        AMREX_ASSERT(it->manager != nullptr);
+        if (it->manager->getStream() == s) {
+            setStreamIndex(it->saved_stream_index);
+            return r;
+        }
+    }
+    gpu_stream_index[tid] = streamIndex(s);
     return r;
 }
 
@@ -755,7 +763,9 @@ Device::setExternalStream (gpuStream_t s)
     // External stream overrides intentionally do not try to synchronize
     // OpenACC stream state. AMReX does not support mixing OpenACC work into
     // these regions.
-    external_stream_stack.emplace_back(ExternalStream{std::make_unique<StreamManager>()});
+    external_stream_stack.emplace_back(
+        ExternalStream{std::make_unique<StreamManager>(),
+                       gpu_stream_index[OpenMP::get_thread_num()]});
     external_stream_stack.back().manager->getStream() = s;
 }
 

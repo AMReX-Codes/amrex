@@ -270,6 +270,7 @@ private:
     struct ExternalStream
     {
         std::unique_ptr<StreamManager> manager;
+        int saved_stream_index = 0;
     };
     static AMREX_EXPORT Vector<ExternalStream> external_stream_stack;
 
