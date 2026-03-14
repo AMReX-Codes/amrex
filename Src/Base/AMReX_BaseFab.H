@@ -11,6 +11,7 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
+#include <AMReX_PArena.H>
 #include <AMReX_SArena.H>
 #include <AMReX_DataAllocator.H>
 #include <AMReX_REAL.H>
@@ -1463,6 +1464,11 @@ BaseFab<T>::define ()
     AMREX_ASSERT(this->nvar >= 0);
     if (this->nvar == 0) { return; }
     AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
+#ifdef AMREX_USE_GPU
+    if (dynamic_cast<PArena*>(this->arena()) != nullptr) {
+        amrex::Abort("BaseFab does not support PArena.");
+    }
+#endif
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
