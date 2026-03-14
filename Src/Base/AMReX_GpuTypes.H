@@ -177,7 +177,7 @@ struct LaunchHandler
         } else {
             return static_cast<unsigned int>(AMREX_HIP_CUDA_OR_SYCL_OR_CPU(
                 blockIdx.x + gridDim.x * blockIdx.y + gridDim.x * gridDim.y * blockIdx.z,
-                m_item->get_group(0)),
+                m_item->get_group(0),
                 m_blockid[0] + m_griddim[0] * m_blockid[1] +
                 m_griddim[0] * m_griddim[1] * m_blockid[2]
             ));
