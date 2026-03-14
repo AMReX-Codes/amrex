@@ -510,6 +510,16 @@ public:
         m_max_stream_index = std::max(m_max_stream_index,streamIndexChecked(s));
     }
 
+    void assertValueStream (gpuStream_t const& s) const
+    {
+        if (m_stream_index_zero_set) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_stream_index_zero == s,
+                "ReduceData::value() must be evaluated on the same stream that used "
+                "slot 0. Do not read a reduction result outside the external GPU "
+                "stream region that launched it.");
+        }
+    }
+
 private:
     int streamIndexChecked (gpuStream_t const& s)
     {
@@ -858,6 +868,7 @@ public:
 
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
+        reduce_data.assertValueStream(stream);
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
 #if defined(AMREX_USE_SYCL)

@@ -1552,7 +1552,9 @@ Limitations and best practices:
 * Likewise, reuse a given :cpp:`Reducer` or :cpp:`ReduceData` object only on a
   single external stream.  Reusing the same object across different external
   stream regions, or across an external stream and AMReX stream 0, is not
-  supported and triggers an assertion.
+  supported and triggers an assertion.  If a reduction is launched inside an
+  external-stream region with :cpp:`ExternalStreamSync::No`, read its final
+  value before leaving that region.
 * Make sure the external stream remains valid for the duration of the override.
   Destroying it before the RAII guard goes out of scope is undefined behavior.
 
