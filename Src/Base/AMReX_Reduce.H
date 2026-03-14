@@ -473,9 +473,10 @@ public:
     }
 
     ~ReduceData () {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            !m_used_external_stream || m_value_called,
+            "ReduceData used on an external GPU stream must call value() before destruction.");
         The_Pinned_Arena()->free(m_host_tuple);
-        // Intentional limitation: ReduceData does not defer device-buffer
-        // lifetime to an external stream.
         The_Arena()->free(m_device_tuple);
     }
 
@@ -486,15 +487,17 @@ public:
 
     Type value ()
     {
-        return m_fn_value();
+        Type r = m_fn_value();
+        m_value_called = true;
+        return r;
     }
 
     template <typename... Ps>
     Type value (ReduceOps<Ps...> & reduce_op)
     {
-        // Intentional limitation: if reduction work ran on an external stream,
-        // read the result before leaving that stream region.
-        return reduce_op.value(*this);
+        Type r = reduce_op.value(*this);
+        m_value_called = true;
+        return r;
     }
 
     Type* devicePtr () { return m_device_tuple; }
@@ -514,10 +517,13 @@ public:
         m_max_stream_index = std::max(m_max_stream_index,streamIndexChecked(s));
     }
 
+    void markValueCalled () noexcept { m_value_called = true; }
+
 private:
     int streamIndexChecked (gpuStream_t const& s)
     {
         int const idx = Gpu::Device::streamIndex(s);
+        m_used_external_stream = m_used_external_stream || Gpu::Device::usingExternalStream();
         if (idx == 0) {
             if (m_stream_index_zero_set) {
                 AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_stream_index_zero == s,
@@ -538,6 +544,8 @@ private:
     GpuArray<int,AMREX_GPU_MAX_STREAMS> m_nblocks;
     gpuStream_t m_stream_index_zero{};
     bool m_stream_index_zero_set = false;
+    bool m_used_external_stream = false;
+    bool m_value_called = false;
     std::function<Type()> m_fn_value;
 };
 
@@ -857,6 +865,7 @@ public:
         auto hp = reduce_data.hostPtr();
 
         if (m_result_is_ready) {
+            reduce_data.markValueCalled();
             return *hp;
         }
 
@@ -933,6 +942,7 @@ public:
         }
 
         m_result_is_ready = true;
+        reduce_data.markValueCalled();
         return *hp;
     }
 
