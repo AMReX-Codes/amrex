@@ -785,6 +785,17 @@ Device::setExternalStream (gpuStream_t s)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!OpenMP::in_parallel(),
         "Gpu::setExternalGpuStream is not supported inside OpenMP parallel regions.");
+#ifdef AMREX_USE_HIP
+    int stream_device = -1;
+    AMREX_HIP_SAFE_CALL(hipStreamGetDevice(s, &stream_device));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stream_device == Device::deviceId(),
+        "Gpu::setExternalGpuStream: external HIP stream must belong to the active device.");
+#elif defined(AMREX_USE_CUDA)
+    int stream_device = -1;
+    AMREX_CUDA_SAFE_CALL(cudaStreamGetDevice(s, &stream_device));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stream_device == Device::deviceId(),
+        "Gpu::setExternalGpuStream: external CUDA stream must belong to the active device.");
+#endif
 #ifdef AMREX_USE_SYCL
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue != nullptr,
         "Gpu::setExternalGpuStream: null SYCL queue is not supported.");
