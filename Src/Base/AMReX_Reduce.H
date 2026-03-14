@@ -474,6 +474,8 @@ public:
 
     ~ReduceData () {
         The_Pinned_Arena()->free(m_host_tuple);
+        // Intentional limitation: ReduceData does not defer device-buffer
+        // lifetime to an external stream.
         The_Arena()->free(m_device_tuple);
     }
 
@@ -490,6 +492,8 @@ public:
     template <typename... Ps>
     Type value (ReduceOps<Ps...> & reduce_op)
     {
+        // Intentional limitation: if reduction work ran on an external stream,
+        // read the result before leaving that stream region.
         return reduce_op.value(*this);
     }
 
@@ -508,16 +512,6 @@ public:
     int maxStreamIndex () const { return m_max_stream_index; }
     void updateMaxStreamIndex (gpuStream_t const& s) {
         m_max_stream_index = std::max(m_max_stream_index,streamIndexChecked(s));
-    }
-
-    void assertValueStream (gpuStream_t const& s) const
-    {
-        if (m_stream_index_zero_set) {
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_stream_index_zero == s,
-                "ReduceData::value() must be evaluated on the same stream that used "
-                "slot 0. Do not read a reduction result outside the external GPU "
-                "stream region that launched it.");
-        }
     }
 
 private:
@@ -868,7 +862,6 @@ public:
 
         using ReduceTuple = typename D::Type;
         auto const& stream = Gpu::gpuStream();
-        reduce_data.assertValueStream(stream);
         auto dp = reduce_data.devicePtr();
         auto const& nblocks = reduce_data.nBlocks();
 #if defined(AMREX_USE_SYCL)

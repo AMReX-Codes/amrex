@@ -1466,6 +1466,8 @@ BaseFab<T>::define ()
     AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
 #ifdef AMREX_USE_GPU
     if (dynamic_cast<PArena*>(this->arena()) != nullptr) {
+        // Intentional for now: BaseFab does not support PArena in the
+        // external-stream work.
         amrex::Abort("BaseFab does not support PArena.");
     }
 #endif
