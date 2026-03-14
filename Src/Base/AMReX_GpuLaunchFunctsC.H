@@ -136,7 +136,7 @@ void launch (T const& n, L&& f) noexcept
 template<int MT, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 {
-    static_assert(MT == 1, "LaunchRaw with CPU backend only with one thread per block! "
+    static_assert(MT == 1, "LaunchRaw with CPU backend only works with one thread per block! "
         "Otherwise the syncthreads function would not work");
     if constexpr(dim == 1) {
         for (int bx=0; bx < nblocks[0]; ++bx) {
@@ -165,7 +165,7 @@ void LaunchRaw (IntVectND<dim> nblocks, L const& f)
 template<int MT, typename T, int dim, typename L>
 void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
 {
-    static_assert(MT == 1, "LaunchRaw with CPU backend only with one thread per block! "
+    static_assert(MT == 1, "LaunchRaw with CPU backend only works with one thread per block! "
         "Otherwise the syncthreads function would not work");
     std::vector<T> smem(shared_mem_elements);
     if constexpr(dim == 1) {
