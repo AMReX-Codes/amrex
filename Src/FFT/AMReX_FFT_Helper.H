@@ -141,9 +141,17 @@ namespace detail { void hip_execute (rocfft_plan plan, void **in, void **out); }
 /// \cond DOXYGEN_IGNORE
 namespace detail
 {
+inline void assert_no_external_stream ()
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !amrex::Gpu::Device::usingExternalStream(),
+        "SYCL FFT does not support external GPU streams.");
+}
+
 template <typename T, Direction direction, typename P, typename TI, typename TO>
 void sycl_execute (P* plan, TI* in, TO* out)
 {
+    assert_no_external_stream();
 #ifndef AMREX_USE_MKL_DFTI_2024
     std::int64_t workspaceSize = 0;
 #else
@@ -349,6 +357,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -509,6 +518,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -683,6 +693,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -1476,6 +1487,7 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #endif
     pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                   oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+    detail::assert_no_external_stream();
     pp->commit(amrex::Gpu::Device::streamQueue());
     plan = pp;
 

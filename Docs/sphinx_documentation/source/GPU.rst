@@ -1556,6 +1556,12 @@ Limitations and best practices:
   read its final value before leaving that region.
 * Make sure the external stream remains valid for the duration of the override.
   Destroying it before the RAII guard goes out of scope is undefined behavior.
+* Using :cpp:`ExternalStreamSync::No` transfers synchronization responsibility
+  to the caller.  After :cpp:`resetExternalGpuStream(ExternalStreamSync::No)`,
+  AMReX no longer tracks that external stream, and later AMReX global
+  synchronization helpers are not guaranteed to wait for work already queued
+  on it.  It is the user's responsibility to synchronize that external stream
+  before any dependent teardown or finalization.
 
 Example: wrap AMReX work inside an externally created CUDA stream:
 

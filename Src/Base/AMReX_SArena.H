@@ -55,7 +55,7 @@ public:
 #ifdef AMREX_USE_GPU
     //! Is this a GPU stream ordered memory allocator?
     [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
-    void streamOrderedFree (void* pt, gpuStream_t stream);
+    void streamOrderedFree (void* pt, gpuStream_t stream) override;
 #endif
 };
 

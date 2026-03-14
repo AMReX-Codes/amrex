@@ -11,8 +11,6 @@
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
-#include <AMReX_PArena.H>
-#include <AMReX_SArena.H>
 #include <AMReX_DataAllocator.H>
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
@@ -1464,16 +1462,6 @@ BaseFab<T>::define ()
     AMREX_ASSERT(this->nvar >= 0);
     if (this->nvar == 0) { return; }
     AMREX_ASSERT(std::numeric_limits<Long>::max()/this->nvar > this->domain.numPts());
-#ifdef AMREX_USE_GPU
-    if (dynamic_cast<PArena*>(this->arena()) != nullptr &&
-        Gpu::Device::usingExternalStream() &&
-        Gpu::Device::memoryPoolsSupported())
-    {
-        // Intentional for now: BaseFab does not support PArena inside an
-        // external-stream region when PArena uses stream-ordered allocation.
-        amrex::Abort("BaseFab does not support PArena inside an external GPU stream region.");
-    }
-#endif
 
     this->truesize  = this->nvar*this->domain.numPts();
     this->ptr_owner = true;
@@ -1718,13 +1706,10 @@ BaseFab<T>::clear () noexcept
             placementDelete(this->dptr, this->truesize);
 
 #ifdef AMREX_USE_GPU
-            if (auto* s_arena = dynamic_cast<SArena*>(this->arena())) {
-                s_arena->streamOrderedFree(this->dptr, alloc_stream);
-            } else
+            this->arena()->streamOrderedFree(this->dptr, alloc_stream);
+#else
+            this->free(this->dptr);
 #endif
-            {
-                this->free(this->dptr);
-            }
 
             if (this->nvar > 1) {
                 amrex::update_fab_stats(-this->truesize/this->nvar, -this->truesize, sizeof(T));

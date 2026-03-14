@@ -708,13 +708,19 @@ int Device::numDevicePartners () noexcept
 int
 Device::streamIndex (gpuStream_t s) noexcept
 {
+    for (auto const& ext : external_stream_stack) {
+        AMREX_ASSERT(ext.manager != nullptr);
+        if (ext.manager->getStream() == s) {
+            return 0;
+        }
+    }
     const int N = gpu_stream_pool.size();
     for (int i = 0; i < N ; ++i) {
         if (gpu_stream_pool[i].getStream() == s) {
             return i;
         }
     }
-    return 0;
+    return N;
 }
 #endif
 
@@ -751,7 +757,11 @@ Device::setStream (gpuStream_t s) noexcept
             return r;
         }
     }
-    gpu_stream_index[tid] = streamIndex(s);
+    int const idx = streamIndex(s);
+    if (idx == static_cast<int>(gpu_stream_pool.size())) {
+        amrex::Abort("Gpu::Device::setStream: stream is not managed by AMReX.");
+    }
+    gpu_stream_index[tid] = idx;
     return r;
 }
 
@@ -777,13 +787,19 @@ Device::resetExternalStream (ExternalStreamSync sync_stream) noexcept
 
     if (external_stream_stack.empty()) { return; }
 
-    auto manager = std::move(external_stream_stack.back().manager);
-    external_stream_stack.pop_back();
-    if (manager) {
-        if (sync_stream == ExternalStreamSync::Yes || manager->wait_list_size() > 0) {
-            manager->sync();
+    auto& external_stream = external_stream_stack.back();
+    if (external_stream.manager) {
+        // ExternalStreamSync::No hands synchronization responsibility back to
+        // the caller. Once the stream is popped, AMReX no longer tracks it in
+        // global stream synchronization helpers, and it is the caller's
+        // responsibility to synchronize the external stream when needed.
+        if (sync_stream == ExternalStreamSync::Yes || external_stream.manager->wait_list_size() > 0) {
+            external_stream.manager->sync();
         }
     }
+    int const saved_stream_index = external_stream.saved_stream_index;
+    external_stream_stack.pop_back();
+    setStreamIndex(saved_stream_index);
 }
 
 bool
@@ -796,22 +812,12 @@ Device::usingExternalStream () noexcept
 void
 Device::synchronize () noexcept
 {
-#ifdef AMREX_USE_SYCL
-    for (auto& ext : external_stream_stack) {
-        if (ext.manager) {
-            ext.manager->sync();
-        }
-    }
-    for (auto& s : gpu_stream_pool) {
-        try {
-            s.getStream().queue->wait_and_throw();
-        } catch (sycl::exception const& ex) {
-            amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
-        }
-    }
-#else
+#ifdef AMREX_USE_GPU
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
+    // After the device-wide sync completes, synchronizing all AMReX-managed
+    // streams is cheap and drains deferred frees queued on their managers.
+    streamSynchronizeAll();
 #endif
 }
 
