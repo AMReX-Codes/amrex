@@ -78,7 +78,6 @@
 #include <cstring>
 #include <csignal>
 #include <iostream>
-#include <memory>
 #include <new>
 #include <optional>
 #include <sstream>

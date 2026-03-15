@@ -5,7 +5,6 @@
 #include <AMReX_OpenMP.H>
 
 #include <limits>
-#include <memory>
 #include <utility>
 
 namespace amrex {

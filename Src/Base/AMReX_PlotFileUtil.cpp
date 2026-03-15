@@ -8,7 +8,6 @@
 #endif
 
 #include <fstream>
-#include <memory>
 #include <utility>
 
 namespace amrex {

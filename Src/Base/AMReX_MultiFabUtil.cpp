@@ -2,9 +2,7 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Random.H>
 
-#include <memory>
 #include <utility>
-#include <vector>
 
 namespace {
 

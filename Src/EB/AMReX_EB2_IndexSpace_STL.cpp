@@ -1,8 +1,6 @@
 #include <AMReX_EB2_IndexSpace_STL.H>
 
-#include <algorithm>
 #include <iterator>
-#include <string>
 
 namespace amrex::EB2 {
 

@@ -19,9 +19,6 @@
 #include <limits>
 #include <cstdlib>
 #include <cmath>
-#include <map>
-#include <set>
-#include <utility>
 
 namespace amrex {
 

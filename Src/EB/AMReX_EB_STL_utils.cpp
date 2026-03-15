@@ -5,12 +5,8 @@
 #include <AMReX_Math.H>
 #include <AMReX_Stack.H>
 
-#include <algorithm>
 #include <fstream>
 #include <cstring>
-#include <limits>
-#include <string>
-#include <utility>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 

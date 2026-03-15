@@ -4,7 +4,6 @@
 #include <AMReX_EB_chkpt_file.H>
 
 #include <algorithm>
-#include <utility>
 #include <vector>
 
 namespace amrex::EB2 {
