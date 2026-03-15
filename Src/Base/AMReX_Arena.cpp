@@ -125,6 +125,21 @@ Arena::hasFreeDeviceMemory (std::size_t)
     return true;
 }
 
+#ifdef AMREX_USE_GPU
+void
+Arena::streamOrderedFree (void* pt, gpuStream_t stream)
+{
+    amrex::ignore_unused(stream);
+
+    if (!isStreamOrderedArena()) {
+        free(pt);
+    } else {
+        amrex::Abort("Arena::streamOrderedFree: arena reports stream-ordered semantics "
+                     "but does not override streamOrderedFree.");
+    }
+}
+#endif
+
 void
 Arena::registerForProfiling ([[maybe_unused]] const std::string& memory_name)
 {
