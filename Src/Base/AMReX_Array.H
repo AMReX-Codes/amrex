@@ -10,7 +10,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Algorithm.H>
 #include <AMReX_Dim3.H>
-#include <AMReX_Order.H>
+#include <AMReX_Order.H> // IWYU pragma: export
 
 #include <array> // IWYU pragma: export
 #include <memory>

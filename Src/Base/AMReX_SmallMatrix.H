@@ -7,7 +7,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_ConstexprFor.H>
-#include <AMReX_Order.H>
+#include <AMReX_Order.H> // IWYU pragma: export
 
 #include <algorithm>
 #include <initializer_list>

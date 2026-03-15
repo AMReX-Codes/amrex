@@ -3,7 +3,6 @@
 #define BL_BOXARRAY_H
 #include <AMReX_Config.H>
 
-#include <AMReX_IndexType.H>
 #include <AMReX_BoxList.H> // IWYU pragma: export
 #include <AMReX_Array.H>
 #include <AMReX_Periodicity.H> // IWYU pragma: export
