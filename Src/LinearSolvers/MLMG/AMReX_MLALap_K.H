@@ -2,7 +2,8 @@
 #define AMREX_MLALAP_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_MLALap_1D_K.H>

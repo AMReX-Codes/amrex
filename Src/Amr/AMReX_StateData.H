@@ -8,7 +8,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MFCopyDescriptor.H>
 #include <AMReX_BCRec.H>
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
 #include <AMReX_DistributionMapping.H>

@@ -3,7 +3,9 @@
 // IWYU pragma: private, include "AMReX_YAFluxRegister_K.H"
 #include <AMReX_Config.H>
 
-#include <AMReX_BaseFab.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
+#include <AMReX_Gpu.H>
 
 namespace amrex {
 

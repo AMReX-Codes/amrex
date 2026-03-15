@@ -5,7 +5,6 @@
 #include <AMReX_Algorithm.H>
 #include <AMReX_Extension.H>
 #include <AMReX_BLassert.H>
-#include <AMReX_Array.H>
 #include <AMReX_Array4.H> // IWYU pragma: export
 #include <AMReX_Box.H> // IWYU pragma: export
 #include <AMReX_Loop.H>

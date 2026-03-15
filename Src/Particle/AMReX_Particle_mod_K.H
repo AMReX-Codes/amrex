@@ -2,8 +2,9 @@
 #define AMREX_PARTICLE_MOD_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FArrayBox.H>
-#include <AMReX_REAL.H>
+#include <AMReX_Array.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Gpu.H>
 #include <cmath>
 
 namespace amrex {

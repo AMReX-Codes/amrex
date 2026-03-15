@@ -3,8 +3,8 @@
 // IWYU pragma: private, include "AMReX_Extrapolater.H"
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 
 #if (AMREX_SPACEDIM == 1)

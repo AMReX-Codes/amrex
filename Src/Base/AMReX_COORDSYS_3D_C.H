@@ -5,7 +5,6 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Array.H>
-#include <AMReX_FArrayBox.H>
 #include <cmath>
 
 namespace amrex {

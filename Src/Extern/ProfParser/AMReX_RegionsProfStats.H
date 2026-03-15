@@ -9,7 +9,6 @@
 #include <AMReX_BLProfiler.H>
 #include <AMReX_REAL.H>
 #include <AMReX_SPACE.H>
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

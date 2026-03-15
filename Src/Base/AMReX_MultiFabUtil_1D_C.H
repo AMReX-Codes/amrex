@@ -5,7 +5,8 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
 #include <AMReX_IArrayBox.H>
 #include <cmath>
 

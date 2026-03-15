@@ -28,7 +28,6 @@ using std::string;
 #include <AMReX_RegionsProfStats.H>
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_Box.H>

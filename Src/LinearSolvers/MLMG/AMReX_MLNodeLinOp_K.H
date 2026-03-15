@@ -2,7 +2,8 @@
 #define AMREX_ML_NODE_LINOP_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
 
 /// \cond DOXYGEN_IGNORE
 namespace amrex::nodelap_detail {

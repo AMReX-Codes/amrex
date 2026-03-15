@@ -3,7 +3,6 @@
 #define AMREX_RealBox_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>

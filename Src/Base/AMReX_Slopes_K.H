@@ -2,7 +2,7 @@
 #define AMREX_SLOPES_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_BaseFab.H>
+#include <AMReX_Array4.H>
 
 namespace amrex {
 

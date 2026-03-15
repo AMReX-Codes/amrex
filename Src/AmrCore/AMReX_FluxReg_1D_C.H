@@ -5,7 +5,8 @@
 
 #if (AMREX_SPACEDIM == 1)
 
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
 
 namespace amrex {
 

@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 #include <AMReX_Array4.H>
 #include <AMReX_EBCellFlag.H>
-#include <AMReX_Array.H>
 #include <AMReX_Box.H>
 
 #include <vector>

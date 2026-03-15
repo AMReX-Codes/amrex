@@ -11,7 +11,7 @@
 #include <AMReX_IndexType.H> // IWYU pragma: export
 #include <AMReX_Orientation.H> // IWYU pragma: export
 #include <AMReX_SPACE.H> // IWYU pragma: export
-#include <AMReX_Array.H>
+#include <AMReX_Array.H> // IWYU pragma: export
 #include <AMReX_Array4.H>
 #include <AMReX_Vector.H>
 #include <AMReX_GpuQualifiers.H>

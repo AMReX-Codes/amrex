@@ -4,7 +4,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BCRec.H>
-#include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
 #if (AMREX_SPACEDIM == 2)

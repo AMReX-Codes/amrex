@@ -2,7 +2,8 @@
 #define AMREX_MLMG_K_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FArrayBox.H>
+#include <AMReX_Array4.H>
+#include <AMReX_Box.H>
 #ifdef AMREX_USE_EB
 #include <AMReX_EBCellFlag.H>
 #endif
