@@ -2,7 +2,6 @@
 #define AMREX_PARTICLEUTIL_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>

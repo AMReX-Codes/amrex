@@ -5,8 +5,6 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
 #include <AMReX_Enum.H> // IWYU pragma: export
-#include <AMReX_INT.H>
-#include <AMReX_IntVect.H>
 #include <AMReX_IParser.H> // IWYU pragma: export
 #include <AMReX_Parser.H> // IWYU pragma: export
 #include <AMReX_TypeTraits.H>

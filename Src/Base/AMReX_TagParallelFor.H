@@ -6,7 +6,6 @@
 #include <AMReX_Array4.H>
 #include <AMReX_Box.H>
 #include <AMReX_GpuLaunch.H>
-#include <AMReX_Vector.H>
 #include <limits>
 #include <utility>
 

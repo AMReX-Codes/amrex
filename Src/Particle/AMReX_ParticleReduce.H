@@ -2,14 +2,12 @@
 #define AMREX_PARTICLEREDUCE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_IntVect.H>
 #include <AMReX_Box.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Print.H>
 #include <AMReX_GpuUtility.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_ParticleUtil.H>
-#include <AMReX_Vector.H>
 
 #include <limits>
 #include <type_traits>
