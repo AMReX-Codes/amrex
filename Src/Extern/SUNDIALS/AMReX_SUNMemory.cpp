@@ -1,6 +1,7 @@
 #include <AMReX_Sundials_Core.H>
 #include <AMReX_SUNMemory.H>
 #include <AMReX.H>
+#include <AMReX_Vector.H>
 
 #if defined(AMREX_USE_HIP)
 #include <sunmemory/sunmemory_hip.h>
