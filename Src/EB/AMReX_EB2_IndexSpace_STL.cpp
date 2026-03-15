@@ -1,5 +1,9 @@
 #include <AMReX_EB2_IndexSpace_STL.H>
 
+#include <algorithm>
+#include <iterator>
+#include <string>
+
 namespace amrex::EB2 {
 
 IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,

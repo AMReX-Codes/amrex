@@ -7,6 +7,9 @@
 #include <AMReX_WriteEBSurface.H>
 #include <AMReX_EBToPVD.H>
 
+#include <array>
+#include <memory>
+
 namespace amrex {
 
 void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,

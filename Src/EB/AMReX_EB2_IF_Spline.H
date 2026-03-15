@@ -11,6 +11,9 @@
 #include <AMReX_Array.H>
 #include <AMReX_distFcnElement.H>
 
+#include <utility>
+#include <vector>
+
 namespace amrex::EB2 {
 
 /*

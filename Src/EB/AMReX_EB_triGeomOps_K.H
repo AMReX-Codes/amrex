@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_EB_STL_utils.H"
 #ifndef AMREX_EB_TRIGEOMOPS_K_H_
 #define AMREX_EB_TRIGEOMOPS_K_H_
 #include <AMReX_Config.H>

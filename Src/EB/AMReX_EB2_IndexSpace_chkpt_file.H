@@ -2,8 +2,8 @@
 #define AMREX_EB2_INDEXSPACE_CHKPTFILE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_EB2.H>
-#include <AMReX_EB2_Level_chkpt_file.H>
+#include <AMReX_EB2.H> // IWYU pragma: export
+#include <AMReX_EB2_Level_chkpt_file.H> // IWYU pragma: export
 
 #include <string>
 

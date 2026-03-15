@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_EBMultiFabUtil.H"
 #ifndef AMREX_EB_MULTIFAB_UTIL_C_H_
 #define AMREX_EB_MULTIFAB_UTIL_C_H_
 #include <AMReX_Config.H>

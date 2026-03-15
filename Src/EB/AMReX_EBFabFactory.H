@@ -2,14 +2,16 @@
 #define AMREX_EBFABFACTORY_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_FabFactory.H>
+#include <AMReX_FabFactory.H> // IWYU pragma: export
 
-#include <AMReX_EBData.H>
+#include <AMReX_EBData.H> // IWYU pragma: export
 #include <AMReX_EBDataCollection.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_EBSupport.H>
-#include <AMReX_Array.H>
-#include <AMReX_MFIter.H>
+#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_EBSupport.H> // IWYU pragma: export
+#include <AMReX_Array.H> // IWYU pragma: export
+#include <AMReX_MFIter.H> // IWYU pragma: export
+
+#include <memory>
 
 namespace amrex
 {

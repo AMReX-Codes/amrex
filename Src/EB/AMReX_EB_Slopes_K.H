@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_EB_Redistribution.H"
 #ifndef AMREX_EB_SLOPES_K_H_
 #define AMREX_EB_SLOPES_K_H_
 

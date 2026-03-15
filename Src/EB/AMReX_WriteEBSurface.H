@@ -2,8 +2,8 @@
 #define AMREX_WRITE_EBSURFACE_H
 #include <AMReX_Config.H>
 
-#include <AMReX_MultiFab.H>
-#include <AMReX_Geometry.H>
+#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_Geometry.H> // IWYU pragma: export
 
 namespace amrex {
 
@@ -15,4 +15,3 @@ void WriteEBSurface (const amrex::BoxArray & ba, const amrex::DistributionMappin
 }
 
 #endif
-

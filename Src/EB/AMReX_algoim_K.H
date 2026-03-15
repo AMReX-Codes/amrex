@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_algoim.H"
 /*
  * This file contains a modified version of Algoim developed by
  * R. Saye, SIAM J. Sci. Comput., Vol. 37, No. 2, pp. A993-A1019,

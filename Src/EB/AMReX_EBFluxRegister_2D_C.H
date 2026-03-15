@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_EBFluxRegister_C.H"
 #ifndef AMREX_EB_FLUXREGISTER_2D_C_H_
 #define AMREX_EB_FLUXREGISTER_2D_C_H_
 #include <AMReX_Config.H>

@@ -2,8 +2,8 @@
 #define AMREX_EB2_LEVEL_STL_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_EB2_Level.H>
-#include <AMReX_EB_STL_utils.H>
+#include <AMReX_EB2_Level.H> // IWYU pragma: export
+#include <AMReX_EB_STL_utils.H> // IWYU pragma: export
 
 namespace amrex::EB2 {
 

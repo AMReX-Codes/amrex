@@ -8,8 +8,10 @@
 #include <AMReX_EB2_Graph.H>
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <string>
 #include <utility>
 
 namespace amrex

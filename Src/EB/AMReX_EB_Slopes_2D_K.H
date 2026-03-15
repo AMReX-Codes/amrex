@@ -1,3 +1,4 @@
+// IWYU pragma: private, include "AMReX_EB_Slopes_K.H"
 #ifndef AMREX_HYDRO_EB_SLOPES_2D_K_H_
 #define AMREX_HYDRO_EB_SLOPES_2D_K_H_
 

@@ -8,7 +8,7 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 
-#include <AMReX_VisMF.H>
+#include <algorithm>
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>

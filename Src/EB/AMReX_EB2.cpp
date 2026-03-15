@@ -17,7 +17,12 @@
 #endif
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
+
 #include <algorithm>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace amrex::EB2 {
 

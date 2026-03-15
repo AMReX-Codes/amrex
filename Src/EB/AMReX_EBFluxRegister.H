@@ -2,8 +2,10 @@
 #define AMREX_EBFLUXREGISTER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_YAFluxRegister.H>
-#include <AMReX_EBCellFlag.H>
+#include <AMReX_YAFluxRegister.H> // IWYU pragma: export
+#include <AMReX_EBCellFlag.H> // IWYU pragma: export
+
+#include <array>
 
 extern "C" {
     void amrex_eb_disable_reredistribution ();

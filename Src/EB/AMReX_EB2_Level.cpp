@@ -2,7 +2,10 @@
 #include <AMReX_EB2_Level.H>
 #include <AMReX_IArrayBox.H>
 #include <AMReX_EB_chkpt_file.H>
+
 #include <algorithm>
+#include <utility>
+#include <vector>
 
 namespace amrex::EB2 {
 

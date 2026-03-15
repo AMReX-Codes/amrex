@@ -3,8 +3,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_RealVect.H>
-#include <AMReX.H>
-#include <AMReX_Vector.H>
+
+#include <vector>
 
 namespace amrex {
 
