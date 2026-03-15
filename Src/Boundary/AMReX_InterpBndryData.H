@@ -4,7 +4,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BCRec.H>
-#include <AMReX_BndryData.H> // IWYU pragma: export
+#include <AMReX_BndryData.H>
 #include <AMReX_InterpBndryData_K.H>
 
 /**

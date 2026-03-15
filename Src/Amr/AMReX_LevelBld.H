@@ -6,8 +6,8 @@
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_Amr.H> // IWYU pragma: export
-#include <AMReX_AmrLevel.H> // IWYU pragma: export
+#include <AMReX_Amr.H>
+#include <AMReX_AmrLevel.H>
 
 /**
  * \file AMReX_LevelBld.H
