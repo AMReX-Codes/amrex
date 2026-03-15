@@ -3,6 +3,7 @@
 #define AMREX_PARSER_EXE_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Parser_UserFn.H>
 #include <AMReX_Parser_Y.H>
 #include <AMReX_Stack.H>
 #include <AMReX_Vector.H>

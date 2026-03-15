@@ -24,11 +24,6 @@ void amrex_parsererror (char const *s, ...);
 
 namespace amrex {
 
-using ParserUserFn1 = double (*)(double);
-using ParserUserFn2 = double (*)(double,double);
-using ParserUserFn3 = double (*)(double,double,double);
-using ParserUserFn4 = double (*)(double,double,double,double);
-
 enum parser_f1_t {  // Built-in functions with one argument
     PARSER_SQRT,
     PARSER_EXP,

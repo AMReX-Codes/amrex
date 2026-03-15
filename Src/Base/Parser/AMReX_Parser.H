@@ -5,6 +5,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Parser_Exe.H>
+#include <AMReX_Parser_UserFn.H> // IWYU pragma: export
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
@@ -15,11 +16,6 @@
 #include <utility>
 
 namespace amrex {
-
-using ParserUserFn1 = double (*)(double);
-using ParserUserFn2 = double (*)(double,double);
-using ParserUserFn3 = double (*)(double,double,double);
-using ParserUserFn4 = double (*)(double,double,double,double);
 
 template <int N>
 struct ParserExecutor
