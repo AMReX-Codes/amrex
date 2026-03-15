@@ -8,7 +8,6 @@
 #include <AMReX_Amr.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
-#include <AMReX_DistributionMapping.H>
 #include <AMReX_FabSet.H>
 #include <AMReX_StateData.H>
 #include <AMReX_PlotFileUtil.H>

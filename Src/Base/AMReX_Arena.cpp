@@ -6,7 +6,6 @@
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_IParser.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParmParse.H>

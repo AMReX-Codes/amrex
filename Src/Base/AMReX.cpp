@@ -11,7 +11,6 @@
 #include <AMReX_BLBackTrace.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_Gpu.H>
 
 #ifdef AMREX_USE_FFT
 #include <AMReX_FFT.H>

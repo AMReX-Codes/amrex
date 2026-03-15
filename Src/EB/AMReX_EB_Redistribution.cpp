@@ -2,7 +2,6 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_MultiCutFab.H>
-#include <AMReX_REAL.H>
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EB_Redistribution.H>

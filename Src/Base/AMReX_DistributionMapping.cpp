@@ -1,5 +1,4 @@
 
-#include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_ParmParse.H>
