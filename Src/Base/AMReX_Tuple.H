@@ -6,7 +6,6 @@
 #include <AMReX_Array.H>
 #include <AMReX_Functional.H>
 #include <AMReX_GpuQualifiers.H>
-#include <AMReX_TypeList.H>
 #include <AMReX_TypeTraits.H>
 
 #include <array>
