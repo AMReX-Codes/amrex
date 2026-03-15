@@ -4,9 +4,9 @@
 
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
-#include <AMReX_INT.H>
+#include <AMReX_INT.H> // IWYU pragma: export
 #include <AMReX_SIMD.H>
-#include <AMReX_REAL.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
 #include <cmath> // IWYU pragma: export
 #include <cstdlib>
 #include <limits>

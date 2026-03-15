@@ -22,7 +22,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_FabArrayBase.H> // IWYU pragma: export
 #include <AMReX_MFIter.H> // IWYU pragma: export
-#include <AMReX_MakeType.H>
+#include <AMReX_MakeType.H> // IWYU pragma: export
 #include <AMReX_TypeTraits.H>
 #include <AMReX_LayoutData.H> // IWYU pragma: export
 #include <AMReX_BaseFab.H> // IWYU pragma: export
