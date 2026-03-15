@@ -1204,7 +1204,7 @@ makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
 
 }
 
-#include <AMReX_NonLocalBCImpl.H>
+#include <AMReX_NonLocalBCImpl.H> // IWYU pragma: export
 
 namespace amrex {
     using NonLocalBC::FillBoundary;

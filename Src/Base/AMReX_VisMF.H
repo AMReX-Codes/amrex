@@ -11,7 +11,7 @@
 #include <AMReX_IArrayBox.H> // IWYU pragma: export
 #include <AMReX_NFiles.H> // IWYU pragma: export
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_VisMFBuffer.H>
+#include <AMReX_VisMFBuffer.H> // IWYU pragma: export
 
 #include <fstream>
 #include <iostream>

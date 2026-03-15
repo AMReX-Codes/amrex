@@ -8,10 +8,9 @@
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_MultiFabUtil_C.H>
+#include <AMReX_MultiFabUtilI.H>
 
 #include <memory>
-
-#include <AMReX_MultiFabUtilI.H>
 
 namespace amrex
 {

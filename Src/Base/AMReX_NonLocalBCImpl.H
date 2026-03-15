@@ -1,7 +1,4 @@
-#ifndef AMREX_NONLOCAL_BC_H_
-#include "AMReX_NonLocalBC.H" // IWYU pragma: private, include "AMReX_NonLocalBC.H"
-#endif
-
+// IWYU pragma: private, include "AMReX_NonLocalBC.H"
 #ifndef AMREX_NONLOCAL_BC_IMPL_H_
 #define AMREX_NONLOCAL_BC_IMPL_H_
 #include <AMReX_Config.H>
