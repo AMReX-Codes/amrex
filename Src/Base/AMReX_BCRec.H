@@ -4,7 +4,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H>
-#include <AMReX_BC_TYPES.H>
+#include <AMReX_BC_TYPES.H> // IWYU pragma: export
 
 namespace amrex {
 /**
