@@ -1925,8 +1925,6 @@ Amr::checkPoint ()
 void
 Amr::RegridOnly (Real time, bool do_io)
 {
-    BL_ASSERT(regrid_on_restart == 1);
-
     if (max_level == 0)
     {
         regrid_level_0_on_restart();
@@ -1936,7 +1934,17 @@ Amr::RegridOnly (Real time, bool do_io)
         int lev_top = std::min(finest_level, max_level-1);
         for (int i = 0; i <= lev_top; i++)
         {
-           regrid(i,time);
+            const int old_finest = finest_level;
+
+            regrid(i,time);
+
+            if (old_finest < finest_level)
+            {
+                for (int k(old_finest + 1); k <= finest_level; ++k)
+                {
+                    dt_level[k] = dt_level[k-1]/static_cast<Real>(n_cycle[k]);
+                }
+            }
         }
     }
 
