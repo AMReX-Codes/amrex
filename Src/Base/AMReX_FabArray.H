@@ -4,7 +4,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
-#include <AMReX_Vector.H>
 #include <AMReX_Box.H>
 #include <AMReX.H>
 #include <AMReX_BoxArray.H> // IWYU pragma: export

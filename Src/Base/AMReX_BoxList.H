@@ -4,7 +4,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Box.H> // IWYU pragma: export
-#include <AMReX_Vector.H>
 
 #include <iosfwd>
 
