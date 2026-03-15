@@ -2,7 +2,7 @@
 #define AMREX_PAR_REDUCE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Reduce.H>
+#include <AMReX_Reduce.H> // IWYU pragma: export
 
 namespace amrex {
 

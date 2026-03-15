@@ -7,12 +7,12 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H> // IWYU pragma: export
-#include <AMReX_Box.H>
+#include <AMReX_Box.H> // IWYU pragma: export
 #include <AMReX_Loop.H>
 #include <AMReX_BoxList.H>
 #include <AMReX_BArena.H>
 #include <AMReX_CArena.H>
-#include <AMReX_DataAllocator.H>
+#include <AMReX_DataAllocator.H> // IWYU pragma: export
 #include <AMReX_REAL.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BoxIterator.H>

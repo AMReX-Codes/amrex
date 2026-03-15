@@ -28,7 +28,7 @@
 #include <AMReX_BaseFab.H> // IWYU pragma: export
 #include <AMReX_BaseFabUtility.H>
 #include <AMReX_MFParallelFor.H> // IWYU pragma: export
-#include <AMReX_TagParallelFor.H>
+#include <AMReX_TagParallelFor.H> // IWYU pragma: export
 #include <AMReX_ParReduce.H> // IWYU pragma: export
 
 #include <AMReX_Gpu.H>
