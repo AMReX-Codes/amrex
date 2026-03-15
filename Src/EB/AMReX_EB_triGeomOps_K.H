@@ -3,7 +3,6 @@
 #define AMREX_EB_TRIGEOMOPS_K_H_
 #include <AMReX_Config.H>
 #include <AMReX_Math.H>
-#include <AMReX_REAL.H>
 
 namespace amrex::tri_geom_ops
 {

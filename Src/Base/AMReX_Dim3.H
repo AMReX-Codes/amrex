@@ -2,7 +2,7 @@
 #define AMREX_DIM3_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
 #include <AMReX_GpuQualifiers.H>
 
 #include <iostream>

@@ -1,7 +1,6 @@
 #ifndef BL_BITTREE_H_
 #define BL_BITTREE_H_
 
-#include <AMReX_IntVect.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <Bittree_BittreeAmr.h>

@@ -4,7 +4,6 @@
 
 #include <AMReX_Gpu.H>
 #include <AMReX_Scan.H>
-#include <AMReX_IntVect.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_BinIterator.H>
 

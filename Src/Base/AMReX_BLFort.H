@@ -2,9 +2,9 @@
 #define AMREX_BLFORT_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_INT.H>
+#include <AMReX_INT.H> // IWYU pragma: export
 #include <AMReX_ArrayLim.H>
-#include <AMReX_REAL.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
 #include <AMReX_SPACE.H>
 
 #ifndef BL_LANG_FORT

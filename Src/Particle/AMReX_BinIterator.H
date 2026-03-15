@@ -2,8 +2,9 @@
 #define AMREX_BINITERATOR_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Gpu.H>
+#include <AMReX_GpuQualifiers.H>
 
+#include <limits>
 #include <utility>
 
 namespace amrex

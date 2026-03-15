@@ -7,7 +7,6 @@
 #include <AMReX_GpuPrint.H>
 #include <AMReX_Math.H>
 #include <AMReX_Print.H>
-#include <AMReX_REAL.H>
 
 #include <cstddef>
 #include <cstdio>

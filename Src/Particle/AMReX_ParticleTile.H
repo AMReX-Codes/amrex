@@ -7,7 +7,6 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_StructOfArrays.H>
 #include <AMReX_Vector.H>
-#include <AMReX_REAL.H>
 #include <AMReX_RealVect.H>
 
 #include <array>

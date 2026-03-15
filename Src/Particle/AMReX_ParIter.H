@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_MFIter.H>
-#include <AMReX_Gpu.H>
 
 namespace amrex
 {

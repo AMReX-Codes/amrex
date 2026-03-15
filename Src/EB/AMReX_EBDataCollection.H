@@ -5,7 +5,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H> // IWYU pragma: export
 #include <AMReX_EBSupport.H> // IWYU pragma: export
-#include <AMReX_Array.H>
 
 namespace amrex {
 

@@ -2,11 +2,11 @@
 #define AMREX_ARRAYLIM_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
 
 #ifdef __cplusplus
 
-#include <AMReX_Array.H>
+#include <AMReX_Array.H> // IWYU pragma: export
 
 #if     AMREX_SPACEDIM==1
 #define AMREX_ARLIM_P(x)  const int&

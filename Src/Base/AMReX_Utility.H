@@ -3,8 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_Demangle.H>
 #include <AMReX_DistributionMapping.H>

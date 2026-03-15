@@ -6,7 +6,6 @@
 #define AMREX_AMRVISCONSTANTS_H
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
 #include <cfloat>
 
 #include <cstdio>

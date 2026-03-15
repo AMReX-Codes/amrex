@@ -1,6 +1,5 @@
 #include <AMReX_PODVector.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_REAL.H>
 
 namespace amrex::VectorGrowthStrategy
 {

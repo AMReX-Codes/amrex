@@ -2,7 +2,7 @@
 #define BL_CONSTANTS_H
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
 
 /* Maybe in the future we will add some constants here. */
 /* If we do, make sure this file is Fortran safe. */

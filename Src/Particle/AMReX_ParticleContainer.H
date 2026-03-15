@@ -5,9 +5,6 @@
 #include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParGDB.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_VisMF.H>

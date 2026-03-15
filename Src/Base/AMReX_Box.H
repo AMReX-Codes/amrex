@@ -4,7 +4,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Algorithm.H>
-#include <AMReX_ArrayLim.H>
+#include <AMReX_ArrayLim.H> // IWYU pragma: export
 #include <AMReX_BoxIterator.H> // IWYU pragma: export
 #include <AMReX_ccse-mpi.H>
 #include <AMReX_IntVect.H> // IWYU pragma: export

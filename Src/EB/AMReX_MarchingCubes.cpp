@@ -1,7 +1,6 @@
 
 #include <AMReX_Arena.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_Gpu.H>
 #include <AMReX_ParallelDescriptor.H>
 
 #include <AMReX_MarchingCubes.H>

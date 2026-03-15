@@ -29,8 +29,6 @@ using std::pair;
 #include <AMReX_BLProfStats.H>
 #include <AMReX_RegionsProfStats.H>
 #include <AMReX_Utility.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfUtilities.H>

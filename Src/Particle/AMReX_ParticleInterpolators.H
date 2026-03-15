@@ -2,9 +2,10 @@
 #define AMREX_PARTICLEINTERPOLATORS_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_IntVect.H>
-#include <AMReX_Gpu.H>
-#include <AMReX_Print.H>
+#include <AMReX_Array.H>
+#include <AMReX_Array4.H>
+#include <AMReX_GpuAtomic.H>
+#include <AMReX_Math.H>
 
 namespace amrex::ParticleInterpolator
 {

@@ -7,7 +7,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_Print.H>
-#include <AMReX_Array.H>
 #include <memory>
 #include <type_traits>
 #include <cmath>

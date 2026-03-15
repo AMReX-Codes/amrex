@@ -6,7 +6,6 @@
 #include <AMReX_GpuDevice.H>
 #include <AMReX_Parser_Exe.H>
 #include <AMReX_Parser_UserFn.H> // IWYU pragma: export
-#include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
 #include <map>

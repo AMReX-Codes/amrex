@@ -1,7 +1,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
-#include <AMReX_REAL.H>
 #include <AMReX_Print.H>
 
 #include <cstring>

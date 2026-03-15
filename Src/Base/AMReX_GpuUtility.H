@@ -5,7 +5,6 @@
 #include <AMReX_GpuTypes.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_GpuDevice.H>
-#include <AMReX_INT.H>
 #include <AMReX_Array.H>
 #include <AMReX_Array4.H>
 #include <iosfwd>

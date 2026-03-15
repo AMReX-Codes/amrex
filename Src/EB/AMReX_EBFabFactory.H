@@ -8,7 +8,6 @@
 #include <AMReX_EBDataCollection.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_EBSupport.H> // IWYU pragma: export
-#include <AMReX_Array.H>
 #include <AMReX_MFIter.H>
 
 #include <memory>

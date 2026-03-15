@@ -3,8 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
-#include <AMReX_REAL.H>
-#include <AMReX_SPACE.H>
 #include <AMReX_IntVect.H>
 
 #include <cstdlib>
