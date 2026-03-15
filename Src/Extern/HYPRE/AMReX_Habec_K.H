@@ -4,7 +4,6 @@
 
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_Array4.H>
-#include <AMReX_IArrayBox.H>
 
 /// \cond DOXYGEN_IGNORE
 namespace amrex::detail {

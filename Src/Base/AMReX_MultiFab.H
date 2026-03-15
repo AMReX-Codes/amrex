@@ -6,8 +6,8 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_FArrayBox.H> // IWYU pragma: export
 #include <AMReX_FabArray.H> // IWYU pragma: export
-#include <AMReX_FabArrayUtility.H>
-#include <AMReX_NonLocalBC.H>
+#include <AMReX_FabArrayUtility.H> // IWYU pragma: export
+#include <AMReX_NonLocalBC.H> // IWYU pragma: export
 
 #include <cstdint>
 #include <memory>
