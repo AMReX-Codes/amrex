@@ -2,8 +2,8 @@
 #define AMREX_EB2_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H> // IWYU pragma: export
-#include <AMReX_Vector.H> // IWYU pragma: export
+#include <AMReX_Geometry.H>
+#include <AMReX_Vector.H>
 #include <AMReX_EB2_GeometryShop.H> // IWYU pragma: export
 #include <AMReX_EB2_Level.H> // IWYU pragma: export
 

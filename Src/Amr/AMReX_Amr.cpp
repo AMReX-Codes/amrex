@@ -3,7 +3,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_Cluster.H>
 #include <AMReX_LevelBld.H>
-#include <AMReX_AmrLevel.H>
 #include <AMReX_PROB_AMR_F.H>
 #include <AMReX_Amr.H>
 #include <AMReX_ParallelDescriptor.H>

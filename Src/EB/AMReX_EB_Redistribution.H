@@ -2,9 +2,9 @@
 #define AMREX_EB_REDIST_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_BCRec.H> // IWYU pragma: export
-#include <AMReX_MultiFab.H> // IWYU pragma: export
-#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_BCRec.H>
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H> // IWYU pragma: export
 
 #include <string>

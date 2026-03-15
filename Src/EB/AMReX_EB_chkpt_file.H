@@ -1,8 +1,8 @@
 #ifndef AMREX_EB_CHKPT_FILE_H_
 #define AMREX_EB_CHKPT_FILE_H_
 
-#include <AMReX_MultiFab.H> // IWYU pragma: export
-#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H>
+#include <AMReX_Geometry.H>
 
 #include <string>
 

@@ -2,13 +2,13 @@
 #define BL_AMRMESH_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Array.H> // IWYU pragma: export
-#include <AMReX_Vector.H> // IWYU pragma: export
-#include <AMReX_RealBox.H> // IWYU pragma: export
-#include <AMReX_IntVect.H> // IWYU pragma: export
-#include <AMReX_Geometry.H> // IWYU pragma: export
-#include <AMReX_DistributionMapping.H> // IWYU pragma: export
-#include <AMReX_BoxArray.H> // IWYU pragma: export
+#include <AMReX_Array.H>
+#include <AMReX_Vector.H>
+#include <AMReX_RealBox.H>
+#include <AMReX_IntVect.H>
+#include <AMReX_Geometry.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_BoxArray.H>
 #include <AMReX_TagBox.H> // IWYU pragma: export
 
 /**

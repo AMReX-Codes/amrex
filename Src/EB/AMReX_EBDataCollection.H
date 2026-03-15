@@ -2,10 +2,10 @@
 #define AMREX_EB_DATA_COLLECTION_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H> // IWYU pragma: export
 #include <AMReX_EBSupport.H> // IWYU pragma: export
-#include <AMReX_Array.H> // IWYU pragma: export
+#include <AMReX_Array.H>
 
 namespace amrex {
 

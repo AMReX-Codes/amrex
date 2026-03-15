@@ -2,10 +2,10 @@
 #define AMREX_EDGE_FLUX_REGISTER_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_Geometry.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_LayoutData.H>
-#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H>
 
 /**
  * \file AMReX_EdgeFluxRegister.H

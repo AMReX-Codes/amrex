@@ -8,7 +8,6 @@
 #include <AMReX_EB2_IF_Torus.H>
 #include <AMReX_EB2_IF_Spline.H>
 #include <AMReX_EB2_IF_Parser.H>
-#include <AMReX_EB2_GeometryShop.H>
 #include <AMReX_EB2.H>
 #include <AMReX_EB2_IndexSpace_STL.H>
 #include <AMReX_EB2_IndexSpace_chkpt_file.H>

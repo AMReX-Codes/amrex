@@ -1,9 +1,6 @@
 #include <AMReX.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_MultiFab.H>
 #include <AMReX_MultiCutFab.H>
 #include <AMReX_EBFArrayBox.H>
-#include <AMReX_EB2.H>
 #include <AMReX_WriteEBSurface.H>
 #include <AMReX_EBToPVD.H>
 

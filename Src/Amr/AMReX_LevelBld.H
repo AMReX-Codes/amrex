@@ -5,9 +5,9 @@
 
 #include <AMReX_REAL.H>
 #include <AMReX_Box.H>
-#include <AMReX_BoxArray.H> // IWYU pragma: export
-#include <AMReX_DistributionMapping.H> // IWYU pragma: export
-#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_BoxArray.H>
+#include <AMReX_DistributionMapping.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_Amr.H> // IWYU pragma: export
 #include <AMReX_AmrLevel.H> // IWYU pragma: export
 

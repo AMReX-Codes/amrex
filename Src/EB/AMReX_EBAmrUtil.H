@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_TagBox.H> // IWYU pragma: export
-#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H>
 
 namespace amrex {
 

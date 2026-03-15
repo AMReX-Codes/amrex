@@ -3,7 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX.H>
-#include <AMReX_MultiFab.H> // IWYU pragma: export
+#include <AMReX_MultiFab.H>
 #include <AMReX_EB2.H> // IWYU pragma: export
 #include <AMReX_EB2_GeometryShop.H> // IWYU pragma: export
 

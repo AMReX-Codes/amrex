@@ -5,7 +5,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
-#include <AMReX_Vector.H>
 
 #ifdef AMREX_USE_BITTREE
 #include <AMReX_Bittree.H>

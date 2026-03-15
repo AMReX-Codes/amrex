@@ -1,6 +1,5 @@
 
 #include <AMReX_MultiCutFab.H>
-#include <AMReX_MultiFab.H>
 
 #ifdef AMREX_USE_OMP
 #include <omp.h>

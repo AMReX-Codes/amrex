@@ -1,13 +1,11 @@
 
 #include <AMReX_AmrLevel.H>
-#include <AMReX_Derive.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Utility.H>
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Print.H>
-#include <AMReX_VisMF.H>
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>

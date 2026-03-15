@@ -14,8 +14,8 @@
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_StateDescriptor.H> // IWYU pragma: export
 #include <AMReX_StateData.H> // IWYU pragma: export
-#include <AMReX_VisMF.H> // IWYU pragma: export
-#include <AMReX_RungeKutta.H> // IWYU pragma: export
+#include <AMReX_VisMF.H>
+#include <AMReX_RungeKutta.H>
 #include <AMReX_FillPatcher.H>
 
 /**

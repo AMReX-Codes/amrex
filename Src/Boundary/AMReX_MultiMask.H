@@ -3,8 +3,8 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Mask.H> // IWYU pragma: export
-#include <AMReX_FabArray.H> // IWYU pragma: export
-#include <AMReX_Geometry.H> // IWYU pragma: export
+#include <AMReX_FabArray.H>
+#include <AMReX_Geometry.H>
 
 /**
  * \file AMReX_MultiMask.H

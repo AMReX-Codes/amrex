@@ -1,4 +1,3 @@
-#include <AMReX_MultiFab.H>
 #include <AMReX_EB_utils.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_EBFabFactory.H>
