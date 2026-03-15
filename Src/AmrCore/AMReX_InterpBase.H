@@ -4,7 +4,6 @@
 
 #include <AMReX_BCRec.H>
 #include <AMReX_Box.H>
-#include <AMReX_Vector.H>
 
 /**
  * \file AMReX_InterpBase.H

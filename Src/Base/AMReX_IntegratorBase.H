@@ -1,8 +1,6 @@
 #ifndef AMREX_INTEGRATOR_BASE_H
 #define AMREX_INTEGRATOR_BASE_H
 #include <AMReX_Config.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParmParse.H>
 

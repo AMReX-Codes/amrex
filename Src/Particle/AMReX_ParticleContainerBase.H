@@ -2,14 +2,7 @@
 #define AMREX_PARTICLECONTAINERBASE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Extension.H>
-#include <AMReX_INT.H>
-#include <AMReX_IntVect.H>
 #include <AMReX_ParGDB.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_DistributionMapping.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_Vector.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParticleLocator.H>

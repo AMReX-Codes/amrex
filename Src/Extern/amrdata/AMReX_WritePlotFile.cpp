@@ -6,7 +6,6 @@
 #include <AMReX_Utility.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_RealBox.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_WritePlotFile.H>

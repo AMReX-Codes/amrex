@@ -1,7 +1,6 @@
 #include <AMReX_EB_chkpt_file.H>
 
 #include <AMReX_PlotFileUtil.H>
-#include <AMReX_VisMF.H>    // amrex::VisMF::Write(MultiFab)
 #include <AMReX_VectorIO.H> // amrex::[read,write]IntData(array_of_ints)
 #include <utility>
 

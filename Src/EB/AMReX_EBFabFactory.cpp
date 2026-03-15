@@ -2,7 +2,6 @@
 #include <AMReX_EBFabFactory.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBFArrayBox.H>
-#include <AMReX_EBCellFlag.H>
 #include <AMReX_FabArray.H>
 
 #include <AMReX_EB2_Level.H>

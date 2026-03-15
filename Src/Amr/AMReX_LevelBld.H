@@ -3,8 +3,6 @@
 #define AMREX_LEVELBLD_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
-#include <AMReX_Box.H>
 #include <AMReX_BoxArray.H>
 #include <AMReX_DistributionMapping.H>
 #include <AMReX_Geometry.H>

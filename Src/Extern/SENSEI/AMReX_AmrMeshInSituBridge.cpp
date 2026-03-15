@@ -3,7 +3,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_AmrMesh.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Vector.H>
 
 #ifdef AMREX_USE_SENSEI_INSITU
 #include <chrono>

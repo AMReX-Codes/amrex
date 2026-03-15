@@ -12,7 +12,6 @@
 
 #include <string>
 
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #ifdef AMREX_PARTICLES
 #include <AMReX_Particles.H>

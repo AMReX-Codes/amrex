@@ -6,7 +6,6 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_IntVect.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_REAL.H>
 #include <AMReX_RealVect.H>
 
 #include <type_traits>

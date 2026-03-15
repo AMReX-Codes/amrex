@@ -2,9 +2,7 @@
 #define AMREX_EB_STL_UTILS_H_
 
 #include <AMReX_Config.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Dim3.H>
 #include <AMReX_EB2_Graph.H>
 
 #include <algorithm>

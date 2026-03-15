@@ -5,7 +5,6 @@
 #include <AMReX_Hypre.H>
 
 #include <AMReX_iMultiFab.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_HypreIJIface.H>
 
 #include <algorithm>

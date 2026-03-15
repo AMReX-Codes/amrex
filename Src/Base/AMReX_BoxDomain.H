@@ -3,9 +3,7 @@
 #define BL_BOXDOMAIN_H
 #include <AMReX_Config.H>
 
-#include <AMReX_IndexType.H>
 #include <AMReX_Box.H>
-#include <AMReX_IntVect.H>
 #include <AMReX_BoxList.H>
 
 #include <iosfwd>

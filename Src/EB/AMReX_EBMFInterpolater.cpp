@@ -1,5 +1,4 @@
 #include <AMReX_EBMFInterpolater.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
 namespace amrex {

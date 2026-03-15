@@ -1,6 +1,6 @@
 
 #include <AMReX_EBAmrUtil.H>
-#include <AMReX_EBFArrayBox.H>
+#include <AMReX_EBFabFactory.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_iMultiFab.H>
 

@@ -6,7 +6,6 @@
 #include <AMReX_Box.H>
 #include <AMReX_Print.H>
 #include <AMReX_MakeType.H>
-#include <AMReX_Vector.H>
 #include <AMReX_Arena.H> // IWYU pragma: export
 #include <AMReX_TypeTraits.H>
 

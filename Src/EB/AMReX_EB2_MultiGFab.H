@@ -4,8 +4,6 @@
 
 #include <AMReX_EB2_Graph.H>
 #include <AMReX_EBCellFlag.H>
-#include <AMReX_Array.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_MultiFab.H>
 
 namespace amrex::EB2 {

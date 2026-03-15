@@ -6,12 +6,9 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLProfiler.H>
-#include <AMReX_SPACE.H>
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
-#include <AMReX_FArrayBox.H>
 #include <AMReX_MultiFab.H>
 #include <cstdio>
+#include <list>
 #include <iostream>
 #include <fstream>
 #include <string>

@@ -5,7 +5,6 @@
 
 #include <AMReX_FabDataType.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_VisMF.H>
 

@@ -3,8 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_Hypre.H>
-#include <AMReX_Array.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_BndryData.H>
 #include <AMReX_LO_BCTYPES.H>

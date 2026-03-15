@@ -2,7 +2,6 @@
 
 #include <AMReX.H>
 #include <AMReX_ParmParse.H>
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_iMultiFab.H>
 
 namespace amrex {

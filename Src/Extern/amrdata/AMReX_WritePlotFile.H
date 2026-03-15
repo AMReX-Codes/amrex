@@ -4,7 +4,6 @@
 #include <string>
 
 #include <AMReX_MultiFab.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_AmrData.H>
 
 
@@ -38,4 +37,3 @@ void WritePlotFile(const amrex::Vector<amrex::MultiFab*>& mfa,
 }
 
 #endif
-

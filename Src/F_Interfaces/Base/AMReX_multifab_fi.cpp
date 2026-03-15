@@ -1,7 +1,6 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_Geometry.H>
 
 using namespace amrex;
 
@@ -417,4 +416,3 @@ extern "C" {
         }
     }
 }
-

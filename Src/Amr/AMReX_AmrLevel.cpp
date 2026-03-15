@@ -9,7 +9,6 @@
 
 #ifdef AMREX_USE_EB
 #include <AMReX_EBFabFactory.H>
-#include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_EB2.H>
 #endif
 

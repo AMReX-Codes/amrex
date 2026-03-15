@@ -3,10 +3,8 @@
 #define AMREX_Amr_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Box.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_BoxArray.H>
-#include <AMReX_Vector.H>
 #include <AMReX_BCRec.H>
 #include <AMReX_AmrCore.H> // IWYU pragma: export
 

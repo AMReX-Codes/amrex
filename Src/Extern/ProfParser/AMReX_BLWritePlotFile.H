@@ -5,9 +5,6 @@
 #define BL_WRITEPLOTFILE_H
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
-#include <AMReX_FArrayBox.H>
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_DataServices.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Utility.H>

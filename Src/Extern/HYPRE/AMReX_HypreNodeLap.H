@@ -2,10 +2,8 @@
 #define AMREX_HYPRE_NODE_LAP_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_BndryData.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreIJIface.H>

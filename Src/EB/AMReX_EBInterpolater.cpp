@@ -2,7 +2,6 @@
 #include <AMReX_EBInterpolater.H>
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
-#include <AMReX_Geometry.H>
 
 namespace amrex {
 

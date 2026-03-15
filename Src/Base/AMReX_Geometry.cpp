@@ -5,7 +5,6 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_Utility.H>
-#include <AMReX_SPACE.H>
 #include <AMReX_COORDSYS_C.H>
 
 #include <AMReX_OpenMP.H>

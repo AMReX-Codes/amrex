@@ -4,7 +4,6 @@
 
 #include <AMReX_BCRec.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_EBCellFlag.H> // IWYU pragma: export
 
 #include <string>

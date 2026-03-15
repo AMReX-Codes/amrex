@@ -4,7 +4,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BaseFab.H>
-#include <AMReX_FArrayBox.H>
 
 /**
  * \file AMReX_Mask.H

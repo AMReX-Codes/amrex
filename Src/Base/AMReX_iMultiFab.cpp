@@ -1,7 +1,6 @@
 
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 
 #include <algorithm>

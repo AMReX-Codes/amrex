@@ -3,13 +3,8 @@
 #define AMREX_TagBox_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_IntVect.H>
-#include <AMReX_Box.H>
-#include <AMReX_Vector.H>
 #include <AMReX_BaseFab.H>
 #include <AMReX_FabArray.H>
-#include <AMReX_BoxArray.H>
-#include <AMReX_Geometry.H>
 
 /**
  * \file AMReX_TagBox.H

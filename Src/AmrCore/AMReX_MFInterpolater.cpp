@@ -1,8 +1,6 @@
 #include <AMReX_Interp_C.H>
 #include <AMReX_MFInterp_C.H>
 #include <AMReX_MFInterpolater.H>
-#include <AMReX_Arena.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
 namespace amrex {

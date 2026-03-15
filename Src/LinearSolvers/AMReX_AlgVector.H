@@ -4,8 +4,6 @@
 
 #include <AMReX_AlgPartition.H>
 #include <AMReX_FabArray.H>
-#include <AMReX_INT.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_TableData.H>
 
 #include <fstream>

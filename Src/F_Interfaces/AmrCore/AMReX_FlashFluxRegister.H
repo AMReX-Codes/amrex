@@ -4,7 +4,6 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_OpenMP.H>
 
 #include <map>

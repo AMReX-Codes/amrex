@@ -17,8 +17,6 @@
 
 #include <AMReX_BoxArray.H>
 #include <AMReX_Geometry.H>
-#include <AMReX_RealBox.H>
-#include <AMReX_Box.H>
 #include <AMReX_ArrayLim.H>
 #include <AMReX_MFIter.H>
 #include <AMReX_DistributionMapping.H>

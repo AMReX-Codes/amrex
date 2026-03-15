@@ -2,7 +2,6 @@
 #define AMREX_HYPRE_ML_ABECLAP_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H>
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_MLMGBndry.H>
 #include <AMReX_MultiFab.H>

@@ -3,15 +3,11 @@
 #define AMREX_AmrLevel_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_REAL.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_Derive.H> // IWYU pragma: export
 #include <AMReX_BCRec.H>
 #include <AMReX_Amr.H> // IWYU pragma: export
-#include <AMReX_DistributionMapping.H>
 #include <AMReX_StateDescriptor.H> // IWYU pragma: export
 #include <AMReX_StateData.H> // IWYU pragma: export
 #include <AMReX_VisMF.H>

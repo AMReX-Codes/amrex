@@ -5,7 +5,6 @@
 #ifndef AMREX_HYPRE_SOLVER_H_
 #define AMREX_HYPRE_SOLVER_H_
 
-#include <AMReX_Geometry.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_HypreIJIface.H>
 #include <AMReX_BLProfiler.H>

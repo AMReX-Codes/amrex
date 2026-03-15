@@ -4,11 +4,9 @@
 
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_PhysBCFunct.H>
 #include <AMReX_Interpolater.H> // IWYU pragma: export
 #include <AMReX_MFInterpolater.H> // IWYU pragma: export
-#include <AMReX_Array.H>
 #include <AMReX_Utility.H>
 
 /**

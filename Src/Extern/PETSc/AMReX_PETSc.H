@@ -2,9 +2,7 @@
 #define AMREX_PETSC_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_BndryData.H>
 
 // Do NOT include any other PETSc headers here.  They should be included in

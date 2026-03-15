@@ -3,11 +3,9 @@
 #define AMREX_RealBox_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Vector.H>
-#include <AMReX_REAL.H>
-#include <AMReX_Box.H>
+#include <AMReX_REAL.H> // IWYU pragma: export
+#include <AMReX_Box.H> // IWYU pragma: export
 #include <AMReX_RealVect.H> // IWYU pragma: export
-#include <AMReX_SPACE.H>
 
 #include <iosfwd>
 #include <array>

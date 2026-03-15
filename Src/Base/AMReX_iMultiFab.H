@@ -7,7 +7,6 @@
 #include <AMReX_IArrayBox.H> // IWYU pragma: export
 #include <AMReX_FabArray.H> // IWYU pragma: export
 #include <AMReX_FabArrayUtility.H>
-#include <AMReX_Geometry.H>
 #include <memory>
 
 namespace amrex {

@@ -5,7 +5,6 @@
 #include <AMReX_Array4.H>
 #include <AMReX_LO_BCTYPES.H>
 #include <AMReX_LOUtil_K.H>
-#include <AMReX_REAL.H>
 
 #include <HYPRE_utilities.h>
 

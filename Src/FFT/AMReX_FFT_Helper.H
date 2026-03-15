@@ -4,14 +4,10 @@
 
 #include <AMReX.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_DataAllocator.H>
-#include <AMReX_DistributionMapping.H>
 #include <AMReX_Enum.H>
 #include <AMReX_FabArray.H>
-#include <AMReX_Gpu.H>
 #include <AMReX_GpuComplex.H>
 #include <AMReX_Math.H>
-#include <AMReX_Periodicity.H>
 
 /**
  * \file AMReX_FFT_Helper.H
@@ -44,7 +40,6 @@
 #include <complex>
 #include <limits>
 #include <memory>
-#include <tuple>
 #include <utility>
 #include <variant>
 

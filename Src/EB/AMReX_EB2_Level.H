@@ -3,12 +3,9 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_ParmParse.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_LayoutData.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_Array.H>
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_MultiCutFab.H>
 #if (AMREX_SPACEDIM == 3)

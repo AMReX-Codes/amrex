@@ -3,17 +3,11 @@
 #define AMREX_StateData_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Box.H>
-#include <AMReX_BoxArray.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_MFCopyDescriptor.H>
 #include <AMReX_BCRec.H>
-#include <AMReX_Vector.H>
 #include <AMReX_VisMF.H>
-#include <AMReX_DistributionMapping.H>
 #include <AMReX_PhysBCFunct.H>
-#include <AMReX_Geometry.H>
-#include <AMReX_RealBox.H>
 #include <AMReX_StateDescriptor.H> // IWYU pragma: export
 
 /**

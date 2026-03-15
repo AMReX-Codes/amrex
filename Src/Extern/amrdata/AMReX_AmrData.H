@@ -6,8 +6,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_AmrvisConstants.H>
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_VisMF.H>
 

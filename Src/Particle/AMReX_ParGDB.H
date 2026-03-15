@@ -2,9 +2,6 @@
 #define AMREX_ParGDB_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Array.H>
-#include <AMReX_Vector.H>
-#include <AMReX_Geometry.H>
 #include <AMReX_MultiFab.H>
 
 namespace amrex {
