@@ -3,7 +3,7 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_Box.H>
-#include <AMReX_TypeList.H>
+#include <AMReX_TypeList.H> // IWYU pragma: export
 
 #include <array>
 #include <type_traits>

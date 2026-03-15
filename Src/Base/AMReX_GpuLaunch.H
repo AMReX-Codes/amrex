@@ -290,18 +290,18 @@ namespace amrex::detail {
 
 
 #ifdef AMREX_USE_GPU
-#include <AMReX_GpuLaunchMacrosG.H>
-#include <AMReX_GpuLaunchFunctsG.H>
+#include <AMReX_GpuLaunchMacrosG.H> // IWYU pragma: export
+#include <AMReX_GpuLaunchFunctsG.H> // IWYU pragma: export
 #else
-#include <AMReX_GpuLaunchMacrosC.H>
-#include <AMReX_GpuLaunchFunctsC.H>
+#include <AMReX_GpuLaunchMacrosC.H> // IWYU pragma: export
+#include <AMReX_GpuLaunchFunctsC.H> // IWYU pragma: export
 #include <AMReX_SIMD.H>
 #endif
-#include <AMReX_GpuLaunchFunctsSIMD.H>
+#include <AMReX_GpuLaunchFunctsSIMD.H> // IWYU pragma: export
 
-#include <AMReX_GpuLaunch.nolint.H>
+#include <AMReX_GpuLaunch.nolint.H> // IWYU pragma: export
 
-#include <AMReX_CTOParallelForImpl.H>
+#include <AMReX_CTOParallelForImpl.H> // IWYU pragma: export
 
 namespace amrex {
 

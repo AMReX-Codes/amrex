@@ -6,7 +6,8 @@
 #include <AMReX_Arena.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_MFIter.H>
-#include <AMReX_TypeList.H>
+#include <AMReX_Tuple.H> // IWYU pragma: export
+#include <AMReX_TypeList.H> // IWYU pragma: export
 #include <AMReX_ValLocPair.H>
 
 #include <algorithm>
