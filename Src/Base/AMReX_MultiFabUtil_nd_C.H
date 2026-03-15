@@ -3,7 +3,6 @@
 #define AMREX_MULTIFAB_UTIL_ND_C_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Gpu.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Array4.H>
 #include <AMReX_Box.H>

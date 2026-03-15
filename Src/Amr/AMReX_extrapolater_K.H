@@ -5,7 +5,6 @@
 
 #include <AMReX_Array4.H>
 #include <AMReX_Box.H>
-#include <AMReX_Gpu.H>
 
 #if (AMREX_SPACEDIM == 1)
 #include <AMReX_extrapolater_1D_K.H>
