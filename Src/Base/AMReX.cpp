@@ -75,18 +75,14 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <csignal>
-#include <iostream>
 #include <new>
 #include <optional>
 #include <sstream>
 #include <stack>
-#include <string>
 #include <thread>
 #include <limits>
 #include <utility>
-#include <vector>
 #include <algorithm>
 
 #ifdef AMREX_USE_COVERITY

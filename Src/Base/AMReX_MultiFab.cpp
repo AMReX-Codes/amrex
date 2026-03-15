@@ -1,10 +1,8 @@
 
-#include <AMReX_BLassert.H>
 #include <AMReX_MultiFab.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_iMultiFab.H>
-#include <AMReX_FabArrayUtility.H>
 #include <AMReX_REAL.H>
 
 #ifdef AMREX_MEM_PROFILING

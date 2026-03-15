@@ -1,6 +1,5 @@
 #include <AMReX_PlotFileDataImpl.H>
 #include <AMReX_ParallelDescriptor.H>
-#include <AMReX_VisMF.H>
 #include <algorithm>
 #include <sstream>
 #include <utility>

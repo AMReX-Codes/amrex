@@ -1,10 +1,6 @@
-#include <AMReX_REAL.H>
 #include <AMReX.H>
 #include <AMReX_Utility.H>
-#include <AMReX_BLassert.H>
 #include <AMReX_BLProfiler.H>
-#include <AMReX_FileSystem.H>
-#include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
 
 #ifdef AMREX_USE_OMP
@@ -12,14 +8,10 @@
 #endif
 
 #include <cerrno>
-#include <cstdlib>
 #include <cstring>
 #include <cmath>
 #include <cstdio>
 #include <ctime>
-#include <chrono>
-#include <iostream>
-#include <sstream>
 #include <iomanip>
 #include <set>
 #include <random>

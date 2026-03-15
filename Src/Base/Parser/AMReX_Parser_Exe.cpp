@@ -1,5 +1,4 @@
 #include <AMReX_Parser_Exe.H>
-#include <utility>
 
 namespace amrex {
 

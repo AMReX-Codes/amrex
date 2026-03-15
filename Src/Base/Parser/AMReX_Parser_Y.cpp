@@ -4,7 +4,6 @@
 
 #include <algorithm>
 #include <cstdarg>
-#include <vector>
 
 void
 amrex_parsererror (char const *s, ...)

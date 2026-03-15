@@ -5,7 +5,6 @@
 #endif
 
 #include <cstring>
-#include <cstdlib>
 
 namespace amrex {
 

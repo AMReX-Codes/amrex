@@ -1,6 +1,5 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX.H>
-#include <AMReX_Box.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
@@ -15,12 +14,10 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
-#include <unordered_map>
 #include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <typeinfo>
-#include <type_traits>
 
 extern "C" void amrex_init_namelist (const char*);
 extern "C" void amrex_finalize_namelist ();

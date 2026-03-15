@@ -12,9 +12,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
-#include <string>
 #include <cstring>
-#include <stack>
 #include <algorithm>
 #include <limits>
 #include <cstdlib>

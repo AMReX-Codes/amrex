@@ -15,7 +15,6 @@
 #include <cmath>
 #include <cstring>
 #include <limits>
-#include <memory>
 
 namespace amrex {
 

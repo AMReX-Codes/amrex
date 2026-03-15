@@ -1,5 +1,4 @@
 
-#include <AMReX_BLassert.H>
 #include <AMReX_iMultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_ParallelDescriptor.H>

@@ -1,7 +1,6 @@
 
 #include <AMReX.H>
 #include <AMReX_Utility.H>
-#include <AMReX_BLProfiler.H>
 #include <AMReX_BLFort.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_Print.H>
@@ -16,7 +15,6 @@
 #endif
 
 #ifdef AMREX_PMI
-#include <pmi.h>
 #include <unordered_set>
 #endif
 
@@ -25,7 +23,6 @@
 #endif
 
 #ifdef AMREX_USE_OMP
-#include <omp.h>
 #endif
 
 #include <cstdio>

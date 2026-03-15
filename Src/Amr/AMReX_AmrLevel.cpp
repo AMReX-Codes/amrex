@@ -16,7 +16,6 @@
 #endif
 
 #include <sstream>
-#include <memory>
 #include <limits>
 
 namespace amrex {

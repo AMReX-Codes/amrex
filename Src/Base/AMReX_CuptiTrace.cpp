@@ -2,11 +2,7 @@
 #ifdef AMREX_USE_CUPTI
 #include <AMReX.H>
 #include <AMReX_Print.H>
-#include <stdio.h>
 #include <map>
-#include <memory>
-#include <cuda.h>
-#include <cupti.h>
 
 
 // CUPTI buffer size, enough for 4096 activity records in a single buffer;
