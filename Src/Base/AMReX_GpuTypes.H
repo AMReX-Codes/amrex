@@ -5,6 +5,7 @@
 #include <AMReX_Extension.H>
 #include <AMReX_BaseFwd.H>
 #include <AMReX_GpuControl.H>
+#include <AMReX_GpuQualifiers.H>
 #include <AMReX_IntVect.H>
 
 #ifdef AMREX_USE_GPU
@@ -34,6 +35,14 @@ struct gpuStream_t {
     bool operator== (gpuStream_t const& rhs) const noexcept { return queue == rhs.queue; }
     bool operator!= (gpuStream_t const& rhs) const noexcept { return queue != rhs.queue; }
 };
+
+#elif defined(AMREX_USE_HIP)
+
+using gpuStream_t = hipStream_t;
+
+#elif defined(AMREX_USE_CUDA)
+
+using gpuStream_t = cudaStream_t;
 
 #endif
 

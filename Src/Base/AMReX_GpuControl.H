@@ -90,15 +90,7 @@ namespace amrex {
 #define AMREX_DEFAULT_RUNON =amrex::RunOn::Host // by default run on Host when compiling for Cpu
 #endif
 
-namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
-
-#ifdef AMREX_USE_HIP
-using gpuStream_t = hipStream_t;
-#elif defined(AMREX_USE_CUDA)
-using gpuStream_t = cudaStream_t;
-#endif
-
-namespace Gpu {
+namespace amrex::Gpu {
 
 #if defined(AMREX_USE_GPU)
 
