@@ -276,11 +276,6 @@ if (AMReX_HIP)
          " Ensure that HIP is either installed in /opt/rocm/hip or the variable HIP_PATH is set to point to the right location.")
    endif()
 
-   if(${_this_comp} STREQUAL hipcc)
-       message(WARNING "You are using the legacy wrapper 'hipcc' as the HIP compiler.\n"
-           "Use AMD's 'clang++'/'amdclang++' compiler, or on Cray "
-           "the CC compiler wrapper instead.")
-   endif()
    # AMD's or mainline clang++ with support for "-x hip"
    # Cray's CC wrapper that points to AMD's clang++ underneath
    if(NOT ${_this_comp} STREQUAL hipcc)
