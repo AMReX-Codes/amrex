@@ -32,6 +32,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<int> write_real_comp;
     Vector<std::string> tmp_real_comp_names;
 
+    // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
@@ -79,6 +80,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
+    // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
