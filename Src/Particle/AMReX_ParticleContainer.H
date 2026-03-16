@@ -209,7 +209,7 @@ public:
     static constexpr bool has_polymorphic_allocator =
         IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
 
-    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM,
+    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM || is_rtsoa_pc,
                   "Pure SoA particle containers require at least AMREX_SPACEDIM real components for positions");
 
     //! \brief Default constructor - construct an empty particle container that has no concept
