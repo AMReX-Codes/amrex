@@ -242,9 +242,6 @@ public:
 
         AMREX_ALWAYS_ASSERT(OK());
 
-        int num_rr = NumRuntimeRealComps();
-        int num_ii = NumRuntimeIntComps();
-
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
             const auto & plev  = GetParticles(lev);

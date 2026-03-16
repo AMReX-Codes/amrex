@@ -685,10 +685,6 @@ struct ParticleTileRT
         new_real_data.resize(new_capacity * new_n_real, GrowthStrategy::Exact);
         new_int_data.resize(new_capacity * new_n_int, GrowthStrategy::Exact);
 
-        auto p_idcpu = new_idcpu_data.data();
-        auto p_real = new_real_data.data();
-        auto p_int = new_int_data.data();
-
         auto old_ptd = getParticleTileData();
         auto copy_size = std::min(m_size, new_size);
         auto copy_n_real = std::min(m_n_real, new_n_real);

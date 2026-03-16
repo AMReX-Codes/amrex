@@ -1761,7 +1761,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     ++pindex;
                 }
 
-                auto tot_npart = particle_tile->numTotalParticles();
+                Long tot_npart = particle_tile->numTotalParticles();
 
                 if (last != npart - 1) {
                     pindex = last + 1;
@@ -1804,9 +1804,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             for (int i = 0; i < num_threads; ++i) {
 
-                auto to_copy = src_ptile[i].numParticles();
-                auto old_size = dst_ptile.numTotalParticles();
-                auto new_size = old_size + to_copy;
+                Long to_copy = src_ptile[i].numParticles();
+                Long old_size = dst_ptile.numTotalParticles();
+                Long new_size = old_size + to_copy;
                 dst_ptile.resize(new_size);
 
                 auto dst_ptd = dst_ptile.getParticleTileData();
