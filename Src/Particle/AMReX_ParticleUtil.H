@@ -930,6 +930,16 @@ std::string getDefaultCompNameInt (const int i) {
     return name;
 }
 
+
+/**
+ * \brief Reorder particles on the tile ptile using a the permutations array.
+ *
+ * permutations is a pointer to an array on the GPU of size numParticles() with
+ * permutations[new index] = old index.
+ *
+ * \param ptile
+ * \param permutations
+ */
 template <class PTile, class index_type,
           std::enable_if_t<!PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
 void
@@ -1025,6 +1035,15 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
     }
 }
 
+/**
+ * \brief Reorder particles on the tile ptile using a the permutations array.
+ *
+ * permutations is a pointer to an array on the GPU of size numParticles() with
+ * permutations[new index] = old index.
+ *
+ * \param ptile
+ * \param permutations
+ */
 template <class PTile, class index_type,
           std::enable_if_t<PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
 void

@@ -22,6 +22,8 @@ namespace amrex {
 template <class RType, class IType>
 struct RTSoAParticle;
 
+/// \ingroup amrex_particles
+
 template <class T>
 struct ArrayView {
     using size_type = std::size_t;
@@ -241,6 +243,7 @@ struct ParticleTileDataRT
     }
 };
 
+// SOA Particle Structure
 template <class RType, class IType>
 struct RTSoAParticle
 {
@@ -269,6 +272,8 @@ struct RTSoAParticle
         m_particle_tile_data(rhs.m_particle_tile_data),
         m_index(rhs.m_index) {}
 
+    // functions to get id and cpu in the SOA data
+
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     decltype(auto) cpu () const & { return this->m_particle_tile_data.cpu(m_index); }
 
@@ -288,7 +293,7 @@ struct RTSoAParticle
         return this->m_particle_tile_data.idata(comp_index, m_index);
     }
 
-    //functions to get positions of the particle in the SOA data
+    // functions to get positions of the particle in the SOA data
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect pos () const & {
@@ -411,12 +416,16 @@ struct ParticleTileRT
     )
     {
         if (m_defined) {
-            AMREX_ALWAYS_ASSERT(a_arena == nullptr || a_arena == m_arena);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_arena == m_arena,
+                "ParticleTileRT redefined with different memory arena");
             if (a_num_real_comps != m_n_real || a_num_int_comps != m_n_int) {
                 realloc_and_move(m_size, m_capacity, a_num_real_comps, a_num_int_comps);
             }
         } else {
-            AMREX_ALWAYS_ASSERT(a_arena != nullptr);
+            AMREX_ALWAYS_ASSERT(a_arena != nullptr,
+                "ParticleTileRT defined with no memory arena! "
+                "Make sure to call setArena() on the ParticleContainer before initialization or "
+                "to pass an Arena to ParticleTile::define()");
             m_defined = true;
             m_arena = a_arena;
             m_n_real = a_num_real_comps;
@@ -438,56 +447,56 @@ struct ParticleTileRT
     }
 
     /**
-    * \brief Returns the total number of particles (real and neighbor)
-    *
+    * \brief Returns the number of particles
     */
-    size_type size () const
+    [[nodiscard]] size_type size () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_size;
     }
 
     /**
-    * \brief Returns the number of real particles (excluding neighbors)
-    *
+    * \brief Returns the number of particles
     */
-    size_type numParticles () const
-    {
-        AMREX_ALWAYS_ASSERT(m_defined);
-        return numRealParticles();
-    }
-
-    /**
-    * \brief Returns the number of real particles (excluding neighbors)
-    *
-    */
-    size_type numRealParticles () const
+    [[nodiscard]] size_type numParticles () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_size;
     }
 
     /**
-    * \brief Returns the number of neighbor particles (excluding reals)
-    *
+    * \brief Returns the number of particles
     */
-    size_type numNeighborParticles () const
+    [[nodiscard]] size_type numRealParticles () const
+    {
+        AMREX_ALWAYS_ASSERT(m_defined);
+        return m_size;
+    }
+
+    /**
+    * \brief Returns the number of neighbor particles.
+    * For ParticleTileRT this is always zero.
+    */
+    [[nodiscard]] size_type numNeighborParticles () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return 0;
     }
 
     /**
-    * \brief Returns the total number of particles, real and neighbor
-    *
+    * \brief Returns the number of particles
     */
-    size_type numTotalParticles () const
+    [[nodiscard]] size_type numTotalParticles () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_size;
     }
 
-    size_type getNumNeighbors () const
+    /**
+    * \brief Returns the number of neighbor particles.
+    * For ParticleTileRT this is always zero.
+    */
+    [[nodiscard]] size_type getNumNeighbors () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return 0;
@@ -539,85 +548,111 @@ struct ParticleTileRT
         }
     }
 
+    /** Get access to the particle id/cpu Arrays */
     [[nodiscard]] ArrayView<uint64_t> GetIdCPUData () {
         AMREX_ALWAYS_ASSERT(m_defined);
         return {m_idcpu_data.data(), m_capacity};
     }
 
+    /** Get access to the particle id/cpu Arrays */
     [[nodiscard]] ArrayView<const uint64_t> GetIdCPUData () const {
         AMREX_ALWAYS_ASSERT(m_defined);
         return {m_idcpu_data.data(), m_capacity};
     }
 
+    /** Get access to a particle Real component Array
+     *
+     * \param comp_index component with 0...NumRealComps-1
+     */
     [[nodiscard]] ArrayView<RType> GetRealData (int comp_index) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
         return {m_real_data.data() + comp_index * m_capacity, m_capacity};
     }
 
+    /** Get access to a particle Real component Array
+     *
+     * \param comp_index component with 0...NumRealComps-1
+     */
     [[nodiscard]] ArrayView<const RType> GetRealData (int comp_index) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_real);
         return {m_real_data.data() + comp_index * m_capacity, m_capacity};
     }
 
+    /** Get access to a particle Int component Array
+     *
+     * \param comp_index component with 0...NumIntComps-1
+     */
     [[nodiscard]] ArrayView<IType> GetIntData (int comp_index) {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
         return {m_int_data.data() + comp_index * m_capacity, m_capacity};
     }
 
+    /** Get access to a particle Int component Array
+     *
+     * \param comp_index component with 0...NumIntComps-1
+     */
     [[nodiscard]] ArrayView<const IType> GetIntData (int comp_index) const {
         AMREX_ALWAYS_ASSERT(m_defined);
         AMREX_ALWAYS_ASSERT(0 <= comp_index && comp_index < m_n_int);
         return {m_int_data.data() + comp_index * m_capacity, m_capacity};
     }
 
+    /** Get access to a particle Real component Array
+     *
+     * \param name name of the component
+     */
     [[nodiscard]] ArrayView<RType> GetRealData (std::string const & name) {
         return GetRealData(get_idx_from_str(name, m_real_names));
     }
 
+    /** Get access to a particle Real component Array
+     *
+     * \param name name of the component
+     */
     [[nodiscard]] ArrayView<const RType> GetRealData (std::string const & name) const {
         return GetRealData(get_idx_from_str(name, m_real_names));
     }
 
+    /** Get access to a particle Int component Array
+     *
+     * \param name name of the component
+     */
     [[nodiscard]] ArrayView<IType> GetIntData (std::string const & name) {
         return GetIntData(get_idx_from_str(name, m_int_names));
     }
 
+    /** Get access to a particle Int component Array
+     *
+     * \param name name of the component
+     */
     [[nodiscard]] ArrayView<const IType> GetIntData (std::string const & name) const {
         return GetIntData(get_idx_from_str(name, m_int_names));
     }
 
-    void resize (size_type new_size)
+    void resize (size_type new_size, GrowthStrategy strategy = GrowthStrategy::Poisson)
     {
         AMREX_ALWAYS_ASSERT(m_defined);
 
-        if (new_size <= m_capacity && new_size * 10 > m_capacity) {
-            m_size = new_size;
+        if (m_capacity < new_size) {
+            size_type new_grown_capacity =
+                grow_podvector_capacity(strategy, new_size, m_capacity, sizeof(RType));
+            realloc_and_move(new_size, new_grown_capacity, m_n_real, m_n_int);
         } else {
-            realloc_and_move(new_size, new_size, m_n_real, m_n_int);
+            m_size = new_size;
         }
     }
 
-    void resize_geometric_grow (size_type new_size)
+    void reserve (size_type new_capacity, GrowthStrategy strategy = GrowthStrategy::Poisson)
     {
         AMREX_ALWAYS_ASSERT(m_defined);
 
-        if (new_size <= m_capacity && new_size * 10 > m_capacity) {
-            m_size = new_size;
-        } else {
-            realloc_and_move(new_size, std::max(new_size, m_capacity + m_capacity / 4),
-                             m_n_real, m_n_int);
-        }
-    }
-
-    void reserve (size_type new_capacity)
-    {
-        AMREX_ALWAYS_ASSERT(m_defined);
-
-        if (new_capacity > m_capacity) {
-            realloc_and_move(m_size, new_capacity, m_n_real, m_n_int);
+        if (m_capacity < new_capacity) {
+            size_type new_grown_capacity =
+                grow_podvector_capacity(strategy, new_capacity, m_capacity, sizeof(RType));
+            realloc_and_move(m_size, new_grown_capacity, m_n_real, m_n_int);
         }
     }
 
@@ -638,9 +673,9 @@ struct ParticleTileRT
         new_real_data.setArena(m_arena);
         new_int_data.setArena(m_arena);
 
-        new_idcpu_data.resize(new_capacity);
-        new_real_data.resize(new_capacity * new_n_real);
-        new_int_data.resize(new_capacity * new_n_int);
+        new_idcpu_data.resize(new_capacity, GrowthStrategy::Exact);
+        new_real_data.resize(new_capacity * new_n_real, GrowthStrategy::Exact);
+        new_int_data.resize(new_capacity * new_n_int, GrowthStrategy::Exact);
 
         auto p_idcpu = new_idcpu_data.data();
         auto p_real = new_real_data.data();
