@@ -742,7 +742,7 @@ struct ParticleTileRT
         }
     }
 
-    size_type capacity () const
+    [[nodiscard]] size_type capacity () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return m_capacity * (sizeof(uint64_t) + m_n_real * sizeof(RType) + m_n_int * sizeof(IType));
@@ -763,7 +763,7 @@ struct ParticleTileRT
         std::swap(m_int_names, other.m_int_names);
     }
 
-    ParticleTileDataType getParticleTileData ()
+    [[nodiscard]] ParticleTileDataType getParticleTileData ()
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return ParticleTileDataType{
@@ -776,7 +776,7 @@ struct ParticleTileRT
         };
     }
 
-    ConstParticleTileDataType getConstParticleTileData () const
+    [[nodiscard]] ConstParticleTileDataType getConstParticleTileData () const
     {
         AMREX_ALWAYS_ASSERT(m_defined);
         return ConstParticleTileDataType{
@@ -789,8 +789,8 @@ struct ParticleTileRT
         };
     }
 
-    auto&       GetStructOfArrays ()       { return *this; }
-    const auto& GetStructOfArrays () const { return *this; }
+    [[nodiscard]] auto&       GetStructOfArrays ()       { return *this; }
+    [[nodiscard]] const auto& GetStructOfArrays () const { return *this; }
 
     [[nodiscard]] Arena* arena() const {
         return m_arena;
