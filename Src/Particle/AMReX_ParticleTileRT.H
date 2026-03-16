@@ -422,7 +422,7 @@ struct ParticleTileRT
                 realloc_and_move(m_size, m_capacity, a_num_real_comps, a_num_int_comps);
             }
         } else {
-            AMREX_ALWAYS_ASSERT(a_arena != nullptr,
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_arena != nullptr,
                 "ParticleTileRT defined with no memory arena! "
                 "Make sure to call setArena() on the ParticleContainer before initialization or "
                 "to pass an Arena to ParticleTile::define()");
@@ -653,6 +653,14 @@ struct ParticleTileRT
             size_type new_grown_capacity =
                 grow_podvector_capacity(strategy, new_capacity, m_capacity, sizeof(RType));
             realloc_and_move(m_size, new_grown_capacity, m_n_real, m_n_int);
+        }
+    }
+
+    static void reserve (std::map<ParticleTileRT<RType, IType>*, int> const& addsizes)
+    {
+        // we don't do anything special here for now
+        for (auto [p,s] : addsizes) {
+            p->reserve(p->size()+s);
         }
     }
 
