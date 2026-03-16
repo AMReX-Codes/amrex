@@ -40,6 +40,7 @@ public:
 #ifdef AMREX_USE_GPU
     //! Is this CUDA stream ordered memory allocator?
     [[nodiscard]] bool isStreamOrderedArena () const final { return true; }
+    void streamOrderedFree (void* p, gpuStream_t stream) override;
 #endif
 
 #ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT

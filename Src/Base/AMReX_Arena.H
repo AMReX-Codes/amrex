@@ -4,6 +4,9 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
+#ifdef AMREX_USE_GPU
+#include <AMReX_GpuControl.H>
+#endif
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
@@ -241,6 +244,7 @@ public:
 #ifdef AMREX_USE_GPU
     //! Is this GPU stream ordered memory allocator?
     [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
+    virtual void streamOrderedFree (void* pt, gpuStream_t stream);
 #endif
 
     /**
