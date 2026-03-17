@@ -143,6 +143,7 @@ Real RandomGamma (Real alpha, Real beta)
 
 unsigned int Random_int (unsigned int n)
 {
+    if (n == 0) {return 0;}
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
@@ -150,6 +151,7 @@ unsigned int Random_int (unsigned int n)
 
 ULong Random_long (ULong n)
 {
+    if (n == 0) {return 0;}
     std::uniform_int_distribution<ULong> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);

@@ -216,7 +216,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
     AMREX_ALWAYS_ASSERT(static_cast<int>(write_real_comp.size()) == NStructReal + NumRealComps() - first_rcomp);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(write_int_comp.size())  == NStructInt  + NArrayInt );
+    AMREX_ALWAYS_ASSERT(static_cast<int>(write_int_comp.size())  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
@@ -306,7 +306,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
     AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(int_comp_names.size()) == NStructInt  + NArrayInt );
+    AMREX_ALWAYS_ASSERT(static_cast<int>(int_comp_names.size()) == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
