@@ -217,7 +217,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const std::string& compression) const
 {
     AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
-    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
+    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
     for (int i = 0; i < NStructReal + NumRealComps(); ++i )
@@ -311,7 +311,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const std::string& compression, F&& f) const
 {
     AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
-    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
+    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
     for (int i = 0; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
