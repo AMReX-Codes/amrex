@@ -114,12 +114,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<int> write_int_comp;
@@ -127,9 +127,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -150,11 +148,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const Vector<std::string>& int_comp_names,
                      const std::string& compression) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
-    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NumIntComps() );
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(static_cast<int>(int_comp_names.size()) == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
 
     Vector<int> write_int_comp;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i) { write_int_comp.push_back(1); }
@@ -177,10 +177,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const Vector<std::string>& real_comp_names,
                      const std::string& compression) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
 
     Vector<int> write_int_comp;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i) write_int_comp.push_back(1);
@@ -188,9 +190,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteHDF5ParticleData(dir, name,
@@ -213,23 +213,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const Vector<int>& write_int_comp,
                      const std::string& compression) const
 {
-    AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
-    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    AMREX_ALWAYS_ASSERT(static_cast<int>(write_real_comp.size()) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(static_cast<int>(write_int_comp.size())  == NStructInt  + NArrayInt );
 
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -274,12 +272,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
         write_real_comp.push_back(1);
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<int> write_int_comp;
@@ -287,9 +285,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
         write_int_comp.push_back(1);
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -307,11 +303,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const Vector<std::string>& int_comp_names,
                      const std::string& compression, F&& f) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
-    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(static_cast<int>(int_comp_names.size()) == NStructInt  + NArrayInt );
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
 
     Vector<int> write_int_comp;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i) { write_int_comp.push_back(1); }
@@ -331,10 +329,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const Vector<std::string>& real_comp_names,
                      const std::string& compression, F&& f) const
 {
-    AMREX_ASSERT(real_comp_names.size() == NStructReal + NumRealComps());
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
 
     Vector<int> write_real_comp;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
 
     Vector<int> write_int_comp;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i) { write_int_comp.push_back(1); }
@@ -342,9 +342,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteHDF5ParticleData(dir, name,
@@ -364,23 +362,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      const Vector<int>& write_int_comp,
                      const std::string& compression, F&& f) const
 {
-    AMREX_ASSERT(write_real_comp.size() == NStructReal + NumRealComps());
-    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NumIntComps() );
+    // skip the first spacedim comps for soa particles
+    int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
+    AMREX_ALWAYS_ASSERT(static_cast<int>(write_real_comp.size()) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(static_cast<int>(write_int_comp.size())  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
-    for (int i = 0; i < NStructReal + NumRealComps(); ++i )
+    for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "real_comp" << i;
-        real_comp_names.push_back(ss.str());
+        real_comp_names.push_back(getDefaultCompNameReal<ParticleType>(i));
     }
 
     Vector<std::string> int_comp_names;
     for (int i = 0; i < NStructInt + NumIntComps(); ++i )
     {
-        std::stringstream ss;
-        ss << "int_comp" << i;
-        int_comp_names.push_back(ss.str());
+        int_comp_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
     WriteHDF5ParticleData(dir, name, write_real_comp, write_int_comp,
@@ -1533,6 +1529,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 ++iptr;
             }
         } else {
+            // we need to create this map entry for the loop below
             host_particles[lev][ind];
 
             for (int j = 0; j < AMREX_SPACEDIM; j++) {
