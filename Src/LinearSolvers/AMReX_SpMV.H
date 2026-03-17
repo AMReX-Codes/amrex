@@ -147,29 +147,32 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
         rocsparse_spmv_set_input(handle, spmv_descr, rocsparse_spmv_input_compute_datatype,
                                  &data_type, sizeof(data_type), &error));
 
-    std::size_t buffer_size_1 = 0;
+    std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_v2_spmv_buffer_size(handle, spmv_descr, mat_descr, x_descr, y_descr,
                                       rocsparse_v2_spmv_stage_analysis, // buffer size for analysis
-                                      &buffer_size_1, &error));
+                                      &buffer_size, &error));
 
-    std::size_t buffer_size_2 = 0;
-    AMREX_ROCSPARSE_SAFE_CALL(
-        rocsparse_v2_spmv_buffer_size(handle, spmv_descr, mat_descr, x_descr, y_descr,
-                                      rocsparse_v2_spmv_stage_compute, // buffer size for compute
-                                      &buffer_size_2, &error));
-
-    void* pbuffer = (void*)The_Arena()->alloc(std::max(buffer_size_1,buffer_size_2));
+    void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_v2_spmv(handle, spmv_descr, &alpha, mat_descr, x_descr, &beta, y_descr,
                           rocsparse_v2_spmv_stage_analysis, // analysis stage
-                          buffer_size_1, pbuffer, &error));
+                          buffer_size, pbuffer, &error));
+
+    The_Arena()->free(pbuffer);
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_v2_spmv_buffer_size(handle, spmv_descr, mat_descr, x_descr, y_descr,
+                                      rocsparse_v2_spmv_stage_compute, // buffer size for compute
+                                      &buffer_size, &error));
+
+    pbuffer = (void*)The_Arena()->alloc(buffer_size);
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_v2_spmv(handle, spmv_descr, &alpha, mat_descr, x_descr, &beta, y_descr,
                           rocsparse_v2_spmv_stage_compute, // compute stage
-                          buffer_size_2, pbuffer, &error));
+                          buffer_size, pbuffer, &error));
 
 #elif (HIP_VERSION_MAJOR == 6)
 
