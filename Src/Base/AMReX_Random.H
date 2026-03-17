@@ -212,7 +212,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
-	if (n == 0) { return 0;}
+    if (n == 0) { return 0;}
 #if defined(__SYCL_DEVICE_ONLY__)
         mkl::rng::device::uniform<unsigned int> distr(0,n);
         return mkl::rng::device::generate(distr, *random_engine.engine);
