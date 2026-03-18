@@ -1,6 +1,6 @@
 # AMReX Agents Guide
 
-Use this guide whenever you orchestrate explorers/workers inside the AMReX repository. It covers both AMReX developers (PR reviews, bug hunts, new features, and documentation) and AMReX users who ask agents for help learning or building with AMReX.
+Use this guide whenever you orchestrate explorers/workers inside the AMReX repository. It covers both AMReX developers (PR reviews, bug hunts, new features, and documentation) and AMReX users who ask agents for help learning or building with AMReX. AMReX itself is a C++/Fortran framework for block-structured adaptive mesh refinement (AMR) targeting large-scale PDE simulations on CPU and GPU architectures (CUDA, HIP, SYCL).
 
 ## Purpose & Personas
 
