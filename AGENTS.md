@@ -7,14 +7,16 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
 - **AMReX developers** – structure every agent task (reviews, fixes, features, documentation) so it is scoped, reproducible, and merged with confidence.
 - **AMReX users** – route questions about capabilities, docs, tutorials, builds, or troubleshooting through the authoritative resources already shipped with the repo.
 
+**Navigation tip**: We reference repository docs by section titles rather than line numbers. Use `rg -n "<heading text>" <file>` (or your editor’s outline) to jump to the relevant sections quickly.
+
 ## Operating Principles
 
-- **Branch hygiene**: Work from short-lived branches based on the latest `development`, and never commit directly on the tracking `development` branch (see `CONTRIBUTING.md:191-208`).
-- **Single integration branch**: Treat `development` as the one authoritative branch AMReX maintains (see `CONTRIBUTING.md:1-35`). Every PR must target it, monthly releases are tagged from it, and local work should always rebase onto it before review.
-- **Coding style**: Follow the “AMReX Coding Style Guide” for indentation, brace usage, spacing, and member naming (see `CONTRIBUTING.md:210-255`). If a change touches code and documentation, keep the style fixes local to the edited blocks.
+- **Branch hygiene**: Work from short-lived branches based on the latest `development`, and never commit directly on the tracking `development` branch (see the “Git workflow” section of `CONTRIBUTING.md`, especially the “Generally speaking” rules about keeping `development` clean).
+- **Single integration branch**: Treat `development` as the one authoritative branch AMReX maintains (see “Development Model” in `CONTRIBUTING.md`). Every PR must target it, monthly releases are tagged from it, and local work should always rebase onto it before review.
+- **Coding style**: Follow the “AMReX Coding Style Guide” for indentation, brace usage, spacing, and member naming (see the “AMReX Coding Style Guide” section in `CONTRIBUTING.md`). If a change touches code and documentation, keep the style fixes local to the edited blocks.
 - **Plan, scope, and delegate**: For any non-trivial task, sketch a plan, assign clear ownership when spawning explorers/workers, and avoid overlapping write scopes. Prefer `rg` for repo searches to stay fast in large trees.
-- **Build and test defaults**: Configure builds with `cmake` as described in `Docs/sphinx_documentation/source/BuildingAMReX.rst:381-416`, and treat `CTest` as the default verification step. Enable tests via `-DAMReX_ENABLE_TESTS=ON` and use `-DAMReX_TEST_TYPE=Small` when a light signal is enough (`Tools/CMake/AMReXOptions.cmake:515-526`).
-- **Documentation sources**: Lean on the curated entry points listed in `README.md:67-99` whenever users ask for learning material, examples, or contribution guidance, and link to tutorials mentioned in `Tutorials/README.md:1`.
+- **Build and test defaults**: Configure builds with `cmake` as described in `Docs/sphinx_documentation/source/BuildingAMReX.rst` (section “Customization options”), and treat `CTest` as the default verification step. Enable tests via `-DAMReX_ENABLE_TESTS=ON` and use `-DAMReX_TEST_TYPE=Small` when a light signal is enough (see the “Tests” block inside `Tools/CMake/AMReXOptions.cmake`).
+- **Documentation sources**: Lean on the curated entry points listed in the “Documentation” section of `README.md` whenever users ask for learning material, examples, or contribution guidance, and point to the standalone tutorials repository referenced in `Tutorials/README.md` (`https://github.com/AMReX-Codes/amrex-tutorials`).
 - **Issue logging & hand-off**: Keep a personal (untracked) `issues/<NN>-<component>-<short-description>.md` directory on each machine. Use it to capture open questions, repro notes, or follow-ups, reusing the numbering/component/title convention described below. Include suggested patches whenever possible so the next agent can act quickly.
 - **Learn from past bugs**: Before diving into similar code, skim your local `issues/` notes to refresh common pitfalls—many historical AMReX bugs came from copy-paste mistakes (e.g., duplicated kernels, swapped indices, missing constant updates), so assume near-identical blocks may hide divergences.
 
@@ -22,7 +24,7 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
 
 ### PR and Bug Reviews
 1. **Sync & inspect** – Update the local branch, note the PR/issue scope, and record file ownership expectations.
-2. **Reproduce & read** – Reproduce the report using the author’s steps or by running the focused tests. While reading diffs, confirm they honor the style guide (`CONTRIBUTING.md:210-255`).
+2. **Reproduce & read** – Reproduce the report using the author’s steps or by running the focused tests. While reading diffs, confirm they honor the rules in the “AMReX Coding Style Guide” section of `CONTRIBUTING.md`.
 3. **Hunt for copy-paste drift** – Compare mirrored kernels, dimension-specific code paths, and duplicated tables; historical regressions often stem from edits applied to one block but not its sibling. Look for suspiciously similar snippets that differ only by variable names or miss a constant update.
 4. **Verify** – Configure the project with the appropriate options (for example, GPU flags or `-DAMReX_TEST_TYPE=Small`) and run `ctest --output-on-failure` from the build directory.
 5. **Focus on hot spots** – Use `cmake --build build -j --target <target_name>` for a single executable/test and `ctest --test-dir build -R <regex>` (or `ctest -R <regex>` inside the build tree) to rerun only the impacted cases, then capture the output.
@@ -31,7 +33,7 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
 
 ### Feature or Fix Implementation
 1. **Understand scope** – Capture requirements, physics context, and success criteria from the originating issue/PR.
-2. **Configure builds quickly** – Use the standard pattern below, adding any extra `-D` knobs listed in `Docs/sphinx_documentation/source/BuildingAMReX.rst:381-446`.
+2. **Configure builds quickly** – Use the standard pattern below, adding any extra `-D` knobs listed in the “Customization options” portion of `Docs/sphinx_documentation/source/BuildingAMReX.rst`.
 
    ```bash
    cmake -S . -B build \
@@ -44,21 +46,20 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
    When only one binary or test matters, leverage `cmake --build build -j --target <target_name>` and `ctest --test-dir build -R <regex>` to keep feedback loops short.
 
 3. **Implement with traceability** – Touch only the files you own in this task, annotate complex code with succinct comments, and reference relevant issue IDs.
-4. **Document** – Update user-facing docs whenever behavior changes. Pull content from the `Documentation` section of `README.md:67-74` (User’s Guide, Example Codes, Guided Tutorials, Technical Reference) so users know where to look.
+4. **Document** – Update user-facing docs whenever behavior changes. Pull content from the “Documentation” section of `README.md` (User’s Guide, Example Codes, Guided Tutorials, Technical Reference) so users know where to look.
 5. **Hand off** – Record remaining questions, test logs, or benchmarking data inside `issues/` or the PR description, including exact commands run and their outcomes.
 
 ### Documentation and Tutorial Updates
-- For feature additions, mirror the doc hierarchy described in `README.md:67-99` so the User’s Guide, Example Codes, and Guided Tutorials stay synchronized.
-- When tutorials move or expand, note the canonical source (`Tutorials/README.md:1` points to the external tutorials repository) and update both AMReX docs and the tutorial repo as needed.
+- For feature additions, mirror the doc hierarchy described in the “Documentation” section of `README.md` so the User’s Guide, Example Codes, and Guided Tutorials stay synchronized.
 - Surface new build options or workflows in `Docs/sphinx_documentation/source/BuildingAMReX.rst` so the `Customization options` table stays authoritative.
 
 ## Guidance for AMReX Users Working with Agents
 
-- **Getting oriented**: Summarize AMReX capabilities using the “Overview,” “Features,” and “Documentation” sections in `README.md:51-99`. Link users to the appropriate resource (User’s Guide, Example Codes, Guided Tutorials, Technical Reference).
-- **Building & testing quickly**: Walk users through the `cmake` workflow highlighted in `Docs/sphinx_documentation/source/BuildingAMReX.rst:381-416`, and explain how to toggle features with the `-D<var>=<value>` syntax using examples from the same section.
-- **Learning resources**: Point to tutorials via `Tutorials/README.md:1`, plus any relevant slides or videos referenced in `README.md:69-74`.
+- **Getting oriented**: Summarize AMReX capabilities using the “Overview,” “Features,” and “Documentation” sections in `README.md`. Link users to the appropriate resource (User’s Guide, Example Codes, Guided Tutorials, Technical Reference).
+- **Building & testing quickly**: Walk users through the `cmake` workflow highlighted in the “Customization options” part of `Docs/sphinx_documentation/source/BuildingAMReX.rst`, and explain how to toggle features with the `-D<var>=<value>` syntax using examples from the same section.
+- **Learning resources**: Direct users to the standalone tutorials repository noted in `Tutorials/README.md` (`https://github.com/AMReX-Codes/amrex-tutorials`) and supplement with the slides/videos featured near the “Documentation” section of `README.md`.
 - **Consult Sphinx sources**: When clarifying documentation or preparing local updates, read directly from `Docs/sphinx_documentation` (especially the `source/` subtree). This is the exact content published online, so citing it keeps agent answers aligned with the official docs.
-- **Getting help or contributing back**: Encourage questions through GitHub Discussions and remind users that contributions go through `CONTRIBUTING.md` as noted in `README.md:87-99`.
+- **Getting help or contributing back**: Encourage questions through GitHub Discussions and remind users that contributions go through `CONTRIBUTING.md`, as described in the “Get Help” and “Contribute” sections of `README.md`.
 
 ## Issues & Hand-off Notes
 
@@ -74,8 +75,8 @@ Include ready-to-apply patches or diff hunks whenever possible so other agents (
 
 ## Quick Checklist
 
-1. Confirm you are on a task-specific branch that tracks `development` cleanly (`CONTRIBUTING.md:191-208`).
+1. Confirm you are on a task-specific branch that tracks `development` cleanly (see the “Git workflow” guidance in `CONTRIBUTING.md`).
 2. Plan the task, noting deliverables, ownership, and validation steps before spawning sub-agents.
-3. Build with the right `cmake` options and run `ctest` (using `AMReX_ENABLE_TESTS` and `AMReX_TEST_TYPE` toggles) to validate changes (`Docs/sphinx_documentation/source/BuildingAMReX.rst:381-416`, `Tools/CMake/AMReXOptions.cmake:515-526`).
-4. Update documentation and user guidance by referencing the resources enumerated in `README.md:67-99` and `Tutorials/README.md:1`.
+3. Build with the right `cmake` options and run `ctest` (using `AMReX_ENABLE_TESTS` and `AMReX_TEST_TYPE` toggles) to validate changes, following “Customization options” in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and the “Tests” block in `Tools/CMake/AMReXOptions.cmake`.
+4. Update documentation and user guidance by referencing the resources enumerated in the “Documentation” section of `README.md`.
 5. Capture unresolved work, context, and suggested patches in `issues/` so future agents can pick up where you left off.
