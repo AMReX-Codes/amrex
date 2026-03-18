@@ -148,7 +148,9 @@ int NumCoarsenOpt ();
  * \param gshop  Construct describing the implicit surface.
  * \param geom   Finest-level Geometry.
  * \param required_coarsening_level Number of coarse levels required by the application.
- * \param max_coarsening_level      Maximum level the implicit function supports.
+ * \param max_coarsening_level      Upper bound on the number of coarsenings we attempt
+ *        when generating the EB hierarchy (the builder simply stops earlier if the
+ *        EB cannot be coarsened that far; it is not treated as an error).
  * \param ngrow  Number of EB grow cells to build (default 4).
  * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
  * \param extend_domain_face Whether to extrapolate the EB description from the domain face to the outside of the domain (defaults to EB2::ExtendDomainFace / runtime param `eb2.extend_domain_face`).
@@ -195,17 +197,23 @@ Build (const G& gshop, Vector<Geometry> geom,
 }
 
 /**
- * \brief Build EB geometry from the implicit function stored in the Geometry object itself.
+ * \brief Build EB geometry using the runtime-configured EB2 geometry type.
+ *
+ * This overload does not take an explicit GeometryShop; instead it inspects the `eb2`
+ * ParmParse namespace (notably `eb2.geom_type` along with its shape-specific parameters)
+ * and instantiates the matching implicit function.  Supported values currently include
+ * `all_regular`, `box`, `cylinder`, `plane`, `sphere`, `torus`, `parser`, and `stl`.
  *
  * \param geom   Finest-level Geometry.
  * \param required_coarsening_level Number of coarse levels required by the application.
- * \param max_coarsening_level      Maximum level the implicit function supports.
+ * \param max_coarsening_level      Upper bound on the number of coarsenings we attempt;
+ *        it is safe if fewer levels are actually realizable.
  * \param ngrow  Number of EB grow cells to build (default 4).
  * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
  * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
  * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
  *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
- * \param support_mvmc Whether to build multi-valued multi-cut support.
+ * \param support_mvmc Whether to build multi-valued multi-cut support. (Currently must be false.)
  */
 void Build (const Geometry& geom,
             int required_coarsening_level,
@@ -220,6 +228,7 @@ void Build (const Geometry& geom,
  * \brief Build EB geometry dedicated to multi-valued multi-cut support.
  *
  * Parameters mirror Build() but always enables multi-valued structures.
+ * @warning This pathway is experimental and not fully supported yet.
  */
 void BuildMultiValuedMultiCut (const Geometry& geom,
                                int required_coarsening_level,
@@ -235,7 +244,8 @@ void BuildMultiValuedMultiCut (const Geometry& geom,
  * \param fname   Path to the checkpoint file.
  * \param geom    Geometry describing the finest level.
  * \param required_coarsening_level Number of coarse levels required.
- * \param max_coarsening_level      Maximum supported by the stored implicit function.
+ * \param max_coarsening_level      Upper bound on the number of coarsenings to try
+ *        when reconstructing from disk (no error if the stored data yields fewer).
  * \param ngrow  Number of grow cells.
  * \param build_coarse_level_by_coarsening Whether to coarsen or rebuild coarse levels.
  * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
@@ -248,12 +258,12 @@ void BuildFromChkptFile (std::string const& fname,
                          bool build_coarse_level_by_coarsening = true,
                          bool extend_domain_face = ExtendDomainFace());
 
-//! Return the maximum coarsening level supported by the implicit geometry stored in \p geom.
+//! Return the maximum coarsening level supported for given \p geom.
 int maxCoarseningLevel (const Geometry& geom);
 //! Same as above but for a specific IndexSpace pointer \p ebis.
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
 
-//! Add \p num_new_fine_levels to the top of the current IndexSpace hierarchy.
+//! Add \p num_new_fine_levels to the EB hierarchy.
 void addFineLevels (int num_new_fine_levels);
 
 //! Add \p num_new_coarse_levels regular levels below the current coarsest level.
