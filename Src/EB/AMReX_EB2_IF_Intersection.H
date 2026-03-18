@@ -52,7 +52,7 @@ namespace IIF_detail {
 /// \endcond
 
 template <class... Fs>
-//! Implicit function that evaluates the max of multiple surfaces (geometric intersection).
+//! Implicit function that evaluates the intersection of multiple objects.
 class IntersectionIF
     : public GpuTuple<Fs...>
 {
@@ -96,7 +96,6 @@ struct IsGPUable<IntersectionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class... Fs>
-//! Deduction helper for IntersectionIF.
 constexpr IntersectionIF<std::decay_t<Fs> ...>
 makeIntersection (Fs&&... fs)
 {

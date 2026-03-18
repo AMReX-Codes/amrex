@@ -13,7 +13,7 @@
 /**
  * \file AMReX_EB2_Graph.H
  *
- * Lightweight POD types that store EB irregular-cell geometry (volume fractions,
+ * Lightweight types that store EB irregular-cell geometry (volume fractions,
  * faces, neighbors, etc.) inside EB2 graphs.
  */
 
@@ -44,7 +44,7 @@ struct Edge
 
 using Type_t = uint32_t;
 
-//! Neighbor-type flags that classify surrounding cells as regular/covered/etc.
+//! Type flags representing regular/covered/etc.
 namespace Type {
     static constexpr Type_t regular=0x0;
     static constexpr Type_t covered=0x1;

@@ -17,7 +17,7 @@
 
 namespace amrex::EB2 {
 
-//! Signed-distance implicit function for cylinders along a coordinate axis.
+//! Signed implicit function for cylinders along a coordinate axis.
 class CylinderIF
     : GPUable
 {
@@ -93,7 +93,7 @@ public:
         }
     }
 
-    //! Evaluate the signed distance at a given coordinate.
+    //! Evaluate the implicit function at a given coordinate.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         return this->operator() (AMREX_D_DECL(p[0], p[1], p[2]));

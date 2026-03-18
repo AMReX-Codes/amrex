@@ -58,7 +58,6 @@ struct IsGPUable<TranslationIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-//! Deduction helper for TranslationIF.
 constexpr TranslationIF<std::decay_t<F>>
 translate (F&&f, const RealArray& offset)
 {

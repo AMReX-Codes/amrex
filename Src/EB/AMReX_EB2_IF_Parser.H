@@ -21,6 +21,9 @@ class ParserIF
 {
 public:
     //! Store a compiled parser executor for later evaluation.
+    //! Note ParserExecutor<3> keeps pointers into the originating Parser instance, so
+    //! the Parser must outlive this object (e.g., use
+    //! `EB2::GeometryShop<EB2::ParserIF, amrex::Parser>` to keep both alive together).
     ParserIF (const ParserExecutor<3>& a_parser)
         : m_parser(a_parser)
         {}

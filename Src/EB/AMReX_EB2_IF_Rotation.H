@@ -114,7 +114,6 @@ struct IsGPUable<RotationIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-//! Deduction helper for RotationIF.
 constexpr RotationIF<std::decay_t<F>>
 rotate (F&&f, const Real angle, const int dir)
 {

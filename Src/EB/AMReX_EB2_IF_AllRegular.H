@@ -23,7 +23,7 @@ public:
     //! Always returns a negative value so EB2 treats every cell as regular.
     constexpr Real operator() (const RealArray&) const noexcept { return -1.0; }
 
-    //! Overload for AMREX_D_DECL signature to avoid temporary RealArray creation.
+    //! Always returns a negative value so EB2 treats every cell as regular.
     constexpr Real operator() (AMREX_D_DECL(Real, Real, Real)) const noexcept { return -1.0; }
 };
 

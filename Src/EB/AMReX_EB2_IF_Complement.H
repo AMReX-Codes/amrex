@@ -18,7 +18,7 @@
 namespace amrex::EB2 {
 
 template <class F>
-//! Implicit function wrapper that swaps interior/exterior membership.
+//! Implicit function wrapper that swaps interior/exterior.
 class ComplementIF
 {
 public:
@@ -32,7 +32,8 @@ public:
         return -m_f(p);
     }
 
-    //! GPU-friendly overload forwarding to the wrapped implicit function.
+
+    //! Evaluate the complement.
     template<class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
@@ -50,7 +51,7 @@ struct IsGPUable<ComplementIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-//! Helper that deduces template arguments when building complements.
+//! Helper that contructs a complement operator.
 constexpr ComplementIF<std::decay_t<F>>
 makeComplement (F&& f)
 {

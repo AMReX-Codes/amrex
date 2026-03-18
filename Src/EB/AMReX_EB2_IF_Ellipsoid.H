@@ -15,13 +15,13 @@
 
 namespace amrex::EB2 {
 
-//! Signed-distance implicit function for ellipsoids centered at \p a_center.
+//! Signed implicit function for ellipsoids centered at \p a_center.
 class EllipsoidIF
     : public GPUable
 {
 public:
 
-    //! Construct an ellipsoid with semiaxes \p a_radii. The sign selects inside/outside.
+    //! Construct an ellipsoid with semiaxes \p a_radii.
     EllipsoidIF (const RealArray& a_radii, const RealArray& a_center, bool a_inside)
         : m_radii(makeXDim3(a_radii)),
           m_center(makeXDim3(a_center)),
@@ -36,7 +36,6 @@ public:
         return m_sign*(d2-1.0_rt);
     }
 
-    //! Array-based overload delegating to the coordinate version.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }

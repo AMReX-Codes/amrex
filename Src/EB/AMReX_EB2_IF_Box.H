@@ -18,7 +18,7 @@
 
 namespace amrex::EB2 {
 
-//! Signed-distance implicit function for an axis-aligned box.
+//! Signed implicit function for an axis-aligned box.
 class BoxIF
     : GPUable
 {
@@ -37,7 +37,7 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    //! Evaluate the signed distance at the given coordinate.
+    //! Evaluate the implicit at the given coordinate.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -48,7 +48,7 @@ public:
         return r*m_sign;
     }
 
-    //! Array-based overload that forwards to the AMREX_D_DECL version.
+    //! Evaluate the implicit at the given coordinate.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         return this->operator() (AMREX_D_DECL(p[0], p[1], p[2]));

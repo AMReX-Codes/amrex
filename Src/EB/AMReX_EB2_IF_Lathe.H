@@ -27,7 +27,6 @@ public:
     //! Store the curve implicit function prior to rotation.
     LatheIF (F a_f) : m_f(std::move(a_f)) {}
 
-    //! Evaluate by replacing (x,y) with their radial distance.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         Real r = std::hypot(p[0],p[1]);
@@ -60,7 +59,6 @@ struct IsGPUable<LatheIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-//! Deduction helper for LatheIF.
 constexpr LatheIF<std::decay_t<F>>
 lathe (F&& f)
 {

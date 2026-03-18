@@ -60,7 +60,6 @@ struct IsGPUable<ScaleIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-//! Deduction helper for ScaleIF.
 constexpr ScaleIF<std::decay_t<F>>
 scale (F&&f, const RealArray& scalefactor)
 {

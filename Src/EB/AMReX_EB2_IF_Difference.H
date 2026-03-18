@@ -39,6 +39,7 @@ public:
         return amrex::min(r1, -r2);
     }
 
+    //! Evaluate the set difference at given physical coordinates.
     template <class U=F, class V=G,
               std::enable_if_t<IsGPUable<U>::value &&
                                       IsGPUable<V>::value, int> = 0>
@@ -62,7 +63,7 @@ struct IsGPUable<DifferenceIF<F,G>, std::enable_if_t<IsGPUable<F>::value &&
     : std::true_type {};
 
 template <class F, class G>
-//! Deduction helper for DifferenceIF.
+//! Helper that constructs a difference operator.
 constexpr DifferenceIF<std::decay_t<F>,
                        std::decay_t<G>>
 makeDifference (F&& f, G&& g)

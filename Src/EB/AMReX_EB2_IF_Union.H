@@ -52,7 +52,7 @@ namespace UIF_detail {
 /// \endcond
 
 template <class... Fs>
-//! Implicit function representing the union of several surfaces.
+//! Implicit function representing the union of several objects.
 class UnionIF
     : public GpuTuple<Fs...>
 {
@@ -96,7 +96,6 @@ struct IsGPUable<UnionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class... Fs>
-//! Deduction helper for UnionIF.
 constexpr UnionIF<std::decay_t<Fs> ...>
 makeUnion (Fs&&... fs)
 {

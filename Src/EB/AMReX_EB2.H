@@ -213,7 +213,8 @@ Build (const G& gshop, Vector<Geometry> geom,
  * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
  * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
  *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
- * \param support_mvmc Whether to build multi-valued multi-cut support. (Currently must be false.)
+ * \param support_mvmc Whether to build multi-valued multi-cut support. (Only honored when
+ *        `eb2.geom_type` is `stl`; other geometries ignore it and emit a warning.)
  */
 void Build (const Geometry& geom,
             int required_coarsening_level,

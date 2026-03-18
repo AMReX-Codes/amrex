@@ -27,7 +27,7 @@ public:
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
-    //! Evaluate the signed distance at explicit coordinates.
+    //! Evaluate the implicit function at explicit coordinates.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept {
         Real d2 = AMREX_D_TERM(  (x-m_center.x)*(x-m_center.x),
