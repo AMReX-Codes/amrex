@@ -9,6 +9,17 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
 
 **Navigation tip**: We reference repository docs by section titles rather than line numbers. Use `rg -n "<heading text>" <file>` (or your editor’s outline) to jump to the relevant sections quickly.
 
+## Repository Layout at a Glance
+
+- `Src/` – Primary C++/Fortran implementation. Subfolders group functionality:
+  - `Amr` / `AmrCore` house mesh hierarchy management, tagging, and regridding logic.
+  - `Base` collects runtime essentials (memory arenas, geometry, I/O helpers) shared by every backend.
+  - `Boundary`, `EB`, `LinearSolvers`, `Particle`, `FFT`, etc. provide focused subsystems; check their `CMakeLists.txt` for build toggles before touching code.
+  - `Extern` and `F_Interfaces` bridge external packages and Fortran bindings.
+- `Tests/` – CTest targets and sample drivers organized by topic (EB, GPU, LinearSolvers, Particles, etc.). When enabling `AMReX_ENABLE_TESTS`, these turn into runnable executables (`ctest -N` to list).
+- `Docs/` – Source of all published documentation. The `sphinx_documentation/` tree feeds the public HTML docs; `Doxygen/` supports reference builds. Edit these when updating guides.
+- `Tools/` – Build helpers, scripts, and shared CMake modules (e.g., `Tools/CMake/AMReXOptions.cmake`) and GNU makefiles.
+
 ## Operating Principles
 
 - **Branch hygiene**: Work from short-lived branches based on the latest `development`, and never commit directly on the tracking `development` branch (see the “Git workflow” section of `CONTRIBUTING.md`, especially the “Generally speaking” rules about keeping `development` clean).
