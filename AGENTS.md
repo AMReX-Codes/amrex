@@ -77,6 +77,6 @@ Include ready-to-apply patches or diff hunks whenever possible so other agents (
 
 1. Confirm you are on a task-specific branch that tracks `development` cleanly (see the “Git workflow” guidance in `CONTRIBUTING.md`).
 2. Plan the task, noting deliverables, ownership, and validation steps before spawning sub-agents.
-3. Build with the right `cmake` options and run `ctest` (using `AMReX_ENABLE_TESTS` and `AMReX_TEST_TYPE` toggles) to validate changes, following “Customization options” in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and the “Tests” block in `Tools/CMake/AMReXOptions.cmake`.
+3. Build with the right `cmake` options and run `ctest` (using `AMReX_ENABLE_TESTS` and `AMReX_TEST_TYPE` toggles) to validate changes, following “Customization options” in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and the “Tests” block in `Tools/CMake/AMReXOptions.cmake`; for single cases, rely on `cmake --build build -j --target <target>` plus `ctest --test-dir build -R <regex>`.
 4. Update documentation and user guidance by referencing the resources enumerated in the “Documentation” section of `README.md`.
 5. Capture unresolved work, context, and suggested patches in `issues/` so future agents can pick up where you left off.
