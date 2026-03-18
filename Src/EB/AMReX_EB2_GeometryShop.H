@@ -173,9 +173,9 @@ BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
 }
 
 /**
- * \brief Samples an implicit function on boxes and fills EB volume-fraction data.
+ * \brief Samples an implicit function on boxes and fills EB data.
  *
- * \tparam F Functor providing the signed-distance/implicit value.
+ * \tparam F Functor providing the implicit function value.
  * \tparam R Optional resource handle kept alive as long as the shop exists.
  */
 template <class F, class R = int>
@@ -320,7 +320,7 @@ public:
     static constexpr bool isGPUable () noexcept { return false; }
 
     /**
-     * \brief Fill a level-set FAB by sampling the implicit function on each cell/ghost.
+     * \brief Fill a level-set FAB by sampling the implicit function on each point in the FAB.
      *
      * \param levelset Destination BaseFab.
      * \param geom     Geometry providing location metadata.
@@ -387,10 +387,10 @@ public:
 
 
     /**
-     * \brief Compute EB intercepts for irregular faces (GPU-capable case).
+     * \brief Compute EB intercepts for irregular edges (GPU-capable case).
      *
      * \param inter_arr Array of intercept FABs per direction.
-     * \param type_arr  Cell-type arrays marking regular/covered/irregular cells.
+     * \param type_arr  Edge-type arrays marking regular/covered/irregular edges.
      * \param geom      Geometry providing metrics.
      * \param run_on    Execution target.
      * \param bounding_box Bounding box limiting evaluation.
@@ -498,13 +498,11 @@ public:
         });
     }
 
-
-
     /**
-     * \brief Update intercepts when level-set data has been adjusted (e.g., FillBoundary).
+     * \brief Update intercepts when level-set data has been adjusted (e.g., fixing small cells).
      *
      * \param inter_arr Array of intercept FABs per direction.
-     * \param type_arr  Cell-type arrays marking regular/covered/irregular cells.
+     * \param type_arr  Edge-type arrays marking regular/covered/irregular edges.
      * \param lst       Level-set data used to determine zero crossings.
      * \param geom      Geometry providing metrics.
      */
@@ -572,7 +570,7 @@ private:
 };
 
 /**
- * \brief Helper that deduces template arguments for GeometryShop.
+ * \brief Helper that constructs a GeometryShop owning the supplied implicit function.
  *
  * \param f Implicit function callable.
  */
@@ -584,7 +582,8 @@ makeShop (F&& f)
 }
 
 /**
- * \brief Helper that deduces template arguments when supplying an extra resource.
+ * \brief Helper that constructs a GeometryShop for an implicit function plus an extra
+ *        resource handle.
  *
  * \param f Implicit function callable.
  * \param r Extra resource (e.g., Parser data) kept alive for \p f.
