@@ -1,9 +1,6 @@
 #ifndef AMREX_EB2_IF_DEVICEPTR_H_
 #define AMREX_EB2_IF_DEVICEPTR_H_
 
-#ifndef AMREX_EB2_IF_DEVICEPTR_H_
-#define AMREX_EB2_IF_DEVICEPTR_H_
-
 /**
  * \file AMReX_EB2_IF_DevicePtr.H
  *
