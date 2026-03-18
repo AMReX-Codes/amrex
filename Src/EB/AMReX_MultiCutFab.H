@@ -8,8 +8,6 @@
 
 /**
  * \file AMReX_MultiCutFab.H
- *
- * Strided storage for EB boundary data (area fractions, centroids, etc.).
  */
 
 namespace amrex {
@@ -84,14 +82,13 @@ public:
     }
 };
 
-//! FabArray façade that only allocates cut-cell tiles (skipping regular cells).
+//! FabArray façade that only allocates cut-cell Fabs (skipping regular cells).
 class MultiCutFab
 {
 public:
 
     MultiCutFab ();
 
-    //! Build and immediately define all cut-cell data structures.
     MultiCutFab (const BoxArray& ba, const DistributionMapping& dm,
                  int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags);
 
@@ -103,11 +100,10 @@ public:
     MultiCutFab& operator= (const MultiCutFab& rhs) = delete;
     MultiCutFab& operator= (MultiCutFab&& rhs) = delete;
 
-    //! Late initialize using EBCellFlag data to skip regular cells.
     void define (const BoxArray& ba, const DistributionMapping& dm,
                  int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags);
 
-    //! Access the CutFab for tile \p mfi.
+    //! Access the CutFab for \p mfi.
     const CutFab& operator[] (const MFIter& mfi) const noexcept;
     CutFab& operator[] (const MFIter& mfi) noexcept;
 
@@ -149,7 +145,7 @@ public:
     int nComp () const noexcept { return m_data.nComp(); }
     int nGrow () const noexcept { return m_data.nGrow(); }
 
-    //! Copy overlapping data from \p src while respecting EB mask.
+    //! Copy overlapping data from \p src.
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng,
                        const Periodicity& period = Periodicity::NonPeriodic());
 

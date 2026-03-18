@@ -8,7 +8,7 @@
 /**
  * \file AMReX_WriteEBSurface.H
  *
- * Writes EB surface geometry (in STL format) for diagnostic visualization.
+ * Writes EB surface geometry (in pvd format) for diagnostic visualization.
  */
 
 namespace amrex {
@@ -16,9 +16,7 @@ namespace amrex {
 class EBFArrayBoxFactory;
 
 /**
- * \brief Dump EB surfaces described by \p ebf to disk using geometry \p geom.
- *
- * Outputs one STL per rank covering BoxArray \p ba.
+ * \brief Dump EB surfaces described by \p ebf to pvd format file.
  */
 void WriteEBSurface (const amrex::BoxArray & ba, const amrex::DistributionMapping & dmap, const amrex::Geometry & geom,
                      const amrex::EBFArrayBoxFactory * ebf);
