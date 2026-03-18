@@ -56,7 +56,7 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
 
    When only one binary or test matters, leverage `cmake --build build -j --target <target_name>` and `ctest --test-dir build -R <regex>` to keep feedback loops short.
 
-   Directories that rely on `GNUmakefile` (many tutorials/tests, plus a handful of legacy drivers) follow the guidance in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and `Tools/GNUMake/README.md`. Edit the local `GNUmakefile` or pass variables on the command line, then build with `make`:
+   Directories that rely on `GNUmakefile` (many tutorials/tests, plus a handful of legacy drivers) follow the guidance in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and `Tools/GNUMake/README.md`. Set only the variables that the specific example requires (`DIM`, `USE_MPI`, `USE_CUDA`, `COMP`, etc.) so they reflect the hardware/features you intend to exercise. Edit the local `GNUmakefile` or pass those variables on the command line, then build with `make`. For instance, a 3D CNS run that enables both MPI and CUDA would be:
 
    ```bash
    cd Tests/GPU/CNS
