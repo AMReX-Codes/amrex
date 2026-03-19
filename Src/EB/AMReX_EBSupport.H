@@ -2,8 +2,6 @@
 #define AMREX_EB_SUPPORT_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Config.H>
-
 /**
  * \file AMReX_EBSupport.H
  *
