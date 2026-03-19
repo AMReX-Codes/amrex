@@ -151,21 +151,30 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
                                       rocsparse_v2_spmv_stage_analysis, // buffer size for analysis
                                       &buffer_size, p_error));
 
-    void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    void* pbuffer = nullptr;
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    }
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_v2_spmv(handle, spmv_descr, &alpha, mat_descr, x_descr, &beta, y_descr,
                           rocsparse_v2_spmv_stage_analysis, // analysis stage
                           buffer_size, pbuffer, p_error));
 
-    The_Arena()->free(pbuffer);
+    if (pbuffer) {
+        The_Arena()->free(pbuffer);
+    }
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_v2_spmv_buffer_size(handle, spmv_descr, mat_descr, x_descr, y_descr,
                                       rocsparse_v2_spmv_stage_compute, // buffer size for compute
                                       &buffer_size, p_error));
 
-    pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    } else {
+        pbuffer = nullptr;
+    }
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_v2_spmv(handle, spmv_descr, &alpha, mat_descr, x_descr, &beta, y_descr,
@@ -174,14 +183,17 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
 
 #elif (HIP_VERSION_MAJOR == 6)
 
-    std::size_t buffer_size;
+    std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
                        &beta, y_descr, data_type, rocsparse_spmv_alg_default,
                        rocsparse_spmv_stage_buffer_size, // buffer size stage
                        &buffer_size, nullptr));
 
-    void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    void* pbuffer = nullptr;
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    }
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
@@ -197,13 +209,16 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
 
 #else /* HIP_VERSION_MAJOR < 6 */
 
-    std::size_t buffer_size;
+    std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
                        &beta, y_descr, data_type, rocsparse_spmv_alg_default,
                        &buffer_size, nullptr));
 
-    void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    void* pbuffer = nullptr;
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    }
 
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
@@ -222,7 +237,9 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_dnvec_descr(x_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_dnvec_descr(y_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
-    The_Arena()->free(pbuffer);
+    if (pbuffer) {
+        The_Arena()->free(pbuffer);
+    }
 
 #elif defined(AMREX_USE_SYCL)
 
