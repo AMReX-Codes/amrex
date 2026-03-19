@@ -50,7 +50,7 @@ amrex repository, we got an installation ID. We then stored the app ID,
 installation ID and the private key in GitLab's `Settings -> CI/CD ->
 Variables`. The app ID isn't a secret. So you can store it as clear text. In
 fact, GitLab does not allow 7-digit masked variables anyway. The
-installation ID is also not senstive, but nevertheless we stored it as
+installation ID is also not sensitive, but nevertheless we stored it as
 protected and masked. The private key is a secret that must be protected and
 masked. We also diabled "Expand" for all of these variables because the CI
 script doesn't need variable expansion. GitLab seems to have a bug that
