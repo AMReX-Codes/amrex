@@ -78,7 +78,7 @@ The protected data members are:
         bool use_fixed_coarse_grids;
         int  use_fixed_upto_level;
         bool refine_grid_layout;        // chop up grids to have the number of
-                                        // grids no less than the number of procs
+                                        // grids be no less than the number of procs
 
         Vector<Geometry>            geom;
         Vector<DistributionMapping> dmap;
