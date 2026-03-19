@@ -297,10 +297,10 @@ To open a plotfile (for example, you could run the
    Note that you can either open single/multiple plotfile(s) at once by selecting
    them one by one or select an ensemble of file, labelled as ``plt..`` and indicated
    as a Group in the "Type" column of the file explorer (see :numref:`fig:ParaView_filegroup`).
-   In the later case, Paraview will load the plotfiles as a time series.
+   In the latter case, Paraview will load the plotfiles as a time series.
    ParaView will ask you about the file type -- choose "AMReX/BoxLib Grid Reader" or
    "AMReX/BoxLib Particles Reader".
-   Note that if your ploftile prefix is not ``plt`` or any other type supported by default,
+   Note that if your plotfile prefix is not ``plt`` or any other type supported by default,
    then in ``Files of type`` you need to first select ``All files (*)``.
 
 #. Under the "Cell Arrays" field, select a variable (e.g., "phi") and click
@@ -369,7 +369,7 @@ save this script. Then run the bash script by executing the following command in
     bash write_series_file.sh
 
 This will generate a file ``plot_files.series`` which indexes the time variable based on the order of the plotfile numbers.
-Note that if your ploftile prefix is not ``plt``, you can manually edit
+Note that if your plotfile prefix is not ``plt``, you can manually edit
 ``write_series_file.sh`` accordingly.
 
 To make a ``.series`` file which reads the time out of the plotfile header, use :download:`write_series_file_timestamp.sh </Visualization/write_series_file_timestamp.sh>`.
@@ -402,7 +402,7 @@ Note that Paraview is not able to generate iso-surfaces from cell centered data.
 Visualizing Particle Data
 -------------------------
 
-To visualize particle data within plofile directories (for example, you could
+To visualize particle data within plotfile directories (for example, you could
 run the `NeighborList`_ example in `Tutorials/Particles`_):
 
 .. _`NeighborList`: https://amrex-codes.github.io/amrex/tutorials_html/Particles_Tutorial.html#neighborlist
@@ -742,7 +742,7 @@ the slice plot feature is shown below:
     Out[11]: ['plt00401_Slice_z_density.png']
 
 The resulting image is :numref:`fig:yt_Nyx_slice_plot`. One can also make
-volume renderings with ; an example is show below:
+volume renderings with ; an example is shown below:
 
 .. _fig:yt_Nyx_slice_plot:
 

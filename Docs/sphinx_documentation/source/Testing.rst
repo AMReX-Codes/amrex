@@ -13,7 +13,7 @@ quickly on every commit. For more extensive testing, we rely on the nightly regr
 Nightly Regression Testing
 ==========================
 
-Each night, we automatically run a suite of tests, both on AMReX itself, and on a most of the major
+Each night, we automatically run a suite of tests, both on AMReX itself, and on most of the major
 application codes that use it as a framework. We use an in-house test runner script to manage this
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
 application codes as well. The results for each night are collected and stored on a web page; see

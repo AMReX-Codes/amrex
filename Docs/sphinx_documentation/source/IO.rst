@@ -312,7 +312,7 @@ grids to processors.
 
 Typically a checkpoint file is a directory containing some text files
 and sub-directories (e.g., ``Level_0`` and ``Level_1``)
-containing various data. It is a good idea that we fist make these
+containing various data. It is a good idea that we first make these
 directories ready for subsequently writing to the disk. For example,
 to build directories ``chk00010``, ``chk00010/Level_0``, and
 ``chk00010/Level_1``, you could write:
@@ -482,7 +482,7 @@ read the file from the disk and broadcast it to others as
         }
     }
 
-The following code how to read in a :cpp:`BoxArray`, create a
+The following code shows how to read in a :cpp:`BoxArray`, create a
 :cpp:`DistributionMapping`, build :cpp:`MultiFab` and :cpp:`FluxRegister` data,
 and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
 

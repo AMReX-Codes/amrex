@@ -74,7 +74,7 @@ ParallelDescriptor
 
 AMReX users do not need to use MPI directly. Parallel communication is often
 handled by the data abstraction classes (e.g.,MultiFab; section on
-:ref:`sec:basics:multifab`). In addition, AMReX has provided namespace
+:ref:`sec:basics:multifab`). In addition, AMReX has provided the namespace
 :cpp:`ParallelDescriptor` in ``AMReX_ParallelDescriptor.H.`` The frequently
 used functions are
 
@@ -198,7 +198,7 @@ get mixed up. Below are some examples.
 
 It should be emphasized that :cpp:`Print()` without any argument only
 prints on the I/O process.  A common mistake in using it for debug
-printing is one forgets that for non-I/O processes to print we should
+printing is that one forgets that for non-I/O processes to print we should
 use :cpp:`AllPrint()` or :cpp:`Print(rank)`.
 
 .. _sec:basics:parmparse:
@@ -728,7 +728,7 @@ The above is equivalent to setting the following in the inputs file:
 Setting Parameter Values Inside Functions
 -----------------------------------------
 
-An application code may want to set values or defaults that differ from the
+An application code may want to set values or defaults that differ from
 those in AMReX in a function. This is accomplished in two steps:
 
 - First, define a function that sets the variable(s).
@@ -832,7 +832,7 @@ Parser
 ======
 
 AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to
-evaluate mathematical expressions given in the form of string. The parser
+evaluate mathematical expressions given in the form of a string. The parser
 compiles expressions into a compact executable form that can be evaluated
 efficiently on both CPU and GPU. When :cpp:`compile` is called, the parser
 automatically performs constant folding and algebraic simplification.
@@ -1117,7 +1117,7 @@ dimension-dependent class. It has lower and upper corners (represented by
 IntVect
 -------
 
-:cpp:`IntVec` is a dimension-dependent class representing an integer vector in
+:cpp:`IntVect` is a dimension-dependent class representing an integer vector in
 :cpp:`AMREX_SPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
 as follows,
 
@@ -1247,7 +1247,7 @@ of defining a :cpp:`Box` are
      Print() << "A cell-centered Box " << cc << "\n";
      Print() << "An all nodal Box    " << nd << "\n";
 
-Depending the dimensionality, the output of the code above is
+Depending on the dimensionality, the output of the code above is
 
 ::
 
@@ -1590,7 +1590,7 @@ show how one can convert BoxArray to a different type.
 
 As shown in the example above, :cpp:`BoxArray` has an :cpp:`operator[]` that
 returns a :cpp:`Box` given an index. It should be emphasized that there is a
-difference between its behavior and the usual behavior of an subscript operator
+difference between its behavior and the usual behavior of a subscript operator
 one might expect. The subscript operator in :cpp:`BoxArray` returns by **value
 instead of reference**. This means code like below is meaningless because it
 modifies a temporary return value.
@@ -1738,7 +1738,7 @@ call
 
       const Box& box() const;
 
-To the number of component, one can call
+To get the number of components, one can call
 
 .. highlight:: c++
 
@@ -2124,7 +2124,7 @@ Note that :cpp:`FillBoundary` does not modify any valid cells. Also note that
 :cpp:`Geometry` has, and we can provide that information so that periodic
 boundaries can be filled as well. You might have noticed that a ghost cell
 could overlap with multiple valid cells from different FArrayBoxes in the case
-of nodal index type. In that case, it is unspecified that which valid cell's
+of nodal index type. In that case, it is unspecified which valid cell's
 value is used to fill the ghost cell. It ought to be the case the values in
 those overlapping valid cells are the same up to roundoff errors.  If
 a ghost cell does not overlap with any valid cells, its value will not
@@ -2155,7 +2155,7 @@ parameter is also optional and is set to :cpp:`FabArrayBase::COPY` by default.
 One could also use :cpp:`FabArrayBase::ADD`. This determines whether the
 function copies or adds data from the source to the
 destination. Similar to :cpp:`FillBoundary`, if a destination cell has
-multiple cells as source, it is unspecified that which source cell is used in
+multiple cells as source, it is unspecified which source cell is used in
 :cpp:`FabArrayBase::COPY`, and, for :cpp:`FabArrayBase::ADD`, the multiple
 values are all added to the destination cell.  This function has two
 variants, in which the periodicity and operation type are also optional.
@@ -2648,7 +2648,7 @@ To avoid some common bugs, it is not allowed to have multiple active
     call amrex_mfiter_build(mf1, ...)
     call amrex_mfiter_build(mf2, ...)
 
-The will results in an assertion failure at runtime.  To disable the
+This will result in an assertion failure at runtime.  To disable the
 assertion, one could call
 
 .. highlight:: c++
