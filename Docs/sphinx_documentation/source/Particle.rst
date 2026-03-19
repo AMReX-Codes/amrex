@@ -794,7 +794,7 @@ with OpenMP, the first thing to look at is whether there are enough tiles availa
 | do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | false       |
 |                   | and off when running on GPUs.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| tile_size         | If tiling is on, the maximum tile_size in each direction           | Ints        | 1024000,8,8 |
+| tile_size         | If tiling is on, the maximum tile_size in each direction              | Ints        | 1024000,8,8 |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
 The next set concerns runtime parameters that control the particle IO. Parallel file systems tend not to like it when
