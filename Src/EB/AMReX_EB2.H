@@ -214,7 +214,8 @@ Build (const G& gshop, Vector<Geometry> geom,
  * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
  *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
  * \param support_mvmc Whether to build multi-valued multi-cut support. (Only honored when
- *        `eb2.geom_type` is `stl`; other geometries ignore it and emit a warning.)
+ *        `eb2.geom_type` is `stl`; other geometries ignore it and emit a warning.
+ *        Even for STL, this is not supported yet.)
  */
 void Build (const Geometry& geom,
             int required_coarsening_level,
@@ -229,7 +230,7 @@ void Build (const Geometry& geom,
  * \brief Build EB geometry dedicated to multi-valued multi-cut support.
  *
  * Parameters mirror Build() but always enables multi-valued structures.
- * @warning This pathway is experimental and not fully supported yet.
+ * @warning This pathway is experimental and not supported yet.
  */
 void BuildMultiValuedMultiCut (const Geometry& geom,
                                int required_coarsening_level,

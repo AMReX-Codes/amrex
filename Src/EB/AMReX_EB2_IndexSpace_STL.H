@@ -32,11 +32,12 @@ public:
     * \param required_coarsening_level Number of coarse levels required by the app.
     * \param max_coarsening_level      Maximum coarse level to attempt.
     * \param ngrow               Number of EB ghost cells to build on level 0.
-    * \param build_coarse_level_by_coarsening Whether to coarsen from fine levels.
-    * \param extend_domain_face  Extend EB description to domain faces.
-    * \param num_coarsen_opt     Number of coarsening options to probe.
+    * \param build_coarse_level_by_coarsening Whether to build coarse levels by coarsening from fine levels.
+    * \param extend_domain_face  Extend EB description beyond the domain from the domain faces.
+    * \param num_coarsen_opt     Number of coarse probes to try before rebuilding at full resolution.
     * \param bvh_optimization    Enable BVH acceleration for intersection tests.
     * \param support_mvmc        Whether to generate multi-valued/multi-cut data.
+    *                            (This path is not supported yet.)
     */
    IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                   Array<Real,3> const& stl_center, int stl_reverse_normal,

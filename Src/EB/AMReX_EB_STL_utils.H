@@ -87,7 +87,7 @@ public:
                         int reverse_normal);
 
     /**
-     * \brief Fill a level-set MultiFab with signed distances sampled from the STL mesh.
+     * \brief Fill a level-set MultiFab sampled from the STL mesh.
      */
     void fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
                Real outside_value = -1._rt, Real inside_value = 1._rt) const;

@@ -100,7 +100,7 @@ public:
     //! \overload
     void fillEdgeCent (Array<   MultiFab*,AMREX_SPACEDIM> const& edgecent, const Geometry& geom) const;
     /**
-     * \brief Write the signed-distance field into \p levelset.
+     * \brief Write the implicit function values into \p levelset.
      */
     void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
@@ -118,10 +118,10 @@ public:
 
     //! \return Reference to the level Geometry.
     const Geometry& Geom () const noexcept { return m_geom; }
-    //! \return Pointer to the owning EB IndexSpace.
+    //! \return Pointer to the EB IndexSpace.
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
-    //! \return EB grow-vector (ensured to be multiples of 16).
+    //! \return EB grow-vector.
     IntVect const& nGrowVect () const noexcept { return m_ngrow; }
 
     /**
@@ -152,7 +152,7 @@ public:
      * \return 0 on success.
      */
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
-    //! Build EBCellFlag data from the current signed-distance field.
+    //! Build EBCellFlag data from the current implicit function field.
     void buildCellFlag ();
     //! Build the cut-cell mask by coarsening from \p fine_level.
     void buildCutCellMask (Level const& fine_level);

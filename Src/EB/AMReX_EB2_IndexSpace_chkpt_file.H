@@ -30,7 +30,7 @@ public:
      * \param max_coarsening_level      Max coarse level available in the file.
      * \param ngrow          Number of EB grow cells to load on level 0.
      * \param build_coarse_level_by_coarsening Whether to coarsen from fine data.
-     * \param extend_domain_face        Extend EB data to domain boundaries.
+     * \param extend_domain_face        Whether to extrapolate the EB description beyond the domain by extending from the domain face.
      */
     IndexSpaceChkptFile (const ChkptFile& chkpt_file,
                          const Geometry& geom, int required_coarsening_level,
