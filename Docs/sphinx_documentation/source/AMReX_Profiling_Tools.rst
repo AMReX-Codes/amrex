@@ -82,7 +82,7 @@ be written at user-defined points in the code by inserting the line:
   BL_PROFILE_TINY_FLUSH();
 
 Any timers that have not reached their ``BL_PROFILE_VAR_STOP`` call or exited
-their scope and deconstructed will not be included in these partial outputs.
+their scope and been destructed will not be included in these partial outputs.
 (e.g., a properly instrumented ``main()`` should show a time of zero in all
 partial outputs.) Therefore, it is recommended to place these flush calls in
 easily identifiable regions of your code and outside of as many profiling

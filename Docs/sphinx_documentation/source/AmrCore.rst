@@ -78,7 +78,7 @@ The protected data members are:
         bool use_fixed_coarse_grids;
         int  use_fixed_upto_level;
         bool refine_grid_layout;        // chop up grids to have the number of
-                                        // grids no less the number of procs
+                                        // grids be no less than the number of procs
 
         Vector<Geometry>            geom;
         Vector<DistributionMapping> dmap;
@@ -383,7 +383,7 @@ showing the :ref:`fig:subcycling` above:
 
 
 
-For the scalar field, we keep track volume and time-weighted fluxes at coarse-fine interfaces.
+For the scalar field, we keep track of volume and time-weighted fluxes at coarse-fine interfaces.
 We accumulate area and time-weighted fluxes in :cpp:`FluxRegister` objects, which can be
 thought of as special boundary FABsets associated with coarse-fine interfaces.
 Since the fluxes are area and time-weighted (and sign-weighted, depending on whether they
