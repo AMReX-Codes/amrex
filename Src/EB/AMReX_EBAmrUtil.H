@@ -22,7 +22,7 @@ namespace amrex {
     void TagCutCells (TagBoxArray& tags, const MultiFab& state);
 
     /**
-     * \brief Tag cells whose volume fraction differs from unity by more than \p tol.
+     * \brief Tag cells whose volume fraction is between \p tol and 1 - \p tol.
      *
      * \param tags    Output tagging array.
      * \param volfrac Volume-fraction MultiFab (usually from EB geometry).

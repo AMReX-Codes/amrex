@@ -16,7 +16,7 @@
 
 namespace amrex::EB2 {
 
-//! Small object that stores level-set, face/edge types, and EB graph per box.
+//! Object that stores level-set, face/edge types, and EB graph per box.
 class GFab
 {
 public:

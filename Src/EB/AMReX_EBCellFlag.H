@@ -32,7 +32,7 @@ public:
     constexpr EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
     constexpr EBCellFlag& operator= (EBCellFlag&& rhs) noexcept = default;
 
-    //! Construct from a raw bit pattern (used when reading from device memory).
+    //! Construct from a raw bit pattern.
     explicit constexpr EBCellFlag (uint32_t i) noexcept : flag(i) {}
 
     //! Assign a raw bit pattern to this flag.
