@@ -229,6 +229,11 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
             umin = amrex::min(umin, u(i+ioff,j+joff,k+koff,nu));
             umax = amrex::max(umax, u(i+ioff,j+joff,k+koff,nu));
         }}}
+        // This ensures that dumax is never zero for the divides below.
+        // This avoids the invalid signal from being triggered when
+        // if-conversion optimization is done, where this code is
+        // predictively executed even though dumax is zero.
+        dumax = dumax == 0. ? 1. : dumax;
         if (dumax * alpha > (umax - u(i,j,k,nu))) {
             alpha = (umax - u(i,j,k,nu)) / dumax;
         }
