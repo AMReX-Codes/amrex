@@ -233,7 +233,7 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
         // This avoids the invalid signal from being triggered when
         // if-conversion optimization is done, where this code is
         // predictively executed even though dumax is zero.
-        dumax = dumax == 0. ? 1. : dumax;
+        dumax = dumax == Real(0.) ? Real(1.) : dumax;
         if (dumax * alpha > (umax - u(i,j,k,nu))) {
             alpha = (umax - u(i,j,k,nu)) / dumax;
         }
