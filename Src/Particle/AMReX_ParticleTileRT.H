@@ -26,7 +26,7 @@ struct RTSoAParticle;
 
 template <class T>
 struct ArrayView {
-    using size_type = std::size_t;
+    using size_type = Long;
 
     T* m_data = nullptr;
     size_type m_capacity = 0;
@@ -70,7 +70,7 @@ template <class RType, class IType>
 struct ParticleTileDataRT
 {
     using Self = ParticleTileDataRT<RType, IType>;
-    using size_type = std::size_t;
+    using size_type = Long;
 
     using ParticleType = RTSoAParticle<RType, IType>;
     using RealType = RType;

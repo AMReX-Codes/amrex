@@ -163,13 +163,16 @@ void copyParticle (const ParticleTileDataRT<DRType, DIType>& dst,
                    typename ParticleTileDataRT<SRType, SIType>::size_type src_i,
                    typename ParticleTileDataRT<DRType, DIType>::size_type dst_i) noexcept
 {
+    AMREX_ASSERT(dst.m_n_real == src.m_n_real);
+    AMREX_ASSERT(dst.m_n_int == src.m_n_int);
+
     dst.idcpu(dst_i) = src.idcpu(src_i);
 
-    for (int j = 0; j < dst.m_n_real && j < src.m_n_real; ++j) {
+    for (int j = 0; j < dst.m_n_real; ++j) {
         dst.rdata(j)[dst_i] = src.rdata(j)[src_i];
     }
 
-    for (int j = 0; j < dst.m_n_int && j < src.m_n_int; ++j) {
+    for (int j = 0; j < dst.m_n_int; ++j) {
         dst.idata(j)[dst_i] = src.idata(j)[src_i];
     }
 }
@@ -190,13 +193,16 @@ void swapParticle (const ParticleTileDataRT<DRType, DIType>& dst,
                    typename ParticleTileDataRT<SRType, SIType>::size_type src_i,
                    typename ParticleTileDataRT<DRType, DIType>::size_type dst_i) noexcept
 {
+    AMREX_ASSERT(dst.m_n_real == src.m_n_real);
+    AMREX_ASSERT(dst.m_n_int == src.m_n_int);
+
     amrex::Swap(dst.idcpu(dst_i), src.idcpu(src_i));
 
-    for (int j = 0; j < dst.m_n_real && j < src.m_n_real; ++j) {
+    for (int j = 0; j < dst.m_n_real; ++j) {
         amrex::Swap(dst.rdata(j)[dst_i], src.rdata(j)[src_i]);
     }
 
-    for (int j = 0; j < dst.m_n_int && j < src.m_n_int; ++j) {
+    for (int j = 0; j < dst.m_n_int; ++j) {
         amrex::Swap(dst.idata(j)[dst_i], src.idata(j)[src_i]);
     }
 }
