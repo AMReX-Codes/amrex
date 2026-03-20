@@ -203,9 +203,9 @@ see the section on :ref:`Time Integration Runtime Parameters
   # ERK      = Explicit Runge-Kutta method
   # DIRK     = Diagonally Implicit Runge-Kutta method
   # IMEX-RK  = Implicit-Explicit Additive Runge-Kutta method
-  # EX-MRI   = Explicit Multirate Infatesimal method
-  # IM-MRI   = Implicit Multirate Infatesimal method
-  # IMEX-MRI = Implicit-Explicit Multirate Infatesimal method
+  # EX-MRI   = Explicit Multirate Infinitesimal method
+  # IM-MRI   = Implicit Multirate Infinitesimal method
+  # IMEX-MRI = Implicit-Explicit Multirate Infinitesimal method
   integration.sundials.type = ERK
 
   # *** Select a specific SUNDIALS ERK method ***

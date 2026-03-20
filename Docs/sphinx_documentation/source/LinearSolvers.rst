@@ -390,7 +390,7 @@ consolidation strategy for multigrid coarsening.
 
 - :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
   to copy the current level of multigrid data to fewer, larger
-  boxes. Two advantages of using this option is that the bottom solver will become
+  boxes. Two advantages of using this option are that the bottom solver will become
   smaller, and communication overhead is reduced.
 
 - :cpp:`LPInfo::setAgglomerationGridSize(int)` controls the grid-length
@@ -404,7 +404,7 @@ consolidation strategy for multigrid coarsening.
   in the multigrid hierarchy.
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
-  continue to transfer a multigrid problem to fewer MPI ranks.
+  to continue to transfer a multigrid problem to fewer MPI ranks.
   There are more setting such as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
@@ -552,7 +552,7 @@ at cell centroids, you must set
     ml_ebabeclap->setPhiOnCentroid();
 
 The default is for the face-based coefficients to be defined at face centers;
-to tell the that the face-based coefficients should be interpreted
+to tell the solver that the face-based coefficients should be interpreted
 as living at face centroids, modify the setBCoeffs command to be
 
 .. highlight:: c++

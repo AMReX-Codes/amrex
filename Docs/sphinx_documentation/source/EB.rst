@@ -31,7 +31,7 @@ procedure for this goes as follows:
   :cpp:`Geometry` object that contains the information about the domain and the
   mesh.
 
-Here is a simple example of initialize the database for an embedded sphere.
+Here is a simple example of initializing the database for an embedded sphere.
 
 .. highlight:: c++
 
@@ -469,7 +469,7 @@ Consider a system of PDEs to advance a conserved quantity :math:`U` with fluxes
 .. math:: \frac{\partial U}{\partial t} + \nabla \cdot F = 0.
   :label: eqn::hypsys
 
-A conservative, finite volume discretization starts with the divergence theorm
+A conservative, finite volume discretization starts with the divergence theorem
 
 .. math:: \int_V \nabla \cdot F dV = \int_{\partial V} F \cdot n dA.
 

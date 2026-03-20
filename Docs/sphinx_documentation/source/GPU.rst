@@ -75,7 +75,7 @@ detailed throughout the rest of this chapter:
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
-  data movement for the user. This particularly useful for the early stages
+  data movement for the user. This is particularly useful for the early stages
   of porting an application to GPUs. However, for best performance on a
   variety of platforms, we recommend disabling managed memory and handling
   host/device data migration explicitly. managed memory is not used by
@@ -115,7 +115,7 @@ detailed throughout the rest of this chapter:
 
    Timeline illustration of GPU streams. Illustrates the case of an
    MFIter loop of five iterations with three GPU kernels each being
-   ran with three GPU streams.
+   run with three GPU streams.
 
 .. raw:: latex
 
@@ -1004,7 +1004,7 @@ possible to allow efficient utilization of GPU hardware.
 However, it is important for applications to use these launches whenever appropriate
 because they contain optimizations for both CPU and GPU variations of nested
 loops.  For example, on the GPU the spatial coordinate loops are reduced to a single
-loop and the component loop is moved to these inner most loop.  AMReX's launch functions
+loop and the component loop is moved to these innermost loops.  AMReX's launch functions
 apply the appropriate optimizations for compiling both with and without GPU support
 in a compact and readable format.
 
@@ -1048,11 +1048,11 @@ returns ``false`` in the GPU case to turn off tiling and maximize the amount of
 work given to the GPU in each launch. When tiling is off, :cpp:`tilebox()`
 returns the :cpp:`validbox()`.  The :cpp:`BaseFab::array()` function returns a
 lightweight :cpp:`Array4` object that defines access to the underlying :cpp:`FArrayBox`
-data.  The :cpp:`Array4`\s is then captured by the C++ lambda functions defined in the
+data.  The :cpp:`Array4`\s are then captured by the C++ lambda functions defined in the
 launch function.
 
 ``amrex::ParallelFor()`` expands into different variations of a quadruply-nested
-:cpp:`for` loop depending dimensionality and whether it is being implemented on CPU or GPU.
+:cpp:`for` loop depending on dimensionality and whether it is being implemented on CPU or GPU.
 The best way to understand this function is to take a look at the 4D :cpp:`amrex::ParallelFor`
 that is implemented when AMReX is compiled without GPU support, such as ``USE_CUDA=FALSE``.
 A simplified version is reproduced here:
@@ -1314,7 +1314,7 @@ However, AMReX uses the default GPU stream outside of :cpp:`MFIter`
 loops.
 
 Launching kernels with AMReX's launch macros or functions implement
-a C++ lambda function. Lambdas functions used for launches on the GPU have some
+a C++ lambda function. Lambda functions used for launches on the GPU have some
 restrictions the user must understand.  First, the function enclosing the
 extended lambda must not have private or protected access within its parent
 class,  otherwise the code will not compile.  This can be fixed by changing
@@ -1470,7 +1470,7 @@ streams, the data must be synchronized before being passed to MPI calls.
 Other synchronizations are introduced for safety. A notable example is
 :cpp:`MFIter`, which performs implicit synchronizations at both the
 beginning and end of the loop (as a whole, not on each iteration). These
-synchronizations can be disabled using with :cpp:`MFItInfo`. For example,
+synchronizations can be disabled using :cpp:`MFItInfo`. For example,
 
 .. highlight:: c++
 
@@ -1874,7 +1874,7 @@ AMReX for GPUs:
   resources to perform other tasks. This increases parallel
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
-  the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found in
+  the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found
   in the `Launch`_ tutorial. For example:
 
 .. highlight:: cpp

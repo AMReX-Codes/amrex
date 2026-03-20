@@ -38,7 +38,7 @@ components, and two extra integer flags. Our particle struct would be declared l
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
+and the order of the particle components would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
 :cpp:`x y z m vx vy vz idcpu flag1 flag2`.  [2]_
 
 The `idcpu` variable stores a combination of the MPI process a particle was generated on
@@ -368,7 +368,7 @@ particles to the container, you call the :cpp:`DefineAndReturnParticleTile` meth
 for each tile prior to adding any particles. This will make sure the space
 for the new components has been allocated. For example, in the above section
 on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed
-the particle tile data using the :cpp:`GetParticles` method. If we runtime components
+the particle tile data using the :cpp:`GetParticles` method. If runtime components
 are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
@@ -478,7 +478,7 @@ particle coordinates to grids and cells.
 For the most part, functions that work on the standard :cpp:`ParticleContainer` will
 also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to access
 the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
-particlularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
+particularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
 allows the same code to work with both AoS and pure SoA particles. For example, within
 a ``ParIter`` loop, one can do:
 
@@ -521,7 +521,7 @@ is performed internally. Additionally, these methods support both a single-grid
 the needed parallel communication is also performed internally.
 
 We show examples of these types of operations below. The first snippet shows
-how to deposit a particle quantiy from the first real component of the particle
+how to deposit a particle quantity from the first real component of the particle
 data to the first component of a :cpp:`MultiFab` using linear interpolation.
 
 .. highlight:: c++
@@ -794,7 +794,7 @@ with OpenMP, the first thing to look at is whether there are enough tiles availa
 | do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | false       |
 |                   | and off when running on GPUs.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| tile_size         | If tiling is on, the maximum tile_size to in each direction           | Ints        | 1024000,8,8 |
+| tile_size         | If tiling is on, the maximum tile_size in each direction              | Ints        | 1024000,8,8 |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
 The next set concerns runtime parameters that control the particle IO. Parallel file systems tend not to like it when
