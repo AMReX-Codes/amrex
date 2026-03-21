@@ -51,7 +51,7 @@ struct IsGPUable<ComplementIF<F>, std::enable_if_t<IsGPUable<F>::value>>
     : std::true_type {};
 
 template <class F>
-//! Helper that contructs a complement operator.
+//! Helper that constructs a complement operator.
 constexpr ComplementIF<std::decay_t<F>>
 makeComplement (F&& f)
 {
