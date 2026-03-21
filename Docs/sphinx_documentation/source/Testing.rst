@@ -13,12 +13,12 @@ quickly on every commit. For more extensive testing, we rely on the nightly regr
 Nightly Regression Testing
 ==========================
 
-Each night, we automatically run a suite of tests, both on AMReX itself, and on most of the major
+Each night, we automatically run a suite of tests, both on AMReX itself and on most of the major
 application codes that use it as a framework. We use an in-house test runner script to manage this
 operation, originally developed by Michael Zingale for the Castro code, and later expanded to other
 application codes as well. The results for each night are collected and stored on a web page; see
 https://ccse.lbl.gov/pub/RegressionTesting/ for the latest set of results.
-The runtime option ``amrex.abort_on_unused_inputs`` (``0`` or ``1``; default is ``0`` for false) is useful for making sure that tests always stay up to date with API changes as it will abort the application after the test run if any unused input parameters were detected.
+The runtime option ``amrex.abort_on_unused_inputs`` (``0`` or ``1``; default is ``0`` for false) is useful for making sure that tests always stay up to date with API changes. It aborts the application after the test run if any unused input parameters are detected.
 
 Running the test suite locally
 ==============================
@@ -27,22 +27,22 @@ The test suite is mostly used internally by AMReX developers. However,
 if you are making a pull request to AMReX, it can be useful to run the test suite
 on your local machine to reduce the likelihood that your changes break some existing functionality.
 To run the test suite locally, you must first obtain a copy of the test runner source, available
-on Github here: https://github.com/AMReX-Codes/regression_testing. The test runner requires Python
-version 2.7 or greater. Additional information on the test suite software can be found at,
+on GitHub here: https://github.com/AMReX-Codes/regression_testing. The test runner requires Python
+version 2.7 or greater. Additional information on the test suite software can be found at
 https://amrex-codes.github.io/regression_testing/.
 
 After obtaining the code, you will need a configuration file that defines which tests to run, which
-amrex repository to test,
-which branch to use, etc. A sample configuration file for AMReX is distributed with the amrex source
+AMReX repository to test,
+which branch to use, etc. A sample configuration file for AMReX is distributed with the AMReX source
 code at :cpp:`amrex/Tools/RegressionTesting/AMReX-tests.ini`. You will need to modify a few of the entries
-to, for example, point the test runner to the clone of amrex on your local machine. Entries you will
+to, for example, point the test runner to the clone of AMReX on your local machine. Entries you will
 likely want to change include:
 
 .. highlight:: bash
 
 ::
 
-   testTopDir = /path/to/test/output # the tests results and benchmarks will stored here
+   testTopDir = /path/to/test/output # the test results and benchmarks will be stored here
    webTopDir  = /path/to/web/output  # a web page with the test results will be written here
 
 to control where the generated output will be written, and
@@ -61,7 +61,7 @@ The test runner is a Python script and can be invoked like so:
 
    python regtest.py <options> AMReX-tests.ini
 
-Before you can use it, you must first generate a set of "benchmarks" - i.e. known "good" answers to the
+Before you can use it, you must first generate a set of "benchmarks", i.e., known "good" answers to the
 tests that will be run. If you are testing a pull request, you can generate these by running the script
 with a recent version of the :cpp:`development` branch of AMReX. You can generate the benchmarks like so:
 
@@ -76,7 +76,7 @@ re-run the script without the :cpp:`--make_benchmarks` option:
 
    python regtest.py AMReX-tests.ini
 
-The script will generate a set of html pages in the directory specified in your :cpp:`AMReX-tests.ini`
+The script will generate a set of HTML pages in the directory specified in your :cpp:`AMReX-tests.ini`
 file that you can examine using the browser of your choice.
 
 For a complete set of script options, run
@@ -123,5 +123,4 @@ do is start from an existing test and modify it. For example, this entry:
 defines a test called :cpp:`MLMG_FI_PoisCom` by specifying the appropriate build directory, inputs file,
 and a set of configuration options. The above options are the most commonly changed; for a full list
 of options, see the example configuration file at https://github.com/AMReX-Codes/regression_testing/blob/main/example-tests.ini.
-
 

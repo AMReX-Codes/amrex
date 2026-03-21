@@ -20,15 +20,15 @@ Currently, AMReX has two options for built-in profiling:
 Tiny Profiling
 ----------------------
 
-To enable "Tiny Profiling" with GNU Make edit the options in the file ``GNUMakefile``
-to show,
+To enable "Tiny Profiling" with GNU Make, edit the options in the file ``GNUMakefile``
+as follows:
 
 ::
 
   TINY_PROFILE = TRUE
   PROFILE      = FALSE
 
-If building with CMake, set the following CMake flags,
+If building with CMake, set the following CMake flags:
 
 ::
 
@@ -82,13 +82,13 @@ be written at user-defined points in the code by inserting the line:
   BL_PROFILE_TINY_FLUSH();
 
 Any timers that have not reached their ``BL_PROFILE_VAR_STOP`` call or exited
-their scope and been destructed will not be included in these partial outputs.
+their scope and been destroyed will not be included in these partial outputs.
 (e.g., a properly instrumented ``main()`` should show a time of zero in all
 partial outputs.) Therefore, it is recommended to place these flush calls in
 easily identifiable regions of your code and outside of as many profiling
 timers as possible, such as immediately before or after writing a checkpoint.
 
-Also, since flush calls will print multiple, similar looking outputs to ``stdout``,
+Also, since flush calls will print multiple, similar-looking outputs to ``stdout``,
 it is also recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in
 informative ``amrex::Print()`` lines to ensure accurate identification of each
 set of timers.
@@ -96,7 +96,7 @@ set of timers.
 Hot Spots and Load Balance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The output of TinyProfiler can help us to identify hot spots. For example,
+The output of TinyProfiler can help identify hot spots. For example,
 the following output shows the top three hot spots of a linear solver test
 running on 4 MPI processes.
 
@@ -176,7 +176,7 @@ AMReX profiler objects are created and managed through :cpp:`BL_PROF` macros.
 
 .. highlight:: c++
 
-To start, you must at least instrument main(), i.e.:
+To start, you must at least instrument ``main()``, i.e.:
 
 ::
 
@@ -209,7 +209,7 @@ Or:
         amrex::Finalize();
     }
 
-You can then instrument any of your functions, or code blocks. There are four general
+You can then instrument any of your functions or code blocks. There are four general
 profiler macro types available:
 
 1) A scoped timer, :cpp:`BL_PROFILE`:
@@ -246,7 +246,7 @@ In some cases, using scopes to control a timer is not ideal. In such cases, you 
             FORT_FLATENX(arg1, arg2);
           BL_PROFILE_VAR_STOP(anyname);   // Stop the "anyname" timer object.
 
-This can also be used to selectively time with the same scope. For example, to include :cpp:`Func_0`
+This can also be used to selectively time within the same scope. For example, to include :cpp:`Func_0`
 and :cpp:`Func_2`, but not :cpp:`Func_1`:
 
 ::
@@ -279,7 +279,7 @@ timers by just using the :cpp:`_VAR` macro:
 3) A named, scoped timer that doesn't auto-start, :cpp:`BL_PROFILE_VAR_NS`:
 ----------------------------------------------------------------------------------------
 
-Sometimes, a complicated scoping may mean the profiling object needs to be defined before it's
+Sometimes, a complicated scope may mean the profiling object needs to be defined before it's
 started. To create a named AMReX timer that doesn't start automatically, use the ``_NS_`` macros.
 ("NS" stands for "no start"). For example, this implementation times :cpp:`MyFunc0`
 and :cpp:`MyFunc1` but not any of the
@@ -288,7 +288,7 @@ and :cpp:`MyFunc1` but not any of the
 ::
 
           {
-              BL_PROFILE_VAR_NS("MyFuncs()", myfuncs);  // dont start the timer
+              BL_PROFILE_VAR_NS("MyFuncs()", myfuncs);  // don't start the timer
 
               <Additional Code A>
 
@@ -309,7 +309,7 @@ and :cpp:`MyFunc1` but not any of the
               }
           }
 
-.. Note::
+.. note::
    The ``_NS_`` macro must, by necessity, also be a ``_VAR_`` macro. Otherwise, you would never be
    able to turn the timer on!
 
@@ -355,7 +355,7 @@ macros in the following way:
           }
 
 The ``MyFuncs`` region appears in the Tiny Profiler output as an additional table.
-The following output example, mimics the above code. In it, the region is
+The following output example mimics the above code. In it, the region is
 indicated by ``REG::MyFuncs``.
 
 .. code-block:: console
@@ -448,7 +448,7 @@ and at the point in the function where you want to stop profiling. The profiling
 output will only warn of any :fortran:`bl_proffortfuncstart` calls that were not stopped with
 :fortran:`bl_proffortfuncstop` calls when in debug mode.
 
-For functions with a high number of calls, there is a lighter-weight interface,
+For functions with a high number of calls, there is a lighter-weight interface:
 
 ::
 
@@ -474,10 +474,10 @@ in the ``bl_proffortfuncstart_int/bl_proffortfuncstop_int`` calls.
 Profiling Options
 =================
 
-AMReX's communication algorithms are often regions of code that increase in wall clock time
+AMReX's communication algorithms are often regions of code that increase in wall-clock time
 when the application is load imbalanced, due to the MPI_Wait calls in these functions.
 To better understand if this is occurring and by how much, you can turn on an AMReX timed
-synchronization with the runtime variable: ``amrex.use_profiler_syncs=1`` This adds named timers
+synchronization with the runtime variable ``amrex.use_profiler_syncs=1``. This adds named timers
 beginning with ``SyncBeforeComms`` immediately prior to the start of the FillBoundary,
 ParallelCopy and particle Redistribute functions, isolating any prior load imbalance to that timer
 before beginning the comm operation.
@@ -486,7 +486,7 @@ This is a diagnostic tool and may slow your code down, so it is not recommended 
 on for production runs.
 
 .. note::
-  Note: the ``SyncBeforeComms`` timer is not equal to your load imbalance. It only captures imbalance
+  The ``SyncBeforeComms`` timer is not equal to your load imbalance. It only captures imbalance
   between the comm functions and the previous sync point; there may be other load imbalances
   captured elsewhere. Also, the timer reports in terms of MPI rank, so if the most imbalanced
   rank changes throughout the simulation, the timer will be an underestimation.
@@ -508,6 +508,6 @@ data products. The parser's data services functionality can be called from an
 interactive environment such as :ref:`sec:amrvis`, from a sidecar for dynamic performance
 optimization, and from other utilities such as the command line version of the
 parser itself. It has been integrated into Amrvis for visual interpretation of
-the data allowing Amrvis to open the ``bl_prof`` database like a plotfile but with
+the data, allowing Amrvis to open the ``bl_prof`` database like a plotfile but with
 interfaces appropriate to profiling data. AMRProfParser and Amrvis can be run
 in parallel both interactively and in batch mode.

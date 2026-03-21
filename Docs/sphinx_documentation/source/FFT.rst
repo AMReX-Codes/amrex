@@ -20,7 +20,7 @@ as one Box per process. This class performs parallel FFT on AMReX's parallel
 data containers (e.g., :cpp:`MultiFab` and
 :cpp:`FabArray<BaseFab<ComplexData<Real>>>`.
 
-Other than using column-majored order, AMReX follows the convention of
+Other than using column-major order, AMReX follows the convention of
 FFTW. Applying the forward transform followed by the backward transform
 scales the original data by the size of the input array. The layout of the
 complex data also follows the FFTW convention, where the complex Hermitian
@@ -61,7 +61,7 @@ parallel communication can be avoided. For the spectral data, the example
 above builds :cpp:`cMultiFab` using :cpp:`FFT::R2C` provided layout. You can
 also use your own :cpp:`BoxArray` and :cpp:`DistributionMapping`, but it
 might result in extra communication. It should also be noted that a lot of
-preparation works are done in the construction of an :cpp:`FFT::R2C`
+preparatory work is done in the construction of an :cpp:`FFT::R2C`
 object. Therefore, one should cache it for reuse if possible. Although
 :cpp:`FFT::R2C` does not have a default constructor, one could always use
 :cpp:`std::unique_ptr<FFT::R2C<Real>>` to store an object in one's class.
@@ -130,7 +130,7 @@ Below is an example of using :cpp:`FFT::LocalR2C`.
 Poisson Solver
 ==============
 
-AMReX provides FFT based Poisson solvers. Here, Poisson's equation is
+AMReX provides FFT-based Poisson solvers. Here, Poisson's equation is
 
 .. math::
 
@@ -202,8 +202,8 @@ because there is no default constructor.
 Raw Pointer Interface
 =====================
 
-If you only want to use AMReX as a Parallel FFT library without using other
-functionalities and data containers, you could use the raw pointer
+If you only want to use AMReX as a parallel FFT library without using other
+functionality or data containers, you could use the raw pointer
 interface. Below is an example.
 
 .. highlight:: c++
@@ -212,7 +212,7 @@ interface. Below is an example.
 
     MPI_Init(&argc, &argv);
 
-    // We don't need to call the full-blown amrex::Initialize
+    // We don't need to call the full amrex::Initialize
     amrex::Init_FFT(MPI_COMM_WORLD);
 
     int nprocs, myproc;

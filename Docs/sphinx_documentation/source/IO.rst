@@ -39,8 +39,8 @@ source codes and :cpp:`ParmParse` runtime parameters.
 :cpp:`WriteSingleLevelPlotfile` is for single level runs and
 :cpp:`WriteMultiLevelPlotfile` is for multiple levels. The name of the
 plotfile is specified by the plotfilename argument. This is the
-top level directory name for the plotfile. In AMReX convention, the
-plotfile name consist of letters followed by numbers (e.g.,
+top-level directory name for the plotfile. In AMReX convention, the
+plotfile name consists of letters followed by numbers (e.g.,
 plt00258). :cpp:`amrex::Concatenate` is a useful helper function for
 making such strings.
 
@@ -69,7 +69,7 @@ expected to significantly increase the total wall time for writing
 plotfiles. For the multi-level version, the function expects
 :cpp:`Vector<const MultiFab*>`, whereas the multi-level data are often
 stored as :cpp:`Vector<std::unique_ptr<MultiFab>>`. AMReX has a
-helper function for this and one can use it as follows,
+helper function for this, and one can use it as follows:
 
 .. highlight:: c++
 
@@ -99,15 +99,15 @@ particle data asynchronously.  Asynchronous output works by creating
 a copy of the data at the time of the call, which is written to disk
 by a persistent thread created during AMReX's initialization.  This allows
 the calculation to continue immediately, which can drastically reduce
-walltime spent writing to disk.
+wall time spent writing to disk.
 
 If the number of output files is less than the number of MPI ranks,
 AMReX's async output requires MPI to be initialized with THREAD_MULTIPLE
-support. THREAD_MULTIPLE support allows multiple unique threads to run unique
-MPI calls simultaneously.  This support is required to allow AMReX applications
+support. THREAD_MULTIPLE support allows multiple threads to make MPI
+calls simultaneously.  This support is required to allow AMReX applications
 to perform MPI work while the Async Output concurrently pings ranks to signal
 that they can safely begin writing to their assigned files.  However,
-THREAD_MULTIPLE can introduce additional overhead as each threads' MPI operations
+THREAD_MULTIPLE can introduce additional overhead as each thread's MPI operations
 must be scheduled safely around each other. Therefore, AMReX uses a lower level
 of support, SERIALIZED, by default and applications have to turn on THREAD_MULTIPLE
 support.
@@ -144,10 +144,10 @@ results.
 
 HDF5 Plotfile
 =============
-Besides AMReX's native plotfile, applications can also write plotfile in
+Besides AMReX's native plotfile, applications can also write plotfiles in
 the HDF5 format, which is a cross-platform, self-describing file format.
-The HDF5 plotfiles store the same information as the native format, and
-has the additional compression capability that can reduce the file size.
+The HDF5 plotfiles store the same information as the native format and
+have the additional compression capability that can reduce the file size.
 Currently supported compression libraries include `SZ`_ and `ZFP`_.
 
 .. _`SZ`: https://szcompressor.org
@@ -158,13 +158,13 @@ with parallel I/O support, by adding ``USE_HDF5=TRUE`` and
 ``HDF5_HOME=/path/to/hdf5/install/dir`` to the GNUMakefile.
 Many HPC systems have an HDF5 module available that can be loaded with
 ``module load hdf5`` or ``module load cray-hdf5-parallel``. To download
-and compile HDF5 from source code, please go to `HDF5 Download`_ webpage
+and compile HDF5 from source code, please go to the `HDF5 Download`_ webpage
 and follow the instructions (latest version is recommended and remember
 to turn on parallel I/O).
 
 .. _`HDF5 Download`: https://portal.hdfgroup.org/display/support/Downloads
 
-Following are two functions for writing a generic AMReX plotfile in HDF5
+The following are two functions for writing a generic AMReX plotfile in HDF5
 format, which are very similar to the AMReX native write functions.
 
 .. highlight:: c++
@@ -191,17 +191,17 @@ format, which are very similar to the AMReX native write functions.
 
 :cpp:`WriteSingleLevelPlotfileHDF5` is for single level runs and
 :cpp:`WriteMultiLevelPlotfileHDF5` is for multiple levels. Their arguments are
-the same as the native ones except the last one, which optional, and specifies
+the same as the native ones except for the last one, which is optional and specifies
 the compression parameters. These two functions write plotfiles with a
 Chombo-compatible HDF5 file schema, which can be read by visualization tools
 such as VisIt and ParaView using their built-in Chombo reader plugin (see the
-chapter on :ref:`Chap:Visualization`)
+chapter on :ref:`Chap:Visualization`).
 
 HDF5 Plotfile Compression
 -------------------------
 To enable SZ or ZFP data compression on the HDF5 datasets, the corresponding compression
-library and its HDF5 plugin must be available. To compile `SZ`_ or `ZFP`_ plugin,
-please refer to their documentation: `H5Z-SZ`_ and `H5Z-ZFP`_, and adding
+library and its HDF5 plugin must be available. To compile the `SZ`_ or `ZFP`_ plugin,
+please refer to their documentation, `H5Z-SZ`_ and `H5Z-ZFP`_, and add
 ``USE_HDF5_SZ=TRUE``, ``SZ_HOME=``, or ``USE_HDF5_ZFP=TRUE``, ``ZFP_HOME=``,
 ``H5Z_HOME=`` to the GNUMakefile.
 
@@ -268,21 +268,21 @@ However, this alternative schema is not yet supported by the visualization tools
 Checkpoint File
 ===============
 
-Checkpoint files are used for restarting simulations from where the
+Checkpoint files are used for restarting simulations from the point at which the
 checkpoints are written. Each application code has its own set of
 data needed for restart. AMReX provides I/O functions for basic
 data structures like :cpp:`MultiFab` and :cpp:`BoxArray`. These
 functions can be used to build codes for reading and writing
 checkpoint files. Since each application code has its own
-requirement, there is no standard AMReX checkpoint format.
-However we have provided an example restart capability in the tutorial
+requirements, there is no standard AMReX checkpoint format.
+However, we have provided an example restart capability in the tutorial
 `Advection AmrCore`_.
 Refer to the functions :cpp:`ReadCheckpointFile()` and
 :cpp:`WriteCheckpointFile()` in this tutorial.
 
 .. _`Advection AmrCore`: https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-amrcore
 
-A checkpoint file is actually a directory with name, e.g.,
+A checkpoint file is actually a directory with a name, e.g.,
 ``chk00010`` containing a ``Header`` (text) file, along with
 subdirectories ``Level_0``, ``Level_1``, etc. containing the
 :cpp:`MultiFab` data at each level of refinement.
@@ -311,9 +311,9 @@ it checks how much allocated :cpp:`MultiFab` data already exists before assignin
 grids to processors.
 
 Typically a checkpoint file is a directory containing some text files
-and sub-directories (e.g., ``Level_0`` and ``Level_1``)
+and subdirectories (e.g., ``Level_0`` and ``Level_1``)
 containing various data. It is a good idea that we first make these
-directories ready for subsequently writing to the disk. For example,
+directories ready for subsequently writing to disk. For example,
 to build directories ``chk00010``, ``chk00010/Level_0``, and
 ``chk00010/Level_1``, you could write:
 
@@ -337,14 +337,14 @@ to build directories ``chk00010``, ``chk00010/Level_0``, and
    // ---- ParallelDescriptor::IOProcessor() creates the directories
    amrex::PreBuildDirectorHierarchy(checkpointname, "Level_", nlevels, callBarrier);
 
-A checkpoint file of AMReX application codes often has a clear text
-Header file that only the I/O process writes to it using
+A checkpoint file of AMReX application codes often has a clear-text
+Header file that only the I/O process writes using
 :cpp:`std::ofstream`. The Header file contains problem-dependent
 information such as
 the time, the physical domain size, grids, etc. that are necessary for
 restarting the simulation. To guarantee that precision is not lost
-for storing floating point number like time in clear text file, the
-file stream's precision needs to be set properly. And a stream buffer
+for storing floating-point numbers like time in a clear-text file, the
+file stream's precision needs to be set properly. A stream buffer
 can also be used. For example,
 
 .. highlight:: c++
@@ -400,7 +400,7 @@ can also be used. For example,
    }
 
 
-:cpp:`amrex::VisMF` is a class that can be used to perform
+:cpp:`amrex::VisMF` is a class that can be used for
 :cpp:`MultiFab` I/O in parallel. How many processes are allowed to
 perform I/O simultaneously can be set via
 
@@ -422,7 +422,7 @@ shows how to write a :cpp:`MultiFab`.
    }
 
 It should also be noted that all the
-data including those in ghost cells are written/read by
+data, including those in ghost cells, are written and read by
 :cpp:`VisMF::Write/Read`.
 
 For reading the Header file, AMReX can have the I/O process
@@ -484,7 +484,7 @@ read the file from the disk and broadcast it to others as
 
 The following code shows how to read in a :cpp:`BoxArray`, create a
 :cpp:`DistributionMapping`, build :cpp:`MultiFab` and :cpp:`FluxRegister` data,
-and read in a :cpp:`MultiFab` from a checkpoint file, on a level-by-level basis:
+and read a :cpp:`MultiFab` from a checkpoint file on a level-by-level basis:
 
 .. highlight:: c++
 

@@ -7,11 +7,11 @@
 Building with GNU Make
 ======================
 
-In this build approach, you write your own make files defining a number of
-variables and rules. Then you invoke  ``make`` to start the building process.
+In this build approach, you write your own makefiles defining a number of
+variables and rules. Then you invoke ``make`` to start the building process.
 This will result in an executable upon successful completion. The temporary
 files generated in the building process are stored in a temporary directory
-named  ``tmp_build_dir``.
+named ``tmp_build_dir``.
 
 Dissecting a Simple Make File
 -----------------------------
@@ -83,7 +83,7 @@ At the beginning of ``amrex-tutorials/ExampleCodes/Basic/HelloWorld_C/GNUmakefil
 the example :cpp:`?=` is a conditional variable assignment operator that only
 has an effect if ``AMREX_HOME`` has not been defined (including in the
 environment). One can also set ``AMREX_HOME`` as an environment variable. For
-example in bash, one can set
+example, in bash, one can set
 
 .. highlight:: bash
 
@@ -91,7 +91,7 @@ example in bash, one can set
 
     export AMREX_HOME=/path/to/amrex
 
-alternatively, in tcsh one can set
+Alternatively, in tcsh, one can set
 
 .. highlight:: bash
 
@@ -111,19 +111,19 @@ AMReX uses double precision by default.  One can change to single
 precision by setting ``PRECISION=FLOAT``.
 (Particles have an equivalent flag ``USE_SINGLE_PRECISION_PARTICLES=TRUE/FALSE``.)
 
-Variables ``DEBUG``, ``TEST``, ``USE_MPI`` and ``USE_OMP`` are optional with
-default set to FALSE.  The meaning of these variables should
+Variables ``DEBUG``, ``TEST``, ``USE_MPI`` and ``USE_OMP`` are optional and
+default to FALSE. The meaning of these variables should
 be obvious.  When ``DEBUG=TRUE``, aggressive compiler optimization flags are
 turned off and assertions in source code are turned on. For production runs,
 ``DEBUG`` should be set to FALSE. ``TEST`` and ``USE_ASSERTION`` are set by
-default in CI and add slight debugging, e.g., initializing default values in FABs.
+default in CI and provide slight debugging support, e.g., by initializing default values in FABs.
 An advanced variable, ``MPI_THREAD_MULTIPLE``, can be set to TRUE to initialize
 MPI with support for concurrent MPI calls from multiple threads.
 
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_SYCL`` are used for
 targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
 the three can be TRUE.
-For HIP and SYCL builds, we do only test against C++17 builds at the moment.
+For HIP and SYCL builds, we currently test only against C++17 builds.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
 If enabled, the library path at link time will be saved as a
@@ -138,7 +138,7 @@ When ``USE_CUDA`` is ``TRUE``, the make system will try to detect what CUDA
 arch should be used by running
 ``$(CUDA_HOME)/extras/demo_suite/deviceQuery`` if your computer is unknown.
 If it fails to detect the CUDA arch, the default value of 70 will be used.
-The user could override it by ``make USE_CUDA=TRUE CUDA_ARCH=80`` or ``make
+The user can override it by ``make USE_CUDA=TRUE CUDA_ARCH=80`` or ``make
 USE_CUDA=TRUE AMREX_CUDA_ARCH=80``.
 
 After defining these make variables, a number of files, ``Make.defs,
@@ -171,7 +171,7 @@ source files are shown below.
         Free format Fortran source with .F90 extension.  Note that these
         Fortran files will go through preprocessing.
 
-In this simple example, the extra source file, ``main.cpp`` is in the current
+In this simple example, the extra source file, ``main.cpp``, is in the current
 directory that is already in the build system's search path. If this example
 has files in a subdirectory (e.g., ``mysrcdir``), you will then need to add the
 following to ``Make.package``.
@@ -181,17 +181,17 @@ following to ``Make.package``.
         VPATH_LOCATIONS += mysrcdir
         INCLUDE_LOCATIONS += mysrcdir
 
-Here ``VPATH_LOCATIONS`` and ``INCLUDE_LOCATIONS`` are the search path for
+Here ``VPATH_LOCATIONS`` and ``INCLUDE_LOCATIONS`` are the search paths for
 source and header files, respectively.
 
 Tweaking the Make System
 ------------------------
 
 The GNU Make build system is located at ``amrex/Tools/GNUMake``.  You can read
-``README.md`` and the make files there for more information. Here we will give
+``README.md`` and the makefiles there for more information. Here we will give
 a brief overview.
 
-Besides building executable, other common make commands include:
+Besides building executables, other common make commands include:
 
     ``make cleanconfig``
         This removes the executable, .o files, and the temporarily generated
@@ -211,7 +211,7 @@ Besides building executable, other common make commands include:
 Compiler flags are set in ``amrex/Tools/GNUMake/comps/``. Note that variables
 like ``CXX`` and ``CXXFLAGS`` are reset in that directory and their values in
 environment variables are disregarded.  However, one could override them
-with make command line arguments (e.g., ``make CXX=/path/to/my/mpicxx``).
+with make command-line arguments (e.g., ``make CXX=/path/to/my/mpicxx``).
 Site-specific setups (e.g., the MPI
 installation) are in ``amrex/Tools/GNUMake/sites/``, which includes a generic
 setup in ``Make.unknown``. You can override the setup by having your own
@@ -222,14 +222,14 @@ variables. See ``amrex/Tools/GNUMake/Make.local.template`` for more examples of
 how to customize the build process.
 
 If you need to pass macro definitions to the preprocessor, you can add
-them to your make file as follows,
+them to your make file as follows:
 
 ::
 
         DEFINES += -Dmyname1 -Dmyname2=mydefinition
 
-To link to an additional library say ``foo`` with headers located at
-``foopath/include`` and library at ``foopath/lib``, you can add the
+To link to an additional library, say ``foo``, with headers located at
+``foopath/include`` and the library at ``foopath/lib``, you can add the
 following to your make file before the line that includes AMReX's
 ``Make.defs``,
 
@@ -246,12 +246,12 @@ Specifying your own compiler
 
 The ``amrex/Tools/GNUMake/Make.local`` file can also specify your own compile
 commands by setting the variables ``CXX``, ``CC``, ``FC``, and ``F90``. This
-might be necessary if your systems contains non-standard names for compiler
+might be necessary if your system contains non-standard names for compiler
 commands.
 
 For example, the following ``amrex/Tools/GNUMake/Make.local`` builds AMReX
 using a specific compiler (in this case ``gcc-8``) without MPI. Whenever
-``USE_MPI``  is true, this configuration defaults to the appropriate
+``USE_MPI`` is true, this configuration defaults to the appropriate
 ``mpixxx`` command:
 ::
 
@@ -278,8 +278,8 @@ GCC on macOS
 
 The example configuration above should also run on the latest macOS. On macOS
 the default cxx compiler is clang, whereas the default Fortran compiler is
-gfortran. Sometimes it is good to avoid mixing compilers, in that case we can
-use the ``Make.local`` to force using GCC. However, macOS' Xcode ships with its
+gfortran. Sometimes it is best to avoid mixing compilers; in that case, we can
+use ``Make.local`` to force GCC. However, macOS' Xcode ships with its
 own (woefully outdated) version of GCC (4.2.1). It is therefore recommended to
 install GCC using the `homebrew <https://brew.sh>`_ package manager. Running
 ``brew install gcc`` installs gcc with names reflecting the version number. If
@@ -296,7 +296,7 @@ using ``gcc-8`` (with and without MPI) by using the following
 
     INCLUDE_LOCATIONS += /usr/local/include
 
-The additional ``INCLUDE_LOCATIONS`` are installed using homebrew also. Note
+The additional ``INCLUDE_LOCATIONS`` are also installed using homebrew. Note
 that if you are building AMReX using homebrew's gcc, it is recommended that you
 use homebrew's mpich. Normally it is fine to simply install its binaries:
 ``brew install mpich``. But if you are experiencing problems, we suggest
@@ -318,7 +318,7 @@ If you use ccache, you can add ``USE_CCACHE=TRUE`` to your makefile.
 Building libamrex
 =================
 
-If an application code already has its own elaborated build system and wants to
+If an application code already has its own elaborate build system and wants to
 use AMReX, an external AMReX library can be created instead. In this approach, one
 runs ``./configure``, followed by ``make`` and ``make install``.
 Other make options include ``make distclean`` and ``make uninstall``.  In the top
@@ -328,9 +328,9 @@ the configure script. In particular, one can specify the installation path for t
   ./configure --prefix=[AMReX library path]
 
 This approach is built on the AMReX GNU Make system. Thus
-the section on :ref:`sec:build:make` is recommended if any fine tuning is
+the section on :ref:`sec:build:make` is recommended if any fine-tuning is
 needed.  The result of ``./configure`` is ``GNUmakefile`` in the AMReX
-top directory.  One can modify the make file for fine tuning.
+top directory.  One can modify the makefile for fine-tuning.
 
 To compile an application code against the external AMReX library, it
 is necessary to set appropriate compiler flags and set the library
@@ -397,7 +397,7 @@ complete, ``builddir`` can be removed.
 Customization options
 ---------------------
 
-AMReX build can be customized  by setting the value of suitable configuration variables
+The AMReX build can be customized by setting the value of suitable configuration variables
 on the command line via the ``-D <var>=<value>`` syntax, where ``<var>`` is the
 variable to set and ``<value>`` its desired value.
 For example, one can enable OpenMP support as follows:
@@ -564,14 +564,14 @@ assertions in debug mode, ``AMReX_ASSERTIONS=NO`` must be set explicitly while
 invoking CMake.
 
 
-The ``CMAKE_C_COMPILER``, ``CMAKE_CXX_COMPILER``, and  ``CMAKE_Fortran_COMPILER`` options
+The ``CMAKE_C_COMPILER``, ``CMAKE_CXX_COMPILER``, and ``CMAKE_Fortran_COMPILER`` options
 are used to tell CMake which compiler to use for the compilation of C, C++, and Fortran sources
 respectively. If those options are not set by the user, CMake will use the system default compilers.
 
 The options ``CMAKE_Fortran_FLAGS`` and ``CMAKE_CXX_FLAGS`` allow the user to
-set their own compilation flags for Fortran and C++ source files respectively.
+set their own compilation flags for Fortran and C++ source files, respectively.
 If ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS`` are not set by the user,
-they will be initialized with the value of the environmental variables ``FFLAGS``/
+they will be initialized with the value of the environment variables ``FFLAGS``/
 ``CXXFLAGS``. If neither ``FFLAGS``/ ``CXXFLAGS`` nor ``CMAKE_Fortran_FLAGS``/ ``CMAKE_CXX_FLAGS``
 are defined, AMReX default flags are used.
 
@@ -584,8 +584,8 @@ While not strictly necessary when using homebrew on macOS, it is highly
 recommended that the user specifies ``-DCMAKE_C_COMPILER=$(which gcc-X) -DCMAKE_CXX_COMPILER=$(which
 g++-X)`` (where X is the GCC version installed by homebrew) when using
 gfortran. This is because homebrew's CMake defaults to the Clang C/C++
-compiler. Normally Clang plays well with gfortran, but if there are some issues,
-we recommend telling CMake to use gcc for C/C++ also.
+compiler. Normally Clang plays well with gfortran, but if there are issues,
+we recommend telling CMake to use gcc for C/C++ as well.
 
 .. _sec:build:cmake:config:
 
@@ -649,7 +649,7 @@ In the above snippet, ``<amrex-target-name>`` is any of the targets listed in th
 The options used to configure the AMReX build may result in certain parts, or ``components``, of the AMReX source code
 to be excluded from compilation. For example, setting ``-DAMReX_LINEAR_SOLVERS=no`` at configure time
 prevents the compilation of AMReX linear solvers code.
-Your CMake project can check which component is included in the AMReX library via `find_package`:
+Your CMake project can check which components are included in the AMReX library via `find_package`:
 
 
 .. highlight:: cmake
@@ -660,7 +660,7 @@ Your CMake project can check which component is included in the AMReX library vi
 
 
 The keyword ``REQUIRED`` in the snippet above will cause a fatal error if AMReX is not found, or
-if it is found but the components listed in ``<components-list>`` are not include in the installation.
+if it is found but the components listed in ``<components-list>`` are not included in the installation.
 A list of AMReX component names and related configure options are shown in the table below.
 
 
@@ -765,7 +765,7 @@ to compile ``Foo``'s C++ sources. If no AMReX installation is found or if the av
    to compile ``Foo``'s C++ sources.
 
 
-You can tell CMake to look for the AMReX library in non-standard paths by setting the environmental variable
+You can tell CMake to look for the AMReX library in non-standard paths by setting the environment variable
 ``AMReX_ROOT`` to point to the AMReX installation directory or by adding
 ``-DAMReX_ROOT=<path/to/amrex/installation/directory>`` to the ``cmake`` invocation.
 More details on ``find_package`` can be found
@@ -784,7 +784,7 @@ machines.  However, we believe there are no fundamental issues for it to work on
 (1) AMReX mostly uses standard C++17.
 We run continuous integration tests on Windows with MSVC and Clang compilers.
 
-(2) We use POSIX signal handling when floating point exceptions, segmentation faults, etc. happen.
+(2) We use POSIX signal handling when floating-point exceptions, segmentation faults, etc. happen.
 This capability is not supported on Windows.
 
 (3) Memory profiling is an optional feature in AMReX that is not enabled by default.  It reads
@@ -799,11 +799,11 @@ Spack
 
 AMReX can be installed using the scientific software package manager Spack. Spack
 supports multiple versions and configurations of AMReX across a wide variety of platforms
-and environments. To learn more about Spack visit http://www.spack.io. For system requirements and
+and environments. To learn more about Spack, visit http://www.spack.io. For system requirements and
 installation instructions please see https://spack.readthedocs.io/.
 
 Once Spack has been downloaded and the Spack environment enabled, AMReX can be
-installed with the command,
+installed with the command:
 
 .. code-block:: bash
 
@@ -812,15 +812,15 @@ installed with the command,
 This will install the latest release of AMReX and required dependencies if needed.
 
 AMReX can be built in several combinations of versions and configurations. Available options can
-be viewed by typing,
+be viewed by typing:
 
 .. code-block:: bash
 
    spack info amrex
 
-For example, suppose we want to install the development version of AMReX for a two dimensional
-simulation with Cuda support for Cuda Architecture ``sm_60``. Then we would
-use the install commands,
+For example, suppose we want to install the development version of AMReX for a two-dimensional
+simulation with CUDA support for CUDA architecture ``sm_60``. Then we would
+use the install command:
 
 .. code-block:: bash
 
