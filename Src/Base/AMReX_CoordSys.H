@@ -3,6 +3,11 @@
 #define AMREX_COORDSYS_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_CoordSys.H
+ * \brief Coordinate system that maps between physical space and index space.
+ */
+
 #include <AMReX.H>
 #include <AMReX_REAL.H>
 #include <AMReX_Array.H>
@@ -16,14 +21,17 @@ namespace amrex {
 class FArrayBox;
 
 /**
-* \brief Coordinate System
-*
-* Routines for mapping between physical coordinate system and index space.
-*/
+ * \class amrex::CoordSys
+ * \ingroup amrex_real_space
+ * \brief Coordinate system; provides mapping between physical space and index space.
+ *
+ * Supports Cartesian, cylindrical (RZ), and spherical coordinate systems.
+ */
 class CoordSys
 {
 public:
 
+    //! Coordinate system type: undefined, Cartesian, cylindrical (RZ), or spherical.
     enum CoordType { undef = -1, cartesian = 0, RZ = 1, SPHERICAL = 2 };
     //! Nice ASCII output.
     friend std::ostream& operator<< (std::ostream&, const CoordSys& );
@@ -73,6 +81,7 @@ public:
     //! Returns the cellsize for the specified coordinate direction.
     [[nodiscard]] Real CellSize (int dir) const noexcept { BL_ASSERT(ok); return dx[dir]; }
 
+    //! Returns the cell sizes as a GpuArray for use on host or device.
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> CellSizeArray () const noexcept {
         BL_ASSERT(ok);
         return {{ AMREX_D_DECL(dx[0],dx[1],dx[2]) }};
@@ -84,6 +93,7 @@ public:
     //! Returns the inverse cellsize for the specified coordinate direction.
     [[nodiscard]] Real InvCellSize (int dir) const noexcept { BL_ASSERT(ok); return inv_dx[dir]; }
 
+    //! Returns the inverse cell sizes as a GpuArray for use on host or device.
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> InvCellSizeArray () const noexcept {
         BL_ASSERT(ok);
         return {{ AMREX_D_DECL(inv_dx[0],inv_dx[1],inv_dx[2]) }};
@@ -95,10 +105,18 @@ public:
         BL_ASSERT(ok); return offset[dir] + dx[dir]*((Real)0.5+ (Real)point);
     }
 
-    //! Return location of cell center.
+    /**
+     * \brief Return location of the specified cell center.
+     * \param point Cell-centered index (i,j,k).
+     * \param loc Output vector resized to \c AMREX_SPACEDIM holding coordinates.
+     */
     void CellCenter (const IntVect& point, Vector<Real>& loc) const noexcept;
 
-    //! Return location of cell center.
+    /**
+     * \brief Return location of the specified cell center.
+     * \param point Cell-centered index (i,j,k).
+     * \param loc Output pointer to an array of length \c AMREX_SPACEDIM.
+     */
     void CellCenter (const IntVect& point, Real* loc) const noexcept;
 
     //! Returns location of lo edge in specified direction.
@@ -125,67 +143,127 @@ public:
         BL_ASSERT(ok); return offset[dir] + dx[dir]*static_cast<Real>(point[dir] + 1);
     }
 
-    //! Sets location of lo face into loc.
+    /**
+     * \brief Compute the physical location of the lower face in direction \p dir.
+     * \param point Cell index of the owning cell.
+     * \param dir Coordinate direction (0-based).
+     * \param loc Output vector resized to \c AMREX_SPACEDIM holding coordinates.
+     */
     void LoFace (const IntVect& point, int dir, Vector<Real>& loc) const noexcept;
 
-    //! Sets location of lo face into loc.
+    /**
+     * \brief Compute the physical location of the lower face in direction \p dir.
+     * \param point Cell index of the owning cell.
+     * \param dir Coordinate direction (0-based).
+     * \param loc Output pointer to an array of length \c AMREX_SPACEDIM.
+     */
     void LoFace (const IntVect& point, int dir, Real* loc) const noexcept;
 
-    //! Sets location of hi face into loc.
+    /**
+     * \brief Compute the physical location of the upper face in direction \p dir.
+     * \param point Cell index of the owning cell.
+     * \param dir Coordinate direction (0-based).
+     * \param loc Output vector resized to \c AMREX_SPACEDIM holding coordinates.
+     */
     void HiFace (const IntVect& point, int dir, Vector<Real>& loc) const noexcept;
 
-    //! Sets location of hi face into loc.
+    /**
+     * \brief Compute the physical location of the upper face in direction \p dir.
+     * \param point Cell index of the owning cell.
+     * \param dir Coordinate direction (0-based).
+     * \param loc Output pointer to an array of length \c AMREX_SPACEDIM.
+     */
     void HiFace (const IntVect& point, int dir, Real* loc) const noexcept;
 
-    //! Return location of lower left hand corner.
+    /**
+     * \brief Return the location of the lower-left node of the cell.
+     * \param point Cell index of the owning cell.
+     * \param loc Output vector resized to \c AMREX_SPACEDIM holding coordinates.
+     */
     void LoNode (const IntVect& point, Vector<Real>& loc) const noexcept;
 
-    //! Return location of lower left hand corner.
+    /**
+     * \brief Return the location of the lower-left node of the cell.
+     * \param point Cell index of the owning cell.
+     * \param loc Output pointer to an array of length \c AMREX_SPACEDIM.
+     */
     void LoNode (const IntVect& point, Real* loc) const noexcept;
 
-    //! Return location of upper right hand corner.
+    /**
+     * \brief Return the location of the upper-right node of the cell.
+     * \param point Cell index of the owning cell.
+     * \param loc Output vector resized to \c AMREX_SPACEDIM holding coordinates.
+     */
     void HiNode (const IntVect& point, Vector<Real>& loc) const noexcept;
 
-    //! Return location of upper right hand corner.
+    /**
+     * \brief Return the location of the upper-right node of the cell.
+     * \param point Cell index of the owning cell.
+     * \param loc Output pointer to an array of length \c AMREX_SPACEDIM.
+     */
     void HiNode (const IntVect& point, Real* loc) const noexcept;
     /**
-    * \brief Returns cell centered index of cell containing point.
+    * \brief Returns cell-centered index of cell containing \p point.
+    *
     * This may return undesired results if point
     * is on a cell boundary.
+    *
+    * \param point Physical-space coordinates.
     */
     IntVect CellIndex (const Real* point) const noexcept;
     /**
-    * \brief Returns node centered index of lower left hand corner of
+    * \brief Returns nodal index of lower-left corner of
     * cell containing this point.
+    *
+    * \param point Physical-space coordinates.
     */
     IntVect LowerIndex (const Real* point) const noexcept;
     /**
-    * \brief Returns node centered index of upper right hand corner of
+    * \brief Returns nodal index of upper right hand corner of
     * cell containing this point.
+    *
+    * \param point Physical-space coordinates.
     */
     IntVect UpperIndex (const Real* point) const noexcept;
     /**
     * \brief Compute cell volumes in given region and place them into
     * input FAB.
+    *
+    * \param a_volfab Output fab; must be sized to cover \p region (not resized by this call).
+    * \param region Region of cells over which to compute volumes.
     */
     void SetVolume (FArrayBox& a_volfab, const Box& region) const;
     /**
     * \brief Compute cell volumes in given region and place them into
     * resize()d input FAB.
+    *
+    * \param vol Output fab; resized to \p region before being filled with volumes.
+    * \param region Region of cells over which to compute volumes.
     */
     void GetVolume (FArrayBox& vol, const Box& region) const;
     /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
     * place them into input FAB.
+    *
+    * \param a_dlogafab Output fab; must be sized to cover \p region (not resized by this call).
+    * \param region Region of cells over which to compute the derivative.
+    * \param dir Coordinate direction of the area change.
     */
     void SetDLogA (FArrayBox& a_dlogafab, const Box& region, int dir) const;
     /**
     * \brief Compute d(log(A))/dr at cell centers in given region and
     * return the results in the resize()d input FAB.
+    *
+    * \param dloga Output fab; resized to \p region before being filled with derivatives.
+    * \param region Region of cells over which to compute the derivative.
+    * \param dir Coordinate direction of the area change.
     */
     void GetDLogA (FArrayBox& dloga, const Box& region, int dir) const;
 
-    //! Return the volume of the specified cell.
+    /**
+     * \brief Return the physical volume of the specified cell.
+     * \param point Cell-centered index (i,j,k).
+     */
     [[nodiscard]] Real Volume (const IntVect& point) const;
 
     //! Return the volume of the specified cell.
