@@ -2,6 +2,11 @@
 #define AMREX_GEOMETRY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Geometry.H
+ * \brief Problem-domain geometry: maps between index space and physical space.
+ */
+
 #include <AMReX_Array.H>
 #include <AMReX_CoordSys.H>
 #include <AMReX_ParallelDescriptor.H>
@@ -22,24 +27,29 @@ class MultiFab;
 class DistributionMapping;
 class BoxArray;
 
+/**
+ * \struct amrex::GeometryData
+ * \ingroup amrex_real_space
+ * \brief GPU-safe snapshot of Geometry data suitable for capture in GPU kernels.
+ */
 struct GeometryData
 {
  //! Returns the cellsize for each coordinate direction.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Real* CellSize () const noexcept { return dx; }
-    //
+    //! Returns the cellsize for direction \p dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real CellSize (int dir) const noexcept { return dx[dir]; }
  //! Returns the lo end of the problem domain in each dimension.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Real* ProbLo () const noexcept { return prob_domain.lo(); }
-    //
+    //! Returns the lo end of the problem domain in direction \p dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ProbLo (int dir) const noexcept { return prob_domain.lo(dir); }
  //! Returns the hi end of the problem domain in each dimension.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     const Real* ProbHi () const noexcept { return prob_domain.hi(); }
-    //
+    //! Returns the hi end of the problem domain in direction \p dir.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
  //! Returns our rectangular domain.
@@ -53,11 +63,11 @@ struct GeometryData
     int Coord () const noexcept { return coord; }
 
 public:
-    RealBox prob_domain;
-    Box domain;
-    Real dx[AMREX_SPACEDIM];
-    int is_periodic[AMREX_SPACEDIM]; /**< For each dimension, 0 if the domain is non-periodic and 1 if it is. */
-    int coord;
+    RealBox prob_domain; //!< Physical bounds of the problem domain.
+    Box domain; //!< Cell-centered index-space domain.
+    Real dx[AMREX_SPACEDIM]; //!< Cell size in each dimension.
+    int is_periodic[AMREX_SPACEDIM]; //!< For each dimension, 0 if the domain is non-periodic and 1 if it is.
+    int coord; //!< Coordinate-system type: 0 for Cartesian, 1 for RZ, and 2 for spherical.
 };
 
 /**
@@ -74,43 +84,42 @@ class Geometry
     public CoordSys
 {
 public:
-    /** \brief The default constructor.
+    /** \brief Construct a copy of the default Geometry, if one is available.
      *
-     *   Leaves object in an unusable state. A "define" method must be called before use.
+     * If there is no AMReX instance, or the default Geometry has not been set
+     * up yet, the object is left in an unusable state and a define method must
+     * be called before use.
      */
     Geometry () noexcept;
 
     /**
-     * Constructs a fully-defined geometry object that describes the problem domain and coordinate system.
+     * \brief Construct a Geometry for the specified index-space domain.
      *
-     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
-     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
-     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
-     * \param coord Specifies the coordinate system type. Optional. Can be one of:
-     *        CoordSys::cartesian
-     *        CoordSys::RZ
-     *        CoordSys::SPHERICAL
-     *        Default is cartesian.
-     * \param is_per pointer to memory space specifying periodicity in each coordinate direction.
-     *        Optional. Default is non-periodic.
+     * \param dom Cell-centered Box specifying the index-space domain.
+     * \param rb Physical bounds of the domain. If nullptr, the bounds of the
+     *           default Geometry are used (see Setup()).
+     * \param coord Coordinate-system type: 0 for Cartesian
+     *              (CoordSys::cartesian), 1 for RZ (CoordSys::RZ), or 2 for
+     *              spherical (CoordSys::SPHERICAL). Any other value selects
+     *              the coordinate system of the default Geometry.
+     * \param is_per Periodicity flags for each coordinate direction. If
+     *               nullptr, the flags of the default Geometry are used.
      */
     explicit Geometry (const Box&     dom,
                        const RealBox* rb     =  nullptr,
                        int            coord  = -1,
                        int const*     is_per =  nullptr);
     /**
-     * Constructs a fully-defined geometry object that describes the problem domain and coordinate system.
+     * \brief Construct a Geometry with explicitly supplied physical bounds and
+     * periodicity.
      *
-     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
-     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
-     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
-     * \param coord Specifies the coordinate system type. Optional. Can be one of:
-     *        CoordSys::cartesian
-     *        CoordSys::RZ
-     *        CoordSys::SPHERICAL
-     *        Default is cartesian.
-     * \param is_per amrex::Array specifying periodicity in each coordinate direction. Optional.
-     *        Default is non-periodic.
+     * \param dom Cell-centered Box specifying the index-space domain.
+     * \param rb Physical bounds of the domain.
+     * \param coord Coordinate-system type: 0 for Cartesian
+     *              (CoordSys::cartesian), 1 for RZ (CoordSys::RZ), or 2 for
+     *              spherical (CoordSys::SPHERICAL). Any other value selects
+     *              the coordinate system of the default Geometry.
+     * \param is_per Periodicity flags for each coordinate direction.
      */
     Geometry (const Box& dom, const RealBox& rb, int coord,
               Array<int,AMREX_SPACEDIM> const& is_per);
@@ -121,7 +130,7 @@ public:
     Geometry& operator= (const Geometry& rhs) = default;
     Geometry& operator= (Geometry&& rhs) noexcept = default;
 
-    //! Returns non-static copy of geometry's stored data.
+    //! Return a GPU-safe snapshot of the Geometry data.
     [[nodiscard]] GeometryData data() const noexcept {
         return {
             .prob_domain = prob_domain,
@@ -132,43 +141,58 @@ public:
         };
     }
 
-    //! Read static values from ParmParse database.
+    /**
+     * \brief Set up the default Geometry, unless it has already been set up.
+     *
+     * A Geometry constructed or defined without explicit physical bounds,
+     * coordinate system, or periodicity takes those from the default Geometry,
+     * which this function initializes. Anything not passed in here is read
+     * from the ParmParse prefix `geometry`.
+     *
+     * \param rb Problem-domain bounds. If nullptr, the bounds are read from
+     *           `geometry.prob_lo` (default zero) together with either
+     *           `geometry.prob_hi` or `geometry.prob_extent`, exactly one of
+     *           which must be provided.
+     * \param coord Coordinate-system identifier. If outside the range [0,2],
+     *              it is read from `geometry.coord_sys` and defaults to
+     *              Cartesian.
+     * \param isper Periodicity flags. If nullptr, they are read from
+     *              `geometry.is_periodic` and default to non-periodic.
+     */
     static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* isper = nullptr);
+    //! Set the problem domain of the default Geometry to \p rb.
     static void ResetDefaultProbDomain (const RealBox& rb) noexcept;
+    //! Set the periodicity flags of the default Geometry to \p is_per.
     static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
+    //! Set the coordinate-system type of the default Geometry to \p coord.
     static void ResetDefaultCoord (int coord) noexcept;
 
     /**
-     * Defines a geometry object that describes the problem domain and coordinate system for rectangular problem
-     * domains. Useful for when the Geometry object has been constructed with the default constructor.
+     * \brief Define this Geometry for the specified index-space domain.
      *
-     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
-     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
-     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
-     * \param coord Specifies the coordinate system type. Optional. Can be one of:
-     *        CoordSys::cartesian
-     *        CoordSys::RZ
-     *        CoordSys::SPHERICAL
-     *        Default is cartesian.
-     * \param is_per pointer to memory space specifying periodicity in each coordinate direction.
-     *        Optional. Default is non-periodic.
+     * \param dom Cell-centered Box specifying the index-space domain.
+     * \param rb Physical bounds of the domain. If nullptr, the bounds of the
+     *           default Geometry are used (see Setup()).
+     * \param coord Coordinate-system type: 0 for Cartesian
+     *              (CoordSys::cartesian), 1 for RZ (CoordSys::RZ), or 2 for
+     *              spherical (CoordSys::SPHERICAL). Any other value selects
+     *              the coordinate system of the default Geometry.
+     * \param is_per Periodicity flags for each coordinate direction. If
+     *               nullptr, the flags of the default Geometry are used.
      */
     void define (const Box& dom, const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr);
 
     /**
-     * Defines a geometry object that describes the problem domain and coordinate system for rectangular problem
-     * domains. Useful for when the Geometry object has been constructed with the default constructor.
+     * \brief Define this Geometry with explicitly supplied physical bounds and
+     * periodicity.
      *
-     * \param dom cell-centered `Box` specifying the index space bounds of the domain.
-     * \param rb A pointer to a `RealBox` specifying the real space bounds of the domain. Optional. If not specified,
-     *        will be ParmParsed from "geometry.prob_lo" and "geometry.prob_hi".
-     * \param coord Specifies the coordinate system type. Optional. Can be one of:
-     *        CoordSys::cartesian
-     *        CoordSys::RZ
-     *        CoordSys::SPHERICAL
-     *        Default is cartesian.
-     * \param is_per amrex::Array specifying periodicity in each coordinate direction. Optional.
-     *        Default is non-periodic.
+     * \param dom Cell-centered Box specifying the index-space domain.
+     * \param rb Physical bounds of the domain.
+     * \param coord Coordinate-system type: 0 for Cartesian
+     *              (CoordSys::cartesian), 1 for RZ (CoordSys::RZ), or 2 for
+     *              spherical (CoordSys::SPHERICAL). Any other value selects
+     *              the coordinate system of the default Geometry.
+     * \param is_per Periodicity flags for each coordinate direction.
      */
     void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per);
 
@@ -189,18 +213,22 @@ public:
     //! Returns the hi end of the problem domain in specified direction.
     [[nodiscard]] Real ProbHi (int dir) const noexcept { return prob_domain.hi(dir); }
 
+    //! Return the lo end of the problem domain in a GpuArray for device code.
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> ProbLoArray () const noexcept {
         return {{AMREX_D_DECL(prob_domain.lo(0),prob_domain.lo(1),prob_domain.lo(2))}};
     }
 
+    //! Return the hi end of the problem domain in a GpuArray for device code.
     [[nodiscard]] GpuArray<Real,AMREX_SPACEDIM> ProbHiArray () const noexcept {
         return {{AMREX_D_DECL(prob_domain.hi(0),prob_domain.hi(1),prob_domain.hi(2))}};
     }
 
+    //! Return the lo end of the roundoff domain in ParticleReal precision.
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbLoArrayInParticleReal () const noexcept {
         return roundoff_lo;
     }
 
+    //! Return the hi end of the roundoff domain in ParticleReal precision.
     [[nodiscard]] GpuArray<ParticleReal,AMREX_SPACEDIM> ProbHiArrayInParticleReal () const noexcept {
         return roundoff_hi;
     }
@@ -221,14 +249,22 @@ public:
         domain = bx;
         computeRoundoffDomain();
     }
-    //! Define a multifab of areas and volumes with given grow factor.
+    /**
+     * \brief Define \p vol on \p grds with \p dm and fill it with cell volumes.
+     *
+     * The result has one component and \p grow ghost cells in every direction.
+     */
     void GetVolume (MultiFab&       vol,
                     const BoxArray& grds,
                     const DistributionMapping& dm,
                     int             grow) const;
-    //! Fill the pre-built multifab with volume
+    //! Fill all valid and ghost cells of the pre-defined \p vol with cell volumes.
     void GetVolume (MultiFab&       vol) const;
 
+    /**
+     * \brief Resize \p vol to one component on entry \p idx of \p grds grown
+     * by \p grow in every direction, and fill it with cell volumes.
+     */
     void GetVolume (FArrayBox&      vol,
                     const BoxArray& grds,
                     int             idx,
@@ -307,8 +343,13 @@ public:
     }
 
     /**
-    * \brief Compute d(log(A))/dr at cell centers in given region and
-    *           stuff the results into the passed MultiFab.
+    * \brief Define \p dloga on \p grds with \p dm and fill it with
+    * d(log(A))/dr at cell centers.
+    *
+    * The result has one component and \p grow ghost cells in every direction.
+    * \p dir is the coordinate direction of the face area A.
+    *
+    * \note This function is only available in 1D and 2D.
     */
     void GetDLogA (MultiFab&       dloga,
                    const BoxArray& grds,
@@ -316,18 +357,28 @@ public:
                    int             dir,
                    int             grow) const;
     /**
-    * \brief Compute area of cell faces in given region and stuff
-    * stuff the results into the passed MultiFab.
+    * \brief Define \p area on the faces of \p grds normal to \p dir, using
+    * \p dm, and fill it with face areas.
+    *
+    * The result has one component and \p grow ghost cells in every direction.
     */
     void GetFaceArea (MultiFab&       area,
                       const BoxArray& grds,
                       const DistributionMapping& dm,
                       int             dir,
                       int             grow) const;
-    //! Fill the pre-built multifab with area
+    /**
+    * \brief Fill all valid and ghost cells of the pre-defined \p area with face
+    * areas normal to \p dir.
+    */
     void GetFaceArea (MultiFab&       area,
                       int             dir) const;
 
+    /**
+     * \brief Resize \p area to one component on the faces normal to \p dir of
+     * entry \p idx of \p grds grown by \p grow in every direction, and fill it
+     * with face areas.
+     */
     void GetFaceArea (FArrayBox&      area,
                       const BoxArray& grds,
                       int             idx,
@@ -345,11 +396,13 @@ public:
     {
         return AMREX_D_TERM(isPeriodic(0),&&isPeriodic(1),&&isPeriodic(2));
     }
+    //! Return the periodicity flags for all directions as an Array.
     [[nodiscard]] Array<int,AMREX_SPACEDIM> isPeriodic () const noexcept {
         return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                               static_cast<int>(is_periodic[1]),
                               static_cast<int>(is_periodic[2]))}};
     }
+    //! Return the periodicity flags in a GpuArray for device code.
     [[nodiscard]] GpuArray<int,AMREX_SPACEDIM> isPeriodicArray () const noexcept {
         return {{AMREX_D_DECL(static_cast<int>(is_periodic[0]),
                               static_cast<int>(is_periodic[1]),
@@ -358,12 +411,14 @@ public:
     //! What's period in specified direction?
     [[nodiscard]] int period (int dir) const noexcept { BL_ASSERT(is_periodic[dir]); return domain.length(dir); }
 
+    //! Return the Periodicity based on the length of the domain.
     [[nodiscard]] Periodicity periodicity () const noexcept {
         return Periodicity(IntVect(AMREX_D_DECL(domain.length(0) * is_periodic[0],
                                           domain.length(1) * is_periodic[1],
                                           domain.length(2) * is_periodic[2])));
     }
 
+    //! Return the Periodicity based on the length of the cell-centered box \p b.
     [[nodiscard]] Periodicity periodicity (const Box& b) const noexcept {
         AMREX_ASSERT(b.cellCentered());
         return Periodicity(IntVect(AMREX_D_DECL(b.length(0) * is_periodic[0],
@@ -372,12 +427,15 @@ public:
     }
 
     /**
-    * \brief Compute Array of shifts which will translate src so that it will
-    * intersect target with non-zero intersection.  the array will be
-    * resized internally, so anything previously there will be gone
-    * DO NOT return non-periodic shifts, even if the box's do
+    * \brief Compute Array of shifts which will translate \p src so that it will
+    * intersect \p target with non-zero intersection. The \p out array will be
+    * resized internally, so anything previously there will be gone.
+    * DO NOT return non-periodic shifts, even if the boxes do
     * intersect without shifting.  The logic is that you will only do
-    * this as a special case if there is some periodicity.
+    * this as a special case if there is some periodicity. Each returned IntVect
+    * is a nonzero index-space shift whose component is zero in a non-periodic
+    * direction and zero or plus/minus the domain length in a periodic
+    * direction.
     */
     void periodicShift (const Box&      target,
                         const Box&      src,
@@ -392,9 +450,13 @@ public:
     //! Return domain box with periodic directions grown by ngrow.
     [[nodiscard]] Box growPeriodicDomain (int ngrow) const noexcept;
 
-    //! Set periodicity flags and return the old flags.
-    //! Note that, unlike Periodicity class, the flags are just boolean.
-    //!
+    /**
+     * \brief Set the periodicity flags and return the old flags.
+     *
+     * Note that, unlike the Periodicity class, the flags are just boolean. The
+     * caller can use the returned array to restore the previous state after a
+     * temporary override.
+     */
     Array<int,AMREX_SPACEDIM>
     setPeriodicity (Array<int,AMREX_SPACEDIM> const& period) noexcept {
         Array<int,AMREX_SPACEDIM> r{{AMREX_D_DECL(is_periodic[0],
@@ -481,9 +543,15 @@ private:
 };
 
 
-//! Nice ASCII output.
+/**
+ * \ingroup amrex_real_space
+ * \brief Write a Geometry to an output stream in ASCII format.
+ */
 std::ostream& operator<< (std::ostream&, const Geometry&);
-//! Nice ASCII input.
+/**
+ * \ingroup amrex_real_space
+ * \brief Read a Geometry from an input stream in ASCII format.
+ */
 std::istream& operator>> (std::istream&, Geometry&);
 
 /**
@@ -534,6 +602,10 @@ inline
 Geometry
 refine (Geometry const& crse, int rr) { return refine(crse, IntVect(rr)); }
 
+/**
+ * \ingroup amrex_real_space
+ * \brief Return the default Geometry held by the top-level AMReX instance.
+ */
 inline
 const Geometry&
 DefaultGeometry () {
