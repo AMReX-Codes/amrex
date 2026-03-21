@@ -126,7 +126,7 @@ public:
     /**
      * \brief Solve the open-boundary Poisson problem.
      *
-     * \param soln Solution MultiFab (cell- or node-centered to match constructor).
+     * \param soln Solution MultiFab (cell-centered or nodal to match constructor).
      * \param rhs  Right-hand-side MultiFab.
      */
     void solve (MF& soln, MF const& rhs);

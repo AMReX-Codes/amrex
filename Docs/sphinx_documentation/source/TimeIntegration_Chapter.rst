@@ -131,7 +131,7 @@ To use SUNDIALS integrators, the user needs to compile their AMReX application w
 
 The SUNDIALS interface supports ``MultiFab`` or ``Vector<MultiFab>`` data
 types. Using a ``Vector<MultiFab>`` permits integrating state data with
-different spatial centering (e.g., cell-centered, face-centered, node-centered)
+different spatial centering (e.g., cell-centered, face-centered, nodal)
 concurrently.
 
 The same code as above can be used with SUNDIALS explicit or implicit

@@ -1496,7 +1496,7 @@ BoxND<dim> coarsen (const BoxND<dim>& b, const IntVectND<dim>& ref_ratio) noexce
  * \brief Return a copy of \p b refined by the isotropic ratio \p ref_ratio.
  *
  * Each direction is scaled by \p ref_ratio while respecting whether the box is
- * cell- or node-centered so that coarsening by the same ratio recovers the
+ * cell-centered or nodal so that coarsening by the same ratio recovers the
  * original extent.
  *
  * \param b Box to refine.

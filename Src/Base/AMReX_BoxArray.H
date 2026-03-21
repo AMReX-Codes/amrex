@@ -17,19 +17,49 @@
 #include <memory>
 #include <unordered_map>
 
+/**
+ * \file AMReX_BoxArray.H
+ * \brief Container and helper utilities for sets of boxes on integer index space.
+ */
+
 namespace amrex
 {
     class BoxArray;
 
-    //! Make a BoxArray from the the complement of b2 in b1in.
+    /**
+     * \brief Make a BoxArray from the complement of \p b2 in \p b1in.
+     *
+     * \param b1in Base box to subtract from.
+     * \param b2 Box describing the region to remove.
+     * \return A BoxArray covering the indices in \p b1in \ \p b2.
+     */
     [[nodiscard]] BoxArray boxComplement (const Box& b1in, const Box& b2);
 
-    //! Make a BoxArray from the complement of BoxArray ba in Box b.
+    /**
+     * \brief Make a BoxArray from the complement of \p ba within the Box \p b.
+     *
+     * \param b Bounding box that defines the full domain.
+     * \param ba BoxArray describing the region to exclude.
+     * \return Boxes covering the indices of \p b that are not contained in \p ba.
+     */
     [[nodiscard]] BoxArray complementIn (const Box& b, const BoxArray& ba);
 
-    //! Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
+    /**
+     * \brief Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
+     *
+     * \param ba Input BoxArray.
+     * \param b Clipping box.
+     * \param ng Number of ghost cells to expand \p ba before intersecting.
+     */
     [[nodiscard]] BoxArray intersect (const BoxArray& ba, const Box& b, int ng = 0);
 
+    /**
+     * \brief Make a BoxArray from the intersection of Box b and BoxArray(+ghostcells).
+     *
+     * \param ba Input BoxArray.
+     * \param b Clipping box.
+     * \param ng Direction-wise ghost cell expansion for \p ba.
+     */
     [[nodiscard]] BoxArray intersect (const BoxArray& ba, const Box& b, const IntVect& ng);
 
     //! Make a BoxArray from the intersection of two BoxArrays.
@@ -38,22 +68,102 @@ namespace amrex
     //! Make a BoxList from the intersection of BoxArray and BoxList.
     [[nodiscard]] BoxList intersect (const BoxArray& ba, const BoxList& bl);
 
+    /**
+     * \brief Convert each box to the supplied index type.
+     *
+     * Inexpensive — the copy shares the same backing storage and only the
+     * BATransformer differs.
+     *
+     * \param ba Input BoxArray.
+     * \param typ Desired index type (cell-centered or nodal per dimension).
+     */
     [[nodiscard]] BoxArray convert (const BoxArray& ba, IndexType typ);
+    /**
+     * \brief Convert each box to the supplied nodal flags.
+     *
+     * Inexpensive — the copy shares the same backing storage and only the
+     * BATransformer differs.
+     *
+     * \param ba Input BoxArray.
+     * \param typ IntVect of 0/1 flags indicating nodal directions.
+     */
     [[nodiscard]] BoxArray convert (const BoxArray& ba, const IntVect& typ);
 
+    /**
+     * \brief Return a coarsened copy of the BoxArray.
+     *
+     * Inexpensive — the copy shares the same backing storage and only the
+     * coarsening ratio in the BATransformer differs.
+     *
+     * \param ba Input BoxArray.
+     * \param ratio Uniform coarsening ratio.
+     */
     [[nodiscard]] BoxArray coarsen (const BoxArray& ba, int ratio);
+    /**
+     * \brief Return a coarsened copy of the BoxArray.
+     *
+     * Inexpensive — the copy shares the same backing storage and only the
+     * coarsening ratio in the BATransformer differs.
+     *
+     * \param ba Input BoxArray.
+     * \param ratio Direction-wise coarsening ratio.
+     */
     [[nodiscard]] BoxArray coarsen (const BoxArray& ba, const IntVect& ratio);
 
+    /**
+     * \brief Return a refined copy of the BoxArray.
+     *
+     * This refines every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param ba Input BoxArray.
+     * \param ratio Uniform refinement ratio.
+     */
     [[nodiscard]] BoxArray refine  (const BoxArray& ba, int ratio);
+    /**
+     * \brief Return a refined copy of the BoxArray.
+     *
+     * This refines every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param ba Input BoxArray.
+     * \param ratio Direction-wise refinement ratio.
+     */
     [[nodiscard]] BoxArray refine  (const BoxArray& ba, const IntVect& ratio);
 
-    //! Find the ghost cells of a given BoxArray.
+    /**
+     * \brief Find the boundary/ghost region around a BoxArray.
+     *
+     * Each box in \p ba is grown by \p ngrow, and the original boxes are
+     * subtracted.  The result also excludes any region that lies inside another
+     * box in \p ba, so the returned BoxList contains only indices that fall
+     * strictly outside every box of the original BoxArray.
+     *
+     * \param ba Input BoxArray.
+     * \param ngrow Number of ghost cells to expand around each box.
+     * \return BoxList describing the ghost region outside \p ba.
+     */
     [[nodiscard]] BoxList GetBndryCells (const BoxArray& ba, int ngrow);
 
-    //! Read a BoxArray from a stream.  If b is true, read in a special way
+    /**
+     * \brief Read a BoxArray from a stream.
+     *
+     * \param ba Destination BoxArray receiving the parsed boxes.
+     * \param s Input stream.
+     * \param b When true, use the historical alternate parsing format.
+     */
     void readBoxArray (BoxArray& ba, std::istream& s, bool b = false);
 
-    //! Note that two BoxArrays that match are not necessarily equal.
+    /**
+     * \brief Return true if two BoxArrays cover the same index space.
+     *
+     * The BoxArrays need not be equal; only the union of indices they cover
+     * matters.
+     *
+     * \param x First BoxArray operand.
+     * \param y Second BoxArray operand.
+     * \return True when \p x and \p y cover the same set of indices.
+     */
     [[nodiscard]] bool match (const BoxArray& x, const BoxArray& y);
 
     /**
@@ -555,15 +665,18 @@ class FabArrayBase;
 /**
  * \class amrex::BoxArray
  * \ingroup amrex_domain_decomposition
- * \brief A collection of Boxes stored in an Array.
+ * \brief Reference-counted collection of Boxes.
  *
- * It is a reference-counted concrete class, not a polymorphic one; i.e. you
- * cannot use any of the List member functions with a BoxList.
+ * A `BoxArray` stores Boxes in integer index space along with optional
+ * transformations (e.g., nodal flags or coarsening ratios). Most operations
+ * modify the array in place, while free functions provide out-of-place
+ * variants.
  */
 class BoxArray
 {
 public:
 
+    /** \brief Construct an empty BoxArray. */
     BoxArray () noexcept;
     BoxArray (const BoxArray& rhs) = default;
     BoxArray (BoxArray&& rhs) noexcept = default;
@@ -571,13 +684,24 @@ public:
     BoxArray& operator= (BoxArray&& rhs) noexcept = default;
     ~BoxArray() noexcept = default;
 
-    //! Make a boxarray out of a single box
+    /**
+     * \brief Make a BoxArray out of a single box.
+     *
+     * \param bx Box to insert.
+     */
     explicit BoxArray (const Box& bx);
 
-    //! Construct a BoxArray of the specified size.
+    /**
+     * \brief Construct a BoxArray with \p n empty boxes.
+     */
     explicit BoxArray (size_t n);
 
-    //! Construct a BoxArray from an array of Boxes of size nbox.
+    /**
+     * \brief Construct a BoxArray from an array of Boxes.
+     *
+     * \param bxvec Pointer to an array of Boxes.
+     * \param nbox Number of Boxes referenced by \p bxvec.
+     */
     BoxArray (const Box* bxvec,
               int        nbox);
 
@@ -585,19 +709,37 @@ public:
     explicit BoxArray (const BoxList& bl);
     explicit BoxArray (BoxList&& bl) noexcept;
 
+    /**
+     * \brief Construct a BoxArray by applying a transformer to another array.
+     *
+     * \param rhs Source BoxArray.
+     * \param trans Transformer describing additional index-type/coarsening rules.
+     */
     BoxArray (const BoxArray& rhs, const BATransformer& trans);
 
+    /**
+     * \brief Construct from a BoxList with a maximum grid size constraint.
+     *
+     * \param bl Input list of boxes.
+     * \param max_grid_size Maximum allowed extent per dimension.
+     */
     BoxArray (BoxList&& bl, IntVect const& max_grid_size);
 
     /**
-    * \brief Initialize the BoxArray from a single box.
-    * It is an error if the BoxArray has already been initialized.
-    */
+     * \brief Initialize the BoxArray from a single box.
+     *
+     * It is an error if the BoxArray has already been initialized.
+     *
+     * \param bx Box to assign.
+     */
     void define (const Box& bx);
     /**
-    * \brief Initialize the BoxArray from the supplied BoxList.
-    * It is an error if the BoxArray has already been initialized.
-    */
+     * \brief Initialize the BoxArray from the supplied BoxList.
+     *
+     * It is an error if the BoxArray has already been initialized.
+     *
+     * \param bl List of boxes to assign.
+     */
     void define (const BoxList& bl);
     void define (BoxList&& bl) noexcept;
 
@@ -622,11 +764,15 @@ public:
     //! Returns the total number of cells (in double type) contained in all boxes in the BoxArray.
     [[nodiscard]] double d_numPts () const noexcept;
     /**
-    * \brief Initialize the BoxArray from the supplied istream.
-    * It is an error if the BoxArray has already been initialized.
-    * Note that the BoxArray in the istream must have been written
-    * using writeOn().
-    */
+     * \brief Initialize the BoxArray from the supplied istream.
+     *
+     * It is an error if the BoxArray has already been initialized.
+     * Note that the BoxArray in the istream must have been written
+     * using writeOn().
+     *
+     * \param is Input stream containing serialized boxes.
+     * \return The dimensionality stored in the stream (≤ \c AMREX_SPACEDIM).
+     */
     int readFrom (std::istream& is);
 
     //! Output this BoxArray to a checkpoint file.
@@ -644,89 +790,282 @@ public:
     //!  Are the BoxArrays equal after conversion to cell-centered
     [[nodiscard]] bool CellEqual (const BoxArray& rhs) const noexcept;
 
-    //! Forces each Box in BoxArray to have sides <= block_size.
+    /**
+     * \brief Split any Box whose side length exceeds \p block_size.
+     *
+     * Boxes are recursively split until all extents fit.  This may change the
+     * number of boxes in the array.  This can be expensive for large BoxArrays.
+     *
+     * \param block_size Uniform maximum size per dimension.
+     */
     BoxArray& maxSize (int block_size);
 
+    /**
+     * \brief Split any Box whose dimensions exceed \p block_size.
+     *
+     * Boxes are recursively split until all extents fit.  This may change the
+     * number of boxes in the array.  This can be expensive for large BoxArrays.
+     *
+     * \param block_size Direction-wise maximum sizes.
+     * \return Reference to this BoxArray for chaining.
+     */
     BoxArray& maxSize (const IntVect& block_size);
 
-    //! Forces each Box in BoxArray to have sizes >= min_size and <=
-    //! max_size. It's the caller's responsibility to make sure both the
-    //! BoxArray and max_size are coarsenable by min_size.
+    /**
+     * \brief Constrain Box sizes between \p min_size and \p max_size.
+     *
+     * This can be expensive for large BoxArrays.  It's the caller's
+     * responsibility to make sure both the BoxArray and \p max_size are
+     * coarsenable by \p min_size.
+     *
+     * \param min_size Direction-wise minimum sizes.
+     * \param max_size Direction-wise maximum sizes.
+     */
     BoxArray& minmaxSize (const IntVect& min_size, const IntVect& max_size);
 
-    //! Refine each Box in the BoxArray to the specified ratio.
+    /**
+     * \brief Refine each Box in the BoxArray by \p refinement_ratio.
+     *
+     * This refines every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param refinement_ratio Uniform refinement factor.
+     */
     BoxArray& refine (int refinement_ratio);
 
-    //! Refine each Box in the BoxArray to the specified ratio.
+    /**
+     * \brief Refine each Box in the BoxArray by \p iv.
+     *
+     * This refines every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param iv Direction-wise refinement factors.
+     */
     BoxArray& refine (const IntVect& iv);
 
-    //! Coarsen each Box in the BoxArray to the specified ratio.
+    /**
+     * \brief Coarsen each Box in the BoxArray by \p refinement_ratio.
+     *
+     * Inexpensive — only the internal coarsening ratio stored in the
+     * BATransformer is updated; the boxes themselves are not touched.
+     *
+     * \param refinement_ratio Uniform coarsening factor.
+     */
     BoxArray& coarsen (int refinement_ratio);
 
-    //! Coarsen each Box in the BoxArray to the specified ratio.
+    /**
+     * \brief Check whether every Box is coarsenable by \p refinement_ratio.
+     *
+     * A Box is coarsenable when \c box.coarsen(refinement_ratio).refine(refinement_ratio)
+     * recovers the original Box — stronger than the extent being a multiple of the ratio:
+     * with ratio 2, cell-centered \c [0,2] (3 cells) and even-sized cell-centered \c [1,2]
+     * (odd small end) are not coarsenable, but nodal \c [0,2] (3 nodes) is.
+     *
+     * \param refinement_ratio Uniform integer factor for coarsening.
+     * \param min_width Minimum post-coarsening length allowed in any dimension.
+     * \return true if all boxes remain at least \p min_width cells after coarsening.
+     */
     [[nodiscard]] bool coarsenable (int refinement_ratio, int min_width=1) const;
+    /**
+     * \brief Check whether every Box is coarsenable by \p refinement_ratio.
+     *
+     * A Box is coarsenable when \c box.coarsen(refinement_ratio).refine(refinement_ratio)
+     * recovers the original Box — stronger than the extent being a multiple of the ratio:
+     * with ratio 2, cell-centered \c [0,2] (3 cells) and even-sized cell-centered \c [1,2]
+     * (odd small end) are not coarsenable, but nodal \c [0,2] (3 nodes) is.
+     *
+     * \param refinement_ratio Direction-wise integer factors.
+     * \param min_width Minimum post-coarsening length allowed in any dimension.
+     * \return true if all boxes remain at least \p min_width cells after coarsening.
+     */
     [[nodiscard]] bool coarsenable (const IntVect& refinement_ratio, int min_width=1) const;
+    /**
+     * \brief Check whether every Box is coarsenable by \p refinement_ratio.
+     *
+     * A Box is coarsenable when \c box.coarsen(refinement_ratio).refine(refinement_ratio)
+     * recovers the original Box — stronger than the extent being a multiple of the ratio:
+     * with ratio 2, cell-centered \c [0,2] (3 cells) and even-sized cell-centered \c [1,2]
+     * (odd small end) are not coarsenable, but nodal \c [0,2] (3 nodes) is.
+     *
+     * \param refinement_ratio Direction-wise integer factors.
+     * \param min_width Minimum acceptable post-coarsening lengths per dimension.
+     * \return true if all boxes remain above the supplied per-dimension limits.
+     */
     [[nodiscard]] bool coarsenable (const IntVect& refinement_ratio, const IntVect& min_width) const;
 
-    //! Coarsen each Box in the BoxArray to the specified ratio.
+    /**
+     * \brief Coarsen each Box in the BoxArray by \p iv.
+     *
+     * Inexpensive — only the internal coarsening ratio stored in the
+     * BATransformer is updated; the boxes themselves are not touched.
+     *
+     * \param iv Direction-wise coarsening factors.
+     */
     BoxArray& coarsen (const IntVect& iv);
 
-    //! Grow and then coarsen each Box in the BoxArray.
+    /**
+     * \brief Expand boxes by \p n cells in every direction, then coarsen by \p iv.
+     *
+     * This processes every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param n Symmetric grow cells applied before coarsening.
+     * \param iv Direction-wise coarsening ratio.
+     * \return Reference to this BoxArray for chaining.
+     */
     BoxArray& growcoarsen (int n, const IntVect& iv);
+    /**
+     * \brief Expand boxes by anisotropic grow cells, then coarsen by \p iv.
+     *
+     * This processes every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param ngrow Direction-wise grow cells applied before coarsening.
+     * \param iv Direction-wise coarsening ratio.
+     * \return Reference to this BoxArray for chaining.
+     */
     BoxArray& growcoarsen (IntVect const& ngrow, const IntVect& iv);
 
-    //! Grow each Box in the BoxArray by the specified amount.
+    /**
+     * \brief Grow each Box by \p n cells in every direction.
+     *
+     * This grows every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param n Number of cells to add on each side.
+     */
     BoxArray& grow (int n);
 
-    //! Grow each Box in the BoxArray by the specified amount.
+    /**
+     * \brief Grow each Box by \p iv cells.
+     *
+     * This grows every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param iv Direction-wise growth amounts.
+     */
     BoxArray& grow (const IntVect& iv);
     /**
-    * \brief Grow each Box in the BoxArray on the low and high ends
-    * by n_cell cells in the idir direction.
-    */
+     * \brief Grow each Box on both ends in dimension \p idir.
+     *
+     * This grows every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param idir Coordinate direction.
+     * \param n_cell Number of cells to add on each side.
+     */
     BoxArray& grow (int idir, int n_cell);
     /**
-    * \brief Grow each Box in the BoxArray on the low end
-    * by n_cell cells in the idir direction.
-    */
+     * \brief Grow each Box on the lower side of dimension \p idir.
+     *
+     * This grows every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param idir Coordinate direction.
+     * \param n_cell Number of cells to add.
+     */
     BoxArray& growLo (int idir, int n_cell);
     /**
-    * \brief Grow each Box in the BoxArray on the high end
-    * by n_cell cells in the idir direction.
-    */
+     * \brief Grow each Box on the upper side of dimension \p idir.
+     *
+     * This grows every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param idir Coordinate direction.
+     * \param n_cell Number of cells to add.
+     */
     BoxArray& growHi (int idir, int n_cell);
     /**
-    * \brief Apply surroundingNodes(Box) to each Box in BoxArray.
-    * See the documentation of Box for details.
-    */
+     * \brief Convert the BoxArray to nodal type in all directions.
+     *
+     * The operation is inexpensive — it only adjusts the internal
+     * BATransformer.
+     */
     BoxArray& surroundingNodes ();
     /**
-    * \brief Apply surroundingNodes(Box,int) to each Box in
-    * BoxArray.  See the documentation of Box for details.
-    */
+     * \brief Convert the BoxArray to nodal type in direction \p dir.
+     *
+     * The operation is inexpensive — it only adjusts the internal
+     * BATransformer.
+     *
+     * \param dir Direction to make nodal.
+     */
     BoxArray& surroundingNodes (int dir);
 
-    //! Apply Box::enclosedCells() to each Box in the BoxArray.
+    /**
+     * \brief Convert the BoxArray to cell-centered type in all directions.
+     *
+     * Inexpensive — only the IndexType in the BATransformer is updated.
+     */
     BoxArray& enclosedCells ();
 
-    //! Apply Box::enclosedCells(int) to each Box in the BoxArray.
+    /**
+     * \brief Convert the BoxArray to cell-centered type in direction \p dir.
+     *
+     * Inexpensive — only the IndexType in the BATransformer is updated.
+     *
+     * \param dir Direction to make cell-centered.
+     */
     BoxArray& enclosedCells  (int dir);
 
-    //! Apply Box::convert(IndexType) to each Box in the BoxArray.
+    /**
+     * \brief Set the IndexType of the BoxArray.
+     *
+     * Inexpensive — only the IndexType in the BATransformer is updated.
+     *
+     * \param typ Desired index type.
+     */
     BoxArray& convert (IndexType typ);
 
+    /**
+     * \brief Set the IndexType of the BoxArray from an IntVect of flags.
+     *
+     * Inexpensive — only the IndexType in the BATransformer is updated.
+     *
+     * \param iv IntVect of 0 (cell-centered) / 1 (nodal) flags per direction.
+     */
     BoxArray& convert (const IntVect& iv);
 
-    //! Apply function (*fp)(Box) to each Box in the BoxArray.
+    /**
+     * \brief Apply \p fp to every Box in the BoxArray.
+     *
+     * This transforms each box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param fp Function mapping a Box to a new Box.
+     */
     BoxArray& convert (Box (*fp)(const Box&));
 
-    //! Apply Box::shift(int,int) to each Box in the BoxArray.
+    /**
+     * \brief Shift each Box in the BoxArray by \p nzones cells in direction \p dir.
+     *
+     * This shifts every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param dir Coordinate direction.
+     * \param nzones Number of cells to shift.
+     */
     BoxArray& shift (int dir, int nzones);
 
-    //! Apply Box::shift(const IntVect &iv) to each Box in the BoxArray.
+    /**
+     * \brief Shift each Box in the BoxArray by \p iv.
+     *
+     * This shifts every box individually, so it can be expensive for large
+     * BoxArrays.
+     *
+     * \param iv Direction-wise shift amounts.
+     */
     BoxArray& shift (const IntVect &iv);
 
-    //! Set element i in this BoxArray to Box ibox.
+    /**
+     * \brief Set element \p i to \p ibox if no coarsening transformer is active.
+     *
+     * This mutator is valid only when the `BoxArray` is cell/nodal converted but
+     * not coarsened by a `BATransformer`.
+     *
+     * \param i Box index.
+     * \param ibox New box value.
+     */
     void set (int i, const Box& ibox);
 
     //! Return element index of this BoxArray.
@@ -746,9 +1085,11 @@ public:
     }
 
     /**
-    * \brief Return true if Box is valid and they all have the same
-    * IndexType.  Is true by default if the BoxArray is empty.
-    */
+     * \brief Return true if the BoxArray is empty or every Box reports ok().
+     *
+     * A Box is ok() when each direction’s index type is either cell-centered or nodal
+     * and every upper bound is greater than or equal to its corresponding lower bound.
+     */
     [[nodiscard]] bool ok () const;
 
     //! Return true if set of intersecting Boxes in BoxArray is null.
@@ -757,66 +1098,123 @@ public:
     //! Create a BoxList from this BoxArray.
     [[nodiscard]] BoxList boxList () const;
 
-    //! True if the IntVect is within any of the Boxes in this BoxArray.
+    /**
+     * \brief Return true if the cell \p v is within any box in the array.
+     * \param v Index to test.
+     */
     [[nodiscard]] bool contains (const IntVect& v) const;
 
     /**
-    * \brief True if the Box is contained in this BoxArray(+ng).
-    * The Box must also have the same IndexType as those in this BoxArray.
-    */
+     * \brief True if the Box is contained in this BoxArray(+ng).
+     *
+     * The Box must also have the same IndexType as those in this BoxArray.
+     *
+     * \param b Box to test.
+     * \param assume_disjoint_ba Hint that this `BoxArray` is disjoint, enabling a faster test path.
+     * \param ng Ghost cells to inflate this BoxArray.
+     */
     [[nodiscard]]
     bool contains (const Box& b, bool assume_disjoint_ba = false,
                    const IntVect& ng = IntVect(0)) const;
 
     /**
-     * \brief True if all Boxes in ba are contained in this BoxArray(+ng).
+     * \brief True if all Boxes in \p ba are contained in this BoxArray(+ng).
+     *
+     * \param ba BoxArray to test.
+     * \param assume_disjoint_ba Hint that this `BoxArray` is disjoint, enabling a faster test path.
+     * \param ng Ghost cells to inflate this BoxArray.
      */
     [[nodiscard]]
     bool contains (const BoxArray& ba, bool assume_disjoint_ba = false,
                    const IntVect& ng = IntVect(0)) const;
 
     /**
-     * \brief True if all cells in ba are periodically contained in this
-     * BoxArray.
+     * \brief True if all indices in \p ba are periodically contained in this BoxArray.
      *
-     * If a cell after being periodically shifted is contained in this
-     * BoxArray, it's considered being periodically contained.
+     * An index is periodically contained if, after being shifted by an
+     * integer multiple of the period, it falls inside this BoxArray.
+     *
+     * \param ba BoxArray to test.
+     * \param period Periodicity describing the allowed shifts.
      */
     [[nodiscard]]
     bool contains (const BoxArray& ba, Periodicity const& period) const;
 
     //! Return smallest Box that contains all Boxes in this BoxArray.
     [[nodiscard]] Box minimalBox () const;
+    /**
+     * \brief Return minimal enclosing box and average points per box.
+     * \param npts_avg_box Output average number of points per box.
+     */
     [[nodiscard]] Box minimalBox (Long& npts_avg_box) const;
 
     /**
-    * \brief True if the Box intersects with this BoxArray(+ghostcells).
-    * The Box must have the same IndexType as those in this BoxArray.
-    */
+     * \brief True if \p b intersects this BoxArray(+ng).
+     * \param b Box to test.
+     * \param ng Ghost cells to inflate this BoxArray.
+     */
     [[nodiscard]]
     bool intersects (const Box& b, int ng = 0) const;
 
+    /**
+     * \brief True if \p b intersects this BoxArray(+ng).
+     * \param b Box to test.
+     * \param ng Direction-wise ghost cells to inflate this BoxArray.
+     */
     [[nodiscard]]
     bool intersects (const Box& b, const IntVect& ng) const;
 
-    //! Return intersections of Box and BoxArray
+    /**
+     * \brief Return all intersections of \p bx with this BoxArray.
+     *
+     * \param bx Box to intersect.
+     * \return Vector of (box index, intersection Box) pairs.
+     */
     [[nodiscard]]
     std::vector< std::pair<int,Box> > intersections (const Box& bx) const;
 
-    //! Return intersections of Box and BoxArray(+ghostcells).
+    /**
+     * \brief Return intersections of Box and BoxArray(+ghostcells).
+     * \param bx Box to intersect.
+     * \param first_only If true, stop after first intersection.
+     * \param ng Ghost cells to inflate this BoxArray.
+     */
     [[nodiscard]]
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, int ng) const;
 
+    /**
+     * \brief Return intersections of Box and BoxArray(+ghostcells).
+     * \param bx Box to intersect.
+     * \param first_only If true, stop after first intersection.
+     * \param ng Direction-wise ghost cells to inflate this BoxArray.
+     */
     [[nodiscard]]
     std::vector< std::pair<int,Box> > intersections (const Box& bx, bool first_only, const IntVect& ng) const;
 
-    //! intersect Box and BoxArray, then store the result in isects
+    /**
+     * \brief Intersect \p bx with the BoxArray and store the result in \p isects.
+     * \param bx Box to intersect.
+     * \param isects Output vector of index/Box pairs.
+     */
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects) const;
 
-    //! intersect Box and BoxArray(+ghostcells), then store the result in isects
+    /**
+     * \brief Intersect \p bx with the BoxArray(+ghostcells) and store the result in \p isects.
+     * \param bx Box to intersect.
+     * \param isects Output vector of index/Box pairs.
+     * \param first_only If true, stop after first intersection.
+     * \param ng Ghost cells to inflate this BoxArray.
+     */
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
                         bool first_only, int ng) const;
 
+    /**
+     * \brief Intersect \p bx with the BoxArray(+ghostcells) and store the result in \p isects.
+     * \param bx Box to intersect.
+     * \param isects Output vector of index/Box pairs.
+     * \param first_only If true, stop after first intersection.
+     * \param ng Direction-wise ghost cells to inflate this BoxArray.
+     */
     void intersections (const Box& bx, std::vector< std::pair<int,Box> >& isects,
                         bool first_only, const IntVect& ng) const;
 
@@ -863,13 +1261,19 @@ public:
     //! Make ourselves unique.
     void uniqify ();
 
-    [[nodiscard]] BoxList const& simplified_list () const; // For regular AMR grids only!!!
-    [[nodiscard]] BoxArray simplified () const; // For regular AMR grids only!!!
+    //! Return (and cache) a simplified BoxList representation; regular AMR grids only.
+    [[nodiscard]] BoxList const& simplified_list () const;
+    //! Return a simplified BoxArray; regular AMR grids only.
+    [[nodiscard]] BoxArray simplified () const;
 
+    //! Return the transformer describing index-type/coarsening metadata.
     [[nodiscard]] BATransformer const& transformer () const;
 
+    //! Return a weak pointer to the shared Box storage.
     [[nodiscard]] std::weak_ptr<BARef> getWeakRef () const;
+    //! Return the shared pointer to the Box storage.
     [[nodiscard]] std::shared_ptr<BARef> const& getSharedRef () const;
+    //! Return a modifiable shared pointer to the Box storage.
     std::shared_ptr<BARef>& getSharedRef ();
 
     friend class AmrMesh;
