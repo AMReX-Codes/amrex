@@ -90,7 +90,7 @@ public:
         return (flag != (a_input.flag));
     }
 
-    //! Number of volume-of-fluid entries for this cell (0 for regular/covered).
+    //! Number of volume-of-fluid entries for this cell (1 for regular or single-valued, 0 for covered).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int getNumVoFs () const noexcept
     {
