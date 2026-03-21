@@ -5,6 +5,11 @@
 #include <AMReX_Utility.H>
 #include <string>
 
+/**
+ * \file AMReX_GpuError.H
+ * \brief GPU error-checking helpers and safe-call macros.
+ */
+
 #ifdef AMREX_USE_HIP
 #include <hip/hip_runtime.h>
 #endif

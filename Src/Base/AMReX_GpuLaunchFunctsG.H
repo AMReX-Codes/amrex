@@ -2,6 +2,11 @@
 #define AMREX_GPU_LAUNCH_FUNCTS_G_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuLaunchFunctsG.H
+ * \brief GPU implementations of launch helpers.
+ */
+
 namespace amrex {
 
 /// \cond DOXYGEN_IGNORE

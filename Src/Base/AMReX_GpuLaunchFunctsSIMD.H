@@ -2,6 +2,11 @@
 #define AMREX_GPU_LAUNCH_FUNCTS_SIMD_H_
 
 #include <AMReX_Config.H>
+
+/**
+ * \file AMReX_GpuLaunchFunctsSIMD.H
+ * \brief Specialized GPU launch helpers for SIMD-friendly loops.
+ */
 #include <AMReX_Extension.H>
 #include <AMReX_SIMD.H>
 

@@ -2,6 +2,11 @@
 #define AMREX_GPU_LAUNCH_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuLaunch.H
+ * \brief GPU kernel launch infrastructure: execution-config helpers, ParallelFor, and related macros.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuKernelInfo.H>
 #include <AMReX_GpuControl.H>
@@ -69,6 +74,7 @@ namespace amrex {
 
 #endif
 
+/// \cond DOXYGEN_IGNORE
 // CPU variation
 
     template<class L>
@@ -79,6 +85,7 @@ namespace amrex {
         std::forward<L>(f0)();
         launch_host(std::forward<Lambdas>(fs)...);
     }
+/// \endcond
 
 
     template <class T> class LayoutData;
@@ -87,13 +94,20 @@ namespace amrex {
 namespace Gpu {
 
 #ifdef AMREX_USE_GPU
+    //! Return the number of GPU threads per block used by \c ParallelFor; 0 on CPU-only builds.
     constexpr std::size_t numThreadsPerBlockParallelFor () {
         return AMREX_GPU_MAX_THREADS;
     }
 #else
+    //! Return the number of GPU threads per block used by \c ParallelFor; 0 on CPU-only builds.
     constexpr std::size_t numThreadsPerBlockParallelFor () { return 0; }
 #endif
 
+    /**
+     * \ingroup amrex_execution
+     * \brief On device: return the single-cell sub-box of \p bx assigned to the thread
+     * identified by \p offset.  On host: return \p bx unchanged.
+     */
     AMREX_GPU_HOST_DEVICE
     inline
     Box getThreadBox (const Box& bx, Long offset) noexcept
@@ -118,10 +132,17 @@ namespace Gpu {
 // ************************************************
 
 #ifdef AMREX_USE_GPU
+    /**
+     * \struct amrex::Gpu::ExecutionConfig
+     * \ingroup amrex_execution
+     * \brief GPU block/grid configuration used for manual kernel launches.
+     */
     struct ExecutionConfig {
+        //! Default-construct using a grid-stride block and grid configuration.
         ExecutionConfig () noexcept {
             Gpu::Device::grid_stride_threads_and_blocks(numBlocks,numThreads);
         }
+        //! Configure for iterating over all cells in \p box (1-D decomposition).
         ExecutionConfig (const Box& box) noexcept {
             // If we change this, we must make sure it doesn't break FabArrayUtility Reduce*,
             // which assumes the decomposition is 1D.
@@ -133,13 +154,16 @@ namespace Gpu {
             Gpu::Device::c_threads_and_blocks(b.loVect(), b.hiVect(), numBlocks, numThreads);
 #endif
         }
+        //! Configure for iterating over all cells in \p box with \p comps extra components.
         ExecutionConfig (const Box& box, int comps) noexcept {
             const Box& b = amrex::surroundingNodes(box);
             Gpu::Device::c_comps_threads_and_blocks(b.loVect(), b.hiVect(), comps, numBlocks, numThreads);
         }
+        //! Configure for a 1-D range of \p N elements.
         ExecutionConfig (Long N) noexcept {
             Gpu::Device::n_threads_and_blocks(N, numBlocks, numThreads);
         }
+        //! Construct explicitly with given block count \p nb, thread count \p nt, and shared memory \p sm bytes.
         ExecutionConfig (dim3 nb, dim3 nt, std::size_t sm=0) noexcept
             : numBlocks(nb), numThreads(nt), sharedMem(sm) {}
 
@@ -148,6 +172,10 @@ namespace Gpu {
         std::size_t sharedMem = 0;
     };
 
+    /**
+     * \ingroup amrex_execution
+     * \brief Build an ExecutionConfig for \p N elements using \p MT threads per block.
+     */
     template <int MT>
     ExecutionConfig
     makeExecutionConfig (Long N) noexcept
@@ -164,6 +192,7 @@ namespace Gpu {
         return ec;
     }
 
+    //! Build an ExecutionConfig for all cells in \p box using \p MT threads per block.
     template <int MT>
     ExecutionConfig
     makeExecutionConfig (const Box& box) noexcept
@@ -171,12 +200,22 @@ namespace Gpu {
         return makeExecutionConfig<MT>(box.numPts());
     }
 
+    /**
+     * \struct amrex::Gpu::ExecConfig
+     * \ingroup amrex_execution
+     * \brief Per-launch descriptor returned by makeNExecutionConfigs.
+     */
     struct ExecConfig
     {
-        Long start_idx;
-        int nblocks;
+        Long start_idx; //!< Element index at which this kernel launch should start.
+        int nblocks;    //!< Number of GPU blocks for this launch.
     };
 
+    /**
+     * \ingroup amrex_execution
+     * \brief Split \p N elements into the minimum number of kernel launches needed when
+     * using \p MT threads per block without grid-stride loops.
+     */
     template <int MT>
     Vector<ExecConfig> makeNExecutionConfigs (Long N) noexcept
     {
@@ -206,6 +245,7 @@ namespace Gpu {
         return r;
     }
 
+    //! Split all cells in \p box into the minimum number of kernel launches for \p MT threads per block.
     template <int MT, int dim>
     Vector<ExecConfig> makeNExecutionConfigs (BoxND<dim> const& box) noexcept
     {

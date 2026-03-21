@@ -2,6 +2,11 @@
 #define AMREX_GPU_LAUNCH_GLOBAL_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_GpuLaunchGlobal.H
+ * \brief Convenience wrappers for launching GPU kernels with global ranges.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 
 #if defined(AMREX_USE_CUDA) && defined(__GNUC__)
