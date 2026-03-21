@@ -2,6 +2,11 @@
 #define AMREX_BASE_FWD_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BaseFwd.H
+ * \brief Forward declarations for the most commonly used AMReX Base types.
+ */
+
 namespace amrex {
 
 class MultiFab;
