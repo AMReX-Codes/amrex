@@ -2,6 +2,11 @@
 #define AMREX_ARRAY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Array.H
+ * \brief Fixed-size array types for use on GPU and CPU.
+ */
+
 #include <AMReX.H>
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuControl.H>
@@ -25,7 +30,11 @@ namespace amrex {
     template <class T, std::size_t N>
     using Array = std::array<T,N>;
 
+    /// \ingroup amrex_linear_containers
+    //! A dimension-sized \c std::array of \c Real values.
     using RealArray = Array<Real, AMREX_SPACEDIM>;
+    /// \ingroup amrex_linear_containers
+    //! A dimension-sized \c std::array of \c int values.
     using IntArray  = Array<int , AMREX_SPACEDIM>;
 
 }
@@ -47,6 +56,8 @@ namespace amrex {
         /**
          * GpuArray elements are indexed using square brackets, as with any
          * other array.
+         *
+         * \param i Index of the element to read; must satisfy 0 <= i < N.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T& operator [] (int i) const noexcept {
@@ -59,6 +70,8 @@ namespace amrex {
         /**
          * GpuArray elements are indexed using square brackets, as with any
          * other array.
+         *
+         * \param i Index of the element to modify; must satisfy 0 <= i < N.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator [] (int i) noexcept {
@@ -70,12 +83,16 @@ namespace amrex {
 
         /**
          * Returns a \c const pointer to the underlying data of a GpuArray object.
+         *
+         * \return Pointer to the first element.
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         const T* data () const noexcept { return arr; }
 
         /**
          * Returns a pointer to the underlying data of a GpuArray object.
+         *
+         * \return Pointer to the first element.
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* data () noexcept { return arr; }
@@ -104,6 +121,8 @@ namespace amrex {
         /**
          * Returns a pointer address to the first element of the
          * GpuArray object.
+         *
+         * \return Mutable pointer to the first element.
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* begin () noexcept { return arr; }
@@ -111,6 +130,8 @@ namespace amrex {
         /**
          * Returns a pointer address right after the last element of the
          * GpuArray object.
+         *
+         * \return Mutable pointer one past the last element.
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* end () noexcept { return arr + N; }
@@ -119,7 +140,7 @@ namespace amrex {
          * Fills in all of the elements in the GpuArray object to the same
          * value.
          *
-         * \param value The fill value
+         * \param value The fill value copied into each element.
          */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         void fill ( const T& value ) noexcept
@@ -147,6 +168,12 @@ namespace amrex {
             return p;
         }
 
+        /**
+         * \brief Perform element-wise accumulation from another \c GpuArray.
+         *
+         * \param a Right-hand side array whose values are added to this instance.
+         * \return Reference to the updated array, enabling chained assignments.
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         GpuArray<T,N>& operator+= (GpuArray<T,N> const& a) noexcept
         {
@@ -162,6 +189,11 @@ namespace amrex {
 #else
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 #endif
+        /**
+         * \brief Abort if the provided index lies outside the valid range.
+         *
+         * \param i Index being tested; must satisfy 0 <= i < N.
+         */
         static void index_assert (int i)
         {
             if (i < 0 || static_cast<unsigned int>(i) >= N) {
@@ -1089,6 +1121,14 @@ namespace amrex
 
 namespace amrex
 {
+    /**
+     * \brief Convert an AMReX dimension-sized coordinate array into an
+     *        `XDim3`, padding unused components with zeros.
+     *
+     * \param a Coordinate values ordered as (x, y, z) but sized by
+     *          `AMREX_SPACEDIM`.
+     * \return `XDim3` initialized with the provided coordinates.
+     */
     inline XDim3 makeXDim3 (const Array<Real,AMREX_SPACEDIM>& a) noexcept
     {
 #if (AMREX_SPACEDIM == 1)

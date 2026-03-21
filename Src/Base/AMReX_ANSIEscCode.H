@@ -3,20 +3,35 @@
 
 // https://en.wikipedia.org/wiki/ANSI_escape_code
 
+/**
+ * \file AMReX_ANSIEscCode.H
+ * \brief ANSI escape-code string constants for terminal text styling.
+ *
+ * The constants are grouped into sub-namespaces: \c amrex::Font for text
+ * attributes, \c amrex::FGColor for foreground colors, and
+ * \c amrex::BGColor for background colors.
+ */
+
 namespace amrex {
 
+/// \ingroup amrex_utilities
+//! Reset all display attributes to terminal defaults.
 constexpr char ResetDisplay[] = "\033[0m";
 
+/// \ingroup amrex_utilities
+/// \brief ANSI font-style escape codes (bold, italic, underline, etc.).
 namespace Font {
-    constexpr char Bold        [] = "\033[1m";
-    constexpr char Faint       [] = "\033[2m";
-    constexpr char Italic      [] = "\033[3m";
-    constexpr char Underline   [] = "\033[4m";
-    constexpr char SlowBlink   [] = "\033[5m";
-    constexpr char RapidBlink  [] = "\033[6m";
+    constexpr char Bold        [] = "\033[1m"; ///< Bold / increased intensity.
+    constexpr char Faint       [] = "\033[2m"; ///< Faint / decreased intensity.
+    constexpr char Italic      [] = "\033[3m"; ///< Italic text.
+    constexpr char Underline   [] = "\033[4m"; ///< Underlined text.
+    constexpr char SlowBlink   [] = "\033[5m"; ///< Slow blink (< 150 per minute).
+    constexpr char RapidBlink  [] = "\033[6m"; ///< Rapid blink (>= 150 per minute).
 }
 
-namespace FGColor { // Foreground colors
+/// \ingroup amrex_utilities
+/// \brief ANSI foreground-color escape codes.
+namespace FGColor {
     constexpr char Black         [] = "\033[30m";
     constexpr char Red           [] = "\033[31m";
     constexpr char Green         [] = "\033[32m";
@@ -37,7 +52,9 @@ namespace FGColor { // Foreground colors
     constexpr char BrightWhite   [] = "\033[97m";
 }
 
-namespace BGColor { // Background colors
+/// \ingroup amrex_utilities
+/// \brief ANSI background-color escape codes.
+namespace BGColor {
     constexpr char Black          [] = "\033[40m";
     constexpr char Red            [] = "\033[41m";
     constexpr char Green          [] = "\033[42m";
