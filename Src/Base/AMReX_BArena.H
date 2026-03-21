@@ -4,33 +4,44 @@
 
 #include <AMReX_Arena.H>
 
+/**
+ * \file AMReX_BArena.H
+ * \brief Aligned CPU heap-backed implementation of the Arena interface.
+ */
 
 namespace amrex {
 /**
-* \brief A Concrete Class for Dynamic Memory Management
-* This is the simplest dynamic memory management class derived from Arena.
-* Makes calls to std::malloc and std::free.
-*/
+ * \class amrex::BArena
+ * \brief Basic Arena that allocates aligned memory on the host heap.
+ * \ingroup amrex_memory
+ */
 class BArena
     :
     public Arena
 {
 public:
     /**
-    * \brief Allocates a dynamic memory arena of size sz.
-    * Returns a pointer to this memory.
-    */
+     * \brief Allocate host memory.
+     * \param sz Number of bytes to allocate.
+     * \return Aligned host pointer to the allocated memory.
+     */
     [[nodiscard]] void* alloc (std::size_t sz) final;
     /**
-    * \brief Deletes the arena pointed to by pt.
-    */
+     * \brief Free memory previously returned by alloc().
+     * \param pt Pointer to the allocation to release.
+     */
     void free (void* pt) final;
 
+    /** \brief Return false; BArena allocations are not device accessible. */
     [[nodiscard]] bool isDeviceAccessible () const final;
+    /** \brief Return true; BArena allocations reside on the host. */
     [[nodiscard]] bool isHostAccessible () const final;
 
+    /** \brief Return false; BArena memory is not managed/unified. */
     [[nodiscard]] bool isManaged () const final;
+    /** \brief Return false; BArena operates on the host. */
     [[nodiscard]] bool isDevice () const final;
+    /** \brief Return false; BArena does not allocate pinned memory. */
     [[nodiscard]] bool isPinned () const final;
 };
 
