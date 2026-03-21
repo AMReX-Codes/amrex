@@ -2,6 +2,11 @@
 #define AMREX_IPARSER_Y_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_IParser_Y.H
+ * \brief Symbol-table definitions shared by the integer parser lexer/parser.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>
 #include <AMReX_Math.H>

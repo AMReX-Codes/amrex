@@ -1,6 +1,11 @@
 #ifndef AMREX_IPARSER_H_
 #define AMREX_IPARSER_H_
 
+/**
+ * \file AMReX_IParser.H
+ * \brief Integer-only runtime expression parser and executor helpers.
+ */
+
 #include <AMReX_Arena.H>
 #include <AMReX_Array.H>
 #include <AMReX_GpuDevice.H>
@@ -13,9 +18,19 @@
 
 namespace amrex {
 
+/**
+ * \struct amrex::IParserExecutor
+ * \brief Callable wrapper around an integer parser expression with \p N variables.
+ *
+ * Instances are returned by IParser::compile() / IParser::compileHost() and expose
+ * host/device operator() overloads that evaluate to 64-bit integers.
+ */
 template <int N>
 struct IParserExecutor
 {
+    /**
+     * \brief Evaluate constant expressions (\p N == 0) and return the integer result.
+     */
     template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     long long operator() () const noexcept
@@ -24,6 +39,11 @@ struct IParserExecutor
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, nullptr);))
     }
 
+    /**
+     * \brief Evaluate the expression with \p N integral arguments.
+     * \param var Scalar arguments supplied in registration order.
+     * \return Result promoted to \c long long.
+     */
     template <typename... Ts>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::enable_if_t<sizeof...(Ts) == N && std::conjunction_v<std::is_integral<Ts>...>,
@@ -35,6 +55,10 @@ struct IParserExecutor
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, l_var.data());))
     }
 
+    /**
+     * \brief Evaluate using an explicit array of integer arguments.
+     * \param var Argument array in parser order.
+     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     long long operator() (GpuArray<long long, N> const& var) const noexcept
     {
@@ -42,45 +66,96 @@ struct IParserExecutor
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, var.data());))
     }
 
+    //! True when a compiled executor buffer is available.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
         AMREX_IF_ON_DEVICE((return m_device_executor != nullptr;))
         AMREX_IF_ON_HOST((return m_host_executor != nullptr;))
     }
 
-    char* m_host_executor = nullptr;
+    char* m_host_executor = nullptr; ///< Pointer to host bytecode.
 #ifdef AMREX_USE_GPU
-    char* m_device_executor = nullptr;
+    char* m_device_executor = nullptr; ///< Pointer to device bytecode (if copied).
 #endif
 };
 
 /// \ingroup amrex_utilities
+/**
+ * \brief Integer-only variant of amrex::Parser.
+ *
+ * IParser parses expressions composed of integer literals, integer variables,
+ * and integer-returning functions. It emits executors that evaluate to long long
+ * on host or GPU.
+ */
 class IParser
 {
 public:
+    /**
+     * \brief Construct a parser by immediately parsing \p func_body.
+     * \param func_body Expression to parse (empty to defer define()).
+     */
     IParser (std::string const& func_body);
+    //! Default-construct; call define() before compile().
     IParser () = default;
+    /**
+     * \brief Parse and own a new integer expression, replacing any previous state.
+     * \param func_body Expression text.
+     */
     void define (std::string const& func_body);
 
+    //! True when an expression has been parsed successfully.
     explicit operator bool () const;
 
+    /**
+     * \brief Bind a named integer constant.
+     * \param name Identifier referenced inside the expression.
+     * \param c    Constant value substituted during compilation.
+     */
     void setConstant (std::string const& name, long long c);
 
+    /**
+     * \brief Register the ordered list of integer variables referenced by the expression.
+     *
+     * \param vars Variable names supplied in parser argument order.
+     */
     void registerVariables (Vector<std::string> const& vars);
 
+    //! Print the parse tree to stdout for debugging.
     void print () const;
 
+    /**
+     * \brief Return the maximum parse-tree depth.
+     * \return Depth measured in tree levels (0 if undefined).
+     */
     [[nodiscard]] int depth () const;
+    /**
+     * \brief Return the maximum parser stack usage.
+     * \return Stack size required during execution (0 if undefined).
+     */
     [[nodiscard]] int maxStackSize () const;
 
+    /**
+     * \brief Return the sanitized expression string.
+     * \return Copy of the parsed expression or an empty string if undefined.
+     */
     [[nodiscard]] std::string expr () const;
 
+    /**
+     * \brief Return the set of symbols referenced by the expression.
+     * \return Sorted symbol names.
+     */
     [[nodiscard]] std::set<std::string> symbols () const;
 
-    //! This compiles for both GPU and CPU
+    /**
+     * \brief Compile the expression into a host/device IParserExecutor.
+     * \tparam N Number of registered variables.
+     */
     template <int N> [[nodiscard]] IParserExecutor<N> compile () const;
 
-    //! This compiles for CPU only
+    /**
+     * \brief Compile the expression into a host-only executor.
+     * \tparam N Number of registered variables.
+     */
     template <int N> [[nodiscard]] IParserExecutor<N> compileHost () const;
 
 private:
