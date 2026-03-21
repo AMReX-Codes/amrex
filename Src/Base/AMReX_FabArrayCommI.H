@@ -2,6 +2,12 @@
 #include <AMReX_FBI.H>
 #include <AMReX_PCI.H>
 
+/**
+ * \file AMReX_FabArrayCommI.H
+ * \brief Inline FabArray communication routines: FillBoundary, ParallelCopy,
+ *        ParallelCopyToGhost, Redistribute, and their asynchronous variants.
+ */
+
 namespace amrex {
 
 template <class FAB>
