@@ -7,11 +7,11 @@ Debugging
 Debugging is an art.  Everyone has their own favorite method.  Here we
 offer a few tips we have found to be useful.
 
-To help debugging, AMReX handles various signals in the C standard
-library raised in the runs.  This gives us a chance to print out more
+To aid debugging, AMReX handles various signals in the C standard
+library that are raised during runs. This gives us a chance to print more
 information using Linux/Unix backtrace capability.  The signals
 include segmentation fault (or "segfault"), interruption by the user (control-c), assertion
-errors, and floating point exceptions (NaNs, divided by zero and
+errors, and floating-point exceptions (NaNs, division by zero, and
 overflow).  The handling of segfault, assertion errors and
 interruption by control-C are enabled by default.  Note that
 ``AMREX_ASSERT()`` is only on when compiled with ``DEBUG=TRUE`` or
@@ -20,20 +20,20 @@ interruption by control-C are enabled by default.  Note that
 enabled by default unless the code is compiled with ``DEBUG=TRUE`` in GNU make, or with
 ``-DCMAKE_BUILD_TYPE=Debug`` or ``-DAMReX_FPE=YES`` in CMake to turn on compiler flags
 if supported.  Alternatively, one can always use runtime parameters to control the
-handling of floating point exceptions: ``amrex.fpe_trap_invalid`` for
+handling of floating-point exceptions: ``amrex.fpe_trap_invalid`` for
 NaNs, ``amrex.fpe_trap_zero`` for division by zero and
-``amrex.fpe_trap_overflow`` for overflow.  To more effectively trap the
+``amrex.fpe_trap_overflow`` for overflow. To trap the
 use of uninitialized values, AMReX also initializes ``FArrayBox``\ s in
 ``MultiFab``\ s and arrays allocated by ``bl_allocate`` to signaling NaNs when it is compiled
 with ``TEST=TRUE`` or ``DEBUG=TRUE`` in GNU make, or with ``-DCMAKE_BUILD_TYPE=Debug`` in CMake.
-One can also control the setting for ``FArrayBox`` using the runtime parameter, ``fab.init_snan``.
-Note for Macs, M1 and M2 chips using Arm64 architecture are not able to trap division by zero.
+One can also control this setting for ``FArrayBox`` using the runtime parameter ``fab.init_snan``.
+Note for Macs: M1 and M2 chips using the Arm64 architecture are not able to trap division by zero.
 
 One can get more information than the backtrace of the call stack by
 instrumenting the code.  Here is an example.
 You know the line ``Real rho = state(cell,0);`` is causing a segfault.  You
-could add a print statement before that.  But it might print out
-thousands (or even millions) of line before it hits the segfault.  What
+could add a print statement before that. But it might print
+thousands (or even millions) of lines before it hits the segfault.  What
 you could do is the following,
 
 .. highlight:: c++
@@ -52,7 +52,7 @@ you could do is the following,
                        // there is an implicit POP when "PUSH" is
                        // out of scope.
 
-When it hits the segfault, you will only see the last print out.
+When it hits the segfault, you will only see the last printout.
 
 Writing a ``MultiFab`` to disk with
 
@@ -108,18 +108,18 @@ Basic Gpu Debugging
 
 
 The asynchronous nature of GPU execution can make tracking down bugs complex.
-The relative timing of improperly coded functions can cause variations in output and the timing of error messages
-may not linearly relate to a place in the code.
-One strategy to isolate specific kernel failures is to add ``amrex::Gpu::synchronize()`` or ``amrex::Gpu::streamSynchronize()`` after every ``ParallelFor`` or similar ``amrex::launch`` type call.
+The relative timing of improperly coded functions can cause variations in output, and the timing of error messages
+may not relate linearly to a place in the code.
+One strategy to isolate specific kernel failures is to add ``amrex::Gpu::synchronize()`` or ``amrex::Gpu::streamSynchronize()`` after every ``ParallelFor`` or similar ``amrex::launch``-type call.
 These synchronization commands will halt execution of the code until the GPU or GPU stream, respectively, has finished processing all previously requested tasks, thereby making it easier to locate and identify sources of error.
 
 Debuggers and Related Tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Users may also find debuggers useful. Architecture agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are architecture specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, and the Intel ``gdb``.
-Usage of several of these variations are described in the following sections.
+Users may also find debuggers useful. Architecture-agnostic tools include ``gdb``, ``hpctoolkit``, and ``Valgrind``. Note that there are architecture-specific implementations of ``gdb`` such as ``cuda-gdb``, ``rocgdb``, ``gdb-amd``, and Intel ``gdb``.
+Several of these variants are described in the following sections.
 
-For advanced debugging topics and tools, refer to system-specific documentation (e.g. https://docs.olcf.ornl.gov/systems/summit_user_guide.html#debugging).
+For advanced debugging topics and tools, refer to system-specific documentation (e.g., https://docs.olcf.ornl.gov/systems/summit_user_guide.html#debugging).
 
 
 CUDA-Specific Tests
@@ -146,7 +146,7 @@ CUDA-Specific Tests
 - Run under ``cuda-gdb`` to identify kernel errors.
 
 - To help identify race conditions, globally disable asynchronicity of kernel launches for all
-  CUDA applications by setting ``CUDA_LAUNCH_BLOCKING=1`` in your environment variables. This
+  CUDA applications by setting ``CUDA_LAUNCH_BLOCKING=1`` in your environment. This
   will ensure that only one CUDA kernel will run at a time.
 
 AMD ROCm-Specific Tests
@@ -163,13 +163,13 @@ AMD ROCm-Specific Tests
 
 - Run under ``rocgdb`` for source-level debugging.
 
-- To help identify if there are race conditions, globally disable asynchronicity of kernel launches by setting ``CUDA_LAUNCH_BLOCKING=1`` or ``HIP_LAUNCH_BLOCKING=1``
-  in your environment variables. This will ensure only one kernel will run at a time.
+- To help identify race conditions, globally disable asynchronicity of kernel launches by setting ``CUDA_LAUNCH_BLOCKING=1`` or ``HIP_LAUNCH_BLOCKING=1``
+  in your environment. This will ensure that only one kernel runs at a time.
   See the `AMD ROCm docs' chicken bits section`_ for more debugging environment variables.
 
 .. _`AMD ROCm docs' chicken bits section`: https://rocmdocs.amd.com/en/latest/Programming_Guides/HIP_Debugging.html#chicken-bits
 
-Intel GPU Specific Tests
+Intel GPU-Specific Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - To test if your kernels have launched, run:
@@ -180,10 +180,10 @@ Intel GPU Specific Tests
 
 - Run Intel Advisor,
   ``advisor --collect=survey ./main3d.xxx`` for
-  a small problem with 1 MPI process and examine metrics.
+  a small problem with one MPI process, and examine the metrics.
 
 - Run under ``gdb`` with the `Intel Distribution for GDB`_.
 
-- To report back-end information, set ``ZE_DEBUG=1`` in your environment variables.
+- To report backend information, set ``ZE_DEBUG=1`` in your environment.
 
 .. _`Intel Distribution for GDB`: https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/distribution-for-gdb.html

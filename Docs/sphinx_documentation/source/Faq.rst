@@ -11,7 +11,7 @@ Frequently Asked Questions
 at the beginning and end of your code? For all AMReX commands to function
 properly, including to release resources, they need to be contained
 between these two curly braces or in a separate function. In the `Initialize
-and Finalize`_ section, these commands are discussed further detail.
+and Finalize`_ section, these commands are discussed in further detail.
 
 .. _`Initialize and Finalize` : https://amrex-codes.github.io/amrex/docs_html/Basics.html#initialize-and-finalize
 
@@ -45,7 +45,7 @@ type ``module list`` at the command prompt.
 my timings are inconsistent.
 
 **A.** Due to the asynchronous nature of GPU execution, profilers might only
-measure the run time on CPU, if there is no explicit synchronization.  For
+measure the runtime on the CPU if there is no explicit synchronization.  For
 ``TINY_PROFILE``, one could use :cpp:`ParmParse` parameter
 ``tiny_profiler.device_synchronize_around_region=1`` to add synchronization.
 Note that this may degrade performance.
@@ -150,8 +150,8 @@ different from the fine-grained approach?
 
 |
 
-**Q.** How to avoid running into :cpp:`Formal parameter space overflowed` CUDA error
-while building complex EB geometries using AMReX implicit functions and CSG functionalities ?
+**Q.** How do I avoid running into the :cpp:`Formal parameter space overflowed` CUDA error
+while building complex EB geometries using AMReX implicit functions and CSG functionality?
 
 **A.** AMReX enables logical operations and transformations to assemble basic shapes `Implicit Functions`_
 into complex geometries. Each operation results in a more complex type which can eventually overflow the
@@ -174,7 +174,7 @@ to the device and pass a device pointer function object `DevicePtrIF` into the `
 
 **Q.** I'm getting errors when running with GPU-aware MPI
 
-**A.** While other problems may exist. One thing to check, if the machine is using Slurm, is the `cgroup.conf` file. If it contains `ConstrainDevices=yes`, then IPC can be impacted, which means bindings such as `--gpu-bind=closest` should not be used. Instead try `--gpu-bind=none`.
+**A.** While other problems may exist, one thing to check, if the machine is using Slurm, is the `cgroup.conf` file. If it contains `ConstrainDevices=yes`, then IPC can be impacted, which means bindings such as `--gpu-bind=closest` should not be used. Instead, try `--gpu-bind=none`.
 
 .. _`This Slurm issue provides more information`: https://support.schedmd.com/show_bug.cgi?id=17875
 

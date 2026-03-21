@@ -256,7 +256,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    | AMReX_CUDA_ERROR_CROSS       |  Error if a host function is called from a host | NO          | YES, NO         |
    | _EXECUTION_SPACE_CALL        |  device function                                |             |                 |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_KEEP_FILES        |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   | AMReX_CUDA_KEEP_FILES        |  Keep intermediate files (folder: nvcc_tmp)     | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -279,8 +279,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
 
 The target architecture to build for can be specified via the configuration option
 ``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
-`compute capability <https://developer.nvidia.com/cuda-gpus>`_, i.e. ``10.0``, ``9.0``,  ``...`` .
+the name of the NVIDIA GPU generation, e.g., ``Turing``, ``Volta``, or ``Ampere``, or its
+`compute capability <https://developer.nvidia.com/cuda-gpus>`_, e.g., ``10.0`` or ``9.0``.
 For example, on Cori GPUs you can specify the architecture as follows:
 
 .. highlight:: console
@@ -295,7 +295,7 @@ If no architecture is specified, CMake will default to the architecture defined 
 If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
 If more than one is found, CMake will build for all of them.
 If autodetection fails, a list of "common" architectures is assumed.
-`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as a semicolon-separated list, e.g., ``-DAMReX_CUDA_ARCH=7.0;8.0``.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
@@ -372,8 +372,8 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
-Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
-We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
+Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user inputs when AMReX_GPU_BACKEND=HIP**.
+We also read the *environment variable* ``AMREX_AMD_ARCH`` (note: all caps), and the C++ compiler can be specified as usual, e.g., with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
@@ -400,7 +400,7 @@ for example ``CMAKE_CXX_FLAGS``, can be used for SYCL as well.
 
 
 Since CMake does not support autodetection of SYCL compilers yet,
-``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler. i.e. ``icpx``.
+``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler, i.e., ``icpx``.
 Thus **CMAKE_CXX_COMPILER is a required user-input when AMReX_GPU_BACKEND=SYCL**.
 At this time, **the only supported SYCL compiler is icpx**.
 Below is an example configuration for SYCL:
@@ -607,12 +607,12 @@ AMReX GPU work takes place inside of MFIter and ParIter loops.
 Therefore, there are two ways classes and functions have been modified
 to interact with the GPU:
 
-1. A number of functions used within these loops are labelled using
+1. A number of functions used within these loops are labeled using
 ``AMREX_GPU_HOST_DEVICE`` and can be called on the device. This includes member
 functions, such as :cpp:`IntVect::type()`, as well as non-member functions,
 such as :cpp:`amrex::min` and :cpp:`amrex::max`. In specialized cases,
-classes are labeled such that the object can be constructed, destructed
-and its functions can be implemented on the device, including ``IntVect``.
+classes are labeled such that objects can be constructed and destroyed
+on the device, and their functions can be called there, including ``IntVect``.
 
 2. Functions that contain MFIter or ParIter loops have been rewritten
 to contain device launches. For example, the :cpp:`FillBoundary`
@@ -1243,7 +1243,7 @@ to implementations used on the CPU.  These macros return the
 individual components of the AMReX C++ objects to allow passing to
 the Fortran function.
 
-The corresponding OpenACC labelled loop in ``plusone_acc`` is:
+The corresponding OpenACC labeled loop in ``plusone_acc`` is:
 
 .. highlight:: fortran
 
@@ -1268,7 +1268,7 @@ about OpenACC programming, consult the OpenACC user's guide.
 
 The OpenMP implementation of this loop is similar, only requiring
 changing the pragmas utilized to obtain the proper offloading. The
-OpenMP labelled version of this loop is:
+OpenMP labeled version of this loop is:
 
 .. highlight:: fortran
 

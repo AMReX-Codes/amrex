@@ -69,7 +69,7 @@ The example code can be run as follows,
 
       ./main3d.gnu.DEBUG.ex
 
-The result may look like,
+The result may look like:
 
 .. highlight:: console
 
@@ -81,7 +81,7 @@ The result may look like,
 
 The version string means the current commit 5775aed933c4 (note that the first
 letter g in g577.. is not part of the hash) is based on 17.05 with 30
-additional commits and the AMReX work tree is dirty (i.e. there are uncommitted
+additional commits and the AMReX working tree is dirty (i.e., there are uncommitted
 changes).
 
 In the GNUmakefile there are compilation options for DEBUG mode (less optimized
@@ -102,7 +102,7 @@ set ``USE_MPI=TRUE`` in the GNUmakefile). This should make an executable named
 
       mpiexec -n 4 ./main3d.gnu.DEBUG.MPI.ex amrex.v=1
 
-The result may look like,
+The result may look like:
 
 .. highlight:: console
 
@@ -121,7 +121,7 @@ level is 1, and you can pass ``amrex.v=0`` to turn it off.
 More details on how runtime parameters are handled can be found in
 section :ref:`sec:basics:parmparse`.
 
-If you want to build with OpenMP, type make ``USE_OMP=TRUE``.  This should make
+If you want to build with OpenMP, type ``make USE_OMP=TRUE``.  This should make
 an executable named ``main3d.gnu.DEBUG.OMP.ex``. Note OMP in the file name.
 Make sure the ``OMP_NUM_THREADS`` environment variable is set on your system.
 You can then run,
@@ -132,7 +132,7 @@ You can then run,
 
       OMP_NUM_THREADS=4 ./main3d.gnu.DEBUG.OMP.ex
 
-The result may look like,
+The result may look like:
 
 .. highlight:: console
 
@@ -152,7 +152,7 @@ can then run,
 
       OMP_NUM_THREADS=4 mpiexec -n 2 ./main3d.gnu.DEBUG.MPI.OMP.ex
 
-The result may look like,
+The result may look like:
 
 .. highlight:: console
 
@@ -208,7 +208,7 @@ will generate an executable named ``main2d.gnu.ex``. To run it, type,
 
       ./main2d.gnu.ex inputs_2d
 
-Note that the command takes a file ``inputs_2d.`` The calculation solves the
+Note that the command takes the file ``inputs_2d``. The calculation solves the
 heat equation in 2D on a domain with :math:`256 \times 256` cells.  It runs
 :math:`10,000` steps and makes a plotfile every :math:`1,000` steps.  When the
 run finishes, you will have a number of plotfiles, ``plt00000, plt01000,`` etc,
@@ -220,7 +220,7 @@ Visualization
 =============
 
 There are several visualization tools that can be used for AMReX plotfiles.
-One standard tool used within the AMReX-community is Amrvis, a package
+One standard tool used within the AMReX community is Amrvis, a package
 developed and supported by CCSE that is designed specifically for highly
 efficient visualization of block-structured hierarchical AMR data.  (Amrvis can
 also be used to visualize performance data; see the :ref:`Chap:AMRex-based
@@ -241,8 +241,8 @@ features by focusing on key concepts in a progressive way.
 Example Codes
 =============
 
-To assist users we have multiple example codes introducing AMReX functionality.
-They range from HelloWorld walk-thrus to stand-alone examples of complex
+To assist users, we have multiple example codes introducing AMReX functionality.
+They range from HelloWorld walk-throughs to stand-alone examples of complex
 features in practice. To access the available examples, please see
 `AMReX Guided Tutorials and Example Codes
 <https://amrex-codes.github.io/amrex/tutorials_html/>`_.

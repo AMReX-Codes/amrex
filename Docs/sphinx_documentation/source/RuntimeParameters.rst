@@ -8,9 +8,9 @@ Runtime Parameters
    :language: c++
 
 This chapter contains a list of AMReX :cpp:`ParmParse` runtime parameters
-and their **default** values. They can be set by either including them in an
-inputs file, or specifying them at the command line, or passing a function
-to :cpp:`amrex::Initialize` and the function adds parameters to AMReX's
+and their **default** values. They can be set by including them in an
+inputs file, specifying them at the command line, or passing a function
+to :cpp:`amrex::Initialize`; that function adds parameters to AMReX's
 :cpp:`ParmParse`'s parameter database. For more information on
 :cpp:`ParmParse`, see :ref:`sec:basics:parmparse`.
 
@@ -33,8 +33,8 @@ to :cpp:`AmrCore` and :cpp:`Amr`.
 AmrCore Class
 ^^^^^^^^^^^^^
 
-Below are a list of important :cpp:`ParmParse` parameters. However, AMReX
-applications can choose to avoid them entirely by use this :cpp:`AMRCore`
+Below is a list of important :cpp:`ParmParse` parameters. However, AMReX
+applications can choose to avoid them entirely by using this :cpp:`AmrCore`
 constructor :cpp:`AmrCore(Geometry const& level_0_geom, AmrInfo const&
 amr_info)`, where :cpp:`struct AmrInfo` contains all the information that
 can be set via :cpp:`ParmParse`.
@@ -299,13 +299,13 @@ Regrid
    :type: bool
    :value: false
 
-   This controls whether we perform regrid immediately after restart.
+   This controls whether regridding is performed immediately after restart.
 
 .. py:data:: amr.force_regrid_level_zero
    :type: bool
    :value: false
 
-   This controls whether we perform regrid on level 0.
+   This controls whether regridding is performed on level 0.
 
 .. py:data:: amr.compute_new_dt_on_regrid
    :type: bool
@@ -1161,7 +1161,7 @@ Particles
    :type: bool
    :value: true
 
-   This parameter controls whether the more memory efficient method will be
+   This parameter controls whether the more memory-efficient method will be
    used for sorting particles.
 
 .. py:data:: particles.particles_nfiles
@@ -1242,11 +1242,11 @@ These parameters are relevant only when :py:data:`integration.type` is
    * SSPRK3
    * RK4
 
-User-specificed Runge--Kutta Method
-"""""""""""""""""""""""""""""""""""
+User-specified Runge--Kutta Method
+""""""""""""""""""""""""""""""""""
 
 When :py:data:`integration.rk.type` is "User", the following parameters can be
-used to set a user-specificed explicit Butcher tableau,
+used to set a user-specified explicit Butcher tableau,
 
 .. math::
 
@@ -1590,7 +1590,7 @@ enabled.
 
    This parameter can be used to disable :cpp:`CArena` memory profiling at
    run time. If ``tiny_profiler.enabled`` is false, this parameter has no
-   effects.
+   effect.
 
 .. py:data:: tiny_profiler.output_file
    :type: string
@@ -1599,7 +1599,7 @@ enabled.
    .. versionadded:: 24.09
       Runtime parameter ``tiny_profiler.output_file``.
 
-   If this parameter is empty, the output of tiny profiling is dumped on the
-   default out stream of AMReX. If it's not empty, it specifies the file
+   If this parameter is empty, the output of tiny profiling is dumped to the
+   default output stream of AMReX. If it is not empty, it specifies the file
    name for the output. Note that ``/dev/null`` is a special name that means
    no output.
