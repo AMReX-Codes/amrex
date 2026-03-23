@@ -4,7 +4,7 @@ at https://gitlab.spack.io/amrex/amrex. The GitLab mirror runs CI tests on
 runners hosted at
 https://systems.nic.uoregon.edu/internal-wiki/index.php?title=Category:Servers. We
 run three types of tests: nightly tests using the development branch, tests
-triggerd when new commits are pushed to the GitLab mirror (either through
+triggered when new commits are pushed to the GitLab mirror (either through
 GitLab's regular pulling of the latest development branch from GitHub or by
 the developers directly), and tests triggered by a special comment from
 maintainers.
