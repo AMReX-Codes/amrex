@@ -61,14 +61,14 @@ Geometry::Geometry (const Box& dom, const RealBox& rb, int coord,
 
 void
 Geometry::define (const Box& dom, const RealBox& rb, int coord,
-                  Array<int,AMREX_SPACEDIM> const& is_per) noexcept
+                  Array<int,AMREX_SPACEDIM> const& is_per)
 {
     define(dom, &rb, coord, is_per.data());
 }
 
 void
 Geometry::define (const Box& dom, const RealBox* rb, int coord,
-                  int const* is_per) noexcept
+                  int const* is_per)
 {
     AMREX_ASSERT(dom.cellCentered());
 
