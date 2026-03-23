@@ -587,7 +587,7 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
-                               Array4<Real const> const& fine, Array4<int const> const& msk, int idir) noexcept
+                               Array4<Real const> const& fine, Array4<int const> const& msk, int idir) AMREX_NOEXCEPT_IF_NDEBUG
 {
     if (idir == 2)
     {
@@ -630,7 +630,7 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
     }
     else
     {
-        amrex::Abort("mlndlap_semi_restriction semi direction wrong semi-direction. ");
+        AMREX_ASSERT_WITH_MESSAGE(false, "mlndlap_semi_restriction: wrong semi-direction.");
     }
 }
 

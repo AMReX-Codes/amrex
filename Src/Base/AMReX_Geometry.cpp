@@ -105,7 +105,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 }
 
 void
-Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
+Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 {
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 

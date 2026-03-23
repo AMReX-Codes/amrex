@@ -202,9 +202,9 @@ namespace Gpu {
         [[nodiscard]] bool isValid () const noexcept { return m_i < m_n; }
 
 #if !defined(AMREX_USE_GPU)
-        void operator++ () noexcept { ++m_i; }
+        void operator++ () { ++m_i; }
 #else
-        void operator++ () noexcept;
+        void operator++ ();
 #endif
 
     private:

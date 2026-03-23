@@ -134,7 +134,7 @@ public:
      * Halt execution of code until GPU has finished processing all previously requested
      * tasks.
      */
-    static void synchronize () noexcept;
+    static void synchronize ();
 
     /**
      * Halt execution of code until the current AMReX GPU stream has finished processing all

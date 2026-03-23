@@ -504,7 +504,7 @@ public:
      * \param time       Target physical time.
      * \return Reference to either the old or new MultiFab, whichever brackets \p time.
      */
-    MultiFab& get_data (int  state_indx, Real time) noexcept;
+    MultiFab& get_data (int  state_indx, Real time);
     /**
      * \brief Hook to override fillpatched boundary values before applying physical BCs (default no-op).
      *

@@ -238,7 +238,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                          char            tagval,
                          Real            time,
                          int             level,
-                         const Geometry& geom) const noexcept
+                         const Geometry& geom) const
 {
     BL_PROFILE("AMRErrorTag::operator()");
 

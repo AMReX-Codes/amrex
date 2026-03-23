@@ -102,7 +102,7 @@ namespace amrex {
         template <class U=T,
                   std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator[] (int n) const noexcept {
+        U& operator[] (int n) const AMREX_NOEXCEPT_IF_NDEBUG {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             if (n < 0 || n >= ncomp) {
                 AMREX_IF_ON_DEVICE((

@@ -269,6 +269,15 @@
 #   define AMREX_IF_CONSTEXPR if
 #endif
 
+// noexcept for functions that only throw in debug builds (e.g., bound checks).
+// In release builds, keep noexcept for performance; in debug/bound-check builds,
+// allow exceptions to propagate when amrex.throw_exception is set.
+#if !defined(AMREX_DEBUG) && !defined(AMREX_BOUND_CHECK)
+#define AMREX_NOEXCEPT_IF_NDEBUG noexcept
+#else
+#define AMREX_NOEXCEPT_IF_NDEBUG
+#endif
+
 #if !defined(AMREX_NO_BUILTIN_CLZ)
 #   if defined(__clang__) || defined(__GNUC__)
 #      define AMREX_HAS_BUILTIN_CLZ 1

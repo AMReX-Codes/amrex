@@ -602,7 +602,7 @@ AmrLevel::reset ()
 }
 
 MultiFab&
-AmrLevel::get_data (int  state_indx, Real time) noexcept
+AmrLevel::get_data (int  state_indx, Real time)
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();

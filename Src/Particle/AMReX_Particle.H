@@ -96,7 +96,7 @@ namespace amrex {
 
     template<typename T_SIMD, typename T_Mask>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void make_invalid (T_SIMD & idcpu, T_Mask const & mask) noexcept {
+    void make_invalid (T_SIMD & idcpu, T_Mask const & mask) AMREX_NOEXCEPT_IF_NDEBUG {
         // RHS mask: 0111...
         if constexpr (std::is_same_v<T_Mask, bool>) {
             // scalar
@@ -110,7 +110,7 @@ namespace amrex {
             // see also https://github.com/mattkretz/vir-simd/issues/45
             simd::stdx::where(simd::stdx::cvt(mask), idcpu) &= ~(T_SIMD{1} << 63);
 #else
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
+            AMREX_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
 #endif
         }
     }
@@ -123,7 +123,7 @@ namespace amrex {
 
     template<typename T_SIMD, typename T_Mask>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void make_valid (T_SIMD & idcpu, T_Mask const & mask) noexcept {
+    void make_valid (T_SIMD & idcpu, T_Mask const & mask) AMREX_NOEXCEPT_IF_NDEBUG {
         // RHS mask: 1000...
         if constexpr (std::is_same_v<T_Mask, bool>) {
             // scalar
@@ -137,7 +137,7 @@ namespace amrex {
             // see also https://github.com/mattkretz/vir-simd/issues/45
             simd::stdx::where(simd::stdx::cvt(mask), idcpu) |= T_SIMD{1} << 63;
 #else
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
+            AMREX_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
 #endif
         }
     }

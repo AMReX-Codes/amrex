@@ -629,13 +629,13 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
                                     Array4<Real> const& phi_x,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) noexcept
+                                    const BCRec* bc) AMREX_NOEXCEPT_IF_NDEBUG
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcx   holds (  y,z) of the x-face centroid as components ( /0/1)
-  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n)
     {
       if (apx(i,j,k) == 0)
       {
@@ -834,7 +834,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           }
           else
           {
-              amrex::Abort("Bad option in interpolation from cell centroid to x-face centroid!");
+              AMREX_ASSERT_WITH_MESSAGE(false, "Bad option in interpolation from cell centroid to x-face centroid!");
           }
        }
     });
@@ -850,13 +850,13 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
                                     Array4<Real> const& phi_y,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) noexcept
+                                    const BCRec* bc) AMREX_NOEXCEPT_IF_NDEBUG
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcy   holds (x,  z) of the y-face centroid as components (0/ /1)
-  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n)
     {
         if (apy(i,j,k) == 0)
         {
@@ -1052,7 +1052,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           }
           else
           {
-              amrex::Abort("Bad option in interpolation from cell centroid to y-face centroid!");
+              AMREX_ASSERT_WITH_MESSAGE(false, "Bad option in interpolation from cell centroid to y-face centroid!");
           }
         }
     });
@@ -1068,13 +1068,13 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
                                     Array4<Real> const& phi_z,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) noexcept
+                                    const BCRec* bc) AMREX_NOEXCEPT_IF_NDEBUG
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcz   holds (x,y  ) of the z-face centroid as components (0/1  )
-  amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n)
     {
         if (apz(i,j,k) == 0)
         {
@@ -1269,7 +1269,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
           }
           else
           {
-              amrex::Abort("Bad option in interpolation from cell centroid to z-face centroid!");
+              AMREX_ASSERT_WITH_MESSAGE(false, "Bad option in interpolation from cell centroid to z-face centroid!");
           }
         }
     });
