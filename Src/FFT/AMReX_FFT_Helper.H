@@ -74,7 +74,9 @@ struct Info
     //! batch size.
     bool twod_mode = false;
 
-    //! We might have a special twod_mode: nx or ny == 1 && nz > 1.
+    //! In 3D, we might have a special twod_mode: nx or ny == 1 && nz > 1.
+    //! In 2D, when this is true, FFT is performed on the first dimension
+    //! and the second dimension size is the batch size.
     bool oned_mode = false;
 
     //! Batched FFT size. Only support in R2C, not R2X.

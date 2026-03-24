@@ -545,7 +545,6 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
             m_slab_decomp = true;
         }
     }
-
 #endif
 
     auto const ncomp = m_info.batch_size;
@@ -566,7 +565,8 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         m_cx.define(cbax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
     }
 
-    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) && (! m_info.twod_mode);
+    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) &&
+                    (! m_info.twod_mode) && (! m_info.oned_mode);
 
     if (!m_do_alld_fft) // do a series of 1d or 2d ffts
     {
@@ -1252,6 +1252,10 @@ T R2C<T,D,C>::scalingFactor () const
     if (m_info.twod_mode) {
         return T(1)/T(Long(m_real_domain.length(0)) *
                       Long(m_real_domain.length(1)));
+    } else
+#elif (AMREX_SPACEDIM == 2)
+    if (m_info.oned_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)));
     } else
 #endif
     {

@@ -162,6 +162,293 @@ int main (int argc, char* argv[])
 #endif
             AMREX_ALWAYS_ASSERT(error < eps);
         }
+
+#if (AMREX_SPACEDIM == 2)
+        {
+            MultiFab oned_mf(ba, dm, 1, 0);
+            auto const& oa = oned_mf.arrays();
+            int nx = geom.Domain().length(0);
+            Real two_pi = 2._rt * Math::pi<Real>();
+            ParallelFor(oned_mf, IntVect(0), 1,
+                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
+            {
+                amrex::ignore_unused(k);
+                Real base = (1._rt + Real(j)) * 0.25_rt;
+                Real cos_amp = 0.05_rt * Real(j+1);
+                Real theta = two_pi * Real(i) / Real(nx);
+                oa[b](i,j,k,n) = base + cos_amp * std::cos(theta);
+            });
+
+            FFT::Info info{};
+            info.setOneDMode(true);
+            FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
+            auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+            cMultiFab spec(cba, cdm, 1, 0);
+            r2c.forward(oned_mf, spec);
+
+            MultiFab err(spec.boxArray(), spec.DistributionMap(), 1, 0);
+            auto const& ca = spec.const_arrays();
+            auto const& ea = err.arrays();
+            ParallelFor(err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                amrex::ignore_unused(k);
+                Real base = (1._rt + Real(j)) * 0.25_rt;
+                Real cos_amp = 0.05_rt * Real(j+1);
+                Real expected_real = 0._rt;
+                if (i == 0) {
+                    expected_real = base * Real(nx);
+                } else if (i == 1) {
+                    expected_real = cos_amp * Real(nx) * 0.5_rt;
+                }
+                auto c = ca[b](i,j,k,0);
+                ea[b](i,j,k) = amrex::norm(c - GpuComplex<Real>(expected_real, 0._rt));
+            });
+
+#ifdef AMREX_USE_FLOAT
+            Real tol = 1.e-6_rt;
+#else
+            Real tol = 1.e-14_rt;
+#endif
+            Real err_norm = err.norminf();
+            amrex::Print() << "  Expected to be close to zero (2D R2C one-d-mode): "
+                           << err_norm << "\n";
+            AMREX_ALWAYS_ASSERT(err_norm < tol);
+
+            MultiFab recon(ba, dm, 1, 0);
+            r2c.backward(spec, recon);
+            MultiFab back_err(ba, dm, 1, 0);
+            auto const back_scaling = r2c.scalingFactor();
+            auto const& orig_a = oned_mf.const_arrays();
+            auto const& recon_a = recon.const_arrays();
+            auto const& back_a = back_err.arrays();
+            ParallelFor(back_err, IntVect(0), 1,
+                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
+            {
+                Real diff = orig_a[b](i,j,k,n) - recon_a[b](i,j,k,n) * back_scaling;
+                back_a[b](i,j,k,n) = amrex::Math::abs(diff);
+            });
+            Real back_norm = back_err.norminf();
+            amrex::Print() << "  Expected to be close to zero (2D R2C one-d-mode backward): "
+                           << back_norm << "\n";
+            AMREX_ALWAYS_ASSERT(back_norm < tol);
+        }
+
+        {
+            cMultiFab cin(ba, dm, 1, 0);
+            auto const& cia = cin.arrays();
+            int nx = geom.Domain().length(0);
+            Real two_pi = 2._rt * Math::pi<Real>();
+            ParallelFor(cin, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                amrex::ignore_unused(k);
+                Real mag = 0.01_rt * Real(j+1);
+                GpuComplex<Real> base(mag, -0.125_rt*mag);
+                GpuComplex<Real> cos_amp(0.2_rt*mag, 0.05_rt*mag);
+                Real theta = two_pi * Real(i) / Real(nx);
+                cia[b](i,j,k) = base + cos_amp * std::cos(theta);
+            });
+
+            FFT::Info info{};
+            info.setOneDMode(true);
+            FFT::C2C<Real,FFT::Direction::both> c2c(geom.Domain(), info);
+            auto const& [cba, cdm] = c2c.getSpectralDataLayout();
+            cMultiFab spec(cba, cdm, 1, 0);
+            c2c.forward(cin, spec);
+
+            MultiFab err(spec.boxArray(), spec.DistributionMap(), 1, 0);
+            auto const& ca = spec.const_arrays();
+            auto const& ea = err.arrays();
+            ParallelFor(err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                amrex::ignore_unused(k);
+                Real mag = 0.01_rt * Real(j+1);
+                GpuComplex<Real> base(mag, -0.125_rt*mag);
+                GpuComplex<Real> cos_amp(0.2_rt*mag, 0.05_rt*mag);
+                GpuComplex<Real> expected(0._rt, 0._rt);
+                if (i == 0) {
+                    expected = base * Real(nx);
+                } else if (i == 1 || i == nx-1) {
+                    expected = cos_amp * (Real(nx) * 0.5_rt);
+                }
+                auto c = ca[b](i,j,k,0);
+                ea[b](i,j,k) = amrex::norm(c - expected);
+            });
+
+#ifdef AMREX_USE_FLOAT
+            Real tol = 1.e-6_rt;
+#else
+            Real tol = 1.e-14_rt;
+#endif
+            Real err_norm = err.norminf();
+            amrex::Print() << "  Expected to be close to zero (2D C2C one-d-mode): "
+                           << err_norm << "\n";
+            AMREX_ALWAYS_ASSERT(err_norm < tol);
+
+            cMultiFab recon(cin.boxArray(), cin.DistributionMap(), 1, 0);
+            c2c.backward(spec, recon);
+
+            MultiFab back_err(cin.boxArray(), cin.DistributionMap(), 1, 0);
+            auto const back_scaling = c2c.scalingFactor();
+            auto const& cin_a = cin.const_arrays();
+            auto const& recon_a = recon.const_arrays();
+            auto const& back_a = back_err.arrays();
+            ParallelFor(back_err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                auto diff = cin_a[b](i,j,k);
+                auto tmp = recon_a[b](i,j,k);
+                tmp *= back_scaling;
+                diff -= tmp;
+                back_a[b](i,j,k) = amrex::norm(diff);
+            });
+            Real back_norm = back_err.norminf();
+            amrex::Print() << "  Expected to be close to zero (2D C2C one-d-mode backward): "
+                           << back_norm << "\n";
+            AMREX_ALWAYS_ASSERT(back_norm < tol);
+        }
+#endif
+
+#if (AMREX_SPACEDIM == 3)
+        {
+            MultiFab twod_mf(ba, dm, 1, 0);
+            auto const& ta = twod_mf.arrays();
+            int nx = geom.Domain().length(0);
+            int ny = geom.Domain().length(1);
+            Real two_pi = 2._rt * Math::pi<Real>();
+            ParallelFor(twod_mf, IntVect(0), 1,
+                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
+            {
+                Real base = 1._rt + 0.05_rt*Real(k+1);
+                Real cos_amp = 0.02_rt * Real(k+1);
+                Real theta = two_pi * Real(i) / Real(nx);
+                ta[b](i,j,k,n) = base + cos_amp * std::cos(theta);
+            });
+
+            FFT::Info info{};
+            info.setTwoDMode(true);
+            FFT::R2C<Real,FFT::Direction::both> r2c(geom.Domain(), info);
+            auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+            cMultiFab spec(cba, cdm, 1, 0);
+            r2c.forward(twod_mf, spec);
+
+            MultiFab err(spec.boxArray(), spec.DistributionMap(), 1, 0);
+            auto const& ca = spec.const_arrays();
+            auto const& ea = err.arrays();
+            ParallelFor(err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                Real base = 1._rt + 0.05_rt*Real(k+1);
+                Real cos_amp = 0.02_rt * Real(k+1);
+                Real expected_real = 0._rt;
+                bool x_mode = (i == 1 || i == nx-1) && (j == 0);
+                if (i == 0 && j == 0) {
+                    expected_real = base * Real(nx*ny);
+                } else if (x_mode) {
+                    expected_real = cos_amp * Real(nx) * 0.5_rt * Real(ny);
+                }
+                auto c = ca[b](i,j,k,0);
+                ea[b](i,j,k) = amrex::norm(c - GpuComplex<Real>(expected_real, 0._rt));
+            });
+
+#ifdef AMREX_USE_FLOAT
+            Real tol = 1.e-6_rt;
+#else
+            Real tol = 1.e-14_rt;
+#endif
+            Real err_norm = err.norminf();
+            amrex::Print() << "  Expected to be close to zero (3D R2C two-d-mode): "
+                           << err_norm << "\n";
+            AMREX_ALWAYS_ASSERT(err_norm < tol);
+
+            MultiFab recon(ba, dm, 1, 0);
+            r2c.backward(spec, recon);
+            MultiFab back_err(ba, dm, 1, 0);
+            auto const back_scaling = r2c.scalingFactor();
+            auto const& orig_a = twod_mf.const_arrays();
+            auto const& recon_a = recon.const_arrays();
+            auto const& back_a = back_err.arrays();
+            ParallelFor(back_err, IntVect(0), 1,
+                        [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
+            {
+                Real diff = orig_a[b](i,j,k,n) - recon_a[b](i,j,k,n) * back_scaling;
+                back_a[b](i,j,k,n) = amrex::Math::abs(diff);
+            });
+            Real back_norm = back_err.norminf();
+            amrex::Print() << "  Expected to be close to zero (3D R2C two-d-mode backward): "
+                           << back_norm << "\n";
+            AMREX_ALWAYS_ASSERT(back_norm < tol);
+        }
+
+        {
+            cMultiFab cin(ba, dm, 1, 0);
+            auto const& cia = cin.arrays();
+            int nx = geom.Domain().length(0);
+            int ny = geom.Domain().length(1);
+            Real two_pi = 2._rt * Math::pi<Real>();
+            ParallelFor(cin, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                Real mag = 0.02_rt * Real(k+1);
+                GpuComplex<Real> base(mag, 0.1_rt*mag);
+                GpuComplex<Real> cos_amp(0.3_rt*mag, -0.15_rt*mag);
+                Real theta = two_pi * Real(i) / Real(nx);
+                cia[b](i,j,k) = base + cos_amp * std::cos(theta);
+            });
+
+            FFT::Info info{};
+            info.setTwoDMode(true);
+            FFT::C2C<Real,FFT::Direction::both> c2c(geom.Domain(), info);
+            auto const& [cba, cdm] = c2c.getSpectralDataLayout();
+            cMultiFab spec(cba, cdm, 1, 0);
+            c2c.forward(cin, spec);
+
+            MultiFab err(spec.boxArray(), spec.DistributionMap(), 1, 0);
+            auto const& ca = spec.const_arrays();
+            auto const& ea = err.arrays();
+            ParallelFor(err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                Real mag = 0.02_rt * Real(k+1);
+                GpuComplex<Real> base(mag, 0.1_rt*mag);
+                GpuComplex<Real> cos_amp(0.3_rt*mag, -0.15_rt*mag);
+                GpuComplex<Real> expected(0._rt, 0._rt);
+                bool x_mode = (i == 1 || i == nx-1) && (j == 0);
+                if (i == 0 && j == 0) {
+                    expected = base * Real(nx*ny);
+                } else if (x_mode) {
+                    expected = cos_amp * (Real(nx) * 0.5_rt * Real(ny));
+                }
+                auto c = ca[b](i,j,k,0);
+                ea[b](i,j,k) = amrex::norm(c - expected);
+            });
+
+#ifdef AMREX_USE_FLOAT
+            Real tol = 1.e-6_rt;
+#else
+            Real tol = 1.e-14_rt;
+#endif
+            Real err_norm = err.norminf();
+            amrex::Print() << "  Expected to be close to zero (3D C2C two-d-mode): "
+                           << err_norm << "\n";
+            AMREX_ALWAYS_ASSERT(err_norm < tol);
+
+            cMultiFab recon(ba, dm, 1, 0);
+            c2c.backward(spec, recon);
+            MultiFab back_err(ba, dm, 1, 0);
+            auto const back_scaling = c2c.scalingFactor();
+            auto const& cin_a = cin.const_arrays();
+            auto const& recon_a = recon.const_arrays();
+            auto const& back_a = back_err.arrays();
+            ParallelFor(back_err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+            {
+                auto diff = cin_a[b](i,j,k);
+                auto tmp = recon_a[b](i,j,k);
+                tmp *= back_scaling;
+                diff -= tmp;
+                back_a[b](i,j,k) = amrex::norm(diff);
+            });
+            Real back_norm = back_err.norminf();
+            amrex::Print() << "  Expected to be close to zero (3D C2C two-d-mode backward): "
+                           << back_norm << "\n";
+            AMREX_ALWAYS_ASSERT(back_norm < tol);
+        }
+#endif
     }
     amrex::Finalize();
 }
