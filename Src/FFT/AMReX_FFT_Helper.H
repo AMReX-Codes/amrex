@@ -74,7 +74,13 @@ struct Info
     //! batch size.
     bool twod_mode = false;
 
-    //! We might have a special twod_mode: nx or ny == 1 && nz > 1.
+    //! - 2D builds: oned_mode=true means we FFT in x only and treat y as the
+    //!   batch size.
+    //! - 3D builds with twod_mode=false: same behavior as the 2D case, but the
+    //!   z-dimension also participates in the batch.
+    //! - 3D builds with twod_mode=true: setting oned_mode=true further signals
+    //!   that exactly one of {nx, ny} is 1, so only the non-degenerate
+    //!   direction needs FFT work while the other stays batched.
     bool oned_mode = false;
 
     //! Batched FFT size. Only support in R2C, not R2X.
