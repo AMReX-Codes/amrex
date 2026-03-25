@@ -11,6 +11,10 @@
 #include <AMReX.H>
 #include <AMReX_Particles.H>
 
+#include <algorithm>
+#include <array>
+#include <cstring>
+
 using namespace amrex;
 
 // Particle type: 4 struct reals, 1 struct int, 2 array reals, 1 array int
@@ -29,6 +33,99 @@ struct MeshData {
     Vector<Geometry>          geom;
     Vector<DistributionMapping> dmap;
 };
+
+struct ParticleRecord {
+    std::uint64_t idcpu = 0;
+    std::array<ParticleReal, AMREX_SPACEDIM> pos{};
+    std::array<ParticleReal, NStructReal + NArrayReal> real{};
+    std::array<int, NStructInt + NArrayInt> idata{};
+
+    bool operator< (ParticleRecord const& rhs) const
+    {
+        if (idcpu != rhs.idcpu) { return idcpu < rhs.idcpu; }
+        if (pos != rhs.pos) { return pos < rhs.pos; }
+        if (real != rhs.real) { return real < rhs.real; }
+        return idata < rhs.idata;
+    }
+
+    bool operator== (ParticleRecord const& rhs) const
+    {
+        return idcpu == rhs.idcpu && pos == rhs.pos && real == rhs.real && idata == rhs.idata;
+    }
+};
+
+Vector<ParticleRecord>
+collect_local_records (MyPC const& pc)
+{
+    Vector<ParticleRecord> records;
+
+    for (int lev = 0; lev <= pc.finestLevel(); ++lev) {
+        for (auto const& kv : pc.GetParticles(lev)) {
+            auto const& ptile = kv.second;
+            auto const np = ptile.numParticles();
+            auto const ptd = ptile.getConstParticleTileData();
+
+            for (int i = 0; i < np; ++i) {
+                auto const sp = ptd.getSuperParticle(i);
+                ParticleRecord rec;
+                rec.idcpu = sp.m_idcpu;
+                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                    rec.pos[idim] = sp.pos(idim);
+                }
+                for (int icomp = 0; icomp < NStructReal + NArrayReal; ++icomp) {
+                    rec.real[icomp] = sp.rdata(icomp);
+                }
+                for (int icomp = 0; icomp < NStructInt + NArrayInt; ++icomp) {
+                    rec.idata[icomp] = sp.idata(icomp);
+                }
+                records.push_back(rec);
+            }
+        }
+    }
+
+    return records;
+}
+
+Vector<ParticleRecord>
+gather_sorted_records (MyPC const& pc)
+{
+    auto local_records = collect_local_records(pc);
+    auto const local_nbytes = static_cast<int>(local_records.size() * sizeof(ParticleRecord));
+    auto const ioproc = ParallelDescriptor::IOProcessorNumber();
+    auto const recv_counts = ParallelDescriptor::Gather(local_nbytes, ioproc);
+
+    Vector<int> recv_offsets;
+    Vector<char> recv_buffer;
+
+    if (ParallelDescriptor::IOProcessor()) {
+        recv_offsets.resize(recv_counts.size(), 0);
+        int total_nbytes = 0;
+        for (int i = 0, n = static_cast<int>(recv_counts.size()); i < n; ++i) {
+            recv_offsets[i] = total_nbytes;
+            total_nbytes += recv_counts[i];
+        }
+        recv_buffer.resize(total_nbytes);
+    }
+
+    auto const* send_ptr = local_records.empty()
+        ? nullptr
+        : reinterpret_cast<char const*>(local_records.data());
+    auto* recv_ptr = recv_buffer.empty() ? nullptr : recv_buffer.data();
+
+    ParallelDescriptor::Gatherv(send_ptr, local_nbytes, recv_ptr,
+                                recv_counts, recv_offsets, ioproc);
+
+    Vector<ParticleRecord> gathered_records;
+    if (ParallelDescriptor::IOProcessor()) {
+        gathered_records.resize(recv_buffer.size() / sizeof(ParticleRecord));
+        if (!recv_buffer.empty()) {
+            std::memcpy(gathered_records.data(), recv_buffer.data(), recv_buffer.size());
+        }
+        std::sort(gathered_records.begin(), gathered_records.end());
+    }
+
+    return gathered_records;
+}
 
 /**
  * Build a nested AMR hierarchy with `nlevs` levels over a [0,1]^d domain
@@ -92,47 +189,23 @@ MeshData build_mesh (int ncells, int nlevs, int max_grid_size)
 
 /**
  * Assert that two ParticleContainers hold identical particle data by
- * comparing the total particle count and the component-wise sums of every
- * real and integer attribute across all levels.
+ * comparing exact sorted particle records gathered on the I/O rank.
  */
 void verify_same (MyPC& pc_orig, MyPC& pc_new)
 {
-    auto n_orig = pc_orig.TotalNumberOfParticles();
-    auto n_new  = pc_new.TotalNumberOfParticles();
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        n_orig == n_new,
-        "Particle count mismatch after restart");
+    auto orig_records = gather_sorted_records(pc_orig);
+    auto new_records = gather_sorted_records(pc_new);
 
-    for (int icomp = 0; icomp < NStructReal + NArrayReal; ++icomp) {
-        auto sm_orig = amrex::ReduceSum(pc_orig,
-            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real {
-                return p.rdata(icomp);
-            });
-        auto sm_new = amrex::ReduceSum(pc_new,
-            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real {
-                return p.rdata(icomp);
-            });
-        ParallelDescriptor::ReduceRealSum(sm_orig);
-        ParallelDescriptor::ReduceRealSum(sm_new);
+    if (ParallelDescriptor::IOProcessor()) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            sm_orig == sm_new,
-            "Real component sum mismatch after restart (comp " + std::to_string(icomp) + ")");
-    }
+            orig_records.size() == new_records.size(),
+            "Particle count mismatch after restart");
 
-    for (int icomp = 0; icomp < NStructInt + NArrayInt; ++icomp) {
-        auto sm_orig = amrex::ReduceSum(pc_orig,
-            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real {
-                return static_cast<Real>(p.idata(icomp));
-            });
-        auto sm_new = amrex::ReduceSum(pc_new,
-            [=] AMREX_GPU_HOST_DEVICE (const PType& p) -> Real {
-                return static_cast<Real>(p.idata(icomp));
-            });
-        ParallelDescriptor::ReduceRealSum(sm_orig);
-        ParallelDescriptor::ReduceRealSum(sm_new);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            sm_orig == sm_new,
-            "Int component sum mismatch after restart (comp " + std::to_string(icomp) + ")");
+        for (std::size_t i = 0; i < orig_records.size(); ++i) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                orig_records[i] == new_records[i],
+                "Particle data mismatch after restart");
+        }
     }
 }
 
