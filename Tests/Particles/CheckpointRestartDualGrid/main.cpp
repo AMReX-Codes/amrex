@@ -210,6 +210,60 @@ void verify_same (MyPC& pc_orig, MyPC& pc_new)
 }
 
 /**
+ * Test 0: Write and restart with the same hierarchy and BoxArray.
+ * This preserves the original checkpoint/restart coverage without any
+ * hierarchy or decomposition changes.
+ */
+void test_same_hierarchy ()
+{
+    amrex::Print() << "Test 0: restart with same hierarchy\n";
+
+    const int ncells         = 32;
+    const int max_grid_size  = 16;
+    const int nppc           = 2;
+    const int iseed          = 451;
+    const std::string chkdir = "chk_same_hierarchy";
+
+    MyPC::ParticleInitData pdata = {{1.0, 2.0, 3.0, 4.0},
+                                    {5},
+                                    {6.0, 7.0},
+                                    {8}};
+
+    Vector<std::string> real_names, int_names;
+    for (int i = 0; i < NStructReal + NArrayReal; ++i) {
+        real_names.push_back("real_" + std::to_string(i));
+    }
+    for (int i = 0; i < NStructInt + NArrayInt; ++i) {
+        int_names.push_back("int_" + std::to_string(i));
+    }
+
+    auto mesh = build_mesh(ncells, 2, max_grid_size);
+    MyPC pc_write(mesh.geom, mesh.dmap, mesh.ba, mesh.ref_ratio);
+    pc_write.SetVerbose(false);
+    pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
+                        iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
+    pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
+
+    ParallelDescriptor::Barrier();
+
+    MyPC pc_read(mesh.geom, mesh.dmap, mesh.ba, mesh.ref_ratio);
+    pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
+    pc_read.Restart(chkdir, "particles");
+#endif
+
+    verify_same(pc_write, pc_read);
+
+    amrex::Print() << "  PASSED\n";
+}
+
+/**
  * Test 1: Write a 2-level checkpoint, restart into a 1-level container.
  * Particles that resided on the fine level must be redistributed to the
  * coarse level; totals and component sums must be unchanged.
@@ -388,6 +442,7 @@ int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
 
+    test_same_hierarchy();
     test_fewer_levels();
     test_more_levels();
     test_different_boxarrays();
