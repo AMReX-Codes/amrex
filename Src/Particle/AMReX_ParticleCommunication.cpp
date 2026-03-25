@@ -263,7 +263,14 @@ void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs
 {
     BL_PROFILE("ParticleCopyPlan::doHandShake");
     if (m_local) { doHandShakeLocal(Snds, Rcvs); }
-    else         { doHandShakeGlobal(Snds, Rcvs); }
+    else if (m_do_one_sided_comms) {
+#if defined(BL_USE_MPI3)
+        doHandShakeOneSided(Snds, Rcvs);
+#else
+        amrex::Abort("ParticleCopyPlan::doHandShake: particles.do_one_sided_comms=1 requires MPI-3");
+#endif
+    }
+    else         { doHandShakeReduceScatter(Snds, Rcvs); }
 }
 
 void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
@@ -333,7 +340,7 @@ void ParticleCopyPlan::doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Lon
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs)
+void ParticleCopyPlan::doHandShakeReduceScatter (const Vector<Long>& Snds, Vector<Long>& Rcvs)
 {
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
@@ -376,6 +383,50 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
         const auto Who = rstats[i].MPI_SOURCE;
         Rcvs[Who] = num_bytes_rcv[i];
     }
+#else
+    amrex::ignore_unused(Snds,Rcvs);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeOneSided (const Vector<Long>& Snds, Vector<Long>& Rcvs)
+{
+#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+    const int MyProc = ParallelContext::MyProcSub();
+    const int NProcs = ParallelContext::NProcsSub();
+
+    AMREX_ALWAYS_ASSERT(static_cast<int>(Snds.size()) == NProcs);
+    AMREX_ALWAYS_ASSERT(static_cast<int>(Rcvs.size()) == NProcs);
+
+    std::fill(Rcvs.begin(), Rcvs.end(), 0);
+
+    MPI_Win win;
+    BL_MPI_REQUIRE(MPI_Win_create(Rcvs.dataPtr(),
+                                  static_cast<MPI_Aint>(NProcs*sizeof(Long)),
+                                  sizeof(Long),
+                                  MPI_INFO_NULL,
+                                  ParallelContext::CommunicatorSub(),
+                                  &win));
+
+    BL_MPI_REQUIRE(MPI_Win_fence(0, win));
+
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc || Snds[i] == 0) { continue; }
+
+        BL_MPI_REQUIRE(MPI_Put(&Snds[i],
+                               1,
+                               ParallelDescriptor::Mpi_typemap<Long>::type(),
+                               i,
+                               MyProc,
+                               1,
+                               ParallelDescriptor::Mpi_typemap<Long>::type(),
+                               win));
+    }
+
+    BL_MPI_REQUIRE(MPI_Win_fence(0, win));
+    BL_MPI_REQUIRE(MPI_Win_free(&win));
+
+    AMREX_ASSERT(Rcvs[MyProc] == 0);
 #else
     amrex::ignore_unused(Snds,Rcvs);
 #endif

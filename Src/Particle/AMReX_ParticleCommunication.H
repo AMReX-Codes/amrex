@@ -10,6 +10,7 @@
 #include <AMReX_Scan.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MakeParticle.H>
+#include <AMReX_ParmParse.H>
 
 #include <map>
 
@@ -137,6 +138,8 @@ struct ParticleCopyPlan
         BL_PROFILE("ParticleCopyPlan::build");
 
         m_local = local;
+        ParmParse pp("particles");
+        pp.query("do_one_sided_comms", m_do_one_sided_comms);
 
         const int ngrow = 1;  // note - fix
 
@@ -294,14 +297,21 @@ private:
     // In the global version, we don't know who we'll receive from, so we
     // need to do some collective communication first.
     //
-    static void doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs);
+    static void doHandShakeReduceScatter (const Vector<Long>& Snds, Vector<Long>& Rcvs);
+
+    //
+    // Another version of the global handshake implemented with MPI-3
+    // one-sided communication.
+    //
+    static void doHandShakeOneSided (const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
     //
     // Another version of the above that is implemented using MPI All-to-All
     //
     static void doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
-    bool m_local;
+    bool m_local = false;
+    int m_do_one_sided_comms = 0;
 };
 
 struct GetSendBufferOffset
