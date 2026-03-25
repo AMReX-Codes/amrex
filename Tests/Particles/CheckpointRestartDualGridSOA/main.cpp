@@ -1,5 +1,6 @@
 /**
- * Test for dual-grid particle checkpoint/restart capability using pure SoA particles.
+ * Test for dual-grid particle checkpoint/restart capability using pure SoA
+ * particles and HDF5 I/O.
  *
  * Verifies that particles are preserved correctly when reading a
  * checkpoint file into a ParticleContainerPureSoA with a different mesh structure,
@@ -200,7 +201,7 @@ void verify_same (MyPC& pc_orig, MyPC& pc_new)
 }
 
 /**
- * Test 1: Write a 2-level checkpoint, restart into a 1-level container.
+ * Test 1: Write a 2-level HDF5 checkpoint, restart into a 1-level container.
  * Particles that resided on the fine level must be redistributed to the
  * coarse level; totals and component sums must be unchanged.
  */
@@ -230,7 +231,11 @@ void test_fewer_levels ()
     pc_write.SetVerbose(false);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
 
     AsyncOut::Finish();
     ParallelDescriptor::Barrier();
@@ -239,7 +244,11 @@ void test_fewer_levels ()
     auto mesh1 = build_mesh(ncells, 1, max_grid_size);
     MyPC pc_read(mesh1.geom, mesh1.dmap, mesh1.ba, mesh1.ref_ratio);
     pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
     pc_read.Restart(chkdir, "particles");
+#endif
 
     verify_same(pc_write, pc_read);
 
@@ -247,7 +256,7 @@ void test_fewer_levels ()
 }
 
 /**
- * Test 2: Write a 1-level checkpoint, restart into a 2-level container.
+ * Test 2: Write a 1-level HDF5 checkpoint, restart into a 2-level container.
  * After restart, Redistribute() assigns particles inside the refined
  * region to the finer level; totals and component sums must be unchanged.
  */
@@ -277,7 +286,11 @@ void test_more_levels ()
     pc_write.SetVerbose(false);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
 
     AsyncOut::Finish();
     ParallelDescriptor::Barrier();
@@ -286,7 +299,11 @@ void test_more_levels ()
     auto mesh2 = build_mesh(ncells, 2, max_grid_size);
     MyPC pc_read(mesh2.geom, mesh2.dmap, mesh2.ba, mesh2.ref_ratio);
     pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
     pc_read.Restart(chkdir, "particles");
+#endif
 
     verify_same(pc_write, pc_read);
 
@@ -294,7 +311,7 @@ void test_more_levels ()
 }
 
 /**
- * Test 3: Write a checkpoint with one BoxArray decomposition, restart
+ * Test 3: Write an HDF5 checkpoint with one BoxArray decomposition, restart
  * into a container with the same number of levels but a different BoxArray
  * (different max_grid_size). This is the canonical dual-grid scenario: the
  * Particle_H header written at checkpoint time differs from the BoxArray
@@ -327,7 +344,11 @@ void test_different_boxarrays ()
     pc_write.SetVerbose(false);
     pc_write.InitRandom(nppc * AMREX_D_TERM(ncells, *ncells, *ncells),
                         iseed, pdata, /*serialize=*/false);
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
     pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
 
     AsyncOut::Finish();
     ParallelDescriptor::Barrier();
@@ -337,7 +358,11 @@ void test_different_boxarrays ()
     MyPC pc_read(mesh_fine.geom, mesh_fine.dmap, mesh_fine.ba,
                  mesh_fine.ref_ratio);
     pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
     pc_read.Restart(chkdir, "particles");
+#endif
 
     verify_same(pc_write, pc_read);
 
@@ -352,7 +377,7 @@ int main (int argc, char* argv[])
     test_more_levels();
     test_different_boxarrays();
 
-    amrex::Print() << "All dual-grid SOA restart tests PASSED\n";
+    amrex::Print() << "All dual-grid HDF5 SOA restart tests PASSED\n";
 
     amrex::Finalize();
 }
