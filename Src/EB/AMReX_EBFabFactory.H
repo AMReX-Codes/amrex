@@ -73,7 +73,7 @@ public:
     [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const noexcept
         { return m_ebdc->getMultiEBCellFlagFab(); }
 
-    //! Signed-distance field.
+    //! Level set field.
     [[nodiscard]] const MultiFab& getLevelSet () const noexcept { return m_ebdc->getLevelSet(); }
 
     //! Volume fraction.
@@ -96,8 +96,8 @@ public:
         return m_ebdc->getAreaFrac();
     }
 
-    // For y-face-centroid, the two components are for x and then z-directions, respectively.
-    //! Face centroids along each axis (see note above for ordering).
+    //! Face centroids along each axis. For y-face-centroid, the two
+    //! components are for x and then z-directions, respectively.
     [[nodiscard]] Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const noexcept {
         return m_ebdc->getFaceCent();
     }
@@ -107,12 +107,12 @@ public:
         return m_ebdc->getEdgeCent();
     }
 
-    //! \return True if every FAB handled by this factory is regular.
+    //! \return True if the EB is regular everywhere.
     [[nodiscard]] bool isAllRegular () const noexcept;
 
-    //! Owning EB level.
+    //! \return EB level pointer.
     [[nodiscard]] EB2::Level const* getEBLevel () const noexcept { return m_parent; }
-    //! Owning EB IndexSpace.
+    //! \return EB IndexSpace pointer.
     [[nodiscard]] EB2::IndexSpace const* getEBIndexSpace () const noexcept;
     //! Maximum coarse level supported by the EB hierarchy.
     [[nodiscard]] int maxCoarseningLevel () const noexcept;
@@ -146,7 +146,6 @@ private:
     Gpu::DeviceVector<Array4<Real const>> m_eb_data;
 };
 
-/// \ingroup amrex_eb
 /// \ingroup amrex_eb
 //! Convenience overload that builds the EB level internally from Geometry + IndexSpace::top().
 std::unique_ptr<EBFArrayBoxFactory>

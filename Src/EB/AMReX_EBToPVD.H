@@ -17,7 +17,7 @@
 
 namespace amrex {
 
-//! Helper that converts EB surfaces into polygonal VTU/PVD files.
+//! Helper that converts EB surfaces into polygonal PVD files.
 class EBToPVD {
 
 public:
@@ -38,7 +38,7 @@ public:
          Array4<Real const> const& bcent,
          Array4<Real const> const& apx, Array4<Real const> const& apy, Array4<Real const> const& apz);
 
-   //! Write the accumulated EB polygons for rank \p myID into a VTU/VTP file.
+   //! Write the accumulated EB polygons for rank \p myID into a VTP file.
    void WriteEBVTP(int myID) const;
    //! Write a PVD file referencing per-rank outputs.
    static void WritePVTP(int nProcs) ;

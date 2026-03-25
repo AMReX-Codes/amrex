@@ -76,7 +76,7 @@ public:
      * \param fgeom     Fine Geometry.
      * \param cgeom     Coarse Geometry.
      * \param ref_ratio Refinement ratio from coarse to fine.
-     * \param fine_lev  Fine level index (for diagnostics).
+     * \param fine_lev  Fine level index.
      * \param nvar      Number of state components stored.
      */
     EBFluxRegister (const BoxArray& fba, const BoxArray& cba,
@@ -122,7 +122,7 @@ public:
 
     using YAFluxRegister::FineAdd;
     /**
-     * \brief Add fine-level fluxes for tiles with cut cells and perform re-redistribution.
+     * \brief Add fine-level fluxes for tiles with cut cells.
      *
      * \param mfi       Iterator identifying the fine tile being processed.
      * \param flux      Centroid fluxes on fine faces.
@@ -161,7 +161,7 @@ public:
      *
      * \param crse_state  Coarse state to be updated near coarse/fine boundaries.
      * \param crse_vfrac  Coarse volume fractions.
-     * \param fine_state  Fine state (only used for interpolation).
+     * \param fine_state  Fine state.
      * \param fine_vfrac  Fine volume fractions.
      */
     void Reflux (MultiFab& crse_state, const amrex::MultiFab& crse_vfrac,

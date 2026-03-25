@@ -26,9 +26,7 @@ public:
                          Vector<BCRec> const& bcs, int bcomp) override;
 };
 
-//! EB-aware MultiFab cell-conservative interpolater singleton.
 extern AMREX_EXPORT EBMFCellConsLinInterp eb_mf_cell_cons_interp;
-//! Alias for backward compatibility with older naming.
 extern AMREX_EXPORT EBMFCellConsLinInterp eb_mf_lincc_interp;
 
 }

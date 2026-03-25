@@ -40,9 +40,7 @@ public:
                          RunOn            runon) override;
 };
 
-//! Global EB-aware linear conservative interpolater.
 extern AMREX_EXPORT EBCellConservativeLinear  eb_lincc_interp;
-//! Alias maintained for backward compatibility.
 extern AMREX_EXPORT EBCellConservativeLinear  eb_cell_cons_interp;
 
 }

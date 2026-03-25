@@ -72,7 +72,7 @@ namespace amrex
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, const MultiFab& vol_fine,
                           const MultiFab& vfrac_fine, int scomp, int ncomp, const IntVect& ratio);
 
-    //! Convenience average-down that assumes unit volumes (no EB weights).
+    //! Convenience average-down that assumes unit volumes (with EB volume fraction weights).
     void EB_average_down (const MultiFab& S_fine, MultiFab& S_crse, int scomp, int ncomp,
                           int ratio);
     //! Same as above but with anisotropic ratio.
@@ -80,7 +80,7 @@ namespace amrex
                           const IntVect& ratio);
 
     /**
-     * \brief Average face-centered data from fine to coarse grids.
+     * \brief Average face-centered data from fine to coarse grids weighted by area fractions.
      *
      * \param fine   Fine-level face-centered data (one MultiFab per direction).
      * \param crse   Coarse-level destinations (one per direction).
@@ -96,7 +96,7 @@ namespace amrex
                                 const IntVect& ratio, int ngcrse);
 
     /**
-     * \brief Average face-centered data while respecting periodicity in \p crse_geom.
+     * \brief Average face-centered data weighted by area fractions while respecting periodicity in \p crse_geom.
      */
     void EB_average_down_faces (const Array<const MultiFab*,AMREX_SPACEDIM>& fine,
                                 const Array<      MultiFab*,AMREX_SPACEDIM>& crse,
@@ -134,7 +134,7 @@ namespace amrex
                                const MultiFab& vel_eb);
 
     /**
-     * \brief Average face-centered values to cell centers (ignoring EB geometry).
+     * \brief Average face-centered values to cell centers.
      */
     void EB_average_face_to_cellcenter (MultiFab& ccmf, int dcomp,
                                         const Array<MultiFab const*,AMREX_SPACEDIM>& fmf);
