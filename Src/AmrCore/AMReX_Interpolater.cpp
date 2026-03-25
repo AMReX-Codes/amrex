@@ -138,6 +138,97 @@ facedivfree_interp_rr2 (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     });
 }
 
+void
+facedivfree_interp_rr4 (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                        int const crse_comp,
+                        Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                        int const fine_comp,
+                        int const ncomp,
+                        Box const& fine_region,
+                        Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
+                        GpuArray<Real, AMREX_SPACEDIM> const& fine_cell_size,
+                        RunOn const runon)
+{
+    IntVect const rr2{AMREX_D_DECL(2,2,2)};
+
+    Array<IndexType, AMREX_SPACEDIM> types;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        types[d].set(d);
+    }
+
+    Box coarse_region = amrex::coarsen(fine_region, 4);
+    Box tmp_fine_region = coarse_region;
+    tmp_fine_region.grow(1);
+    tmp_fine_region.refine(rr2);
+
+    Array<FArrayBox, AMREX_SPACEDIM> tmp_fabs;
+    Array<FArrayBox*, AMREX_SPACEDIM> tmp_ptrs{};
+    Array<IArrayBox, AMREX_SPACEDIM> stage2_mask_fabs;
+    Array<IArrayBox*, AMREX_SPACEDIM> stage2_mask_ptrs{};
+#ifdef AMREX_USE_GPU
+    Array<Elixir, AMREX_SPACEDIM> tmp_elixirs;
+    Array<Elixir, AMREX_SPACEDIM> stage2_mask_elixirs;
+    bool const run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+#endif
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        tmp_fabs[d].resize(amrex::convert(tmp_fine_region, types[d]), ncomp);
+        tmp_ptrs[d] = &(tmp_fabs[d]);
+#ifdef AMREX_USE_GPU
+        if (run_on_gpu) {
+            tmp_elixirs[d] = tmp_fabs[d].elixir();
+        }
+#endif
+    }
+
+    Array<IArrayBox*, AMREX_SPACEDIM> tmp_mask{};
+    Box const stage2_crse_region = amrex::coarsen(fine_region, rr2);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        if (solve_mask[d] != nullptr)
+        {
+            Box const mask_box = amrex::convert(stage2_crse_region, types[d]);
+            stage2_mask_fabs[d].resize(mask_box, ncomp);
+            stage2_mask_ptrs[d] = &(stage2_mask_fabs[d]);
+#ifdef AMREX_USE_GPU
+            if (run_on_gpu) {
+                stage2_mask_elixirs[d] = stage2_mask_fabs[d].elixir();
+            }
+#endif
+
+            auto const src = solve_mask[d]->const_array(0);
+            auto const dst = stage2_mask_fabs[d].array(0);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, mask_box, ncomp, i, j, k, n,
+            {
+                int const ic = amrex::coarsen(i,2);
+                int const jc = amrex::coarsen(j,2);
+                int const kc = amrex::coarsen(k,2);
+
+                // Odd faces in the nodal direction sit inside an original coarse cell,
+                // so they are intermediate unknowns that must be solved in stage 2.
+                bool solve_me = ((d == 0 && (i % 2 != 0)) ||
+                                 (d == 1 && (j % 2 != 0)));
+                if constexpr (AMREX_SPACEDIM == 3) {
+                    solve_me = solve_me || (d == 2 && (k % 2 != 0));
+                }
+
+                dst(i,j,k,n) = solve_me ? 1 : src(ic,jc,kc,n);
+            });
+        }
+    }
+
+    GpuArray<Real, AMREX_SPACEDIM> tmp_cell_size = fine_cell_size;
+    for (auto& dx : tmp_cell_size) {
+        dx *= Real(2.0);
+    }
+
+    facedivfree_interp_rr2(crse, crse_comp, tmp_ptrs, 0, ncomp,
+                           tmp_fine_region, tmp_mask, tmp_cell_size, runon);
+
+    facedivfree_interp_rr2(tmp_ptrs, 0, fine, fine_comp, ncomp,
+                           fine_region, stage2_mask_ptrs, fine_cell_size, runon);
+}
+
 }
 
 Box
@@ -1454,82 +1545,8 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                                fine_region, solve_mask, fine_geom.CellSizeArray(), runon);
         return;
     }
-
-    IntVect const rr2{AMREX_D_DECL(2,2,2)};
-    Array<IndexType, AMREX_SPACEDIM> types;
-    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-        types[d].set(d);
-    }
-
-    Box coarse_region = amrex::coarsen(fine_region, ratio);
-    Box tmp_fine_region = coarse_region;
-    tmp_fine_region.grow(1);
-    tmp_fine_region.refine(rr2);
-
-    Array<FArrayBox, AMREX_SPACEDIM> tmp_fabs;
-    Array<FArrayBox*, AMREX_SPACEDIM> tmp_ptrs{};
-    Array<IArrayBox, AMREX_SPACEDIM> stage2_mask_fabs;
-    Array<IArrayBox*, AMREX_SPACEDIM> stage2_mask_ptrs{};
-#ifdef AMREX_USE_GPU
-    Array<Elixir, AMREX_SPACEDIM> tmp_elixirs;
-    Array<Elixir, AMREX_SPACEDIM> stage2_mask_elixirs;
-    bool const run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
-#endif
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        tmp_fabs[d].resize(amrex::convert(tmp_fine_region, types[d]), ncomp);
-        tmp_ptrs[d] = &(tmp_fabs[d]);
-#ifdef AMREX_USE_GPU
-        if (run_on_gpu) {
-            tmp_elixirs[d] = tmp_fabs[d].elixir();
-        }
-#endif
-    }
-
-    Array<IArrayBox*, AMREX_SPACEDIM> tmp_mask{};
-    Box const stage2_crse_region = amrex::coarsen(fine_region, rr2);
-    for (int d = 0; d < AMREX_SPACEDIM; ++d)
-    {
-        if (solve_mask[d] != nullptr)
-        {
-            Box const mask_box = amrex::convert(stage2_crse_region, types[d]);
-            stage2_mask_fabs[d].resize(mask_box, ncomp);
-            stage2_mask_ptrs[d] = &(stage2_mask_fabs[d]);
-#ifdef AMREX_USE_GPU
-            if (run_on_gpu) {
-                stage2_mask_elixirs[d] = stage2_mask_fabs[d].elixir();
-            }
-#endif
-
-            auto const src = solve_mask[d]->const_array(0);
-            auto const dst = stage2_mask_fabs[d].array(0);
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, mask_box, ncomp, i, j, k, n,
-            {
-                int const ic = amrex::coarsen(i,2);
-                int const jc = amrex::coarsen(j,2);
-                int const kc = amrex::coarsen(k,2);
-
-                bool solve_me = ((d == 0 && (i % 2 != 0)) ||
-                                 (d == 1 && (j % 2 != 0)));
-                if constexpr (AMREX_SPACEDIM == 3) {
-                    solve_me = solve_me || (d == 2 && (k % 2 != 0));
-                }
-
-                dst(i,j,k,n) = solve_me ? 1 : src(ic,jc,kc,n);
-            });
-        }
-    }
-
-    GpuArray<Real, AMREX_SPACEDIM> tmp_cell_size = fine_geom.CellSizeArray();
-    for (auto& dx : tmp_cell_size) {
-        dx *= Real(2.0);
-    }
-
-    facedivfree_interp_rr2(crse, crse_comp, tmp_ptrs, 0, ncomp,
-                           tmp_fine_region, tmp_mask, tmp_cell_size, runon);
-
-    facedivfree_interp_rr2(tmp_ptrs, 0, fine, fine_comp, ncomp,
-                           fine_region, stage2_mask_ptrs, fine_geom.CellSizeArray(), runon);
+    facedivfree_interp_rr4(crse, crse_comp, fine, fine_comp, ncomp,
+                           fine_region, solve_mask, fine_geom.CellSizeArray(), runon);
 }
 
 Box
