@@ -26,7 +26,7 @@ namespace amrex {
  * FaceConservativeLinear works in 2D and 3D on cpu and gpu.
  *
  * FaceDivFree works in 2D and 3D on cpu and gpu.
- * The algorithm is restricted to ref ratio of 2.
+ * The algorithm is restricted to isotropic ref ratios of 2 and 4.
  */
 
 //
@@ -44,6 +44,101 @@ CellConservativeQuartic   quartic_interp;
 CellBilinear              cell_bilinear_interp;
 CellQuadratic             quadratic_interp;
 CellQuartic               cell_quartic_interp;
+
+namespace
+{
+
+[[nodiscard]] bool
+facedivfree_supported_ratio (IntVect const& ratio) noexcept
+{
+    const int rr = ratio[0];
+    if (rr != 2 && rr != 4) {
+        return false;
+    }
+
+    for (int d = 1; d < AMREX_SPACEDIM; ++d) {
+        if (ratio[d] != rr) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void
+facedivfree_interp_rr2 (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
+                        int const crse_comp,
+                        Array<FArrayBox*, AMREX_SPACEDIM> const& fine,
+                        int const fine_comp,
+                        int const ncomp,
+                        Box const& fine_region,
+                        Array<IArrayBox*, AMREX_SPACEDIM> const& solve_mask,
+                        GpuArray<Real, AMREX_SPACEDIM> const& cell_size,
+                        RunOn const runon)
+{
+    IntVect const rr{AMREX_D_DECL(2,2,2)};
+
+    Array<IndexType, AMREX_SPACEDIM> types;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        types[d].set(d);
+    }
+
+    const Box c_fine_region = amrex::coarsen(fine_region, rr);
+
+    GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
+    GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
+    GpuArray<Array4<const int>, AMREX_SPACEDIM> maskarr;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        crsearr[d] = crse[d]->const_array(crse_comp);
+        finearr[d] = fine[d]->array(fine_comp);
+        if (solve_mask[d] != nullptr) {
+            maskarr[d] = solve_mask[d]->const_array(0);
+        }
+    }
+
+    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+              amrex::convert(c_fine_region,types[0]), bx0,
+              {
+                  AMREX_LOOP_3D(bx0, i, j, k,
+                  {
+                      for (int n = 0; n < ncomp; ++n)
+                      {
+                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
+                                                            crsearr[0], finearr[0], maskarr[0], rr);
+                      }
+                  });
+              },
+              amrex::convert(c_fine_region,types[1]), bx1,
+              {
+                  AMREX_LOOP_3D(bx1, i, j, k,
+                  {
+                      for (int n = 0; n < ncomp; ++n)
+                      {
+                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 1,
+                                                            crsearr[1], finearr[1], maskarr[1], rr);
+                      }
+                  });
+              },
+              amrex::convert(c_fine_region,types[2]), bx2,
+              {
+                  AMREX_LOOP_3D(bx2, i, j, k,
+                  {
+                      for (int n = 0; n < ncomp; ++n)
+                      {
+                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 2,
+                                                            crsearr[2], finearr[2], maskarr[2], rr);
+                      }
+                  });
+              });
+
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, c_fine_region, ncomp, i, j, k, n,
+    {
+        amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, rr, cell_size);
+    });
+}
+
+}
 
 Box
 NodeBilinear::CoarseBox (const Box& fine,
@@ -1299,7 +1394,9 @@ Box
 FaceDivFree::CoarseBox (const Box& fine,
                         int        ratio)
 {
-    Box crse = amrex::coarsen(fine,ratio).grow(1);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio == 2 || ratio == 4,
+                                     "FaceDivFree only supports isotropic refinement ratios of 2 or 4");
+    Box crse = amrex::coarsen(fine,ratio).grow(ratio/2);
     return crse;
 }
 
@@ -1307,7 +1404,9 @@ Box
 FaceDivFree::CoarseBox (const Box&     fine,
                         const IntVect& ratio)
 {
-    Box crse = amrex::coarsen(fine,ratio).grow(1);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(facedivfree_supported_ratio(ratio),
+                                     "FaceDivFree only supports isotropic refinement ratios of 2 or 4");
+    Box crse = amrex::coarsen(fine,ratio).grow(ratio[0]/2);
     return crse;
 }
 
@@ -1346,68 +1445,91 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                          const RunOn       runon)
 {
     BL_PROFILE("FaceDivFree::interp()");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(facedivfree_supported_ratio(ratio),
+                                     "FaceDivFree only supports isotropic refinement ratios of 2 or 4");
 
-    Array<IndexType, AMREX_SPACEDIM> types;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
-        { types[d].set(d); }
-
-    // This is currently only designed for octree, where ratio = 2.
-    AMREX_ALWAYS_ASSERT(ratio == 2);
-
-    const Box c_fine_region = amrex::coarsen(fine_region, ratio);
-    GpuArray<Real, AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
-
-    GpuArray<Array4<const Real>, AMREX_SPACEDIM> crsearr;
-    GpuArray<Array4<Real>, AMREX_SPACEDIM> finearr;
-    GpuArray<Array4<const int>, AMREX_SPACEDIM> maskarr;
-    for (int d=0; d<AMREX_SPACEDIM; ++d)
+    if (ratio[0] == 2)
     {
-        crsearr[d] = crse[d]->const_array(crse_comp);
-        finearr[d] = fine[d]->array(fine_comp);
-        if (solve_mask[d] != nullptr)
-            { maskarr[d] = solve_mask[d]->const_array(0); }
+        facedivfree_interp_rr2(crse, crse_comp, fine, fine_comp, ncomp,
+                               fine_region, solve_mask, fine_geom.CellSizeArray(), runon);
+        return;
     }
 
-    // Fuse the launches, 1 for each dimension, into a single launch.
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
-              amrex::convert(c_fine_region,types[0]), bx0,
-              {
-                  AMREX_LOOP_3D(bx0, i, j, k,
-                  {
-                      for (int n=0; n<ncomp; ++n)
-                      {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
-                                                            crsearr[0], finearr[0], maskarr[0], ratio);
-                      }
-                  });
-              },
-              amrex::convert(c_fine_region,types[1]), bx1,
-              {
-                  AMREX_LOOP_3D(bx1, i, j, k,
-                  {
-                      for (int n=0; n<ncomp; ++n)
-                      {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 1,
-                                                            crsearr[1], finearr[1], maskarr[1], ratio);
-                      }
-                  });
-              },
-              amrex::convert(c_fine_region,types[2]), bx2,
-              {
-                  AMREX_LOOP_3D(bx2, i, j, k,
-                  {
-                      for (int n=0; n<ncomp; ++n)
-                      {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 2,
-                                                            crsearr[2], finearr[2], maskarr[2], ratio);
-                      }
-                  });
-              });
+    IntVect const rr2{AMREX_D_DECL(2,2,2)};
+    Array<IndexType, AMREX_SPACEDIM> types;
+    for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+        types[d].set(d);
+    }
 
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+    Box coarse_region = amrex::coarsen(fine_region, ratio);
+    Box tmp_fine_region = coarse_region;
+    tmp_fine_region.grow(1);
+    tmp_fine_region.refine(rr2);
+
+    Array<FArrayBox, AMREX_SPACEDIM> tmp_fabs;
+    Array<FArrayBox*, AMREX_SPACEDIM> tmp_ptrs{};
+    Array<IArrayBox, AMREX_SPACEDIM> stage2_mask_fabs;
+    Array<IArrayBox*, AMREX_SPACEDIM> stage2_mask_ptrs{};
+#ifdef AMREX_USE_GPU
+    Array<Elixir, AMREX_SPACEDIM> tmp_elixirs;
+    Array<Elixir, AMREX_SPACEDIM> stage2_mask_elixirs;
+    bool const run_on_gpu = (runon == RunOn::Gpu && Gpu::inLaunchRegion());
+#endif
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
     {
-        amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
-    });
+        tmp_fabs[d].resize(amrex::convert(tmp_fine_region, types[d]), ncomp);
+        tmp_ptrs[d] = &(tmp_fabs[d]);
+#ifdef AMREX_USE_GPU
+        if (run_on_gpu) {
+            tmp_elixirs[d] = tmp_fabs[d].elixir();
+        }
+#endif
+    }
+
+    Array<IArrayBox*, AMREX_SPACEDIM> tmp_mask{};
+    Box const stage2_crse_region = amrex::coarsen(fine_region, rr2);
+    for (int d = 0; d < AMREX_SPACEDIM; ++d)
+    {
+        if (solve_mask[d] != nullptr)
+        {
+            Box const mask_box = amrex::convert(stage2_crse_region, types[d]);
+            stage2_mask_fabs[d].resize(mask_box, ncomp);
+            stage2_mask_ptrs[d] = &(stage2_mask_fabs[d]);
+#ifdef AMREX_USE_GPU
+            if (run_on_gpu) {
+                stage2_mask_elixirs[d] = stage2_mask_fabs[d].elixir();
+            }
+#endif
+
+            auto const src = solve_mask[d]->const_array(0);
+            auto const dst = stage2_mask_fabs[d].array(0);
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon, mask_box, ncomp, i, j, k, n,
+            {
+                int const ic = amrex::coarsen(i,2);
+                int const jc = amrex::coarsen(j,2);
+                int const kc = amrex::coarsen(k,2);
+
+                bool solve_me = ((d == 0 && (i % 2 != 0)) ||
+                                 (d == 1 && (j % 2 != 0)));
+                if constexpr (AMREX_SPACEDIM == 3) {
+                    solve_me = solve_me || (d == 2 && (k % 2 != 0));
+                }
+
+                dst(i,j,k,n) = solve_me ? 1 : src(ic,jc,kc,n);
+            });
+        }
+    }
+
+    GpuArray<Real, AMREX_SPACEDIM> tmp_cell_size = fine_geom.CellSizeArray();
+    for (auto& dx : tmp_cell_size) {
+        dx *= Real(2.0);
+    }
+
+    facedivfree_interp_rr2(crse, crse_comp, tmp_ptrs, 0, ncomp,
+                           tmp_fine_region, tmp_mask, tmp_cell_size, runon);
+
+    facedivfree_interp_rr2(tmp_ptrs, 0, fine, fine_comp, ncomp,
+                           fine_region, stage2_mask_ptrs, fine_geom.CellSizeArray(), runon);
 }
 
 Box

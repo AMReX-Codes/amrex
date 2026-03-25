@@ -135,6 +135,7 @@ void main_main ()
     int f_offset = 4;
     int nghost_c = 1;
     int nghost_f = 2;
+    int ratio_in = 2;
 
     amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
     amrex::Vector<int> c_hi(AMREX_SPACEDIM, 32);
@@ -149,6 +150,7 @@ void main_main ()
         pp.query("max_grid_size", max_grid_size);
         pp.query("nghost_c", nghost_c);
         pp.query("nghost_f", nghost_f);
+        pp.query("ratio", ratio_in);
 
         pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
         pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
@@ -166,8 +168,12 @@ void main_main ()
     }
 
     int ncomp = 1;
-    IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
-    IntVect ghost_c{AMREX_D_DECL(nghost_c, nghost_c, nghost_c)};  // For this stencil (octree), need 1 coarse ghost.
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio_in == 2 || ratio_in == 4,
+                                     "DivFreePatch only supports isotropic refinement ratios of 2 or 4");
+    nghost_c = (nghost_c < ratio_in/2) ? ratio_in/2 : nghost_c;
+
+    IntVect ratio{AMREX_D_DECL(ratio_in, ratio_in, ratio_in)};
+    IntVect ghost_c{AMREX_D_DECL(nghost_c, nghost_c, nghost_c)};  // FaceDivFree needs ratio/2 coarse ghosts.
     IntVect ghost_f{AMREX_D_DECL(nghost_f, nghost_f, nghost_f)};  // For this stencil (octree), need 1 fine ghost.
     Geometry c_geom, f_geom, f_geom_wghost, f_geom_all, f_geom_partial;
 

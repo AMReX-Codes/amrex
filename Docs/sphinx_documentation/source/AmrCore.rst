@@ -250,7 +250,7 @@ These Interpolaters can be executed on CPU or GPU, with certain limitations:
 
 -  :cpp:`CellConservativeQuartic` only works with a refinement ratio of 2.
 
--  :cpp:`FaceDivFree` only works in 2D and 3D and with a refinement ratio of 2.
+-  :cpp:`FaceDivFree` only works in 2D and 3D and with isotropic refinement ratios of 2 or 4.
 
 .. _sec:amrcore:fluxreg:
 
