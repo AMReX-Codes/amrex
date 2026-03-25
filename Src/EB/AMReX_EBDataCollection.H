@@ -73,10 +73,8 @@ public:
     //! cut-cell mask. The returned pointer is nullptr for AllRegular EB.
     [[nodiscard]] const iMultiFab* getCutCellMask () const;
 
-    /// \cond DOXYGEN_IGNORE
     // public for cuda
     void extendDataOutsideDomain (IntVect const& level_ng);
-    /// \endcond
 
 private:
 
