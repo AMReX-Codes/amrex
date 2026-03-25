@@ -327,7 +327,7 @@ iPackParticleData (const PTD& ptd, int idx, std::remove_const_t<typename PTD::In
     } else {
         for (int j = 0; j < ptd.m_n_int; ++j) {
             if (write_int_comp[j]) {
-                idata_ptr[iout_index] = ptd.rdata(j)[idx];
+                idata_ptr[iout_index] = ptd.idata(j)[idx];
                 iout_index++;
             }
         }

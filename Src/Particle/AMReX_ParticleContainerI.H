@@ -1238,6 +1238,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !is_rtsoa_pc || NumRuntimeRealComps() >= AMREX_SPACEDIM,
+        "ParticleContainer with RTSoA requires at least AMREX_SPACEDIM "
+        "runtime real components for positions"
+    );
+
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
     {
