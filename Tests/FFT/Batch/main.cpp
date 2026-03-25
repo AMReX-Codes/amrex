@@ -163,7 +163,12 @@ int main (int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(error < eps);
         }
 
+#if (AMREX_SPACEDIM >= 2)
 #if (AMREX_SPACEDIM == 2)
+        constexpr const char* oned_mode_dim_tag = "2D";
+#else
+        constexpr const char* oned_mode_dim_tag = "3D";
+#endif
         {
             MultiFab oned_mf(ba, dm, 1, 0);
             auto const& oa = oned_mf.arrays();
@@ -172,9 +177,16 @@ int main (int argc, char* argv[])
             ParallelFor(oned_mf, IntVect(0), 1,
                         [=] AMREX_GPU_DEVICE (int b, int i, int j, int k, int n)
             {
+                Real base = 0._rt;
+                Real cos_amp = 0._rt;
+#if (AMREX_SPACEDIM == 2)
                 amrex::ignore_unused(k);
-                Real base = (1._rt + Real(j)) * 0.25_rt;
-                Real cos_amp = 0.05_rt * Real(j+1);
+                base = (1._rt + Real(j)) * 0.25_rt;
+                cos_amp = 0.05_rt * Real(j+1);
+#else
+                base = 0.2_rt + 0.05_rt*Real(j+1) + 0.02_rt*Real(k+1);
+                cos_amp = 0.01_rt * Real(j+1) * Real(k+1);
+#endif
                 Real theta = two_pi * Real(i) / Real(nx);
                 oa[b](i,j,k,n) = base + cos_amp * std::cos(theta);
             });
@@ -191,9 +203,16 @@ int main (int argc, char* argv[])
             auto const& ea = err.arrays();
             ParallelFor(err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
             {
+                Real base = 0._rt;
+                Real cos_amp = 0._rt;
+#if (AMREX_SPACEDIM == 2)
                 amrex::ignore_unused(k);
-                Real base = (1._rt + Real(j)) * 0.25_rt;
-                Real cos_amp = 0.05_rt * Real(j+1);
+                base = (1._rt + Real(j)) * 0.25_rt;
+                cos_amp = 0.05_rt * Real(j+1);
+#else
+                base = 0.2_rt + 0.05_rt*Real(j+1) + 0.02_rt*Real(k+1);
+                cos_amp = 0.01_rt * Real(j+1) * Real(k+1);
+#endif
                 Real expected_real = 0._rt;
                 if (i == 0) {
                     expected_real = base * Real(nx);
@@ -210,8 +229,8 @@ int main (int argc, char* argv[])
             Real tol = 1.e-14_rt;
 #endif
             Real err_norm = err.norminf();
-            amrex::Print() << "  Expected to be close to zero (2D R2C one-d-mode): "
-                           << err_norm << "\n";
+            amrex::Print() << "  Expected to be close to zero (" << oned_mode_dim_tag
+                           << " R2C one-d-mode): " << err_norm << "\n";
             AMREX_ALWAYS_ASSERT(err_norm < tol);
 
             MultiFab recon(ba, dm, 1, 0);
@@ -228,8 +247,8 @@ int main (int argc, char* argv[])
                 back_a[b](i,j,k,n) = amrex::Math::abs(diff);
             });
             Real back_norm = back_err.norminf();
-            amrex::Print() << "  Expected to be close to zero (2D R2C one-d-mode backward): "
-                           << back_norm << "\n";
+            amrex::Print() << "  Expected to be close to zero (" << oned_mode_dim_tag
+                           << " R2C one-d-mode backward): " << back_norm << "\n";
             AMREX_ALWAYS_ASSERT(back_norm < tol);
         }
 
@@ -240,11 +259,19 @@ int main (int argc, char* argv[])
             Real two_pi = 2._rt * Math::pi<Real>();
             ParallelFor(cin, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
             {
+                Real theta = two_pi * Real(i) / Real(nx);
+                GpuComplex<Real> base(0._rt, 0._rt);
+                GpuComplex<Real> cos_amp(0._rt, 0._rt);
+#if (AMREX_SPACEDIM == 2)
                 amrex::ignore_unused(k);
                 Real mag = 0.01_rt * Real(j+1);
-                GpuComplex<Real> base(mag, -0.125_rt*mag);
-                GpuComplex<Real> cos_amp(0.2_rt*mag, 0.05_rt*mag);
-                Real theta = two_pi * Real(i) / Real(nx);
+                base = GpuComplex<Real>(mag, -0.125_rt*mag);
+                cos_amp = GpuComplex<Real>(0.2_rt*mag, 0.05_rt*mag);
+#else
+                Real mag = 0.01_rt * Real(j+1) + 0.005_rt * Real(k+1);
+                base = GpuComplex<Real>(mag, -0.1_rt*mag);
+                cos_amp = GpuComplex<Real>(0.15_rt*Real(j+1), 0.05_rt*Real(k+1));
+#endif
                 cia[b](i,j,k) = base + cos_amp * std::cos(theta);
             });
 
@@ -260,10 +287,18 @@ int main (int argc, char* argv[])
             auto const& ea = err.arrays();
             ParallelFor(err, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
             {
+                GpuComplex<Real> base(0._rt, 0._rt);
+                GpuComplex<Real> cos_amp(0._rt, 0._rt);
+#if (AMREX_SPACEDIM == 2)
                 amrex::ignore_unused(k);
                 Real mag = 0.01_rt * Real(j+1);
-                GpuComplex<Real> base(mag, -0.125_rt*mag);
-                GpuComplex<Real> cos_amp(0.2_rt*mag, 0.05_rt*mag);
+                base = GpuComplex<Real>(mag, -0.125_rt*mag);
+                cos_amp = GpuComplex<Real>(0.2_rt*mag, 0.05_rt*mag);
+#else
+                Real mag = 0.01_rt * Real(j+1) + 0.005_rt * Real(k+1);
+                base = GpuComplex<Real>(mag, -0.1_rt*mag);
+                cos_amp = GpuComplex<Real>(0.15_rt*Real(j+1), 0.05_rt*Real(k+1));
+#endif
                 GpuComplex<Real> expected(0._rt, 0._rt);
                 if (i == 0) {
                     expected = base * Real(nx);
@@ -280,8 +315,8 @@ int main (int argc, char* argv[])
             Real tol = 1.e-14_rt;
 #endif
             Real err_norm = err.norminf();
-            amrex::Print() << "  Expected to be close to zero (2D C2C one-d-mode): "
-                           << err_norm << "\n";
+            amrex::Print() << "  Expected to be close to zero (" << oned_mode_dim_tag
+                           << " C2C one-d-mode): " << err_norm << "\n";
             AMREX_ALWAYS_ASSERT(err_norm < tol);
 
             cMultiFab recon(cin.boxArray(), cin.DistributionMap(), 1, 0);
@@ -301,8 +336,8 @@ int main (int argc, char* argv[])
                 back_a[b](i,j,k) = amrex::norm(diff);
             });
             Real back_norm = back_err.norminf();
-            amrex::Print() << "  Expected to be close to zero (2D C2C one-d-mode backward): "
-                           << back_norm << "\n";
+            amrex::Print() << "  Expected to be close to zero (" << oned_mode_dim_tag
+                           << " C2C one-d-mode backward): " << back_norm << "\n";
             AMREX_ALWAYS_ASSERT(back_norm < tol);
         }
 #endif

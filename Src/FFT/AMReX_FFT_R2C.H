@@ -590,8 +590,9 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        if (m_real_domain.length(1) > 1 &&
-            (! m_info.twod_mode && m_real_domain.length(2) > 1))
+        if (!m_info.oned_mode && !m_info.twod_mode &&
+            m_real_domain.length(1) > 1 &&
+            m_real_domain.length(2) > 1)
         {
             auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
                                          {false,true,true}, true);
@@ -1249,7 +1250,9 @@ template <typename T, Direction D, bool C>
 T R2C<T,D,C>::scalingFactor () const
 {
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.twod_mode) {
+    if (m_info.oned_mode && !m_info.twod_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)));
+    } else if (m_info.twod_mode) {
         return T(1)/T(Long(m_real_domain.length(0)) *
                       Long(m_real_domain.length(1)));
     } else
