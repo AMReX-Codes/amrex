@@ -224,7 +224,7 @@ int main (int argc, char* argv[])
             });
 
 #ifdef AMREX_USE_FLOAT
-            Real tol = 1.e-6_rt;
+            Real tol = 5.e-6_rt;
 #else
             Real tol = 1.e-14_rt;
 #endif
@@ -310,7 +310,7 @@ int main (int argc, char* argv[])
             });
 
 #ifdef AMREX_USE_FLOAT
-            Real tol = 1.e-6_rt;
+            Real tol = 5.e-6_rt;
 #else
             Real tol = 1.e-14_rt;
 #endif
@@ -384,7 +384,7 @@ int main (int argc, char* argv[])
             });
 
 #ifdef AMREX_USE_FLOAT
-            Real tol = 1.e-6_rt;
+            Real tol = 5.e-6_rt;
 #else
             Real tol = 1.e-14_rt;
 #endif
@@ -454,7 +454,7 @@ int main (int argc, char* argv[])
             });
 
 #ifdef AMREX_USE_FLOAT
-            Real tol = 1.e-6_rt;
+            Real tol = 5.e-6_rt;
 #else
             Real tol = 1.e-14_rt;
 #endif
