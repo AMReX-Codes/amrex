@@ -52,7 +52,7 @@ public:
 
     //! Access the EBCellFlag data (always available at least for EBSupport::basic).
     [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
-    //! Signed-distance field of the EB (basic support and above).
+    //! Level set field of the EB (basic support and above).
     [[nodiscard]] const MultiFab& getLevelSet () const;
     //! Volume fraction (EBSupport::volume/full).
     [[nodiscard]] const MultiFab& getVolFrac () const;
@@ -70,12 +70,13 @@ public:
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
     //! Edge centroid MultiCutFabs.
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
-    //! Optional cut-cell mask (only for addRegularCoarseLevels).
+    //! cut-cell mask. The returned pointer is nullptr for AllRegular EB.
     [[nodiscard]] const iMultiFab* getCutCellMask () const;
 
+    /// \cond DOXYGEN_IGNORE
     // public for cuda
-    //! Extend ghost data beyond the domain to satisfy EB support requirements.
     void extendDataOutsideDomain (IntVect const& level_ng);
+    /// \endcond
 
 private:
 

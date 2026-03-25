@@ -62,7 +62,7 @@ struct EBData
                                            AMREX_D_TERM(|| T==EBData_t::fcx,
                                                         || T==EBData_t::fcy,
                                                         || T==EBData_t::fcz), int> = 0>
-    //! Access vector-valued entries (component \p n) at (i,j,k).
+    //! Access data at (i,j,k), component \p n.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto get (int i, int j, int k, int n) const noexcept
     {
@@ -202,7 +202,7 @@ struct EBData
     Array4<Real const> const* m_real_data = nullptr;
 };
 
-//! Views aggregating EBData for multiple boxes (e.g., across MFIter tiles).
+//! Views aggregating EBData for multiple boxes.
 struct EBDataArrays
 {
     template <EBData_t T>
@@ -223,7 +223,7 @@ struct EBDataArrays
                                            AMREX_D_TERM(|| T==EBData_t::fcx,
                                                         || T==EBData_t::fcy,
                                                         || T==EBData_t::fcz), int> = 0>
-    //! Access vector data for box \p box_no and component \p n.
+    //! Access data for box \p box_no and at (i,j,k), component \p n.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto get (int box_no, int i, int j, int k, int n) const noexcept
     {
