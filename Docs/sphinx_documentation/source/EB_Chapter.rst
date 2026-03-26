@@ -23,9 +23,9 @@ cell shapes. See :numref:`fig::ebexample` for an illustration.
 .. figure:: ./EB/EB_example.png
    :width: 50.0%
 
-   : In the embedded boundary approach to discretizing PDEs, the (uniform)
+   In the embedded boundary approach to discretizing PDEs, the (uniform)
    rectangular mesh is cut by the irregular shape of the computational domain.
-   The cells in the mesh are label as regular, cut or covered.
+   The cells in the mesh are labeled as regular, cut, or covered.
 
 .. raw:: latex
 
@@ -42,9 +42,9 @@ numerical algorithms) supported.
 AMReX's relatively simple grid generation technique allows computational
 meshes for rather complex geometries to be generated quickly and robustly.
 However, the technique can produce arbitrarily small cut cells in the domain.
-In practice such small cells can have significant impact on the robustness and
+In practice, such small cells can have significant impact on the robustness and
 stability of traditional finite volume methods. The redistribution_ section
-in AMReX-Hydro's documentation overviews the
+in AMReX-Hydro's documentation provides an overview of the
 finite volume discretization in an embedded boundary cell and a
 class of approaches to deal with this "small cell" problem in a robust and
 efficient way.
@@ -57,7 +57,7 @@ conservation law systems. The discussion will focus on general requirements
 associated with building fluxes and taking divergences of them to advance such
 systems. We also give examples of how to initialize the geometry data
 structures and access them to build the numerical difference
-operators.  Finally we present EB support of linear solvers.
+operators.  Finally, we present EB support for linear solvers.
 
 
 .. toctree::

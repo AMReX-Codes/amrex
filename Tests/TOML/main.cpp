@@ -106,6 +106,20 @@ int main(int argc, char* argv[])
         pp.getarr("integers3", iv3);
         n = pp.countval("integers3");
         AMREX_ALWAYS_ASSERT(n == 2 && iv3 == std::vector<int>({1,2}));
+
+        // Test indexed access to TOML arrays via get("name", val, ival)
+        int ival;
+        pp.get("integers", ival, 0);
+        AMREX_ALWAYS_ASSERT(ival == 1);
+        pp.get("integers", ival, 1);
+        AMREX_ALWAYS_ASSERT(ival == 2);
+        pp.get("integers", ival, 2);
+        AMREX_ALWAYS_ASSERT(ival == 3);
+
+        // Test query variant
+        int qval = -1;
+        bool found = pp.query("integers", qval, 1);
+        AMREX_ALWAYS_ASSERT(found && qval == 2);
     }
 #endif
 

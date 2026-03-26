@@ -1184,13 +1184,25 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             for(MFIter mfi(*data); mfi.isValid(); ++mfi) {
                 const FArrayBox &fab = (*data)[mfi];
                 writeDataItems = fab.box().numPts();
+                Real const* fabdata = fab.dataPtr();
+#ifdef AMREX_USE_GPU
+                std::unique_ptr<FArrayBox> hostfab;
+                if (fab.arena()->isManaged() || fab.arena()->isDevice()) {
+                    hostfab = std::make_unique<FArrayBox>(fab.box(), fab.nComp(),
+                                                          The_Pinned_Arena());
+                    Gpu::dtoh_memcpy_async(hostfab->dataPtr(), fab.dataPtr(),
+                                           fab.size()*sizeof(Real));
+                    Gpu::streamSynchronize();
+                    fabdata = hostfab->dataPtr();
+                }
+#endif
                 if(doConvert) {
                     RealDescriptor::convertFromNativeFormat(static_cast<void *> (a_buffer.dataPtr()),
-                                                            writeDataItems * ncomp, fab.dataPtr(), *whichRD);
+                                                            writeDataItems * ncomp, fabdata, *whichRD);
 
                 } else {    // ---- copy from the fab
                     memcpy(static_cast<void *> (a_buffer.dataPtr()),
-                           fab.dataPtr(), writeDataItems * ncomp * whichRDBytes);
+                           fabdata, writeDataItems * ncomp * whichRDBytes);
                 }
 
                 // Extract individual variable data

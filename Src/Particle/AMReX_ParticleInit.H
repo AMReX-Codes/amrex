@@ -702,9 +702,9 @@ InitFromBinaryFile (const std::string& file,
     //
     Long MyCnt = NP / NReaders;
 
-    if (MyProc == rprocs[0]) {
+    if (MyProc == rprocs[NReaders-1]) {
         //
-        // Give any remainder to the first reader.
+        // Give any remainder to the last reader.
         //
         MyCnt += NP % NReaders;
     }

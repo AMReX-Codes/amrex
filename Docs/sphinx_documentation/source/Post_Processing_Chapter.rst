@@ -3,9 +3,9 @@
 Post-Processing
 ===============
 
-There are utilities you can build that can read in plotfiles into a
-:cpp:`MultiFab` and perform post-processing.  Since the data is read into
-:cpp:`MultiFab` you can perform standard :cpp:`MFIter` loops to iterate over
+There are utilities you can build that can read plotfiles into a
+:cpp:`MultiFab` and perform post-processing.  Since the data is read into a
+:cpp:`MultiFab`, you can perform standard :cpp:`MFIter` loops to iterate over
 the data to perform calculations.
 
 .. toctree::

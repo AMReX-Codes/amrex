@@ -156,8 +156,8 @@ namespace amrex
         T flo = f(lo);
         T fhi = f(hi);
 
-        if (flo == T(0)) { return flo; }
-        if (fhi == T(0)) { return fhi; }
+        if (flo == T(0)) { return lo; }
+        if (fhi == T(0)) { return hi; }
 
         AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
             "Error - calling bisect but lo and hi don't bracket a root.");
@@ -177,7 +177,7 @@ namespace amrex
             ++n;
         }
 
-        AMREX_ASSERT_WITH_MESSAGE(n < max_iter,
+        AMREX_ASSERT_WITH_MESSAGE(n <= max_iter,
             "Error - maximum number of iterations reached in bisect.");
 
         return mi;

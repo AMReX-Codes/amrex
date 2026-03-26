@@ -621,7 +621,7 @@ public:
     //! the middle if present as a single string. For example, `foo = a b c`
     //! is treated by this function as a single string "a b c", whereas
     //! get() will give only "a" and getarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -631,7 +631,7 @@ public:
     //! in the middle if present as a single string. For example, `foo = a b
     //! c` is treated by this function as a single string "a b c", whereas
     //! query() will give only "a" and queryarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -911,7 +911,7 @@ public:
                      std::vector<std::string>& ref,
                      int                       start_ix = FIRST,
                      int                       num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view          name,
                   std::vector<std::string>& ref,
                   int                       start_ix = FIRST,
@@ -946,7 +946,7 @@ public:
                      std::vector<IntVect>& ref,
                      int                   start_ix = FIRST,
                      int                   num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view      name,
                   std::vector<IntVect>& ref,
                   int                   start_ix = FIRST,
@@ -981,7 +981,7 @@ public:
                      std::vector<Box>& ref,
                      int               start_ix = FIRST,
                      int               num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view  name,
                   std::vector<Box>& ref,
                   int               start_ix = FIRST,
@@ -1706,11 +1706,14 @@ public:
     static int Verbose ();
     static void SetVerbose (int v);
 
-    //! Write the contents of the table in ASCII to the ostream.
+    //! Write the contents of the table in ASCII to the ostream (diagnostic only, not valid ParmParse syntax).
+    //! Diagnostic view of the internal table. This text is not valid ParmParse syntax
+    //! and is meant for debugging only; use prettyPrintTable() for canonical, re-readable output.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
-    //! Write all entries in the table in a pretty way to the ostream. If there are
-    //! duplicates, only the last one is printed.
+    //! Write all entries in ParmParse syntax suitable for re-reading. If
+    //! there are duplicates, only the last one is printed; the output can be fed
+    //! back to ParmParse via addfile/Initialize.
     static void prettyPrintTable (std::ostream& os);
 
     //! Write unused inputs in a pretty way to the ostream. If there are
@@ -1735,12 +1738,19 @@ public:
     //! Returns [prefix.]* parameters.
     [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
+    enum class QuoteType : unsigned char {
+        None = 0,
+        Double,
+        Triple
+    };
+
     struct PP_entry {
         // There can be multiple occurrences for a given name (e.g.,
         // multiple lines starting with `foo =` in inputs. For each
         // occurrence, there can be multiple values. Thus, the use of
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
+        std::vector<std::vector<QuoteType>>   m_quotes;
         mutable Long                          m_count = 0;
         mutable std::variant<
             std::string*,

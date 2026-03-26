@@ -200,13 +200,13 @@ public:
 
 protected:
 
-    bool m_needs_update = true;
-
     Vector<int> m_is_singular;
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 
 private:
+
+    bool m_needs_update = true;
 
     int m_ncomp = 1;
 

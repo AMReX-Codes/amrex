@@ -334,7 +334,7 @@ public:
     */
     [[nodiscard]] bool contains (const BaseFab<T>& fab) const noexcept
     {
-        return box().contains(fab.box()) && this->nvar <= fab.nvar;
+        return box().contains(fab.box()) && this->nvar >= fab.nvar;
     }
 
     /**
@@ -1706,12 +1706,9 @@ BaseFab<T>::clear () noexcept
             placementDelete(this->dptr, this->truesize);
 
 #ifdef AMREX_USE_GPU
-            auto current_stream = Gpu::Device::gpuStream();
-            Gpu::Device::setStream(alloc_stream);
-#endif
+            this->arena()->streamOrderedFree(this->dptr, alloc_stream);
+#else
             this->free(this->dptr);
-#ifdef AMREX_USE_GPU
-            Gpu::Device::setStream(current_stream);
 #endif
 
             if (this->nvar > 1) {

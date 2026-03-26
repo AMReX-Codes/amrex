@@ -9,6 +9,7 @@
 #include <AMReX_Utility.H>
 
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
@@ -50,14 +51,37 @@ ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
 namespace
 {
 
+bool is_toml_array (std::string const& token);
+
 std::string pp_to_pretty_string (std::string const& name,
                                  std::vector<std::string> const& vals,
+                                 std::vector<ParmParse::QuoteType> const* quotes,
                                  ParmParse::PP_entry const* entry)
 {
     std::stringstream ss;
     ss << name << " =";
-    for (auto const& v : vals) {
-        ss << " " << v;
+    for (std::size_t i = 0; i < vals.size(); ++i) {
+        auto const& v = vals[i];
+        if (is_toml_array(v)) {
+            ss << " " << v.substr(5); // length of $$ARR is 5.
+        } else {
+            ParmParse::QuoteType quote = ParmParse::QuoteType::None;
+            if (quotes != nullptr && i < quotes->size()) {
+                quote = (*quotes)[i];
+            }
+            switch (quote) {
+            case ParmParse::QuoteType::Double:
+                ss << " \"" << v << "\"";
+                break;
+            case ParmParse::QuoteType::Triple:
+                ss << R"( """)" << v << R"(""")";
+                break;
+            case ParmParse::QuoteType::None:
+            default:
+                ss << " " << v;
+                break;
+            }
+        }
     }
     if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
         int min_col = 36;
@@ -82,9 +106,13 @@ std::string pp_to_string (std::string const& name,
 {
     std::stringstream ss;
     ss << name << "(nvals = " << vals.size() << ") " << " :: [";
-    for (std::size_t i = 0; i < vals.size(); ++i) {
-        ss << vals[i];
-        if ( i < vals.size()-1 ) { ss << ", "; }
+    if (vals.size() == 1 && is_toml_array(vals[0])) {
+        ss << vals[0].substr(5); // length of $$ARR is 5.
+    } else {
+        for (std::size_t i = 0; i < vals.size(); ++i) {
+            ss << vals[i];
+            if ( i < vals.size()-1 ) { ss << ", "; }
+        }
     }
     ss << "]";
     return ss.str();
@@ -131,23 +159,57 @@ is_floating_point (const std::string& str, T& val)
 
 template <class T>
 bool
+is_literal_bool (const std::string& str, T& val)
+{
+    auto const lo_str = amrex::toLower(str);
+    if ( lo_str == "true" || lo_str == "t" ) {
+        val = static_cast<T>(1);
+        return true;
+    } else if ( lo_str == "false" || lo_str == "f" ) {
+        val = static_cast<T>(0);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+template <class T>
+bool
 is (const std::string& str, T& val)
 {
-    return isT(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, float& val)
-{
-    return is_floating_point(str, val);
-}
-
-template <>
-bool
-is (const std::string& str, double& val)
-{
-    return is_floating_point(str, val);
+    if constexpr (std::is_integral_v<T>) {
+        if (is_literal_bool(str, val)) {
+            return true;
+        }
+        if (isT(str, val)) {
+            return true;
+        }
+        // Treat 123., 123.0, 123.00 etc. as integer.
+        auto dec = str.find('.');
+        if (dec == std::string::npos) {
+            return false;
+        }
+        if (dec+1 == str.size()) {
+            std::string stripped = str;
+            stripped.pop_back();
+            return isT(stripped, val);
+        }
+        auto begin_it = str.begin() + static_cast<std::ptrdiff_t>(dec+1);
+        auto end_it = str.end();
+        if (!std::all_of(begin_it, end_it, [] (char c) { return c == '0'; })) {
+            return false;
+        }
+        std::string stripped = str;
+        stripped.erase(dec);
+        return isT(stripped, val);
+    } else if constexpr (std::is_floating_point_v<T>) {
+        if (is_literal_bool(str, val)) {
+            return true;
+        }
+        return is_floating_point(str, val);
+    } else {
+        return isT(str, val);
+    }
 }
 
 template <>
@@ -162,15 +224,7 @@ template <>
 bool
 is (const std::string& str, bool& val)
 {
-    auto const lo_str = amrex::toLower(str);
-    if ( lo_str == "true" || lo_str == "t" )
-    {
-        val = true;
-        return true;
-    }
-    if ( lo_str == "false" || lo_str == "f" )
-    {
-        val = false;
+    if (is_literal_bool(str, val)) {
         return true;
     }
     int int_val;
@@ -268,12 +322,13 @@ void eat_comment (const char*& str)
 
 PType
 getToken (const char*& str, std::string& ostr, int& num_linefeeds,
-          bool& newline_from_comment)
+          bool& newline_from_comment, ParmParse::QuoteType& quote_type)
 {
    //
    // Eat white space and comments.
    //
    num_linefeeds = eat_garbage(str, &newline_from_comment);
+   quote_type = ParmParse::QuoteType::None;
     //
     // Check for end of file.
     //
@@ -315,9 +370,11 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
                         ++str;
                     }
                     state = lexState::TRIPLY_QUOTED_STRING;
+                    quote_type = ParmParse::QuoteType::Triple;
                 } else {
                     str++;
                     state = lexState::QUOTED_STRING;
+                    quote_type = ParmParse::QuoteType::Double;
                 }
             }
             else if ( ch == '(' )
@@ -332,7 +389,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             }
             else if ( ch == '[' )
             {
-                ostr += "ARRAY[";
+                ostr += "$$ARR[";
                 str++; sbcnt = 1;
                 array_in_string = false;
                 array_escape = false;
@@ -491,7 +548,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
 
 std::string is_valid_table_key (std::string const& str)
 {
-    if (str.size() >= 8 && str.substr(0,6) == "ARRAY[" && str.back() == ']') {
+    if (str.size() >= 8 && str.substr(0,6) == "$$ARR[" && str.back() == ']') {
         auto key = str.substr(6, str.size()-7);
         bool r = std::isalpha(key[0]);
         for (std::size_t i = 1; i < key.size() && r; ++i) {
@@ -681,7 +738,8 @@ read_file (const char* fname, ParmParse::Table& tab)
 }
 
 void
-addDefn (std::string& def, std::vector<std::string>& val, ParmParse::Table& tab)
+addDefn (std::string& def, std::vector<std::string>& val,
+         std::vector<ParmParse::QuoteType>& val_quotes, ParmParse::Table& tab)
 {
     //
     // Check that defn exists.
@@ -699,6 +757,7 @@ addDefn (std::string& def, std::vector<std::string>& val, ParmParse::Table& tab)
         amrex::ErrorStream() << "ParmParse::addDefn(): no values for definition " << def << "\n";
         amrex::Abort();
     }
+    AMREX_ALWAYS_ASSERT(val.size() == val_quotes.size());
     //
     // Check if this defn is a file include directive.
     //
@@ -722,8 +781,10 @@ addDefn (std::string& def, std::vector<std::string>& val, ParmParse::Table& tab)
             key.append(g_toml_table_key).append(".").append(def);
         }
         tab[key].m_vals.push_back(val);
+        tab[key].m_quotes.push_back(val_quotes);
     }
     val.clear();
+    val_quotes.clear();
     def = std::string();
 }
 
@@ -732,6 +793,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
 {
     std::string              cur_value;
     std::vector<std::string> cur_list;
+    std::vector<ParmParse::QuoteType> cur_quotes;
     std::vector<int>         cur_linefeeds;
 
     for (;;)
@@ -739,8 +801,9 @@ bldTable (const char*& str, ParmParse::Table& tab)
         std::string tokvalue;
         int num_linefeeds;
         bool newline_from_comment = false;
+        ParmParse::QuoteType tok_quote = ParmParse::QuoteType::None;
 
-        PType toktype = getToken(str, tokvalue, num_linefeeds, newline_from_comment);
+        PType toktype = getToken(str, tokvalue, num_linefeeds, newline_from_comment, tok_quote);
 
         switch (toktype)
         {
@@ -756,7 +819,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
                 error_message.append(". Must use \\ for line continuation.");
                 amrex::Abort(error_message);
             }
-            addDefn(cur_value,cur_list,tab);
+            addDefn(cur_value,cur_list,cur_quotes,tab);
             return;
         }
         case PType::EQ_sign:
@@ -768,6 +831,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
                 //
                 auto tmp_str = cur_list.back();
                 cur_list.pop_back();
+                cur_quotes.pop_back();
                 cur_linefeeds.pop_back();
                 if (std::accumulate(cur_linefeeds.begin(), cur_linefeeds.end(), int(0)) > 0)
                 {
@@ -779,7 +843,7 @@ bldTable (const char*& str, ParmParse::Table& tab)
                     error_message.append(". Must use \\ for line continuation.");
                     amrex::Abort(error_message);
                 }
-                addDefn(cur_value,cur_list,tab);
+                addDefn(cur_value,cur_list,cur_quotes,tab);
                 cur_value = std::move(tmp_str);
             }
             cur_linefeeds.clear();
@@ -804,10 +868,11 @@ bldTable (const char*& str, ParmParse::Table& tab)
             if (cur_value.empty() && cur_list.empty() && !table_key.empty()) {
                 g_toml_table_key = std::move(table_key);
             } else if ((table_header_on_newline) && !cur_list.empty() && !table_key.empty()) {
-                addDefn(cur_value,cur_list,tab);
+                addDefn(cur_value,cur_list,cur_quotes,tab);
                 g_toml_table_key = std::move(table_key);
             } else {
                 cur_list.push_back(std::move(tokvalue));
+                cur_quotes.push_back(tok_quote);
                 cur_linefeeds.push_back(num_linefeeds);
             }
             break;
@@ -971,6 +1036,8 @@ void read_array_2d (std::vector<std::vector<T>>& ref, std::string const& str)
     }
 }
 
+bool is_toml_1d_array (std::string const& token);
+
 template <class T>
 bool
 squeryval (const ParmParse::Table& table,
@@ -997,6 +1064,27 @@ squeryval (const ParmParse::Table& table,
     {
         using T_ptr = std::decay_t<T>*;
         entry.m_typehint = static_cast<T_ptr>(nullptr);
+    }
+
+    //
+    // Handle TOML array: stored as single token "$$ARR[v0,v1,...]"
+    //
+    if (!(def->empty()) && is_toml_1d_array((*def)[0])) {
+        std::vector<T> toml_vals;
+        read_array_1d(toml_vals, (*def)[0]);
+        if (ival >= static_cast<int>(toml_vals.size())) {
+            amrex::ErrorStream() << "ParmParse::queryval no value number "
+                                 << ival << " for ";
+            if ( occurrence ==  ParmParse::LAST ) {
+                amrex::ErrorStream() << "last occurrence of ";
+            } else {
+                amrex::ErrorStream() << " occurrence " << occurrence << " of ";
+            }
+            amrex::ErrorStream() << name << '\n' << pp_to_string(name,*def) << '\n';
+            amrex::Abort();
+        }
+        ref = toml_vals[ival];
+        return true;
     }
 
     //
@@ -1090,19 +1178,25 @@ sgetval (const ParmParse::Table& table,
     }
 }
 
-// Checks if token matches ARRAY[...]
+// Checks if token matches $$ARR[...]
 bool is_toml_array (std::string const& token)
 {
-    return token.size() >= 7 && token.compare(0,6,"ARRAY[") == 0 &&
+    return token.size() >= 7 && token.compare(0,6,"$$ARR[") == 0 &&
         token.back() == ']';
 }
 
-// Checks if token matches ARRAY[[...]]
+// Checks if token matches $$ARR[[...]]
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
-    return sz >= 9 && token.compare(0,7,"ARRAY[[") == 0 &&
+    return sz >= 9 && token.compare(0,7,"$$ARR[[") == 0 &&
         token.compare(sz-2,2,"]]") == 0;
+}
+
+// Checks if token matches $$ARR[...] but not $$ARR[[...]]
+bool is_toml_1d_array (std::string const& token)
+{
+    return is_toml_array(token) && !is_toml_2d_array(token);
 }
 
 template <class T>
@@ -1255,14 +1349,36 @@ sgetarr (const ParmParse::Table& table,
 }
 
 template <class T>
+std::string to_toml_value (const T& ref)
+{
+    using TT = std::remove_reference_t<T>;
+    std::stringstream ss;
+    if constexpr (std::is_floating_point_v<TT>) {
+        ss << std::setprecision(std::numeric_limits<TT>::max_digits10);
+    } else if constexpr (std::is_same_v<TT,bool>) {
+        ss << std::boolalpha;
+    }
+    ss << ref;
+    std::string s = ss.str();
+    if constexpr (std::is_floating_point_v<TT>) {
+        const std::regex digits_only(R"([+-]?\d+)");
+        if (std::regex_match(s, digits_only)) {
+            s += ".0";
+        }
+    }
+    return s;
+}
+
+template <class T>
 void
 saddval (const std::string& name, const T& ref)
 {
-    std::stringstream val;
-    val << std::setprecision(17) << ref;
-
+    std::string s = to_toml_value(ref);
     auto& entry = g_table[name];
-    entry.m_vals.emplace_back(std::vector<std::string>{val.str()});
+    entry.m_vals.emplace_back(1, std::move(s));
+    auto qt = std::is_same_v<std::remove_reference_t<T>,std::string>
+        ? ParmParse::QuoteType::Double : ParmParse::QuoteType::None;
+    entry.m_quotes.emplace_back(1, qt);
     ++entry.m_count;
     using T_ptr = std::decay_t<T>*;
     entry.m_typehint = static_cast<T_ptr>(nullptr);
@@ -1275,13 +1391,15 @@ saddarr (const std::string& name, const std::vector<T>& ref)
     std::vector<std::string> arr;
     arr.reserve(ref.size());
     for (auto const& item : ref) {
-        std::stringstream val;
-        val << std::setprecision(17) << item;
-        arr.push_back(val.str());
+        arr.push_back(to_toml_value(item));
     }
 
     auto& entry = g_table[name];
+    auto arr_size = arr.size();
     entry.m_vals.emplace_back(std::move(arr));
+    auto qt = std::is_same_v<std::remove_reference_t<T>,std::string>
+        ? ParmParse::QuoteType::Double : ParmParse::QuoteType::None;
+    entry.m_quotes.emplace_back(arr_size, qt);
     ++entry.m_count;
     using T_ptr = std::decay_t<T>*;
     entry.m_typehint = static_cast<T_ptr>(nullptr);
@@ -1328,6 +1446,9 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
             auto& src = arg_entry.m_vals;
             auto& dst = table[name].m_vals;
             std::move(std::begin(src), std::end(src), std::back_inserter(dst));
+            auto& src_quotes = arg_entry.m_quotes;
+            auto& dst_quotes = table[name].m_quotes;
+            std::move(std::begin(src_quotes), std::end(src_quotes), std::back_inserter(dst_quotes));
         }
     }
     initialized = true;
@@ -1508,8 +1629,9 @@ ParmParse::addfile (std::string const& filename) {
 
     // add the file
     auto file = FileKeyword;
-    std::vector<std::string> val{{filename}};
-    addDefn(file, val, g_table);
+    std::vector<std::string> val(1, filename);
+    std::vector<ParmParse::QuoteType> val_quotes(1, ParmParse::QuoteType::None);
+    addDefn(file, val, val_quotes, g_table);
 
     g_toml_table_key.clear();
 }
@@ -1647,6 +1769,8 @@ ParmParse::SetParserPrefix (std::string a_prefix)
     ParmParse::ParserPrefix = std::move(a_prefix);
 }
 
+// dumpTable is a diagnostic view and its output is not intended to be fed back to ParmParse.
+// Use prettyPrintTable when you need canonical, re-readable ParmParse syntax.
 void
 ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
 {
@@ -1660,8 +1784,11 @@ ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
     for (auto const& name : sorted_names) {
         auto const& entry = g_table[name];
         if (prettyPrint && entry.m_count > 0) {
-            for (auto const& vals : entry.m_vals) {
-                os << pp_to_pretty_string(name, vals, nullptr) << '\n';
+            for (std::size_t i = 0; i < entry.m_vals.size(); ++i) {
+                auto const& vals = entry.m_vals[i];
+                auto const* quotes = (i < entry.m_quotes.size())
+                    ? &(entry.m_quotes[i]) : nullptr;
+                os << pp_to_pretty_string(name, vals, quotes, nullptr) << '\n';
             }
         }
         else {
@@ -1696,14 +1823,18 @@ void pretty_print_table (std::ostream& os, PPFlag pp_flag)
     for (auto const& name : sorted_names) {
         auto const& entry = g_table[name];
         if (! entry.m_vals.empty()) {
-            auto const& val = entry.m_vals.back();
-            os << pp_to_pretty_string(name, val, &entry) << '\n';
+            auto const idx = entry.m_vals.size() - 1;
+            auto const& val = entry.m_vals[idx];
+            auto const* quotes = (idx < entry.m_quotes.size())
+                ? &(entry.m_quotes[idx]) : nullptr;
+            os << pp_to_pretty_string(name, val, quotes, &entry) << '\n';
         }
     }
 }
 
 }
 
+// prettyPrintTable emits valid ParmParse syntax that can be parsed again.
 void
 ParmParse::prettyPrintTable (std::ostream& os)
 {
@@ -1764,7 +1895,7 @@ ParmParse::countval (std::string_view name,
                     break;
                 }
             }
-            if (token != "ARRAY[]") {
+            if (token != "$$ARR[]") {
                 ++count; // unless it's an empty array, increase by 1 because we counted commas, not really the number of elements
             }
         }

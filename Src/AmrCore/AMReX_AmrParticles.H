@@ -8,8 +8,27 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_FillPatchUtil.H>
 
+/**
+ * \file AMReX_AmrParticles.H
+ * \brief AMR-aware particle container helpers and mesh deposition utilities.
+ */
+
 namespace amrex {
 
+// This is already documented in AMReX_ParticleContainer.H. So we need Doxygen to
+// ignore it to avoid warnings.
+/// \cond DOXYGEN_IGNORE
+/**
+ * \brief Deposit particle mass to cell-centered densities across AMR levels.
+ *
+ * \param rho_index   Component in the StructReal array holding density (must be 0).
+ * \param mf_to_be_filled Per-level MultiFabs to be allocated/fill (one MultiFab per level, resized inside).
+ * \param lev_min     Coarsest AMR level to populate.
+ * \param ncomp       Number of components to deposit (1 or AMREX_SPACEDIM+1).
+ * \param finest_level Optional override for the finest level considered (-1 uses container finest).
+ * \param ngrow       Desired grow cells for level \p lev_min (others inferred from refRatio()).
+ */
+/// \endcond
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
@@ -151,6 +170,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 }
 
+/**
+ * \brief Deposit particles onto a hierarchy of MultiFabs.
+ *
+ * \tparam PC Particle container type satisfying IsParticleContainer.
+ * \tparam F  Functor invoked per particle to accumulate into the field.
+ * \param pc            Particle container.
+ * \param mf            Vector of destination MultiFabs, indexed by level.
+ * \param lev_min       Coarsest level to fill.
+ * \param lev_max       Finest level to fill (-1 uses pc.finestLevel()).
+ * \param f             Functor converting particle data into nodal values.
+ * \param zero_out_input Whether to zero the MultiFabs before depositing.
+ * \param vol_weight    Whether to divide by cell volume after deposition.
+ */
 template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
 void
 ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
@@ -255,6 +287,9 @@ ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
 
 template <typename T_ParticleType, int NArrayReal=0, int NArrayInt=0,
           template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
+/**
+ * \brief Particle container that automatically pulls grid metadata from AmrCore when available.
+ */
 class AmrParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public ParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 {
@@ -263,16 +298,26 @@ public:
 
     using ParticleType = T_ParticleType;
 
+    //! Construct an empty container (call Define later).
     AmrParticleContainer_impl ()
         : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>()
     {
     }
 
+    //! Construct from \p amr_core.
     AmrParticleContainer_impl (AmrCore* amr_core)
         : ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>(amr_core->GetParGDB())
     {
     }
 
+    /**
+     * \brief Construct from explicit Geometry, DistributionMapping and BoxArray.
+     *
+     * \param geom  Per-level geometries.
+     * \param dmap  Per-level distribution maps.
+     * \param ba    Per-level BoxArrays.
+     * \param rr    Refinement ratios between levels.
+     */
     AmrParticleContainer_impl (const Vector<Geometry>            & geom,
                                const Vector<DistributionMapping> & dmap,
                                const Vector<BoxArray>            & ba,
@@ -290,15 +335,20 @@ public:
     AmrParticleContainer_impl& operator= ( AmrParticleContainer_impl && ) noexcept = default;
 };
 
+//! Convenience alias that binds Particle<T_NStructReal,T_NStructInt> to AmrParticleContainer_impl.
 template <int T_NStructReal, int T_NStructInt=0, int T_NArrayReal=0, int T_NArrayInt=0,
           template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using AmrParticleContainer = AmrParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
+/**
+ * \brief Simple tracer container that wires TracerParticleContainer to an AmrCore.
+ */
 class AmrTracerParticleContainer
     : public TracerParticleContainer
 {
 public:
 
+    //! Construct from \p amr_core.
     AmrTracerParticleContainer (AmrCore* amr_core)
         : TracerParticleContainer(amr_core->GetParGDB())
     {

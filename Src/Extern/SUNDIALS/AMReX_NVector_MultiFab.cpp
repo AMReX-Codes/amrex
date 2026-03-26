@@ -203,11 +203,14 @@ N_Vector N_VClone_MultiFab(N_Vector w)
 
 void N_VDestroy_MultiFab(N_Vector v)
 {
+    if (v == nullptr) { return; }
     if (amrex::sundials::N_VGetOwnMF_MultiFab(v) == SUNTRUE)
     {
          delete amrex::sundials::getMFptr(v);
          amrex::sundials::getMFptr(v) = nullptr;
     }
+    std::free(v->content);
+    v->content = nullptr;
     N_VFreeEmpty(v);
 }
 
@@ -399,6 +402,7 @@ amrex::Real N_VMaxNorm_MultiFab(N_Vector x)
 amrex::Real N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
 {
     auto N = amrex::sundials::N_VGetLength_MultiFab(x);
+    if (N <= 0) { return amrex::Real(0.0); }
     return N_VWL2Norm_MultiFab(x, w)*std::sqrt(1.0_rt/Real(N));
 }
 
@@ -470,7 +474,7 @@ amrex::Real N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
 {
     using namespace amrex;
 
-    return NormHelper_NVector_MultiFab(x, w, N_VCloneEmpty_MultiFab(x), false, false);
+    return NormHelper_NVector_MultiFab(x, w, nullptr, false, false);
 }
 
 amrex::Real N_VL1Norm_MultiFab(N_Vector x)
@@ -564,7 +568,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
         const amrex::Box& bx = mfi.validbox();
         Array4<Real> const& x_fab = mf_x->array(mfi);
         Array4<Real> const& a_fab = mf_a->array(mfi);
-        Array4<Real> const& m_fab = mf_a->array(mfi);
+        Array4<Real> const& m_fab = mf_m->array(mfi);
         //Changing continue to if check, temp calculation should be changed to reduction
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept

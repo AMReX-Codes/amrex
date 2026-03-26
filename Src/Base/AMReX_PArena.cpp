@@ -120,6 +120,27 @@ PArena::free (void* p)
 #endif
 }
 
+#ifdef AMREX_USE_GPU
+void
+PArena::streamOrderedFree (void* p, gpuStream_t stream)
+{
+    if (p == nullptr) { return; }
+
+#if defined(AMREX_GPU_STREAM_ALLOC_SUPPORT)
+    if (Gpu::Device::memoryPoolsSupported()) {
+        m_profiler.profile_free(p);
+        AMREX_HIP_OR_CUDA(
+            AMREX_HIP_SAFE_CALL(hipFreeAsync(p, stream));,
+            AMREX_CUDA_SAFE_CALL(cudaFreeAsync(p, stream));
+        )
+    } else
+#endif
+    {
+        Gpu::Device::streamOrderedFreeAsync(The_Arena(), p, stream);
+    }
+}
+#endif
+
 bool
 PArena::isDeviceAccessible () const
 {

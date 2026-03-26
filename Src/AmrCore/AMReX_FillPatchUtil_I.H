@@ -194,6 +194,23 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     physbcf(mf, dcomp, ncomp, nghost, time, bcfcomp);
 }
 
+/**
+ * \brief Helper that applies a MFInterpolater to fill a fine patch from a coarse patch.
+ *
+ * \param mf_fine_patch Destination fine patch MultiFab.
+ * \param fcomp         Starting component in the fine patch.
+ * \param mf_crse_patch Source coarse patch MultiFab.
+ * \param ccomp         Starting component in the coarse patch.
+ * \param ncomp         Number of components to interpolate.
+ * \param ng            Fine ghost-cell vector to fill.
+ * \param cgeom         Coarse Geometry.
+ * \param fgeom         Fine Geometry.
+ * \param dest_domain   Fine-domain box describing where values are valid.
+ * \param ratio         Refinement ratio.
+ * \param mapper        MFInterpolater to use.
+ * \param bcs           Boundary-condition records per component.
+ * \param bcscomp       Starting component within the BC array.
+ */
 void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crse_patch, int ccomp,
                       int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
                       Box const& dest_domain, const IntVect& ratio,

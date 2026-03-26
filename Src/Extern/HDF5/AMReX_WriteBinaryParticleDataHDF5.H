@@ -14,12 +14,15 @@ static int CreateWriteHDF5Attr(hid_t loc, const char *name, hsize_t n, void *dat
     attr = H5Acreate(loc, name, dtype, attr_space, H5P_DEFAULT, H5P_DEFAULT);
     if (attr < 0) {
         amrex::Print() << " Error with H5Acreate [" << name << "]\n";
+        H5Sclose(attr_space);
         return -1;
     }
 
     ret  = H5Awrite(attr, dtype, (void*)data);
     if (ret < 0) {
         amrex::Print() << " Error with H5Awrite [" << name << "]\n";
+        H5Sclose(attr_space);
+        H5Aclose(attr);
         return -1;
     }
     H5Sclose(attr_space);
@@ -135,7 +138,11 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
 
-    AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
+    {
+        int nrc = PC::ParticleType::is_soa_particle ?
+            pc.NumRealComps() + NStructReal - AMREX_SPACEDIM : pc.NumRealComps() + NStructReal;
+        AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == nrc);
+    }
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -270,7 +277,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         CreateWriteHDF5AttrString(fid, "version_name", versionName.c_str());
 
         int num_output_real = 0;
-        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i) {
+        for (int i = 0; i < static_cast<int>(write_real_comp.size()); ++i) {
             if (write_real_comp[i]) { ++num_output_real; }
         }
 
@@ -295,7 +302,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // Real component names
         int real_comp_count = AMREX_SPACEDIM; // position values
 
-        for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
+        for (int i = 0; i < static_cast<int>(write_real_comp.size()); ++i ) {
             if (write_real_comp[i]) {
                 /* HdrFile << real_comp_names[i] << '\n'; */
                 snprintf(comp_name, sizeof comp_name, "real_component_%d", real_comp_count);

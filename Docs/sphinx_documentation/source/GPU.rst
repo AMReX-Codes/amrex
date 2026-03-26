@@ -75,7 +75,7 @@ detailed throughout the rest of this chapter:
   movement for mesh and particle data.  Simple data structures, such
   as :cpp:`IntVect`\s can be passed by value and complex data structures, such as
   :cpp:`FArrayBox`\es, have specialized AMReX classes to handle the
-  data movement for the user. This particularly useful for the early stages
+  data movement for the user. This is particularly useful for the early stages
   of porting an application to GPUs. However, for best performance on a
   variety of platforms, we recommend disabling managed memory and handling
   host/device data migration explicitly. managed memory is not used by
@@ -115,7 +115,7 @@ detailed throughout the rest of this chapter:
 
    Timeline illustration of GPU streams. Illustrates the case of an
    MFIter loop of five iterations with three GPU kernels each being
-   ran with three GPU streams.
+   run with three GPU streams.
 
 .. raw:: latex
 
@@ -256,7 +256,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    | AMReX_CUDA_ERROR_CROSS       |  Error if a host function is called from a host | NO          | YES, NO         |
    | _EXECUTION_SPACE_CALL        |  device function                                |             |                 |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_KEEP_FILES        |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   | AMReX_CUDA_KEEP_FILES        |  Keep intermediate files (folder: nvcc_tmp)     | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -279,8 +279,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
 
 The target architecture to build for can be specified via the configuration option
 ``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
-`compute capability <https://developer.nvidia.com/cuda-gpus>`_, i.e. ``10.0``, ``9.0``,  ``...`` .
+the name of the NVIDIA GPU generation, e.g., ``Turing``, ``Volta``, or ``Ampere``, or its
+`compute capability <https://developer.nvidia.com/cuda-gpus>`_, e.g., ``10.0`` or ``9.0``.
 For example, on Cori GPUs you can specify the architecture as follows:
 
 .. highlight:: console
@@ -295,7 +295,7 @@ If no architecture is specified, CMake will default to the architecture defined 
 If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
 If more than one is found, CMake will build for all of them.
 If autodetection fails, a list of "common" architectures is assumed.
-`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as a semicolon-separated list, e.g., ``-DAMReX_CUDA_ARCH=7.0;8.0``.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
@@ -372,8 +372,8 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
-Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
-We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
+Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user inputs when AMReX_GPU_BACKEND=HIP**.
+We also read the *environment variable* ``AMREX_AMD_ARCH`` (note: all caps), and the C++ compiler can be specified as usual, e.g., with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
@@ -400,7 +400,7 @@ for example ``CMAKE_CXX_FLAGS``, can be used for SYCL as well.
 
 
 Since CMake does not support autodetection of SYCL compilers yet,
-``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler. i.e. ``icpx``.
+``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler, i.e., ``icpx``.
 Thus **CMAKE_CXX_COMPILER is a required user-input when AMReX_GPU_BACKEND=SYCL**.
 At this time, **the only supported SYCL compiler is icpx**.
 Below is an example configuration for SYCL:
@@ -607,12 +607,12 @@ AMReX GPU work takes place inside of MFIter and ParIter loops.
 Therefore, there are two ways classes and functions have been modified
 to interact with the GPU:
 
-1. A number of functions used within these loops are labelled using
+1. A number of functions used within these loops are labeled using
 ``AMREX_GPU_HOST_DEVICE`` and can be called on the device. This includes member
 functions, such as :cpp:`IntVect::type()`, as well as non-member functions,
 such as :cpp:`amrex::min` and :cpp:`amrex::max`. In specialized cases,
-classes are labeled such that the object can be constructed, destructed
-and its functions can be implemented on the device, including ``IntVect``.
+classes are labeled such that objects can be constructed and destroyed
+on the device, and their functions can be called there, including ``IntVect``.
 
 2. Functions that contain MFIter or ParIter loops have been rewritten
 to contain device launches. For example, the :cpp:`FillBoundary`
@@ -1004,7 +1004,7 @@ possible to allow efficient utilization of GPU hardware.
 However, it is important for applications to use these launches whenever appropriate
 because they contain optimizations for both CPU and GPU variations of nested
 loops.  For example, on the GPU the spatial coordinate loops are reduced to a single
-loop and the component loop is moved to these inner most loop.  AMReX's launch functions
+loop and the component loop is moved to these innermost loops.  AMReX's launch functions
 apply the appropriate optimizations for compiling both with and without GPU support
 in a compact and readable format.
 
@@ -1048,11 +1048,11 @@ returns ``false`` in the GPU case to turn off tiling and maximize the amount of
 work given to the GPU in each launch. When tiling is off, :cpp:`tilebox()`
 returns the :cpp:`validbox()`.  The :cpp:`BaseFab::array()` function returns a
 lightweight :cpp:`Array4` object that defines access to the underlying :cpp:`FArrayBox`
-data.  The :cpp:`Array4`\s is then captured by the C++ lambda functions defined in the
+data.  The :cpp:`Array4`\s are then captured by the C++ lambda functions defined in the
 launch function.
 
 ``amrex::ParallelFor()`` expands into different variations of a quadruply-nested
-:cpp:`for` loop depending dimensionality and whether it is being implemented on CPU or GPU.
+:cpp:`for` loop depending on dimensionality and whether it is being implemented on CPU or GPU.
 The best way to understand this function is to take a look at the 4D :cpp:`amrex::ParallelFor`
 that is implemented when AMReX is compiled without GPU support, such as ``USE_CUDA=FALSE``.
 A simplified version is reproduced here:
@@ -1243,7 +1243,7 @@ to implementations used on the CPU.  These macros return the
 individual components of the AMReX C++ objects to allow passing to
 the Fortran function.
 
-The corresponding OpenACC labelled loop in ``plusone_acc`` is:
+The corresponding OpenACC labeled loop in ``plusone_acc`` is:
 
 .. highlight:: fortran
 
@@ -1268,7 +1268,7 @@ about OpenACC programming, consult the OpenACC user's guide.
 
 The OpenMP implementation of this loop is similar, only requiring
 changing the pragmas utilized to obtain the proper offloading. The
-OpenMP labelled version of this loop is:
+OpenMP labeled version of this loop is:
 
 .. highlight:: fortran
 
@@ -1314,7 +1314,7 @@ However, AMReX uses the default GPU stream outside of :cpp:`MFIter`
 loops.
 
 Launching kernels with AMReX's launch macros or functions implement
-a C++ lambda function. Lambdas functions used for launches on the GPU have some
+a C++ lambda function. Lambda functions used for launches on the GPU have some
 restrictions the user must understand.  First, the function enclosing the
 extended lambda must not have private or protected access within its parent
 class,  otherwise the code will not compile.  This can be fixed by changing
@@ -1470,7 +1470,7 @@ streams, the data must be synchronized before being passed to MPI calls.
 Other synchronizations are introduced for safety. A notable example is
 :cpp:`MFIter`, which performs implicit synchronizations at both the
 beginning and end of the loop (as a whole, not on each iteration). These
-synchronizations can be disabled using with :cpp:`MFItInfo`. For example,
+synchronizations can be disabled using :cpp:`MFItInfo`. For example,
 
 .. highlight:: c++
 
@@ -1500,6 +1500,111 @@ One could also use :cpp:`Gpu::NoSyncRegion`, as shown below:
 This approach suppresses implicit synchronization for all operations within
 the scoped region and restores the previous synchronization setting upon
 exiting.
+
+.. _sec:gpu:external-streams:
+
+External GPU Streams
+====================
+
+AMReX normally launches GPU kernels from an internal pool of GPU streams and
+round-robins across them inside :cpp:`MFIter` loops.  When an application
+needs to integrate with an externally managed stream, AMReX provides an
+override mechanism.  External-stream overrides form a stack and all calls
+must occur outside OpenMP parallel regions.  If you install a new external
+stream while another is already active, the new handle becomes current until
+it is reset, at which point AMReX restores the previous external stream.
+
+* Call :cpp:`amrex::Gpu::setExternalGpuStream(stream)` (or use the RAII
+  helper :cpp:`amrex::Gpu::ExternalGpuStreamRegion(stream,sync_on_exit)`) on
+  the host.  Every subsequent call to :cpp:`amrex::Gpu::gpuStream()` returns
+  the supplied stream.  Calls must be paired with
+  :cpp:`amrex::Gpu::resetExternalGpuStream(sync_stream)` (RAII helpers pass
+  the same flag via ``sync_on_exit``); popping the current stream restores
+  the previous external stream, if any.  Passing
+  :cpp:`amrex::Gpu::ExternalStreamSync::No` to
+  ``sync_stream``/``sync_on_exit`` skips the final
+  :cpp:`Gpu::streamSynchronize` unless deferred frees recorded by
+  :cpp:`The_Async_Arena` are still pending, in which case AMReX forces a
+  synchronization to keep the arena safe.  The external stream or queue must
+  belong to the active AMReX device.  For SYCL, the queue must also use the
+  same SYCL context as AMReX and must be an in-order queue.  AMReX selects the
+  active GPU during :cpp:`amrex::Initialize`, whose overloads accept an
+  optional trailing :cpp:`int device_id` argument; pass the desired GPU there
+  if an external runtime needs AMReX to adopt a specific device before the
+  stream is created.  Conversely, if AMReX should drive the selection, query
+  :cpp:`amrex::Gpu::Device::deviceId()` and configure the external runtime
+  (for example, by calling :cpp:`cudaSetDevice` or :cpp:`hipSetDevice` before
+  constructing the stream) so that the stream is associated with the device
+  AMReX is already using.
+* All asynchronous frees recorded through :cpp:`amrex::Gpu::freeAsync` and
+  The_Async_Arena continue to work because AMReX tracks the external stream with
+  an internal :cpp:`StreamManager`.
+
+Limitations and best practices:
+
+* Entering or exiting the override inside an OpenMP parallel region is
+  illegal and will trigger an assertion.  Configure the stream on the main
+  thread before launching GPU work, if OpenMP threading is used.
+* Backend compatibility rules are checked when the override is installed.
+  CUDA and HIP external streams must be associated with the current
+  :cpp:`amrex::Gpu::Device::deviceId()`.  SYCL external queues must use
+  AMReX's SYCL device and SYCL context, and must be in-order.
+* While an override is active, :cpp:`Gpu::numGpuStreams()` reports ``1``.  This
+  keeps :cpp:`MFIter` from trying to pipeline across multiple AMReX-managed
+  streams, but it also means you cannot currently provide a *set* of external
+  streams for MFIter to round-robin across.
+* Objects that use stream-ordered memory (for example, a :cpp:`BaseFab`
+  allocated from :cpp:`The_Async_Arena`) should generally be created and
+  destroyed within the same external-stream region.  In particular, avoid
+  creating or resizing such an object inside an external-stream region and
+  then destroying it after that region has exited, or creating it outside and
+  then resizing or destroying it inside the region.  Stream-ordered frees
+  remember the stream associated with the allocation, and AMReX requires that
+  stream to still be managed when the free occurs.  If that stream was
+  external and has already been popped, AMReX aborts instead of guessing where
+  to enqueue the deferred free.
+* Likewise, reuse a given :cpp:`Reducer` or :cpp:`ReduceData` object only on a
+  single external stream.  Reusing the same object across different external
+  stream regions, or across an external stream and AMReX stream 0, is not
+  supported.  If a reduction is launched inside an external-stream region,
+  read its final value before leaving that region.
+* Make sure the external stream remains valid for the duration of the override.
+  Destroying it before the RAII guard goes out of scope is undefined behavior.
+* Using :cpp:`ExternalStreamSync::No` transfers synchronization responsibility
+  to the caller.  After :cpp:`resetExternalGpuStream(ExternalStreamSync::No)`,
+  AMReX no longer tracks that external stream, and later AMReX global
+  synchronization helpers are not guaranteed to wait for work already queued
+  on it.  It is the user's responsibility to synchronize that external stream
+  before any dependent teardown or finalization.
+
+Example: wrap AMReX work inside an externally created CUDA stream:
+
+.. code-block:: cpp
+
+   #ifdef AMREX_USE_CUDA
+     cudaStream_t external{};
+     AMREX_CUDA_SAFE_CALL(cudaStreamCreateWithFlags(&external, cudaStreamNonBlocking));
+   #endif
+     {
+       amrex::Gpu::ExternalGpuStreamRegion stream_scope(external);
+       MultiFab mf(...);
+       MFItInfo info;
+       info.DisableDeviceSync();
+       for (MFIter mfi(mf,info); mfi.isValid(); ++mfi) {
+         auto const& box = mfi.tilebox();
+         auto const arr = mf.array(mfi);
+         amrex::ParallelFor(box, [=] AMReX_GPU_DEVICE (int i, int j, int k) {
+           arr(i,j,k) = 0.0_rt;
+         });
+       }
+       // Optional: launch non-AMReX CUDA kernels on 'external' here.
+     }
+   #ifdef AMREX_USE_CUDA
+     AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(external));
+   #endif
+
+The same pattern works for HIP streams and, in SYCL builds, with
+:cpp:`sycl::queue` objects.
 
 .. _sec:gpu:example:
 
@@ -1769,7 +1874,7 @@ AMReX for GPUs:
   resources to perform other tasks. This increases parallel
   performance and greatly reduces runtime.  Functions are written
   inline by putting their definitions in the ``.H`` file and using
-  the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found in
+  the ``AMREX_FORCE_INLINE`` AMReX macro.  Examples can be found
   in the `Launch`_ tutorial. For example:
 
 .. highlight:: cpp
