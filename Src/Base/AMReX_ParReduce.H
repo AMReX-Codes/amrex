@@ -87,10 +87,9 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  * \param type_list      a data type stored in TypeList
  * \param fa     a MultiFab/FabArray object used to specify the iteration space
  * \param nghost the number of ghost cells included in the iteration space
- * \param f      a callable object returning GpuTuple<T>.  It takes five ints,
- *               where the first int is the local box index, the next three are
- *               spatial indices for x, y, and z-directions, and the last is for
- *               component.
+ * \param f      a callable object returning GpuTuple<T>.  It takes four ints,
+ *               where the first int is the local box index and the others are
+ *               spatial indices for x, y, and z-directions.
  *
  * \return reduction result (T)
  */
