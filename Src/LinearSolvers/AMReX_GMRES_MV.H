@@ -56,10 +56,10 @@ public:
     //! Access the underlying GMRES object for additional tuning.
     GM& getGMRES () { return m_gmres; }
 
-    //! Return a vector layout (AlgVector) without ghost cells for RHS storage.
+    //! Return an AlgVector that mirrors the matrix partition for RHS storage.
     [[nodiscard]] VEC makeVecRHS () const;
 
-    //! Return a vector layout (AlgVector) with ghost cells for LHS storage.
+    //! Return another AlgVector with the same partition for LHS storage.
     [[nodiscard]] VEC makeVecLHS () const;
 
     //! Euclidean norm of \p vec.
@@ -110,7 +110,7 @@ public:
      * \brief Apply the sparse operator to \p rhs and store the result in \p lhs.
      *
      * \param lhs Destination vector updated in place.
-     * \param rhs Source vector (non-const needed for ghost fills).
+     * \param rhs Source vector produced by the preconditioner (passed by non-const reference to satisfy the GMRES interface).
      */
     void apply (VEC& lhs, VEC& rhs) const;
 
