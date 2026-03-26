@@ -81,6 +81,7 @@ public:
     VEC makeVecRHS () const;
 
     //! Return a MultiFab vector with one layer of ghost cells for LHS storage.
+    //! Also set the data in the ghost cells to zero.
     VEC makeVecLHS () const;
 
     //! Return the 2-norm of \p mf using the multigrid operator's weighting.

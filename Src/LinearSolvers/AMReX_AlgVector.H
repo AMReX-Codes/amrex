@@ -72,6 +72,7 @@ public:
 
     //! Number of entries stored on this rank.
     [[nodiscard]] Long numLocalRows () const { return m_end - m_begin; }
+    //! Global number of rows.
     [[ nodiscard]] Long numGlobalRows () const { return m_partition.numGlobalRows(); }
 
     //! Inclusive global index begin.

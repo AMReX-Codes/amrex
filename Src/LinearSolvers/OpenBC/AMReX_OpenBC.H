@@ -12,8 +12,7 @@ namespace amrex
  * \file AMReX_OpenBC.H
  *
  * Multilevel Poisson solver that enforces open (isolated) domain boundaries by
- * matching multipole moments on the coarse exterior domain built by James/McCorquodale.
- * Provides GPU-aware helper hooks so the boundary solves can run on accelerators.
+ * matching multipole moments on the coarse exterior domain built by James's method.
  */
 
 namespace openbc {
@@ -76,8 +75,8 @@ public:
     /**
      * \brief Build the solver hierarchy covering \p a_geom/\p a_grids.
      *
-     * \param a_geom  AMR geometry objects (fine to coarse).
-     * \param a_grids AMR grid arrays (fine to coarse).
+     * \param a_geom  AMR geometry objects.
+     * \param a_grids AMR grid arrays.
      * \param a_dmap  Distribution mappings per level.
      * \param a_info  Optional linear-operator configuration overrides.
      */
@@ -94,12 +93,12 @@ public:
     OpenBCSolver& operator= (OpenBCSolver&&) = delete;
 
     /**
-     * \brief Initialize/refresh geometric data structures and coarse solves.
+     * \brief Initialize/refresh the solver.
      *
      * May be called repeatedly if the mesh hierarchy changes.
      *
-     * \param a_geom  AMR geometry objects (fine to coarse).
-     * \param a_grids AMR grid arrays (fine to coarse).
+     * \param a_geom  AMR geometry objects.
+     * \param a_grids AMR grid arrays.
      * \param a_dmap  Distribution mappings per level.
      * \param a_info  Optional linear-operator configuration overrides.
      */
@@ -108,9 +107,9 @@ public:
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo());
 
-    //! Control high-level MLMG verbosity (0 = silent) via \p v.
+    //! Control verbosity (0 = silent) via \p v.
     void setVerbose (int v) noexcept;
-    //! Control coarse-level (bottom) solver verbosity via \p v.
+    //! Control bottom solver verbosity via \p v.
     void setBottomVerbose (int v) noexcept;
 
     /**
