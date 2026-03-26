@@ -114,7 +114,7 @@ struct ParserExecutor
  * \brief Front-end for parsing scalar expressions into GPU/CPU executors.
  *
  * A Parser instance owns the expression string, parser state, and
- * registered variables, After calling define(), registerVariables(), and
+ * registered variables. After calling define(), registerVariables(), and
  * (optionally) registerUserFn*, the expression can be compiled into a
  * ParserExecutor that evaluates it efficiently on host or device.
  */

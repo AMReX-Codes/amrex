@@ -66,7 +66,7 @@ struct IParserExecutor
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, var.data());))
     }
 
-    //! True when a this is valid executor.
+    //! True when this is a valid executor.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
         AMREX_IF_ON_DEVICE((return m_device_executor != nullptr;))
