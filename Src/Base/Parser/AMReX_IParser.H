@@ -57,7 +57,7 @@ struct IParserExecutor
 
     /**
      * \brief Evaluate using an explicit array of integer arguments.
-     * \param var Argument array in parser order.
+     * \param var Argument array in registration order.
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     long long operator() (GpuArray<long long, N> const& var) const noexcept
@@ -66,7 +66,7 @@ struct IParserExecutor
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, var.data());))
     }
 
-    //! True when a compiled executor buffer is available.
+    //! True when a this is valid executor.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     explicit operator bool () const {
         AMREX_IF_ON_DEVICE((return m_device_executor != nullptr;))

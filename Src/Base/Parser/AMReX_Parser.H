@@ -68,7 +68,7 @@ struct ParserExecutor
     /**
      * \brief Evaluate the expression with \p N float arguments.
      *
-     * Returns a float to avoid unnecessary promotion when all inputs are float.
+     * Returns a float when all inputs are float.
      *
      * \param var Scalar arguments supplied in parser variable order.
      */
@@ -84,7 +84,7 @@ struct ParserExecutor
 
     /**
      * \brief Evaluate the expression using an explicit array of inputs.
-     * \param var Array storing the \p N variables in parser order.
+     * \param var Array storing the \p N variables in parser variable order.
      * \return Expression value promoted to double precision.
      */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -113,10 +113,10 @@ struct ParserExecutor
 /**
  * \brief Front-end for parsing scalar expressions into GPU/CPU executors.
  *
- * A Parser instance owns the expression string, parser state, registered variables,
- * and any user-defined intrinsic functions. After calling define(), registerVariables(),
- * and (optionally) registerUserFn*, the expression can be compiled into a ParserExecutor
- * that evaluates it efficiently on host or device.
+ * A Parser instance owns the expression string, parser state, and
+ * registered variables, After calling define(), registerVariables(), and
+ * (optionally) registerUserFn*, the expression can be compiled into a
+ * ParserExecutor that evaluates it efficiently on host or device.
  */
 class Parser
 {
