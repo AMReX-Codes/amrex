@@ -192,7 +192,7 @@ void verify_same (MyPC& pc_orig, MyPC& pc_new)
             orig_records.size() == new_records.size(),
             "Particle count mismatch after restart");
 
-        for (std::size_t i = 0; i < orig_records.size(); ++i) {
+        for (Long i = 0; i < orig_records.size(); ++i) {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 orig_records[i] == new_records[i],
                 "Particle data mismatch after restart");
