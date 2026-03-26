@@ -65,7 +65,7 @@ N_Vector N_VNewEmpty_MultiFab(sunindextype vec_length,
  * \brief Allocate a MultiFab-backed N_Vector of length \p vec_length.
  *
  * \param vec_length Number of scalar entries represented.
- * \param ba         Grid layout describing the data decomposition.
+ * \param ba         Grid layout.
  * \param dm         Distribution map for \p ba.
  * \param nComp      Number of state components per cell.
  * \param nGhost     Number of grow cells.
