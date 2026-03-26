@@ -42,7 +42,7 @@ public:
      *
      * \param dir              Directory that owns the per-type subdirectory.
      * \param name             Particle type subdirectory (e.g., "Tracer").
-     * \param is_checkpoint    True when writing restartable data (adds id/cpu).
+     * \param is_checkpoint    Reserved for parity with ASCII checkpoints (ignored because HDF5 always writes id/cpu).
      * \param real_comp_names  Optional labels for each real component.
      * \param int_comp_names   Optional labels for each integer component.
      * \param compression      Compression scheme, e.g., `"ZFP_ACCURACY@0.001"`.
@@ -305,14 +305,14 @@ public:
      *
      * \param level            AMR level whose particles are written.
      * \param grp              Open HDF5 group corresponding to `level_%d`.
-     * \param which            Per-grid output-file index (filled on IO rank).
+     * \param which            Placeholder vector kept for API compatibility (unused by the HDF5 backend).
      * \param count            Per-grid particle counts updated in place.
-     * \param where            Per-grid byte offsets filled on IO rank.
+     * \param where            Placeholder vector kept for API compatibility (unused by the HDF5 backend).
      * \param write_real_comp  Flags enabling each real component.
      * \param write_int_comp   Flags enabling each integer component.
      * \param compression      Compression string (`ZFP_*`, `SZ`, etc.).
      * \param particle_io_flags Per-grid/tile masks returned by the filter functor.
-     * \param is_checkpoint    True when ids/cpus must be preserved.
+     * \param is_checkpoint    Reserved; the HDF5 writer always preserves id/cpu regardless of this flag.
      */
     void
     WriteParticlesHDF5 (int level, hid_t grp,
@@ -334,7 +334,7 @@ protected:
  * \param int_dset HDF5 dataset handle for integer components.
  * \param real_dset HDF5 dataset handle for real components.
  * \param finest_level_in_file Finest level encoded in the file (for sanity checks).
- * \param convert_ids True if legacy ids must be migrated to the current format.
+ * \param convert_ids True when reading `Version_Two_Dot_One` checkpoints whose 64-bit id/cpu pairs were split into two 32-bit words and must be reassembled.
  */
 template <class RTYPE>
 void ReadParticlesHDF5 (hsize_t offset, hsize_t count, int grd, int lev, hid_t int_dset, hid_t real_dset, int finest_level_in_file, bool convert_ids);
