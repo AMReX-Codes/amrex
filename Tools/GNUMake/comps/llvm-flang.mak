@@ -43,7 +43,7 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++17
+  CXXSTD := c++20
 endif
 
 CXXFLAGS += -std=$(CXXSTD)

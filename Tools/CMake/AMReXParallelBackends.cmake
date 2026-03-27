@@ -91,7 +91,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    endforeach()
 
    # Check cuda compiler and host compiler
-   set_mininum_compiler_version(CUDA NVIDIA 9.0)
+   set_mininum_compiler_version(CUDA NVIDIA 12.2)
    check_cuda_host_compiler()
 
    # Required CUDA flags
@@ -270,6 +270,9 @@ if (AMReX_HIP)
 
    if(hip_FOUND)
       message(STATUS "Found HIP: ${HIP_VERSION}")
+      if(HIP_VERSION VERSION_LESS 6.0)
+         message(FATAL_ERROR "HIP ${HIP_VERSION} detected, but AMReX now requires ROCm/HIP 6.0 or newer for C++20 builds.")
+      endif()
       message(STATUS "HIP: Runtime=${HIP_RUNTIME} Compiler=${HIP_COMPILER} Path=${HIP_PATH}")
    else()
       message(FATAL_ERROR "Could not find HIP."
@@ -366,8 +369,8 @@ if (AMReX_HIP)
        # 
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
 
-       # Ensure ROCm builds enable at least C++17 without overriding higher standards
-       target_compile_features(amrex_${D}d PUBLIC cxx_std_17)
+       # Ensure ROCm builds enable at least C++20 without overriding higher standards
+       target_compile_features(amrex_${D}d PUBLIC cxx_std_20)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`

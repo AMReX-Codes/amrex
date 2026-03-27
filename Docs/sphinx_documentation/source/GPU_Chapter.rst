@@ -8,8 +8,8 @@ NVIDIA, AMD, and Intel GPUs using their native vendor languages and therefore
 requires CUDA, HIP/ROCm, and SYCL for NVIDIA, AMD, and Intel GPUs, respectively.
 Users can also use OpenMP and/or OpenACC in their applications if desired.
 
-AMReX supports NVIDIA GPUs with compute capability >= 6 and CUDA >= 11, and
-AMD GPUs with ROCm >= 5. While SYCL compilers are still under development in
+AMReX supports NVIDIA GPUs with compute capability >= 6 and CUDA >= 12.2, and
+AMD GPUs with ROCm >= 6. While SYCL compilers are still under development in
 preparation for Aurora, AMReX officially supports only the latest publicly
 released version of the oneAPI compiler.
 
