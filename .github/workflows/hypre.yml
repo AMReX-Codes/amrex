@@ -44,7 +44,7 @@ jobs:
           wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.32.0.tar.gz
           tar xfz v2.32.0.tar.gz
           cd hypre-2.32.0/src
-          ./configure --with-cxxstandard=17 --with-cuda --enable-unified-memory \
+          ./configure --with-cxxstandard=20 --with-cuda --enable-unified-memory \
               --with-cuda-home=/usr/local/cuda --with-gpu-arch="80" \
               --prefix=${{ env.AMREX_HYPRE_HOME }}
           make -j 4
@@ -62,7 +62,7 @@ jobs:
         export CUDA_PATH=/usr/local/cuda
         export PATH=${PATH}:/usr/local/cuda/bin
         cd Tests/LinearSolvers/CellEB
-        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 USE_CUDA=TRUE CCACHE=ccache
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 USE_CUDA=TRUE CCACHE=ccache CXXSTD=c++20
 
         ccache -s
         du -h -d1 ~/.cache
@@ -91,7 +91,7 @@ jobs:
         wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.21.0.tar.gz
         tar xfz v2.21.0.tar.gz
         cd hypre-2.21.0/src
-        ./configure --with-cxxstandard=17 --enable-bigint
+        ./configure --with-cxxstandard=20 --enable-bigint
         make -j 4
         make install
         cd ../../
@@ -107,7 +107,7 @@ jobs:
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.21.0/src/hypre
         cd Tests/LinearSolvers/ABecLaplacian_C
         make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=3 \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main3d.gnu.MPI.ex inputs.hypre
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
@@ -142,7 +142,7 @@ jobs:
         wget -q https://github.com/hypre-space/hypre/archive/refs/tags/v2.32.0.tar.gz
         tar xfz v2.32.0.tar.gz
         cd hypre-2.32.0/src
-        ./configure --with-cxxstandard=17 --enable-bigint
+        ./configure --with-cxxstandard=20 --enable-bigint
         make -j 4
         make install
         cd ../../
@@ -157,7 +157,7 @@ jobs:
 
         export AMREX_HYPRE_HOME=${PWD}/hypre-2.32.0/src/hypre
         cd Tests/LinearSolvers/Hypre
-        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache
+        make -j4 USE_MPI=TRUE USE_HYPRE=TRUE DIM=2 CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.MPI.ex inputs.2d
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt

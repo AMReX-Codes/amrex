@@ -16,7 +16,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_msvc:
-    name: MSVC C++17 w/o Fortran w/o MPI
+    name: MSVC w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -47,6 +47,7 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
+              -DCMAKE_CXX_STANDARD=20       `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=OFF                `
@@ -65,7 +66,7 @@ jobs:
 
   # Build libamrex and all test (static)
   test_msvc_static:
-    name: MSVC C++17 w/o Fortran w/o MPI static
+    name: MSVC w/o Fortran w/o MPI static
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -99,6 +100,7 @@ jobs:
         # https://github.com/actions/runner-images/issues/10004
 
         cmake -S . -B build   `
+              -DCMAKE_CXX_STANDARD=20       `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DCMAKE_BUILD_TYPE=RelWithDebInfo `
               -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
@@ -116,7 +118,7 @@ jobs:
 
   # Build libamrex and all tests
   tests_clang:
-    name: MSVC Clang C++17 w/o Fortran w/o MPI
+    name: MSVC Clang w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -135,6 +137,7 @@ jobs:
 
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         cmake -S . -B build   ^
+              -DCMAKE_CXX_STANDARD=20       ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
               -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" ^
@@ -179,6 +182,7 @@ jobs:
       run: |
         cmake -S . -B build                       `
               -G "Ninja"                          `
+              -DCMAKE_CXX_STANDARD=20             `
               -DCMAKE_VERBOSE_MAKEFILE=ON         `
               -DCMAKE_BUILD_TYPE=Release          `
               -DAMReX_GPU_BACKEND=CUDA            `

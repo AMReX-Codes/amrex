@@ -24,6 +24,7 @@ Nvidia-H100-single-precision:
   script:
     - |
       cmake -S . -B build                              \
+          -DCMAKE_CXX_STANDARD=20                      \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_PRECISION=SINGLE                     \
           -DAMReX_PARTICLES_PRECISION=SINGLE           \
@@ -58,6 +59,7 @@ AMD-MI300A:
     - export CMAKE_PREFIX_PATH=$ROCM_PATH:$CMAKE_PREFIX_PATH
     - |
       cmake -S . -B build                              \
+          -DCMAKE_CXX_STANDARD=20                      \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_SPACEDIM="1;2;3"                     \
           -DAMReX_FFT=ON                               \
@@ -84,6 +86,7 @@ Intel-PVC:
     - export ONEAPI_DEVICE_SELECTOR=level_zero:gpu
     - |
       cmake -S . -B build                              \
+          -DCMAKE_CXX_STANDARD=20                      \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_MPI=OFF                              \
           -DAMReX_SPACEDIM="1;2;3"                     \

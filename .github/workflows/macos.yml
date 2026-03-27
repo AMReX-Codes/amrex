@@ -35,8 +35,7 @@ jobs:
       env:
         # build universal binaries for M1 "Apple Silicon" and Intel CPUs
         CMAKE_OSX_ARCHITECTURES: "arm64;x86_64"
-        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis"
-        # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
+        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -46,6 +45,7 @@ jobs:
         ccache --version
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DBUILD_SHARED_LIBS=ON      \
             -DCMAKE_BUILD_TYPE=Release  \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
@@ -79,8 +79,7 @@ jobs:
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
       env:
-        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wno-c++17-extensions -Wno-range-loop-analysis -O1"
-        # -Wno-range-loop-analysis: Apple clang has a bug in range-loop-analysis
+        CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -O1"
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -90,6 +89,7 @@ jobs:
         ccache --version
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_EB=ON               \
