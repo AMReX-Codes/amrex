@@ -16,6 +16,8 @@
 
 namespace amrex {
 
+class ParticleContainerBase;
+
 struct NeighborUnpackPolicy
 {
     template <class PTile>
@@ -268,7 +270,7 @@ struct ParticleCopyPlan
         m_superparticle_size += num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
                               + num_int_comm_comp  * sizeof(int);
 
-        buildMPIStart(pc.BufferMap(), m_superparticle_size);
+        buildMPIStart(pc, pc.BufferMap(), m_superparticle_size);
     }
 
     void clear ();
@@ -277,14 +279,14 @@ struct ParticleCopyPlan
 
 private:
 
-    void buildMPIStart (const ParticleBufferMap& map, Long psize);
+    void buildMPIStart (const ParticleContainerBase& pc, const ParticleBufferMap& map, Long psize);
 
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.
     // Rcvs - a Vector that, after calling this method, will contain the
     //        number of bytes this process will receive from each proc.
     //
-    void doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
+    void doHandShake (const ParticleContainerBase& pc, const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
 
     //
     // In the local version of this method, each proc knows which other
@@ -303,7 +305,8 @@ private:
     // Another version of the global handshake implemented with MPI-3
     // one-sided communication.
     //
-    static void doHandShakeOneSided (const Vector<Long>& Snds, Vector<Long>& Rcvs);
+    static void doHandShakeOneSided (const ParticleContainerBase& pc,
+                                     const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
     //
     // Another version of the above that is implemented using MPI All-to-All

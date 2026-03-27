@@ -12,6 +12,7 @@
 #include <AMReX_Vector.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_DenseBins.H>
 
@@ -72,13 +73,13 @@ public:
     {
     }
 
-    virtual ~ParticleContainerBase () = default;
+    virtual ~ParticleContainerBase ();
 
     ParticleContainerBase ( const ParticleContainerBase &) = delete;
     ParticleContainerBase& operator= ( const ParticleContainerBase & ) = delete;
 
-    ParticleContainerBase ( ParticleContainerBase && ) = default;
-    ParticleContainerBase& operator= ( ParticleContainerBase && ) = default;
+    ParticleContainerBase ( ParticleContainerBase && other ) noexcept;
+    ParticleContainerBase& operator= ( ParticleContainerBase && other ) noexcept;
 
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
@@ -237,6 +238,13 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
+#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+    void ensureParticleHandshakeWindow () const;
+    void releaseParticleHandshakeWindow ();
+    [[nodiscard]] Long* particleHandshakeBuffer () const { return m_particle_handshake_ptr; }
+    [[nodiscard]] MPI_Win particleHandshakeWindow () const { return m_particle_handshake_win; }
+#endif
+
     Vector<int> NeighborProcs(int ngrow) const
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
@@ -283,6 +291,13 @@ protected:
     mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
+
+#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+    mutable MPI_Win m_particle_handshake_win = MPI_WIN_NULL;
+    mutable Long* m_particle_handshake_ptr = nullptr;
+    mutable int m_particle_handshake_nprocs = 0;
+    mutable MPI_Comm m_particle_handshake_comm = MPI_COMM_NULL;
+#endif
 
 };
 

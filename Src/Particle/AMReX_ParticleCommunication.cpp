@@ -1,4 +1,5 @@
 #include <AMReX_ParticleCommunication.H>
+#include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParallelDescriptor.H>
 
 namespace amrex {
@@ -45,7 +46,9 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_levs.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
+void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc,
+                                      const ParticleBufferMap& map,
+                                      Long psize) // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -94,7 +97,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
         m_NumSnds += nbytes;
     }
 
-    doHandShake(m_Snds, m_Rcvs);
+    doHandShake(pc, m_Snds, m_Rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     Long tot_snds_this_proc = 0;
@@ -206,7 +209,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
     snd_stats.resize(snd_reqs.size());
     ParallelDescriptor::Waitall(snd_reqs, snd_stats);
 #else
-    amrex::ignore_unused(map,psize);
+    amrex::ignore_unused(pc,map,psize);
 #endif
 }
 
@@ -259,13 +262,15 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(r
 #endif // MPI
 }
 
-void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
+void ParticleCopyPlan::doHandShake (const ParticleContainerBase& pc,
+                                    const Vector<Long>& Snds,
+                                    Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::doHandShake");
     if (m_local) { doHandShakeLocal(Snds, Rcvs); }
     else if (m_do_one_sided_comms) {
 #if defined(BL_USE_MPI3)
-        doHandShakeOneSided(Snds, Rcvs);
+        doHandShakeOneSided(pc, Snds, Rcvs);
 #else
         amrex::Abort("ParticleCopyPlan::doHandShake: particles.do_one_sided_comms=1 requires MPI-3");
 #endif
@@ -388,7 +393,9 @@ void ParticleCopyPlan::doHandShakeReduceScatter (const Vector<Long>& Snds, Vecto
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeOneSided (const Vector<Long>& Snds, Vector<Long>& Rcvs)
+void ParticleCopyPlan::doHandShakeOneSided (const ParticleContainerBase& pc,
+                                            const Vector<Long>& Snds,
+                                            Vector<Long>& Rcvs)
 {
 #if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
     const int MyProc = ParallelContext::MyProcSub();
@@ -397,16 +404,12 @@ void ParticleCopyPlan::doHandShakeOneSided (const Vector<Long>& Snds, Vector<Lon
     AMREX_ALWAYS_ASSERT(static_cast<int>(Snds.size()) == NProcs);
     AMREX_ALWAYS_ASSERT(static_cast<int>(Rcvs.size()) == NProcs);
 
-    std::fill(Rcvs.begin(), Rcvs.end(), 0);
+    pc.ensureParticleHandshakeWindow();
+    auto* handshake_buffer = pc.particleHandshakeBuffer();
+    AMREX_ALWAYS_ASSERT(handshake_buffer != nullptr);
+    std::fill_n(handshake_buffer, NProcs, Long(0));
 
-    MPI_Win win;
-    BL_MPI_REQUIRE(MPI_Win_create(Rcvs.dataPtr(),
-                                  static_cast<MPI_Aint>(NProcs*sizeof(Long)),
-                                  sizeof(Long),
-                                  MPI_INFO_NULL,
-                                  ParallelContext::CommunicatorSub(),
-                                  &win));
-
+    MPI_Win win = pc.particleHandshakeWindow();
     BL_MPI_REQUIRE(MPI_Win_fence(0, win));
 
     for (int i = 0; i < NProcs; ++i)
@@ -424,11 +427,11 @@ void ParticleCopyPlan::doHandShakeOneSided (const Vector<Long>& Snds, Vector<Lon
     }
 
     BL_MPI_REQUIRE(MPI_Win_fence(0, win));
-    BL_MPI_REQUIRE(MPI_Win_free(&win));
+    std::copy_n(handshake_buffer, NProcs, Rcvs.begin());
 
     AMREX_ASSERT(Rcvs[MyProc] == 0);
 #else
-    amrex::ignore_unused(Snds,Rcvs);
+    amrex::ignore_unused(pc,Snds,Rcvs);
 #endif
 }
 
