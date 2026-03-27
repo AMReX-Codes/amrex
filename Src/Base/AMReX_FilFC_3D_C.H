@@ -100,7 +100,7 @@ struct FilfcFace
                 {
                     if (i > ihi + 1)
                     {
-                        q(i,j,k,n) = q(ilo,j,k,n);
+                        q(i,j,k,n) = q(ihi,j,k,n);
                     }
                     // i == ihi+1
                     else
