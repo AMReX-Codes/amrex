@@ -1,1 +1,0 @@
-../CheckpointRestartSOA/main.cpp
