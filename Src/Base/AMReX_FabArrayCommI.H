@@ -765,7 +765,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         T* const p0 = dest.dataPtr(dcomp);
         T* pb = p0;
 #ifdef AMREX_USE_GPU
-        if (dest.arena()->isDevice()) {
+        if (dest.arena()->isDevice() && !ParallelDescriptor::UseGpuAwareMpi()) {
             pb = (T*)The_Pinned_Arena()->alloc(sizeof(T)*count);
             Gpu::dtoh_memcpy_async(pb, p0, sizeof(T)*count);
             Gpu::streamSynchronize();
@@ -777,6 +777,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         if (pb != p0) {
             Gpu::htod_memcpy_async(p0, pb, sizeof(T)*count);
             Gpu::streamSynchronize();
+            The_Pinned_Arena()->free(pb);
         }
 #endif
     }
