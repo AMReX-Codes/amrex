@@ -4,6 +4,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Array.H>
+#include <AMReX_LUSolver.H>
 
 namespace amrex {
 
@@ -149,64 +150,117 @@ facediv_face_interp (int ci, int cj, int ck,
     switch (idir) {
         case 0:
         {
-            const Real ll = crse(ci, cj-1, ck-1, nc);
-            const Real cl = crse(ci, cj-1, ck,   nc);
-            const Real rl = crse(ci, cj-1, ck+1, nc);
+//            const Real ll = crse(ci, cj-1, ck-1, nc);
+//            const Real cl = crse(ci, cj-1, ck,   nc);
+//            const Real rl = crse(ci, cj-1, ck+1, nc);
+//
+//            const Real lc = crse(ci, cj  , ck-1, nc);
+//            const Real cc = crse(ci, cj  , ck,   nc);
+//            const Real rc = crse(ci, cj  , ck+1, nc);
 
-            const Real lc = crse(ci, cj  , ck-1, nc);
-            const Real cc = crse(ci, cj  , ck,   nc);
-            const Real rc = crse(ci, cj  , ck+1, nc);
+//            const Real lu = crse(ci, cj+1, ck-1, nc);
+//            const Real cu = crse(ci, cj+1, ck,   nc);
+//            const Real ru = crse(ci, cj+1, ck+1, nc);
 
-            const Real lu = crse(ci, cj+1, ck-1, nc);
-            const Real cu = crse(ci, cj+1, ck,   nc);
-            const Real ru = crse(ci, cj+1, ck+1, nc);
+//            fine(fi,fj  ,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
+//            fine(fi,fj  ,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
+//            fine(fi,fj+1,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
+//            fine(fi,fj+1,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
 
-            fine(fi,fj  ,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-            fine(fi,fj  ,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-            fine(fi,fj+1,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-            fine(fi,fj+1,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+            const Real slpy  = 0.5* (crse(ci,cj+1,ck  ,nc) - crse(ci,cj-1,ck  ,nc))
+            const Real slpz  = 0.5* (crse(ci,cj,  ck+1,nc) - crse(ci,cj,  ck-1,nc))
+            const Real slpyz = 0.25*(crse(ci,cj+1,ck+1,nc) - crse(ci,cj+1,ck-1,nc) - crse(ci,cj-1,ck+1,nc) + crse(ci,cj-1,ck-1,nc))
+
+            const Real dys = 1./ratio[1];
+            const Real dzs = 1./ratio[2];
+
+            for int(j=0; j<ratio[1], ++j){
+            for int(k=0; k<ratio[2], ++k){
+
+              Real ysloc = (j+0.5)*dys - 0.5;
+              Real zsloc = (k+0.5)*dzs - 0.5;
+              fine(fi,fj+j,fk+k,nc) = crse(ci,cj,ck,nc) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*splyz;
+
+            }
+            }
 
             break;
         }
         case 1:
         {
-            const Real ll = crse(ci-1, cj, ck-1, nc);
-            const Real cl = crse(ci  , cj, ck-1, nc);
-            const Real rl = crse(ci+1, cj, ck-1, nc);
+//            const Real ll = crse(ci-1, cj, ck-1, nc);
+//            const Real cl = crse(ci  , cj, ck-1, nc);
+//            const Real rl = crse(ci+1, cj, ck-1, nc);
 
-            const Real lc = crse(ci-1, cj, ck  , nc);
-            const Real cc = crse(ci  , cj, ck  , nc);
-            const Real rc = crse(ci+1, cj, ck  , nc);
+//            const Real lc = crse(ci-1, cj, ck  , nc);
+//            const Real cc = crse(ci  , cj, ck  , nc);
+//            const Real rc = crse(ci+1, cj, ck  , nc);
 
-            const Real lu = crse(ci-1, cj, ck+1, nc);
-            const Real cu = crse(ci  , cj, ck+1, nc);
-            const Real ru = crse(ci+1, cj, ck+1, nc);
+//            const Real lu = crse(ci-1, cj, ck+1, nc);
+//            const Real cu = crse(ci  , cj, ck+1, nc);
+//            const Real ru = crse(ci+1, cj, ck+1, nc);
 
-            fine(fi  ,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-            fine(fi+1,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-            fine(fi  ,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-            fine(fi+1,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+//            fine(fi  ,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
+//            fine(fi+1,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
+//            fine(fi  ,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
+//            fine(fi+1,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+
+            const Real slpx  = 0.5* (crse(ci+1,cj,ck  ,nc) - crse(ci-1,cj,ck  ,nc))
+            const Real slpz  = 0.5* (crse(ci  ,cj,ck+1,nc) - crse(ci  ,cj,ck-1,nc))
+            const Real slpxz = 0.25*(crse(ci+1,cj,ck+1,nc) - crse(ci+1,cj,ck-1,nc) - crse(ci-1,cj,ck+1,nc) + crse(ci-1,cj,ck-1,nc))
+
+            const Real dxs = 1./ratio[0];
+            const Real dzs = 1./ratio[2];
+
+            for int(i=0; i<ratio[0], ++i){
+            for int(k=0; k<ratio[2], ++k){
+
+              Real xsloc = (i+0.5)*dxs - 0.5;
+              Real zsloc = (k+0.5)*dzs - 0.5;
+              fine(fi+i,fj,fk+k,nc) = crse(ci,cj,ck,nc) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*splxz;
+
+            }
+            }
+
 
             break;
         }
         case 2:
         {
-            const Real ll = crse(ci-1, cj-1, ck, nc);
-            const Real cl = crse(ci  , cj-1, ck, nc);
-            const Real rl = crse(ci+1, cj-1, ck, nc);
+//            const Real ll = crse(ci-1, cj-1, ck, nc);
+//            const Real cl = crse(ci  , cj-1, ck, nc);
+//            const Real rl = crse(ci+1, cj-1, ck, nc);
 
-            const Real lc = crse(ci-1, cj  , ck, nc);
-            const Real cc = crse(ci  , cj  , ck, nc);
-            const Real rc = crse(ci+1, cj  , ck, nc);
+//            const Real lc = crse(ci-1, cj  , ck, nc);
+//            const Real cc = crse(ci  , cj  , ck, nc);
+//            const Real rc = crse(ci+1, cj  , ck, nc);
 
-            const Real lu = crse(ci-1, cj+1, ck, nc);
-            const Real cu = crse(ci  , cj+1, ck, nc);
-            const Real ru = crse(ci+1, cj+1, ck, nc);
+//            const Real lu = crse(ci-1, cj+1, ck, nc);
+//            const Real cu = crse(ci  , cj+1, ck, nc);
+//            const Real ru = crse(ci+1, cj+1, ck, nc);
 
-            fine(fi  ,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-            fine(fi+1,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-            fine(fi  ,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-            fine(fi+1,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+//            fine(fi  ,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
+//            fine(fi+1,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
+//            fine(fi  ,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
+//            fine(fi+1,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+
+            const Real slpx  = 0.5* (crse(ci+1,cj,  ck,nc) - crse(ci-1,cj,  ck  ,nc))
+            const Real slpy  = 0.5* (crse(ci  ,cj+1,ck,nc) - crse(ci,  cj-1,ck  ,nc))
+            const Real slpxy = 0.25*(crse(ci+1,cj+1,ck,nc) - crse(ci+1,cj-1,ck,nc) - crse(ci-1,cj+1,ck,nc) + crse(ci-1,cj-1,ck,nc))
+
+            const Real dxs = 1./ratio[0];
+            const Real dys = 1./ratio[1];
+
+            for int(i=0; i<ratio[0], ++i){
+            for int(j=0; j<ratio[2], ++k){
+
+              Real xsloc = (i+0.5)*dxs - 0.5;
+              Real ysloc = (j+0.5)*dys - 0.5;
+              fine(fi+i,fj+j,fk,nc) = crse(ci,cj,ck,nc) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*splxy;
+
+            }
+            }
+
 
             break;
         }
@@ -337,6 +391,239 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
                                   +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
+}
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_int_gen (int ci, int cj, int ck, int nf,
+                 GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+                 IntVect const& ratio,
+                 GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+    const int fk = ck*ratio[2];
+
+    const Real dx = cellSize[0];
+    const Real dy = cellSize[1];
+    const Real dy = cellSize[2];
+
+// interpolate initial veloc
+
+    for( int i=1; i < ratio[0]  , ++j){
+    for( int j=0; j < ratio[1]  , ++j){
+    for( int k=0; k < ratio[2]  , ++k){
+
+       fine[0](fi + i, jf + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,   fj  , fk  , nf) + i* fine[0](fi+ratio[0],   fj  , fk  , nf) )/ratio[0];
+
+    }
+    }
+    }
+
+    for( int i=0; i < ratio[0]  , ++j){
+    for( int j=1; j < ratio[1]  , ++j){
+    for( int k=0; k < ratio[2]  , ++k){
+
+       fine[1](fi + i, jf + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi,   fj  , fk  , nf) + j* fine[1](fi,   fj +ratio[1] , fk  , nf) )/ratio[1];
+
+    }
+    }
+    }
+
+    for( int i=0; i < ratio[0]  , ++j){
+    for( int j=0; j < ratio[1]  , ++j){
+    for( int k=1; k < ratio[2]  , ++k){
+
+       fine[2](fi + i, jf + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi,   fj  , fk  , nf) + k* fine[2](fi,   fj , fk +ratio[2]  , nf) )/ratio[2];
+
+    }
+    }
+    }
+
+// compute target divergence
+
+    Real uplus  = 0;
+    Real uminus = 0;
+
+    for( int j=0; j < ratio[1], ++j){
+    for( int k=0; k < ratio[2], ++k){
+
+         uplus  += fine[0](fi+ratio[0],fj+j,fk+k);
+         uminus += fine[0](fi         ,fj+j,fk+k);
+
+    }
+    }
+
+    Real vplus  = 0;
+    Real vminus = 0;
+
+    for( int i=0; i < ratio[0], ++i){
+    for( int k=0; i < ratio[2], ++k){
+
+         vplus  += fine[1](fi+i,fj+ratio[1],fk+k);
+         vminus += fine[1](fi+i,fj,         fk+k);
+
+    }
+    }
+
+    Real wplus  = 0;
+    Real wminus = 0;
+
+    for( int i=0; i < ratio[0], ++i){
+    for( int j=0; j < ratio[0], ++j){
+
+         wplus  += fine[2](fi+i,fj+j,fk+ratio[2]);
+         wminus += fine[2](fi+i,fj+j,fk);
+
+    }
+    }
+
+    int prodrat = ratio[0]*ratio[1]*ratio[2];
+
+    Real target_div = (uplus-uminus)/(prodrat*dx) + (vplus-vminus)/(prodrat*dy) + (wplus-wminus)/(prodrat*dz);
+
+//  set up matrix for local MAC projection
+
+    Array2D<Real,0,prodrat-1,0,prodrat-1> mat;
+
+
+    for (int irow = 0; irow < prodrat; irow++) {
+        for (int icol = 0; icol < prodrat; icol++) {
+            mat(irow,icol) =  0.0;
+        }
+    }
+
+    Real dxinv = 1./dx;
+    Real dyinv = 1./dy;
+    Real dzinv = 1./dz;
+
+    Real ddx2 = dxinv*dxinv;
+    Real ddy2 = dyinv*dyinv;
+    Real ddz2 = dzinv*dzinv;
+
+    for( int i=0; i < ratio[0]  , ++j){
+    for( int j=0; j < ratio[1]  , ++j){
+    for( int k=0; k < ratio[2]  , ++k){
+
+       int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+       if(i > 0){
+          mat(irow,irow) += ddx2;
+          mat(irow,irow-1) += -ddx2;
+       }
+
+       if(i < ratio[0]-1){
+          mat(irow,irow) += ddx2;
+          mat(irow,irow+1) += -ddx2;
+       }
+
+       if(j > 0){
+          mat(irow,irow) += ddy2;
+          mat(irow,irow-ratio[0]) += -ddy2;
+       }
+
+       if(j < ratio[1]-1){
+          mat(irow,irow) += ddy2;
+          mat(irow,irow+ratio[0]) += -ddy2;
+       }
+
+       if(k > 0){
+          mat(irow,irow) += ddz2;
+          mat(irow,irow-ratio[0]*ratio[1]) += -ddz2;
+       }
+
+       if(k < ratio[2]-1){
+          mat(irow,irow) += ddz2;
+          mat(irow,irow+ratio[0]*ratio[1]) += -ddz2;
+       }
+    }
+    }
+    }
+
+//  hcak matrxi to be nonsingular
+
+    mat(prodrat-1,prodrat-1) +=ddx2;
+
+// form rhs
+    Array1D<Real,0,prodrat-1> rhs;
+    Array1D<Real,0,prodrat-1> phi;
+
+    for( int i=0; i < ratio[0]  , ++j){
+    for( int j=0; j < ratio[1]  , ++j){
+    for( int k=0; k < ratio[2]  , ++k){
+
+       int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+       rhs[irow] = targetdiv - ((fine[0](fi+i+1,fj+j,  fk+k,  nf)  -fine[0](fi+i,fj+j,f+k,nf))*dxinv
+                             +  (fine[1](fi+i  ,fj+j+1,fk+k,  nf) - fine[1](fi+i,fj+j,f+k,nf))*dyinv
+                             +  (fine[2](fi+i,  fj+j,  fk+k+1,nf) - fine[2](fi+i,fj+j,f+k,nf))*dzinv);
+    }
+    }
+    }
+
+//  solver the system
+
+    LUSolver<prodrat,Real> lusolver(mat);
+    lusolver(phi.data(), rhs.data());
+
+//  this is for sanity check
+//  can be put in if needed
+
+//    Array3D<Real,0,ratio[0]-1,0,ratio[1]-1,0,ratio[2]-1> phi_reshape;
+
+//    for( int i=0; i < ratio[0]  , ++j){
+//    for( int j=0; j < ratio[1]  , ++j){
+//    for( int k=0; k < ratio[2]  , ++k){
+
+//       int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+//       phi_reshape(i,j,k) = phi(irow)
+
+//    }
+//    }
+//    }
+
+
+    for( int i=1; i < ratio[0]  , ++j){
+    for( int j=0; j < ratio[1]  , ++j){
+    for( int k=0; k < ratio[2]  , ++k){
+
+       int plus  = i     + j*ratio[0] +k*ratio[0]*ratio[1];
+       int minus = i - 1 + j*ratio[0] +k*ratio[0]*ratio[1];
+//       fine[0](fi + i, jf + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i-1,j,k))*dxinv
+       fine[0](fi + i, jf + j, fk + k, nf) += ( phi(plus) - phi(minus))*dxinv;
+
+    }
+    }
+    }
+
+    for( int i=0; i < ratio[0]  , ++j){
+    for( int j=1; j < ratio[1]  , ++j){
+    for( int k=0; k < ratio[2]  , ++k){
+
+       int plus  = i  +     j*ratio[0] +k*ratio[0]*ratio[1];
+       int minus = i  + (j-1)*ratio[0] +k*ratio[0]*ratio[1];
+//       fine[1](fi + i, jf + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j-1,k))*dyinv
+       fine[1](fi + i, jf + j, fk + k, nf) += ( phi(plus) - phi(minus))*dyinv;
+
+    }
+    }
+    }
+
+    for( int i=0; i < ratio[0]  , ++j){
+    for( int j=0; j < ratio[1]  , ++j){
+    for( int k=1; k < ratio[2]  , ++k){
+
+       int plus  = i  + j*ratio[0] + k    *ratio[0]*ratio[1];
+       int minus = i  + j*ratio[0] + (k-1)*ratio[0]*ratio[1];
+//       fine[2](fi + i, jf + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j,k-1))*dzinv
+       fine[2](fi + i, jf + j, fk + k, nf) += ( phi(plus) - phi(minus))*dzinv;
+
+    }
+    }
+    }
+
+
 }
 
 template<typename T>

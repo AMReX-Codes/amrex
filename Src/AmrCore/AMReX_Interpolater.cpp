@@ -1352,7 +1352,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         { types[d].set(d); }
 
     // This is currently only designed for octree, where ratio = 2.
-    AMREX_ALWAYS_ASSERT(ratio == 2);
+    // AMREX_ALWAYS_ASSERT(ratio == 2);
 
     const Box c_fine_region = amrex::coarsen(fine_region, ratio);
     GpuArray<Real, AMREX_SPACEDIM> cell_size = fine_geom.CellSizeArray();
@@ -1367,6 +1367,9 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         if (solve_mask[d] != nullptr)
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }
+
+//  JBB 1.  don't know what mark does here
+//  JBB 2.  build and factor matrix here or build and factor it earlier somehow
 
     // Fuse the launches, 1 for each dimension, into a single launch.
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
@@ -1404,10 +1407,18 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   });
               });
 
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
-    {
-        amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
-    });
+    if( AMREX_D_TERM (ratio[0] == 2, && ratio[1] == 2, && ratio[2] == 2);){
+       AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+       {
+            amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
+        });
+    } else {
+       AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+       {
+// JBB want to pass through LU factored matrix here
+            amrex::facediv_int_gen<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
+       });
+    }
 }
 
 Box
