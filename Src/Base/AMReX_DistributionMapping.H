@@ -205,10 +205,10 @@ class DistributionMapping
      * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
-     * @param[in,out] currentEfficiency On the root process, currentEfficiency writes the efficiency (i.e., mean cost over
+     * @param[in,out] currentEfficiency On the root process, this is the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency On the root process, proposedEfficiency writes the efficiency for the proposed
+     * @param[in,out] proposedEfficiency On the root process, this is the efficiency for the proposed
      *                distribution mapping
      * @param[in] nmax the maximum number of boxes that can be assigned to any
      *            MPI rank by the knapsack algorithm
@@ -244,10 +244,10 @@ class DistributionMapping
      * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
-     * @param[in,out] currentEfficiency On the root process, currentEfficiency writes the efficiency (i.e., mean cost over
+     * @param[in,out] currentEfficiency On the root process, this is the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency On the root process, proposedEfficiency writes the efficiency for the proposed
+     * @param[in,out] proposedEfficiency On the root process, this is the efficiency for the proposed
      *                distribution mapping
      * @param[in] broadcastToAll controls whether to transmit the proposed
      *            distribution mapping to all other processes; setting this to
