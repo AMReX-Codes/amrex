@@ -82,7 +82,7 @@ DistributionMapping::strategy (DistributionMapping::Strategy how)
 void
 DistributionMapping::SFC_Threshold (int n)
 {
-    sfc_threshold = std::min(n,1);
+    sfc_threshold = std::max(n,1);
 }
 
 int
