@@ -585,9 +585,9 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 
        int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
 
-       rhs(irow) = target_div - ((fine[0](fi+i+1,fj+j,  fk+k,  nf)  -fine[0](fi+i,fj+j,fk+k,nf))*dxinv
-                              +  (fine[1](fi+i  ,fj+j+1,fk+k,  nf) - fine[1](fi+i,fj+j,fk+k,nf))*dyinv
-                              +  (fine[2](fi+i,  fj+j,  fk+k+1,nf) - fine[2](fi+i,fj+j,fk+k,nf))*dzinv);
+       rhs(irow) = ((fine[0](fi+i+1,fj+j,  fk+k,  nf)  -fine[0](fi+i,fj+j,fk+k,nf))*dxinv
+                 +  (fine[1](fi+i  ,fj+j+1,fk+k,  nf) - fine[1](fi+i,fj+j,fk+k,nf))*dyinv
+                 +  (fine[2](fi+i,  fj+j,  fk+k+1,nf) - fine[2](fi+i,fj+j,fk+k,nf))*dzinv) - target_div;
     }
     }
     }

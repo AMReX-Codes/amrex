@@ -1383,8 +1383,9 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     GpuArray<Array4<const int>, AMREX_SPACEDIM> maskarr;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        crsearr[d] = crse[d]->const_array(crse_comp);
-        finearr[d] = fine[d]->array(fine_comp);
+        // Use whole-array views so facediv kernels can index absolute components.
+        crsearr[d] = crse[d]->const_array();
+        finearr[d] = fine[d]->array();
         if (solve_mask[d] != nullptr)
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }

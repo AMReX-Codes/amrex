@@ -158,7 +158,23 @@ void main_main ()
         pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
         pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
         pp.queryarr("f_hi",  f_hi, 0, AMREX_SPACEDIM);
-        pp.queryarr("ref_ratio", ref_ratio_vec, 0, AMREX_SPACEDIM);
+
+        int n_ref_ratio = pp.countval("ref_ratio");
+        if (n_ref_ratio == 1) {
+            int rr = 0;
+            pp.get("ref_ratio", rr);
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                ref_ratio_vec[i] = rr;
+            }
+        } else if (n_ref_ratio >= AMREX_SPACEDIM) {
+            Vector<int> tmp(n_ref_ratio);
+            pp.getarr("ref_ratio", tmp, 0, n_ref_ratio);
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                ref_ratio_vec[i] = tmp[i];
+            }
+        } else if (n_ref_ratio > 0) {
+            amrex::Abort("ref_ratio must contain either 1 value or >= AMREX_SPACEDIM values");
+        }
 
         if (n_cell != 0)
         {
@@ -172,8 +188,8 @@ void main_main ()
     }
 
     for (int i = 0; i < AMREX_SPACEDIM; ++i) {
-        if (ref_ratio_vec[i] < 1) {
-            amrex::Abort("ref_ratio entries must be >= 1");
+        if (ref_ratio_vec[i] != 2 && ref_ratio_vec[i] != 4) {
+            amrex::Abort("DivFreePatch requires ref_ratio entries of 2 or 4");
         }
     }
 
@@ -388,6 +404,28 @@ void main_main ()
                               ratio, mapper, bcrec, 0);
     }
 
+    if ((ratio[0] != 2) || (ratio[1] != 2) || (ratio[2] != 2)) {
+        Array<MultiFab, AMREX_SPACEDIM> averaged_faces;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            averaged_faces[d].define(c_mf_faces[d].boxArray(),
+                                     c_mf_faces[d].DistributionMap(),
+                                     c_mf_faces[d].nComp(), 0);
+        }
+        Array<const MultiFab*, AMREX_SPACEDIM> fine_face_ptrs
+            {AMREX_D_DECL(&f_mf_faces[0], &f_mf_faces[1], &f_mf_faces[2])};
+        Array<MultiFab*, AMREX_SPACEDIM> avg_face_ptrs
+            {AMREX_D_DECL(&averaged_faces[0], &averaged_faces[1], &averaged_faces[2])};
+        amrex::average_down_faces(fine_face_ptrs, avg_face_ptrs, ratio, 0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab diff(averaged_faces[d].boxArray(), averaged_faces[d].DistributionMap(), 1, 0);
+            MultiFab::Copy(diff, averaged_faces[d], 0, 0, 1, 0);
+            diff.minus(c_mf_faces[d], 0, 1, 0);
+            diff.abs(0, 1);
+            Real max_face_diff = diff.max(0);
+            amrex::Print() << "Face average diff dir " << d << " = " << max_face_diff << '\n';
+        }
+    }
+
     bool interp_nan = false;
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces[i].contains_nan()) {
@@ -413,6 +451,8 @@ void main_main ()
     div_fine_wg.ParallelCopy(div_fine, 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fine"));
     amrex::VisMF::Write(div_fine_wg, std::string("pltfiles/finewg"));
+    amrex::Print() << "   max|div_fine| = " << div_fine.norm0(0) << '\n';
+    amrex::Print() << "   max|div_refined_coarse| = " << div_refined_coarse.norm0(0) << '\n';
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
@@ -425,7 +465,6 @@ void main_main ()
 
     Real max_abs_interp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff");
     Real max_rel_interp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true);
-
     amrex::Print() << " Max InterpFromCoarse divergence error: absolute         relative\n "
                    << "                                       "
                    << max_abs_interp
