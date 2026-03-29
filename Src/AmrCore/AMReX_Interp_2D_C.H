@@ -116,10 +116,10 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
         case 0:
         {
             const Real slpy = Real(0.5)*(crse(ci, cj+1, 0, n) - crse(ci, cj-1, 0, n));
-            const Real dys = Real(1.)/ratio[1];
+            const Real dys = Real(1.)/Real(ratio[1]);
 
             for (int j = 0; j < ratio[1]; ++j) {
-                Real ysloc = (j+Real(0.5))*dys - Real(0.5);
+                Real ysloc = (Real(j)+Real(0.5))*dys - Real(0.5);
                 fine(fi, fj+j, 0, n) = crse(ci, cj, 0, n) + ysloc*slpy;
             }
 
@@ -128,10 +128,10 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
         case 1:
         {
             const Real slpx = Real(0.5)*(crse(ci+1, cj, 0, n) - crse(ci-1, cj, 0, n));
-            const Real dxs = Real(1.)/ratio[0];
+            const Real dxs = Real(1.)/Real(ratio[0]);
 
             for (int i = 0; i < ratio[0]; ++i) {
-                Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
+                Real xsloc = (Real(i)+Real(0.5))*dxs - Real(0.5);
                 fine(fi+i, fj, 0, n) = crse(ci, cj, 0, n) + xsloc*slpx;
             }
 

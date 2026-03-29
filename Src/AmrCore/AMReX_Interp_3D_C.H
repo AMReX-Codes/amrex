@@ -170,14 +170,14 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real slpz  = Real(0.5)* (crse(ci,cj,  ck+1,n) - crse(ci,cj,  ck-1,n));
             const Real slpyz = Real(0.25)*(crse(ci,cj+1,ck+1,n) - crse(ci,cj+1,ck-1,n) - crse(ci,cj-1,ck+1,n) + crse(ci,cj-1,ck-1,n));
 
-            const Real dys = Real(1.)/ratio[1];
-            const Real dzs = Real(1.)/ratio[2];
+            const Real dys = Real(1.)/Real(ratio[1]);
+            const Real dzs = Real(1.)/Real(ratio[2]);
 
             for (int k=0; k<ratio[2]; ++k){
             for (int j=0; j<ratio[1]; ++j){
 
-              Real ysloc = (j+Real(0.5))*dys - Real(0.5);
-              Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
+              Real ysloc = (Real(j)+Real(0.5))*dys - Real(0.5);
+              Real zsloc = (Real(k)+Real(0.5))*dzs - Real(0.5);
               fine(fi,fj+j,fk+k,n) = crse(ci,cj,ck,n) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*slpyz;
 
             }
@@ -208,14 +208,14 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real slpz  = Real(0.5)* (crse(ci  ,cj,ck+1,n) - crse(ci  ,cj,ck-1,n));
             const Real slpxz = Real(0.25)*(crse(ci+1,cj,ck+1,n) - crse(ci+1,cj,ck-1,n) - crse(ci-1,cj,ck+1,n) + crse(ci-1,cj,ck-1,n));
 
-            const Real dxs = Real(1.)/ratio[0];
-            const Real dzs = Real(1.)/ratio[2];
+            const Real dxs = Real(1.)/Real(ratio[0]);
+            const Real dzs = Real(1.)/Real(ratio[2]);
 
             for (int k=0; k<ratio[2]; ++k){
             for (int i=0; i<ratio[0]; ++i){
 
-              Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
-              Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
+              Real xsloc = (Real(i)+Real(0.5))*dxs - Real(0.5);
+              Real zsloc = (Real(k)+Real(0.5))*dzs - Real(0.5);
               fine(fi+i,fj,fk+k,n) = crse(ci,cj,ck,n) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*slpxz;
 
             }
@@ -247,14 +247,14 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real slpy  = Real(0.5)* (crse(ci  ,cj+1,ck,n) - crse(ci,  cj-1,ck  ,n));
             const Real slpxy = Real(0.25)*(crse(ci+1,cj+1,ck,n) - crse(ci+1,cj-1,ck,n) - crse(ci-1,cj+1,ck,n) + crse(ci-1,cj-1,ck,n));
 
-            const Real dxs = Real(1.)/ratio[0];
-            const Real dys = Real(1.)/ratio[1];
+            const Real dxs = Real(1.)/Real(ratio[0]);
+            const Real dys = Real(1.)/Real(ratio[1]);
 
             for (int j=0; j<ratio[1]; ++j){
             for (int i=0; i<ratio[0]; ++i){
 
-              Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
-              Real ysloc = (j+Real(0.5))*dys - Real(0.5);
+              Real xsloc = (Real(i)+Real(0.5))*dxs - Real(0.5);
+              Real ysloc = (Real(j)+Real(0.5))*dys - Real(0.5);
               fine(fi+i,fj+j,fk,n) = crse(ci,cj,ck,n) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*slpxy;
 
             }
