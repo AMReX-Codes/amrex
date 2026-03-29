@@ -127,7 +127,6 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
-
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_face_interp (int ci, int cj, int ck,
@@ -174,8 +173,8 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real dys = Real(1.)/ratio[1];
             const Real dzs = Real(1.)/ratio[2];
 
-            for (int j=0; j<ratio[1]; ++j){
             for (int k=0; k<ratio[2]; ++k){
+            for (int j=0; j<ratio[1]; ++j){
 
               Real ysloc = (j+Real(0.5))*dys - Real(0.5);
               Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
@@ -212,8 +211,8 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real dxs = Real(1.)/ratio[0];
             const Real dzs = Real(1.)/ratio[2];
 
-            for (int i=0; i<ratio[0]; ++i){
             for (int k=0; k<ratio[2]; ++k){
+            for (int i=0; i<ratio[0]; ++i){
 
               Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
               Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
@@ -251,8 +250,8 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real dxs = Real(1.)/ratio[0];
             const Real dys = Real(1.)/ratio[1];
 
-            for (int i=0; i<ratio[0]; ++i){
             for (int j=0; j<ratio[2]; ++j){
+            for (int i=0; i<ratio[0]; ++i){
 
               Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
               Real ysloc = (j+Real(0.5))*dys - Real(0.5);
@@ -393,12 +392,101 @@ facediv_int (int ci, int cj, int ck, int nf,
                                   +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
 }
 
-template<typename T>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+
+template <int i, std::enable_if_t<(i>=0 && i<8),int> = 0>
+constexpr IntVect facediv_get_refratio ()
+{
+    if constexpr (i == 0) {
+        return IntVect(2,2,2);
+    } else if constexpr (i == 1) {
+        return IntVect(4,2,2);
+    } else if constexpr (i == 2) {
+        return IntVect(2,4,2);
+    } else if constexpr (i == 3) {
+        return IntVect(4,4,2);
+    } else if constexpr (i == 4) {
+        return IntVect(2,2,4);
+    } else if constexpr (i == 5) {
+        return IntVect(4,2,4);
+    } else if constexpr (i == 6) {
+        return IntVect(2,4,4);
+    } else {
+        return IntVect(4,4,4);
+    }
+}
+
+template <int N>
+LUSolver<N,Real>
+facediv_init_lusolver (IntVect const& ratio,
+                       GpuArray<Real, AMREX_SPACEDIM> const& cellSize)
+{
+    //  set up matrix for local MAC projection
+    Array2D<Real,0,N-1,0,N-1,Order::C> mat;
+
+    for (int irow = 0; irow < N; irow++) {
+        for (int icol = 0; icol < N; icol++) {
+            mat(irow,icol) = Real(0.0);
+        }
+    }
+
+    Real dxinv = Real(1.)/cellSize[0];
+    Real dyinv = Real(1.)/cellSize[1];
+    Real dzinv = Real(1.)/cellSize[2];
+
+    Real ddx2 = dxinv*dxinv;
+    Real ddy2 = dyinv*dyinv;
+    Real ddz2 = dzinv*dzinv;
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+        int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+        if(i > 0){
+            mat(irow,irow) += ddx2;
+            mat(irow,irow-1) += -ddx2;
+        }
+
+        if(i < ratio[0]-1){
+            mat(irow,irow) += ddx2;
+            mat(irow,irow+1) += -ddx2;
+        }
+
+        if(j > 0){
+            mat(irow,irow) += ddy2;
+            mat(irow,irow-ratio[0]) += -ddy2;
+        }
+
+        if(j < ratio[1]-1){
+            mat(irow,irow) += ddy2;
+            mat(irow,irow+ratio[0]) += -ddy2;
+        }
+
+        if(k > 0){
+            mat(irow,irow) += ddz2;
+            mat(irow,irow-ratio[0]*ratio[1]) += -ddz2;
+        }
+
+        if(k < ratio[2]-1){
+            mat(irow,irow) += ddz2;
+            mat(irow,irow+ratio[0]*ratio[1]) += -ddz2;
+        }
+    }}}
+
+    //  hcak matrxi to be nonsingular
+    mat(N-1,N-1) +=ddx2;
+
+    return LUSolver<N,Real>{mat};
+}
+
+template<typename T, int N>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
 facediv_int_gen (int ci, int cj, int ck, int nf,
                  GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
                  IntVect const& ratio,
-                 GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
+                 GpuArray<Real, AMREX_SPACEDIM> const& cellSize,
+                 LUSolver<N,Real> const& lusolver) noexcept
 {
     const int fi = ci*ratio[0];
     const int fj = cj*ratio[1];
@@ -407,6 +495,10 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     const Real dx = cellSize[0];
     const Real dy = cellSize[1];
     const Real dz = cellSize[2];
+
+    const Real dxinv = Real(1.)/cellSize[0];
+    const Real dyinv = Real(1.)/cellSize[1];
+    const Real dzinv = Real(1.)/cellSize[2];
 
 // interpolate initial veloc
 
@@ -478,76 +570,17 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     }
     }
 
-    // xxxxx int prodrat = ratio[0]*ratio[1]*ratio[2];
-    constexpr int prodrat = 8;
-
-    Real target_div = (uplus-uminus)/(prodrat*dx) + (vplus-vminus)/(prodrat*dy) + (wplus-wminus)/(prodrat*dz);
+    Real target_div = (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) + (wplus-wminus)/(N*dz);
 
 //  set up matrix for local MAC projection
 
-    Array2D<Real,0,prodrat-1,0,prodrat-1,Order::C> mat;
+    Array2D<Real,0,N-1,0,N-1,Order::C> mat;
 
 
-    for (int irow = 0; irow < prodrat; irow++) {
-        for (int icol = 0; icol < prodrat; icol++) {
-            mat(irow,icol) = Real(0.0);
-        }
-    }
-
-    Real dxinv = Real(1.)/dx;
-    Real dyinv = Real(1.)/dy;
-    Real dzinv = Real(1.)/dz;
-
-    Real ddx2 = dxinv*dxinv;
-    Real ddy2 = dyinv*dyinv;
-    Real ddz2 = dzinv*dzinv;
-
-    for( int k=0; k < ratio[2]; ++k){
-    for( int j=0; j < ratio[1]; ++j){
-    for( int i=0; i < ratio[0]; ++i){
-
-       int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
-
-       if(i > 0){
-          mat(irow,irow) += ddx2;
-          mat(irow,irow-1) += -ddx2;
-       }
-
-       if(i < ratio[0]-1){
-          mat(irow,irow) += ddx2;
-          mat(irow,irow+1) += -ddx2;
-       }
-
-       if(j > 0){
-          mat(irow,irow) += ddy2;
-          mat(irow,irow-ratio[0]) += -ddy2;
-       }
-
-       if(j < ratio[1]-1){
-          mat(irow,irow) += ddy2;
-          mat(irow,irow+ratio[0]) += -ddy2;
-       }
-
-       if(k > 0){
-          mat(irow,irow) += ddz2;
-          mat(irow,irow-ratio[0]*ratio[1]) += -ddz2;
-       }
-
-       if(k < ratio[2]-1){
-          mat(irow,irow) += ddz2;
-          mat(irow,irow+ratio[0]*ratio[1]) += -ddz2;
-       }
-    }
-    }
-    }
-
-//  hcak matrxi to be nonsingular
-
-    mat(prodrat-1,prodrat-1) +=ddx2;
 
 // form rhs
-    Array1D<Real,0,prodrat-1> rhs;
-    Array1D<Real,0,prodrat-1> phi;
+    Array1D<Real,0,N-1> rhs;
+    Array1D<Real,0,N-1> phi;
 
     for( int k=0; k < ratio[2]; ++k){
     for( int j=0; j < ratio[1]; ++j){
@@ -564,7 +597,6 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 
 //  solver the system
 
-    LUSolver<prodrat,Real> lusolver(mat);
     lusolver(phi.begin(), rhs.begin());
 
 //  this is for sanity check

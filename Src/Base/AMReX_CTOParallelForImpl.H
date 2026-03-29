@@ -6,6 +6,7 @@
 #include <AMReX_TypeList.H>
 
 #include <array>
+#include <utility>
 #include <type_traits>
 
 /* This header is not for the users to include directly.  It's meant to be
@@ -73,8 +74,16 @@ namespace detail
         amrex::ignore_unused(found_option);
         AMREX_ASSERT(found_option);
     }
+
+    template <int Begin, int End, int... I>
+    constexpr auto MakeCTOImpl(std::integer_sequence<int, I...>)
+        -> CompileTimeOptions<Begin + I...>;
 }
 /// \endcond
+
+template <int Begin, int End>
+using CTOSeq = decltype(detail::MakeCTOImpl<Begin, End>(
+                            std::make_integer_sequence<int, End - Begin>{}));
 
 /**
  * \brief Compile time optimization of kernels with run time options.
