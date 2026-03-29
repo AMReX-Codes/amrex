@@ -29,10 +29,10 @@ void setupMF(MultiFab& mf, const int type = 0, const BoxArray& exclude = BoxArra
         {
             Box bx = ba[bid];
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& eng) noexcept
             {
                 if (type == 0)
-                    { arr(i,j,k) = amrex::Random()*10; }
+                    { arr(i,j,k) = amrex::Random(eng)*10; }
                 else if (type == 1)
                     { arr(i,j,k) = double(i)+double(j)+double(k); }
                 else if (type == 2)
