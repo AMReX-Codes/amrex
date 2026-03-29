@@ -1467,7 +1467,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 #endif
 
         ParallelFor(TypeList<CTOSeq<0,ncases>>{}, {rr_case},
-                    fine_region, ncomp,
+                    c_fine_region, ncomp,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, auto rrc)
         {
             auto const* ps = (std::variant_alternative_t<rrc,Solver_t> const*)psolver_d;
