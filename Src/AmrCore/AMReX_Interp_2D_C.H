@@ -4,6 +4,7 @@
 
 #include <AMReX_Array.H>
 #include <AMReX_Geometry.H>
+#include <AMReX_LUSolver.H>
 
 namespace amrex {
 
@@ -114,23 +115,25 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
     switch (idir) {
         case 0:
         {
-            const Real neg = crse(ci, cj-1, 0, n);
-            const Real cen = crse(ci, cj  , 0, n);
-            const Real pos = crse(ci, cj+1, 0, n);
+            const Real slpy = Real(0.5)*(crse(ci, cj+1, 0, n) - crse(ci, cj-1, 0, n));
+            const Real dys = Real(1.)/ratio[1];
 
-            fine(fi, fj  , 0, n) = Real(0.125)*(8*cen + neg - pos);
-            fine(fi, fj+1, 0, n) = Real(0.125)*(8*cen + pos - neg);
+            for (int j = 0; j < ratio[1]; ++j) {
+                Real ysloc = (j+Real(0.5))*dys - Real(0.5);
+                fine(fi, fj+j, 0, n) = crse(ci, cj, 0, n) + ysloc*slpy;
+            }
 
             break;
         }
         case 1:
         {
-            const Real neg = crse(ci-1, cj, 0, n);
-            const Real cen = crse(ci  , cj, 0, n);
-            const Real pos = crse(ci+1, cj, 0, n);
+            const Real slpx = Real(0.5)*(crse(ci+1, cj, 0, n) - crse(ci-1, cj, 0, n));
+            const Real dxs = Real(1.)/ratio[0];
 
-            fine(fi  , fj, 0, n) = Real(0.125)*(8*cen + neg - pos);
-            fine(fi+1, fj, 0, n) = Real(0.125)*(8*cen + pos - neg);
+            for (int i = 0; i < ratio[0]; ++i) {
+                Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
+                fine(fi+i, fj, 0, n) = crse(ci, cj, 0, n) + xsloc*slpx;
+            }
 
             break;
         }
@@ -169,6 +172,144 @@ facediv_int (int ci, int cj, int /*ck*/, int n,
     fine[1](fi,  fj+1,0,n) = Real(0.5)*(vmm+vpm) + y_corr;
     fine[1](fi+1,fj+1,0,n) = Real(0.5)*(vmp+vpp) + y_corr;
 
+}
+
+template <int i, std::enable_if_t<(i>=0 && i<4), int> = 0>
+constexpr IntVect facediv_get_refratio ()
+{
+    if constexpr (i == 0) {
+        return IntVect(2,2);
+    } else if constexpr (i == 1) {
+        return IntVect(4,2);
+    } else if constexpr (i == 2) {
+        return IntVect(2,4);
+    } else {
+        return IntVect(4,4);
+    }
+}
+
+template <int N>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+LUSolver<N,Real>
+facediv_init_lusolver (IntVect const& ratio,
+                       GpuArray<Real, AMREX_SPACEDIM> const& cellSize)
+{
+    Array2D<Real,0,N-1,0,N-1,Order::C> mat;
+
+    for (int irow = 0; irow < N; ++irow) {
+        for (int icol = 0; icol < N; ++icol) {
+            mat(irow,icol) = Real(0.0);
+        }
+    }
+
+    Real dxinv = Real(1.)/cellSize[0];
+    Real dyinv = Real(1.)/cellSize[1];
+    Real ddx2 = dxinv*dxinv;
+    Real ddy2 = dyinv*dyinv;
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        int irow = i + j*ratio[0];
+
+        if (i > 0) {
+            mat(irow,irow) += ddx2;
+            mat(irow,irow-1) += -ddx2;
+        }
+
+        if (i < ratio[0]-1) {
+            mat(irow,irow) += ddx2;
+            mat(irow,irow+1) += -ddx2;
+        }
+
+        if (j > 0) {
+            mat(irow,irow) += ddy2;
+            mat(irow,irow-ratio[0]) += -ddy2;
+        }
+
+        if (j < ratio[1]-1) {
+            mat(irow,irow) += ddy2;
+            mat(irow,irow+ratio[0]) += -ddy2;
+        }
+    }}
+
+    mat(N-1,N-1) += ddx2;
+
+    return LUSolver<N,Real>{mat};
+}
+
+template<typename T, int N>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+facediv_int_gen (int ci, int cj, int /*ck*/, int nf,
+                 GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+                 IntVect const& ratio,
+                 GpuArray<Real, AMREX_SPACEDIM> const& cellSize,
+                 LUSolver<N,Real> const& lusolver) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    const Real dx = cellSize[0];
+    const Real dy = cellSize[1];
+    const Real dxinv = Real(1.)/dx;
+    const Real dyinv = Real(1.)/dy;
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 1; i < ratio[0]; ++i) {
+        fine[0](fi+i, fj+j, 0, nf) =
+            ((ratio[0]-i)*fine[0](fi,           fj+j, 0, nf)
+           +          i *fine[0](fi+ratio[0], fj+j, 0, nf))/ratio[0];
+    }}
+
+    for (int j = 1; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        fine[1](fi+i, fj+j, 0, nf) =
+            ((ratio[1]-j)*fine[1](fi+i, fj,           0, nf)
+           +          j *fine[1](fi+i, fj+ratio[1], 0, nf))/ratio[1];
+    }}
+
+    Real uplus = Real(0.);
+    Real uminus = Real(0.);
+    for (int j = 0; j < ratio[1]; ++j) {
+        uplus  += fine[0](fi+ratio[0], fj+j, 0, nf);
+        uminus += fine[0](fi,          fj+j, 0, nf);
+    }
+
+    Real vplus = Real(0.);
+    Real vminus = Real(0.);
+    for (int i = 0; i < ratio[0]; ++i) {
+        vplus  += fine[1](fi+i, fj+ratio[1], 0, nf);
+        vminus += fine[1](fi+i, fj,          0, nf);
+    }
+
+    Real target_div = (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy);
+
+    Array1D<Real,0,N-1> rhs;
+    Array1D<Real,0,N-1> phi;
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        int irow = i + j*ratio[0];
+        rhs(irow) =
+            (fine[0](fi+i+1, fj+j,   0, nf) - fine[0](fi+i,   fj+j,   0, nf))*dxinv
+          + (fine[1](fi+i,   fj+j+1, 0, nf) - fine[1](fi+i,   fj+j,   0, nf))*dyinv
+          - target_div;
+    }}
+
+    lusolver(phi.begin(), rhs.begin());
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 1; i < ratio[0]; ++i) {
+        int plus  = i   + j*ratio[0];
+        int minus = i-1 + j*ratio[0];
+        fine[0](fi+i, fj+j, 0, nf) += (phi(plus) - phi(minus))*dxinv;
+    }}
+
+    for (int j = 1; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        int plus  = i + j   *ratio[0];
+        int minus = i + (j-1)*ratio[0];
+        fine[1](fi+i, fj+j, 0, nf) += (phi(plus) - phi(minus))*dyinv;
+    }}
 }
 
 template<typename T>

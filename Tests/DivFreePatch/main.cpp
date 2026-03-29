@@ -404,7 +404,12 @@ void main_main ()
                               ratio, mapper, bcrec, 0);
     }
 
-    if ((ratio[0] != 2) || (ratio[1] != 2) || (ratio[2] != 2)) {
+    bool any_ratio_ne_two = false;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (ratio[d] != 2) { any_ratio_ne_two = true; break; }
+    }
+
+    if (any_ratio_ne_two) {
         Array<MultiFab, AMREX_SPACEDIM> averaged_faces;
         for (int d=0; d<AMREX_SPACEDIM; ++d) {
             averaged_faces[d].define(c_mf_faces[d].boxArray(),
