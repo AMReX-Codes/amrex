@@ -1383,9 +1383,8 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     GpuArray<Array4<const int>, AMREX_SPACEDIM> maskarr;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
     {
-        // Use whole-array views so facediv kernels can index absolute components.
-        crsearr[d] = crse[d]->const_array();
-        finearr[d] = fine[d]->array();
+        crsearr[d] = crse[d]->const_array(crse_comp);
+        finearr[d] = fine[d]->array(fine_comp);
         if (solve_mask[d] != nullptr)
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }
@@ -1403,7 +1402,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
+                          amrex::facediv_face_interp<Real> (i,j,k,n, 0,
                                                             crsearr[0], finearr[0], maskarr[0], ratio);
                       }
                   });
@@ -1414,7 +1413,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 1,
+                          amrex::facediv_face_interp<Real> (i,j,k,n, 1,
                                                             crsearr[1], finearr[1], maskarr[1], ratio);
                       }
                   });
@@ -1425,7 +1424,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 2,
+                          amrex::facediv_face_interp<Real> (i,j,k,n, 2,
                                                             crsearr[2], finearr[2], maskarr[2], ratio);
                       }
                   });
@@ -1434,7 +1433,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
     if (ratio == 2) {
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
         {
-            amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
+            amrex::facediv_int<Real>(i, j, k, n, finearr, ratio, cell_size);
         });
     } else {
         auto& lusolver = m_lusolver[OpenMP::get_thread_num()][fine_geom.Domain()];
@@ -1472,7 +1471,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n, auto rrc)
         {
             auto const* ps = (std::variant_alternative_t<rrc,Solver_t> const*)psolver_d;
-            amrex::facediv_int_gen<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size, *ps);
+            amrex::facediv_int_gen<Real>(i, j, k, n, finearr, ratio, cell_size, *ps);
         });
 
 #ifdef AMREX_USE_GPU
