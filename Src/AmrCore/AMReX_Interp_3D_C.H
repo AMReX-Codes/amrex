@@ -167,19 +167,19 @@ facediv_face_interp (int ci, int cj, int ck,
 //            fine(fi,fj+1,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
 //            fine(fi,fj+1,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
 
-            const Real slpy  = 0.5* (crse(ci,cj+1,ck  ,nc) - crse(ci,cj-1,ck  ,nc))
-            const Real slpz  = 0.5* (crse(ci,cj,  ck+1,nc) - crse(ci,cj,  ck-1,nc))
-            const Real slpyz = 0.25*(crse(ci,cj+1,ck+1,nc) - crse(ci,cj+1,ck-1,nc) - crse(ci,cj-1,ck+1,nc) + crse(ci,cj-1,ck-1,nc))
+            const Real slpy  = Real(0.5)* (crse(ci,cj+1,ck  ,nc) - crse(ci,cj-1,ck  ,nc));
+            const Real slpz  = Real(0.5)* (crse(ci,cj,  ck+1,nc) - crse(ci,cj,  ck-1,nc));
+            const Real slpyz = Real(0.25)*(crse(ci,cj+1,ck+1,nc) - crse(ci,cj+1,ck-1,nc) - crse(ci,cj-1,ck+1,nc) + crse(ci,cj-1,ck-1,nc));
 
-            const Real dys = 1./ratio[1];
-            const Real dzs = 1./ratio[2];
+            const Real dys = Real(1.)/ratio[1];
+            const Real dzs = Real(1.)/ratio[2];
 
-            for int(j=0; j<ratio[1], ++j){
-            for int(k=0; k<ratio[2], ++k){
+            for (int j=0; j<ratio[1]; ++j){
+            for (int k=0; k<ratio[2]; ++k){
 
-              Real ysloc = (j+0.5)*dys - 0.5;
-              Real zsloc = (k+0.5)*dzs - 0.5;
-              fine(fi,fj+j,fk+k,nc) = crse(ci,cj,ck,nc) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*splyz;
+              Real ysloc = (j+Real(0.5))*dys - Real(0.5);
+              Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
+              fine(fi,fj+j,fk+k,nc) = crse(ci,cj,ck,nc) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*slpyz;
 
             }
             }
@@ -205,19 +205,19 @@ facediv_face_interp (int ci, int cj, int ck,
 //            fine(fi  ,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
 //            fine(fi+1,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
 
-            const Real slpx  = 0.5* (crse(ci+1,cj,ck  ,nc) - crse(ci-1,cj,ck  ,nc))
-            const Real slpz  = 0.5* (crse(ci  ,cj,ck+1,nc) - crse(ci  ,cj,ck-1,nc))
-            const Real slpxz = 0.25*(crse(ci+1,cj,ck+1,nc) - crse(ci+1,cj,ck-1,nc) - crse(ci-1,cj,ck+1,nc) + crse(ci-1,cj,ck-1,nc))
+            const Real slpx  = Real(0.5)* (crse(ci+1,cj,ck  ,nc) - crse(ci-1,cj,ck  ,nc));
+            const Real slpz  = Real(0.5)* (crse(ci  ,cj,ck+1,nc) - crse(ci  ,cj,ck-1,nc));
+            const Real slpxz = Real(0.25)*(crse(ci+1,cj,ck+1,nc) - crse(ci+1,cj,ck-1,nc) - crse(ci-1,cj,ck+1,nc) + crse(ci-1,cj,ck-1,nc));
 
-            const Real dxs = 1./ratio[0];
-            const Real dzs = 1./ratio[2];
+            const Real dxs = Real(1.)/ratio[0];
+            const Real dzs = Real(1.)/ratio[2];
 
-            for int(i=0; i<ratio[0], ++i){
-            for int(k=0; k<ratio[2], ++k){
+            for (int i=0; i<ratio[0]; ++i){
+            for (int k=0; k<ratio[2]; ++k){
 
-              Real xsloc = (i+0.5)*dxs - 0.5;
-              Real zsloc = (k+0.5)*dzs - 0.5;
-              fine(fi+i,fj,fk+k,nc) = crse(ci,cj,ck,nc) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*splxz;
+              Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
+              Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
+              fine(fi+i,fj,fk+k,nc) = crse(ci,cj,ck,nc) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*slpxz;
 
             }
             }
@@ -244,19 +244,19 @@ facediv_face_interp (int ci, int cj, int ck,
 //            fine(fi  ,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
 //            fine(fi+1,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
 
-            const Real slpx  = 0.5* (crse(ci+1,cj,  ck,nc) - crse(ci-1,cj,  ck  ,nc))
-            const Real slpy  = 0.5* (crse(ci  ,cj+1,ck,nc) - crse(ci,  cj-1,ck  ,nc))
-            const Real slpxy = 0.25*(crse(ci+1,cj+1,ck,nc) - crse(ci+1,cj-1,ck,nc) - crse(ci-1,cj+1,ck,nc) + crse(ci-1,cj-1,ck,nc))
+            const Real slpx  = Real(0.5)* (crse(ci+1,cj,  ck,nc) - crse(ci-1,cj,  ck  ,nc));
+            const Real slpy  = Real(0.5)* (crse(ci  ,cj+1,ck,nc) - crse(ci,  cj-1,ck  ,nc));
+            const Real slpxy = Real(0.25)*(crse(ci+1,cj+1,ck,nc) - crse(ci+1,cj-1,ck,nc) - crse(ci-1,cj+1,ck,nc) + crse(ci-1,cj-1,ck,nc));
 
-            const Real dxs = 1./ratio[0];
-            const Real dys = 1./ratio[1];
+            const Real dxs = Real(1.)/ratio[0];
+            const Real dys = Real(1.)/ratio[1];
 
-            for int(i=0; i<ratio[0], ++i){
-            for int(j=0; j<ratio[2], ++k){
+            for (int i=0; i<ratio[0]; ++i){
+            for (int j=0; j<ratio[2]; ++j){
 
-              Real xsloc = (i+0.5)*dxs - 0.5;
-              Real ysloc = (j+0.5)*dys - 0.5;
-              fine(fi+i,fj+j,fk,nc) = crse(ci,cj,ck,nc) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*splxy;
+              Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
+              Real ysloc = (j+Real(0.5))*dys - Real(0.5);
+              fine(fi+i,fj+j,fk,nc) = crse(ci,cj,ck,nc) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*slpxy;
 
             }
             }
@@ -406,35 +406,35 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 
     const Real dx = cellSize[0];
     const Real dy = cellSize[1];
-    const Real dy = cellSize[2];
+    const Real dz = cellSize[2];
 
 // interpolate initial veloc
 
-    for( int i=1; i < ratio[0]  , ++j){
-    for( int j=0; j < ratio[1]  , ++j){
-    for( int k=0; k < ratio[2]  , ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=1; i < ratio[0]; ++i){
 
-       fine[0](fi + i, jf + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,   fj  , fk  , nf) + i* fine[0](fi+ratio[0],   fj  , fk  , nf) )/ratio[0];
-
-    }
-    }
-    }
-
-    for( int i=0; i < ratio[0]  , ++j){
-    for( int j=1; j < ratio[1]  , ++j){
-    for( int k=0; k < ratio[2]  , ++k){
-
-       fine[1](fi + i, jf + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi,   fj  , fk  , nf) + j* fine[1](fi,   fj +ratio[1] , fk  , nf) )/ratio[1];
+       fine[0](fi + i, fj + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,   fj  , fk  , nf) + i* fine[0](fi+ratio[0],   fj  , fk  , nf) )/ratio[0];
 
     }
     }
     }
 
-    for( int i=0; i < ratio[0]  , ++j){
-    for( int j=0; j < ratio[1]  , ++j){
-    for( int k=1; k < ratio[2]  , ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=1; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
 
-       fine[2](fi + i, jf + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi,   fj  , fk  , nf) + k* fine[2](fi,   fj , fk +ratio[2]  , nf) )/ratio[2];
+       fine[1](fi + i, fj + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi,   fj  , fk  , nf) + j* fine[1](fi,   fj +ratio[1] , fk  , nf) )/ratio[1];
+
+    }
+    }
+    }
+
+    for( int k=1; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+       fine[2](fi + i, fj + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi,   fj  , fk  , nf) + k* fine[2](fi,   fj , fk +ratio[2]  , nf) )/ratio[2];
 
     }
     }
@@ -445,8 +445,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     Real uplus  = 0;
     Real uminus = 0;
 
-    for( int j=0; j < ratio[1], ++j){
-    for( int k=0; k < ratio[2], ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
 
          uplus  += fine[0](fi+ratio[0],fj+j,fk+k);
          uminus += fine[0](fi         ,fj+j,fk+k);
@@ -457,8 +457,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     Real vplus  = 0;
     Real vminus = 0;
 
-    for( int i=0; i < ratio[0], ++i){
-    for( int k=0; i < ratio[2], ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int i=0; i < ratio[0]; ++i){
 
          vplus  += fine[1](fi+i,fj+ratio[1],fk+k);
          vminus += fine[1](fi+i,fj,         fk+k);
@@ -469,8 +469,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     Real wplus  = 0;
     Real wminus = 0;
 
-    for( int i=0; i < ratio[0], ++i){
-    for( int j=0; j < ratio[0], ++j){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
 
          wplus  += fine[2](fi+i,fj+j,fk+ratio[2]);
          wminus += fine[2](fi+i,fj+j,fk);
@@ -478,7 +478,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     }
     }
 
-    int prodrat = ratio[0]*ratio[1]*ratio[2];
+    // xxxxx int prodrat = ratio[0]*ratio[1]*ratio[2];
+    constexpr int prodrat = 8;
 
     Real target_div = (uplus-uminus)/(prodrat*dx) + (vplus-vminus)/(prodrat*dy) + (wplus-wminus)/(prodrat*dz);
 
@@ -489,21 +490,21 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 
     for (int irow = 0; irow < prodrat; irow++) {
         for (int icol = 0; icol < prodrat; icol++) {
-            mat(irow,icol) =  0.0;
+            mat(irow,icol) = Real(0.0);
         }
     }
 
-    Real dxinv = 1./dx;
-    Real dyinv = 1./dy;
-    Real dzinv = 1./dz;
+    Real dxinv = Real(1.)/dx;
+    Real dyinv = Real(1.)/dy;
+    Real dzinv = Real(1.)/dz;
 
     Real ddx2 = dxinv*dxinv;
     Real ddy2 = dyinv*dyinv;
     Real ddz2 = dzinv*dzinv;
 
-    for( int i=0; i < ratio[0]  , ++j){
-    for( int j=0; j < ratio[1]  , ++j){
-    for( int k=0; k < ratio[2]  , ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
 
        int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
 
@@ -548,15 +549,15 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     Array1D<Real,0,prodrat-1> rhs;
     Array1D<Real,0,prodrat-1> phi;
 
-    for( int i=0; i < ratio[0]  , ++j){
-    for( int j=0; j < ratio[1]  , ++j){
-    for( int k=0; k < ratio[2]  , ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
 
        int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
 
-       rhs[irow] = targetdiv - ((fine[0](fi+i+1,fj+j,  fk+k,  nf)  -fine[0](fi+i,fj+j,f+k,nf))*dxinv
-                             +  (fine[1](fi+i  ,fj+j+1,fk+k,  nf) - fine[1](fi+i,fj+j,f+k,nf))*dyinv
-                             +  (fine[2](fi+i,  fj+j,  fk+k+1,nf) - fine[2](fi+i,fj+j,f+k,nf))*dzinv);
+       rhs(irow) = target_div - ((fine[0](fi+i+1,fj+j,  fk+k,  nf)  -fine[0](fi+i,fj+j,fk+k,nf))*dxinv
+                              +  (fine[1](fi+i  ,fj+j+1,fk+k,  nf) - fine[1](fi+i,fj+j,fk+k,nf))*dyinv
+                              +  (fine[2](fi+i,  fj+j,  fk+k+1,nf) - fine[2](fi+i,fj+j,fk+k,nf))*dzinv);
     }
     }
     }
@@ -564,7 +565,7 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 //  solver the system
 
     LUSolver<prodrat,Real> lusolver(mat);
-    lusolver(phi.data(), rhs.data());
+    lusolver(phi.begin(), rhs.begin());
 
 //  this is for sanity check
 //  can be put in if needed
@@ -584,40 +585,40 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 //    }
 
 
-    for( int i=1; i < ratio[0]  , ++j){
-    for( int j=0; j < ratio[1]  , ++j){
-    for( int k=0; k < ratio[2]  , ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=1; i < ratio[0]; ++i){
 
        int plus  = i     + j*ratio[0] +k*ratio[0]*ratio[1];
        int minus = i - 1 + j*ratio[0] +k*ratio[0]*ratio[1];
-//       fine[0](fi + i, jf + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i-1,j,k))*dxinv
-       fine[0](fi + i, jf + j, fk + k, nf) += ( phi(plus) - phi(minus))*dxinv;
+//       fine[0](fi + i, fj + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i-1,j,k))*dxinv
+       fine[0](fi + i, fj + j, fk + k, nf) += ( phi(plus) - phi(minus))*dxinv;
 
     }
     }
     }
 
-    for( int i=0; i < ratio[0]  , ++j){
-    for( int j=1; j < ratio[1]  , ++j){
-    for( int k=0; k < ratio[2]  , ++k){
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=1; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
 
        int plus  = i  +     j*ratio[0] +k*ratio[0]*ratio[1];
        int minus = i  + (j-1)*ratio[0] +k*ratio[0]*ratio[1];
-//       fine[1](fi + i, jf + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j-1,k))*dyinv
-       fine[1](fi + i, jf + j, fk + k, nf) += ( phi(plus) - phi(minus))*dyinv;
+//       fine[1](fi + i, fj + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j-1,k))*dyinv
+       fine[1](fi + i, fj + j, fk + k, nf) += ( phi(plus) - phi(minus))*dyinv;
 
     }
     }
     }
 
-    for( int i=0; i < ratio[0]  , ++j){
-    for( int j=0; j < ratio[1]  , ++j){
-    for( int k=1; k < ratio[2]  , ++k){
+    for( int k=1; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
 
        int plus  = i  + j*ratio[0] + k    *ratio[0]*ratio[1];
        int minus = i  + j*ratio[0] + (k-1)*ratio[0]*ratio[1];
-//       fine[2](fi + i, jf + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j,k-1))*dzinv
-       fine[2](fi + i, jf + j, fk + k, nf) += ( phi(plus) - phi(minus))*dzinv;
+//       fine[2](fi + i, fj + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j,k-1))*dzinv
+       fine[2](fi + i, fj + j, fk + k, nf) += ( phi(plus) - phi(minus))*dzinv;
 
     }
     }
@@ -701,7 +702,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
         for         (int k = klo; k <= khi; ++k) {
             for     (int j = jlo; j <= jhi; ++j) {
                 for (int i = ilo; i <= ihi; ++i) {
-                    if ((fine_state(i,j,k,n) + fine(i,j,k,n)) < 0.0) {
+                    if ((fine_state(i,j,k,n) + fine(i,j,k,n)) < Real(0.0)) {
                         redo_me = true;
                     }
                 }
@@ -731,14 +732,14 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
              *
              * SumP = volume-weighted sum of all positive values of fine_state
              */
-            Real crseTot = 0.0;
-            Real SumN = 0.0;
-            Real SumP = 0.0;
+            Real crseTot = Real(0.0);
+            Real SumN = Real(0.0);
+            Real SumP = Real(0.0);
             for         (int k = klo; k <= khi; ++k) {
                 for     (int j = jlo; j <= jhi; ++j) {
                     for (int i = ilo; i <= ihi; ++i) {
                         crseTot += fine(i,j,k,n);
-                        if (fine_state(i,j,k,n) <= 0.0) {
+                        if (fine_state(i,j,k,n) <= Real(0.0)) {
                             SumN += fine_state(i,j,k,n);
                         } else {
                             SumP += fine_state(i,j,k,n);
@@ -764,13 +765,13 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                         for (int i = ilo; i <= ihi; ++i) {
 
                             // Fill in negative values first.
-                            if (fine_state(i,j,k,n) < 0.0) {
+                            if (fine_state(i,j,k,n) < Real(0.0)) {
                                 fine(i,j,k,n) = -fine_state(i,j,k,n);
                             }
 
                             // Then, add the remaining positive proportionally.
-                            if (SumP > 0.0) {
-                                if (fine_state(i,j,k,n) > 0.0) {
+                            if (SumP > Real(0.0)) {
+                                if (fine_state(i,j,k,n) > Real(0.0)) {
                                     Real alpha = (crseTot - std::abs(SumN)) / SumP;
                                     fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
                                 }
@@ -799,12 +800,12 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
                             Real alpha = crseTot / std::abs(SumN);
-                            if (fine_state(i,j,k,n) < 0.0) {
+                            if (fine_state(i,j,k,n) < Real(0.0)) {
                                 // Add correction to negative cells proportionally.
                                 fine(i,j,k,n) = alpha * std::abs(fine_state(i,j,k,n));
                             } else {
                                 // Don't touch the positive states.
-                                fine(i,j,k,n) = 0.0;
+                                fine(i,j,k,n) = Real(0.0);
                             }
 
                         }
@@ -835,7 +836,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
 
             } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
-                        ((SumP+SumN+crseTot) > 0.0) )  {
+                        ((SumP+SumN+crseTot) > Real(0.0)) )  {
 
                 /*
                  * Special case 4:
@@ -849,7 +850,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
 
-                            if (fine_state(i,j,k,n) < 0.0) {
+                            if (fine_state(i,j,k,n) < Real(0.0)) {
                                 // Absorb the negative correction
                                 fine(i,j,k,n) = -fine_state(i,j,k,n);
                             } else {
@@ -863,7 +864,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
 
             } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
-                        ((SumP+SumN+crseTot) < 0.0) )  {
+                        ((SumP+SumN+crseTot) < Real(0.0)) )  {
                 /*
                  * Special case 5:
                  *
@@ -879,7 +880,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
 
-                            if (fine_state(i,j,k,n) > 0.0) {
+                            if (fine_state(i,j,k,n) > Real(0.0)) {
                                 // Don't touch the negatives
                                 fine(i,j,k,n) = -fine_state(i,j,k,n);
                             } else {
@@ -900,7 +901,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
     for         (int k = klo; k <= khi; ++k) {
         for     (int j = jlo; j <= jhi; ++j) {
             for (int i = ilo; i <= ihi; ++i) {
-                fine(i,j,k,0) = 0.0;
+                fine(i,j,k,0) = Real(0.0);
                 for (int n = 1; n < nvar-1; ++n) {
                     fine(i,j,k,0) += fine(i,j,k,n);
                 }
