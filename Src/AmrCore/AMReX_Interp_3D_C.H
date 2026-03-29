@@ -575,12 +575,6 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 
     Real target_div = (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) + (wplus-wminus)/(N*dz);
 
-//  set up matrix for local MAC projection
-
-    Array2D<Real,0,N-1,0,N-1,Order::C> mat;
-
-
-
 // form rhs
     Array1D<Real,0,N-1> rhs;
     Array1D<Real,0,N-1> phi;
