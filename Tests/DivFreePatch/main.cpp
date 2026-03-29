@@ -142,6 +142,8 @@ void main_main ()
     amrex::Vector<int> f_hi(AMREX_SPACEDIM,  4);
     int max_grid_size = 64;
 
+    Vector<int> ref_ratio_vec(AMREX_SPACEDIM, 2);
+
     {
         ParmParse pp;
         pp.query("n_cell", n_cell);
@@ -153,6 +155,7 @@ void main_main ()
         pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
         pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
         pp.queryarr("f_hi",  f_hi, 0, AMREX_SPACEDIM);
+        pp.queryarr("ref_ratio", ref_ratio_vec, 0, AMREX_SPACEDIM);
 
         if (n_cell != 0)
         {
@@ -165,8 +168,15 @@ void main_main ()
         }
     }
 
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        if (ref_ratio_vec[i] < 1) {
+            amrex::Abort("ref_ratio entries must be >= 1");
+        }
+    }
+
+    IntVect ratio(ref_ratio_vec);
+
     int ncomp = 1;
-    IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
     IntVect ghost_c{AMREX_D_DECL(nghost_c, nghost_c, nghost_c)};  // For this stencil (octree), need 1 coarse ghost.
     IntVect ghost_f{AMREX_D_DECL(nghost_f, nghost_f, nghost_f)};  // For this stencil (octree), need 1 fine ghost.
     Geometry c_geom, f_geom, f_geom_wghost, f_geom_all, f_geom_partial;
