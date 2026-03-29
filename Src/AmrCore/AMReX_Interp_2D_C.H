@@ -232,6 +232,9 @@ facediv_init_lusolver (IntVect const& ratio,
         }
     }}
 
+    // Hack matrix to be nonsingular. This just picks a particular gauge
+    // with the last row being zero, doesn’t change the gradients we will
+    // apply.
     mat(N-1,N-1) += ddx2;
 
     return LUSolver<N,Real>{mat};
