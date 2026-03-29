@@ -178,7 +178,7 @@ facediv_face_interp (int ci, int cj, int ck,
 
               Real ysloc = (j+Real(0.5))*dys - Real(0.5);
               Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
-              fine(fi,fj+j,fk+k,nc) = crse(ci,cj,ck,nc) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*slpyz;
+              fine(fi,fj+j,fk+k,nf) = crse(ci,cj,ck,nc) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*slpyz;
 
             }
             }
@@ -216,7 +216,7 @@ facediv_face_interp (int ci, int cj, int ck,
 
               Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
               Real zsloc = (k+Real(0.5))*dzs - Real(0.5);
-              fine(fi+i,fj,fk+k,nc) = crse(ci,cj,ck,nc) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*slpxz;
+              fine(fi+i,fj,fk+k,nf) = crse(ci,cj,ck,nc) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*slpxz;
 
             }
             }
@@ -250,12 +250,12 @@ facediv_face_interp (int ci, int cj, int ck,
             const Real dxs = Real(1.)/ratio[0];
             const Real dys = Real(1.)/ratio[1];
 
-            for (int j=0; j<ratio[2]; ++j){
+            for (int j=0; j<ratio[1]; ++j){
             for (int i=0; i<ratio[0]; ++i){
 
               Real xsloc = (i+Real(0.5))*dxs - Real(0.5);
               Real ysloc = (j+Real(0.5))*dys - Real(0.5);
-              fine(fi+i,fj+j,fk,nc) = crse(ci,cj,ck,nc) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*slpxy;
+              fine(fi+i,fj+j,fk,nf) = crse(ci,cj,ck,nc) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*slpxy;
 
             }
             }
@@ -506,7 +506,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=0; j < ratio[1]; ++j){
     for( int i=1; i < ratio[0]; ++i){
 
-       fine[0](fi + i, fj + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,   fj  , fk  , nf) + i* fine[0](fi+ratio[0],   fj  , fk  , nf) )/ratio[0];
+       fine[0](fi + i, fj + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,           fj + j, fk + k, nf)
+                                        +     i       *fine[0](fi+ratio[0], fj + j, fk + k, nf) )/ratio[0];
 
     }
     }
@@ -516,7 +517,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=1; j < ratio[1]; ++j){
     for( int i=0; i < ratio[0]; ++i){
 
-       fine[1](fi + i, fj + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi,   fj  , fk  , nf) + j* fine[1](fi,   fj +ratio[1] , fk  , nf) )/ratio[1];
+       fine[1](fi + i, fj + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi + i, fj,           fk + k, nf)
+                                        +     j       *fine[1](fi + i, fj+ratio[1], fk + k, nf) )/ratio[1];
 
     }
     }
@@ -526,7 +528,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=0; j < ratio[1]; ++j){
     for( int i=0; i < ratio[0]; ++i){
 
-       fine[2](fi + i, fj + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi,   fj  , fk  , nf) + k* fine[2](fi,   fj , fk +ratio[2]  , nf) )/ratio[2];
+       fine[2](fi + i, fj + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi + i, fj + j, fk,           nf)
+                                        +     k       *fine[2](fi + i, fj + j, fk+ratio[2], nf) )/ratio[2];
 
     }
     }
@@ -540,8 +543,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int k=0; k < ratio[2]; ++k){
     for( int j=0; j < ratio[1]; ++j){
 
-         uplus  += fine[0](fi+ratio[0],fj+j,fk+k);
-         uminus += fine[0](fi         ,fj+j,fk+k);
+         uplus  += fine[0](fi+ratio[0],fj+j,fk+k,nf);
+         uminus += fine[0](fi         ,fj+j,fk+k,nf);
 
     }
     }
@@ -552,8 +555,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int k=0; k < ratio[2]; ++k){
     for( int i=0; i < ratio[0]; ++i){
 
-         vplus  += fine[1](fi+i,fj+ratio[1],fk+k);
-         vminus += fine[1](fi+i,fj,         fk+k);
+         vplus  += fine[1](fi+i,fj+ratio[1],fk+k,nf);
+         vminus += fine[1](fi+i,fj,         fk+k,nf);
 
     }
     }
@@ -564,8 +567,8 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
     for( int j=0; j < ratio[1]; ++j){
     for( int i=0; i < ratio[0]; ++i){
 
-         wplus  += fine[2](fi+i,fj+j,fk+ratio[2]);
-         wminus += fine[2](fi+i,fj+j,fk);
+         wplus  += fine[2](fi+i,fj+j,fk+ratio[2],nf);
+         wminus += fine[2](fi+i,fj+j,fk         ,nf);
 
     }
     }
