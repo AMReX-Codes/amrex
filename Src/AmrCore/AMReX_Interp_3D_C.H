@@ -485,7 +485,7 @@ facediv_int_gen (int ci, int cj, int ck, int nf,
 
 //  set up matrix for local MAC projection
 
-    Array2D<Real,0,prodrat-1,0,prodrat-1> mat;
+    Array2D<Real,0,prodrat-1,0,prodrat-1,Order::C> mat;
 
 
     for (int irow = 0; irow < prodrat; irow++) {
