@@ -135,6 +135,8 @@ void main_main ()
     int f_offset = 4;
     int nghost_c = 1;
     int nghost_f = 2;
+    Real div_tol = 1.0e-9;
+    bool test_pass = true;
 
     amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
     amrex::Vector<int> c_hi(AMREX_SPACEDIM, 32);
@@ -151,6 +153,7 @@ void main_main ()
         pp.query("max_grid_size", max_grid_size);
         pp.query("nghost_c", nghost_c);
         pp.query("nghost_f", nghost_f);
+        pp.query("div_tol", div_tol);
 
         pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
         pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
@@ -385,11 +388,15 @@ void main_main ()
                               ratio, mapper, bcrec, 0);
     }
 
-    // Check for errors
+    bool interp_nan = false;
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces[i].contains_nan()) {
             amrex::Print() << "******** Nans present in fine velocity in dimension " << i << '\n';
+            interp_nan = true;
         }
+    }
+    if (interp_nan) {
+        test_pass = false;
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces[0], std::string("pltfiles/fx"));,
@@ -416,12 +423,20 @@ void main_main ()
                   amrex::VisMF::Write(f_mf_faces_wg[1], std::string("pltfiles/fwgy"));,
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgz"));  );
 
+    Real max_abs_interp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff");
+    Real max_rel_interp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true);
+
     amrex::Print() << " Max InterpFromCoarse divergence error: absolute         relative\n "
                    << "                                       "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff")
+                   << max_abs_interp
                    << "  "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << max_rel_interp
                    << '\n';
+
+    if (max_abs_interp > div_tol) {
+        amrex::Print() << "  InterpFromCoarse abs error exceeds tolerance " << div_tol << '\n';
+        test_pass = false;
+    }
 
 // ***************************************************************
 
@@ -519,23 +534,33 @@ void main_main ()
     calcDiv(f_mf_faces, div_fine, f_geom.CellSizeArray());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fineFP"));
 
+    Real max_abs_fp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP");
+    Real max_rel_fp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true);
     amrex::Print() << " Max FillPatchTwoLevels divergence error:  absolute         relative\n "
                    << "                                       "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP")
+                   << max_abs_fp
                    << "  "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << max_rel_fp
                    << '\n';
+    if (max_abs_fp > div_tol) {
+        amrex::Print() << "  FillPatch abs error exceeds tolerance " << div_tol << '\n';
+        test_pass = false;
+    }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
         f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     }
 
-    // Check for errors
+    bool fp_nan = false;
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces_wg[i].contains_nan()) {
             amrex::Print() << "******** Nans present in fine velocity after FillPatch (including ghosts)  in dimension " << i << '\n';
+            fp_nan = true;
         }
+    }
+    if (fp_nan) {
+        test_pass = false;
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces_wg[0], std::string("pltfiles/fwgxFP"));,
@@ -543,5 +568,12 @@ void main_main ()
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgzFP"));  );
 
 // ***************************************************************
+
+    if (test_pass) {
+        amrex::Print() << "*** DivFreePatch: PASS (tol = " << div_tol << ")\n";
+    } else {
+        amrex::AllPrint() << "*** DivFreePatch: FAIL (tol = " << div_tol << ")\n";
+        amrex::Abort("DivFreePatch failed");
+    }
 
 }

@@ -1366,7 +1366,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         { types[d].set(d); }
 
 #ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio == 2 || runon = RunOn::Device,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio == 2 || runon == RunOn::Device,
                                      "Must run on GPU if ratio is not 2");
 #endif
 
