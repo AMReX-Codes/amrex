@@ -1498,7 +1498,7 @@ ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const&
     }
 
     BoxList bl_unique = ba_patch2d.boxList();
-    bl_unique.simplify();
+    //bl_unique.simplify();
     BoxArray ba2d(std::move(bl_unique));
     ba2d.removeOverlap();
     DistributionMapping dm2d(ba2d);
