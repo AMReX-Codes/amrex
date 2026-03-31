@@ -272,6 +272,7 @@ void ParticleCopyPlan::doHandShake (const ParticleContainerBase& pc,
 #if defined(BL_USE_MPI3)
         doHandShakeOneSided(pc, Snds, Rcvs);
 #else
+        amrex::ignore_unused(pc);
         amrex::Abort("ParticleCopyPlan::doHandShake: particles.do_one_sided_comms=1 requires MPI-3");
 #endif
     }
