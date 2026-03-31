@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_TrackedVector.H>
 
+#include <memory>
 #include <vector>
 
 using namespace amrex;
@@ -138,6 +139,19 @@ void test_empty ()
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 }
 
+void test_aggregate ()
+{
+    struct S {
+        double x;
+        TVec a, b;
+    };
+
+    std::vector<int> i = {1, 2, 3};
+    std::vector<int> j = {4, 5, 6};
+
+    [[maybe_unused]] auto ptr1 = std::shared_ptr<S>(new S{42.0, i, j});  // NOLINT(modernize-make-shared)
+}
+
 void test_copy_constructor ()
 {
     TVec a;
@@ -262,6 +276,7 @@ void run_tests_before_finalize ()
     test_release_gpu();
     test_d2h();
     test_empty();
+    test_aggregate();
     test_copy_constructor();
     test_move_constructor();
     test_copy_assignment();

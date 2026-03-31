@@ -85,6 +85,13 @@ namespace amrex::Gpu
             host_dirty();
         }
 
+        TrackedVector (std::vector<T> a_vector)
+            : m_host(std::move(a_vector))
+        {
+            register_finalize();
+            host_dirty();
+        }
+
         TrackedVector (TrackedVector const & a_vector)
             : m_host(a_vector.m_host)
         {
