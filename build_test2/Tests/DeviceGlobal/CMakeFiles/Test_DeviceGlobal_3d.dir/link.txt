@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/Test_DeviceGlobal_3d.dir/link.d CMakeFiles/Test_DeviceGlobal_3d.dir/main.cpp.o CMakeFiles/Test_DeviceGlobal_3d.dir/global_vars.cpp.o CMakeFiles/Test_DeviceGlobal_3d.dir/init.cpp.o CMakeFiles/Test_DeviceGlobal_3d.dir/work.cpp.o -o 3d/Test_DeviceGlobal_3d  ../../Src/libamrex_3d.a

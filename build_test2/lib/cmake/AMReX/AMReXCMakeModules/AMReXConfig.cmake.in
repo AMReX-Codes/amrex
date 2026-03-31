@@ -1,0 +1,291 @@
+# ############################################################################ #
+#
+#  AMReX Configuration File
+#  To import into other CMake projects
+#
+# ############################################################################ #
+@PACKAGE_INIT@
+
+# Custom version of check_required_components
+# Set NO_CHECK_REQUIRED_COMPONENTS_MACRO when calling
+# configure_package_config_file to avoid the CMake version
+# of this macro to be generated
+macro(check_required_components _NAME)
+   foreach(comp ${${_NAME}_FIND_COMPONENTS})
+      if(NOT ${_NAME}_${comp}_FOUND)
+         if(${_NAME}_FIND_REQUIRED_${comp})
+            message(STATUS "Requested AMReX component '${comp}' was not found.")
+            set(${_NAME}_FOUND FALSE)
+         endif()
+      endif()
+   endforeach()
+endmacro()
+
+# Set the minimum CMake version required -- This must be the version
+# of CMake used to build the library
+cmake_minimum_required(VERSION @CMAKE_VERSION@)
+
+# Provides find_dependency
+include(CMakeFindDependencyMacro)
+
+#
+# Build type
+#
+set(AMReX_BUILD_TYPE  @CMAKE_BUILD_TYPE@)
+
+#
+# Versioning
+#
+set(AMReX_GIT_VERSION \"@AMREX_GIT_VERSION@\")
+
+#
+# Release number
+#
+set(AMReX_RELEASE_NUMBER @AMREX_RELEASE_NUMBER@)
+
+#
+# AMReX CMake modules PATH
+#
+set_and_check(AMReX_MODULE_PATH @PACKAGE_MODULE_PATH@)
+
+#
+# Add AMReX modules to app code CMake
+#
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
+
+#
+# Configuration options
+# Each option is treated like a "component" so that find_package can be easily
+# used to check weather the option is enabled
+#
+
+# General options
+set(AMReX_MPI_FOUND                 @AMReX_MPI@)
+set(AMReX_MPI_THREAD_MULTIPLE_FOUND @AMReX_MPI_THREAD_MULTIPLE@)
+set(AMReX_SIMD_FOUND                @AMReX_SIMD@)
+set(AMReX_OMP_FOUND                 @AMReX_OMP@)
+set(AMReX_CUDA_FOUND                @AMReX_CUDA@)
+set(AMReX_SYCL_FOUND                @AMReX_SYCL@)
+set(AMReX_HIP_FOUND                 @AMReX_HIP@)
+set(AMReX_@AMReX_PRECISION@_FOUND   ON)
+set(AMReX_FORTRAN_FOUND             @AMReX_FORTRAN@)
+
+# Actual components selection
+set(AMReX_AMRLEVEL_FOUND            @AMReX_AMRLEVEL@)
+set(AMReX_EB_FOUND                  @AMReX_EB@)
+set(AMReX_FINTERFACES_FOUND         @AMReX_FORTRAN_INTERFACES@)
+set(AMReX_LSOLVERS_FOUND            @AMReX_LINEAR_SOLVERS@)
+set(AMReX_LSOLVERS_INCFLO_FOUND     @AMReX_LINEAR_SOLVERS_INCFLO@)
+set(AMReX_LSOLVERS_EM_FOUND         @AMReX_LINEAR_SOLVERS_EM@)
+set(AMReX_FFT_FOUND                 @AMReX_FFT@)
+set(AMReX_AMRDATA_FOUND             @AMReX_AMRDATA@)
+set(AMReX_PARTICLES_FOUND           @AMReX_PARTICLES@)
+set(AMReX_P@AMReX_PARTICLES_PRECISION@_FOUND ON)
+set(AMReX_SENSEI_FOUND              @AMReX_SENSEI@)
+set(AMReX_CONDUIT_FOUND             @AMReX_CONDUIT@)
+set(AMReX_CATALYST_FOUND            @AMReX_CATALYST@)
+set(AMReX_ASCENT_FOUND              @AMReX_ASCENT@)
+set(AMReX_HYPRE_FOUND               @AMReX_HYPRE@)
+set(AMReX_PETSC_FOUND               @AMReX_PETSC@)
+set(AMReX_SUNDIALS_FOUND            @AMReX_SUNDIALS@)
+set(AMReX_HDF5_FOUND                @AMReX_HDF5@)
+set(AMReX_HDF5_ZFP_FOUND            @AMReX_HDF5_ZFP@)
+
+# Compilation options
+set(AMReX_FPE_FOUND                 @AMReX_FPE@)
+set(AMReX_PIC_FOUND                 @AMReX_PIC@)
+set(AMReX_ASSERTIONS_FOUND          @AMReX_ASSERTIONS@)
+set(AMReX_FLATTEN_FOR_FOUND         @AMReX_FLATTEN_FOR@)
+set(AMReX_COMPILER_DEFAULT_INLINE_FOUND   @AMReX_COMPILER_DEFAULT_INLINE@)
+set(AMReX_INLINE_LIMIT_FOUND              @AMReX_INLINE_LIMIT@)
+
+# Profiling options
+set(AMReX_BASEP_FOUND               @AMReX_BASE_PROFILE@)
+set(AMReX_TINYP_FOUND               @AMReX_TINY_PROFILE@)
+set(AMReX_TRACEP_FOUND              @AMReX_TRACE_PROFILE@)
+set(AMReX_MEMP_FOUND                @AMReX_MEM_PROFILE@)
+set(AMReX_COMMP_FOUND               @AMReX_COMM_PROFILE@)
+set(AMReX_PROFPARSER_FOUND          @AMReX_PROFPARSER@)
+
+# Plotfile tools
+set(AMReX_PFTOOLS_FOUND             @AMReX_PLOTFILE_TOOLS@)
+
+
+# export the actual values as well.
+# General options
+set(AMReX_SPACEDIM                  @AMReX_SPACEDIM@)
+foreach(D IN LISTS AMReX_SPACEDIM)
+    set(AMReX_${D}D_FOUND   ON)
+endforeach()
+set(AMReX_MPI                       @AMReX_MPI@)
+set(AMReX_MPI_THREAD_MULTIPLE       @AMReX_MPI_THREAD_MULTIPLE@)
+set(AMReX_SIMD                      @AMReX_SIMD@)
+set(AMReX_OMP                       @AMReX_OMP@)
+set(AMReX_CUDA                      @AMReX_CUDA@)
+set(AMReX_SYCL                      @AMReX_SYCL@)
+set(AMReX_HIP                       @AMReX_HIP@)
+set(AMReX_GPU_BACKEND               @AMReX_GPU_BACKEND@)
+set(AMReX_GPU_RDC                   @AMReX_GPU_RDC@)
+set(AMReX_PRECISION                 @AMReX_PRECISION@)
+set(AMReX_FASTMATH                  @AMReX_FASTMATH@)
+set(AMReX_FORTRAN                   @AMReX_FORTRAN@)
+
+# Actual components selection
+set(AMReX_AMRLEVEL                  @AMReX_AMRLEVEL@)
+set(AMReX_EB                        @AMReX_EB@)
+set(AMReX_FINTERFACES               @AMReX_FORTRAN_INTERFACES@)
+set(AMReX_LSOLVERS                  @AMReX_LINEAR_SOLVERS@)
+set(AMReX_LSOLVERS_INCFLO           @AMReX_LINEAR_SOLVERS_INCFLO@)
+set(AMReX_LSOLVERS_EM               @AMReX_LINEAR_SOLVERS_EM@)
+set(AMReX_FFT                       @AMReX_FFT@)
+set(AMReX_AMRDATA                   @AMReX_AMRDATA@)
+set(AMReX_PARTICLES                 @AMReX_PARTICLES@)
+set(AMReX_PARTICLES_PRECISION       @AMReX_PARTICLES_PRECISION@)
+set(AMReX_SENSEI                    @AMReX_SENSEI@)
+set(AMReX_NO_SENSEI_AMR_INST        @AMReX_NO_SENSEI_AMR_INST@)
+set(AMReX_CONDUIT                   @AMReX_CONDUIT@)
+set(AMReX_CATALYST                  @AMReX_CATALYST@)
+set(AMReX_ASCENT                    @AMReX_ASCENT@)
+set(AMReX_HYPRE                     @AMReX_HYPRE@)
+set(AMReX_PETSC                     @AMReX_PETSC@)
+set(AMReX_SUNDIALS                  @AMReX_SUNDIALS@)
+set(AMReX_HDF5                      @AMReX_HDF5@)
+set(AMReX_HDF5_ZFP                  @AMReX_HDF5_ZFP@)
+
+# Compilation options
+set(AMReX_FPE                       @AMReX_FPE@)
+set(AMReX_PIC                       @AMReX_PIC@)
+set(AMReX_ASSERTIONS                @AMReX_ASSERTIONS@)
+set(AMReX_FLATTEN_FOR               @AMReX_FLATTEN_FOR@)
+
+# Profiling options
+set(AMReX_BASE_PROFILE              @AMReX_BASE_PROFILE@)
+set(AMReX_TINY_PROFILE              @AMReX_TINY_PROFILE@)
+set(AMReX_TRACE_PROFILE             @AMReX_TRACE_PROFILE@)
+set(AMReX_MEM_PROFILE               @AMReX_MEM_PROFILE@)
+set(AMReX_COMM_PROFILE              @AMReX_COMM_PROFILE@)
+set(AMReX_PROFPARSER                @AMReX_PROFPARSER@)
+set(AMReX_PROFILE_FTOOLS            @AMReX_PLOTFILE_TOOLS@)
+
+#
+# If Fortran is enabled, downstream project
+# must have Fortran enabled as well
+#
+if (@AMReX_FORTRAN@ AND NOT CMAKE_Fortran_COMPILER_LOADED )
+   message(FATAL_ERROR
+      "\nAMReX was build with AMReX_FORTRAN=ON but Fortran is not enabled for this project. "
+      "Either set enable_language(Fortran) before importing AMReX or re-build AMReX with "
+      "AMReX_FORTRAN=OFF.\n")
+endif ()
+
+#
+# Parallel backends
+#
+set( THREADS_PREFER_PTHREAD_FLAG on)
+find_dependency(Threads REQUIRED)
+
+if (@AMReX_MPI@)
+   set( _mpi_components C CXX )
+   if (@AMReX_FORTRAN_INTERFACES@)
+      list(APPEND _mpi_components Fortran)
+   endif ()
+   find_dependency(MPI REQUIRED ${_mpi_components})
+   unset(_mpi_components)
+endif()
+
+if (@AMReX_OMP@)
+   set( _omp_components CXX )
+   if (@AMReX_FORTRAN@)
+      list(APPEND _omp_components Fortran)
+   endif ()
+   find_dependency(OpenMP REQUIRED ${_omp_components})
+endif ()
+
+#
+# Third party libraries
+#
+if (@AMReX_SIMD@)
+   find_dependency(vir-simd REQUIRED)
+endif ()
+
+if (@AMReX_SENSEI@)
+    set(SENSEI_DIR @SENSEI_DIR@)
+    find_dependency(SENSEI REQUIRED)
+endif ()
+
+if (@AMReX_ASCENT@)
+    find_dependency(Ascent REQUIRED)
+endif ()
+
+if (@AMReX_CATALYST@)
+    find_dependency(Catalyst REQUIRED)
+endif ()
+
+if (@AMReX_CONDUIT@)
+   find_dependency(Conduit REQUIRED)
+endif ()
+
+if (@AMReX_FFT@)
+    if (@AMReX_GPU_BACKEND@ STREQUAL NONE)
+        find_dependency(AMReXFFTW REQUIRED)
+    endif()
+endif()
+
+if (@AMReX_HDF5@)
+    find_dependency(HDF5 REQUIRED)
+endif ()
+
+if (@AMReX_HDF5_ZFP@)
+    find_dependency(H5Z_ZFP REQUIRED)
+endif ()
+
+if (@AMReX_HYPRE@)
+   find_dependency(HYPRE 2.20.0 REQUIRED)
+endif ()
+
+if (@AMReX_PETSC@)
+   find_dependency(PETSc 2.13 REQUIRED)
+endif ()
+
+if (@AMReX_SUNDIALS@)
+   find_dependency(SUNDIALS 6.0.0 REQUIRED)
+endif ()
+
+#
+# CUDA
+#
+# AMReX 21.06+ supports CUDA_ARCHITECTURES
+if (@AMReX_CUDA@)
+    if (CMAKE_VERSION VERSION_LESS 3.20)
+        include(AMReX_SetupCUDA)
+    else ()
+        find_dependency(CUDAToolkit REQUIRED)
+    endif ()
+endif ()
+
+# CMake targets
+include( "${CMAKE_CURRENT_LIST_DIR}/AMReXTargets.cmake" )
+
+# CMake targets aliases: last dimension built will be our legacy target
+if (NOT TARGET AMReX::amrex)  # protection in case of multiple inclusions
+    list(LENGTH AMReX_SPACEDIM list_len)
+    math(EXPR list_last "${list_len} - 1")
+    list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
+    add_library(AMReX::amrex ALIAS AMReX::amrex_${AMReX_SPACEDIM_LAST}d)
+endif()
+
+# More Modern CUDA CMake
+if (@CMAKE_VERSION@ VERSION_GREATER_EQUAL 3.20 AND @AMReX_CUDA@)
+    foreach(D IN LISTS AMReX_SPACEDIM)
+        # CUDA architectures amrex was built for -- should we make
+        set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
+        set_target_properties(AMReX::amrex_${D}d
+          PROPERTIES
+            CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+    endforeach()
+endif ()
+
+#
+# Check components
+#
+check_required_components("@PROJECT_NAME@")

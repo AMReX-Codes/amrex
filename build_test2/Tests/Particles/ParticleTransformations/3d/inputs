@@ -1,0 +1,3 @@
+transform.size = (64, 64, 64)
+transform.max_grid_size = 32
+transform.num_ppc = 1

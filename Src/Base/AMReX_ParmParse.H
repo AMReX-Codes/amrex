@@ -1773,6 +1773,9 @@ public:
     //! keyword for files to load
     static std::string const FileKeyword;
 
+    //! keyword for removing entries from the table
+    static std::string const UnsetKeyword;
+
     static std::string ParserPrefix;
 
     [[nodiscard]] std::string const& getPrefix () const;

@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/Test_Algebra_Transpose_3d.dir/link.d CMakeFiles/Test_Algebra_Transpose_3d.dir/main.cpp.o -o 3d/Test_Algebra_Transpose_3d  ../../../Src/libamrex_3d.a
