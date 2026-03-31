@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/Test_LinearSolvers_NodalPoisson_3d.dir/link.d CMakeFiles/Test_LinearSolvers_NodalPoisson_3d.dir/main.cpp.o CMakeFiles/Test_LinearSolvers_NodalPoisson_3d.dir/MyTest.cpp.o CMakeFiles/Test_LinearSolvers_NodalPoisson_3d.dir/MyTestPlotfile.cpp.o -o 3d/Test_LinearSolvers_NodalPoisson_3d  ../../../Src/libamrex_3d.a

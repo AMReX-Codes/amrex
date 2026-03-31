@@ -1,3 +1,0 @@
-reduce.size = (256, 256, 256)
-reduce.max_grid_size = 128
-reduce.num_ppc = 1

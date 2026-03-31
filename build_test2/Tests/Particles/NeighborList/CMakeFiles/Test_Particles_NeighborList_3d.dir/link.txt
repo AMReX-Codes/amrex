@@ -1,1 +1,0 @@
-/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/Test_Particles_NeighborList_3d.dir/link.d CMakeFiles/Test_Particles_NeighborList_3d.dir/main.cpp.o -o 3d/Test_Particles_NeighborList_3d  ../../../Src/libamrex_3d.a

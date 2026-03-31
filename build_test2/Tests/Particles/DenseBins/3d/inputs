@@ -1,6 +1,0 @@
-amrex.the_arena_is_managed = 1
-nitems = 100000017
-nbins = 5000
-
-#nitems = 20
-#nbins = 4
