@@ -366,7 +366,7 @@ void testRedistributeGlobalDM ()
         const auto dm_start = amrex::second();
         for (int lev = 0; lev < params.nlevs; ++lev)
         {
-            auto pmap = makeRandomPMap(ba[lev].size(), nprocs,
+            auto pmap = makeRandomPMap(static_cast<int>(ba[lev].size()), nprocs,
                                        static_cast<std::uint32_t>(params.random_seed + 7919*i + 101*lev));
             DistributionMapping new_dm;
             new_dm.define(pmap);
