@@ -46,9 +46,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_levs.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc,
-                                      const ParticleBufferMap& map,
-                                      Long psize) // NOLINT(readability-convert-member-functions-to-static)
+void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc, const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
