@@ -71,3 +71,5 @@ BLProfParser.lex.yy.cpp
 BLProfParser.tab.H
 BLProfParser.tab.cpp
 BLProfParserNC.y
+build_test/
+build_test2/
