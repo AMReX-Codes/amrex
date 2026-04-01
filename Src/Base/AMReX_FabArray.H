@@ -145,6 +145,7 @@ struct PCData {
     Vector<std::size_t> recv_size;
     Vector<MPI_Request> recv_reqs;
     Vector<MPI_Request> send_reqs;
+    bool                deterministic = false;
 
 };
 

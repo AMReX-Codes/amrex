@@ -578,6 +578,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->src = &src;
         pcd->op = op;
         pcd->tag = tag;
+        // Deterministic GPU unpacking is currently implemented only for ADD.
+        pcd->deterministic = deterministic && (op == FabArrayBase::ADD);
 
         NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == NC);
@@ -708,7 +710,8 @@ FabArray<FAB>::ParallelCopy_finish ()
         if (Gpu::inLaunchRegion())
         {
             unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id, false);
+                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id,
+                                   pcd->deterministic);
         }
         else
 #endif
