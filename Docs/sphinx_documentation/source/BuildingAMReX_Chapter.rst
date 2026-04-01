@@ -32,7 +32,7 @@ The minimum toolchain versions we target for C++20 builds are:
 * Microsoft Visual Studio 2022 (MSVC 19.34 / 17.4) or newer.
 * NVIDIA CUDA Toolkit 12.2 or newer.
 * AMD ROCm/HIP 6.0 or newer.
-* Intel oneAPI DPC++ 2025.3 or newer.
+* Intel oneAPI DPC++ 2025.2 or newer.
 
 Please note that we fully support AMReX for Linux systems in general and on the
 DOE supercomputers (e.g., Perlmutter, Frontier) in particular.  Many of our users do build
