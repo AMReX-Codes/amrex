@@ -10,6 +10,8 @@
     Donald Willcox (dewillcox@lbl.gov)
   ----------------------------------------------------------------------------*/
 #include "AMReX_NVector_MultiFab.H"
+#include <AMReX_ParallelContext.H>
+#include <AMReX_ParallelReduce.H>
 #include <type_traits>
 
 namespace amrex::sundials {
@@ -465,7 +467,7 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector a_x, N_Vector a_w, N_Vector id,
                                 [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
                                 numcomp, nghost, local);
     }
-    ParallelDescriptor::ReduceRealSum(sum);
+    ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
 
     return rms ? std::sqrt(sum/Real(N)) : std::sqrt(sum);
 }
@@ -593,7 +595,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
 
     temp = mf_m->norm1();
     /* Return false if any constraint was violated */
-    amrex::ParallelDescriptor::ReduceRealMax(temp);
+    ParallelAllReduce::Max(temp, ParallelContext::CommunicatorSub());
 
     return (temp == amrex::Real(1.0)) ? SUNFALSE : SUNTRUE;
 }
@@ -632,7 +634,7 @@ amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
          return min_loc;
      });
 
-    amrex::ParallelDescriptor::ReduceRealMin(min);
+    ParallelAllReduce::Min(min, ParallelContext::CommunicatorSub());
 
     return min;
 }
