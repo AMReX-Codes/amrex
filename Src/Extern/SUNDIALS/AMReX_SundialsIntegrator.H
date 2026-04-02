@@ -17,28 +17,30 @@
 #include <arkode/arkode_arkstep.h>
 #include <arkode/arkode_mristep.h>
 
+/**
+ * \file AMReX_SundialsIntegrator.H
+ *
+ * Templates that adapt AMReX IntegratorBase to the SUNDIALS solvers (ARKStep /
+ * MRIStep) plus the callback glue structures they require.
+ */
+
 namespace amrex {
 
+/**
+ * \brief User-supplied callbacks consumed by the AMReX/SUNDIALS bridge.
+ *
+ * Each functor must implement the signatures noted below and follow the SUNDIALS
+ * convention of returning 0 on success and non-zero on failure.
+ */
 struct SundialsUserData {
-    // ERK or DIRK right-hand side function
-    // EX-MRI or IM-MRI slow right-hand side function
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> f;
-
-    // ImEx-RK right-hand side functions
-    // ImEx-MRI slow right-hand side functions
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fi;
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fe;
-
-    // MRI fast time scale right-hand side function
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;
-
-    // Post stage and step actions
-    std::function<int(amrex::Real, N_Vector, void*)> post_stage;
-    std::function<int(amrex::Real, N_Vector, void*)> post_step;
-
-    // Post fast stage and step actions
-    std::function<int(amrex::Real, N_Vector, void*)> post_fast_stage;
-    std::function<int(amrex::Real, N_Vector, void*)> post_fast_step;
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> f;   //!< ERK/DIRK RHS or MRI slow RHS.
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fi;  //!< Implicit RHS for ImEx schemes.
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fe;  //!< Explicit RHS for ImEx schemes.
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;  //!< MRI fast-scale RHS.
+    std::function<int(amrex::Real, N_Vector, void*)> post_stage;    //!< Hook invoked after each stage.
+    std::function<int(amrex::Real, N_Vector, void*)> post_step;     //!< Hook invoked after each time step.
+    std::function<int(amrex::Real, N_Vector, void*)> post_fast_stage; //!< Hook for MRI fast stages.
+    std::function<int(amrex::Real, N_Vector, void*)> post_fast_step;  //!< Hook for MRI fast steps.
 };
 
 namespace SundialsUserFun {
@@ -83,6 +85,11 @@ namespace SundialsUserFun {
     }
 }
 
+/**
+ * \brief IntegratorBase implementation powered by SUNDIALS ARKStep/MRIStep.
+ *
+ * \tparam T State container type (typically MultiFab) operated on by the user callbacks.
+ */
 template<class T>
 class SundialsIntegrator : public IntegratorBase<T>
 {
@@ -564,13 +571,28 @@ private:
     };
 
 public:
+    /**
+     * \brief Construct an uninitialized integrator; call initialize() before use.
+     */
     SundialsIntegrator () {}
 
+    /**
+     * \brief Construct and immediately configure the integrator with \p S_data at time \p time.
+     *
+     * \param S_data Initial state used to size and seed the solver.
+     * \param time   Physical time associated with \p S_data.
+     */
     SundialsIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize(S_data, time);
     }
 
+    /**
+     * \brief Configure (or reconfigure) the SUNDIALS integrator for the provided state.
+     *
+     * \param S_data State snapshot used to size vector storage.
+     * \param time   Start time associated with \p S_data.
+     */
     void initialize (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize_parameters();
@@ -703,6 +725,9 @@ public:
         N_VDestroy(y_data);
     }
 
+    /**
+     * \brief Destroy the integrator, printing summary statistics when verbose.
+     */
     virtual ~SundialsIntegrator () {
         // Print integrator statistics
         if (amrex::Verbose()) {
@@ -733,6 +758,15 @@ public:
         ARKStepFree(&arkode_mem);
     }
 
+    /**
+     * \brief Take a single time step of size \p dt starting from \p S_old.
+     *
+     * \param S_old State at the beginning of the step (wrapped and passed to SUNDIALS).
+     * \param S_new Output state receiving the step result.
+     * \param time  Beginning-of-step time.
+     * \param dt    Requested time step.
+     * \return The step size actually taken (currently \p dt).
+     */
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
         amrex::Real tout = time + dt;
@@ -762,6 +796,12 @@ public:
         return dt;
     }
 
+    /**
+     * \brief Evolve the solution in \p S_out up to \p time_out using ARKStep/MRIStep.
+     *
+     * \param S_out    State providing the initial condition and receiving the final solution.
+     * \param time_out Target time for the evolution.
+     */
     void evolve (T& S_out, const amrex::Real time_out) override
     {
         int flag = 0;         // SUNDIALS return status
@@ -792,8 +832,14 @@ public:
         N_VDestroy(y_out);
     }
 
+    /**
+     * \brief Interpolate between SUNDIALS stages (not yet implemented for this integrator).
+     */
     void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
 
+    /**
+     * \brief Apply a user-supplied mapping to every MultiFab in the integrator (unused placeholder).
+     */
     void map_data (std::function<void(T&)> /* Map */) override {}
 };
 
