@@ -335,6 +335,21 @@ int main(int argc, char* argv[])
         int n = pp.countname("string-for-testing-addfile");
         AMREX_ALWAYS_ASSERT(n==3 && s == "string for testing addfile");
     }
+    { // UNSET directive
+        ParmParse pp;
+        // "unset_me" is defined then immediately unset in the inputs file
+        int v = -1;
+        int found = pp.query("unset_me", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_multi_a" and "unset_multi_b" are unset together in inputs
+        found = pp.query("unset_multi_a", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        found = pp.query("unset_multi_b", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_kept" is NOT unset, so it should still be present
+        pp.get("unset_kept", v);
+        AMREX_ALWAYS_ASSERT(v == 77);
+    }
     {
         amrex::Print() << "SUCCESS\n";
     }

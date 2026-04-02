@@ -156,3 +156,13 @@ macro.use_gpu.spacedim = 3
 #  endif
 
 #endif
+
+# UNSET directive tests
+unset_me = 123
+UNSET = unset_me
+
+unset_multi_a = 1
+unset_multi_b = 2
+UNSET = unset_multi_a unset_multi_b
+
+unset_kept = 77
