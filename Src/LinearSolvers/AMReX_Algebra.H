@@ -8,4 +8,10 @@
 #include <AMReX_SpMatUtil.H>
 #include <AMReX_SpMV.H>
 
+/**
+ * \file AMReX_Algebra.H
+ *
+ * Convenience header that pulls in the core algebra data structures and helpers.
+ */
+
 #endif
