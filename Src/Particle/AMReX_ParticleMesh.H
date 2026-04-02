@@ -37,6 +37,21 @@ auto call_f (F const& f,
         return f(p, i, fabarr);
     }
 }
+
+template <typename F, typename T, template<class, class> class PTDType, class RType, class IType>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const PTDType<RType, IType>& p,
+             const int i, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+{
+    if constexpr (IsCallable<F, decltype(p), int, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+        return f(p, i, fabarr, plo, dxi);
+    } else {
+        return f(p, i, fabarr);
+    }
+}
 }
 /// \endcond
 
