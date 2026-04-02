@@ -6,6 +6,19 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_SpMatUtil.H
+ *
+ * Utility helpers for sparse matrices (CSR transpose, etc.).
+ */
+
+/**
+ * \brief Build the transpose CSR of \p csr.
+ *
+ * \param csr   Source matrix in CSR form (local portion).
+ * \param ncols Total number of columns in the source matrix.
+ * \return CSR representing the transpose.
+ */
 template <typename T, template <typename> class V>
 CSR<T,V> transpose (CSR<T,V> const& csr, Long ncols)
 {
@@ -22,6 +35,13 @@ CSR<T,V> transpose (CSR<T,V> const& csr, Long ncols)
     return csrt;
 }
 
+/**
+ * \brief Transpose a distributed SpMatrix, producing a new matrix with column partition \p col_partition.
+ *
+ * \param A             Input matrix.
+ * \param col_partition Desired column partition (becomes rows of the transpose).
+ * \return Transposed sparse matrix.
+ */
 template <typename T, template<typename> class Allocator>
 SpMatrix<T,Allocator> transpose (SpMatrix<T,Allocator> const& A,
                                  AlgPartition col_partition)

@@ -229,6 +229,14 @@ void mf_cell_cons_lin_interp_mcslope (int i, int j, int k, int ns, Array4<Real> 
             umin = amrex::min(umin, u(i+ioff,j+joff,k+koff,nu));
             umax = amrex::max(umax, u(i+ioff,j+joff,k+koff,nu));
         }}}
+        // This ensures that dumax is never zero for the divides below.
+        // This avoids triggering the invalid signal when
+        // if-conversion optimization is done, where this code is
+        // predictively executed whether or not dumax is zero.
+        // In normal execution, dumax is always positive because at least
+        // one of the three terms in its definition is positive, so the
+        // following statement is effectively a no-op.
+        dumax = dumax == Real(0.) ? Real(1.) : dumax;
         if (dumax * alpha > (umax - u(i,j,k,nu))) {
             alpha = (umax - u(i,j,k,nu)) / dumax;
         }

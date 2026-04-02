@@ -221,7 +221,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     } else {
         AMREX_ALWAYS_ASSERT(write_real_comp.size() == NumRealComps() + NStructReal);
     }
-    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NArrayInt );
+    AMREX_ASSERT(write_int_comp.size()  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
@@ -306,7 +306,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     } else {
         AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal);
     }
-    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NArrayInt );
+    AMREX_ASSERT( int_comp_names.size() == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
     int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();

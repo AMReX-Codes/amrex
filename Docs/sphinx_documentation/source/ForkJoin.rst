@@ -49,9 +49,8 @@ The fork-join operation is accomplished by:
      registered MultiFab is visible to ranks within a subtask, and
 
   b) dividing the root MPI communicator into sub-communicators so that
-     each subgroup of ranks in a tasks will only synchronize with each
+     each subgroup of ranks in a task will only synchronize with each
      other during subtask collectives (e.g. for ``MPI_Allreduce``).
 
 When the program starts, all of the ranks in the MPI communicator are
 in the root task.
-

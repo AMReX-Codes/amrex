@@ -164,7 +164,7 @@ AllGatherBoxes (Vector<Box>& bxs, int n_extra_reserve)
     MPI_Gather(&count, 1, MPI_INT, countvec.data(), 1, MPI_INT, root, comm);
 
     Long count_tot = 0L;
-    Vector<int> offset(countvec.size(),0);
+    Vector<int> offset(nprocs, 0);
     if (myproc == root) {
         count_tot = countvec[0];
         for (int i = 1, N = static_cast<int>(offset.size()); i < N; ++i) {

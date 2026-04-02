@@ -2,6 +2,11 @@
 #define AMREX_PARSER_EXE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Parser_Exe.H
+ * \brief Bytecode instruction formats and helpers for the runtime parser.
+ */
+
 #include <AMReX_Parser_Y.H>
 #include <AMReX_Stack.H>
 #include <AMReX_Vector.H>

@@ -5,8 +5,8 @@ Particles
 
 In addition to the tools for working with mesh data described in previous chapters,
 AMReX provides data structures and iterators for performing data-parallel particle simulations.
-While these tool can be used to implement pure particle methods, they are particularly
-suited for methods in which particles interact with data defined on mesh or
+While these tools can be used to implement pure particle methods, they are particularly
+suited for methods in which particles interact with data defined on a mesh or a
 hierarchy of meshes. Example applications include Particle-in-Cell (PIC) simulations,
 Lagrangian tracers, and particles that exert drag forces onto a fluid. The overall
 goals of AMReX's particle tools are to allow users to express a variety of useful
