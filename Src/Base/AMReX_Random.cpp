@@ -5,9 +5,18 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
 
-#include <set>
-#include <random>
 #include <limits>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+#include <random>
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
+#include <set>
 
 namespace
 {

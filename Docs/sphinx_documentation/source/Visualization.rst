@@ -15,12 +15,12 @@ Other display options include: the ability to select the number of levels of dat
 whether to display grid boxes, and to specify the color palette.
 Below are instructions and tips for using
 Amrvis. Additional information is contained in the document
-``Amrvis/Docs/Amrvis.tex`` (which can built into a ``pdf`` using ``pdflatex``).
+``Amrvis/Docs/Amrvis.tex`` (which can be built into a ``pdf`` using ``pdflatex``).
 
 #. **Download and Build**:
 
    Amrvis is available for download from the ``AMReX-Codes/Amrvis`` GitHub
-   repository. To download use,
+   repository. To download, use
 
    .. code-block:: console
 
@@ -260,7 +260,7 @@ on-screen instructions.
 
 .. warning::
 
-    The Visit reader determines the value of ``Cycle`` from the name of the plotfile (directory),
+    The VisIt reader determines the value of ``Cycle`` from the name of the plotfile (directory),
     specifically from the integer that follows the string "plt" in the plotfile name.
     So if you call it ``plt00100``, ``myplt00100`` or ``this_is_my_plt00100`` then it will
     correctly recognize and print ``Cycle: 100``.
@@ -285,7 +285,7 @@ ParaView
 ========
 
 The open source visualization package ParaView v5.7 and later can be used to view 2D and 3D
-plotfiles, as well as particles data. Download the package at
+plotfiles, as well as particle data. Download the package at
 https://www.paraview.org/.
 
 To open a plotfile (for example, you could run the
@@ -294,10 +294,10 @@ To open a plotfile (for example, you could run the
 #. Run ParaView v5.7, then select "File" :math:`\rightarrow` "Open".
 
 #. Navigate to your run directory, and select the fluid or particle plotfile.
-   Note that you can either open single/multiple plotfile(s) at once by selecting
-   them one by one or select an ensemble of file, labelled as ``plt..`` and indicated
+   Note that you can either open single or multiple plotfiles at once by selecting
+   them one by one or select a file ensemble, labeled as ``plt..`` and indicated
    as a Group in the "Type" column of the file explorer (see :numref:`fig:ParaView_filegroup`).
-   In the latter case, Paraview will load the plotfiles as a time series.
+   In the latter case, ParaView will load the plotfiles as a time series.
    ParaView will ask you about the file type -- choose "AMReX/BoxLib Grid Reader" or
    "AMReX/BoxLib Particles Reader".
    Note that if your plotfile prefix is not ``plt`` or any other type supported by default,
@@ -305,7 +305,7 @@ To open a plotfile (for example, you could run the
 
 #. Under the "Cell Arrays" field, select a variable (e.g., "phi") and click
    "Apply". Note that the default number of refinement levels loaded and visualized is 1.
-   Change to the required number of AMR level before clicking "Apply".
+   Change to the required number of AMR levels before clicking "Apply".
 
 #. Under "Representation" select "Surface".
 
@@ -337,9 +337,9 @@ To open a plotfile (for example, you could run the
 Creating and Loading ``.series`` Files
 --------------------------------------
 
-Another useful feature in ParaView to load and re-load a group of plotfiles is using a ``.series`` file
+Another useful feature in ParaView for loading and reloading a group of plotfiles is using a ``.series`` file
 (similar to the ``.visit`` file in VisIt). It is a text file (say ``plot_files.series``) which lists
-the plotfiles in a JSON format as below.
+the plotfiles in JSON format, as shown below.
 
 .. highlight:: console
 
@@ -368,7 +368,7 @@ save this script. Then run the bash script by executing the following command in
 
     bash write_series_file.sh
 
-This will generate a file ``plot_files.series`` which indexes the time variable based on the order of the plotfile numbers.
+This will generate a file ``plot_files.series`` that indexes the time variable based on the order of the plotfile numbers.
 Note that if your plotfile prefix is not ``plt``, you can manually edit
 ``write_series_file.sh`` accordingly.
 
@@ -392,7 +392,7 @@ loaded as a Group as in Step 2 of section :ref:`section-1`. Now, you can follow 
 Building an Iso-surface
 -----------------------
 
-Note that Paraview is not able to generate iso-surfaces from cell centered data. To build an iso-surface (or iso-line in 2D):
+Note that ParaView is not able to generate iso-surfaces from cell-centered data. To build an iso-surface (or iso-line in 2D):
 
 #. Perform a cell to node interpolation: "Filters" :math:`\rightarrow` "Alphabetical" :math:`\rightarrow` "Cell Data to Point Data".
 
@@ -424,11 +424,11 @@ run the `NeighborList`_ example in `Tutorials/Particles`_):
 
    \end{center}
 
-#. Run ParaView v5.7, and select  then  "File" :math:`\rightarrow` "Open". You
+#. Run ParaView v5.7, and select "File" :math:`\rightarrow` "Open". You
    will see a combined "plt.." group. Click on "+" to expand the group, if you
-   want inspect the files in the group. You can select an individual plotfile
-   directory or select a group of directories to read them a time series, as
-   shown in :numref:`fig:ParaView_filegroup`, and click OK. ParaView will ask you about the file type -- choose "AMReX/BoxLib Particles Reader".
+   want to inspect the files in the group. You can select an individual plotfile
+   directory or select a group of directories to read them as a time series, as
+   shown in :numref:`fig:ParaView_filegroup`, and click "OK". ParaView will ask you about the file type -- choose "AMReX/BoxLib Particles Reader".
 
 #. The "Properties" panel in ParaView allows you to specify the "Particle
    Type", which defaults to "particles". Using the "Properties" panel, you can
@@ -455,7 +455,7 @@ run the `NeighborList`_ example in `Tutorials/Particles`_):
 
    \end{center}
 
-Following these instructions, you can open fluid and/or particles plotfiles and visualize them together on the same Panel View.
+Following these instructions, you can open fluid and/or particle plotfiles and visualize them together on the same panel view.
 
 Once you have loaded an AMReX plotfile time series (fluid and/or particles), you can generate a movie following these instructions:
 
@@ -468,19 +468,19 @@ Once you have loaded an AMReX plotfile time series (fluid and/or particles), you
 Plot a Vector Field
 -------------------
 
-Paraview can be used to plot a vector field from AMR plotfile data. In this example
+ParaView can be used to plot a vector field from AMR plotfile data. In this example
 we will assume a single vector has been stored as three separate variables,
 ``V_x``, ``V_y`` and ``V_z``.
 
 The easiest way to create a vector ``V`` from the components is to
-first download the python file
+first download the Python file
 :download:`makevector.py </Visualization/makevector.py>`.
 
-If you are running paraview remotely, put ``makevector.py`` in the location
+If you are running ParaView remotely, put ``makevector.py`` in the location
 of the plotfiles you will open under the heading ``Remote Plugins``.
 
 #. Now open a plotfile or plotfile group, using ``File`` :math:`\rightarrow` ``Open``.
-   A pop-up will appear, select "AMReX/Boxlib Grid Reader".
+   A pop-up will appear; select "AMReX/BoxLib Grid Reader".
 
 #. Select the plotfile or group in the Pipeline Browser. The Cell Array Status
    window of the Properties should populate with the values ``V_x``, ``V_y``
@@ -532,9 +532,9 @@ To plot the arrows corresponding to this vector field
 Saving and Loading State Files
 ------------------------------
 
-Paraview allows users to save the *state* of their visualization, viz. variable mappings,
+ParaView allows users to save the *state* of their visualization, viz. variable mappings,
 filters, color maps, etc. The same display style can then be applied to different datasets.
-See also the Paraview documentation at `section 10`__ and `section 8.4`__.
+See also the ParaView documentation at `section 10`__ and `section 8.4`__.
 
 __ https://docs.paraview.org/en/latest/Tutorials/ClassroomTutorials/advancedStateManagement.html
 __ https://docs.paraview.org/en/v5.8/UsersGuide/savingResults.html#saving-state
@@ -551,7 +551,7 @@ of the state file you want to save. In order to later reload the state you've sa
 
 Note that the ``Save State`` option will write state files containing the absolute path to the data files you have loaded.
 This can cause issues if you're using state files saved on another machine, have moved your data files, or
-if Paraview doesn't know which directory to look in. When loading state from a ``pvsm`` file, there are menu
+if ParaView doesn't know which directory to look in. When loading state from a ``pvsm`` file, there are menu
 options available to navigate to the data source directory. When running a Python script to load data, this can
 cause an error or crash. We outline the way to avoid this below.
 
@@ -559,7 +559,7 @@ For demonstration purposes, we have also included state files in both formats:
 :download:`slice_state1.pvsm </Visualization/slice_state1.pvsm>` and :download:`slice_state1.py </Visualization/slice_state1.py>`
 
 
-Loading from a Paraview state file (.pvsm)
+Loading from a ParaView state file (.pvsm)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 #. Go to ``File > Load State``, navigate to ``slice_state1.pvsm`` in the file browser and click ``OK``. A new window labeled ``Load State Options`` appears with a drop-down menu.
@@ -576,27 +576,27 @@ In general, you can use the load state menu options to navigate to whichever dat
 Loading from a Python state file (.py)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to load state from a ``.py`` file, you must execute the file as a script from the Python Shell within Paraview.
+In order to load state from a ``.py`` file, you must execute the file as a script from the Python shell within ParaView.
 
 #. If the Python Shell is not displayed, click the checkbox in ``View > Python Shell``.
 
-#. Click the ``Run Script`` button to the bottom right of the Python shell, navigate to the file ``amrex/Docs/sphinx_documentation/source/Visualization/slice_state1.py`` in the file navigator, and click ``OK``.
+#. Click the ``Run Script`` button at the bottom right of the Python shell, navigate to the file ``amrex/Docs/sphinx_documentation/source/Visualization/slice_state1.py`` in the file navigator, and click ``OK``.
 
-You should see a 2D slice of the solution to the 3D heat equation. If Paraview reports
+You should see a 2D slice of the solution to the 3D heat equation. If ParaView reports
 an error or crashes, see below.
 
-Aside: Working directory in the Paraview Python shell
+Aside: Working directory in the ParaView Python shell
 +++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-When you load a state from a Python script in Paraview, it will look in the current working directory of the Python shell to
+When you load a state from a Python script in ParaView, it will look in the current working directory of the Python shell to
 resolve the paths to the data files provided in the Python script.
 
-By default, the current working directory of the Paraview Python shell will be the directory from which you launched Paraview.
+By default, the current working directory of the ParaView Python shell will be the directory from which you launched ParaView.
 
-.. warning:: If your Python script makes direct reference to a set of files that can't be found from your current working directory, then running that script will result in an error, and potentially cause Paraview to crash. This can be addressed by changing the cwd of your Python shell to the proper location.
+.. warning:: If your Python script makes direct reference to a set of files that can't be found from your current working directory, then running that script will result in an error, and potentially cause ParaView to crash. This can be addressed by changing the cwd of your Python shell to the proper location.
 
 
-To check the cwd of the Paraview Python shell, run
+To check the cwd of the ParaView Python shell, run
 
 .. code-block:: python
 
@@ -612,7 +612,7 @@ and make sure that your cwd contains the folder you want to search in so that Py
 Modifying a State File to Work with Different Data
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-As noted above, a Python state file exported from Paraview will save the path to the data files you used, if any, from your working directory.
+As noted above, a Python state file exported from ParaView will save the path to the data files you used, if any, from your working directory.
 In order to use such a file with different data, you can modify your Python state file to use the `glob`__ package to create a list
 of potential data file names to search in your current path. The steps are outlined below, including the line numbers in the file
 ``slice_state1.py``.
@@ -648,10 +648,10 @@ ParaView HDF5 Format
 --------------------
 
 The plotfiles generated with the HDF5 format can be visualized by ParaView.
-To open a single plotfile, run VisIt, select "File" :math:`\rightarrow` "Open",
-then select the HDF5 plotfile (e.g.,``plt00000.h5``). You can select an
-individual plotfile or select a group of files to read as time series, then
-click OK. ParaView will ask you about the file type -- choose "VisItChomboReader".
+To open a single plotfile, run ParaView, select "File" :math:`\rightarrow` "Open",
+then select the HDF5 plotfile (e.g., ``plt00000.h5``). You can select an
+individual plotfile or select a group of files to read as a time series, then
+click "OK". ParaView will ask you about the file type -- choose "VisItChomboReader".
 
 .. _section-2:
 
@@ -661,7 +661,7 @@ yt
 yt, an open source Python package available at http://yt-project.org/, can be
 used for analyzing and visualizing mesh and particle data generated by
 AMReX codes. Some of the AMReX developers are also yt project members.  Below
-we describe how to use on both a local workstation, as well as at the NERSC
+we describe how to use yt on both a local workstation and at the NERSC
 HPC facility for high-throughput visualization of large data sets.
 
 Note - AMReX datasets require yt version 3.4 or greater.
@@ -1163,7 +1163,7 @@ SENSEI VM
 ~~~~~~~~~
 The SENSEI VM comes with all of SENSEI's dependencies and the major back ends
 such as VisIt and ParaView installed. The VM is the easiest way to test things
-out. It also can be used to see how installs were done and the environment
+out. It also can be used to see how installs were done and the environment was
 configured.
 
 NERSC Cori

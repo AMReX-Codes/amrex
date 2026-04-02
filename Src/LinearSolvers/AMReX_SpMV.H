@@ -9,7 +9,22 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_SpMV.H
+ *
+ * Back-end implementations of sparse matrix-vector products (CSR).
+ */
+
 template <typename T>
+/**
+ * \brief Perform y = A * x using CSR data (GPU/CPU aware).
+ *
+ * \param nrows Number of matrix rows.
+ * \param ncols Number of matrix columns.
+ * \param py    Destination vector (length nrows).
+ * \param A     CSR view of the matrix.
+ * \param px    Source vector (length ncols).
+ */
 void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const& A,
            T const* AMREX_RESTRICT px)
 {
@@ -206,6 +221,13 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
 #endif
 }
 
+/**
+ * \brief Perform \p y = \p A * \p x using AlgVector wrappers.
+ *
+ * \param y Destination vector.
+ * \param A Sparse matrix expressed in CSR form.
+ * \param x Source vector.
+ */
 template <typename T, template<typename> class AllocM, typename AllocV>
 void SpMV (AlgVector<T,AllocV>& y, SpMatrix<T,AllocM> const& A,
            AlgVector<T,AllocV> const& x)
@@ -221,7 +243,14 @@ void SpMV (AlgVector<T,AllocV>& y, SpMatrix<T,AllocM> const& A,
     const_cast<SpMatrix<T,AllocM>&>(A).finishComm_mv(y);
 }
 
-//! res = b - A*x
+/**
+ * \brief Compute the residual \p res = \p b - \p A * \p x.
+ *
+ * \param res Output residual vector.
+ * \param A   Sparse matrix.
+ * \param x   Current solution approximation.
+ * \param b   Right-hand side.
+ */
 template <typename T, template<typename> class AllocM, typename AllocV>
 void computeResidual (AlgVector<T,AllocV>& res, SpMatrix<T,AllocM> const& A,
                       AlgVector<T,AllocV> const& x, AlgVector<T,AllocV> const& b)

@@ -15,6 +15,15 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_AlgVector.H
+ *
+ * Distributed dense vector container backed by AlgPartition with host/GPU helpers.
+ */
+
+/**
+ * \brief Distributed dense vector that mirrors the layout of an AlgPartition.
+ */
 template <typename T, typename Allocator = DefaultAllocator<T> >
 class AlgVector
 {
@@ -24,8 +33,11 @@ public:
 
     using Vec = PODVector<T,Allocator>;
 
+    //! Create an empty vector; call define() before use.
     AlgVector () = default;
+    //! Allocate and partition \p global_size rows across MPI ranks.
     explicit AlgVector (Long global_size);
+    //! Adopt an explicit partition that describes the data layout.
     explicit AlgVector (AlgPartition partition);
 
     AlgVector (AlgVector<T, Allocator> const&) = delete;
@@ -36,14 +48,31 @@ public:
 
     ~AlgVector () = default;
 
+    /**
+     * \brief Resize/repartition the vector to span \p global_size rows.
+     *
+     * Existing contents are discarded; rows are divided evenly across
+     * participating ranks.
+     *
+     * \param global_size Total number of entries in the vector.
+     */
     void define (Long global_size);
+    /**
+     * \brief Replace the current partition and storage with \p partition.
+     *
+     * \param partition Partition describing the global layout to adopt.
+     */
     void define (AlgPartition partition);
 
+    //! True if the local storage holds zero entries.
     [[nodiscard]] bool empty () const { return m_partition.empty(); }
 
+    //! Partition describing the global layout of the vector.
     [[nodiscard]] AlgPartition const& partition () const { return m_partition; }
 
+    //! Number of entries stored on this rank.
     [[nodiscard]] Long numLocalRows () const { return m_end - m_begin; }
+    //! Global number of rows.
     [[ nodiscard]] Long numGlobalRows () const { return m_partition.numGlobalRows(); }
 
     //! Inclusive global index begin.
@@ -388,6 +417,11 @@ std::pair<T,T> AlgVector<T,Allocator>::norm1and2 (bool local) const
     }
 }
 
+/**
+ * \brief Flatten a cell-centered FabArray into this vector's storage.
+ *
+ * \param fa Source data; each valid box is copied in IndexType order.
+ */
 template <typename T, typename Allocator>
 template <typename FAB, std::enable_if_t<amrex::IsBaseFab<FAB>::value &&
                                          std::is_same_v<T,typename FAB::value_type>, int> >
@@ -410,6 +444,11 @@ void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
     }
 }
 
+/**
+ * \brief Scatter this vector back into a cell-centered FabArray.
+ *
+ * \param fa Destination data that receives entries owned by this rank.
+ */
 template <typename T, typename Allocator>
 template <typename FAB, std::enable_if_t<amrex::IsBaseFab<FAB>::value &&
                                          std::is_same_v<T,typename FAB::value_type>, int> >

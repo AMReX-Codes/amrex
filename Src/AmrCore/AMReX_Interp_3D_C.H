@@ -223,7 +223,7 @@ facediv_int (int ci, int cj, int ck, int nf,
 {
     const int fi = ci*ratio[0];
     const int fj = cj*ratio[1];
-    const int fk = ck*ratio[1];
+    const int fk = ck*ratio[2];
 
     // References to fine exterior values needed for interior calculation.
     const Real u000 = fine[0](fi,   fj  , fk  , nf);
