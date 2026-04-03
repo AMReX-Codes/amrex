@@ -52,7 +52,7 @@ struct AssignGrid
         }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int getTile (const IntVect& iv, const Box& bx) const noexcept
+    [[nodiscard]] int getTile (const IntVect& iv, const Box& bx) const noexcept
     {
         Box tbx;
         const IntVect tile_size(AMREX_D_DECL(m_tile_size.x, m_tile_size.y, m_tile_size.z));
