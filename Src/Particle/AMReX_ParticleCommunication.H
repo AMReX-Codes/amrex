@@ -176,8 +176,6 @@ struct ParticleCopyPlan
             for (const auto& kv : pc.GetParticles(lev))
             {
                 auto index = kv.first;
-                int gid = index.first;
-                int tid = index.second;
                 int num_copies = op.numCopies(index, lev);
                 if (num_copies == 0) { continue; }
                 m_dst_indices[lev][index].resize(num_copies);
@@ -388,10 +386,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         auto& plev = pc.GetParticles(lev);
         for (auto& kv : plev)
         {
-            int gid = kv.first.first;
-            int tid = kv.first.second;
-            auto index = std::make_pair(gid, tid);
-
+            auto index = kv.first;
             auto& src_tile = plev.at(index);
             const auto& ptd = src_tile.getConstParticleTileData();
 
