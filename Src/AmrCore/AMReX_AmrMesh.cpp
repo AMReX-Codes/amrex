@@ -654,17 +654,18 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         if (levf < new_finest)
         {
             ba_proj = new_grids[levf+1].simplified();
-            ba_proj.coarsen(ref_ratio[levf]);
-            ba_proj.growcoarsen(n_proper, ref_ratio[levc]);
-
+            ba_proj.coarsengrow(Array<IntVect,2>{ref_ratio[levf]         , ref_ratio[levc]},
+                                Array<IntVect,2>{   bf_lev[levf]*n_proper,    bf_lev[levc]*n_proper});
             BoxArray levcBA = grids[levc].simplified();
             int ngrow = 0;
             while (!levcBA.contains(ba_proj))
             {
-                levcBA.grow(1);
+                levcBA.grow(bf_lev[levc]);
                 ++ngrow;
             }
-            ngt.max(IntVect(ngrow));
+            if (ngrow > 0) {
+                ngt.max(bf_lev[levc]*(ngrow-1)+IntVect(1));
+            }
         }
         TagBoxArray tags(grids[levc],dmap[levc],ngt);
 

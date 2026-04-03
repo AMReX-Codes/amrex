@@ -679,6 +679,16 @@ public:
     BoxArray& growcoarsen (int n, const IntVect& iv);
     BoxArray& growcoarsen (IntVect const& ngrow, const IntVect& iv);
 
+    /**
+     * \brief Apply a sequence of coarsen/grow stages to every box.
+     *
+     * Each entry in \p coarsen_ratio is applied first, followed by the
+     * corresponding grow in \p grow_vect.
+     */
+    template <std::size_t N>
+    BoxArray& coarsengrow (const Array<IntVect,N>& coarsen_ratio,
+                           const Array<IntVect,N>& grow_vect);
+
     //! Grow each Box in the BoxArray by the specified amount.
     BoxArray& grow (int n);
 
@@ -898,6 +908,30 @@ private:
 std::ostream& operator<< (std::ostream& os, const BoxArray& ba);
 
 std::ostream& operator<< (std::ostream& os, const BoxArray::RefID& id);
+
+template <std::size_t N>
+inline BoxArray&
+BoxArray::coarsengrow (const Array<IntVect,N>& coarsen_ratio,
+                       const Array<IntVect,N>& grow_vect)
+{
+    static_assert(N > 0, "BoxArray::coarsengrow needs at least one stage");
+
+    uniqify();
+
+    const int nboxes = static_cast<int>(m_ref->m_abox.size());
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+    for (int i = 0; i < nboxes; ++i) {
+        Box& bx = m_ref->m_abox[i];
+        for (std::size_t n = 0; n < N; ++n) {
+            bx.coarsen(coarsen_ratio[n]);
+            bx.grow(grow_vect[n]);
+        }
+    }
+
+    return *this;
+}
 
 }
 
