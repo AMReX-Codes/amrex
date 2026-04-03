@@ -74,9 +74,9 @@ ParticleContainerBase::defineBufferMap () const
 {
     BL_PROFILE("ParticleContainer::defineBufferMap");
 
-    if (! m_buffer_map.isValid(GetParGDB()))
+    if (! m_buffer_map.isValid(GetParGDB(), do_tiling, tile_size))
     {
-        m_buffer_map.define(GetParGDB());
+        m_buffer_map.define(GetParGDB(), do_tiling, tile_size);
     }
 }
 

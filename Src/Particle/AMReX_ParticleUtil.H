@@ -654,7 +654,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
                           const GpuArray<int ,AMREX_SPACEDIM>& is_per,
-                          int lev, int gid, int /*tid*/,
+                          int lev, int gid, int tid,
                           int lev_min, int lev_max, int nGrow, bool remove_negative)
 {
     auto getPID = pmap.getPIDFunctor();
@@ -670,11 +670,13 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
         [=] AMREX_GPU_DEVICE (int i)
         {
             int assigned_grid;
+            int assigned_tile;
             int assigned_lev;
 
             if (!ptd.id(i).is_valid())
             {
                 assigned_grid = -1;
+                assigned_tile = -1;
                 assigned_lev  = -1;
             }
             else
@@ -683,7 +685,8 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                 enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
                 auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                 assigned_grid = amrex::get<0>(tup_prime);
-                assigned_lev  = amrex::get<1>(tup_prime);
+                assigned_tile = amrex::get<1>(tup_prime);
+                assigned_lev  = amrex::get<2>(tup_prime);
                 if (assigned_grid >= 0)
                 {
                     AMREX_D_TERM(ptd.pos(0, i) = p_prime.pos(0);,
@@ -697,13 +700,15 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                                  p_prime.pos(2) = ptd.pos(2, i););
                     auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                     assigned_grid = amrex::get<0>(tup);
-                    assigned_lev  = amrex::get<1>(tup);
+                    assigned_tile = amrex::get<1>(tup);
+                    assigned_lev  = amrex::get<2>(tup);
                 }
             }
 
             p_particle_stays[i] = uint8_t(
                 ((remove_negative == false) && (!ptd.id(i).is_valid())) ||
-                ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid)));
+                ((assigned_grid == gid) && (assigned_tile == tid) &&
+                 (assigned_lev == lev) && (getPID(lev, gid, tid) == pid)));
         });
 
     return partitionParticles(ptile,

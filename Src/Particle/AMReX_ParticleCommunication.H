@@ -56,21 +56,24 @@ struct RedistributeUnpackPolicy
 
 struct ParticleCopyOp
 {
-    Vector<std::map<int, Gpu::DeviceVector<int> > > m_boxes;
-    Vector<std::map<int, Gpu::DeviceVector<int> > > m_levels;
-    Vector<std::map<int, Gpu::DeviceVector<int> > > m_src_indices;
-    Vector<std::map<int, Gpu::DeviceVector<IntVect> > > m_periodic_shift;
+    using TileKey = std::pair<int, int>;
+
+    Vector<std::map<TileKey, Gpu::DeviceVector<int> > > m_boxes;
+    Vector<std::map<TileKey, Gpu::DeviceVector<int> > > m_levels;
+    Vector<std::map<TileKey, Gpu::DeviceVector<int> > > m_tiles;
+    Vector<std::map<TileKey, Gpu::DeviceVector<int> > > m_src_indices;
+    Vector<std::map<TileKey, Gpu::DeviceVector<IntVect> > > m_periodic_shift;
 
     void clear ();
 
     void setNumLevels (int num_levels);
 
-    void resize (int gid, int lev, int size);
+    void resize (int gid, int tid, int lev, int size);
 
-    [[nodiscard]] int numCopies (int gid, int lev) const
+    [[nodiscard]] int numCopies (TileKey const& index, int lev) const
     {
         if (m_boxes.size() <= lev) { return 0; }
-        auto mit = m_boxes[lev].find(gid);
+        auto mit = m_boxes[lev].find(index);
         return mit == m_boxes[lev].end() ? 0 : int(mit->second.size());
     }
 
@@ -79,7 +82,9 @@ struct ParticleCopyOp
 
 struct ParticleCopyPlan
 {
-    Vector<std::map<int, Gpu::DeviceVector<int> > > m_dst_indices;
+    using TileKey = std::pair<int, int>;
+
+    Vector<std::map<TileKey, Gpu::DeviceVector<int> > > m_dst_indices;
 
     Gpu::DeviceVector<unsigned int> m_box_counts_d;
     Gpu::HostVector<unsigned int>   m_box_counts_h;
@@ -88,6 +93,7 @@ struct ParticleCopyPlan
     Vector<int> m_rcv_box_counts;
     Vector<int> m_rcv_box_offsets;
     Vector<int> m_rcv_box_ids;
+    Vector<int> m_rcv_box_tids;
     Vector<int> m_rcv_box_pids;
     Vector<int> m_rcv_box_levs;
 
@@ -169,44 +175,53 @@ struct ParticleCopyPlan
         {
             for (const auto& kv : pc.GetParticles(lev))
             {
-                int gid = kv.first.first;
-                int num_copies = op.numCopies(gid, lev);
+                auto index = kv.first;
+                int gid = index.first;
+                int tid = index.second;
+                int num_copies = op.numCopies(index, lev);
                 if (num_copies == 0) { continue; }
-                m_dst_indices[lev][gid].resize(num_copies);
+                m_dst_indices[lev][index].resize(num_copies);
 
                 if (pc.stableRedistribute()) {
-                    const Gpu::DeviceVector<int>& d_boxes = op.m_boxes[lev].at(gid);
+                    const Gpu::DeviceVector<int>& d_boxes = op.m_boxes[lev].at(index);
                     Gpu::HostVector<int> h_boxes(d_boxes.size());
                     Gpu::copy(Gpu::deviceToHost,d_boxes.begin(),d_boxes.end(),h_boxes.begin());
 
-                    const Gpu::DeviceVector<int>& d_levs = op.m_levels[lev].at(gid);
+                    const Gpu::DeviceVector<int>& d_levs = op.m_levels[lev].at(index);
                     Gpu::HostVector<int> h_levs(d_levs.size());
                     Gpu::copy(Gpu::deviceToHost,d_levs.begin(),d_levs.end(),h_levs.begin());
+
+                    const Gpu::DeviceVector<int>& d_tiles = op.m_tiles[lev].at(index);
+                    Gpu::HostVector<int> h_tiles(d_tiles.size());
+                    Gpu::copy(Gpu::deviceToHost,d_tiles.begin(),d_tiles.end(),h_tiles.begin());
 
                     Gpu::HostVector<int> h_dst_indices(num_copies);
                     for (int i = 0; i < num_copies; ++i) {
                         int dst_box = h_boxes[i];
                         if (dst_box >= 0) {
+                            int dst_tile = h_tiles[i];
                             int dst_lev = h_levs[i];
-                            int index = static_cast<int>(h_box_counts[getBucket(dst_lev, dst_box)]++);
-                            h_dst_indices[i] = index;
+                            int dst_index = static_cast<int>(h_box_counts[getBucket(dst_lev, dst_box, dst_tile)]++);
+                            h_dst_indices[i] = dst_index;
                         }
                     }
-                    Gpu::copy(Gpu::hostToDevice,h_dst_indices.begin(),h_dst_indices.end(),m_dst_indices[lev][gid].begin());
+                    Gpu::copy(Gpu::hostToDevice,h_dst_indices.begin(),h_dst_indices.end(),m_dst_indices[lev][index].begin());
                 }
                 else {
-                    const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
-                    const auto* p_levs = op.m_levels[lev].at(gid).dataPtr();
-                    auto* p_dst_indices = m_dst_indices[lev][gid].dataPtr();
+                    const auto* p_boxes = op.m_boxes[lev].at(index).dataPtr();
+                    const auto* p_levs = op.m_levels[lev].at(index).dataPtr();
+                    const auto* p_tiles = op.m_tiles[lev].at(index).dataPtr();
+                    auto* p_dst_indices = m_dst_indices[lev][index].dataPtr();
                     AMREX_FOR_1D ( num_copies, i,
                     {
                         int dst_box = p_boxes[i];
                         if (dst_box >= 0)
                         {
+                            int dst_tile = p_tiles[i];
                             int dst_lev = p_levs[i];
-                            int index = static_cast<int>(Gpu::Atomic::Add(
-                                &p_dst_box_counts[getBucket(dst_lev, dst_box)], 1U));
-                            p_dst_indices[i] = index;
+                            int dst_index = static_cast<int>(Gpu::Atomic::Add(
+                                &p_dst_box_counts[getBucket(dst_lev, dst_box, dst_tile)], 1U));
+                            p_dst_indices[i] = dst_index;
                         }
                     });
                 }
@@ -320,10 +335,10 @@ struct GetSendBufferOffset
     {}
 
     AMREX_FORCE_INLINE AMREX_GPU_DEVICE
-    Long operator() (int dst_box, int dst_lev, std::size_t psize, int i) const
+    Long operator() (int dst_box, int dst_tile, int dst_lev, std::size_t psize, int i) const
     {
-        int dst_pid = m_get_pid(dst_lev, dst_box);
-        Long dst_offset = Long(psize)*(m_box_offsets[m_get_bucket(dst_lev, dst_box)] + i);
+        int dst_pid = m_get_pid(dst_lev, dst_box, dst_tile);
+        Long dst_offset = Long(psize)*(m_box_offsets[m_get_bucket(dst_lev, dst_box, dst_tile)] + i);
         dst_offset += Long(m_pad_correction[dst_pid]);
         return dst_offset;
     }
@@ -380,14 +395,15 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto& src_tile = plev.at(index);
             const auto& ptd = src_tile.getConstParticleTileData();
 
-            int num_copies = op.numCopies(gid, lev);
+            int num_copies = op.numCopies(index, lev);
             if (num_copies == 0) { continue; }
 
-            const auto* p_boxes = op.m_boxes[lev].at(gid).dataPtr();
-            const auto* p_levels = op.m_levels[lev].at(gid).dataPtr();
-            const auto* p_src_indices = op.m_src_indices[lev].at(gid).dataPtr();
-            const auto* p_periodic_shift = op.m_periodic_shift[lev].at(gid).dataPtr();
-            const auto* p_dst_indices = plan.m_dst_indices[lev].at(gid).dataPtr();
+            const auto* p_boxes = op.m_boxes[lev].at(index).dataPtr();
+            const auto* p_levels = op.m_levels[lev].at(index).dataPtr();
+            const auto* p_tiles = op.m_tiles[lev].at(index).dataPtr();
+            const auto* p_src_indices = op.m_src_indices[lev].at(index).dataPtr();
+            const auto* p_periodic_shift = op.m_periodic_shift[lev].at(index).dataPtr();
+            const auto* p_dst_indices = plan.m_dst_indices[lev].at(index).dataPtr();
             auto* p_snd_buffer = snd_buffer.dataPtr();
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
 
@@ -396,8 +412,9 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                 int dst_box = p_boxes[i];
                 if (dst_box >= 0)
                 {
+                    int dst_tile = p_tiles[i];
                     int dst_lev = p_levels[i];
-                    auto dst_offset = get_offset(dst_box, dst_lev, psize, p_dst_indices[i]);
+                    auto dst_offset = get_offset(dst_box, dst_tile, dst_lev, psize, p_dst_indices[i]);
                     int src_index = p_src_indices[i];
                     ptd.packParticleData(p_snd_buffer, src_index, dst_offset, p_comm_real, p_comm_int);
 
@@ -456,7 +473,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
-            int num_copies = plan.m_box_counts_h[pc.BufferMap().gridAndLevToBucket(gid, lev)];
+            int num_copies = plan.m_box_counts_h[pc.BufferMap().gridAndTileAndLevToBucket(gid, tid, lev)];
             sizes.push_back(num_copies);
             tiles.push_back(&tile);
         }
@@ -492,7 +509,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto ptd = tile.getParticleTileData();
             AMREX_FOR_1D ( size, i,
             {
-                auto src_offset = get_offset(gid, lev, psize, i);
+                auto src_offset = get_offset(gid, tid, lev, psize, i);
                 int dst_index = offset + i;
                 ptd.unpackParticleData(p_snd_buffer, src_offset, dst_index, p_comm_real, p_comm_int);
             });
@@ -627,7 +644,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
-            int tid = 0;
+            int tid = plan.m_rcv_box_tids[i];
             auto& tile = pc.DefineAndReturnParticleTile(lev, gid, tid);
             sizes.push_back(copy_size);
             tiles.push_back(&tile);
@@ -642,7 +659,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
         {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
-            int tid = 0;
+            int tid = plan.m_rcv_box_tids[i];
             auto offset = plan.m_rcv_box_offsets[i];
             procindex = (rproc == plan.m_rcv_box_pids[i]) ? procindex : procindex+1;
             rproc = plan.m_rcv_box_pids[i];

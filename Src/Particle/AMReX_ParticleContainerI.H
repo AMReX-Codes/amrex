@@ -812,7 +812,7 @@ struct FilterVirt
     int operator() (const SrcData& src, int src_i) const noexcept
     {
         auto iv = getParticleCell(src, src_i, m_plo, m_dxi, m_domain);
-        return (m_assign_buffer_grid(iv)!=-1);
+        return (m_assign_buffer_grid(iv).first != -1);
     }
 };
 
@@ -894,7 +894,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         buffer.grow(aggregation_buffer);
 
         ParticleLocator<DenseBins<Box>> locator;
-        locator.build(buffer, geom);
+        locator.build(buffer, geom, do_tiling, tile_size);
         AssignGrid<DenseBinIteratorFactory<Box>> assign_buffer_grid = locator.getGridAssignor();
 
         amrex::ParticleToMesh(*this, mf, level,
@@ -904,7 +904,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                               amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi_loc)
         {
             auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
-            if(assign_buffer_grid(iv)==-1)
+            if(assign_buffer_grid(iv).first == -1)
             {
                //Ordering may make this not unique
                for (int i = 0; i < NArrayReal; ++i)
@@ -938,7 +938,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         {
 
             auto iv = getParticleCell(p, plo_loc, dxi_loc, domain);
-            if(assign_buffer_grid(iv)==-1)
+            if(assign_buffer_grid(iv).first == -1)
             {
                 //if this cell has no particle id info, do a straight copy to store idata
                 if(partData(iv,0)==0)
@@ -1056,7 +1056,7 @@ struct AssignGridFilter
         const auto tup_max = (m_assign_grid)(src[src_i], m_lev_max, m_lev_max, m_nGrow, DefaultAssignor{});
         const auto p_boxes = amrex::get<0>(tup_min);
         const auto p_boxes_max = amrex::get<0>(tup_max);
-        const auto p_levs_max  = amrex::get<1>(tup_max);
+        const auto p_levs_max  = amrex::get<2>(tup_max);
         return p_boxes_max >=0 && p_boxes == m_gid && p_levs_max == m_lev_max;
     }
 };
@@ -1101,8 +1101,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         return;
     }
 
-    if (! m_particle_locator.isValid(GetParGDB())) {
-        m_particle_locator.build(GetParGDB());
+    if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) {
+        m_particle_locator.build(GetParGDB(), do_tiling, tile_size);
     }
 
     m_particle_locator.setGeometry(GetParGDB());
@@ -1367,9 +1367,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (local) { AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0); }
 
-    // sanity check
-    AMREX_ALWAYS_ASSERT(do_tiling == false);
-
     BL_PROFILE("ParticleContainer::RedistributeGPU()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
@@ -1399,7 +1396,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     this->defineBufferMap();
 
-    if (! m_particle_locator.isValid(GetParGDB())) { m_particle_locator.build(GetParGDB()); }
+    if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
 
@@ -1407,7 +1404,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ParticleCopyOp op;
     int num_levels = finest_lev_particles + 1;
     op.setNumLevels(num_levels);
-    Vector<std::map<int, int> > new_sizes(num_levels);
+    Vector<std::map<std::pair<int, int>, int> > new_sizes(num_levels);
     const auto plo    = Geom(0).ProbLoArray();
     const auto phi    = Geom(0).ProbHiArray();
     const auto rlo    = Geom(0).ProbLoArrayInParticleReal();
@@ -1432,13 +1429,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                                     lev_min, lev_max, nGrow, remove_negative);
 
             int num_move = np - num_stay;
-            new_sizes[lev][gid] = num_stay;
-            op.resize(gid, lev, num_move);
+            new_sizes[lev][index] = num_stay;
+            op.resize(gid, tid, lev, num_move);
 
-            auto p_boxes = op.m_boxes[lev][gid].dataPtr();
-            auto p_levs = op.m_levels[lev][gid].dataPtr();
-            auto p_src_indices = op.m_src_indices[lev][gid].dataPtr();
-            auto p_periodic_shift = op.m_periodic_shift[lev][gid].dataPtr();
+            auto p_boxes = op.m_boxes[lev][index].dataPtr();
+            auto p_levs = op.m_levels[lev][index].dataPtr();
+            auto p_tiles = op.m_tiles[lev][index].dataPtr();
+            auto p_src_indices = op.m_src_indices[lev][index].dataPtr();
+            auto p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
             auto ptd = src_tile.getParticleTileData();
 
             AMREX_FOR_1D ( num_move, i,
@@ -1448,6 +1446,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 if (!p.id().is_valid())
                 {
                     p_boxes[i] = -1;
+                    p_tiles[i] = -1;
                     p_levs[i]  = -1;
                 }
                 else
@@ -1455,7 +1454,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     const auto tup = assign_grid(p, lev_min, lev_max, nGrow,
                                                  std::forward<CellAssignor>(CellAssignor{}));
                     p_boxes[i] = amrex::get<0>(tup);
-                    p_levs[i]  = amrex::get<1>(tup);
+                    p_tiles[i] = amrex::get<1>(tup);
+                    p_levs[i]  = amrex::get<2>(tup);
                 }
                 p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
                 p_src_indices[i] = i+num_stay;
@@ -1490,7 +1490,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
             auto& tile = plev[index];
-            tile.resize(new_sizes[lev][gid]);
+            tile.resize(new_sizes[lev][index]);
         }
     }
 
@@ -1568,7 +1568,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int gid = mfi.index();
             int tid = mfi.LocalTileIndex();
             auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
-            int num_copies = plan.m_box_counts_h[this->BufferMap().gridAndLevToBucket(gid, lev)];
+            int num_copies = plan.m_box_counts_h[this->BufferMap().gridAndTileAndLevToBucket(gid, tid, lev)];
             if (num_copies > 0) {
                 addsizes[&tile] += num_copies;
             }
@@ -1576,12 +1576,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (plan.m_nrcvs > 0) {
-        AMREX_ALWAYS_ASSERT(do_tiling == false);
         for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i) {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
-            int tid = 0; // It's always 0 because this function is for RedistributeGPU only and the tiling is off.
+            int tid = plan.m_rcv_box_tids[i];
             auto& tile = this->DefineAndReturnParticleTile(lev, gid, tid);
             addsizes[&tile] += copy_size;
         }
