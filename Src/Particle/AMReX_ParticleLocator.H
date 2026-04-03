@@ -51,8 +51,8 @@ struct AssignGrid
             if (m_bin_size.z >= 0) {m_num_bins.z = amrex::max(m_num_bins.z, 1);}
         }
 
-    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    [[nodiscard]] int getTile (const IntVect& iv, const Box& bx) const noexcept
+    [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    int getTile (const IntVect& iv, const Box& bx) const noexcept
     {
         Box tbx;
         const IntVect tile_size(AMREX_D_DECL(m_tile_size.x, m_tile_size.y, m_tile_size.z));
