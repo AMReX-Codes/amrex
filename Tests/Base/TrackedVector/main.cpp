@@ -13,8 +13,7 @@ namespace {
 
 void verify_host_device_match (TVec const & v)
 {
-    AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
-
+    // Calling host_const() and device_const() auto-syncs both sides
     const auto n = v.host_const().size();
     AMREX_ALWAYS_ASSERT(v.device_const().size() == n);
     if (n == 0) { return; }
@@ -41,20 +40,6 @@ void test_dirty_semantics ()
     TVec v;
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 
-    v.host_dirty();
-#ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT(v.status() == Status::host_dirty);
-#else
-    AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
-#endif
-
-    v.device_dirty();
-#ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT(v.status() == Status::device_dirty);
-#else
-    AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
-#endif
-
     // potential write (host): must mark dirty
     v.host().resize(3);
     v.host().at(2) = 42;
@@ -65,7 +50,8 @@ void test_dirty_semantics ()
 #endif
     AMREX_ALWAYS_ASSERT(v.host_const().size() == 3);
 
-    v.to_device();
+    // read-only device access syncs host->device, status becomes up_to_date
+    [[maybe_unused]] auto dsize = v.device_const().size();
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 
     // potential write (device): must mark dirty
@@ -76,10 +62,7 @@ void test_dirty_semantics ()
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 #endif
 
-    v.ensure_same();
-    AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
-
-    // read-only (host): must not mark dirty
+    // read-only host access syncs device->host, status becomes up_to_date
     auto first = v.host_const().at(2);
     AMREX_ALWAYS_ASSERT(first == 42);
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
@@ -93,20 +76,17 @@ void test_release_gpu ()
 {
     TVec v;
     v.host().assign({1, 2, 3});
-    v.ensure_same();
     verify_host_device_match(v);
 
     v.release_gpu();
 #ifdef AMREX_USE_GPU
-    AMREX_ALWAYS_ASSERT(v.device_const().empty());
     AMREX_ALWAYS_ASSERT(v.status() == Status::host_dirty);
 #else
-    AMREX_ALWAYS_ASSERT(v.device_const().size() == 3U);
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 #endif
     AMREX_ALWAYS_ASSERT(v.host_const().size() == 3U);
 
-    v.ensure_same();
+    // device_const() auto-syncs from host
     verify_host_device_match(v);
 }
 
@@ -114,11 +94,11 @@ void test_d2h ()
 {
     TVec v;
     v.host().assign({0, 0, 0});
-    v.ensure_same();
 
+    // device() auto-syncs host->device, then fill_device_linear writes on device
     fill_device_linear(v, 100);
-    v.ensure_same();
 
+    // host_const() auto-syncs device->host
     AMREX_ALWAYS_ASSERT(v.host_const()[0] == 100 && v.host_const()[1] == 101 && v.host_const()[2] == 102);
     verify_host_device_match(v);
 }
@@ -127,14 +107,14 @@ void test_empty ()
 {
     TVec v;
     AMREX_ALWAYS_ASSERT(v.device_const().empty());
-
-    v.ensure_same();
-    AMREX_ALWAYS_ASSERT(v.device_const().empty());
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 
+    // device() on empty gives empty device vec, marks device_dirty
+    // then host_const() syncs back (empty)
     fill_device_linear(v, 100);
-    v.host_dirty();  // ignore that device had newer data
-    v.ensure_same();
+
+    // Overwrite host (discards any device data)
+    v.host().clear();
     AMREX_ALWAYS_ASSERT(v.device_const().empty());
     AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
 }
@@ -156,7 +136,8 @@ void test_copy_constructor ()
 {
     TVec a;
     a.host().assign({1, 2, 3});
-    a.ensure_same();
+    // Sync to device via read-only access
+    verify_host_device_match(a);
 
     TVec b(a);  // copy construct
 
@@ -175,7 +156,8 @@ void test_move_constructor ()
 {
     TVec a;
     a.host().assign({4, 5, 6});
-    a.ensure_same();
+    // Sync to device via read-only access
+    [[maybe_unused]] auto ds = a.device_const().size();
 
     TVec b(std::move(a));  // move construct
 
@@ -195,13 +177,13 @@ void test_move_constructor ()
     auto a_status_before = a.status();
     auto a_device_size_before = a.device_const().size();
     b.host()[0] = 99;
-    b.ensure_same();
+    // device_const() on b auto-syncs
+    [[maybe_unused]] auto bds = b.device_const().size();
     AMREX_ALWAYS_ASSERT(a.status() == a_status_before);
     AMREX_ALWAYS_ASSERT(a.device_const().size() == a_device_size_before);
 
     // a can be reused
     a.host().assign({10, 20});
-    a.ensure_same();
     verify_host_device_match(a);
     AMREX_ALWAYS_ASSERT(a.host_const()[0] == 10);
     // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
@@ -211,11 +193,12 @@ void test_copy_assignment ()
 {
     TVec a;
     a.host().assign({7, 8, 9});
-    a.ensure_same();
+    // Sync via read-only access
+    [[maybe_unused]] auto ds = a.device_const().size();
 
     TVec b;
     b.host().assign({0});
-    b.ensure_same();
+    [[maybe_unused]] auto ds2 = b.device_const().size();
 
     b = a;  // copy assign
 
@@ -233,11 +216,12 @@ void test_move_assignment ()
 {
     TVec a;
     a.host().assign({11, 12, 13});
-    a.ensure_same();
+    // Sync via read-only access
+    [[maybe_unused]] auto ds = a.device_const().size();
 
     TVec b;
     b.host().assign({0});
-    b.ensure_same();
+    [[maybe_unused]] auto ds2 = b.device_const().size();
 
     b = std::move(a);  // move assign
 
@@ -258,14 +242,13 @@ void test_move_assignment ()
     auto a_status_before = a.status();
     auto a_device_size_before = a.device_const().size();
     b.host()[0] = 99;
-    b.ensure_same();
+    [[maybe_unused]] auto bds = b.device_const().size();
     AMREX_ALWAYS_ASSERT(a.status() == a_status_before);
     AMREX_ALWAYS_ASSERT(a.device_const().size() == a_device_size_before);
     AMREX_ALWAYS_ASSERT(a.host_const()[0] == 0);  // a's data unchanged
 
     // a can be reused
     a.host().assign({30, 40});
-    a.ensure_same();
     verify_host_device_match(a);
     // NOLINTEND(bugprone-use-after-move,clang-analyzer-cplusplus.Move)
 }
@@ -298,7 +281,7 @@ int main (int argc, char* argv[])
     {
         run_tests_before_finalize();
 
-        cross_session.to_device();
+        // device_const() auto-syncs host->device
         verify_host_device_match(cross_session);
         AMREX_ALWAYS_ASSERT(cross_session.host_const()[0] == 7);
     }
@@ -313,16 +296,10 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(cross_session.host_const().size() == 3U);
         AMREX_ALWAYS_ASSERT(cross_session.host_const()[0] == 7 && cross_session.host_const()[1] == 8 &&
                             cross_session.host_const()[2] == 9);
-#ifdef AMREX_USE_GPU
-        AMREX_ALWAYS_ASSERT(cross_session.device_const().empty());
-#else
-        AMREX_ALWAYS_ASSERT(cross_session.device_const().size() == 3U);
-#endif
-
-        cross_session.host()[1] = 99;
-        cross_session.to_device();  // re-init device data in new AMReX session
+        // GPU builds:
+        // Device was released on Finalize, device access will re-sync.
+        // auto-syncs host->device in new AMReX session
         verify_host_device_match(cross_session);
-        AMREX_ALWAYS_ASSERT(cross_session.host_const()[1] == 99);
     }
     amrex::Finalize();
 

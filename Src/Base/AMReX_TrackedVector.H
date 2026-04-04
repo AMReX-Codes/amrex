@@ -68,28 +68,36 @@ namespace amrex::Gpu
             : m_host(a_size)
         {
             register_finalize();
-            host_dirty();
+#ifdef AMREX_USE_GPU
+            *m_status = Status::host_dirty;
+#endif
         }
 
         TrackedVector (size_type a_size, value_type const & a_value)
             : m_host(a_size, a_value)
         {
             register_finalize();
-            host_dirty();
+#ifdef AMREX_USE_GPU
+            *m_status = Status::host_dirty;
+#endif
         }
 
         TrackedVector (std::initializer_list<T> a_initializer_list)
             : m_host(a_initializer_list)
         {
             register_finalize();
-            host_dirty();
+#ifdef AMREX_USE_GPU
+            *m_status = Status::host_dirty;
+#endif
         }
 
         TrackedVector (std::vector<T> a_vector)
             : m_host(std::move(a_vector))
         {
             register_finalize();
-            host_dirty();
+#ifdef AMREX_USE_GPU
+            *m_status = Status::host_dirty;
+#endif
         }
 
         TrackedVector (TrackedVector const & a_vector)
@@ -153,33 +161,65 @@ namespace amrex::Gpu
 
         [[nodiscard]] Status status () const { return *m_status; }
 
-        /** Return writable host data, mark host as dirty */
+        /** Return writable host data
+         *
+         * If device data is newer, syncs device-to-host first (GPU builds).
+         * Marks host as dirty so the next device access will sync back.
+         */
         [[nodiscard]] std::vector<T> &
         host () {
-            host_dirty();
+#ifdef AMREX_USE_GPU
+            if (*m_status == Status::device_dirty) {
+                to_host();
+            }
+            *m_status = Status::host_dirty;
+#endif
             return m_host;
         }
 
-        /** Return read-only host data */
+        /** Return read-only host data
+         *
+         * If device data is newer, syncs device-to-host first (GPU builds).
+         */
         [[nodiscard]] std::vector<T> const &
-        host_const () const { return m_host; }
+        host_const () const {
+#ifdef AMREX_USE_GPU
+            if (*m_status == Status::device_dirty) {
+                to_host();
+            }
+#endif
+            return m_host;
+        }
 
 #ifdef AMREX_USE_GPU
-        /** Return writable device data, mark device as dirty */
+        /** Return writable device data
+         *
+         * If host data is newer, syncs host-to-device first.
+         * Marks device as dirty so the next host access will sync back.
+         */
         [[nodiscard]] amrex::Gpu::DeviceVector<T> &
         device () {
             if (!amrex::Initialized()) {
                 throw std::runtime_error("TrackedVector::device() called before AMReX initialize/after AMReX finalize");
             }
-            device_dirty();
+            if (*m_status == Status::host_dirty) {
+                to_device();
+            }
+            *m_status = Status::device_dirty;
             return *m_device;
         }
 
-        /** Return read-only device data */
+        /** Return read-only device data
+         *
+         * If host data is newer, syncs host-to-device first.
+         */
         [[nodiscard]] amrex::Gpu::DeviceVector<T> const &
         device_const () const {
             if (!amrex::Initialized()) {
-                throw std::runtime_error("TrackedVector::device() called before AMReX initialize/after AMReX finalize");
+                throw std::runtime_error("TrackedVector::device_const() called before AMReX initialize/after AMReX finalize");
+            }
+            if (*m_status == Status::host_dirty) {
+                to_device();
             }
             return *m_device;
         }
@@ -201,98 +241,49 @@ namespace amrex::Gpu
         void release_gpu ()
         {
 #ifdef AMREX_USE_GPU
-            device().clear();
-            device().shrink_to_fit();
+            m_device->clear();
+            m_device->shrink_to_fit();
             *m_status = Status::host_dirty;
-#endif
-        }
-
-        /** Mark host data as modified; next sync will copy to GPU. */
-        void host_dirty () {
-#ifdef AMREX_USE_GPU
-            *m_status = Status::host_dirty;
-#endif
-        }
-
-        /** Mark device data as modified; next sync will copy to CPU. */
-        void device_dirty () {
-#ifdef AMREX_USE_GPU
-            *m_status = Status::device_dirty;
-#endif
-        }
-
-        /** Conditionally synchronize host data to device
-         *
-         * If either the host or device side are dirty, this will
-         * copy the host data over the device data.
-         *
-         * @param[in] force  If true, force a copy even if the status is up to date.
-         */
-        void to_device (bool force=false) {
-#ifdef AMREX_USE_GPU
-            if (status() != Status::up_to_date || force) {
-                if (!amrex::Initialized()) {
-                    throw std::runtime_error("TrackedVector::to_device() called outside of AMReX initialize/finalize");
-                }
-                auto const size = m_host.size();
-                if (size > 0U) {
-                    m_device->resize(size);
-                    amrex::Gpu::copy(amrex::Gpu::hostToDevice,
-                        m_host.begin(), m_host.end(), m_device->begin());
-                } else {
-                    m_device->clear();
-                }
-            }
-            *m_status = Status::up_to_date;
-#else
-            amrex::ignore_unused(force);
-#endif
-        }
-
-        /** Conditionally synchronize device data to host
-         *
-         * If either the host or device side are dirty, this will
-         * copy the device data over the host data.
-         *
-         * @param[in] force  If true, force a copy even if the status is up to date.
-         */
-        void to_host (bool force=false) {
-#ifdef AMREX_USE_GPU
-            if (status() != Status::up_to_date || force) {
-                if (!amrex::Initialized()) {
-                    throw std::runtime_error("TrackedVector::to_host() called outside of AMReX initialize/finalize");
-                }
-                m_host.resize(m_device->size());
-                amrex::Gpu::copy(amrex::Gpu::deviceToHost,
-                    m_device->begin(), m_device->end(), m_host.begin());
-            }
-            *m_status = Status::up_to_date;
-#else
-            amrex::ignore_unused(force);
-#endif
-        }
-
-        /** Ensure equivalent host-device data (sync copy)
-         *
-         * This performs a conditional synchronous copy from whatever
-         * host()/device() side was accessed last.
-         */
-        void ensure_same ()
-        {
-#ifdef AMREX_USE_GPU
-            if (status() == Status::host_dirty) {
-                to_device(false);
-            } else if (status() == Status::device_dirty) {
-                to_host(false);
-            }
 #endif
         }
 
     private:
-        std::shared_ptr<Status> m_status = std::make_shared<Status>();
-        std::vector<T> m_host;
+
+        /** Synchronize host data to device */
+        void to_device () const {
 #ifdef AMREX_USE_GPU
-        std::shared_ptr<amrex::Gpu::DeviceVector<T>> m_device = std::make_shared<amrex::Gpu::DeviceVector<T>>();
+            if (!amrex::Initialized()) {
+                throw std::runtime_error("TrackedVector::to_device() called outside of AMReX initialize/finalize");
+            }
+            auto const size = m_host.size();
+            if (size > 0U) {
+                m_device->resize(size);
+                amrex::Gpu::copy(amrex::Gpu::hostToDevice,
+                    m_host.begin(), m_host.end(), m_device->begin());
+            } else {
+                m_device->clear();
+            }
+            *m_status = Status::up_to_date;
+#endif
+        }
+
+        /** Synchronize device data to host */
+        void to_host () const {
+#ifdef AMREX_USE_GPU
+            if (!amrex::Initialized()) {
+                throw std::runtime_error("TrackedVector::to_host() called outside of AMReX initialize/finalize");
+            }
+            m_host.resize(m_device->size());
+            amrex::Gpu::copy(amrex::Gpu::deviceToHost,
+                m_device->begin(), m_device->end(), m_host.begin());
+            *m_status = Status::up_to_date;
+#endif
+        }
+
+        mutable std::shared_ptr<Status> m_status = std::make_shared<Status>();
+        mutable std::vector<T> m_host;
+#ifdef AMREX_USE_GPU
+        mutable std::shared_ptr<amrex::Gpu::DeviceVector<T>> m_device = std::make_shared<amrex::Gpu::DeviceVector<T>>();
 #endif
     };
 
