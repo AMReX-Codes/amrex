@@ -135,50 +135,126 @@ void SpMV (Long nrows, Long ncols, T* AMREX_RESTRICT py, CsrView<T const> const&
     T beta = T(0.0);
 
 #if (HIP_VERSION_MAJOR >= 7)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-#endif
 
-    std::size_t buffer_size;
-    auto err0 =
-        rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
-                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
-#if (HIP_VERSION_MAJOR >= 6)
-                       rocsparse_spmv_stage_buffer_size,
-#endif
-                       &buffer_size, nullptr);
-    AMREX_ROCSPARSE_SAFE_CALL(err0);
+    rocsparse_spmv_descr spmv_descr;
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_create_spmv_descr(&spmv_descr));
 
-    void* pbuffer = (void*)The_Arena()->alloc(buffer_size);
 
-#if (HIP_VERSION_MAJOR >= 6)
+    rocsparse_error p_error[1] = {};
+
+    const rocsparse_spmv_alg spmv_alg = rocsparse_spmv_alg_csr_adaptive;
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv_set_input(handle, spmv_descr, rocsparse_spmv_input_alg,
+                                 &spmv_alg, sizeof(spmv_alg), p_error));
+
+    const rocsparse_operation spmv_operation = rocsparse_operation_none;
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv_set_input(handle, spmv_descr, rocsparse_spmv_input_operation,
+                                 &spmv_operation, sizeof(spmv_operation), p_error));
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv_set_input(handle, spmv_descr, rocsparse_spmv_input_scalar_datatype,
+                                 &data_type, sizeof(data_type), p_error));
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv_set_input(handle, spmv_descr, rocsparse_spmv_input_compute_datatype,
+                                 &data_type, sizeof(data_type), p_error));
+
+    std::size_t buffer_size = 0;
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_v2_spmv_buffer_size(handle, spmv_descr, mat_descr, x_descr, y_descr,
+                                      rocsparse_v2_spmv_stage_analysis, // buffer size for analysis
+                                      &buffer_size, p_error));
+
+    void* pbuffer = nullptr;
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    }
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_v2_spmv(handle, spmv_descr, &alpha, mat_descr, x_descr, &beta, y_descr,
+                          rocsparse_v2_spmv_stage_analysis, // analysis stage
+                          buffer_size, pbuffer, p_error));
+
+    if (pbuffer) {
+        The_Arena()->free(pbuffer);
+    }
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_v2_spmv_buffer_size(handle, spmv_descr, mat_descr, x_descr, y_descr,
+                                      rocsparse_v2_spmv_stage_compute, // buffer size for compute
+                                      &buffer_size, p_error));
+
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    } else {
+        pbuffer = nullptr;
+    }
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_v2_spmv(handle, spmv_descr, &alpha, mat_descr, x_descr, &beta, y_descr,
+                          rocsparse_v2_spmv_stage_compute, // compute stage
+                          buffer_size, pbuffer, p_error));
+
+#elif (HIP_VERSION_MAJOR == 6)
+
+    std::size_t buffer_size = 0;
     AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
                        &beta, y_descr, data_type, rocsparse_spmv_alg_default,
-                       rocsparse_spmv_stage_preprocess, &buffer_size, pbuffer));
-#endif
+                       rocsparse_spmv_stage_buffer_size, // buffer size stage
+                       &buffer_size, nullptr));
 
-    auto err1 =
+    void* pbuffer = nullptr;
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    }
+
+    AMREX_ROCSPARSE_SAFE_CALL(
         rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
                        &beta, y_descr, data_type, rocsparse_spmv_alg_default,
-#if (HIP_VERSION_MAJOR >= 6)
-                       rocsparse_spmv_stage_compute,
-#endif
-                       &buffer_size, pbuffer);
-    AMREX_ROCSPARSE_SAFE_CALL(err1);
+                       rocsparse_spmv_stage_preprocess, // preprocess stage
+                       &buffer_size, pbuffer));
 
-#if (HIP_VERSION_MAJOR >= 7)
-// xxxxx HIP TODO: rocsparse_spmv has been deprecated.
-#pragma clang diagnostic pop
-#endif
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       rocsparse_spmv_stage_compute, // compute stage
+                       &buffer_size, pbuffer));
+
+#else /* HIP_VERSION_MAJOR < 6 */
+
+    std::size_t buffer_size = 0;
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &buffer_size, nullptr));
+
+    void* pbuffer = nullptr;
+    if (buffer_size > 0) {
+        pbuffer = (void*)The_Arena()->alloc(buffer_size);
+    }
+
+    AMREX_ROCSPARSE_SAFE_CALL(
+        rocsparse_spmv(handle, rocsparse_operation_none, &alpha, mat_descr, x_descr,
+                       &beta, y_descr, data_type, rocsparse_spmv_alg_default,
+                       &buffer_size, pbuffer));
+
+#endif /* HIP_VERSION_MAJOR */
 
     Gpu::streamSynchronize();
 
+#if (HIP_VERSION_MAJOR >= 7)
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_error(p_error[0]));
+    AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmv_descr(spmv_descr));
+#endif
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_spmat_descr(mat_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_dnvec_descr(x_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_dnvec_descr(y_descr));
     AMREX_ROCSPARSE_SAFE_CALL(rocsparse_destroy_handle(handle));
-    The_Arena()->free(pbuffer);
+    if (pbuffer) {
+        The_Arena()->free(pbuffer);
+    }
 
 #elif defined(AMREX_USE_SYCL)
 
