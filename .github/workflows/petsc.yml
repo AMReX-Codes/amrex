@@ -56,7 +56,7 @@ jobs:
         export AMREX_PETSC_HOME=${PWD}/petsc-3.22.2/petsc
         cd Tests/LinearSolvers/CellEB
         make -j4 USE_MPI=TRUE USE_PETSC=TRUE DIM=2 TEST=TRUE \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs.rt.2d.petsc
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt

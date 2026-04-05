@@ -433,10 +433,7 @@ public:
     */
     [[nodiscard]] bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
 
-    /**
-    * \brief Compute the roundoff domain. Public because it contains an
-    *        extended host / device lambda.
-    */
+    //! Compute the roundoff domain.
     void computeRoundoffDomain ();
 
     //! Returns roundoff domain's lower end

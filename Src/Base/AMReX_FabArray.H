@@ -145,6 +145,7 @@ struct PCData {
     Vector<std::size_t> recv_size;
     Vector<MPI_Request> recv_reqs;
     Vector<MPI_Request> send_reqs;
+    bool                deterministic = false;
 
 };
 
@@ -3642,7 +3643,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
 
-    AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
+    AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow) && dst_nghost.allLE(n_grow));
 
     FBEP_nowait(scomp, ncomp, dst_nghost, period, false, false, false, src_nghost, deterministic);
 }

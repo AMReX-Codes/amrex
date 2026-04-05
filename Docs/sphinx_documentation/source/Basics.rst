@@ -668,6 +668,21 @@ entries in an inputs file:
    hydro.cfl = 0.9
    my_string = "A String"
 
+You can also remove the effect of having defined an input parameter at all using the
+``UNSET`` directive (parameters that are merely overridden will still be caught by
+:cpp:`pp.contains()` checks in code). Specifying ``keyword = 5`` in an input file and
+then ``UNSET = keyword`` subsequently in the input file or from the command line
+completely removes ``keyword`` from the ParmParse table. Multiple keywords can
+be removed simultaneously (``UNSET = key1 key2 key3``). if using the ``UNSET``
+directive with TOML-like input files, note that full parameter names must be used
+even if the UNSET falls within a TOML table:
+
+.. code-block:: none
+
+   [x]
+   a = 1  # Same as x.a = 1 at the root level
+
+   UNSET = x.a # full name required to remove x.a entry
 
 Setting Defaults via an Environment Variable
 --------------------------------------------

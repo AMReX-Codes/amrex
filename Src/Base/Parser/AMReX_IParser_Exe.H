@@ -2,6 +2,11 @@
 #define AMREX_IPARSER_EXE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_IParser_Exe.H
+ * \brief Bytecode instruction formats for the integer parser backend.
+ */
+
 #include <AMReX_IParser_Y.H>
 #include <AMReX_Stack.H>
 #include <AMReX_Vector.H>

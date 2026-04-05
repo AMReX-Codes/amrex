@@ -238,7 +238,8 @@
 #   elif defined(_MSC_VER)
 #       define AMREX_ASSUME(ASSUMPTION) __assume(ASSUMPTION)
 #   elif defined(__GNUC__)
-#       define AMREX_ASSUME(ASSUMPTION) if (ASSUMPTION) {} else { __builtin_unreachable(); }
+#       define AMREX_ASSUME(ASSUMPTION) \
+            do { if (!(ASSUMPTION)) { __builtin_unreachable(); } } while (0)
 #   else
 #       define AMREX_ASSUME(ASSUMPTION)
 #   endif

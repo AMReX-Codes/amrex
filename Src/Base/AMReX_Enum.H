@@ -42,11 +42,12 @@ namespace detail
                 T this_value;
                 if (it != r.end()) {
                     this_value = it->second;
-                } else { // v is an int
+                } else { // v is an int literal
                     // Note that if value_string is not a valid string for int,
                     // it will fail at compile time, because the compiler
                     // will not allow something like `enum FOO : int { x = 3% }`.
-                    this_value =  static_cast<T>(std::stoi(value_string));
+                    // The base of the integer is auto detected, so 0x/0 prefixes work.
+                    this_value =  static_cast<T>(std::stoi(value_string, nullptr, 0));
                 }
                 r.emplace_back(amrex::trim(kv[0]), this_value);
                 next_value = static_cast<int>(this_value) + 1;

@@ -40,6 +40,7 @@ namespace {
 }
 
 std::string const ParmParse::FileKeyword = "FILE";
+std::string const ParmParse::UnsetKeyword = "UNSET";
 std::string       ParmParse::ParserPrefix;
 
 ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
@@ -771,6 +772,15 @@ addDefn (std::string& def, std::vector<std::string>& val,
         const char* fname = val.front().c_str();
         read_file(fname, tab);
         g_toml_table_key = std::move(prev_toml_table_key);
+    }
+    //
+    // Check if this defn is an unset directive.
+    //
+    else if ( def == ParmParse::UnsetKeyword )
+    {
+        for (auto const& key : val) {
+            tab.erase(key);
+        }
     }
     else
     {

@@ -389,6 +389,7 @@ struct SoAParticleBase
     static constexpr int NReal=0;
     static constexpr int NInt=0;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_rtsoa_particle = false;
 };
 
 /**
@@ -403,6 +404,7 @@ struct alignas(sizeof(double)) Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     static constexpr bool is_soa_particle = false;
+    static constexpr bool is_rtsoa_particle = false;
     using StorageParticleType = Particle;
     using ConstType = Particle const;
 
