@@ -801,6 +801,7 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
 
         if (!tags_proj.empty()) {
             tagvec.insert(tagvec.end(), tags_proj.data(), tags_proj.data()+tags_proj.size());
+            tags_proj.clear();
         }
 
         if (!tagvec.empty())
