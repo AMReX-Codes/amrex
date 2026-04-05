@@ -1143,7 +1143,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, bool local)
 {
-    using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using PData = typename ParticleTileType::ConstParticleTileDataType;
     copyParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
@@ -1154,7 +1154,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, bool local)
 {
-    using PData = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using PData = typename ParticleTileType::ConstParticleTileDataType;
     addParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
 }
 
@@ -1217,7 +1217,8 @@ addParticles (const PCType& other, F const& f, bool local)
             auto dst_index = ptile.numParticles();
             ptile.resize(dst_index + np);
 
-            auto count = amrex::filterParticles(ptile, ptile_other, f, 0, dst_index, np);
+            auto count = amrex::filterParticles(ptile, ptile_other, f,
+                static_cast<decltype(np)>(0), dst_index, np);
 
             ptile.resize(dst_index + count);
         }
@@ -1236,6 +1237,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 ::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !is_rtsoa_pc || NumRuntimeRealComps() >= AMREX_SPACEDIM,
+        "ParticleContainer with RTSoA requires at least AMREX_SPACEDIM "
+        "runtime real components for positions"
+    );
 
 #ifdef AMREX_USE_GPU
     if ( Gpu::inLaunchRegion() )
@@ -1265,85 +1272,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const size_t np_total = np + ptile.numNeighborParticles();
 
     if (memEfficientSort) {
-#if defined(AMREX_USE_CUDA) && defined(_WIN32)
-        if           (!ParticleType::is_soa_particle) {
-#else
-        if constexpr (!ParticleType::is_soa_particle) {
-#endif
-            static_assert(sizeof(ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
-            using tmp_t = std::conditional_t<sizeof(ParticleType)%8 == 0,
-                                             uint64_t, uint32_t>;
-            constexpr std::size_t nchunks = sizeof(ParticleType) / sizeof(tmp_t);
-            Gpu::DeviceVector<tmp_t> tmp(np);
-            auto* ptmp = tmp.data();
-            auto* paos = (tmp_t*)(ptile.getParticleTileData().m_aos);
-            for (std::size_t ichunk = 0; ichunk < nchunks; ++ichunk) {
-                // Do not need to reorder neighbor particles
-                AMREX_HOST_DEVICE_FOR_1D(np, i,
-                {
-                    ptmp[i] = paos[permutations[i]*nchunks+ichunk];
-                });
-                AMREX_HOST_DEVICE_FOR_1D(np, i,
-                {
-                    paos[i*nchunks+ichunk] = ptmp[i];
-                });
-            }
-            Gpu::streamSynchronize();
-        } else {
-            typename SoA::IdCPU tmp_idcpu;
-            if constexpr (has_polymorphic_allocator) {
-                tmp_idcpu.setArena(arena());
-            }
-            tmp_idcpu.resize(np_total);
-            auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
-            uint64_t* dst = tmp_idcpu.data();
-            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-            {
-                dst[i] = i < np ? src[permutations[i]] : src[i];
-            });
-
-            Gpu::streamSynchronize();
-
-            ptile.GetStructOfArrays().GetIdCPUData().swap(tmp_idcpu);
-        }
-
-        { // Create a scope for the temporary vector below
-            RealVector tmp_real;
-            if constexpr (has_polymorphic_allocator) {
-                tmp_real.setArena(arena());
-            }
-            tmp_real.resize(np_total);
-            for (int comp = 0; comp < NArrayReal + m_num_runtime_real; ++comp) {
-                auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
-                ParticleReal* dst = tmp_real.data();
-                AMREX_HOST_DEVICE_FOR_1D( np_total, i,
-                {
-                    dst[i] = i < np ? src[permutations[i]] : src[i];
-                });
-
-                Gpu::streamSynchronize();
-
-                ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
-            }
-        }
-
-        IntVector tmp_int;
-        if constexpr (has_polymorphic_allocator) {
-            tmp_int.setArena(arena());
-        }
-        tmp_int.resize(np_total);
-        for (int comp = 0; comp < NArrayInt + m_num_runtime_int; ++comp) {
-            auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
-            int* dst = tmp_int.data();
-            AMREX_HOST_DEVICE_FOR_1D( np_total , i,
-            {
-                dst[i] = i < np ? src[permutations[i]] : src[i];
-            });
-
-            Gpu::streamSynchronize();
-
-            ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
-        }
+        amrex::ReorderParticles(ptile, permutations);
     } else {
         ParticleTileType ptile_tmp;
         ptile_tmp.define(m_num_runtime_real, m_num_runtime_int,
@@ -1838,7 +1767,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     ++pindex;
                 }
 
-                auto tot_npart = particle_tile->numTotalParticles();
+                Long tot_npart = particle_tile->numTotalParticles();
 
                 if (last != npart - 1) {
                     pindex = last + 1;
@@ -1881,9 +1810,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             for (int i = 0; i < num_threads; ++i) {
 
-                auto to_copy = src_ptile[i].numParticles();
-                auto old_size = dst_ptile.numTotalParticles();
-                auto new_size = old_size + to_copy;
+                Long to_copy = src_ptile[i].numParticles();
+                Long old_size = dst_ptile.numTotalParticles();
+                Long new_size = old_size + to_copy;
                 dst_ptile.resize(new_size);
 
                 auto dst_ptd = dst_ptile.getParticleTileData();

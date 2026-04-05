@@ -1,0 +1,16 @@
+name: changelog guard
+
+on:
+  pull_request:
+    paths:
+      - 'CHANGES.md'
+      - 'Tools/ci/check_changelog_headings.sh'
+      - '.github/workflows/changelog-guard.yml'
+
+jobs:
+  duplicate-changes-headings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check for duplicate CHANGES headings
+        run: python3 .github/workflows/scripts/check_changelog_headings.py CHANGES.md

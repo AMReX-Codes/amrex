@@ -64,6 +64,7 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     geom.push_back(level_0_geom);
     for (int lev = 1; lev <= max_level; ++lev) {
         geom.push_back(amrex::refine(geom[lev-1], ref_ratio[lev-1]));
+        geom.back().computeRoundoffDomain();
     }
 
     finest_level = -1;
