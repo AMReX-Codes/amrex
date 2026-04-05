@@ -20,7 +20,6 @@ namespace amrex {
 #include <cstdlib>
 #include <limits>
 #include <map>
-#include <memory>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
@@ -325,11 +324,11 @@ public:
     /// implementation of the virtual function.
     virtual void ResetMaxUsageCounter () {}
 
-    /** Lifetime token for safe weak references (e.g., PolymorphicArenaWrapper).
-     *  Expires when the Arena is destroyed, enabling safe fallback to
-     *  The_Null_Arena in language bindings with non-deterministic destruction
-     *  order (e.g., Python). */
-    [[nodiscard]] std::weak_ptr<void> life_token () const noexcept { return m_life_token; }
+    /** Whether the Arena subsystem is initialized.
+     *  Used by PolymorphicArenaWrapper to fall back to The_Null_Arena
+     *  when arenas have been torn down (e.g., after amrex::Finalize
+     *  in language bindings with non-deterministic destruction order). */
+    [[nodiscard]] static bool IsInitialized ();
 
 protected:
 
@@ -363,11 +362,6 @@ protected:
         void profile_free (void* ptr);
 
     } m_profiler;
-
-private:
-    //! Destroyed with this Arena, expiring all weak_ptr observers
-    //! (e.g., PolymorphicArenaWrapper) so they fall back to The_Null_Arena.
-    std::shared_ptr<void> m_life_token = std::make_shared<char>();
 };
 
 }

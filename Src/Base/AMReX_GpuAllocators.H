@@ -99,21 +99,18 @@ namespace amrex {
     };
 
     struct PolymorphicArenaWrapper {
-        PolymorphicArenaWrapper () = default;
-        explicit PolymorphicArenaWrapper (Arena* a_arena)
-            : m_arena(a_arena)
-            , m_life_token(a_arena ? a_arena->life_token() : std::weak_ptr<void>{})
-        {}
+        constexpr PolymorphicArenaWrapper () = default;
+        explicit constexpr PolymorphicArenaWrapper (Arena* a_arena)
+            : m_arena(a_arena) {}
         [[nodiscard]] Arena* arena () const noexcept {
-            if (m_arena && !m_life_token.expired()) {
+            //! After Arena::Finalize() the cached pointer is stale;
+            //! fall back to The_Arena() which returns The_Null_Arena().
+            if (m_arena && Arena::IsInitialized()) {
                 return m_arena;
             }
             return The_Arena();
         }
         Arena* m_arena = nullptr;
-        //! Tracks whether m_arena is still alive; expires when the Arena is
-        //! destroyed so arena() falls back to The_Arena() / The_Null_Arena().
-        std::weak_ptr<void> m_life_token;
     };
 
     /// \ingroup amrex_memory
@@ -157,8 +154,8 @@ namespace amrex {
         : public ArenaAllocatorBase<T,PolymorphicArenaWrapper>
     {
     public :
-        PolymorphicArenaAllocator () = default;
-        explicit PolymorphicArenaAllocator (Arena* a_arena)
+        constexpr PolymorphicArenaAllocator () = default;
+        explicit constexpr PolymorphicArenaAllocator (Arena* a_arena)
             : ArenaAllocatorBase<T,PolymorphicArenaWrapper>
                 (PolymorphicArenaWrapper(a_arena))
             {}

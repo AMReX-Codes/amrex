@@ -801,6 +801,12 @@ Arena::Finalize ()
     The_BArena()->deregisterFromProfiling();
 }
 
+bool
+Arena::IsInitialized ()
+{
+    return initialized;
+}
+
 Arena*
 The_Arena ()
 {
