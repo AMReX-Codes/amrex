@@ -324,10 +324,7 @@ public:
     /// implementation of the virtual function.
     virtual void ResetMaxUsageCounter () {}
 
-    /** Whether the Arena subsystem is initialized.
-     *  Used by PolymorphicArenaWrapper to fall back to The_Null_Arena
-     *  when arenas have been torn down (e.g., after amrex::Finalize
-     *  in language bindings with non-deterministic destruction order). */
+    /** Whether the Arena subsystem is initialized. */
     [[nodiscard]] static bool IsInitialized ();
 
 protected:
