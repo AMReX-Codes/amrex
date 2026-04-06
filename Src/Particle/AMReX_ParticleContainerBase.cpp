@@ -14,7 +14,7 @@ bool    ParticleContainerBase::use_comms_arena = false;
 
 ParticleContainerBase::~ParticleContainerBase ()
 {
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
     releaseParticleHandshakeWindow();
 #endif
 }
@@ -31,7 +31,7 @@ ParticleContainerBase::ParticleContainerBase (ParticleContainerBase&& other) noe
       redistribute_mask_nghost(other.redistribute_mask_nghost),
       neighbor_procs(std::move(other.neighbor_procs)),
       m_buffer_map(std::move(other.m_buffer_map))
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
     , m_particle_handshake_win(other.m_particle_handshake_win),
       m_particle_handshake_ptr(other.m_particle_handshake_ptr),
       m_particle_handshake_nprocs(other.m_particle_handshake_nprocs),
@@ -39,7 +39,7 @@ ParticleContainerBase::ParticleContainerBase (ParticleContainerBase&& other) noe
 #endif
 {
     other.m_gdb = nullptr;
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
     other.m_particle_handshake_win = MPI_WIN_NULL;
     other.m_particle_handshake_ptr = nullptr;
     other.m_particle_handshake_nprocs = 0;
@@ -52,7 +52,7 @@ ParticleContainerBase::operator= (ParticleContainerBase&& other) noexcept
 {
     if (this != &other)
     {
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
         releaseParticleHandshakeWindow();
 #endif
 
@@ -67,7 +67,7 @@ ParticleContainerBase::operator= (ParticleContainerBase&& other) noexcept
         redistribute_mask_nghost = other.redistribute_mask_nghost;
         neighbor_procs = std::move(other.neighbor_procs);
         m_buffer_map = std::move(other.m_buffer_map);
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
         m_particle_handshake_win = other.m_particle_handshake_win;
         m_particle_handshake_ptr = other.m_particle_handshake_ptr;
         m_particle_handshake_nprocs = other.m_particle_handshake_nprocs;
@@ -152,7 +152,7 @@ ParticleContainerBase::defineBufferMap () const
     }
 }
 
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
 void ParticleContainerBase::releaseParticleHandshakeWindow ()
 {
     if (m_particle_handshake_win != MPI_WIN_NULL) {

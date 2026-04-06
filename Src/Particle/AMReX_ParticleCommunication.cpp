@@ -267,14 +267,11 @@ void ParticleCopyPlan::doHandShake (const ParticleContainerBase& pc,
     BL_PROFILE("ParticleCopyPlan::doHandShake");
     if (m_local) { doHandShakeLocal(Snds, Rcvs); }
     else if (m_do_one_sided_comms) {
-#if defined(BL_USE_MPI3)
         doHandShakeOneSided(pc, Snds, Rcvs);
-#else
-        amrex::ignore_unused(pc);
-        amrex::Abort("ParticleCopyPlan::doHandShake: particles.do_one_sided_comms=1 requires MPI-3");
-#endif
     }
-    else         { doHandShakeReduceScatter(Snds, Rcvs); }
+    else {
+        doHandShakeReduceScatter(Snds, Rcvs);
+    }
 }
 
 void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
@@ -396,7 +393,7 @@ void ParticleCopyPlan::doHandShakeOneSided (const ParticleContainerBase& pc,
                                             const Vector<Long>& Snds,
                                             Vector<Long>& Rcvs)
 {
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
     const int MyProc = ParallelContext::MyProcSub();
     const int NProcs = ParallelContext::NProcsSub();
 

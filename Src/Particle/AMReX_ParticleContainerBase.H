@@ -238,7 +238,7 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
     void ensureParticleHandshakeWindow () const;
     void releaseParticleHandshakeWindow ();
     [[nodiscard]] Long* particleHandshakeBuffer () const { return m_particle_handshake_ptr; }
@@ -292,7 +292,7 @@ protected:
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
 
-#if defined(AMREX_USE_MPI) && defined(BL_USE_MPI3)
+#if defined(AMREX_USE_MPI)
     mutable MPI_Win m_particle_handshake_win = MPI_WIN_NULL;
     mutable Long* m_particle_handshake_ptr = nullptr;
     mutable int m_particle_handshake_nprocs = 0;
