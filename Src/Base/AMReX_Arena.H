@@ -70,6 +70,8 @@ Arena* The_Comms_Arena ();
 //! Return a pointer to `The_Cpu_Arena`, the CPU memory arena.
 Arena* The_Cpu_Arena ();
 
+Arena* The_Null_Arena ();
+
 struct ArenaInfo
 {
     Long release_threshold = std::numeric_limits<Long>::max();
