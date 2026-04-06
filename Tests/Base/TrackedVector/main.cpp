@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_TrackedVector.H>
 
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -307,6 +308,6 @@ int main (int argc, char* argv[])
     MPI_Finalize();
 #endif
 
-    amrex::Print() << "TrackedVector tests passed.\n";
+    std::cout << "TrackedVector tests passed.\n";
     return 0;
 }

@@ -60,7 +60,7 @@ namespace amrex::Gpu
         }
     public:
 
-        constexpr TrackedVector () {
+        TrackedVector () {
             register_finalize();
         }
 
@@ -154,7 +154,7 @@ namespace amrex::Gpu
         ~TrackedVector () = default;
 
         enum class Status {
-            up_to_date,    //<! host and device data are in sync
+            up_to_date,    //!< host and device data are in sync
             device_dirty,  //!< host data needs an update
             host_dirty     //!< device data needs an update
         };
