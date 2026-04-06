@@ -91,6 +91,34 @@ void test_release_gpu ()
     verify_host_device_match(v);
 }
 
+void test_release_gpu_device_dirty ()
+{
+    // Device is modified, then release_gpu() must sync D->H before freeing.
+    TVec v;
+    v.host().assign({0, 0, 0});
+
+    // Write on device: {100, 101, 102}
+    fill_device_linear(v, 100);
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(v.status() == Status::device_dirty);
+#endif
+
+    // release_gpu() should sync device->host, then free device memory
+    v.release_gpu();
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(v.status() == Status::host_dirty);
+#endif
+
+    // Host must have the device-written values
+    AMREX_ALWAYS_ASSERT(v.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(v.host_const()[0] == 100);
+    AMREX_ALWAYS_ASSERT(v.host_const()[1] == 101);
+    AMREX_ALWAYS_ASSERT(v.host_const()[2] == 102);
+
+    // Can round-trip back to device
+    verify_host_device_match(v);
+}
+
 void test_d2h ()
 {
     TVec v;
@@ -258,6 +286,7 @@ void run_tests_before_finalize ()
 {
     test_dirty_semantics();
     test_release_gpu();
+    test_release_gpu_device_dirty();
     test_d2h();
     test_empty();
     test_aggregate();
@@ -274,6 +303,11 @@ int main (int argc, char* argv[])
     TVec cross_session;
     cross_session.host() = {7, 8, 9};
 
+    // This vector will be device-dirty when Finalize runs.
+    // ExecOnFinalize must sync D->H so the data survives.
+    TVec dirty_on_finalize;
+    dirty_on_finalize.host().assign({0, 0, 0});
+
 #ifdef AMREX_USE_MPI
     MPI_Init(&argc, &argv);
 #endif
@@ -285,12 +319,25 @@ int main (int argc, char* argv[])
         // device_const() auto-syncs host->device
         verify_host_device_match(cross_session);
         AMREX_ALWAYS_ASSERT(cross_session.host_const()[0] == 7);
+
+        // Write on device, leave device_dirty for Finalize to handle
+        fill_device_linear(dirty_on_finalize, 200);
+#ifdef AMREX_USE_GPU
+        AMREX_ALWAYS_ASSERT(dirty_on_finalize.status() == Status::device_dirty);
+#endif
     }
-    amrex::Finalize();  // calls implicitly: cross_session.release_gpu();
+    amrex::Finalize();  // calls implicitly: release_gpu() with D->H sync
 
 #ifdef AMREX_USE_GPU
     AMREX_ALWAYS_ASSERT(cross_session.status() == Status::host_dirty);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.status() == Status::host_dirty);
 #endif
+
+    // ExecOnFinalize must have synced device data to host
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 200);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[1] == 201);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[2] == 202);
 
     amrex::Initialize(argc, argv);
     {
@@ -301,6 +348,10 @@ int main (int argc, char* argv[])
         // Device was released on Finalize, device access will re-sync.
         // auto-syncs host->device in new AMReX session
         verify_host_device_match(cross_session);
+
+        // dirty_on_finalize also round-trips into the new session
+        verify_host_device_match(dirty_on_finalize);
+        AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 200);
     }
     amrex::Finalize();
 
