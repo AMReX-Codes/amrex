@@ -108,7 +108,7 @@ namespace amrex {
             if (m_arena && Arena::IsInitialized()) {
                 return m_arena;
             }
-            return The_Arena();
+            return The_Null_Arena();
         }
         Arena* m_arena = nullptr;
     };
