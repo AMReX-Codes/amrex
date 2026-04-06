@@ -339,6 +339,7 @@ int main (int argc, char* argv[])
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[1] == 201);
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[2] == 202);
 
+    // --- Session 2 ---
     amrex::Initialize(argc, argv);
     {
         AMREX_ALWAYS_ASSERT(cross_session.host_const().size() == 3U);
@@ -352,6 +353,50 @@ int main (int argc, char* argv[])
         // dirty_on_finalize also round-trips into the new session
         verify_host_device_match(dirty_on_finalize);
         AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 200);
+
+        // Write new device values for the session-3 finalize test.
+        // This re-arms the finalize hook via to_device().
+        fill_device_linear(dirty_on_finalize, 300);
+#ifdef AMREX_USE_GPU
+        AMREX_ALWAYS_ASSERT(dirty_on_finalize.status() == Status::device_dirty);
+#endif
+    }
+    amrex::Finalize();
+
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.status() == Status::host_dirty);
+#endif
+
+    // Re-armed finalize hook must have synced {300,301,302} back to host
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 300);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[1] == 301);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[2] == 302);
+
+    // --- Session 3 ---
+    amrex::Initialize(argc, argv);
+    {
+        // Verify data round-trips into a 3rd session
+        verify_host_device_match(cross_session);
+        verify_host_device_match(dirty_on_finalize);
+        AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 300);
+
+        // Write yet again — exercises re-arming a second time
+        fill_device_linear(dirty_on_finalize, 400);
+    }
+    amrex::Finalize();
+
+    // Finalize hook fired a 3rd time
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 400);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[1] == 401);
+    AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[2] == 402);
+
+    // --- Session 4: read-only device access after 3 finalizations ---
+    amrex::Initialize(argc, argv);
+    {
+        verify_host_device_match(cross_session);
+        verify_host_device_match(dirty_on_finalize);
     }
     amrex::Finalize();
 

@@ -44,10 +44,15 @@ namespace amrex::Gpu
     private:
         void register_finalize () {
 #ifdef AMREX_USE_GPU
+            if (*m_finalize_registered) { return; }
+            *m_finalize_registered = true;
+
             std::weak_ptr<std::vector<T>> weak_host = m_host;
             std::weak_ptr<amrex::Gpu::DeviceVector<T>> weak_device = m_device;
             std::weak_ptr<Status> weak_status = m_status;
-            amrex::ExecOnFinalize([weak_host, weak_device, weak_status]() {
+            std::weak_ptr<bool> weak_registered = m_finalize_registered;
+
+            amrex::ExecOnFinalize([weak_host, weak_device, weak_status, weak_registered]() {
                 // see: release_gpu()
                 auto host   = weak_host.lock();
                 auto device = weak_device.lock();
@@ -68,19 +73,19 @@ namespace amrex::Gpu
                 if (status) {
                     *status = Status::host_dirty;
                 }
+                if (auto reg = weak_registered.lock()) {
+                    *reg = false;
+                }
             });
 #endif
         }
     public:
 
-        TrackedVector () {
-            register_finalize();
-        }
+        TrackedVector () = default;
 
         explicit TrackedVector (size_type a_size)
             : m_host(std::make_shared<std::vector<T>>(a_size))
         {
-            register_finalize();
 #ifdef AMREX_USE_GPU
             *m_status = Status::host_dirty;
 #endif
@@ -89,7 +94,6 @@ namespace amrex::Gpu
         TrackedVector (size_type a_size, value_type const & a_value)
             : m_host(std::make_shared<std::vector<T>>(a_size, a_value))
         {
-            register_finalize();
 #ifdef AMREX_USE_GPU
             *m_status = Status::host_dirty;
 #endif
@@ -98,7 +102,6 @@ namespace amrex::Gpu
         TrackedVector (std::initializer_list<T> a_initializer_list)
             : m_host(std::make_shared<std::vector<T>>(a_initializer_list))
         {
-            register_finalize();
 #ifdef AMREX_USE_GPU
             *m_status = Status::host_dirty;
 #endif
@@ -107,7 +110,6 @@ namespace amrex::Gpu
         TrackedVector (std::vector<T> a_vector)
             : m_host(std::make_shared<std::vector<T>>(std::move(a_vector)))
         {
-            register_finalize();
 #ifdef AMREX_USE_GPU
             *m_status = Status::host_dirty;
 #endif
@@ -120,25 +122,17 @@ namespace amrex::Gpu
 #ifdef AMREX_USE_GPU
             *m_device = *a_vector.m_device;
 #endif
-
-            register_finalize();
         }
 
-        /** Swap the empty data of this and a_vector */
+        /** Swap data of this and a_vector */
         TrackedVector (TrackedVector && a_vector) noexcept
         {
             std::swap(m_status, a_vector.m_status);
             std::swap(m_host, a_vector.m_host);
 #ifdef AMREX_USE_GPU
             std::swap(m_device, a_vector.m_device);
+            std::swap(m_finalize_registered, a_vector.m_finalize_registered);
 #endif
-
-            // We inherit a_vector's original registration.
-            // But we need to register a_vector's new data now:
-            //   the shared ptrs that we owned briefly up to here.
-            // That way, a_vector can be either reused/assigned values
-            // or safely destructed.
-            a_vector.register_finalize();
         }
 
         TrackedVector& operator= (TrackedVector const & a_vector) {
@@ -159,6 +153,7 @@ namespace amrex::Gpu
                 std::swap(m_status, a_vector.m_status);
 #ifdef AMREX_USE_GPU
                 std::swap(m_device, a_vector.m_device);
+                std::swap(m_finalize_registered, a_vector.m_finalize_registered);
 #endif
             }
             return *this;
@@ -215,6 +210,7 @@ namespace amrex::Gpu
             if (!amrex::Initialized()) {
                 throw std::runtime_error("TrackedVector::device() called before AMReX initialize/after AMReX finalize");
             }
+            register_finalize();
             if (*m_status == Status::host_dirty) {
                 to_device();
             }
@@ -231,6 +227,7 @@ namespace amrex::Gpu
             if (!amrex::Initialized()) {
                 throw std::runtime_error("TrackedVector::device_const() called before AMReX initialize/after AMReX finalize");
             }
+            const_cast<TrackedVector*>(this)->register_finalize();
             if (*m_status == Status::host_dirty) {
                 to_device();
             }
@@ -302,6 +299,7 @@ namespace amrex::Gpu
         mutable std::shared_ptr<std::vector<T>> m_host = std::make_shared<std::vector<T>>();
 #ifdef AMREX_USE_GPU
         mutable std::shared_ptr<amrex::Gpu::DeviceVector<T>> m_device = std::make_shared<amrex::Gpu::DeviceVector<T>>();
+        mutable std::shared_ptr<bool> m_finalize_registered = std::make_shared<bool>(false);
 #endif
     };
 
