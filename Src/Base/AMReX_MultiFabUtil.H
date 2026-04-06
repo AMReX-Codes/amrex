@@ -1504,8 +1504,10 @@ ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
         }
     }
 
-    BoxArray ba2d(ba_patch2d);
-    ba2d.removeOverlap(/*simplify=*/true);
+    BoxList bl_unique = ba_patch2d.boxList();
+    bl_unique.simplify(); // reduces work for .removeOverlap()
+    BoxArray ba2d(std::move(bl_unique));
+    ba2d.removeOverlap();
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(plane_max_grid_size.allGE(1),
         "ReduceToPlaneMF2Patchy: plane_max_grid_size must be >= 1 in every direction.");
