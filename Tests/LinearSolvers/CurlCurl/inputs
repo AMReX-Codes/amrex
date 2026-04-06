@@ -5,7 +5,7 @@ n_cell = 128
 max_grid_size = 64
 
 verbose = 2
-bottom_verbose = 2
+bottom_verbose = 0
 
 alpha = 1.0
 beta_factor = 0.01

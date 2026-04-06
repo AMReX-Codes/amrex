@@ -18,6 +18,9 @@ MyTest::MyTest ()
 void
 MyTest::solve ()
 {
+    Array<std::string,3> names{"Ex", "Ey", "Ez"};
+    auto dvol = AMREX_D_TERM(geom.CellSize(0), *geom.CellSize(1), *geom.CellSize(2));
+
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
@@ -44,6 +47,9 @@ MyTest::solve ()
                                                bcoef.data()+1,
                                                bcoef.data()+2}});
     }
+    if (variable_alpha) {
+        mlcc.setAlpha({&alpha_node});
+    }
     mlcc.prepareRHS({&rhs});
 
     if (use_pcg) { mlcc.setUsePCG(true); }
@@ -53,6 +59,30 @@ MyTest::solve ()
     mlmg.setMaxIter(max_iter);
     mlmg.setVerbose(verbose);
     mlmg.setBottomVerbose(bottom_verbose);
+
+    {
+        Array<MultiFab,3> ax_exact;
+        Array<MultiFab,3> residual;
+        for (int idim = 0; idim < 3; ++idim) {
+            ax_exact[idim].define(rhs[idim].boxArray(), rhs[idim].DistributionMap(), 1, 0);
+            residual[idim].define(rhs[idim].boxArray(), rhs[idim].DistributionMap(), 1, 0);
+            MultiFab::Copy(residual[idim], rhs[idim], 0, 0, 1, 0);
+        }
+        mlmg.apply({&ax_exact}, {&exact});
+        amrex::Print() << "  Residual norms (b - A x_exact), expect O(dx^2):\n";
+        for (int idim = 0; idim < 3; ++idim) {
+            MultiFab::Subtract(residual[idim], ax_exact[idim], 0, 0, 1, 0);
+        }
+        mlcc.setDirichletNodesToZero(0,0,residual);
+        for (int idim = 0; idim < 3; ++idim) {
+            auto r0 = residual[idim].norminf();
+            auto r1 = residual[idim].norm1(0, geom.periodicity()) * dvol;
+            auto r2 = residual[idim].norm2(0, geom.periodicity()) * std::sqrt(dvol);
+            amrex::Print() << "    " << names[idim] << ": "
+                           << r0 << " " << r1 << " " << r2 << '\n';
+        }
+    }
+
     for (auto& mf : solution) {
         mf.setVal(Real(0));
     }
@@ -74,8 +104,6 @@ MyTest::solve ()
     }
 
     amrex::Print() << "  Number of cells: " << n_cell << '\n';
-    auto dvol = AMREX_D_TERM(geom.CellSize(0), *geom.CellSize(1), *geom.CellSize(2));
-    Array<std::string,3> names{"Ex", "Ey", "Ez"};
     for (int idim = 0; idim < 3; ++idim) {
         MultiFab::Subtract(solution[idim], exact[idim], 0, 0, 1, 0);
         auto e0 = solution[idim].norminf();
@@ -117,6 +145,7 @@ MyTest::readParameters ()
     pp.query("beta_factor", beta_factor);
     pp.query("alpha", alpha);
     pp.query("variable_beta", variable_beta);
+    pp.query("variable_alpha", variable_alpha);
 }
 
 void
@@ -147,6 +176,9 @@ MyTest::initData ()
         solution[idim].define(ba,dmap,1,1);
         exact   [idim].define(ba,dmap,1,1);
         rhs     [idim].define(ba,dmap,1,0);
+    }
+    if (variable_alpha) {
+        alpha_node.define(amrex::convert(grids,IntVect(1)), dmap,1,0);
     }
 
     initProb();
