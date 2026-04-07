@@ -673,7 +673,8 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
             const auto* p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();
 
             amrex::ParallelForOMP(size, [=] AMREX_GPU_DEVICE (int ip) {
-                Long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
+                Long src_offset = psize * static_cast<Long>(offset + ip)
+                    + static_cast<Long>(p_pad_adjust[procindex]);
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
