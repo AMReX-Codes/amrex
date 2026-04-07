@@ -36,7 +36,7 @@ void verify_host_values (TVec const & v, std::vector<int> const & expected)
 
 void test_copy_without_amrex_session (TVec const & src, std::vector<int> const & expected)
 {
-    TVec copy_ctor(src);
+    TVec copy_ctor(src); // NOLINT(performance-unnecessary-copy-initialization)
 
     TVec copy_assign;
     copy_assign.host().assign({-1});
@@ -56,7 +56,6 @@ void fill_device_linear (TVec& v, int base)
     ParallelFor(n, [=] AMREX_GPU_DEVICE (int i) noexcept {
         dp[i] = base + i;
     });
-    Gpu::streamSynchronize();
 }
 
 void test_dirty_semantics ()

@@ -208,11 +208,15 @@ namespace amrex::Gpu
              *
              * Leaves with the host side marked dirty, so a .device/.device_const
              * call in a future AMReX session resyncs to device.
+             *
+             * Assumes the GPU context is still alive (called from ExecOnFinalize,
+             * which runs before GPU device teardown in amrex::Finalize).
              */
             static void drain_device (Data& d) {
                 if (d.status == Status::device_dirty
                     && !d.device.empty())
                 {
+                    amrex::Gpu::streamSynchronize();
                     d.host.resize(d.device.size());
                     amrex::Gpu::copy(amrex::Gpu::deviceToHost,
                         d.device.begin(), d.device.end(), d.host.begin());
@@ -236,6 +240,17 @@ namespace amrex::Gpu
         /** Helper to copy Data and register conditionally */
         void copy_from (TrackedVector const & a_vector) {
 #ifdef AMREX_USE_GPU
+            // Outside an AMReX session, host data is the only
+            // usable copy.  A device_dirty source has stale host
+            // data and no accessible device, so the copy would
+            // silently lose updates.
+            if (!amrex::Initialized()
+                && a_vector.m_data->status == Status::device_dirty)
+            {
+                throw std::runtime_error(
+                    "TrackedVector::copy_from: source is device_dirty "
+                    "outside an AMReX session (host data is stale)");
+            }
             bool const was_finalize_registered = m_data->finalize_registered;
 #endif
             *m_data = *a_vector.m_data;
@@ -275,6 +290,7 @@ namespace amrex::Gpu
         void to_host () const {
 #ifdef AMREX_USE_GPU
             require_amrex("to_host");
+            amrex::Gpu::streamSynchronize();
             m_data->host.resize(m_data->device.size());
             amrex::Gpu::copy(amrex::Gpu::deviceToHost,
                 m_data->device.begin(), m_data->device.end(), m_data->host.begin());
