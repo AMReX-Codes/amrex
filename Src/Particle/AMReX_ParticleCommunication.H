@@ -210,14 +210,14 @@ struct ParticleCopyPlan
                     const auto* p_levs = op.m_levels[lev].at(index).dataPtr();
                     const auto* p_tiles = op.m_tiles[lev].at(index).dataPtr();
                     auto* p_dst_indices = m_dst_indices[lev][index].dataPtr();
-                    AMREX_FOR_1D ( num_copies, i,
+                    amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
                     {
                         int dst_box = p_boxes[i];
                         if (dst_box >= 0)
                         {
                             int dst_tile = p_tiles[i];
                             int dst_lev = p_levs[i];
-                            int dst_index = static_cast<int>(Gpu::Atomic::Add(
+                            int dst_index = static_cast<int>(HostDevice::Atomic::FetchAdd(
                                 &p_dst_box_counts[getBucket(dst_lev, dst_box, dst_tile)], 1U));
                             p_dst_indices[i] = dst_index;
                         }
@@ -402,7 +402,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             auto* p_snd_buffer = snd_buffer.dataPtr();
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
 
-            AMREX_FOR_1D ( num_copies, i,
+            amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
             {
                 int dst_box = p_boxes[i];
                 if (dst_box >= 0)
@@ -502,7 +502,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             ++uindex;
 
             auto ptd = tile.getParticleTileData();
-            AMREX_FOR_1D ( size, i,
+            amrex::ParallelForOMP(size, [=] AMREX_GPU_DEVICE (int i)
             {
                 auto src_offset = get_offset(gid, tid, lev, psize, i);
                 int dst_index = offset + i;
@@ -672,7 +672,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
             Long psize = plan.superParticleSize();
             const auto* p_pad_adjust = plan.m_rcv_pad_correction_d.dataPtr();
 
-            AMREX_FOR_1D ( size, ip, {
+            amrex::ParallelForOMP(size, [=] AMREX_GPU_DEVICE (int ip) {
                 Long src_offset = psize*(offset + ip) + p_pad_adjust[procindex];
                 int dst_index = dst_offset + ip;
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,

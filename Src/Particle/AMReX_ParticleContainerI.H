@@ -1426,7 +1426,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
             auto ptd = src_tile.getParticleTileData();
 
-            AMREX_FOR_1D ( num_move, i,
+            amrex::ParallelForOMP(num_move, [=] AMREX_GPU_DEVICE (int i)
             {
                 const auto p = ptd[i + num_stay];
 

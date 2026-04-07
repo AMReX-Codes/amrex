@@ -618,7 +618,7 @@ partitionParticles (PTile& ptile, int num_left, ParFunc const& is_left)
         },
         Scan::Type::exclusive, Scan::noRetSum);
 
-    ParallelFor(max_num_swaps,
+    ParallelForOMP(max_num_swaps,
         [=] AMREX_GPU_DEVICE (int i)
         {
             int left_i = p_index_left[i];
@@ -664,7 +664,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
 
     // the function for determining if a particle stays on this grid is very slow,
     // so we cache it in particle_stays to avoid evaluating it multiple times.
-    ParallelFor(ptile.numParticles(),
+    ParallelForOMP(ptile.numParticles(),
         [=] AMREX_GPU_DEVICE (int i)
         {
             int assigned_grid;
