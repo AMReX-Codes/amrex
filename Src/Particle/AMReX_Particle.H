@@ -110,7 +110,7 @@ namespace amrex {
             // see also https://github.com/mattkretz/vir-simd/issues/45
             simd::stdx::where(simd::stdx::cvt(mask), idcpu) &= ~(T_SIMD{1} << 63);
 #else
-            AMREX_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_invalid: AMReX_SIMD was not enabled!");
 #endif
         }
     }
@@ -137,7 +137,7 @@ namespace amrex {
             // see also https://github.com/mattkretz/vir-simd/issues/45
             simd::stdx::where(simd::stdx::cvt(mask), idcpu) |= T_SIMD{1} << 63;
 #else
-            AMREX_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(false, "make_valid: AMReX_SIMD was not enabled!");
 #endif
         }
     }

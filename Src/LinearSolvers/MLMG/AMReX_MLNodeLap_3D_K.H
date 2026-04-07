@@ -1163,7 +1163,7 @@ void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
             }
         }
     } else {
-        AMREX_ASSERT_WITH_MESSAGE(false, "mlndlap_semi_interpolation: wrong semi-direction.");
+        amrex::Abort("mlndlap_semi_interpolation semi direction wrong semi-direction. ");
     }
 }
 

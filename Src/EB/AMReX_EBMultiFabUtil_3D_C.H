@@ -834,7 +834,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
           }
           else
           {
-              AMREX_ASSERT_WITH_MESSAGE(false, "Bad option in interpolation from cell centroid to x-face centroid!");
+              amrex::Abort("Bad option in interpolation from cell centroid to x-face centroid!");
           }
        }
     });
@@ -1052,7 +1052,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           }
           else
           {
-              AMREX_ASSERT_WITH_MESSAGE(false, "Bad option in interpolation from cell centroid to y-face centroid!");
+              amrex::Abort("Bad option in interpolation from cell centroid to y-face centroid!");
           }
         }
     });
@@ -1269,7 +1269,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
           }
           else
           {
-              AMREX_ASSERT_WITH_MESSAGE(false, "Bad option in interpolation from cell centroid to z-face centroid!");
+              amrex::Abort("Bad option in interpolation from cell centroid to z-face centroid!");
           }
         }
     });

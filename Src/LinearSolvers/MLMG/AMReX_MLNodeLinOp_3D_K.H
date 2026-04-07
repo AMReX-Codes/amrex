@@ -630,7 +630,7 @@ void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
     }
     else
     {
-        AMREX_ASSERT_WITH_MESSAGE(false, "mlndlap_semi_restriction: wrong semi-direction.");
+        amrex::Abort("mlndlap_semi_restriction semi direction wrong semi-direction. ");
     }
 }
 
