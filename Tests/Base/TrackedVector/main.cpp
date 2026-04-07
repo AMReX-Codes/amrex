@@ -25,6 +25,29 @@ void verify_host_device_match (TVec const & v)
     }
 }
 
+void verify_host_values (TVec const & v, std::vector<int> const & expected)
+{
+    auto const & host = v.host_const();
+    AMREX_ALWAYS_ASSERT(host.size() == expected.size());
+    for (std::size_t i = 0; i < expected.size(); ++i) {
+        AMREX_ALWAYS_ASSERT(host[i] == expected[i]);
+    }
+}
+
+void test_copy_without_amrex_session (TVec const & src, std::vector<int> const & expected)
+{
+    TVec copy_ctor(src);
+
+    TVec copy_assign;
+    copy_assign.host().assign({-1});
+    copy_assign = src;
+
+    verify_host_values(copy_ctor, expected);
+    verify_host_values(copy_assign, expected);
+    AMREX_ALWAYS_ASSERT(copy_ctor.status() == src.status());
+    AMREX_ALWAYS_ASSERT(copy_assign.status() == src.status());
+}
+
 void fill_device_linear (TVec& v, int base)
 {
     const int n = static_cast<int>(v.device().size());
@@ -300,6 +323,10 @@ void run_tests_before_finalize ()
 
 int main (int argc, char* argv[])
 {
+    TVec pre_init_copy_source;
+    pre_init_copy_source.host() = {21, 22, 23};
+    test_copy_without_amrex_session(pre_init_copy_source, {21, 22, 23});
+
     TVec cross_session;
     cross_session.host() = {7, 8, 9};
 
@@ -347,6 +374,9 @@ int main (int argc, char* argv[])
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 200);
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[1] == 201);
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[2] == 202);
+
+    test_copy_without_amrex_session(cross_session, {7, 8, 9});
+    test_copy_without_amrex_session(dirty_on_finalize, {200, 201, 202});
 
     // --- Session 2 ---
     amrex::Initialize(argc, argv);
