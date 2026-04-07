@@ -308,6 +308,15 @@ int main (int argc, char* argv[])
     TVec dirty_on_finalize;
     dirty_on_finalize.host().assign({0, 0, 0});
 
+    // Cross-session copy/move tests (review point 2):
+    // Copies must register their own finalize handler so the device mirror
+    // is drained and released even when the copy's device() is never called.
+    TVec copy_assign_cross;
+    TVec move_assign_cross;
+    TVec copy_assign_dirty_cross;
+    std::unique_ptr<TVec> copy_ctor_cross;
+    std::unique_ptr<TVec> move_ctor_cross;
+
 #ifdef AMREX_USE_MPI
     MPI_Init(&argc, &argv);
 #endif
@@ -397,6 +406,102 @@ int main (int argc, char* argv[])
     {
         verify_host_device_match(cross_session);
         verify_host_device_match(dirty_on_finalize);
+    }
+    amrex::Finalize();
+
+    // --- Session 5: cross-session copy and move ---
+    // Exercises all four code paths: copy ctor, copy assignment,
+    // move ctor, move assignment — each must arm finalize so the
+    // device mirror is drained even when device() is never called
+    // on the target before Finalize.
+    amrex::Initialize(argc, argv);
+    {
+        // Source with up_to_date status (both sides synced)
+        TVec src_synced;
+        src_synced.host() = {60, 61, 62};
+        verify_host_device_match(src_synced);
+
+        // Copy assignment
+        copy_assign_cross = src_synced;
+
+        // Copy constructor
+        copy_ctor_cross = std::make_unique<TVec>(src_synced);
+
+        // Move assignment
+        TVec move_assign_src;
+        move_assign_src.host() = {70, 71, 72};
+        verify_host_device_match(move_assign_src);
+        move_assign_cross = std::move(move_assign_src);
+
+        // Move constructor
+        TVec move_ctor_src;
+        move_ctor_src.host() = {80, 81, 82};
+        verify_host_device_match(move_ctor_src);
+        move_ctor_cross = std::make_unique<TVec>(std::move(move_ctor_src));
+
+        // Copy assignment from a device-dirty source
+        TVec src_dirty;
+        src_dirty.host().assign({0, 0, 0});
+        fill_device_linear(src_dirty, 90);
+#ifdef AMREX_USE_GPU
+        AMREX_ALWAYS_ASSERT(src_dirty.status() == Status::device_dirty);
+#endif
+        copy_assign_dirty_cross = src_dirty;
+#ifdef AMREX_USE_GPU
+        AMREX_ALWAYS_ASSERT(copy_assign_dirty_cross.status() == Status::device_dirty);
+#endif
+
+        // Intentionally do NOT call device() on any target before Finalize
+    }
+    amrex::Finalize();
+
+    // All five must have host_dirty status after finalize (GPU builds)
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(copy_assign_cross.status() == Status::host_dirty);
+    AMREX_ALWAYS_ASSERT(copy_ctor_cross->status() == Status::host_dirty);
+    AMREX_ALWAYS_ASSERT(move_assign_cross.status() == Status::host_dirty);
+    AMREX_ALWAYS_ASSERT(move_ctor_cross->status() == Status::host_dirty);
+    AMREX_ALWAYS_ASSERT(copy_assign_dirty_cross.status() == Status::host_dirty);
+#endif
+
+    // Copy assignment: host data intact
+    AMREX_ALWAYS_ASSERT(copy_assign_cross.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(copy_assign_cross.host_const()[0] == 60);
+    AMREX_ALWAYS_ASSERT(copy_assign_cross.host_const()[1] == 61);
+    AMREX_ALWAYS_ASSERT(copy_assign_cross.host_const()[2] == 62);
+
+    // Copy constructor: host data intact
+    AMREX_ALWAYS_ASSERT(copy_ctor_cross->host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(copy_ctor_cross->host_const()[0] == 60);
+    AMREX_ALWAYS_ASSERT(copy_ctor_cross->host_const()[1] == 61);
+    AMREX_ALWAYS_ASSERT(copy_ctor_cross->host_const()[2] == 62);
+
+    // Move assignment: host data intact
+    AMREX_ALWAYS_ASSERT(move_assign_cross.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(move_assign_cross.host_const()[0] == 70);
+    AMREX_ALWAYS_ASSERT(move_assign_cross.host_const()[1] == 71);
+    AMREX_ALWAYS_ASSERT(move_assign_cross.host_const()[2] == 72);
+
+    // Move constructor: host data intact
+    AMREX_ALWAYS_ASSERT(move_ctor_cross->host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(move_ctor_cross->host_const()[0] == 80);
+    AMREX_ALWAYS_ASSERT(move_ctor_cross->host_const()[1] == 81);
+    AMREX_ALWAYS_ASSERT(move_ctor_cross->host_const()[2] == 82);
+
+    // Copy assignment (device-dirty): finalize synced D->H
+    AMREX_ALWAYS_ASSERT(copy_assign_dirty_cross.host_const().size() == 3U);
+    AMREX_ALWAYS_ASSERT(copy_assign_dirty_cross.host_const()[0] == 90);
+    AMREX_ALWAYS_ASSERT(copy_assign_dirty_cross.host_const()[1] == 91);
+    AMREX_ALWAYS_ASSERT(copy_assign_dirty_cross.host_const()[2] == 92);
+
+    // --- Session 6: verify all five round-trip into a new session ---
+    amrex::Initialize(argc, argv);
+    {
+        verify_host_device_match(copy_assign_cross);
+        verify_host_device_match(*copy_ctor_cross);
+        verify_host_device_match(move_assign_cross);
+        verify_host_device_match(*move_ctor_cross);
+        verify_host_device_match(copy_assign_dirty_cross);
     }
     amrex::Finalize();
 
