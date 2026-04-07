@@ -770,8 +770,8 @@ under **Gpu Vectors** above (``The_Managed_Arena()``).  Like :cpp:`Gpu::Buffer`
 it can only be used while AMReX is initialized / a GPU device context exists.
 
 :cpp:`Gpu::TrackedVector` exposes a host ``std::vector`` via ``host()`` /
-``host_const()`` and a device :cpp:`Gpu::DeviceVector` via ``device()`` /
-``device_const()`` (GPU builds only).  Every accessor **automatically
+``host_const()`` and a device :cpp:`Gpu::NonManagedDeviceVector` via
+``device()`` / ``device_const()`` (GPU builds only).  Every accessor **automatically
 synchronizes** the other side when needed: if the host was modified and you
 call ``device()`` or ``device_const()``, a synchronous host-to-device copy
 runs first (and vice versa).  Writable accessors (``host()``, ``device()``)
@@ -802,7 +802,7 @@ dirty state unnecessarily.
      - Only between ``amrex::Initialize/Finalize()``
      - Anytime and cross-session, GPU part only between ``amrex::Initialize/Finalize()``
    * - **Usage**
-     - ``operator[]`` etc.   , explicit ``copyToDeviceAsync`` /
+     - ``operator[]`` etc., explicit ``copyToDeviceAsync`` /
        ``copyToHost``
      - Single ``data()`` like :cpp:`amrex::Vector`
      - Separate ``host()`` / ``device()`` (and ``*_const``)
@@ -855,7 +855,7 @@ A minimal :cpp:`Gpu::Buffer` pattern (host fill, async upload, kernel pointer):
     // mv[i] now accessible on host with updated values
 
 :cpp:`Gpu::TrackedVector` example:
-On GPU builds, you can create this type at any time, even before `amrex::Initialize()`.
+On GPU builds, you can create this type at any time, even before ``amrex::Initialize()``.
 ``amrex::Finalize()`` releases device storage for the vector but
 keeps the host ``std::vector``, so a later ``Initialize()`` session
 can access ``device_const()`` or ``device()`` and the host data is

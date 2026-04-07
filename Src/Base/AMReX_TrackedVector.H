@@ -135,7 +135,7 @@ namespace amrex::Gpu
          * If host data is newer, syncs host-to-device first.
          * Marks device as dirty so the next host access will sync back.
          */
-        [[nodiscard]] amrex::Gpu::DeviceVector<T> &
+        [[nodiscard]] amrex::Gpu::NonManagedDeviceVector<T> &
         device () {
             require_amrex("device");
             register_finalize();
@@ -150,7 +150,7 @@ namespace amrex::Gpu
          *
          * If host data is newer, syncs host-to-device first.
          */
-        [[nodiscard]] amrex::Gpu::DeviceVector<T> const &
+        [[nodiscard]] amrex::Gpu::NonManagedDeviceVector<T> const &
         device_const () const {
             require_amrex("device_const");
             register_finalize();
@@ -189,7 +189,7 @@ namespace amrex::Gpu
             Status status = Status::up_to_date;
             std::vector<T> host;
 #ifdef AMREX_USE_GPU
-            amrex::Gpu::DeviceVector<T> device;
+            amrex::Gpu::NonManagedDeviceVector<T> device;
             bool finalize_registered = false;
 #endif
             Data () = default;
