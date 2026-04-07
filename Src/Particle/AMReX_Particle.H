@@ -96,7 +96,7 @@ namespace amrex {
 
     template<typename T_SIMD, typename T_Mask>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void make_invalid (T_SIMD & idcpu, T_Mask const & mask) AMREX_NOEXCEPT_IF_NDEBUG {
+    void make_invalid (T_SIMD & idcpu, T_Mask const & mask) {
         // RHS mask: 0111...
         if constexpr (std::is_same_v<T_Mask, bool>) {
             // scalar
@@ -123,7 +123,7 @@ namespace amrex {
 
     template<typename T_SIMD, typename T_Mask>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void make_valid (T_SIMD & idcpu, T_Mask const & mask) AMREX_NOEXCEPT_IF_NDEBUG {
+    void make_valid (T_SIMD & idcpu, T_Mask const & mask) {
         // RHS mask: 1000...
         if constexpr (std::is_same_v<T_Mask, bool>) {
             // scalar

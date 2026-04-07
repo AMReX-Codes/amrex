@@ -629,7 +629,7 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
                                     Array4<Real> const& phi_x,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) AMREX_NOEXCEPT_IF_NDEBUG
+                                    const BCRec* bc)
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
@@ -850,7 +850,7 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
                                     Array4<Real> const& phi_y,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) AMREX_NOEXCEPT_IF_NDEBUG
+                                    const BCRec* bc)
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
@@ -1068,7 +1068,7 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
                                     Array4<Real> const& phi_z,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) AMREX_NOEXCEPT_IF_NDEBUG
+                                    const BCRec* bc)
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
