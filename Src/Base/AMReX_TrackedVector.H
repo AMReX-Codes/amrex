@@ -245,35 +245,79 @@ namespace amrex::Gpu
             }
         }
 
-        /** Helper to copy Data and register conditionally */
-        void copy_from (TrackedVector const & a_vector) {
 #ifdef AMREX_USE_GPU
-            // Outside an AMReX session, host data is the only
-            // usable copy.  A device_dirty source has stale host
-            // data and no accessible device, so the copy would
-            // silently lose updates.
-            if (!amrex::Initialized()
-                && a_vector.m_data->status == Status::device_dirty)
-            {
+        /** Validate that a copy is safe without a live AMReX session.
+         *
+         * Outside Initialize/Finalize, only host-authoritative states are copyable.
+         */
+        static void require_copyable_without_amrex (Data const& src, Data const& dst)
+        {
+            if (amrex::Initialized()) {
+                return;
+            }
+            if (src.status == Status::device_dirty) {
                 throw std::runtime_error(
                     "TrackedVector::copy_from: source is device_dirty "
                     "outside an AMReX session (host data is stale)");
             }
-            bool const was_finalize_registered = m_data->finalize_registered;
+            if (!src.device.empty()) {
+                throw std::runtime_error(
+                    "TrackedVector::copy_from: source retains device storage "
+                    "outside an AMReX session");
+            }
+            if (!dst.device.empty()) {
+                throw std::runtime_error(
+                    "TrackedVector::copy_from: destination retains device storage "
+                    "outside an AMReX session");
+            }
+            if (src.finalize_registered) {
+                throw std::runtime_error(
+                    "TrackedVector::copy_from: source finalize callback still registered "
+                    "outside an AMReX session");
+            }
+            if (dst.finalize_registered) {
+                throw std::runtime_error(
+                    "TrackedVector::copy_from: destination finalize callback still registered "
+                    "outside an AMReX session");
+            }
+        }
 #endif
-            *m_data = *a_vector.m_data;
+
+        /** Helper to copy Data and register conditionally */
+        void copy_from (TrackedVector const & a_vector) {
 #ifdef AMREX_USE_GPU
-            m_data->finalize_registered = was_finalize_registered;
+            Data const& src = *a_vector.m_data;
+            require_copyable_without_amrex(src, *m_data);
+
+            // Copy status & host data
+            m_data->status = src.status;
+            m_data->host = src.host;
+
+            // Device data & finalize registration:
+            // Device copy only makes sense inside a live AMReX session where
+            // the device arena is available.  Outside a session both sides
+            // must already be empty (drained by Finalize / never allocated).
             if (amrex::Initialized()) {
-                // Don't copy stale device data — it will be resynced on next access.
-                if (m_data->status == Status::host_dirty) {
+                if (src.status == Status::host_dirty) {
+                    // host_dirty means the device mirror is stale —
+                    // avoid a wasteful D->D copy; it will resync on demand.
                     m_data->device.clear();
                     m_data->device.shrink_to_fit();
+                } else {
+                    // Ensure pending kernels that dirtied src.device
+                    // have completed before the D->D copy reads it.
+                    if (src.status == Status::device_dirty) {
+                        amrex::Gpu::streamSynchronize();
+                    }
+                    m_data->device = src.device;
                 }
-                if (!was_finalize_registered) {
+
+                if (!m_data->finalize_registered) {
                     register_finalize();
                 }
             }
+#else
+            *m_data = *a_vector.m_data;
 #endif
         }
 
