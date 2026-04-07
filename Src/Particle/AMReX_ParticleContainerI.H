@@ -1419,11 +1419,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             new_sizes[lev][index] = num_stay;
             op.resize(gid, tid, lev, num_move);
 
-            auto p_boxes = op.m_boxes[lev][index].dataPtr();
-            auto p_levs = op.m_levels[lev][index].dataPtr();
-            auto p_tiles = op.m_tiles[lev][index].dataPtr();
-            auto p_src_indices = op.m_src_indices[lev][index].dataPtr();
-            auto p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
+            auto* p_boxes = op.m_boxes[lev][index].dataPtr();
+            auto* p_levs = op.m_levels[lev][index].dataPtr();
+            auto* p_tiles = op.m_tiles[lev][index].dataPtr();
+            auto* p_src_indices = op.m_src_indices[lev][index].dataPtr();
+            auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
             auto ptd = src_tile.getParticleTileData();
 
             amrex::ParallelForOMP(num_move, [=] AMREX_GPU_DEVICE (int i)
