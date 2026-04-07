@@ -643,8 +643,6 @@ removeInvalidParticles (PTile& ptile)
     ptile.resize(new_size);
 }
 
-#if defined(AMREX_USE_GPU)
-
 template <typename PTile, typename PLocator, typename CellAssignor>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const& assignor,
@@ -716,8 +714,6 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
             return p_particle_stays[i];
         });
 }
-
-#endif
 
 template <class PC1, class PC2>
 bool SameIteratorsOK (const PC1& pc1, const PC2& pc2) {

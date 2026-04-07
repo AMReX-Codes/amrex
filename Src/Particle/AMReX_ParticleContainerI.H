@@ -1244,18 +1244,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         "runtime real components for positions"
     );
 
-#ifdef AMREX_USE_GPU
-    if ( Gpu::inLaunchRegion() )
-    {
-        RedistributeGPU(lev_min, lev_max, nGrow, local, remove_negative);
-    }
-    else
-    {
-        RedistributeCPU(lev_min, lev_max, nGrow, local, remove_negative);
-    }
-#else
-    RedistributeCPU(lev_min, lev_max, nGrow, local, remove_negative);
-#endif
+    Redistribute_impl(lev_min, lev_max, nGrow, local, remove_negative);
 
     BL_PROFILE_SYNC_STOP();
 }
@@ -1355,19 +1344,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 }
 
 //
-// The GPU implementation of Redistribute
+// Shared implementation of Redistribute
 //
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::RedistributeGPU (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
+::Redistribute_impl (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
-#ifdef AMREX_USE_GPU
-
     if (local) { AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0); }
 
-    BL_PROFILE("ParticleContainer::RedistributeGPU()");
+    BL_PROFILE("ParticleContainer::Redistribute_impl()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
     int theEffectiveFinestLevel = m_gdb->finestLevel();
@@ -1548,9 +1535,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     Gpu::Device::streamSynchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
-#else
-    amrex::ignore_unused(lev_min,lev_max,nGrow,local,remove_negative);
-#endif
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
