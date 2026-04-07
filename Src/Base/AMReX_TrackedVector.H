@@ -48,6 +48,12 @@ namespace amrex::Gpu
         using value_type      = T;
         using size_type       = std::size_t;
 
+#ifdef AMREX_USE_GPU
+        using device_vector_type = amrex::Gpu::NonManagedDeviceVector<T>;
+#else
+        using device_vector_type = std::vector<T>;
+#endif
+
         enum class Status {
             up_to_date,    //!< host and device data are in sync
             device_dirty,  //!< host data needs an update
@@ -135,7 +141,7 @@ namespace amrex::Gpu
          * If host data is newer, syncs host-to-device first.
          * Marks device as dirty so the next host access will sync back.
          */
-        [[nodiscard]] amrex::Gpu::NonManagedDeviceVector<T> &
+        [[nodiscard]] device_vector_type &
         device () {
             require_amrex("device");
             register_finalize();
@@ -150,7 +156,7 @@ namespace amrex::Gpu
          *
          * If host data is newer, syncs host-to-device first.
          */
-        [[nodiscard]] amrex::Gpu::NonManagedDeviceVector<T> const &
+        [[nodiscard]] device_vector_type const &
         device_const () const {
             require_amrex("device_const");
             register_finalize();
@@ -161,11 +167,11 @@ namespace amrex::Gpu
         }
 #else
         /** Return writable device (==host) data, up to date by definition */
-        [[nodiscard]] std::vector<T> &
+        [[nodiscard]] device_vector_type &
         device () { return m_data->host; }
 
         /** Return read-only device (==host) data */
-        [[nodiscard]] std::vector<T> const &
+        [[nodiscard]] device_vector_type const &
         device_const () const { return m_data->host; }
 #endif
 
@@ -189,7 +195,7 @@ namespace amrex::Gpu
             Status status = Status::up_to_date;
             std::vector<T> host;
 #ifdef AMREX_USE_GPU
-            amrex::Gpu::NonManagedDeviceVector<T> device;
+            device_vector_type device;
             bool finalize_registered = false;
 #endif
             Data () = default;
