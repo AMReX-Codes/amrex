@@ -208,18 +208,20 @@ namespace amrex::Gpu
              *
              * Leaves with the host side marked dirty, so a .device/.device_const
              * call in a future AMReX session resyncs to device.
+             * A dirty marked device side remains authoritative even when it was
+             * shrunk to size zero through the mutable device vector returned by device().
              *
              * Assumes the GPU context is still alive (called from ExecOnFinalize,
              * which runs before GPU device teardown in amrex::Finalize).
              */
             static void drain_device (Data& d) {
-                if (d.status == Status::device_dirty
-                    && !d.device.empty())
-                {
+                if (d.status == Status::device_dirty) {
                     amrex::Gpu::streamSynchronize();
                     d.host.resize(d.device.size());
-                    amrex::Gpu::copy(amrex::Gpu::deviceToHost,
-                        d.device.begin(), d.device.end(), d.host.begin());
+                    if (!d.device.empty()) {
+                        amrex::Gpu::copy(amrex::Gpu::deviceToHost,
+                            d.device.begin(), d.device.end(), d.host.begin());
+                    }
                 }
                 d.device.clear();
                 d.device.shrink_to_fit();
@@ -292,8 +294,10 @@ namespace amrex::Gpu
             require_amrex("to_host");
             amrex::Gpu::streamSynchronize();
             m_data->host.resize(m_data->device.size());
-            amrex::Gpu::copy(amrex::Gpu::deviceToHost,
-                m_data->device.begin(), m_data->device.end(), m_data->host.begin());
+            if (!m_data->device.empty()) {
+                amrex::Gpu::copy(amrex::Gpu::deviceToHost,
+                    m_data->device.begin(), m_data->device.end(), m_data->host.begin());
+            }
             m_data->status = Status::up_to_date;
 #endif
         }

@@ -58,6 +58,21 @@ void fill_device_linear (TVec& v, int base)
     });
 }
 
+void clear_device_vector (TVec& v)
+{
+    v.device().clear();
+}
+
+void resize_device_vector_zero (TVec& v)
+{
+    v.device().resize(0);
+}
+
+void resize_device_vector (TVec& v, TVec::size_type size)
+{
+    v.device().resize(size);
+}
+
 void test_dirty_semantics ()
 {
     TVec v;
@@ -138,6 +153,58 @@ void test_release_gpu_device_dirty ()
     AMREX_ALWAYS_ASSERT(v.host_const()[2] == 102);
 
     // Can round-trip back to device
+    verify_host_device_match(v);
+}
+
+void test_release_gpu_device_cleared ()
+{
+    // Device is authoritatively shrunk to zero, then release_gpu() must
+    // preserve that state on the host before freeing device storage.
+    TVec v;
+    v.host().assign({5, 6, 7});
+    verify_host_device_match(v);
+
+    clear_device_vector(v);
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(v.status() == Status::device_dirty);
+#endif
+
+    v.release_gpu();
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(v.status() == Status::host_dirty);
+#else
+    AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
+#endif
+    AMREX_ALWAYS_ASSERT(v.host_const().empty());
+
+    // An empty authoritative device state must still round-trip cleanly.
+    verify_host_device_match(v);
+}
+
+void test_release_gpu_device_resized_smaller ()
+{
+    // Device is authoritatively resized from 3 elements to 2 elements, then
+    // release_gpu() must preserve the smaller device state on the host.
+    TVec v;
+    v.host().assign({0, 0, 0});
+    fill_device_linear(v, 100);
+
+    resize_device_vector(v, 2);
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(v.status() == Status::device_dirty);
+#endif
+
+    v.release_gpu();
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT(v.status() == Status::host_dirty);
+#else
+    AMREX_ALWAYS_ASSERT(v.status() == Status::up_to_date);
+#endif
+
+    AMREX_ALWAYS_ASSERT(v.host_const().size() == 2U);
+    AMREX_ALWAYS_ASSERT(v.host_const()[0] == 100);
+    AMREX_ALWAYS_ASSERT(v.host_const()[1] == 101);
+
     verify_host_device_match(v);
 }
 
@@ -309,6 +376,8 @@ void run_tests_before_finalize ()
     test_dirty_semantics();
     test_release_gpu();
     test_release_gpu_device_dirty();
+    test_release_gpu_device_cleared();
+    test_release_gpu_device_resized_smaller();
     test_d2h();
     test_empty();
     test_aggregate();
@@ -333,6 +402,11 @@ int main (int argc, char* argv[])
     // ExecOnFinalize must sync D->H so the data survives.
     TVec dirty_on_finalize;
     dirty_on_finalize.host().assign({0, 0, 0});
+
+    // This vector is shrunk to zero on the device before Finalize.
+    // ExecOnFinalize must preserve the empty authoritative state on the host.
+    TVec cleared_on_finalize;
+    cleared_on_finalize.host().assign({10, 11, 12});
 
     // Cross-session copy/move tests (review point 2):
     // Copies must register their own finalize handler so the device mirror
@@ -360,12 +434,19 @@ int main (int argc, char* argv[])
 #ifdef AMREX_USE_GPU
         AMREX_ALWAYS_ASSERT(dirty_on_finalize.status() == Status::device_dirty);
 #endif
+
+        verify_host_device_match(cleared_on_finalize);
+        resize_device_vector_zero(cleared_on_finalize);
+#ifdef AMREX_USE_GPU
+        AMREX_ALWAYS_ASSERT(cleared_on_finalize.status() == Status::device_dirty);
+#endif
     }
     amrex::Finalize();  // calls implicitly: release_gpu() with D->H sync
 
 #ifdef AMREX_USE_GPU
     AMREX_ALWAYS_ASSERT(cross_session.status() == Status::host_dirty);
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.status() == Status::host_dirty);
+    AMREX_ALWAYS_ASSERT(cleared_on_finalize.status() == Status::host_dirty);
 #endif
 
     // ExecOnFinalize must have synced device data to host
@@ -373,9 +454,11 @@ int main (int argc, char* argv[])
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 200);
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[1] == 201);
     AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[2] == 202);
+    AMREX_ALWAYS_ASSERT(cleared_on_finalize.host_const().empty());
 
     test_copy_without_amrex_session(cross_session, {7, 8, 9});
     test_copy_without_amrex_session(dirty_on_finalize, {200, 201, 202});
+    test_copy_without_amrex_session(cleared_on_finalize, {});
 
     // --- Session 2 ---
     amrex::Initialize(argc, argv);
@@ -391,6 +474,10 @@ int main (int argc, char* argv[])
         // dirty_on_finalize also round-trips into the new session
         verify_host_device_match(dirty_on_finalize);
         AMREX_ALWAYS_ASSERT(dirty_on_finalize.host_const()[0] == 200);
+
+        // An empty device-side state must persist across sessions too.
+        verify_host_device_match(cleared_on_finalize);
+        AMREX_ALWAYS_ASSERT(cleared_on_finalize.host_const().empty());
 
         // Write new device values for the session-3 finalize test.
         // This re-arms the finalize hook via to_device().
