@@ -128,7 +128,9 @@ endif ()
 # Conduit
 #
 if (AMReX_CONDUIT)
-    find_package(Conduit REQUIRED)
+    if(NOT TARGET conduit::conduit)
+        find_package(Conduit REQUIRED)
+    endif()
     foreach(D IN LISTS AMReX_SPACEDIM)
         if (AMReX_MPI)
             target_link_libraries(amrex_${D}d PUBLIC conduit::conduit_mpi)
