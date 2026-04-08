@@ -117,7 +117,7 @@ endif ()
 #
 #  Catalyst
 #
-if (AMReX_CATALYST) 
+if (AMReX_CATALYST)
     find_package(Catalyst REQUIRED PATHS "$ENV{CATALYST_IMPLEMENTATION_PATHS}")
     foreach(D IN LISTS AMReX_SPACEDIM)
         target_link_libraries(amrex_${D}d PUBLIC catalyst::catalyst)
