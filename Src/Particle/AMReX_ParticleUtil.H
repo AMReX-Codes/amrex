@@ -550,7 +550,7 @@ partitionParticles (PTile& ptile, ParFunc const& is_left)
     // it compensates for the extra kernel launches and evaluations of is_left which this
     // algorithm needs.
 
-    ParallelFor(max_num_swaps,
+    ParallelForOMP(max_num_swaps,
         [=] AMREX_GPU_DEVICE (int i)
         {
             int left_i = p_index_left[i];
