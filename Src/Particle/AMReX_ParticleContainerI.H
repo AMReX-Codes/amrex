@@ -1410,12 +1410,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev[index];
-            auto ptd = src_tile.getParticleTileData();
             const size_t np = src_tile.numParticles();
             if (np == 0) {continue;}
 
 #ifndef AMREX_USE_GPU
             ParticleLocData pld;
+            auto ptd = src_tile.getParticleTileData();
             const int myproc = ParallelContext::MyProcSub();
             op.resize(gid, tid, lev, static_cast<int>(np));
             auto& boxes = op.m_boxes[lev][index];
