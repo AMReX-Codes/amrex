@@ -1383,6 +1383,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     this->defineBufferMap();
 
+    if (local > 0) { BuildRedistributeMask(0, local); }
+
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
     auto assign_grid = m_particle_locator.getGridAssignor();
@@ -1407,8 +1409,55 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto index = std::make_pair(gid, tid);
 
             auto& src_tile = plev[index];
+            auto ptd = src_tile.getParticleTileData();
             const size_t np = src_tile.numParticles();
+            if (np == 0) {continue;}
 
+#ifndef AMREX_USE_GPU
+            ParticleLocData pld;
+
+            Long last = np - 1;
+            Long pindex = 0;
+            while (pindex <= last) {
+                decltype(auto) p = ptd[pindex];
+
+                if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
+                    ++pindex;
+                    continue;
+                }
+
+                if (!ptd.id(pindex).is_valid()) {
+                    copyParticle(ptd, ptd, last, pindex);
+                    --last;
+                    continue;
+                }
+
+                locateParticle(p, pld, lev_min, lev_max, nGrow, local ? gid : -1);
+
+                if (!ptd.id(pindex).is_valid()) {
+                    copyParticle(ptd, ptd, last, pindex);
+                    --last;
+                    continue;
+                }
+
+                if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid) {
+                    // the particle is valid but needs to be sent somewhere else
+                    swapParticle(ptd, ptd, last, pindex);
+                    op.m_boxes[lev][index].push_back(pld.m_grid);
+                    op.m_levels[lev][index].push_back(pld.m_lev);
+                    op.m_tiles[lev][index].push_back(pld.m_tile);
+                    op.m_src_indices[lev][index].push_back(last);
+                    op.m_periodic_shift[lev][index].push_back(IntVect(AMREX_D_DECL(0,0,0)));
+                    --last;
+                    continue;
+                }
+
+                ++pindex;
+            }
+
+            new_sizes[lev][index] = pindex;
+
+#else // GPU algorithm
             int num_stay = partitionParticlesByDest(src_tile, assign_grid,
                                                     std::forward<CellAssignor>(CellAssignor{}),
                                                     BufferMap(),
@@ -1447,6 +1496,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
                 p_src_indices[i] = i+num_stay;
             });
+#endif
         }
     }
     BL_PROFILE_VAR_STOP(blp_partition);
