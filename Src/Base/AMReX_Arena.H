@@ -306,19 +306,9 @@ public:
 
     static void Finalize (); ///< Used internally by amrex
 
-#if 0
-    union Word
-    {
-        void*  p;
-        long long ll;
-        long double ld;
-        void (*f) ();
-    };
-    static const std::size_t align_size = sizeof(Word);
-#endif
-
     /// The alignment of allocated memory
-    static const std::size_t align_size = 16;
+    /// 256 bytes is the default alignment that cudaMalloc uses
+    static const std::size_t align_size = 256;
 
     /**
      *  \brief Return the ArenaInfo object for querying
