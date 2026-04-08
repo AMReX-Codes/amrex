@@ -55,9 +55,18 @@ void StencilFor_direct_alias_fallback (Box const& bx,
 
 template <typename T>
 [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+constexpr std::size_t shared_copy_alignment () noexcept
+{
+    return (alignof(T) > Gpu::detail::tensorCopyAlignment())
+        ? alignof(T)
+        : Gpu::detail::tensorCopyAlignment();
+}
+
+template <typename T>
+[[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 char* align_shared_ptr (char* p) noexcept
 {
-    auto const a = static_cast<std::uintptr_t>(Gpu::detail::tensorCopyAlignment());
+    auto const a = static_cast<std::uintptr_t>(shared_copy_alignment<T>());
     auto const v = reinterpret_cast<std::uintptr_t>(p);
     return reinterpret_cast<char*>((v + (a - 1u)) & ~(a - 1u));
 }
@@ -109,9 +118,14 @@ void stencil_copy_tensor_to_shared (Array4<T const> const& src,
         for (int jj = 0; jj < ext[1]; ++jj) {
             T* const dst = shared_ptr + static_cast<Long>(jj) * stride_y + static_cast<Long>(kk) * stride_z;
             T const* const src_row = src.ptr(vlo.x, vlo.y + jj, vlo.z + kk);
-            auto const dst_span = cuda::std::span<T>(dst, ext[0]);
-            auto const src_span = cuda::std::span<T const>(src_row, ext[0]);
-            loader.template CopyAsync<T, Gpu::detail::tensorCopyAlignment()>(dst_span, src_span);
+            auto const dst_span = cuda::std::span<char>(
+                reinterpret_cast<char*>(dst),
+                static_cast<cuda::std::size_t>(
+                    cub::detail::LoadToSharedBufferSizeBytes<T, Gpu::detail::tensorCopyAlignment()>(ext[0])));
+            auto const src_span = cuda::std::span<T const>(src_row, static_cast<cuda::std::size_t>(ext[0]));
+            auto const staged_span =
+                loader.template CopyAsync<T, Gpu::detail::tensorCopyAlignment()>(dst_span, src_span);
+            amrex::ignore_unused(staged_span);
         }
     }
 
@@ -215,10 +229,13 @@ template <int MT, typename T>
     auto const stage_lo = full_stage.smallEnd().dim3();
     T const* const stage_ptr = src.ptr(stage_lo.x, stage_lo.y, stage_lo.z);
     Long const row_bytes = static_cast<Long>(full_stage.length(0)) * sizeof(T);
+    auto const shared_strides = tile_view_strides(full_stage, info.shared_padding);
+    Long const shared_stride_y_bytes = shared_strides[0] * static_cast<Long>(sizeof(T));
 
     return Gpu::detail::canUseTensorCopy(stage_ptr, src_box, tile, info.halo, sizeof(T))
         && (row_bytes % static_cast<Long>(Gpu::detail::tensorCopyAlignment()) == 0)
         && Gpu::detail::isTensorCopyAligned(stage_ptr)
+        && (shared_stride_y_bytes % static_cast<Long>(cub::detail::LoadToSharedBufferAlignBytes<T>()) == 0)
         && ((src.stride.a[0] * sizeof(T)) % static_cast<Long>(Gpu::detail::tensorCopyAlignment()) == 0)
         && ((src.stride.a[1] * sizeof(T)) % static_cast<Long>(Gpu::detail::tensorCopyAlignment()) == 0);
 #else
@@ -253,16 +270,27 @@ void StencilFor_doit (Box const& bx,
 
     IntVect const shared_extents = tile + info.halo + info.halo;
     std::size_t const shared_mem_bytes = shared_tile_bytes<T>(shared_extents, info.shared_padding)
-        + Gpu::detail::tensorCopyAlignment();
+        + shared_copy_alignment<T>();
+
+    bool const use_native_tensor_copy = can_use_native_tensor_copy<MT, T>(bx, tile, info, src, shared_mem_bytes);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(info.tensor_copy != Gpu::TensorCopyPolicy::Always || use_native_tensor_copy,
+                                     "StencilFor: TensorCopyPolicy::Always requires the native tensor-copy path");
 
     if (shared_mem_bytes > Gpu::Device::sharedMemPerBlock()) {
         StencilFor_direct_alias_fallback(bx, tile, info, src, f);
         return;
     }
 
-    if (can_use_native_tensor_copy<MT, T>(bx, tile, info, src, shared_mem_bytes)) {
-        StencilFor_shared_launch<MT, true>(bx, tile, info, src, f, shared_mem_bytes);
-    } else {
+#if AMREX_USE_CUDA_BLOCK_LOAD_TO_SHARED
+    if constexpr (MT % Gpu::Device::warp_size == 0) {
+        if (use_native_tensor_copy) {
+            StencilFor_shared_launch<MT, true>(bx, tile, info, src, f, shared_mem_bytes);
+            return;
+        }
+    }
+#endif
+    {
         StencilFor_shared_launch<MT, false>(bx, tile, info, src, f, shared_mem_bytes);
     }
 #else

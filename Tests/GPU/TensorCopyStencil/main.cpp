@@ -48,9 +48,11 @@ Real stencil_sum (Arr const& arr, IntVect const& halo, int i, int j, int k) noex
     return sum;
 }
 
+template <int MT = 128>
 void check_case (Box const& bx,
                  IntVect const& tile,
                  IntVect const& halo,
+                 IntVect const& shared_padding,
                  Gpu::TensorCopyPolicy policy,
                  char const* label)
 {
@@ -77,10 +79,11 @@ void check_case (Box const& bx,
     auto info = Gpu::StencilInfo{}
         .setTile(tile)
         .setHalo(halo)
+        .setSharedPadding(shared_padding)
         .setTensorCopyPolicy(policy);
 
     auto const result_arr = result.array();
-    StencilFor<128>(bx, info, src.const_array(),
+    StencilFor<MT>(bx, info, src.const_array(),
     [=] AMREX_GPU_DEVICE (auto const& tile_view, int i, int j, int k) noexcept
     {
         result_arr(i, j, k) = stencil_sum(tile_view, halo, i, j, k);
@@ -108,24 +111,51 @@ void run_tests ()
     check_case(make_domain(AMREX_D_DECL(24, 10, 8)),
                IntVect(AMREX_D_DECL(8, 5, 4)),
                IntVect(1),
+               IntVect(0),
                Gpu::TensorCopyPolicy::Auto,
                "uniform-radius1-auto");
+
+    if (Gpu::supportsTensorCopy()) {
+        check_case(make_domain(AMREX_D_DECL(24, 10, 8)),
+                   IntVect(AMREX_D_DECL(8, 5, 4)),
+                   IntVect(1),
+                   IntVect(0),
+                   Gpu::TensorCopyPolicy::Always,
+                   "uniform-radius1-always");
+    }
 
     check_case(make_domain(AMREX_D_DECL(24, 10, 8)),
                IntVect(AMREX_D_DECL(8, 5, 4)),
                IntVect(2),
+               IntVect(0),
                Gpu::TensorCopyPolicy::Never,
                "uniform-radius2-never");
 
     check_case(make_domain(AMREX_D_DECL(29, 19, 13)),
                IntVect(AMREX_D_DECL(7, 6, 4)),
                IntVect(4),
+               IntVect(0),
                Gpu::TensorCopyPolicy::Auto,
                "partial-radius4-auto");
+
+    check_case<100>(make_domain(AMREX_D_DECL(24, 10, 8)),
+                    IntVect(AMREX_D_DECL(8, 5, 4)),
+                    IntVect(1),
+                    IntVect(0),
+                    Gpu::TensorCopyPolicy::Auto,
+                    "uniform-radius1-auto-mt100");
+
+    check_case(make_domain(AMREX_D_DECL(24, 10, 8)),
+               IntVect(AMREX_D_DECL(8, 5, 4)),
+               IntVect(1),
+               IntVect(AMREX_D_DECL(1, 0, 0)),
+               Gpu::TensorCopyPolicy::Auto,
+               "uniform-radius1-auto-paddingx1");
 
     check_case(make_domain(AMREX_D_DECL(29, 19, 13)),
                IntVect(AMREX_D_DECL(7, 6, 4)),
                IntVect(AMREX_D_DECL(5, 2, 1)),
+               IntVect(0),
                Gpu::TensorCopyPolicy::Never,
                "partial-anisotropic-never");
 }
