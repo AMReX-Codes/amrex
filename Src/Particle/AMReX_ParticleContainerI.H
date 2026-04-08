@@ -1387,18 +1387,19 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
-    auto assign_grid = m_particle_locator.getGridAssignor();
-
     BL_PROFILE_VAR_START(blp_partition);
     ParticleCopyOp op;
     int num_levels = finest_lev_particles + 1;
     op.setNumLevels(num_levels);
     Vector<std::map<std::pair<int, int>, int> > new_sizes(num_levels);
+#ifdef AMREX_USE_GPU
+    auto assign_grid = m_particle_locator.getGridAssignor();
     const auto plo    = Geom(0).ProbLoArray();
     const auto phi    = Geom(0).ProbHiArray();
     const auto rlo    = Geom(0).ProbLoArrayInParticleReal();
     const auto rhi    = Geom(0).ProbHiArrayInParticleReal();
     const auto is_per = Geom(0).isPeriodicArray();
+#endif
     for (int lev = lev_min; lev <= finest_lev_particles; ++lev)
     {
         auto& plev = m_particles[lev];
@@ -1415,6 +1416,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 #ifndef AMREX_USE_GPU
             ParticleLocData pld;
+            const int myproc = ParallelContext::MyProcSub();
+            op.resize(gid, tid, lev, static_cast<int>(np));
+            auto& boxes = op.m_boxes[lev][index];
+            auto& levels = op.m_levels[lev][index];
+            auto& tiles = op.m_tiles[lev][index];
+            auto& src_indices = op.m_src_indices[lev][index];
+            auto& periodic_shift = op.m_periodic_shift[lev][index];
+            int num_move = 0;
 
             Long last = np - 1;
             Long pindex = 0;
@@ -1440,14 +1449,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     continue;
                 }
 
-                if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid) {
+                if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid ||
+                    BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev) != myproc) {
                     // the particle is valid but needs to be sent somewhere else
                     swapParticle(ptd, ptd, last, pindex);
-                    op.m_boxes[lev][index].push_back(pld.m_grid);
-                    op.m_levels[lev][index].push_back(pld.m_lev);
-                    op.m_tiles[lev][index].push_back(pld.m_tile);
-                    op.m_src_indices[lev][index].push_back(last);
-                    op.m_periodic_shift[lev][index].push_back(IntVect(AMREX_D_DECL(0,0,0)));
+                    boxes[num_move] = pld.m_grid;
+                    levels[num_move] = pld.m_lev;
+                    tiles[num_move] = pld.m_tile;
+                    src_indices[num_move] = static_cast<int>(last);
+                    periodic_shift[num_move] = IntVect(AMREX_D_DECL(0,0,0));
+                    ++num_move;
                     --last;
                     continue;
                 }
@@ -1455,7 +1466,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 ++pindex;
             }
 
-            new_sizes[lev][index] = pindex;
+            boxes.resize(num_move);
+            levels.resize(num_move);
+            tiles.resize(num_move);
+            src_indices.resize(num_move);
+            periodic_shift.resize(num_move);
+            new_sizes[lev][index] = static_cast<int>(pindex);
 
 #else // GPU algorithm
             int num_stay = partitionParticlesByDest(src_tile, assign_grid,
