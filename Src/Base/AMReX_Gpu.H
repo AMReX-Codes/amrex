@@ -31,6 +31,7 @@ namespace amrex::Cuda {}
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_CudaGraph.H>
+#include <AMReX_StencilFor.H>
 
 namespace amrex::Gpu {
 #ifdef AMREX_USE_HIP

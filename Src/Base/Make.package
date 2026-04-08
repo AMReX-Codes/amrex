@@ -106,10 +106,12 @@ C$(AMREX_BASE)_headers += AMReX_GpuElixir.H
 C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
+C$(AMREX_BASE)_headers += AMReX_GpuTensorCopy.H
 
 C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
+C$(AMREX_BASE)_headers += AMReX_StencilFor.H AMReX_StencilForC.H AMReX_StencilForG.H
 
 C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H

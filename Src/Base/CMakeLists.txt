@@ -239,8 +239,12 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_GpuMemory.H
        AMReX_GpuRange.H
        AMReX_GpuReduce.H
+       AMReX_GpuTensorCopy.H
        AMReX_GpuAllocators.H
        AMReX_GpuContainers.H
+       AMReX_StencilFor.H
+       AMReX_StencilForC.H
+       AMReX_StencilForG.H
        AMReX_MFParallelFor.H
        AMReX_MFParallelForC.H
        AMReX_MFParallelForG.H
