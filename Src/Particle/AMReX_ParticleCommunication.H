@@ -500,6 +500,21 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
     const auto plo = pc.Geom(0).ProbLoArray();
     const auto phi = pc.Geom(0).ProbHiArray();
     const auto is_per = pc.Geom(0).isPeriodicArray();
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    struct OmpPackWork
+    {
+        typename PC::ParticleTileType const* src_tile = nullptr;
+        const int* boxes = nullptr;
+        const int* levels = nullptr;
+        const int* tiles = nullptr;
+        const int* src_indices = nullptr;
+        const IntVect* periodic_shift = nullptr;
+        const int* dst_indices = nullptr;
+        int num_copies = 0;
+    };
+    Vector<OmpPackWork> omp_pack_work;
+    Vector<Long> omp_pack_offsets(1, 0);
+#endif
     for (int lev = 0; lev < num_levels; ++lev)
     {
         auto& plev = pc.GetParticles(lev);
@@ -518,9 +533,13 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
             const auto* p_src_indices = op.m_src_indices[lev].at(index).dataPtr();
             const auto* p_periodic_shift = op.m_periodic_shift[lev].at(index).dataPtr();
             const auto* p_dst_indices = plan.m_dst_indices[lev].at(index).dataPtr();
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+            omp_pack_work.push_back({&src_tile, p_boxes, p_levels, p_tiles,
+                                     p_src_indices, p_periodic_shift, p_dst_indices, num_copies});
+            omp_pack_offsets.push_back(omp_pack_offsets.back() + num_copies);
+#else
             auto* p_snd_buffer = snd_buffer.dataPtr();
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
-
             amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
             {
                 int dst_box = p_boxes[i];
@@ -562,8 +581,87 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                     }
                 }
             });
+#endif
         }
     }
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    if (!omp_pack_work.empty())
+    {
+        auto* p_snd_buffer = snd_buffer.dataPtr();
+        GetSendBufferOffset get_offset(plan, pc.BufferMap());
+        const Long total_num_copies = omp_pack_offsets.back();
+
+#pragma omp parallel
+        {
+            int thread_num = OpenMP::get_thread_num();
+            int num_threads = OpenMP::get_num_threads();
+            Long ibegin = thread_num*total_num_copies/num_threads;
+            Long iend = (thread_num+1)*total_num_copies/num_threads;
+
+            if (ibegin < iend)
+            {
+                int iwork = static_cast<int>(std::upper_bound(omp_pack_offsets.begin(),
+                                                              omp_pack_offsets.end(),
+                                                              ibegin)
+                                             - omp_pack_offsets.begin()) - 1;
+                while (iwork < static_cast<int>(omp_pack_work.size()) &&
+                       omp_pack_offsets[iwork] < iend)
+                {
+                    auto const& work = omp_pack_work[iwork];
+                    auto const& ptd = work.src_tile->getConstParticleTileData();
+                    Long global_begin = std::max(ibegin, omp_pack_offsets[iwork]);
+                    Long global_end = std::min(iend, omp_pack_offsets[iwork+1]);
+                    int local_begin = static_cast<int>(global_begin - omp_pack_offsets[iwork]);
+                    int local_end = static_cast<int>(global_end - omp_pack_offsets[iwork]);
+                    for (int i = local_begin; i < local_end; ++i)
+                    {
+                        int dst_box = work.boxes[i];
+                        if (dst_box >= 0)
+                        {
+                            int dst_tile = work.tiles[i];
+                            int dst_lev = work.levels[i];
+                            auto dst_offset = get_offset(dst_box, dst_tile, dst_lev, psize,
+                                                         work.dst_indices[i]);
+                            int src_index = work.src_indices[i];
+                            ptd.packParticleData(p_snd_buffer, src_index, dst_offset,
+                                                 p_comm_real, p_comm_int);
+
+                            const IntVect& pshift = work.periodic_shift[i];
+                            bool do_periodic_shift =
+                                AMREX_D_TERM( (is_per[0] && pshift[0] != 0),
+                                           || (is_per[1] && pshift[1] != 0),
+                                           || (is_per[2] && pshift[2] != 0) );
+
+                            if (do_periodic_shift)
+                            {
+                                ParticleReal pos[AMREX_SPACEDIM];
+                                Long pos_offset = dst_offset;
+                                if constexpr (PC::ParticleType::is_soa_particle) {
+                                    pos_offset += sizeof(uint64_t);
+                                }
+                                amrex::Gpu::memcpy(&pos[0], &p_snd_buffer[pos_offset],
+                                                   AMREX_SPACEDIM*sizeof(ParticleReal));
+                                for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
+                                {
+                                    if (! is_per[idim]) { continue; }
+                                    if (pshift[idim] > 0) {
+                                        pos[idim] += phi[idim] - plo[idim];
+                                    } else if (pshift[idim] < 0) {
+                                        pos[idim] -= phi[idim] - plo[idim];
+                                    }
+                                }
+                                amrex::Gpu::memcpy(&p_snd_buffer[pos_offset], &pos[0],
+                                                   AMREX_SPACEDIM*sizeof(ParticleReal));
+                            }
+                        }
+                    }
+                    ++iwork;
+                }
+            }
+        }
+    }
+#endif
 }
 
 template <class PC, class Buffer, class UnpackPolicy,
