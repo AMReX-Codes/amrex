@@ -236,7 +236,7 @@ struct ParticleCopyPlan
                     omp_copy_work.push_back({p_boxes, p_levs, p_tiles, p_dst_indices, num_copies});
                     omp_copy_offsets.push_back(omp_copy_offsets.back() + num_copies);
 #else
-                    amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
+                    amrex::ParallelFor(num_copies, [=] AMREX_GPU_DEVICE (int i)
                     {
                         int dst_box = p_boxes[i];
                         if (dst_box >= 0)
