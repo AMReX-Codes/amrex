@@ -246,22 +246,19 @@ struct ParticleCopyPlan
                         }
 
 #pragma omp barrier
-#pragma omp single
+#pragma omp for
+                        for (int ibucket = 0; ibucket < num_buckets; ++ibucket)
                         {
-                            for (int ibucket = 0; ibucket < num_buckets; ++ibucket)
+                            unsigned int offset = h_box_counts[ibucket];
+                            for (int tid = 0; tid < num_threads; ++tid)
                             {
-                                unsigned int offset = h_box_counts[ibucket];
-                                for (int tid = 0; tid < num_threads; ++tid)
-                                {
-                                    auto& count = p_omp_thread_box_counts[tid*num_buckets + ibucket];
-                                    unsigned int total = count;
-                                    count = offset;
-                                    offset += total;
-                                }
-                                h_box_counts[ibucket] = offset;
+                                auto& count = p_omp_thread_box_counts[tid*num_buckets + ibucket];
+                                unsigned int total = count;
+                                count = offset;
+                                offset += total;
                             }
+                            h_box_counts[ibucket] = offset;
                         }
-#pragma omp barrier
 
                         for (int i = ibegin; i < iend; ++i)
                         {
