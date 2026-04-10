@@ -7,11 +7,14 @@
 #include <AMReX_IntVect.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_MFIter.H>
+#include <AMReX_OpenMP.H>
 #include <AMReX_Scan.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MakeParticle.H>
 
+#include <algorithm>
 #include <map>
+#include <numeric>
 
 namespace amrex {
 
@@ -165,10 +168,19 @@ struct ParticleCopyPlan
         auto* p_dst_box_counts = m_box_counts_d.dataPtr();
         auto getBucket = pc.stableRedistribute() ? pc.BufferMap().getHostBucketFunctor() : pc.BufferMap().getBucketFunctor();
 
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+        constexpr bool use_host_bucket_counters = true;
+#else
+        constexpr bool use_host_bucket_counters = false;
+#endif
         Gpu::HostVector<unsigned int> h_box_counts;
-        if (pc.stableRedistribute() ) {
+        if (pc.stableRedistribute() || use_host_bucket_counters) {
             h_box_counts.resize(m_box_counts_d.size(), 0);
         }
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+        Vector<unsigned int> omp_thread_box_counts(OpenMP::get_max_threads()*num_buckets, 0U);
+#endif
 
         m_dst_indices.resize(num_levels);
         for (int lev = 0; lev < num_levels; ++lev)
@@ -210,6 +222,60 @@ struct ParticleCopyPlan
                     const auto* p_levs = op.m_levels[lev].at(index).dataPtr();
                     const auto* p_tiles = op.m_tiles[lev].at(index).dataPtr();
                     auto* p_dst_indices = m_dst_indices[lev][index].dataPtr();
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+                    std::fill(omp_thread_box_counts.begin(), omp_thread_box_counts.end(), 0U);
+                    auto* p_omp_thread_box_counts = omp_thread_box_counts.data();
+
+#pragma omp parallel
+                    {
+                        int thread_num = OpenMP::get_thread_num();
+                        int num_threads = OpenMP::get_num_threads();
+                        int ibegin = thread_num*num_copies/num_threads;
+                        int iend = (thread_num+1)*num_copies/num_threads;
+                        auto* p_thread_box_counts = p_omp_thread_box_counts + thread_num*num_buckets;
+
+                        for (int i = ibegin; i < iend; ++i)
+                        {
+                            int dst_box = p_boxes[i];
+                            if (dst_box >= 0)
+                            {
+                                int dst_tile = p_tiles[i];
+                                int dst_lev = p_levs[i];
+                                ++p_thread_box_counts[getBucket(dst_lev, dst_box, dst_tile)];
+                            }
+                        }
+
+#pragma omp barrier
+#pragma omp single
+                        {
+                            for (int ibucket = 0; ibucket < num_buckets; ++ibucket)
+                            {
+                                unsigned int offset = h_box_counts[ibucket];
+                                for (int tid = 0; tid < num_threads; ++tid)
+                                {
+                                    auto& count = p_omp_thread_box_counts[tid*num_buckets + ibucket];
+                                    unsigned int total = count;
+                                    count = offset;
+                                    offset += total;
+                                }
+                                h_box_counts[ibucket] = offset;
+                            }
+                        }
+#pragma omp barrier
+
+                        for (int i = ibegin; i < iend; ++i)
+                        {
+                            int dst_box = p_boxes[i];
+                            if (dst_box >= 0)
+                            {
+                                int dst_tile = p_tiles[i];
+                                int dst_lev = p_levs[i];
+                                int bucket = getBucket(dst_lev, dst_box, dst_tile);
+                                p_dst_indices[i] = static_cast<int>(p_thread_box_counts[bucket]++);
+                            }
+                        }
+                    }
+#else
                     amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
                     {
                         int dst_box = p_boxes[i];
@@ -222,11 +288,12 @@ struct ParticleCopyPlan
                             p_dst_indices[i] = dst_index;
                         }
                     });
+#endif
                 }
             }
         }
 
-        if (pc.stableRedistribute()) {
+        if (pc.stableRedistribute() || use_host_bucket_counters) {
             Gpu::copy(Gpu::hostToDevice,h_box_counts.begin(),h_box_counts.end(),m_box_counts_d.begin());
         }
 
