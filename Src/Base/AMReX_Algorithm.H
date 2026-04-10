@@ -189,7 +189,7 @@ namespace amrex
      *
      * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1]. It is
      * assumed that the input data is sorted.
-     * The elements d[lo] and d[hi] are never acessed.
+     * The elements d[lo] and d[hi] are never accessed.
      * If v < d[lo+1], lo is returned, and if v >= d[hi-1], hi-1 is returned.
      * Note that this is different from std::lower_bound that searches
      * for the first element which is not less than `v`.
