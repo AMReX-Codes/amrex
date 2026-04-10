@@ -540,7 +540,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 #else
             auto* p_snd_buffer = snd_buffer.dataPtr();
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
-            amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
+            amrex::ParallelFor(num_copies, [=] AMREX_GPU_DEVICE (int i)
             {
                 int dst_box = p_boxes[i];
                 if (dst_box >= 0)
@@ -737,7 +737,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             omp_unpack_offsets.push_back(omp_unpack_offsets.back() + size);
 #else
             auto ptd = tile.getParticleTileData();
-            amrex::ParallelForOMP(size, [=] AMREX_GPU_DEVICE (int i)
+            amrex::ParallelFor(size, [=] AMREX_GPU_DEVICE (int i)
             {
                 auto src_offset = get_offset(gid, tid, lev, psize, i);
                 int dst_index = offset + i;
