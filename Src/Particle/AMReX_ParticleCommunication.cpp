@@ -32,7 +32,7 @@ void ParticleCopyOp::resize (int gid, int tid, int lev, int size)
     m_levels[lev][index].resize(size);
     m_tiles[lev][index].resize(size);
     m_src_indices[lev][index].resize(size);
-    m_periodic_shift[lev][index].resize(size);
+    m_periodic_shift[lev][index].resize(size, IntVect(AMREX_D_DECL(0,0,0)));
 }
 
 void ParticleCopyPlan::clear ()

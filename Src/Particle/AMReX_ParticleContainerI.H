@@ -1356,6 +1356,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     BL_PROFILE("ParticleContainer::Redistribute_impl()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
+    BL_PROFILE_VAR_NS("Redistribute_partition_prepare", blp_partition_prepare);
+    BL_PROFILE_VAR_NS("Redistribute_partition_parallel", blp_partition_parallel);
 
     int theEffectiveFinestLevel = m_gdb->finestLevel();
     while (!m_gdb->LevelDefined(theEffectiveFinestLevel)) { theEffectiveFinestLevel--; }
@@ -1392,6 +1394,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     int num_levels = finest_lev_particles + 1;
     op.setNumLevels(num_levels);
     Vector<std::map<std::pair<int, int>, int> > new_sizes(num_levels);
+    const int myproc = ParallelContext::MyProcSub();
 #ifdef AMREX_USE_GPU
     auto assign_grid = m_particle_locator.getGridAssignor();
     const auto plo    = Geom(0).ProbLoArray();
@@ -1400,78 +1403,140 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const auto rhi    = Geom(0).ProbHiArrayInParticleReal();
     const auto is_per = Geom(0).isPeriodicArray();
 #endif
-    for (int lev = lev_min; lev <= finest_lev_particles; ++lev)
-    {
-        auto& plev = m_particles[lev];
-        for (auto& kv : plev)
-        {
-            int gid = kv.first.first;
-            int tid = kv.first.second;
-            auto index = std::make_pair(gid, tid);
 
-            auto& src_tile = plev[index];
-            const size_t np = src_tile.numParticles();
-            if (np == 0) {continue;}
-
+    BL_PROFILE_VAR_START(blp_partition_prepare);
+    Vector<std::pair<int, int> > grid_tile_ids;
+    Vector<ParticleTileType*> ptile_ptrs;
+    Vector<int> plevs;
+    Vector<int*> new_size_ptrs;
 #ifndef AMREX_USE_GPU
-            ParticleLocData pld;
-            auto ptd = src_tile.getParticleTileData();
-            const int myproc = ParallelContext::MyProcSub();
-            op.resize(gid, tid, lev, static_cast<int>(np));
+    Vector<Gpu::DeviceVector<int>*> box_ptrs;
+    Vector<Gpu::DeviceVector<int>*> level_ptrs;
+    Vector<Gpu::DeviceVector<int>*> tile_ptrs;
+    Vector<Gpu::DeviceVector<int>*> src_index_ptrs;
+    Vector<Gpu::DeviceVector<IntVect>*> periodic_shift_ptrs;
+#endif
+    std::size_t num_tiles = 0;
+    for (int lev = lev_min; lev <= finest_lev_particles; ++lev) {
+        for (auto const& kv : m_particles[lev]) {
+            if (kv.second.numParticles() != 0) {
+                ++num_tiles;
+            }
+        }
+    }
+    grid_tile_ids.reserve(num_tiles);
+    ptile_ptrs.reserve(num_tiles);
+    plevs.reserve(num_tiles);
+    new_size_ptrs.reserve(num_tiles);
+#ifndef AMREX_USE_GPU
+    box_ptrs.reserve(num_tiles);
+    level_ptrs.reserve(num_tiles);
+    tile_ptrs.reserve(num_tiles);
+    src_index_ptrs.reserve(num_tiles);
+    periodic_shift_ptrs.reserve(num_tiles);
+#endif
+    for (int lev = lev_min; lev <= finest_lev_particles; lev++) {
+        auto& pmap = m_particles[lev];
+        for (auto& kv : pmap)
+        {
+            const auto np = kv.second.numParticles();
+            if (np == 0) { continue; }
+
+            grid_tile_ids.push_back(kv.first);
+            ptile_ptrs.push_back(&(kv.second));
+            plevs.push_back(lev);
+            auto index = std::make_pair(kv.first.first, kv.first.second);
+            auto& new_size = new_sizes[lev][index];
+            new_size = 0;
+            new_size_ptrs.push_back(&new_size);
+#ifndef AMREX_USE_GPU
+            op.resize(kv.first.first, kv.first.second, lev, static_cast<int>(np));
             auto& boxes = op.m_boxes[lev][index];
             auto& levels = op.m_levels[lev][index];
             auto& tiles = op.m_tiles[lev][index];
             auto& src_indices = op.m_src_indices[lev][index];
             auto& periodic_shift = op.m_periodic_shift[lev][index];
-            int num_move = 0;
+            box_ptrs.push_back(&boxes);
+            level_ptrs.push_back(&levels);
+            tile_ptrs.push_back(&tiles);
+            src_index_ptrs.push_back(&src_indices);
+            periodic_shift_ptrs.push_back(&periodic_shift);
+#endif
+        }
+    }
+    BL_PROFILE_VAR_STOP(blp_partition_prepare);
 
-            Long last = np - 1;
-            Long pindex = 0;
-            while (pindex <= last) {
-                decltype(auto) p = ptd[pindex];
+    BL_PROFILE_VAR_START(blp_partition_parallel);
+#ifdef AMREX_USE_OMP
+#pragma omp parallel for
+#endif
+    for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+    {
+        int lev = plevs[pmap_it];
+        int gid = grid_tile_ids[pmap_it].first;
+        int tid = grid_tile_ids[pmap_it].second;
+        auto index = std::make_pair(gid, tid);
 
-                if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
-                    ++pindex;
-                    continue;
-                }
+        auto& src_tile = *ptile_ptrs[pmap_it];
+        const size_t np = src_tile.numParticles();
+        if (np == 0) {continue;}
 
-                if (!ptd.id(pindex).is_valid()) {
-                    copyParticle(ptd, ptd, last, pindex);
-                    --last;
-                    continue;
-                }
+#ifndef AMREX_USE_GPU
+        ParticleLocData pld;
+        auto ptd = src_tile.getParticleTileData();
+        auto& boxes = *box_ptrs[pmap_it];
+        auto& levels = *level_ptrs[pmap_it];
+        auto& tiles = *tile_ptrs[pmap_it];
+        auto& src_indices = *src_index_ptrs[pmap_it];
+        auto& periodic_shift = *periodic_shift_ptrs[pmap_it];
+        int num_move = 0;
 
-                locateParticle(p, pld, lev_min, lev_max, nGrow, local ? gid : -1);
+        Long last = np - 1;
+        Long pindex = 0;
+        while (pindex <= last) {
+            decltype(auto) p = ptd[pindex];
 
-                if (!ptd.id(pindex).is_valid()) {
-                    copyParticle(ptd, ptd, last, pindex);
-                    --last;
-                    continue;
-                }
-
-                if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid ||
-                    BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev) != myproc) {
-                    // the particle is valid but needs to be sent somewhere else
-                    swapParticle(ptd, ptd, last, pindex);
-                    boxes[num_move] = pld.m_grid;
-                    levels[num_move] = pld.m_lev;
-                    tiles[num_move] = pld.m_tile;
-                    src_indices[num_move] = static_cast<int>(last);
-                    periodic_shift[num_move] = IntVect(AMREX_D_DECL(0,0,0));
-                    ++num_move;
-                    --last;
-                    continue;
-                }
-
+            if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
                 ++pindex;
+                continue;
             }
 
-            boxes.resize(num_move);
-            levels.resize(num_move);
-            tiles.resize(num_move);
-            src_indices.resize(num_move);
-            periodic_shift.resize(num_move);
-            new_sizes[lev][index] = static_cast<int>(pindex);
+            if (!ptd.id(pindex).is_valid()) {
+                copyParticle(ptd, ptd, last, pindex);
+                --last;
+                continue;
+            }
+
+            locateParticle(p, pld, lev_min, lev_max, nGrow, local ? gid : -1);
+
+            if (!ptd.id(pindex).is_valid()) {
+                copyParticle(ptd, ptd, last, pindex);
+                --last;
+                continue;
+            }
+
+            if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid ||
+                BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev) != myproc) {
+                // the particle is valid but needs to be sent somewhere else
+                swapParticle(ptd, ptd, last, pindex);
+                boxes[num_move] = pld.m_grid;
+                levels[num_move] = pld.m_lev;
+                tiles[num_move] = pld.m_tile;
+                src_indices[num_move] = static_cast<int>(last);
+                ++num_move;
+                --last;
+                continue;
+            }
+
+            ++pindex;
+        }
+
+        boxes.resize(num_move);
+        levels.resize(num_move);
+        tiles.resize(num_move);
+        src_indices.resize(num_move);
+        periodic_shift.resize(num_move);
+        *new_size_ptrs[pmap_it] = static_cast<int>(pindex);
 
 #else // GPU algorithm
             int num_stay = partitionParticlesByDest(src_tile, assign_grid,
@@ -1481,7 +1546,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                                     lev_min, lev_max, nGrow, remove_negative);
 
             int num_move = np - num_stay;
-            new_sizes[lev][index] = num_stay;
+            *new_size_ptrs[pmap_it] = num_stay;
             op.resize(gid, tid, lev, num_move);
 
             auto* p_boxes = op.m_boxes[lev][index].dataPtr();
@@ -1491,7 +1556,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
             auto ptd = src_tile.getParticleTileData();
 
-            amrex::ParallelForOMP(num_move, [=] AMREX_GPU_DEVICE (int i)
+            amrex::ParallelFor(num_move, [=] AMREX_GPU_DEVICE (int i)
             {
                 const auto p = ptd[i + num_stay];
 
@@ -1513,8 +1578,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 p_src_indices[i] = i+num_stay;
             });
 #endif
-        }
     }
+    BL_PROFILE_VAR_STOP(blp_partition_parallel);
     BL_PROFILE_VAR_STOP(blp_partition);
 
     ParticleCopyPlan plan;
