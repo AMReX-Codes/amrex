@@ -698,6 +698,20 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
     const auto* p_comm_real = plan.d_real_comp_mask.dataPtr();
     const auto* p_comm_int  = plan.d_int_comp_mask.dataPtr();
 
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    struct OmpUnpackWork
+    {
+        PTile* tile = nullptr;
+        int gid = 0;
+        int tid = 0;
+        int lev = 0;
+        int offset = 0;
+        int size = 0;
+    };
+    Vector<OmpUnpackWork> omp_unpack_work;
+    Vector<Long> omp_unpack_offsets(1, 0);
+#endif
+
     // local unpack
     int uindex = 0;
     for (int lev = 0; lev < num_levels; ++lev)
@@ -718,6 +732,10 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             int size = sizes[uindex];
             ++uindex;
 
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+            omp_unpack_work.push_back({&tile, gid, tid, lev, offset, size});
+            omp_unpack_offsets.push_back(omp_unpack_offsets.back() + size);
+#else
             auto ptd = tile.getParticleTileData();
             amrex::ParallelForOMP(size, [=] AMREX_GPU_DEVICE (int i)
             {
@@ -725,8 +743,52 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
                 int dst_index = offset + i;
                 ptd.unpackParticleData(p_snd_buffer, src_offset, dst_index, p_comm_real, p_comm_int);
             });
+#endif
         }
     }
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+    if (!omp_unpack_work.empty())
+    {
+        GetSendBufferOffset get_offset(plan, pc.BufferMap());
+        auto p_snd_buffer = snd_buffer.dataPtr();
+        const Long total_num_copies = omp_unpack_offsets.back();
+
+#pragma omp parallel
+        {
+            int thread_num = OpenMP::get_thread_num();
+            int num_threads = OpenMP::get_num_threads();
+            Long ibegin = thread_num*total_num_copies/num_threads;
+            Long iend = (thread_num+1)*total_num_copies/num_threads;
+
+            if (ibegin < iend)
+            {
+                int iwork = static_cast<int>(std::upper_bound(omp_unpack_offsets.begin(),
+                                                              omp_unpack_offsets.end(),
+                                                              ibegin)
+                                             - omp_unpack_offsets.begin()) - 1;
+                while (iwork < static_cast<int>(omp_unpack_work.size()) &&
+                       omp_unpack_offsets[iwork] < iend)
+                {
+                    auto const& work = omp_unpack_work[iwork];
+                    auto ptd = work.tile->getParticleTileData();
+                    Long global_begin = std::max(ibegin, omp_unpack_offsets[iwork]);
+                    Long global_end = std::min(iend, omp_unpack_offsets[iwork+1]);
+                    int local_begin = static_cast<int>(global_begin - omp_unpack_offsets[iwork]);
+                    int local_end = static_cast<int>(global_end - omp_unpack_offsets[iwork]);
+                    for (int i = local_begin; i < local_end; ++i)
+                    {
+                        auto src_offset = get_offset(work.gid, work.tid, work.lev, psize, i);
+                        int dst_index = work.offset + i;
+                        ptd.unpackParticleData(p_snd_buffer, src_offset, dst_index,
+                                               p_comm_real, p_comm_int);
+                    }
+                    ++iwork;
+                }
+            }
+        }
+    }
+#endif
 }
 
 template <class PC, class SndBuffer, class RcvBuffer,
