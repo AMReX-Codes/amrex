@@ -206,7 +206,7 @@ namespace amrex
               std::enable_if_t<std::is_integral_v<I>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
-        while (lo < hi - 1) {
+        while (hi - lo > 1) {
             I mid = lo + (hi - lo) / 2;
             if (v < d[mid]) {
                 hi = mid;
