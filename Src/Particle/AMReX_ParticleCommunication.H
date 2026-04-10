@@ -180,6 +180,16 @@ struct ParticleCopyPlan
 
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
         Vector<unsigned int> omp_thread_box_counts(OpenMP::get_max_threads()*num_buckets, 0U);
+        struct OmpCopyWork
+        {
+            const int* boxes = nullptr;
+            const int* levs = nullptr;
+            const int* tiles = nullptr;
+            int* dst_indices = nullptr;
+            int num_copies = 0;
+        };
+        Vector<OmpCopyWork> omp_copy_work;
+        Vector<Long> omp_copy_offsets(1, 0);
 #endif
 
         m_dst_indices.resize(num_levels);
@@ -223,55 +233,8 @@ struct ParticleCopyPlan
                     const auto* p_tiles = op.m_tiles[lev].at(index).dataPtr();
                     auto* p_dst_indices = m_dst_indices[lev][index].dataPtr();
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
-                    std::fill(omp_thread_box_counts.begin(), omp_thread_box_counts.end(), 0U);
-                    auto* p_omp_thread_box_counts = omp_thread_box_counts.data();
-
-#pragma omp parallel
-                    {
-                        int thread_num = OpenMP::get_thread_num();
-                        int num_threads = OpenMP::get_num_threads();
-                        int ibegin = thread_num*num_copies/num_threads;
-                        int iend = (thread_num+1)*num_copies/num_threads;
-                        auto* p_thread_box_counts = p_omp_thread_box_counts + thread_num*num_buckets;
-
-                        for (int i = ibegin; i < iend; ++i)
-                        {
-                            int dst_box = p_boxes[i];
-                            if (dst_box >= 0)
-                            {
-                                int dst_tile = p_tiles[i];
-                                int dst_lev = p_levs[i];
-                                ++p_thread_box_counts[getBucket(dst_lev, dst_box, dst_tile)];
-                            }
-                        }
-
-#pragma omp barrier
-#pragma omp for
-                        for (int ibucket = 0; ibucket < num_buckets; ++ibucket)
-                        {
-                            unsigned int offset = h_box_counts[ibucket];
-                            for (int tid = 0; tid < num_threads; ++tid)
-                            {
-                                auto& count = p_omp_thread_box_counts[tid*num_buckets + ibucket];
-                                unsigned int total = count;
-                                count = offset;
-                                offset += total;
-                            }
-                            h_box_counts[ibucket] = offset;
-                        }
-
-                        for (int i = ibegin; i < iend; ++i)
-                        {
-                            int dst_box = p_boxes[i];
-                            if (dst_box >= 0)
-                            {
-                                int dst_tile = p_tiles[i];
-                                int dst_lev = p_levs[i];
-                                int bucket = getBucket(dst_lev, dst_box, dst_tile);
-                                p_dst_indices[i] = static_cast<int>(p_thread_box_counts[bucket]++);
-                            }
-                        }
-                    }
+                    omp_copy_work.push_back({p_boxes, p_levs, p_tiles, p_dst_indices, num_copies});
+                    omp_copy_offsets.push_back(omp_copy_offsets.back() + num_copies);
 #else
                     amrex::ParallelForOMP(num_copies, [=] AMREX_GPU_DEVICE (int i)
                     {
@@ -289,6 +252,98 @@ struct ParticleCopyPlan
                 }
             }
         }
+
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+        if (use_host_bucket_counters && !pc.stableRedistribute() && !omp_copy_work.empty())
+        {
+            std::fill(omp_thread_box_counts.begin(), omp_thread_box_counts.end(), 0U);
+            auto* p_omp_thread_box_counts = omp_thread_box_counts.data();
+            const auto* p_omp_copy_work = omp_copy_work.data();
+            const auto* p_omp_copy_offsets = omp_copy_offsets.data();
+            const Long total_num_copies = omp_copy_offsets.back();
+
+#pragma omp parallel
+            {
+                int thread_num = OpenMP::get_thread_num();
+                int num_threads = OpenMP::get_num_threads();
+                Long ibegin = thread_num*total_num_copies/num_threads;
+                Long iend = (thread_num+1)*total_num_copies/num_threads;
+                auto* p_thread_box_counts = p_omp_thread_box_counts + thread_num*num_buckets;
+
+                if (ibegin < iend)
+                {
+                    int iwork = static_cast<int>(std::upper_bound(omp_copy_offsets.begin(),
+                                                                  omp_copy_offsets.end(),
+                                                                  ibegin)
+                                                 - omp_copy_offsets.begin()) - 1;
+                    while (iwork < static_cast<int>(omp_copy_work.size()) &&
+                           p_omp_copy_offsets[iwork] < iend)
+                    {
+                        auto const& work = p_omp_copy_work[iwork];
+                        Long global_begin = std::max(ibegin, p_omp_copy_offsets[iwork]);
+                        Long global_end = std::min(iend, p_omp_copy_offsets[iwork+1]);
+                        int local_begin = static_cast<int>(global_begin - p_omp_copy_offsets[iwork]);
+                        int local_end = static_cast<int>(global_end - p_omp_copy_offsets[iwork]);
+                        for (int i = local_begin; i < local_end; ++i)
+                        {
+                            int dst_box = work.boxes[i];
+                            if (dst_box >= 0)
+                            {
+                                int dst_tile = work.tiles[i];
+                                int dst_lev = work.levs[i];
+                                ++p_thread_box_counts[getBucket(dst_lev, dst_box, dst_tile)];
+                            }
+                        }
+                        ++iwork;
+                    }
+                }
+
+#pragma omp barrier
+#pragma omp for
+                for (int ibucket = 0; ibucket < num_buckets; ++ibucket)
+                {
+                    unsigned int offset = h_box_counts[ibucket];
+                    for (int tid = 0; tid < num_threads; ++tid)
+                    {
+                        auto& count = p_omp_thread_box_counts[tid*num_buckets + ibucket];
+                        unsigned int total = count;
+                        count = offset;
+                        offset += total;
+                    }
+                    h_box_counts[ibucket] = offset;
+                }
+
+                if (ibegin < iend)
+                {
+                    int iwork = static_cast<int>(std::upper_bound(omp_copy_offsets.begin(),
+                                                                  omp_copy_offsets.end(),
+                                                                  ibegin)
+                                                 - omp_copy_offsets.begin()) - 1;
+                    while (iwork < static_cast<int>(omp_copy_work.size()) &&
+                           p_omp_copy_offsets[iwork] < iend)
+                    {
+                        auto const& work = p_omp_copy_work[iwork];
+                        Long global_begin = std::max(ibegin, p_omp_copy_offsets[iwork]);
+                        Long global_end = std::min(iend, p_omp_copy_offsets[iwork+1]);
+                        int local_begin = static_cast<int>(global_begin - p_omp_copy_offsets[iwork]);
+                        int local_end = static_cast<int>(global_end - p_omp_copy_offsets[iwork]);
+                        for (int i = local_begin; i < local_end; ++i)
+                        {
+                            int dst_box = work.boxes[i];
+                            if (dst_box >= 0)
+                            {
+                                int dst_tile = work.tiles[i];
+                                int dst_lev = work.levs[i];
+                                int bucket = getBucket(dst_lev, dst_box, dst_tile);
+                                work.dst_indices[i] = static_cast<int>(p_thread_box_counts[bucket]++);
+                            }
+                        }
+                        ++iwork;
+                    }
+                }
+            }
+        }
+#endif
 
         if (pc.stableRedistribute() || use_host_bucket_counters) {
             Gpu::copy(Gpu::hostToDevice,h_box_counts.begin(),h_box_counts.end(),m_box_counts_d.begin());
