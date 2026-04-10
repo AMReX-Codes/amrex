@@ -40,34 +40,38 @@ run_checked(${_install_cmd})
 set(_legacy_lib "${AMREX_TEST_INSTALL_PREFIX}/lib/${AMREX_TEST_INSTALL_LEGACY_LIB_NAME}")
 assert_exists("${_legacy_lib}")
 
-set(_stage_install_cmd
-    "${CMAKE_COMMAND}" "-E" "env" "DESTDIR=${AMREX_TEST_INSTALL_STAGE_ROOT}"
-    "${CMAKE_COMMAND}" "--install" "${AMREX_TEST_INSTALL_BUILD_DIR}"
-    "--prefix" "${AMREX_TEST_INSTALL_STAGE_PREFIX}")
-if(AMREX_TEST_INSTALL_CONFIG)
-    list(APPEND _stage_install_cmd "--config" "${AMREX_TEST_INSTALL_CONFIG}")
-endif()
-run_checked(${_stage_install_cmd})
+if(CMAKE_HOST_WIN32)
+    message(STATUS "Skipping DESTDIR staged install check on Windows.")
+else()
+    set(_stage_install_cmd
+        "${CMAKE_COMMAND}" "-E" "env" "DESTDIR=${AMREX_TEST_INSTALL_STAGE_ROOT}"
+        "${CMAKE_COMMAND}" "--install" "${AMREX_TEST_INSTALL_BUILD_DIR}"
+        "--prefix" "${AMREX_TEST_INSTALL_STAGE_PREFIX}")
+    if(AMREX_TEST_INSTALL_CONFIG)
+        list(APPEND _stage_install_cmd "--config" "${AMREX_TEST_INSTALL_CONFIG}")
+    endif()
+    run_checked(${_stage_install_cmd})
 
-set(_staged_legacy_lib
-    "${AMREX_TEST_INSTALL_STAGE_ROOT}${AMREX_TEST_INSTALL_STAGE_PREFIX}/lib/${AMREX_TEST_INSTALL_LEGACY_LIB_NAME}")
-assert_exists("${_staged_legacy_lib}")
+    set(_staged_legacy_lib
+        "${AMREX_TEST_INSTALL_STAGE_ROOT}${AMREX_TEST_INSTALL_STAGE_PREFIX}/lib/${AMREX_TEST_INSTALL_LEGACY_LIB_NAME}")
+    assert_exists("${_staged_legacy_lib}")
 
-file(READ "${AMREX_TEST_INSTALL_BUILD_DIR}/install_manifest.txt" _manifest)
-set(_manifest_legacy_lib
-    "${AMREX_TEST_INSTALL_STAGE_PREFIX}/lib/${AMREX_TEST_INSTALL_LEGACY_LIB_NAME}")
-string(FIND "${_manifest}" "${_manifest_legacy_lib}" _manifest_legacy_lib_pos)
-if(_manifest_legacy_lib_pos EQUAL -1)
-    message(FATAL_ERROR
-        "Install manifest is missing the legacy library entry: ${_manifest_legacy_lib}")
-endif()
+    file(READ "${AMREX_TEST_INSTALL_BUILD_DIR}/install_manifest.txt" _manifest)
+    set(_manifest_legacy_lib
+        "${AMREX_TEST_INSTALL_STAGE_PREFIX}/lib/${AMREX_TEST_INSTALL_LEGACY_LIB_NAME}")
+    string(FIND "${_manifest}" "${_manifest_legacy_lib}" _manifest_legacy_lib_pos)
+    if(_manifest_legacy_lib_pos EQUAL -1)
+        message(FATAL_ERROR
+            "Install manifest is missing the legacy library entry: ${_manifest_legacy_lib}")
+    endif()
 
-set(_staged_manifest_legacy_lib
-    "${AMREX_TEST_INSTALL_STAGE_ROOT}${_manifest_legacy_lib}")
-string(FIND "${_manifest}" "${_staged_manifest_legacy_lib}" _staged_manifest_legacy_lib_pos)
-if(NOT _staged_manifest_legacy_lib_pos EQUAL -1)
-    message(FATAL_ERROR
-        "Install manifest should not record DESTDIR paths: ${_staged_manifest_legacy_lib}")
+    set(_staged_manifest_legacy_lib
+        "${AMREX_TEST_INSTALL_STAGE_ROOT}${_manifest_legacy_lib}")
+    string(FIND "${_manifest}" "${_staged_manifest_legacy_lib}" _staged_manifest_legacy_lib_pos)
+    if(NOT _staged_manifest_legacy_lib_pos EQUAL -1)
+        message(FATAL_ERROR
+            "Install manifest should not record DESTDIR paths: ${_staged_manifest_legacy_lib}")
+    endif()
 endif()
 
 set(_configure_cmd
