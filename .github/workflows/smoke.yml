@@ -1,6 +1,10 @@
 name: smoke
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-smoke
@@ -16,14 +20,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -42,10 +46,10 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DCMAKE_CXX_STANDARD=20               \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_SPACEDIM="1;2;3"              \
             -DAMReX_EB=ON                         \
-            -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install
@@ -53,15 +57,15 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         mkdir ../Tests/SpackSmokeTest/build
         cd ../Tests/SpackSmokeTest/build
         cmake .. \
+            -DCMAKE_CXX_STANDARD=20               \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_ROOT=${PWD}/../../../installdir      \
-            -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         mpiexec -n 2 ./install_test ../../Amr/Advection_AmrCore/Exec/inputs-ci

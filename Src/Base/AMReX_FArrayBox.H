@@ -63,7 +63,7 @@ public:
     * FAB_NATIVE_32: write out values in the native 32 bit format.
     *
     */
-    enum Format
+    enum Format // NOLINT(readability-enum-initial-value)
     {
         FAB_ASCII,
         FAB_IEEE,
@@ -189,6 +189,8 @@ private:
 };
 
 /**
+* \class amrex::FArrayBox
+* \ingroup amrex_fab_containers
 * \brief  A Fortran Array of REALs
 *
 *  Fortran Array Box's (generally called FAB's) are objects constructed

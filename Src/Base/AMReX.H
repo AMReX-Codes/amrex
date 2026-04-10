@@ -56,6 +56,7 @@ namespace amrex
         extern AMREX_EXPORT bool handle_sigint;
         extern AMREX_EXPORT bool handle_sigabrt;
         extern AMREX_EXPORT bool handle_sigfpe;
+        extern AMREX_EXPORT bool handle_sigill;
 
         extern AMREX_EXPORT bool call_addr2line;
         extern AMREX_EXPORT bool throw_exception;
@@ -315,6 +316,8 @@ namespace amrex
         // be moved to the top.
         static void push (AMReX* pamrex);
 
+        static void push (std::unique_ptr<AMReX> pamrex);
+
         // This erases `pamrex` from the stack.
         static void erase (AMReX* pamrex);
 
@@ -340,6 +343,7 @@ namespace amrex
     [[nodiscard]] inline FPExcept operator| (FPExcept a, FPExcept b)
     {
         using T = std::underlying_type_t<FPExcept>;
+        // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
         return static_cast<FPExcept>(static_cast<T>(a) | static_cast<T>(b));
     }
 

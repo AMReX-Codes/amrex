@@ -5,6 +5,11 @@
 #include <AMReX_Extension.H>
 #include <AMReX_InterpBase.H>
 
+/**
+ * \file AMReX_MFInterpolater.H
+ * \brief Interpolaters that operate directly on MultiFabs (cell- or node-centered).
+ */
+
 namespace amrex {
 
 class MultiFab;
@@ -14,6 +19,22 @@ class MFInterpolater
     : public InterpBase
 {
 public:
+    /**
+     * \brief Interpolate coarse MultiFab data onto a fine MultiFab region.
+     *
+     * \param crsemf      Source coarse MultiFab.
+     * \param ccomp       Starting component in the coarse MF.
+     * \param finemf      Destination fine MultiFab.
+     * \param fcomp       Starting component in the fine MF.
+     * \param ncomp       Number of components to interpolate.
+     * \param ng          Number of grow cells to fill on the fine MF.
+     * \param cgeom       Coarse Geometry.
+     * \param fgeom       Fine Geometry.
+     * \param dest_domain Region of the fine domain that should be filled.
+     * \param ratio       Refinement ratio.
+     * \param bcs         Boundary-condition records per component.
+     * \param bcscomp     Starting component offset inside the BC array.
+     */
     virtual void interp (MultiFab const& crsemf, int ccomp, MultiFab& finemf, int fcomp, int ncomp,
                          IntVect const& ng, Geometry const& cgeom, Geometry const& fgeom,
                          Box const& dest_domain, IntVect const& ratio,

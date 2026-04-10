@@ -8,7 +8,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                               int max_coarsening_level, int ngrow,
                               bool build_coarse_level_by_coarsening,
                               bool extend_domain_face, int num_coarsen_opt,
-                              bool bvh_optimization)
+                              bool bvh_optimization, bool support_mvmc)
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
@@ -31,7 +31,10 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
     m_ngrow.push_back(ngrow_finest);
     m_stllevel.reserve(max_coarsening_level+1);
     m_stllevel.emplace_back(this, stl_tools, geom, EB2::max_grid_size, ngrow_finest,
-                            extend_domain_face, num_coarsen_opt);
+                            extend_domain_face, num_coarsen_opt, support_mvmc);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_coarsening_level == 0 || support_mvmc == false,
+                                     "We don't support multiple levels when multi-valued and multi-cut are enabled.");
 
     for (int ilev = 1; ilev <= max_coarsening_level; ++ilev)
     {
@@ -56,7 +59,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                     amrex::Abort("Failed to build required coarse EB level "+std::to_string(ilev));
                 } else {
                     m_stllevel.emplace_back(this, stl_tools, cgeom, EB2::max_grid_size, ng,
-                                            extend_domain_face, num_coarsen_opt-ilev);
+                                            extend_domain_face, num_coarsen_opt-ilev, support_mvmc);
                 }
             } else {
                 break;

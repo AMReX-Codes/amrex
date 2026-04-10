@@ -20,6 +20,7 @@
 
 namespace amrex
 {
+    /// \cond DOXYGEN_IGNORE
     namespace detail
     {
         template <typename T, typename Size, template<class> class Allocator>
@@ -244,6 +245,7 @@ namespace amrex
             }
         }
     }
+    /// \endcond
 
     AMREX_ENUM(GrowthStrategy, Poisson, Exact, Geometric);
 
@@ -253,10 +255,12 @@ namespace amrex
         inline Real GetGrowthFactor () { return growth_factor; }
         inline void SetGrowthFactor (Real a_factor);
 
+        /// \cond DOXYGEN_IGNORE
         namespace detail
         {
             void ValidateUserInput ();
         }
+        /// \endcond
 
         void Initialize ();
     }
@@ -292,6 +296,13 @@ namespace amrex
         return 0; // unreachable
     }
 
+    /**
+     * \class amrex::PODVector
+     * \ingroup amrex_linear_containers
+     * \brief Dynamically allocated vector for trivially copyable data.
+     *
+     * Unlike std::vector, the data in PODVector are uninitialized by default.
+     */
     template <class T, class Allocator = std::allocator<T> >
     class PODVector : public Allocator
     {
@@ -400,7 +411,7 @@ namespace amrex
         ~PODVector ()
         {
             // let's not worry about other allocators
-            static_assert(std::is_same<Allocator,std::allocator<T>>::value ||
+            static_assert(std::is_same_v<Allocator,std::allocator<T>> ||
                           IsArenaAllocator<Allocator>::value);
             if (m_data != nullptr) {
                 deallocate(m_data, capacity());
@@ -832,6 +843,25 @@ namespace amrex
             std::swap(m_size, a_vector.m_size);
             std::swap(m_capacity, a_vector.m_capacity);
             std::swap(static_cast<Allocator&>(a_vector), static_cast<Allocator&>(*this));
+        }
+
+        /** Deallocate the memory of the PODVector using amrex::Gpu::freeAsync.
+         * Memory deallocated in this way is held in a pool and will not be reused until the next
+         * amrex::Gpu::streamSynchronize(). GPU kernels that were already launched on the currently
+         * active stream can still continue to use the memory after this function is called.
+         */
+        void free_async () noexcept
+        {
+            if (m_data != nullptr) {
+                if constexpr (IsArenaAllocator<Allocator>::value) {
+                    Gpu::freeAsync(Allocator::arena(), m_data);
+                } else {
+                    deallocate(m_data, capacity());
+                }
+                m_data = nullptr;
+                m_size = 0;
+                m_capacity = 0;
+            }
         }
 
     private:

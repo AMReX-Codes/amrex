@@ -167,6 +167,8 @@ include(AMReXInstallHelpers)
 install_amrex_targets(${_amrex_targets})
 
 if(AMReX_INSTALL)
+    add_uninstall_target(${CMAKE_CURRENT_LIST_DIR})
+
     # Add a test_install target to smoke-test
     # the installation
     add_test_install_target(

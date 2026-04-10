@@ -1,6 +1,10 @@
 name: intel
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-intel
@@ -16,13 +20,13 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -44,6 +48,7 @@ jobs:
         source /opt/intel/oneapi/setvars.sh
         set -e
         cmake -S . -B build                                \
+            -DCMAKE_CXX_STANDARD=20                        \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_FFT=ON                                 \
             -DAMReX_EB=OFF                                 \
@@ -68,13 +73,13 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_dpcpp.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -96,13 +101,14 @@ jobs:
         source /opt/intel/oneapi/setvars.sh
         set -e
         cmake -S . -B build                                \
+            -DCMAKE_CXX_STANDARD=20                        \
             -DCMAKE_VERBOSE_MAKEFILE=ON                    \
             -DAMReX_FFT=ON                                 \
             -DAMReX_EB=ON                                  \
             -DAMReX_ENABLE_TESTS=ON                        \
             -DAMReX_FORTRAN=OFF                            \
             -DAMReX_GPU_BACKEND=SYCL                       \
-            -DAMReX_SYCL_AOT=ON                            \
+            -DAMReX_SYCL_AOT=OFF                           \
             -DAMReX_INTEL_ARCH=pvc                         \
             -DCMAKE_C_COMPILER=$(which icx)                \
             -DCMAKE_CXX_COMPILER=$(which icpx)             \

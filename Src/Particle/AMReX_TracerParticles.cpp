@@ -265,7 +265,7 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
                 const auto M  = static_cast<int>(indices.size());
                 const BoxArray& ba = mf.boxArray();
 
-                std::vector<ParticleReal> vals(M);
+                std::vector<ParticleReal> vals(mf.nComp());
 
                 const auto& pmap = GetParticles(lev);
                 for (const auto& kv : pmap) {
@@ -320,11 +320,11 @@ TracerParticleContainer::Timestamp (const std::string&      basename,
 
                       if (M > 0)
                         {
-                          cic_interpolate(p, plo, dxi, uccarr, vals.data(), M);
+                          cic_interpolate(p, plo, dxi, uccarr, vals.data(), mf.nComp());
 
                           for (int i = 0; i < M; i++)
                             {
-                              TimeStampFile << ' ' << vals[i];
+                              TimeStampFile << ' ' << vals[indices[i]];
                             }
                         }
 

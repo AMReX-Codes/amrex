@@ -10,14 +10,31 @@
 
 #include <memory>
 
+/**
+ * \file AMReX_HypreIJIface.H
+ *
+ * Thin wrapper around HYPRE's IJ/ParCSR solvers (solver/preconditioner factory plus solve API).
+ */
+
 namespace amrex {
 
+/**
+ * \brief Convenience interface for configuring and invoking HYPRE IJ solvers.
+ */
 class HypreIJIface
 {
 public:
     using HypreIntType = HYPRE_Int;
     using HypreRealType = HYPRE_Real;
 
+    /**
+     * \brief Construct an IJ interface spanning rows [\p ilower, \p iupper].
+     *
+     * \param comm   MPI communicator.
+     * \param ilower Global row id lower bound (inclusive) owned by this rank.
+     * \param iupper Global row id upper bound (inclusive) owned by this rank.
+     * \param verbose Verbosity level forwarded to HYPRE.
+     */
     HypreIJIface(MPI_Comm comm, HypreIntType ilower, HypreIntType iupper,
                  int verbose);
 
@@ -28,8 +45,20 @@ public:
     HypreIJIface& operator= (HypreIJIface const&) = delete;
     HypreIJIface& operator= (HypreIJIface &&) = delete;
 
+    /**
+     * \brief Parse runtime options (solver, preconditioner, tolerances).
+     *
+     * \param prefix ParmParse prefix; defaults to the literal "hypre" namespace used for HYPRE options.
+     */
     void parse_inputs(const std::string& prefix = "hypre");
 
+    /**
+     * \brief Solve the linear system using the configured solver/preconditioner.
+     *
+     * \param rel_tol Relative tolerance.
+     * \param abs_tol Absolute tolerance.
+     * \param max_iter Iteration limit.
+     */
     void solve(HypreRealType rel_tol, HypreRealType abs_tol, HypreIntType max_iter);
 
     //! IJ matrix instance
@@ -60,6 +89,7 @@ private:
     // Preconditioners
     void boomeramg_precond_configure(const std::string& prefix);
     void euclid_precond_configure(const std::string& prefix);
+    void ilu_precond_configure(const std::string& prefix);
 
     // Solvers
     void boomeramg_solver_configure(const std::string& prefix);

@@ -10,6 +10,8 @@
     Donald Willcox (dewillcox@lbl.gov)
   ----------------------------------------------------------------------------*/
 #include "AMReX_NVector_MultiFab.H"
+#include <AMReX_ParallelContext.H>
+#include <AMReX_ParallelReduce.H>
 #include <type_traits>
 
 namespace amrex::sundials {
@@ -203,11 +205,14 @@ N_Vector N_VClone_MultiFab(N_Vector w)
 
 void N_VDestroy_MultiFab(N_Vector v)
 {
+    if (v == nullptr) { return; }
     if (amrex::sundials::N_VGetOwnMF_MultiFab(v) == SUNTRUE)
     {
          delete amrex::sundials::getMFptr(v);
          amrex::sundials::getMFptr(v) = nullptr;
     }
+    std::free(v->content);
+    v->content = nullptr;
     N_VFreeEmpty(v);
 }
 
@@ -399,6 +404,7 @@ amrex::Real N_VMaxNorm_MultiFab(N_Vector x)
 amrex::Real N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
 {
     auto N = amrex::sundials::N_VGetLength_MultiFab(x);
+    if (N <= 0) { return amrex::Real(0.0); }
     return N_VWL2Norm_MultiFab(x, w)*std::sqrt(1.0_rt/Real(N));
 }
 
@@ -461,7 +467,7 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector a_x, N_Vector a_w, N_Vector id,
                                 [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
                                 numcomp, nghost, local);
     }
-    ParallelDescriptor::ReduceRealSum(sum);
+    ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
 
     return rms ? std::sqrt(sum/Real(N)) : std::sqrt(sum);
 }
@@ -470,7 +476,7 @@ amrex::Real N_VWL2Norm_MultiFab(N_Vector x, N_Vector w)
 {
     using namespace amrex;
 
-    return NormHelper_NVector_MultiFab(x, w, N_VCloneEmpty_MultiFab(x), false, false);
+    return NormHelper_NVector_MultiFab(x, w, nullptr, false, false);
 }
 
 amrex::Real N_VL1Norm_MultiFab(N_Vector x)
@@ -526,26 +532,25 @@ int N_VInvTest_MultiFab(N_Vector x, N_Vector z)
     auto const& ma1 = mf_x->const_arrays();
     auto const& ma2 = mf_z->arrays();
 
-    GpuTuple<bool> mm = ParReduce(TypeList<ReduceOpLogicalAnd>{},
-                                    TypeList<bool>{},
-                                    *mf_x,  amrex::IntVect::TheZeroVector(),
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-           -> GpuTuple<bool>
-     {
-         bool result = !(ma1[box_no](i,j,k) == amrex::Real(0.0));
-         ma2[box_no](i,j,k) = result ? amrex::Real(1.0) / ma1[box_no](i,j,k) : 0.0;
-         return { result };
-     });
-
-    bool val = amrex::get<0>(mm);
-
-    if (val == false)
+    bool val = ParReduce(TypeList<ReduceOpLogicalAnd>{},
+                         TypeList<int>{}, // We use int for logical and on device.
+                         *mf_x, amrex::IntVect::TheZeroVector(),
+                         mf_x->nComp(),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                        -> GpuTuple<int>
     {
-         return SUNFALSE;
-    }
-    else
-    {
-         return SUNTRUE;
+        auto xx = ma1[box_no](i,j,k,n);
+        bool result = xx != Real(0.0);
+        ma2[box_no](i,j,k,n) = result ? Real(1.0)/xx : Real(0.0);
+        return { static_cast<int>(result) };
+    });
+
+    ParallelAllReduce::And(val, ParallelContext::CommunicatorSub());
+
+    if (val) {
+        return SUNTRUE;
+    } else {
+        return SUNFALSE;
     }
 }
 
@@ -564,7 +569,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
         const amrex::Box& bx = mfi.validbox();
         Array4<Real> const& x_fab = mf_x->array(mfi);
         Array4<Real> const& a_fab = mf_a->array(mfi);
-        Array4<Real> const& m_fab = mf_a->array(mfi);
+        Array4<Real> const& m_fab = mf_m->array(mfi);
         //Changing continue to if check, temp calculation should be changed to reduction
         amrex::ParallelFor(bx, ncomp,
         [=] AMREX_GPU_DEVICE (int i, int j, int k, int c) noexcept
@@ -589,7 +594,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
 
     temp = mf_m->norm1();
     /* Return false if any constraint was violated */
-    amrex::ParallelDescriptor::ReduceRealMax(temp);
+    ParallelAllReduce::Max(temp, ParallelContext::CommunicatorSub());
 
     return (temp == amrex::Real(1.0)) ? SUNFALSE : SUNTRUE;
 }
@@ -628,7 +633,7 @@ amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
          return min_loc;
      });
 
-    amrex::ParallelDescriptor::ReduceRealMin(min);
+    ParallelAllReduce::Min(min, ParallelContext::CommunicatorSub());
 
     return min;
 }

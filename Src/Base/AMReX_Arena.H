@@ -4,6 +4,9 @@
 
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
+#ifdef AMREX_USE_GPU
+#include <AMReX_GpuControl.H>
+#endif
 
 #ifdef AMREX_TINY_PROFILING
 #include <AMReX_TinyProfiler.H>
@@ -24,14 +27,15 @@ namespace amrex {
 namespace amrex {
 
 /**
- * \brief Given a minimum required size of size bytes, this returns
- * the next largest arena size that will align to align_requirement bytes
+ * \brief Given a minimum required size in bytes, this returns the smallest
+ * size greater or equal to `size` that is a multiple of `align_requirement`.
  */
 inline std::size_t aligned_size (std::size_t align_requirement, std::size_t size) noexcept
 {
     return ((size + (align_requirement-1)) / align_requirement) * align_requirement;
 }
 
+//! Return whether the address `p` is aligned to `alignment` bytes.
 inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 {
     auto* q = const_cast<void*>(p);
@@ -41,13 +45,35 @@ inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 
 class Arena;
 
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Arena`, the main memory arena.
 Arena* The_Arena ();
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Async_Arena`, the async-safe GPU device arena.
 Arena* The_Async_Arena ();
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Device_Arena`, the GPU device memory arena. It
+//! may be an alias to The_Arena.
 Arena* The_Device_Arena ();
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Managed_Arena`, the GPU managed memory
+//! arena. It maby be and alias to The_Arena.
 Arena* The_Managed_Arena ();
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Pinned_Arena`, the pinned memory arena.
 Arena* The_Pinned_Arena ();
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Comms_Arena`, the memory arena used by
+//! communication buffers.
 Arena* The_Comms_Arena ();
+//! \ingroup amrex_memory
+//! Return a pointer to `The_Cpu_Arena`, the CPU memory arena.
 Arena* The_Cpu_Arena ();
+
+//! Return a process-lifetime no-op arena used once other arenas are torn down.
+//! Note: still unsafe as a captured deallocator in foreign static objects,
+//! because C++ teardown order can destroy the null arena before they run.
+Arena* The_Null_Arena ();
 
 struct ArenaInfo
 {
@@ -97,6 +123,7 @@ struct ArenaInfo
 };
 
 /**
+* \ingroup amrex_memory
 * \brief
 * A virtual base class for objects that manage their own dynamic
 * memory allocation.
@@ -121,7 +148,14 @@ public:
     [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
 
     /**
-     * Try to allocate in-place by extending the capacity of given pointer.
+     * \brief Allocate memory in-place if possible
+     *
+     * In this implementation of the virtual function, a new allocation is
+     * always performed, and it returns the new pointer and allocation size.
+     *
+     * Note that this function does NOT free the existing allocation. So
+     * it's the caller's responsibility to free the original pointer when
+     * appropriate.
      */
     [[nodiscard]] virtual std::pair<void*,std::size_t>
     alloc_in_place (void* /*pt*/, std::size_t /*szmin*/, std::size_t szmax)
@@ -131,7 +165,14 @@ public:
     }
 
     /**
-     * Try to shrink in-place
+     * \brief Shrink allocation size in-place
+     *
+     * In this implementation of the virtual function, a new allocation is
+     * always performed, and it returns the new pointer.
+     *
+     * Note that this function does NOT free the existing allocation. So
+     * it's the caller's responsibility to free the original pointer when
+     * appropriate.
      */
     [[nodiscard]] virtual void*
     shrink_in_place (void* /*pt*/, std::size_t sz)
@@ -150,15 +191,39 @@ public:
     */
     virtual std::size_t freeUnused () { return 0; }
 
-    // isDeviceAccessible and isHostAccessible can both be true.
+    //! Check whether the memory is accessible on the device. Note that
+    //! isDeviceAccessible and isHostAccessible can both be true.
     [[nodiscard]] virtual bool isDeviceAccessible () const;
+
+    //! Check whether the memory is accessible on the host. Note that
+    //! isDeviceAccessible and isHostAccessible can both be true.
     [[nodiscard]] virtual bool isHostAccessible () const;
 
-    // Note that isManaged, isDevice and isPinned are mutually exclusive.
-    // For memory allocated by cudaMalloc* etc., one of them returns true.
-    // Otherwise, neither is true.
+    /**
+     * \brief Check whether it is managed GPU memory
+     *
+     * Note that isManaged, isDevice and isPinned are mutually exclusive.
+     * For memory allocated by cudaMalloc* etc. in GPU builds, one of them
+     * returns true. For CPU builds, they are always false.
+     */
     [[nodiscard]] virtual bool isManaged () const;
+
+    /**
+     * \brief Check whether it is non-managed GPU device memory
+     *
+     * Note that isManaged, isDevice and isPinned are mutually exclusive.
+     * For memory allocated by cudaMalloc* etc. in GPU builds, one of them
+     * returns true. For CPU builds, they are always false.
+     */
     [[nodiscard]] virtual bool isDevice () const;
+
+    /**
+     * \brief Check whether it is pinned host memory
+     *
+     * Note that isManaged, isDevice and isPinned are mutually exclusive.
+     * For memory allocated by cudaMalloc* etc. in GPU builds, one of them
+     * returns true. For CPU builds, they are always false.
+     */
     [[nodiscard]] virtual bool isPinned () const;
 
     /**
@@ -184,6 +249,7 @@ public:
 #ifdef AMREX_USE_GPU
     //! Is this GPU stream ordered memory allocator?
     [[nodiscard]] virtual bool isStreamOrderedArena () const { return false; }
+    virtual void streamOrderedFree (void* pt, gpuStream_t stream);
 #endif
 
     /**
@@ -192,10 +258,53 @@ public:
     */
     static std::size_t align (std::size_t sz);
 
-    static void Initialize (bool minimal);
+    static void Initialize (bool minimal); ///< Used internally by amrex
+
+    /**
+     * \brief Print memory usage information of all arenas
+     *
+     * This function reports memory usage statistics for all `CArena`-based
+     * AMReX arenas. It contains MPI collective calls and therefore must be
+     * called by all processes. The output is printed on the I/O process
+     * only.
+     *
+     * Depending on the value of `print_max_usage`, the function prints
+     * either the current memory usage (when false) or the maximum memory
+     * usage recoreded (when true).
+     *
+     * \param print_max_usage whether to print the maximum usage or the
+     *        current usage
+     */
     static void PrintUsage (bool print_max_usage=false);
+
+    /**
+     * \brief Print memory usage information of all arenas to a given output
+     * stream
+     *
+     * This function reports memory usage statistics for all `CArena`-based
+     * AMReX arenas. Unlike `PrintUsage`, this does not contain MPI calls
+     * and therefore may be called independently on individual processes.
+     *
+     * \param os output stream
+     * \param space indentation prepended to printed lines
+     */
+    static void PrintUsageToStream (std::ostream& os, std::string const& space);
+
+    /**
+     * \brief Print memory usage information of all arenas to given file
+     *
+     * This function reports memory usage statistics for all `CArena`-based
+     * AMReX arenas. The output is appended to a file named
+     * `{filename}.{rank}`, where `rank` is the MPI rank of the process.
+     * Unlike `PrintUsage`, this does not contain MPI calls and therefore
+     * may be called independently on individual processes.
+     *
+     * \param filename base name of the output file
+     * \param message message printed at the beginning
+     */
     static void PrintUsageToFiles (std::string const& filename, std::string const& message);
-    static void Finalize ();
+
+    static void Finalize (); ///< Used internally by amrex
 
 #if 0
     union Word
@@ -208,6 +317,7 @@ public:
     static const std::size_t align_size = sizeof(Word);
 #endif
 
+    /// The alignment of allocated memory
     static const std::size_t align_size = 16;
 
     /**
@@ -215,7 +325,12 @@ public:
      */
     [[nodiscard]] const ArenaInfo& arenaInfo () const { return arena_info; }
 
+    /// Reset the maximum usage counter. This is no-op in this
+    /// implementation of the virtual function.
     virtual void ResetMaxUsageCounter () {}
+
+    /** Whether the Arena subsystem is initialized. */
+    [[nodiscard]] static bool IsInitialized ();
 
 protected:
 
@@ -224,6 +339,8 @@ protected:
     virtual std::size_t freeUnused_protected () { return 0; }
     void* allocate_system (std::size_t nbytes);
     void deallocate_system (void* p, std::size_t nbytes);
+    static void out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
+                                     std::string const& error_msg);
 
     struct ArenaProfiler {
         //! If this arena is profiled by TinyProfiler

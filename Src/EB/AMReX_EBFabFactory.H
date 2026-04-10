@@ -19,6 +19,7 @@ namespace EB2 {
     class IndexSpace;
 }
 
+/// \ingroup amrex_eb
 class EBFArrayBoxFactory
     : public FabFactory<FArrayBox>
 {
@@ -93,6 +94,8 @@ public:
 
     [[nodiscard]] EBData getEBData (MFIter const& mfi) const noexcept;
 
+    [[nodiscard]] EBDataArrays getEBDataArrays () const noexcept;
+
 private:
 
     EBSupport m_support;
@@ -102,18 +105,21 @@ private:
     Gpu::DeviceVector<Array4<Real const>> m_eb_data;
 };
 
+/// \ingroup amrex_eb
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const Geometry& a_geom,
                   const BoxArray& a_ba,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support);
 
+/// \ingroup amrex_eb
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const EB2::Level*,
                   const BoxArray& a_ba,
                   const DistributionMapping& a_dm,
                   const Vector<int>& a_ngrow, EBSupport a_support);
 
+/// \ingroup amrex_eb
 std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const EB2::IndexSpace*, const Geometry& a_geom,
                   const BoxArray& a_ba,

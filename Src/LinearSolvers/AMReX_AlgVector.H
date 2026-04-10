@@ -11,9 +11,19 @@
 #include <fstream>
 #include <string>
 #include <type_traits>
+#include <utility>
 
 namespace amrex {
 
+/**
+ * \file AMReX_AlgVector.H
+ *
+ * Distributed dense vector container backed by AlgPartition with host/GPU helpers.
+ */
+
+/**
+ * \brief Distributed dense vector that mirrors the layout of an AlgPartition.
+ */
 template <typename T, typename Allocator = DefaultAllocator<T> >
 class AlgVector
 {
@@ -23,8 +33,11 @@ public:
 
     using Vec = PODVector<T,Allocator>;
 
+    //! Create an empty vector; call define() before use.
     AlgVector () = default;
+    //! Allocate and partition \p global_size rows across MPI ranks.
     explicit AlgVector (Long global_size);
+    //! Adopt an explicit partition that describes the data layout.
     explicit AlgVector (AlgPartition partition);
 
     AlgVector (AlgVector<T, Allocator> const&) = delete;
@@ -35,14 +48,31 @@ public:
 
     ~AlgVector () = default;
 
+    /**
+     * \brief Resize/repartition the vector to span \p global_size rows.
+     *
+     * Existing contents are discarded; rows are divided evenly across
+     * participating ranks.
+     *
+     * \param global_size Total number of entries in the vector.
+     */
     void define (Long global_size);
+    /**
+     * \brief Replace the current partition and storage with \p partition.
+     *
+     * \param partition Partition describing the global layout to adopt.
+     */
     void define (AlgPartition partition);
 
+    //! True if the local storage holds zero entries.
     [[nodiscard]] bool empty () const { return m_partition.empty(); }
 
+    //! Partition describing the global layout of the vector.
     [[nodiscard]] AlgPartition const& partition () const { return m_partition; }
 
+    //! Number of entries stored on this rank.
     [[nodiscard]] Long numLocalRows () const { return m_end - m_begin; }
+    //! Global number of rows.
     [[ nodiscard]] Long numGlobalRows () const { return m_partition.numGlobalRows(); }
 
     //! Inclusive global index begin.
@@ -50,40 +80,128 @@ public:
     //! Exclusive global index end.
     [[nodiscard]] Long globalEnd () const { return m_end; }
 
+    //! Return raw data pointer. Unlike view(), the starting index is
+    //! zero. Use the local row index when accessing the data.
     [[nodiscard]] T const* data () const { return m_data.data(); }
+    //! Return raw data pointer. Unlike view(), the starting index is
+    //! zero. Use the local row index when accessing the data.
     [[nodiscard]] T      * data ()       { return m_data.data(); }
 
+    //! Return a Table1D view of the data. Unlike data(), indexing starts at
+    //! the global row index. Use the global row index when accessing the
+    //! data.
     [[nodiscard]] AMREX_FORCE_INLINE
     Table1D<T const, Long> view () const {
         return Table1D<T const, Long>{m_data.data(), m_begin, m_end};
     }
 
+    //! Return a Table1D view of the data. Unlike data(), indexing starts at
+    //! the global row index. Use the global row index when accessing the
+    //! data.
     [[nodiscard]] AMREX_FORCE_INLINE
     Table1D<T const, Long> const_view () const {
         return Table1D<T const, Long>{m_data.data(), m_begin, m_end};
     }
 
+    //! Return a Table1D view of the data. Unlike data(), indexing starts at
+    //! the global row index. Use the global row index when accessing the
+    //! data.
     [[nodiscard]] AMREX_FORCE_INLINE
     Table1D<T, Long> view () {
         return Table1D<T, Long>{m_data.data(), m_begin, m_end};
     }
 
+    //! Set every element to `val`. For GPU builds, this function
+    //! synchronizes with the host before returning.
     void setVal (T val);
+
+    //! Set every element to `val`. For GPU builds, this function
+    //! is asynchronous with respect to the host.
     void setValAsync (T val);
 
-    void copy (AlgVector<T> const& rhs);
-    void copyAsync (AlgVector<T> const& rhs);
+    //! Copy values from `rhs` into this vector. For GPU builds, this
+    //! function synchronizes with the hostr before returning.
+    void copy (AlgVector<T,Allocator> const& rhs);
 
-    void plus (AlgVector<T> const& rhs);
-    void plusAsync (AlgVector<T> const& rhs);
+    //! Copy values from `rhs` into this vector. For GPU guilds, this
+    //! function is asynchronous with respect to the host.
+    void copyAsync (AlgVector<T,Allocator> const& rhs);
 
+    //! Add `rhs` to this vector in-place. For GPU builds, this function
+    //! synchronizes with the hostr before returning.
+    void plus (AlgVector<T,Allocator> const& rhs);
+
+    //! Add `rhs` to this vector in-place. For GPU guilds, this function is
+    //! asynchronous with respect to the host.
+    void plusAsync (AlgVector<T,Allocator> const& rhs);
+
+    //! Scale this vector by `scale_factor` in-place. For GPU builds, this
+    //! function synchronizes with the hostr before returning.
     void scale (T scale_factor);
+
+    //! Scale this vector by `scale_factor` in-place. For GPU guilds, this
+    //! function is asynchronous with respect to the host.
     void scaleAsync (T scale_factor);
 
+    /**
+     * \brief Return the sum of elements.
+     *
+     * By default, this returns the global sum over all MPI ranks. If
+     * `local` is true, it returns the sum over the locally stored entries
+     * only.
+     *
+     * \param local If true, compute the sum over local entries only.
+     * \return The sum of elements.
+     */
     [[nodiscard]] T sum (bool local = false) const;
 
+    /**
+     * \brief Return the infinity norm.
+     *
+     * By default, this returns the global norm over all MPI ranks. If
+     * `local` is true, it returns the norm over the locally stored entries
+     * only.
+     *
+     * \param local If true, compute the norm over local entries only.
+     * \return The infinity norm.
+     */
     [[nodiscard]] T norminf (bool local = false) const;
+
+    /**
+     * \brief Return the 1-norm.
+     *
+     * By default, this returns the global norm over all MPI ranks. If
+     * `local` is true, it returns the norm over the locally stored entries
+     * only.
+     *
+     * \param local If true, compute the norm over local entries only.
+     * \return The 1-norm.
+     */
+    [[nodiscard]] T norm1 (bool local = false) const;
+
+    /**
+     * \brief Return the 2-norm.
+     *
+     * By default, this returns the global norm over all MPI ranks. If
+     * `local` is true, it returns the norm over the locally stored entries
+     * only.
+     *
+     * \param local If true, compute the norm over local entries only.
+     * \return The 2-norm.
+     */
     [[nodiscard]] T norm2 (bool local = false) const;
+
+    /**
+     * \brief Return the 1-norm and 2-norm as a pair.
+     *
+     * By default, this returns the global norms over all MPI ranks. If
+     * `local` is true, it returns the norms over the locally stored entries
+     * only.
+     *
+     * \param local If true, compute the norms over local entries only.
+     * \return The 1-norm and 2-norm as a pair.
+     */
+    [[nodiscard]] std::pair<T,T> norm1and2 (bool local = false) const;
 
     template <typename FAB,
               std::enable_if_t<amrex::IsBaseFab<FAB>::value &&
@@ -95,6 +213,21 @@ public:
                                std::is_same_v<T,typename FAB::value_type>,int> = 0>
     void copyTo (FabArray<FAB> & fa) const;
 
+    /*
+     * \brief Print the vector to files.
+     *
+     * Each process writes its local portion of the vector to a separate
+     * file. This function is provided for debugging purpose. Using it in
+     * large-scale runs may overwhelm the file system.
+     *
+     * File format:
+     * - The first line contains two integers describing the local vector:
+     *   the global row begin index and the global row end index.
+     * - This is followed by one line per element. Each line contains the
+     *   global row index and vector value.
+     *
+     * \param file Base file name. The full name on process `i` is `{file}.{i}`.
+     */
     void printToFile (std::string const& file) const;
 
 private:
@@ -110,9 +243,7 @@ AlgVector<T,Allocator>::AlgVector (Long global_size)
       m_begin(m_partition[ParallelDescriptor::MyProc()]),
       m_end(m_partition[ParallelDescriptor::MyProc()+1]),
       m_data(m_end-m_begin)
-{
-    static_assert(std::is_floating_point<T>::value, "AlgVector is for floating point type only");
-}
+{}
 
 template <typename T, typename Allocator>
 AlgVector<T,Allocator>::AlgVector (AlgPartition partition)
@@ -120,9 +251,7 @@ AlgVector<T,Allocator>::AlgVector (AlgPartition partition)
       m_begin(m_partition[ParallelDescriptor::MyProc()]),
       m_end(m_partition[ParallelDescriptor::MyProc()+1]),
       m_data(m_end-m_begin)
-{
-    static_assert(std::is_floating_point<T>::value, "AlgVector is for floating point type only");
-}
+{}
 
 template <typename T, typename Allocator>
 void AlgVector<T,Allocator>::define (Long global_size)
@@ -154,18 +283,18 @@ void AlgVector<T,Allocator>::setValAsync (T val)
 {
     Long n = m_data.size();
     T* p = m_data.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { p[i] = val; });
+    ParallelForOMP(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { p[i] = val; });
 }
 
 template <typename T, typename Allocator>
-void AlgVector<T,Allocator>::copy (AlgVector<T> const& rhs)
+void AlgVector<T,Allocator>::copy (AlgVector<T,Allocator> const& rhs)
 {
     copyAsync(rhs);
     Gpu::streamSynchronize();
 }
 
 template <typename T, typename Allocator>
-void AlgVector<T,Allocator>::copyAsync (AlgVector<T> const& rhs)
+void AlgVector<T,Allocator>::copyAsync (AlgVector<T,Allocator> const& rhs)
 {
     Long n = m_data.size();
     AMREX_ASSERT(m_data.size() == rhs.m_data.size());
@@ -175,20 +304,20 @@ void AlgVector<T,Allocator>::copyAsync (AlgVector<T> const& rhs)
 }
 
 template <typename T, typename Allocator>
-void AlgVector<T,Allocator>::plus (AlgVector<T> const& rhs)
+void AlgVector<T,Allocator>::plus (AlgVector<T,Allocator> const& rhs)
 {
     plusAsync(rhs);
     Gpu::streamSynchronize();
 }
 
 template <typename T, typename Allocator>
-void AlgVector<T,Allocator>::plusAsync (AlgVector<T> const& rhs)
+void AlgVector<T,Allocator>::plusAsync (AlgVector<T,Allocator> const& rhs)
 {
     Long n = m_data.size();
     AMREX_ASSERT(m_data.size() == rhs.m_data.size());
     T* dst = m_data.data();
     T const* src = rhs.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { dst[i] += src[i]; });
+    ParallelForOMP(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { dst[i] += src[i]; });
 }
 
 template <typename T, typename Allocator>
@@ -203,7 +332,7 @@ void AlgVector<T,Allocator>::scaleAsync (T scale_factor)
 {
     Long n = m_data.size();
     T* p = m_data.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { p[i] *= scale_factor; });
+    ParallelForOMP(n, [=] AMREX_GPU_DEVICE (Long i) noexcept { p[i] *= scale_factor; });
 }
 
 template <typename T, typename Allocator>
@@ -237,6 +366,21 @@ T AlgVector<T,Allocator>::norminf (bool local) const
 }
 
 template <typename T, typename Allocator>
+T AlgVector<T,Allocator>::norm1 (bool local) const
+{
+    Long n = m_data.size();
+    T const* p = m_data.data();
+    T r = Reduce::Sum<T>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
+                         {
+                             return amrex::Math::abs(p[i]);
+                         });
+    if (!local) {
+        ParallelAllReduce::Sum(r, ParallelContext::CommunicatorSub());
+    }
+    return r;
+}
+
+template <typename T, typename Allocator>
 T AlgVector<T,Allocator>::norm2 (bool local) const
 {
     Long n = m_data.size();
@@ -251,6 +395,33 @@ T AlgVector<T,Allocator>::norm2 (bool local) const
     return std::sqrt(r);
 }
 
+template <typename T, typename Allocator>
+std::pair<T,T> AlgVector<T,Allocator>::norm1and2 (bool local) const
+{
+    Long n = m_data.size();
+    T const* p = m_data.data();
+    ReduceOps<ReduceOpSum,ReduceOpSum> reduce_op;
+    ReduceData<T,T> reduce_data(reduce_op);
+    using ReduceTuple = typename decltype(reduce_data)::Type;
+    reduce_op.eval(n, reduce_data, [=] AMREX_GPU_DEVICE (Long i) -> ReduceTuple
+                   {
+                       return {amrex::Math::abs(p[i]), p[i]*p[i]};
+                   });
+    auto hv = reduce_data.value(reduce_op);
+    if (local) {
+        return std::make_pair(amrex::get<0>(hv), std::sqrt(amrex::get<1>(hv)));
+    } else {
+        std::array<T,2> a{amrex::get<0>(hv), amrex::get<1>(hv)};
+        ParallelAllReduce::Sum(a.data(), 2, ParallelContext::CommunicatorSub());
+        return std::make_pair(a[0], std::sqrt(a[1]));
+    }
+}
+
+/**
+ * \brief Flatten a cell-centered FabArray into this vector's storage.
+ *
+ * \param fa Source data; each valid box is copied in IndexType order.
+ */
 template <typename T, typename Allocator>
 template <typename FAB, std::enable_if_t<amrex::IsBaseFab<FAB>::value &&
                                          std::is_same_v<T,typename FAB::value_type>, int> >
@@ -273,6 +444,11 @@ void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
     }
 }
 
+/**
+ * \brief Scatter this vector back into a cell-centered FabArray.
+ *
+ * \param fa Destination data that receives entries owned by this rank.
+ */
 template <typename T, typename Allocator>
 template <typename FAB, std::enable_if_t<amrex::IsBaseFab<FAB>::value &&
                                          std::is_same_v<T,typename FAB::value_type>, int> >
@@ -306,142 +482,11 @@ void AlgVector<T,Allocator>::printToFile (std::string const& file) const
     Gpu::streamSynchronize();
     T const* p = hv.data();
 #else
-    T const* p = m_data;
+    T const* p = m_data.data();
 #endif
     for (Long i = 0, N = m_data.size(); i < N; ++i) {
         ofs << i+m_begin << " " << p[i] << "\n";
     }
-}
-
-template <class V, class Enable = void> struct IsAlgVector : std::false_type {};
-//
-template <class V>
-struct IsAlgVector<V, std::enable_if_t<std::is_same_v<AlgVector<typename V::value_type,
-                                                                typename V::allocator_type>,
-                                                      V> > >
-    : std::true_type {};
-
-template <typename V1, typename F>
-std::enable_if_t<IsAlgVector<std::decay_t<V1> >::value>
-ForEach (V1 & x, F const& f)
-{
-    Long n = x.numLocalRows();
-    auto* px = x.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-    {
-        f(px[i]);
-    });
-}
-
-template <typename V1, typename V2, typename F>
-std::enable_if_t<IsAlgVector<std::decay_t<V1> >::value &&
-                 IsAlgVector<std::decay_t<V2> >::value>
-ForEach (V1 & x, V2 & y, F const& f)
-{
-    AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
-    Long n = x.numLocalRows();
-    auto* AMREX_RESTRICT px = x.data();
-    auto* AMREX_RESTRICT py = y.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-    {
-        f(px[i], py[i]);
-    });
-}
-
-template <typename V1, typename V2, typename V3, typename F>
-std::enable_if_t<IsAlgVector<std::decay_t<V1> >::value &&
-                 IsAlgVector<std::decay_t<V2> >::value &&
-                 IsAlgVector<std::decay_t<V3> >::value>
-ForEach (V1 & x, V2 & y, V3 & z, F const& f)
-{
-    AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
-    AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
-    Long n = x.numLocalRows();
-    auto* AMREX_RESTRICT px = x.data();
-    auto* AMREX_RESTRICT py = y.data();
-    auto* AMREX_RESTRICT pz = z.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-    {
-        f(px[i], py[i], pz[i]);
-    });
-}
-
-template <typename V1, typename V2, typename V3, typename V4, typename F>
-std::enable_if_t<IsAlgVector<std::decay_t<V1> >::value &&
-                 IsAlgVector<std::decay_t<V2> >::value &&
-                 IsAlgVector<std::decay_t<V3> >::value &&
-                 IsAlgVector<std::decay_t<V4> >::value>
-ForEach (V1 & x, V2 & y, V3 & z, V4 & a, F const& f)
-{
-    AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
-    AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
-    AMREX_ASSERT(x.numLocalRows() == a.numLocalRows());
-    Long n = x.numLocalRows();
-    auto* AMREX_RESTRICT px = x.data();
-    auto* AMREX_RESTRICT py = y.data();
-    auto* AMREX_RESTRICT pz = z.data();
-    auto* AMREX_RESTRICT pa = a.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-    {
-        f(px[i], py[i], pz[i], pa[i]);
-    });
-}
-
-template <typename V1, typename V2, typename V3, typename V4, typename V5, typename F>
-std::enable_if_t<IsAlgVector<std::decay_t<V1> >::value &&
-                 IsAlgVector<std::decay_t<V2> >::value &&
-                 IsAlgVector<std::decay_t<V3> >::value &&
-                 IsAlgVector<std::decay_t<V4> >::value &&
-                 IsAlgVector<std::decay_t<V5> >::value>
-ForEach (V1 & x, V2 & y, V3 & z, V4 & a, V5 & b, F const& f)
-{
-    AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
-    AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
-    AMREX_ASSERT(x.numLocalRows() == a.numLocalRows());
-    AMREX_ASSERT(x.numLocalRows() == b.numLocalRows());
-    Long n = x.numLocalRows();
-    auto* AMREX_RESTRICT px = x.data();
-    auto* AMREX_RESTRICT py = y.data();
-    auto* AMREX_RESTRICT pz = z.data();
-    auto* AMREX_RESTRICT pa = a.data();
-    auto* AMREX_RESTRICT pb = b.data();
-    ParallelFor(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-    {
-        f(px[i], py[i], pz[i], pa[i], pb[i]);
-    });
-}
-
-template <typename T>
-T Dot (AlgVector<T> const& x, AlgVector<T> const& y, bool local = false)
-{
-    AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
-    Long n = x.numLocalRows();
-    auto const* px = x.data();
-    auto const* py = y.data();
-    T r = Reduce::Sum<T>(n, [=] AMREX_GPU_DEVICE (Long i) noexcept
-                         {
-                             return px[i] * py[i];
-                         });
-    if (!local) {
-        ParallelAllReduce::Sum(r, ParallelContext::CommunicatorSub());
-    }
-    return r;
-}
-
-template <typename T>
-void Axpy (AlgVector<T>& y, T a, AlgVector<T> const& x, bool async = false)
-{
-    ForEach(y, x, [=] AMREX_GPU_DEVICE (T& yi, T const& xi) { yi += a*xi; });
-    if (!async) { Gpu::streamSynchronize(); }
-}
-
-template <typename T>
-void LinComb (AlgVector<T>& y, T a, AlgVector<T> const& xa, T b, AlgVector<T> const& xb, bool async = false)
-{
-    ForEach(y, xa, xb, [=] AMREX_GPU_DEVICE (T& yi, T const& xai, T const& xbi) {
-                           yi = a*xai + b*xbi;
-                       });
-    if (!async) { Gpu::streamSynchronize(); }
 }
 
 }

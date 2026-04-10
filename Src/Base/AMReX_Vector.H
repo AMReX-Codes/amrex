@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace amrex {
@@ -32,13 +33,15 @@ public:
 
     [[nodiscard]] T& operator[] (size_type i) noexcept
     {
-        BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
+        AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
+                                  "Out of bound error, index: " + std::to_string(i) + " size: " + std::to_string(size()));
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
     [[nodiscard]] const T& operator[] (size_type i) const noexcept
     {
-        BL_ASSERT( i < (this->std::vector<T, Allocator>::size()) );
+        AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
+                                  "Out of bound error, index: " + std::to_string(i) + " size: " + std::to_string(size()));
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
@@ -211,6 +214,7 @@ namespace amrex
         vec.erase(it, vec.end());
     }
 
+    /// \cond DOXYGEN_IGNORE
     namespace detail {
         template <class T, class H>
         std::size_t removeDupDoit (Vector<T>& vec, std::size_t start, std::size_t stop)
@@ -293,6 +297,7 @@ namespace amrex
             return detail::removeDupDoit<T,H>(vec, start+swapPos, start+sentinelPos+1);
         }
     }
+    /// \endcond
 
     template <class T, class H>
     void RemoveDuplicates (Vector<T>& vec) {

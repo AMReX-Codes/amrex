@@ -1,4 +1,5 @@
 
+#include <AMReX_Arena.H>
 #include <AMReX_GpuDevice.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_Machine.H>
@@ -20,7 +21,9 @@
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
 #if defined(AMREX_PROFILING) || defined (AMREX_TINY_PROFILING)
-#if __has_include(<nvtx3/nvToolsExt.h>)
+#if __has_include(<nvtx3/nvtx3.hpp>)
+#  include <nvtx3/nvtx3.hpp>
+#elif __has_include(<nvtx3/nvToolsExt.h>)
 #  include <nvtx3/nvToolsExt.h>
 #else
 #  include <nvToolsExt.h>
@@ -95,10 +98,13 @@ dim3 Device::numThreadsOverride = dim3(0, 0, 0);
 dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 unsigned int Device::max_blocks_per_launch = 2560;
 
-Vector<gpuStream_t> Device::gpu_stream_pool;
-Vector<gpuStream_t> Device::gpu_stream;
-gpuDeviceProp_t     Device::device_prop;
-int                 Device::memory_pools_supported = 0;
+Vector<StreamManager>   Device::gpu_stream_pool;
+Vector<int>             Device::gpu_stream_index;
+gpuDeviceProp_t         Device::device_prop;
+int                     Device::memory_pools_supported = 0;
+#ifdef AMREX_USE_GPU
+Vector<Device::ExternalStream> Device::external_stream_stack;
+#endif
 
 constexpr int Device::warp_size;
 
@@ -137,6 +143,80 @@ namespace {
         AMREX_CUDA_SAFE_CALL(cudaGraphExecDestroy(graphExec));
 #endif
     }
+}
+
+[[nodiscard]] gpuStream_t&
+StreamManager::getStream () {
+    return m_stream;
+}
+
+gpuStream_t const&
+StreamManager::getStream () const {
+    return m_stream;
+}
+
+void
+StreamManager::sync () {
+    decltype(m_free_wait_list) new_empty_wait_list{};
+
+    {
+        // lock mutex before accessing and modifying member variables
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_free_wait_list.swap(new_empty_wait_list);
+    }
+    // unlock mutex before stream sync and memory free
+    // to avoid deadlocks from the CArena mutex
+
+    // actual stream sync
+#ifdef AMREX_USE_SYCL
+    try {
+        m_stream.queue->wait_and_throw();
+    } catch (sycl::exception const& ex) {
+        for (auto [arena, mem] : new_empty_wait_list) {
+            arena->free(mem);
+        }
+        new_empty_wait_list.clear();
+        amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
+    }
+#else
+    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(m_stream));,
+                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(m_stream)); )
+#endif
+
+    // synconizing the stream may have taken a long time and
+    // there may be new kernels launched already, so we free memory
+    // according to the state from before the stream was synced
+
+    for (auto [arena, mem] : new_empty_wait_list) {
+        arena->free(mem);
+    }
+}
+
+void
+StreamManager::free_async (Arena* arena, void* mem) {
+    if (arena->isDeviceAccessible()) {
+        std::size_t free_wait_list_size = 0;
+        {
+            // lock mutex before accessing and modifying member variables
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_free_wait_list.emplace_back(arena, mem);
+            free_wait_list_size = m_free_wait_list.size();
+        }
+        // Limit the number of memory allocations in m_free_wait_list
+        // in case the stream is never synchronized
+        if (free_wait_list_size > 100) {
+            sync();
+        }
+    } else {
+        arena->free(mem);
+    }
+}
+
+std::size_t
+StreamManager::wait_list_size () {
+    // lock mutex before accessing member variables
+    std::lock_guard<std::mutex> lock(m_mutex);
+    return m_free_wait_list.size();
 }
 
 #endif
@@ -382,24 +462,25 @@ void
 Device::Finalize ()
 {
 #ifdef AMREX_USE_GPU
+    streamSynchronizeAll();
     Device::profilerStop();
 
 #ifdef AMREX_USE_SYCL
     for (auto& s : gpu_stream_pool) {
-        delete s.queue;
-        s.queue = nullptr;
+        delete s.getStream().queue;
+        s.getStream().queue = nullptr;
     }
     sycl_context.reset();
     sycl_device.reset();
 #else
     for (int i = 0; i < max_gpu_streams; ++i)
     {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i]));,
-                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i])); );
+        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL( hipStreamDestroy(gpu_stream_pool[i].getStream()));,
+                          AMREX_CUDA_SAFE_CALL(cudaStreamDestroy(gpu_stream_pool[i].getStream())); );
     }
 #endif
 
-    gpu_stream.clear();
+    gpu_stream_index.clear();
 
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
@@ -415,7 +496,10 @@ Device::initialize_gpu (bool minimal)
 
 #ifdef AMREX_USE_GPU
 
-    gpu_stream_pool.resize(max_gpu_streams);
+    if (gpu_stream_pool.size() != max_gpu_streams) {
+        // no copy/move constructor for std::mutex
+        gpu_stream_pool = Vector<StreamManager>(max_gpu_streams);
+    }
 
 #ifdef AMREX_USE_HIP
 
@@ -428,7 +512,7 @@ Device::initialize_gpu (bool minimal)
     // AMD devices do not support shared cache banking.
 
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i]));
+        AMREX_HIP_SAFE_CALL(hipStreamCreate(&gpu_stream_pool[i].getStream()));
     }
 
 #ifdef AMREX_GPU_STREAM_ALLOC_SUPPORT
@@ -456,9 +540,9 @@ Device::initialize_gpu (bool minimal)
 #endif
 
     for (int i = 0; i < max_gpu_streams; ++i) {
-        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i]));
+        AMREX_CUDA_SAFE_CALL(cudaStreamCreate(&gpu_stream_pool[i].getStream()));
 #ifdef AMREX_USE_ACC
-        acc_set_cuda_stream(i, gpu_stream_pool[i]);
+        acc_set_cuda_stream(i, gpu_stream_pool[i].getStream());
 #endif
     }
 
@@ -471,7 +555,7 @@ Device::initialize_gpu (bool minimal)
         sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
         sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
         for (int i = 0; i < max_gpu_streams; ++i) {
-            gpu_stream_pool[i].queue = new sycl::queue(*sycl_context, *sycl_device,
+            gpu_stream_pool[i].getStream().queue = new sycl::queue(*sycl_context, *sycl_device,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         }
     }
@@ -490,8 +574,8 @@ Device::initialize_gpu (bool minimal)
         device_prop.maxThreadsDim[1] = mtd[1];
         device_prop.maxThreadsDim[2] = mtd[2];
         device_prop.maxGridSize[0] = -1; // xxxxx SYCL todo: unknown
-        device_prop.maxGridSize[0] = -1; // unknown
-        device_prop.maxGridSize[0] = -1; // unknown
+        device_prop.maxGridSize[1] = -1; // unknown
+        device_prop.maxGridSize[2] = -1; // unknown
         device_prop.warpSize = warp_size;
         auto sgss = d.get_info<sycl::info::device::sub_group_sizes>();
         device_prop.maxMemAllocSize = d.get_info<sycl::info::device::max_mem_alloc_size>();
@@ -554,7 +638,7 @@ Device::initialize_gpu (bool minimal)
     }
 #endif
 
-    gpu_stream.resize(OpenMP::get_max_threads(), gpu_stream_pool[0]);
+    gpu_stream_index.resize(OpenMP::get_max_threads(), 0);
 
     ParmParse pp("device");
 
@@ -624,8 +708,19 @@ int Device::numDevicePartners () noexcept
 int
 Device::streamIndex (gpuStream_t s) noexcept
 {
-    auto it = std::find(std::begin(gpu_stream_pool), std::end(gpu_stream_pool), s);
-    return static_cast<int>(std::distance(std::begin(gpu_stream_pool), it));
+    for (auto const& ext : external_stream_stack) {
+        AMREX_ASSERT(ext.manager != nullptr);
+        if (ext.manager->getStream() == s) {
+            return 0;
+        }
+    }
+    const int N = gpu_stream_pool.size();
+    for (int i = 0; i < N ; ++i) {
+        if (gpu_stream_pool[i].getStream() == s) {
+            return i;
+        }
+    }
+    return N;
 }
 #endif
 
@@ -634,7 +729,7 @@ Device::setStreamIndex (int idx) noexcept
 {
     amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
-    gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[idx % max_gpu_streams];
+    gpu_stream_index[OpenMP::get_thread_num()] = idx % max_gpu_streams;
 #ifdef AMREX_USE_ACC
     amrex_set_acc_stream(idx % max_gpu_streams);
 #endif
@@ -645,50 +740,179 @@ Device::setStreamIndex (int idx) noexcept
 gpuStream_t
 Device::resetStream () noexcept
 {
-    gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
-    gpu_stream[OpenMP::get_thread_num()] = gpu_stream_pool[0];
+    gpuStream_t r = gpuStream();
+    gpu_stream_index[OpenMP::get_thread_num()] = 0;
     return r;
 }
 
 gpuStream_t
 Device::setStream (gpuStream_t s) noexcept
 {
-    gpuStream_t r = gpu_stream[OpenMP::get_thread_num()];
-    gpu_stream[OpenMP::get_thread_num()] = s;
+    int const tid = OpenMP::get_thread_num();
+    gpuStream_t r = gpuStream();
+    for (auto it = external_stream_stack.rbegin(); it != external_stream_stack.rend(); ++it) {
+        AMREX_ASSERT(it->manager != nullptr);
+        if (it->manager->getStream() == s) {
+            setStreamIndex(it->saved_stream_index);
+            return r;
+        }
+    }
+    int const idx = streamIndex(s);
+    if (idx == static_cast<int>(gpu_stream_pool.size())) {
+        amrex::Abort("Gpu::Device::setStream: stream is not managed by AMReX.");
+    }
+    gpu_stream_index[tid] = idx;
     return r;
+}
+
+void
+Device::setExternalStream (gpuStream_t s)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!OpenMP::in_parallel(),
+        "Gpu::setExternalGpuStream is not supported inside OpenMP parallel regions.");
+#if defined(AMREX_USE_CUDA)
+#  if defined(CUDART_VERSION) && (CUDART_VERSION >= 12080)
+    int stream_device = -1;
+    AMREX_CUDA_SAFE_CALL(cudaStreamGetDevice(s, &stream_device));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stream_device == Device::deviceId(),
+        "Gpu::setExternalGpuStream: external CUDA stream must belong to the active device.");
+#  else
+    amrex::ignore_unused(s); // cudaStreamGetDevice arrived in CUDA 12.8.
+#  endif
+#elif defined(AMREX_USE_HIP)
+#  if defined(HIP_VERSION_MAJOR) && defined(HIP_VERSION_MINOR) && \
+      ((HIP_VERSION_MAJOR > 5) || (HIP_VERSION_MAJOR == 5 && HIP_VERSION_MINOR >= 6))
+    hipDevice_t stream_device = -1;
+    AMREX_HIP_SAFE_CALL(hipStreamGetDevice(s, &stream_device));
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(stream_device == Device::deviceId(),
+        "Gpu::setExternalGpuStream: external HIP stream must belong to the active device.");
+#  else
+    amrex::ignore_unused(s); // hipStreamGetDevice landed in ROCm 5.6.
+#  endif
+#endif
+#ifdef AMREX_USE_SYCL
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue != nullptr,
+        "Gpu::setExternalGpuStream: null SYCL queue is not supported.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue->get_context() == Device::syclContext(),
+        "Gpu::setExternalGpuStream: external SYCL queue must use AMReX's SYCL context.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue->get_device() == Device::syclDevice(),
+        "Gpu::setExternalGpuStream: external SYCL queue must use AMReX's SYCL device.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(s.queue->has_property<sycl::property::queue::in_order>(),
+        "Gpu::setExternalGpuStream: external SYCL queue must be in-order.");
+#endif
+    // External stream overrides intentionally do not try to synchronize
+    // OpenACC stream state. AMReX does not support mixing OpenACC work into
+    // these regions.
+    external_stream_stack.emplace_back(
+        ExternalStream{std::make_unique<StreamManager>(),
+                       gpu_stream_index[OpenMP::get_thread_num()]});
+    external_stream_stack.back().manager->getStream() = s;
+}
+
+void
+Device::resetExternalStream (ExternalStreamSync sync_stream) noexcept
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!OpenMP::in_parallel(),
+        "Gpu::resetExternalGpuStream is not supported inside OpenMP parallel regions.");
+
+    if (external_stream_stack.empty()) { return; }
+
+    auto& external_stream = external_stream_stack.back();
+    if (external_stream.manager) {
+        // ExternalStreamSync::No hands synchronization responsibility back to
+        // the caller. Once the stream is popped, AMReX no longer tracks it in
+        // global stream synchronization helpers, and it is the caller's
+        // responsibility to synchronize the external stream when needed.
+        if (sync_stream == ExternalStreamSync::Yes || external_stream.manager->wait_list_size() > 0) {
+            external_stream.manager->sync();
+        }
+    }
+    int const saved_stream_index = external_stream.saved_stream_index;
+    external_stream_stack.pop_back();
+    setStreamIndex(saved_stream_index);
+}
+
+bool
+Device::usingExternalStream () noexcept
+{
+    return !external_stream_stack.empty();
 }
 #endif
 
 void
 Device::synchronize () noexcept
 {
-#ifdef AMREX_USE_SYCL
-    for (auto const& s : gpu_stream_pool) {
-        try {
-            s.queue->wait_and_throw();
-        } catch (sycl::exception const& ex) {
-            amrex::Abort(std::string("synchronize: ")+ex.what()+"!!!!!");
-        }
-    }
-#else
+#ifdef AMREX_USE_GPU
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,
                        AMREX_CUDA_SAFE_CALL(cudaDeviceSynchronize()); )
+    // After the device-wide sync completes, synchronizing all AMReX-managed
+    // streams is cheap and drains deferred frees queued on their managers.
+    streamSynchronizeAll();
 #endif
 }
 
 void
 Device::streamSynchronize () noexcept
 {
-#ifdef AMREX_USE_SYCL
-    auto& q = streamQueue();
-    try {
-        q.wait_and_throw();
-    } catch (sycl::exception const& ex) {
-        amrex::Abort(std::string("streamSynchronize: ")+ex.what()+"!!!!!");
+#ifdef AMREX_USE_GPU
+    if (!external_stream_stack.empty()) {
+        AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
+        external_stream_stack.back().manager->sync();
+    } else {
+        int tid = OpenMP::get_thread_num();
+        gpu_stream_pool[gpu_stream_index[tid]].sync();
+    }
+#endif
+}
+
+#ifdef AMREX_USE_GPU
+void
+Device::streamSynchronize (gpuStream_t s) noexcept
+{
+    bool found_external = false;
+    for (auto& ext : external_stream_stack) {
+        AMREX_ASSERT(ext.manager != nullptr);
+        if (ext.manager->getStream() == s) {
+            ext.manager->sync();
+            found_external = true;
+        }
+    }
+    if (found_external) {
+        return;
+    }
+    for (auto& mgr : gpu_stream_pool) {
+        if (mgr.getStream() == s) {
+            mgr.sync();
+            return;
+        }
+    }
+#if defined(AMREX_USE_SYCL)
+    if (s.queue != nullptr) {
+        try {
+            s.queue->wait_and_throw();
+        } catch (sycl::exception const& ex) {
+            amrex::Abort(std::string("streamSynchronize(stream): ")+ex.what()+"!!!!!");
+        }
+    } else {
+        amrex::Abort("streamSynchronize(stream): unknown SYCL stream.");
     }
 #else
-    AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(gpuStream()));,
-                       AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(gpuStream())); )
+    AMREX_HIP_OR_CUDA(
+        AMREX_HIP_SAFE_CALL(hipStreamSynchronize(s));,
+        AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(s)); )
+#endif
+}
+#endif
+
+void
+Device::streamSynchronizeActive () noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (Gpu::inSingleStreamRegion()) {
+        Gpu::streamSynchronize();
+    } else {
+        Gpu::streamSynchronizeAll();
+    }
 #endif
 }
 
@@ -696,14 +920,79 @@ void
 Device::streamSynchronizeAll () noexcept
 {
 #ifdef AMREX_USE_GPU
-#ifdef AMREX_USE_SYCL
-    Device::synchronize();
-#else
-    for (auto const& s : gpu_stream_pool) {
-        AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipStreamSynchronize(s));,
-                           AMREX_CUDA_SAFE_CALL(cudaStreamSynchronize(s)); )
+    for (auto& ext : external_stream_stack) {
+        if (ext.manager) {
+            ext.manager->sync();
+        }
+    }
+    for (auto& s : gpu_stream_pool) {
+        s.sync();
     }
 #endif
+}
+
+void
+Device::freeAsync (Arena* arena, void* mem) noexcept
+{
+#ifdef AMREX_USE_GPU
+    if (!external_stream_stack.empty()) {
+        AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
+        external_stream_stack.back().manager->free_async(arena, mem);
+    } else {
+        int tid = OpenMP::get_thread_num();
+        gpu_stream_pool[gpu_stream_index[tid]].free_async(arena, mem);
+    }
+#else
+    arena->free(mem);
+#endif
+}
+
+#ifdef AMREX_USE_GPU
+void
+Device::streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noexcept
+{
+    for (auto it = external_stream_stack.rbegin(); it != external_stream_stack.rend(); ++it) {
+        AMREX_ASSERT(it->manager != nullptr);
+        if (it->manager->getStream() == stream) {
+            it->manager->free_async(arena, mem);
+            return;
+        }
+    }
+
+    for (auto& mgr : gpu_stream_pool) {
+        if (mgr.getStream() == stream) {
+            mgr.free_async(arena, mem);
+            return;
+        }
+    }
+
+    amrex::Abort("Gpu::Device::streamOrderedFreeAsync: stream is not managed by AMReX. "
+                 "If this is an external stream, it must still be active when stream-ordered "
+                 "memory is freed.");
+}
+#endif
+
+bool
+Device::clearFreeAsyncBuffer () noexcept
+{
+#ifdef AMREX_USE_GPU
+    bool freed_memory = false;
+    for (auto& s : gpu_stream_pool) {
+        if (s.wait_list_size() > 0) {
+            s.sync();
+            freed_memory = true;
+        }
+    }
+    for (auto& ext : external_stream_stack) {
+        AMREX_ASSERT(ext.manager != nullptr);
+        if (ext.manager->wait_list_size() > 0) {
+            ext.manager->sync();
+            freed_memory = true;
+        }
+    }
+    return freed_memory;
+#else
+    return false;
 #endif
 }
 
@@ -1103,6 +1392,19 @@ void hypreSynchronize ()
 #else
     hypre_SyncCudaDevice(hypre_handle()); // works for non-cuda device too
 #endif
+#endif
+}
+#endif
+
+#ifdef AMREX_USE_GPU
+bool isStreamActive (gpuStream_t s)
+{
+#if defined(AMREX_USE_CUDA)
+    return cudaStreamQuery(s) != cudaSuccess;
+#elif defined(AMREX_USE_HIP)
+    return hipStreamQuery(s) != hipSuccess;
+#elif defined(AMREX_USE_SYCL)
+    return ! s.queue->ext_oneapi_empty();
 #endif
 }
 #endif

@@ -7,6 +7,11 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_YAFluxRegister_K.H>
 
+/**
+ * \file AMReX_YAFluxRegister.H
+ * \brief Yet-another flux register for refluxing.
+ */
+
 #ifdef AMREX_USE_OMP
 #include <omp.h>
 #endif
@@ -31,51 +36,121 @@ public:
     using T = typename MF::value_type;
     using FAB = typename MF::fab_type;
 
+    //! Construct an empty register; call define() before use.
     YAFluxRegisterT () = default;
 
+    /**
+     * \brief Fully construct the register for a fine level.
+     *
+     * \param fba       Fine BoxArray.
+     * \param cba       Coarse BoxArray.
+     * \param fdm       Distribution mapping for fine grids.
+     * \param cdm       Distribution mapping for coarse grids.
+     * \param fgeom     Fine Geometry.
+     * \param cgeom     Coarse Geometry.
+     * \param ref_ratio Refinement ratio between fine and coarse.
+     * \param fine_lev  Fine AMR level index.
+     * \param nvar      Number of components.
+     */
     YAFluxRegisterT (const BoxArray& fba, const BoxArray& cba,
                      const DistributionMapping& fdm, const DistributionMapping& cdm,
                      const Geometry& fgeom, const Geometry& cgeom,
                      const IntVect& ref_ratio, int fine_lev, int nvar);
 
+    //! Define the register using the same arguments as the constructor.
     void define (const BoxArray& fba, const BoxArray& cba,
                  const DistributionMapping& fdm, const DistributionMapping& cdm,
                  const Geometry& fgeom, const Geometry& cgeom,
                  const IntVect& ref_ratio, int fine_lev, int nvar);
 
+    //! Reset stored fluxes and flags before a coarse advance.
     void reset ();
 
+    /**
+     * \brief Add coarse-level fluxes for the tile indicated by \p mfi.
+     *
+     * \param mfi   Iterator describing the coarse tile.
+     * \param flux  Array of per-direction flux FABs.
+     * \param dx    Cell spacing array.
+     * \param dt    Coarse timestep (with sign).
+     * \param runon Execution context (host/device).
+     */
     void CrseAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt, RunOn runon) noexcept;
 
+    /**
+     * \brief Add coarse-level fluxes with component slicing.
+     *
+     * \param mfi      Iterator describing the coarse tile.
+     * \param flux     Array of per-direction flux FABs.
+     * \param dx       Cell spacing array.
+     * \param dt       Coarse timestep.
+     * \param srccomp  Starting component in the fluxes.
+     * \param destcomp Destination component in the register.
+     * \param numcomp  Number of components.
+     * \param runon    Execution context (host/device).
+     */
     void CrseAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt, int srccomp, int destcomp,
                   int numcomp, RunOn runon) noexcept;
 
+    /**
+     * \brief Add fine-level fluxes for the tile identified by \p mfi.
+     *
+     * \param mfi   Iterator describing the fine tile.
+     * \param flux  Array of per-direction flux FABs.
+     * \param dx    Fine cell spacing array.
+     * \param dt    Fine timestep (per substep).
+     * \param runon Execution context (host/device).
+     */
     void FineAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& flux,
                   const Real* dx, Real dt, RunOn runon) noexcept;
 
+    /**
+     * \brief Add fine-level fluxes with component slicing.
+     *
+     * \param mfi      Iterator describing the fine tile.
+     * \param a_flux   Array of per-direction flux FABs.
+     * \param dx       Fine cell spacing array.
+     * \param dt       Fine timestep.
+     * \param srccomp  Starting component in the fluxes.
+     * \param destcomp Destination component in the register.
+     * \param numcomp  Number of components.
+     * \param runon    Execution context (host/device).
+     */
     void FineAdd (const MFIter& mfi,
                   const std::array<FAB const*, AMREX_SPACEDIM>& a_flux,
                   const Real* dx, Real dt, int srccomp, int destcomp,
                   int numcomp, RunOn runon) noexcept;
 
+    /**
+     * \brief Apply the accumulated flux divergence to the coarse MultiFab \p state.
+     *
+     * \param state Coarse solution MultiFab to update.
+     * \param dc    Destination component offset.
+     */
     void Reflux (MF& state, int dc = 0);
+
+    //! Component-aware version of Reflux writing components [destcomp,destcomp+numcomp).
     void Reflux (MF& state, int srccomp, int destcomp, int numcomp);
 
+    //! Return true if coarse tile \p mfi abuts a coarse/fine boundary.
     bool CrseHasWork (const MFIter& mfi) const noexcept {
         return m_crse_fab_flag[mfi.LocalIndex()] != crse_cell;
     }
 
+    //! Return true if fine tile \p mfi has flux registers to update.
     bool FineHasWork (const MFIter& mfi) const noexcept {
         return !(m_cfp_fab[mfi.LocalIndex()].empty());
     }
 
+    //! Mutable access to fine-side accumulation data.
     MF& getFineData ();
 
+    //! Mutable access to coarse-side accumulation data.
     MF& getCrseData ();
 
     enum CellType : int {
@@ -83,12 +158,14 @@ public:
         crse_cell = 0, crse_fine_boundary_cell, fine_cell
     };
 
-    //! For curvilinear coordinates only. In that case, the flux passed to
-    //! YAFluxRegister is assumed to have been multiplied by area. Note that
-    //! YAFluxRegister does NOT make a copy of the volume data. So the
-    //! coarse volume MF must be alive during the life time of
-    //! YAFluxRegister.
+    //! For curvilinear coordinates only, where the supplied flux has already
+    //! been multiplied by area. Provide the coarse-volume MultiFab \p cvol and
+    //! keep it alive for the register lifetime (YAFluxRegister does not copy it).
     void setCrseVolume (MF const* cvol) { m_cvol = cvol; }
+
+    //! Enable deterministic mode for GPU operations via \p flag (uses deterministic reductions).
+    void setDeterministic (bool flag) { m_deterministic = flag; }
+    [[nodiscard]] bool getDeterministic () const { return m_deterministic; }
 
 protected:
 
@@ -109,6 +186,7 @@ protected:
     int m_ncomp;
 
     MF const* m_cvol = nullptr;
+    bool m_deterministic = false;
 };
 
 template <typename MF>
@@ -538,7 +616,9 @@ YAFluxRegisterT<MF>::Reflux (MF& state, int srccomp, int destcomp, int numcomp)
         }
     }
 
-    m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp, m_crse_geom.periodicity(), FabArrayBase::ADD);
+    m_crse_data.ParallelCopy(m_cfpatch, srccomp, srccomp, numcomp,
+                             IntVect(0), IntVect(0), m_crse_geom.periodicity(),
+                             FabArrayBase::ADD, nullptr, m_deterministic);
 
     BL_ASSERT(state.nComp() >= destcomp + numcomp);
     if (m_cvol) {

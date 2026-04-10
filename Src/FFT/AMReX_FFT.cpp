@@ -1,44 +1,56 @@
 #include <AMReX_FFT.H>
 #include <AMReX_FFT_Helper.H>
+#include <AMReX_OpenMP.H>
 
 #include <map>
 
-namespace amrex::FFT
+/// \cond DOXYGEN_IGNORE
+namespace amrex::FFT::detail
 {
 
 namespace
 {
-    bool s_initialized = false;
+    long long s_initialized = 0;
     std::map<Key, PlanD> s_plans_d;
     std::map<Key, PlanF> s_plans_f;
 }
 
 void Initialize ()
 {
-    if (!s_initialized)
+    if (s_initialized == 0)
     {
-        s_initialized = true;
-
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_setup());
+#elif !defined(AMREX_USE_GPU) && defined(AMREX_USE_MULTI_THREADED_FFTW)
+        fftw_init_threads();
+        fftwf_init_threads();
+        fftw_plan_with_nthreads(amrex::OpenMP::get_max_threads());
+        fftwf_plan_with_nthreads(amrex::OpenMP::get_max_threads());
 #endif
     }
 
-    amrex::ExecOnFinalize(amrex::FFT::Finalize);
+    ++s_initialized;
+
+    amrex::ExecOnFinalize(amrex::FFT::detail::Finalize);
 }
 
 void Finalize ()
 {
-    if (s_initialized)
+    if (s_initialized == 1)
     {
-        s_initialized = false;
-
         Clear();
 
 #if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
         AMREX_ROCFFT_SAFE_CALL(rocfft_cleanup());
 #endif
+        // We are not calling fftw[f]_cleanup_threads and fftw_cleanup here
+        // to deallocate a small amount of persist data used by FFTW. This
+        // can be regarded as a benign memory "leak". Trying to clean up
+        // fftw data here sometimes causes memory issues when application
+        // codes still have ffftw plans to be destroyed.
     }
+
+    if (s_initialized > 0) { --s_initialized; }
 }
 
 void Clear ()
@@ -50,6 +62,9 @@ void Clear ()
     for (auto& [k, p] : s_plans_f) {
         Plan<float>::destroy_vendor_plan(p);
     }
+
+    s_plans_d.clear();
+    s_plans_f.clear();
 }
 
 PlanD* get_vendor_plan_d (Key const& key)
@@ -80,11 +95,6 @@ void add_vendor_plan_f (Key const& key, PlanF plan)
     s_plans_f[key] = plan;
 }
 
-}
-
-namespace amrex::FFT::detail
-{
-
 DistributionMapping make_iota_distromap (Long n)
 {
     AMREX_ASSERT(n <= ParallelContext::NProcsSub());
@@ -95,7 +105,7 @@ DistributionMapping make_iota_distromap (Long n)
     return DistributionMapping(std::move(pm));
 }
 
-#ifdef AMREX_USE_HIP
+#if defined(AMREX_USE_HIP) && defined(AMREX_USE_FFT)
 void hip_execute (rocfft_plan plan, void **in, void **out)
 {
     rocfft_execution_info execinfo = nullptr;
@@ -350,3 +360,4 @@ GpuArray<int,3> SubHelper::xyz_order () const
 }
 
 }
+/// \endcond

@@ -63,6 +63,9 @@ Tutorials/EB/Donut/Exec/ls_plt*
 Tools/GNUMake/Make.local
 Tools/GNUMake/Make.local-pre
 
+# agent scratchpads
+agent-notes/
+
 # profparser
 BLProfParser.lex.yy.cpp
 BLProfParser.tab.H

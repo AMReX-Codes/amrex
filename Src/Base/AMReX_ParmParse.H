@@ -34,6 +34,7 @@ template<int dim>
 class RealVectND;
 using RealVect = RealVectND<AMREX_SPACEDIM>;
 
+/// \cond DOXYGEN_IGNORE
 namespace ppdetail {
     template <class T, class Enable = void>
     struct ArithmeticOptional_TT : std::false_type {};
@@ -59,6 +60,7 @@ namespace ppdetail {
     template <class T>
     using underlying_type_t = typename ArithmeticOptional_TT<T>::value_type;
 }
+/// \endcond
 
 //
 // ParmParse class implements a simple database for the storage and
@@ -228,6 +230,7 @@ namespace ppdetail {
 
 
 /**
+* \ingroup amrex_utilities
 * \brief  Parse Parameters From Command Line and Input Files
 *
 *  The ParmParse class is used to interpret parameters passed in to a program
@@ -322,6 +325,8 @@ namespace ppdetail {
 *    t = 1.5
 *    #endif
 * \endcode
+*
+* Preprocessing of `#ifdef AMREX_USE_GPU` and `#ifndef AMREX_USE_GPU` is also supported.
 *
 *  Math expression is supported for integers and reals. For example
 *
@@ -609,12 +614,14 @@ public:
     //! Add a key 'name' with value 'val' to the end of the PP table.
     void add (std::string_view name, const std::string& val);
 
+    //! Convert const char * to string, to prevent auto-conversion to bool
+    void add (std::string_view name, const char* val) { add(name, std::string(val)); }
 
     //! Similar to get() but store the whole line including empty spaces in
     //! the middle if present as a single string. For example, `foo = a b c`
     //! is treated by this function as a single string "a b c", whereas
     //! get() will give only "a" and getarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -624,7 +631,7 @@ public:
     //! in the middle if present as a single string. For example, `foo = a b
     //! c` is treated by this function as a single string "a b c", whereas
     //! query() will give only "a" and queryarr() will store the results in
-    //! `std::vectcor<std::string>`. Note this does not preserve the number
+    //! `std::vector<std::string>`. Note this does not preserve the number
     //! of empty spaces, because of how ParmParse parses the line. For
     //! example, `a b  c` with two spaces between `b` and `c` will become "a
     //! b c".
@@ -904,7 +911,7 @@ public:
                      std::vector<std::string>& ref,
                      int                       start_ix = FIRST,
                      int                       num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view          name,
                   std::vector<std::string>& ref,
                   int                       start_ix = FIRST,
@@ -939,7 +946,7 @@ public:
                      std::vector<IntVect>& ref,
                      int                   start_ix = FIRST,
                      int                   num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view      name,
                   std::vector<IntVect>& ref,
                   int                   start_ix = FIRST,
@@ -974,7 +981,7 @@ public:
                      std::vector<Box>& ref,
                      int               start_ix = FIRST,
                      int               num_val = ALL) const;
-    //! Same as queryktharr() but searches for last occurrence of name.2
+    //! Same as queryktharr() but searches for last occurrence of name.
     int queryarr (std::string_view  name,
                   std::vector<Box>& ref,
                   int               start_ix = FIRST,
@@ -1652,6 +1659,31 @@ public:
     }
 
     /**
+     * \brief Query vector of vector. The return value indicates whether
+     * it's found. The vector of vector is in the format of
+     * `[[a00, a01, a02...], [a10, a11, a12...], ...]`.
+     */
+    int queryarr (std::string_view name, std::vector<std::vector<double>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<float>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<int>>& ref) const;
+    int queryarr (std::string_view name, std::vector<std::vector<std::string>>& ref) const;
+
+    /**
+     * \brief Get vector of vector. It's an error if it is not found.  The
+     * vector of vector is in the format of `[[a00, a01, a02...], [a10, a11, a12...], ...]`.
+     */
+    template <typename T>
+    void getarr (std::string_view name, std::vector<std::vector<T>>& ref) const
+    {
+        if (this->queryarr(name, ref) == 0) {
+            amrex::ErrorStream() << "ParmParse::getarr: " << name
+                                 << " not found in database\n";
+            ParmParse::dumpTable(amrex::ErrorStream());
+            amrex::Abort();
+        }
+    }
+
+    /**
     * \brief Construct an initial ParmParse object from the argc and argv
     * passed in to main().  An error will be signalled if another
     * ParmParse object currently exists.  If parfile is specified,
@@ -1660,7 +1692,7 @@ public:
     */
     static void Initialize (int argc, char** argv, const char* parfile);
     static void Initialize (int argc, char** argv, const std::string& parfile) {
-        return Initialize(argc, argv, parfile.c_str());
+        Initialize(argc, argv, parfile.c_str());
     }
     /**
     * \brief The destructor.  The internal static table will only be deleted
@@ -1674,11 +1706,14 @@ public:
     static int Verbose ();
     static void SetVerbose (int v);
 
-    //! Write the contents of the table in ASCII to the ostream.
+    //! Write the contents of the table in ASCII to the ostream (diagnostic only, not valid ParmParse syntax).
+    //! Diagnostic view of the internal table. This text is not valid ParmParse syntax
+    //! and is meant for debugging only; use prettyPrintTable() for canonical, re-readable output.
     static void dumpTable (std::ostream& os, bool prettyPrint = false);
 
-    //! Write all entries in the table in a pretty way to the ostream. If there are
-    //! duplicates, only the last one is printed.
+    //! Write all entries in ParmParse syntax suitable for re-reading. If
+    //! there are duplicates, only the last one is printed; the output can be fed
+    //! back to ParmParse via addfile/Initialize.
     static void prettyPrintTable (std::ostream& os);
 
     //! Write unused inputs in a pretty way to the ostream. If there are
@@ -1703,14 +1738,21 @@ public:
     //! Returns [prefix.]* parameters.
     [[nodiscard]] static std::set<std::string> getEntries (const std::string& prefix = std::string());
 
+    enum class QuoteType : unsigned char {
+        None = 0,
+        Double,
+        Triple
+    };
+
     struct PP_entry {
         // There can be multiple occurrences for a given name (e.g.,
         // multiple lines starting with `foo =` in inputs. For each
         // occurrence, there can be multiple values. Thus, the use of
         // vector<vector<std::string>>.
         std::vector<std::vector<std::string>> m_vals;
+        std::vector<std::vector<QuoteType>>   m_quotes;
         mutable Long                          m_count = 0;
-        std::variant<
+        mutable std::variant<
             std::string*,
             bool*,
             int*,
@@ -1721,6 +1763,8 @@ public:
             float*,
             double*
         > m_typehint = static_cast<std::string*>(nullptr);
+        mutable std::vector<std::variant<bool, int, long, long long, float, double>> m_last_vals;
+        mutable bool m_parsed = false;
     };
     using Table = std::unordered_map<std::string, PP_entry>;
 
@@ -1728,6 +1772,9 @@ public:
 
     //! keyword for files to load
     static std::string const FileKeyword;
+
+    //! keyword for removing entries from the table
+    static std::string const UnsetKeyword;
 
     static std::string ParserPrefix;
 

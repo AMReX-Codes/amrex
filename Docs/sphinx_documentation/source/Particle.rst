@@ -24,24 +24,47 @@ type of components that the particles carry. The first template parameter is the
 number of extra :cpp:`Real` variables this particle will have (either single or
 double precision [1]_), while the second is the number of extra integer
 variables.  It is important to note that this is the number of *extra* real and
-integer variables; a particle will always have at least :cpp:`BL_SPACEDIM` real
-components that store the particle's position and 2 integer components that
-store the particle's :cpp:`id` and :cpp:`cpu` numbers. [2]_
+integer variables; a particle will always have at least :cpp:`AMREX_SPACEDIM` real
+components that store the particle's position and one 64-bit integer component that
+stores a combination of the particle's unique `id` and `cpu` numbers.
 
-The particle struct is designed to store these variables in a way that
-minimizes padding, which in practice means that the :cpp:`Real` components
-always come first, and the integer components second. Additionally, the
-required particle variables are stored before the optional ones, for both the
-real and the integer components. For example, say we want to define a particle
-type that stores a mass, three velocity components, and two extra integer
-flags. Our particle struct would be set up like:
+The particle struct is stored such that the :cpp:`Real` components come first
+and the integer component second. Additionally, the required particle variables
+are stored before the optional ones, for both the real and the integer components.
+For example, say we want to define a particle type that stores a mass, three velocity
+components, and two extra integer flags. Our particle struct would be declared like:
 
 ::
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`BL_SPACEDIM` is 3):
-:cpp:`x y z m vx vy vz id cpu flag1 flag2`.  [3]_
+and the order of the particle components would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
+:cpp:`x y z m vx vy vz idcpu flag1 flag2`.  [2]_
+
+The `idcpu` variable stores a combination of the MPI process a particle was generated on
+(the `cpu`) and an identification number that is specific to that process (the `id`).
+The combination of these numbers is unique across processes. This is done to facilitate
+the creation of particle initial conditions in parallel. In storing these
+identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550 billion
+possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
+unique (MPI) processes.
+
+One bit is devoted to marking a particle valid or invalid. This is often used to remove particles from a
+simulation. During :cpp:`Redistribute()`, particles with
+invalid ids are removed from the simulation by default, although this behavior is customizable. Particles
+with invalid ids are also not written out during plotfile writes or checkpoint / restart operations.
+The allowed values for :cpp:`p.id()` are `0` to `2**39 - 1`, and the allowed values for :cpp:`p.cpu()` are
+`0` to `2**24 - 1`.
+
+To pack and unpack these numbers, one uses the following syntax:
+
+::
+
+       Particle <0, 0> p;
+       p.id() = 1;
+       p.cpu() = 0;
+       amrex::Print() << p.m_idcpu << "\n"; // 9223372036871553024
+       amrex::Print() << p.id() << " " << p.cpu() << "\n"; // 1 0
 
 Setting Particle data
 ---------------------
@@ -124,10 +147,10 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
    In this case, each tile in the particle container has five arrays: one with
    the particle struct data, two additional real arrays, and two additional
    integer arrays.  In the tile shown, there are only 2 particles. We have
-   labelled the extra real data member of the particle struct to be
+   labeled the extra real data member of the particle struct to be
    ``mass``, while the extra integer members of the particle struct are
    labeled ``p``, and ``s``, for "phase" and "state". The variables in
-   the real and integer arrays are labelled ``foo``, ``bar``, ``l``,
+   the real and integer arrays are labeled ``foo``, ``bar``, ``l``,
    and ``n``, respectively. We have assumed that the particles are double
    precision.
 
@@ -135,24 +158,15 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
 
    \end{center}
 
-To see why the distinction between AoS and SoA data is important, consider the
-following extreme case. Say you have particles that carry 100 different
-components, but that most of the time, you only need to do calculations
-involving 3 of them (say, the particle positions) at once. In this case,
-storing all 100 particle variables in the particle struct is clearly
-inefficient, since most of the time you are reading 97 extra variables into
-cache that you will never use. By splitting up the particle variables into
-stuff that gets used all the time (stored in the AoS) and stuff that only gets
-used infrequently (stored in the SoA), you can in principle achieve much better
-cache reuse. Of course, the usage pattern of your application likely won't be
-so clear-cut. Flexibility in how the particle data is stored also makes it
-easier to interface between AMReX and already-existing Fortran subroutines.
+.. attention::
 
-Note that while "extra" particle data can be stored in either the SoA or AoS
-style, the particle positions and id numbers are **always** stored in the
-particle structs. This is because these particle variables are special and used
-internally by AMReX to assign the particles to grids and to mark particles as
-valid or invalid, respectively.
+   The ability to store particle data in AoS form is provided for backward
+   compatibility and convenience; however, for performance reasons, whether
+   targeting CPU or GPU execution, we recommend storing extra particle variables in SoA form.
+   Additionally, starting in AMReX version 23.05, the ability to store *all* particle
+   data, including the particle positions and `idcpu` numbers, is provided via the
+   :cpp:`amrex::ParticleContainerPureSoA` class. Details on using pure SoA particles
+   are provided in the section on :ref:`sec:Particles:PureSoA`.
 
 Constructing ParticleContainers
 -------------------------------
@@ -207,7 +221,7 @@ The :cpp:`ParticleContainer` stores the particle data in a manner prescribed by
 the set of AMR grids used to define it. Local particle data is always stored in
 a data structure called a :cpp:`ParticleTile`, which contains a mixture of AoS
 and SoA components as described above. The tiling behavior of :cpp:`ParticleTile`
-is determined by the parameter, ``particle.do_tiling``:
+is determined by the parameter ``particles.do_tiling``:
 
 -  If ``particles.do_tiling=0``, then there is always exactly one
    :cpp:`ParticleTile` per grid. This is equivalent to setting a very large
@@ -217,7 +231,7 @@ is determined by the parameter, ``particle.do_tiling``:
    :cpp:`ParticleTile` objects associated with it based on the
    ``particles.tile_size`` parameter.
 
-The AMR grid to which a particle is assigned, is determined by examining its
+The AMR grid to which a particle is assigned is determined by examining its
 position and binning it, using the domain left edge as an offset. By default,
 a particle is assigned to
 the finest level that contains its position, although this behavior can be
@@ -227,7 +241,7 @@ tweaked if desired.
 .. note::
 
    :cpp:`ParticleTile` data tiling with :ref:`MFIter<sec:basics:mfiter>` behaves differently than mesh
-   data. With mesh data, the tiling is strictly logical --the data is laid out in
+   data. With mesh data, the tiling is strictly logical; the data is laid out in
    memory the same way whether tiling is turned on or off.
    With particle data, however, the particles are actually stored in different
    arrays when tiling is enabled. As with mesh data, the particle tile size can be
@@ -354,7 +368,7 @@ particles to the container, you call the :cpp:`DefineAndReturnParticleTile` meth
 for each tile prior to adding any particles. This will make sure the space
 for the new components has been allocated. For example, in the above section
 on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed
-the particle tile data using the :cpp:`GetParticles` method. If we runtime components
+the particle tile data using the :cpp:`GetParticles` method. If runtime components
 are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
@@ -440,8 +454,7 @@ example:
            real(amrex_particle_real) :: pos(3)
            real(amrex_particle_real) :: vel(3)
            real(amrex_particle_real) :: acc(3)
-           integer(c_int)   :: id
-           integer(c_int)   :: cpu
+           integer(c_int64_t) :: idcpu
         end type particle_t
 
 is equivalent to a particle struct you get with :cpp:`Particle<6, 0>`. Here,
@@ -450,6 +463,41 @@ on whether ``USE_SINGLE_PRECISION_PARTICLES`` is ``TRUE`` or not. We recommend
 always using this type in Fortran routines that work on particle data to avoid
 hard-to-debug incompatibilities between floating point types.
 
+.. _sec:Particles:PureSoA:
+
+Pure Struct-of-Array Particles
+------------------------------
+
+Beginning with AMReX version 24.05, the requirement that the particle positions
+and ids be stored in AoS form has been lifted. Users can now use the class
+:cpp:`amrex::ParticleContainerPureSoA`, which stores all components in SoA form.
+When using data layout, it is assumed that the first :cpp:`AMREX_SPACEDIM` :cpp:`Real`
+components store the particle position variables, which are used internally to map
+particle coordinates to grids and cells.
+
+For the most part, functions that work on the standard :cpp:`ParticleContainer` will
+also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to access
+the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
+particularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
+allows the same code to work with both AoS and pure SoA particles. For example, within
+a ``ParIter`` loop, one can do:
+
+.. highlight:: c++
+
+::
+
+    // Iterating over SoA Particles
+    ParticleTileDataType ptd = pti.GetParticleTile().getParticleTileData();
+
+    ParallelFor( np, [=] AMREX_GPU_DEVICE (long ip)
+    {
+        ParticleType p = ptd[ip];  // p will be a different type for AoS and pure SoA
+        // use p.pos(0), p.id(), etc.
+    }
+
+In this way, code can be written that is agnostic as to the data layout. For more examples
+of pure SoA particles, please see the SOA tests in :cpp:`amrex/Tests/Particles/`, or refer
+to `WarpX <https://github.com/BLAST-WarpX/warpx>`_, `Hipace++ <https://github.com/Hi-PACE/hipace>`_, or `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_, which use this type of particle container.
 
 .. _sec:Particles:Interacting:
 
@@ -473,7 +521,7 @@ is performed internally. Additionally, these methods support both a single-grid
 the needed parallel communication is also performed internally.
 
 We show examples of these types of operations below. The first snippet shows
-how to deposit a particle quantiy from the first real component of the particle
+how to deposit a particle quantity from the first real component of the particle
 data to the first component of a :cpp:`MultiFab` using linear interpolation.
 
 .. highlight:: c++
@@ -584,15 +632,15 @@ of each other using a variety of methods.
 .. figure:: ./Particle/neighbor_particles.png
    :width: 75.0%
 
-   : An illustration of filling neighbor particles for short-range force
+   An illustration of filling neighbor particles for short-range force
    calculations. Here, we have a domain consisting of one :math:`32 \times 32`
    grid, broken up into :math:`8 \times 8` tiles. The number of ghost cells is
    taken to be :math:`1`.  For the tile in green, particles on other tiles in
-   the entire shaded region will copied and packed into the green tile's
+   the entire shaded region will be copied and packed into the green tile's
    neighbor buffer. These particles can then be included in the force
    calculation. If the domain is periodic, particles in the grown region for
    the blue tile that lie on the other side of the domain will also be copied,
-   and their positions will modified so that a naive distance calculation
+   and their positions will be modified so that a naive distance calculation
    between valid particles and neighbors will be correct.
 
 .. raw:: latex
@@ -704,8 +752,8 @@ that have their own collision criteria by overloading the virtual
 
 .. _sec:Particles:IO:
 
-Particle IO
-===========
+Particle I/O
+============
 
 AMReX provides routines for writing particle data to disk for analysis,
 visualization, and for checkpoint / restart. The most important methods are the
@@ -713,7 +761,7 @@ visualization, and for checkpoint / restart. The most important methods are the
 :cpp:`ParticleContainer`, which all use a parallel-aware binary file format for
 reading and writing particle data on a grid-by-grid basis. These methods are
 designed to complement the functions in AMReX_PlotFileUtil.H for performing
-mesh data IO. For example:
+mesh data I/O. For example:
 
 .. highlight:: c++
 
@@ -724,12 +772,12 @@ mesh data IO. For example:
     pc.Checkpoint("plt00000", "particle0");
 
 
-will create a plot file called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
+will create a plotfile called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is readable by either :cpp:`yt` or :cpp:`Paraview`. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
+The binary file format is readable by either :cpp:`yt` or :cpp:`ParaView`. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
-Inputs parameters
-=================
+Input parameters
+================
 
 .. _sec:Particles:parameters:
 
@@ -746,14 +794,14 @@ with OpenMP, the first thing to look at is whether there are enough tiles availa
 | do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | false       |
 |                   | and off when running on GPUs.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| tile_size         | If tiling is on, the maximum tile_size to in each direction           | Ints        | 1024000,8,8 |
+| tile_size         | If tiling is on, the maximum tile_size in each direction              | Ints        | 1024000,8,8 |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
-The next set concerns runtime parameters that control the particle IO. Parallel file systems tend not to like it when
+The next set concerns runtime parameters that control particle I/O. Parallel file systems tend not to like it when
 too many MPI tasks touch the disk at once. Additionally, performance can degrade if all MPI tasks try writing to the
 same file, or if too many small files are created. In general, the "correct" values of these parameters will depend on the
 size of your problem (i.e., number of boxes, number of MPI tasks), as well as the system you are using. If you are experiencing
-problems with particle IO, you could try varying some / all of these parameters.
+problems with particle I/O, you could try varying some or all of these parameters.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 |                   | Description                                                           |   Type      | Default     |
@@ -766,12 +814,12 @@ problems with particle IO, you could try varying some / all of these parameters.
 | nparts_per_read   | How many particles each task should read from said files before       | Ints        | 100000      |
 |                   | calling Redistribute                                                  |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| datadigits_read   | This for backwards compatibility, don't use unless you need to read   | Int         | 5           |
-|                   | and old (pre mid 2017) AMReX dataset.                                 |             |             |
+| datadigits_read   | This is for backward compatibility; do not use it unless you need     | Int         | 5           |
+|                   | to read an old (pre-mid-2017) AMReX dataset.                          |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 | use_prepost       | This is an optimization for large particle datasets that groups MPI   | Bool        | false       |
-|                   | calls needed during the IO together. Try it seeing poor IO speeds     |             |             |
-|                   | on large problems.                                                    |             |             |
+|                   | calls needed during the I/O together. Try it if you are seeing poor   |             |             |
+|                   | I/O speeds on large problems.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
 The following runtime parameters affect the behavior of virtual particles in Nyx.
@@ -785,7 +833,7 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
 |                   | "Cell" - when creating virtuals, combine all particles that are       |             |             |
 |                   | in the same cell.                                                     |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| aggregation_buffer| If aggregation on, the number of cells around the coarse/fine         | Int         | 2           |
+| aggregation_buffer| If aggregation is on, the number of cells around the coarse/fine      | Int         | 2           |
 |                   | boundary in which no aggregation should be performed.                 |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
@@ -793,9 +841,6 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
    Particles default to double precision for their real data. To use single precision, compile your code with ``USE_SINGLE_PRECISION_PARTICLES=TRUE``.
 
 .. [2]
-   Note that :cpp:`cpu` stores the number of the process the particle was *generated* on, not the one it's currently assigned to. This number is set on initialization and never changes, just like the particle :cpp:`id`. In essence, the particles have two integer id numbers, and only the combination of the two is unique. This was done to facilitate the creation of particle initial conditions in parallel.
-
-.. [3]
    Note that for the extra particle components, which component refers to which
    variable is an application-specific convention - the particles have 4 extra real comps, but which one is "mass" is up
    to the user. We suggest using an :cpp:`enum` to keep these indices straight; please

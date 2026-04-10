@@ -1,6 +1,10 @@
 name: LinuxClang
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-linux-clang
@@ -13,19 +17,19 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library_clang:
-    name: Clang@18 C++17 SP NOMPI Debug [lib]
+    name: Clang@18 SP NOMPI Debug [lib]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 18
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -44,6 +48,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex      \
@@ -64,7 +69,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         export PATH=/tmp/my-amrex/bin:$PATH
@@ -76,19 +81,19 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_clang:
-    name: Clang@14.0 C++17 SP Particles DP Mesh Debug [tests]
+    name: Clang@14.0 SP Particles DP Mesh Debug [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 14
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -108,6 +113,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                      \
+            -DCMAKE_CXX_STANDARD=20                   \
             -DCMAKE_BUILD_TYPE=Debug                  \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
             -DAMReX_FFT=ON                            \
@@ -125,7 +131,7 @@ jobs:
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ctest --output-on-failure
@@ -134,19 +140,19 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_cxx20:
-    name: Clang C++20 [tests]
+    name: Clang [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang.sh 15
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -165,6 +171,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                                      \
+            -DCMAKE_CXX_STANDARD=20                   \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo         \
             -DCMAKE_VERBOSE_MAKEFILE=ON               \
             -DAMReX_FFT=ON                            \
@@ -172,7 +179,6 @@ jobs:
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=OFF                       \
             -DAMReX_MPI=ON                            \
-            -DCMAKE_CXX_STANDARD=20                   \
             -DCMAKE_C_COMPILER=$(which clang-15)      \
             -DCMAKE_CXX_COMPILER=$(which clang++-15)  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
@@ -190,14 +196,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_clang.sh 14
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -214,12 +220,12 @@ jobs:
 
         ./configure --dim 2 --with-fortran no --comp llvm --with-mpi no --enable-fft yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names" \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s

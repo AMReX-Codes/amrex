@@ -51,10 +51,10 @@ AmrCoreAdv::DefineVelocityAtLevel (int lev, Real time)
             Array4<Real> psi = psifab.array();
             GeometryData geomdata = geom[lev].data();
 
-            amrex::launch(psibox,
-            [=] AMREX_GPU_DEVICE (const Box& tbx)
+            amrex::ParallelFor(psibox,
+            [=] AMREX_GPU_DEVICE (int i, int j, int)
             {
-                get_face_velocity_psi(tbx, time, psi, geomdata);
+                get_face_velocity_psi(i, j, time, psi, geomdata);
             });
 
             amrex::ParallelFor

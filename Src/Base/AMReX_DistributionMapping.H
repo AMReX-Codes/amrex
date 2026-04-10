@@ -24,6 +24,8 @@ template <typename T> class LayoutData;
 class FabArrayBase;
 
 /**
+* \class amrex::DistributionMapping
+* \ingroup amrex_domain_decomposition
 * \brief Calculates the distribution of FABs to MPI processes.
 *
 *  This class calculates the distribution of FABs to MPI processes in a
@@ -124,7 +126,7 @@ class DistributionMapping
     [[nodiscard]] const Vector<int>& ProcessorMap () const noexcept;
 
     //! Length of the underlying processor map.
-    [[nodiscard]] Long size () const noexcept { return Long(m_ref->m_pmap.size()); }
+    [[nodiscard]] Long size () const noexcept { return m_ref->m_pmap.size(); }
     [[nodiscard]] Long capacity () const noexcept { return Long(m_ref->m_pmap.capacity()); }
     [[nodiscard]] bool empty () const noexcept { return m_ref->m_pmap.empty(); }
 
@@ -203,10 +205,10 @@ class DistributionMapping
      * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
-     * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
+     * @param[in,out] currentEfficiency On the root process, this is the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency writes the efficiency for the proposed
+     * @param[in,out] proposedEfficiency On the root process, this is the efficiency for the proposed
      *                distribution mapping
      * @param[in] nmax the maximum number of boxes that can be assigned to any
      *            MPI rank by the knapsack algorithm
@@ -242,10 +244,10 @@ class DistributionMapping
      * @param[in] rcost_local LayoutData of costs; contains, e.g., costs for the
      *            local boxes in the FAB array, corresponding indices in the global
      *            indices in the FAB array, and the distribution mapping
-     * @param[in,out] currentEfficiency writes the efficiency (i.e., mean cost over
+     * @param[in,out] currentEfficiency On the root process, this is the efficiency (i.e., mean cost over
      *                all MPI ranks, normalized to the max cost) given the current
      *                distribution mapping
-     * @param[in,out] proposedEfficiency writes the efficiency for the proposed
+     * @param[in,out] proposedEfficiency On the root process, this is the efficiency for the proposed
      *                distribution mapping
      * @param[in] broadcastToAll controls whether to transmit the proposed
      *            distribution mapping to all other processes; setting this to
@@ -281,6 +283,10 @@ class DistributionMapping
     static void ComputeDistributionMappingEfficiency (const DistributionMapping& dm,
                                                       const std::vector<T>& cost,
                                                       Real* efficiency);
+
+    //! Convert cost vector from Real to Long. Other than convenience, this
+    //! also provides a consistent way for the conversion.
+    static Vector<Long> ConvertCostRealToLong (const Vector<Real>& rcost);
 
     [[nodiscard]] std::weak_ptr<Ref> getWeakRef () const;
 

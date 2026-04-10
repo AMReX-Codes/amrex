@@ -23,6 +23,7 @@
 #include <AMReX_Math.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_MemPool.H>
+#include <AMReX_TypeTraits.H>
 
 #include <cmath>
 #include <cstdlib>
@@ -38,6 +39,8 @@
 namespace amrex
 {
 
+/// \cond DOXYGEN_IGNORE
+
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs;
 extern std::atomic<Long> atomic_total_bytes_allocated_in_fabs_hwm;
 extern std::atomic<Long> atomic_total_cells_allocated_in_fabs;
@@ -52,6 +55,8 @@ extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs)
 #pragma omp threadprivate(private_total_cells_allocated_in_fabs_hwm)
 #endif
+
+/// \endcond
 
 Long TotalBytesAllocatedInFabs () noexcept;
 Long TotalBytesAllocatedInFabsHWM () noexcept;
@@ -130,6 +135,8 @@ placementDelete (T* const ptr, Long n)
 }
 
 /**
+ * \class amrex::BaseFab
+ * \ingroup amrex_fab_containers
  * \brief A FortranArrayBox(FAB)-like object
  *
  * BaseFab emulates the Fortran array concept.
@@ -327,7 +334,7 @@ public:
     */
     [[nodiscard]] bool contains (const BaseFab<T>& fab) const noexcept
     {
-        return box().contains(fab.box()) && this->nvar <= fab.nvar;
+        return box().contains(fab.box()) && this->nvar >= fab.nvar;
     }
 
     /**
@@ -1536,33 +1543,33 @@ BaseFab<T>::BaseFab (const Box& bx, int ncomp, T const* p)
 template<class T>
 BaseFab<T>::BaseFab (Array4<T> const& a) noexcept
     : dptr(a.p),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1))),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T> const& a, IndexType t) noexcept
     : dptr(a.p),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1)), t),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T const> const& a) noexcept
     : dptr(const_cast<T*>(a.p)),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1))),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1))),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template<class T>
 BaseFab<T>::BaseFab (Array4<T const> const& a, IndexType t) noexcept
     : dptr(const_cast<T*>(a.p)),
-      domain(IntVect(AMREX_D_DECL(a.begin.x,a.begin.y,a.begin.z)),
-             IntVect(AMREX_D_DECL(a.end.x-1,a.end.y-1,a.end.z-1)), t),
-      nvar(a.ncomp), truesize(a.ncomp*a.nstride)
+      domain(IntVect(AMREX_D_DECL(a.begin[0],a.begin[1],a.begin[2])),
+             IntVect(AMREX_D_DECL(a.end[0]-1,a.end[1]-1,a.end[2]-1)), t),
+      nvar(a.nComp()), truesize(a.size())
 {}
 
 template <class T>
@@ -1699,12 +1706,9 @@ BaseFab<T>::clear () noexcept
             placementDelete(this->dptr, this->truesize);
 
 #ifdef AMREX_USE_GPU
-            auto current_stream = Gpu::Device::gpuStream();
-            Gpu::Device::setStream(alloc_stream);
-#endif
+            this->arena()->streamOrderedFree(this->dptr, alloc_stream);
+#else
             this->free(this->dptr);
-#ifdef AMREX_USE_GPU
-            Gpu::Device::setStream(current_stream);
 #endif
 
             if (this->nvar > 1) {
@@ -2178,7 +2182,7 @@ BaseFab<T>::indexFromValue (Box const& subbox, int comp, T const& value) const n
         });
         Gpu::dtoh_memcpy_async(ha.data(), p, sizeof(int)*ha.size());
         Gpu::streamSynchronize();
-        return IntVect(AMREX_D_DECL(ha[1],ha[2],ha[2]));
+        return IntVect(AMREX_D_DECL(ha[1],ha[2],ha[3]));
     } else
 #endif
     {
@@ -2841,6 +2845,39 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     return *this;
 }
 
+namespace detail
+{
+
+template <RunOn run_on, typename T,
+          std::enable_if_t<HasAtomicAdd<T>::value,int> FOO = 0>
+void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
+                         const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept
+{
+    Array4<T> const& d = dfab.array();
+    Array4<T const> const& s = sfab.const_array();
+    const auto dlo = amrex::lbound(destbox);
+    const auto slo = amrex::lbound(srcbox);
+    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
+    {
+        T* p = d.ptr(i,j,k,n+destcomp);
+        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
+    });
+}
+
+template <RunOn run_on, typename T,
+          std::enable_if_t<! HasAtomicAdd<T>::value,int> FOO = 0>
+void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
+                         const Box& srcbox, const Box& destbox,
+                         int srccomp, int destcomp, int numcomp) noexcept
+{
+    amrex::ignore_unused(dfab, sfab, srcbox, destbox, srccomp, destcomp, numcomp);
+    amrex::Abort("BaseFab: atomicAdd not supported");
+}
+
+}
+
 template <class T>
 template <RunOn run_on>
 BaseFab<T>&
@@ -2854,16 +2891,8 @@ BaseFab<T>::atomicAdd (const BaseFab<T>& src, const Box& srcbox, const Box& dest
     BL_ASSERT(srccomp >= 0 && srccomp+numcomp <= src.nComp());
     BL_ASSERT(destcomp >= 0 && destcomp+numcomp <= nComp());
 
-    Array4<T> const& d = this->array();
-    Array4<T const> const& s = src.const_array();
-    const auto dlo = amrex::lbound(destbox);
-    const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
-    AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
-    {
-        T* p = d.ptr(i,j,k,n+destcomp);
-        HostDevice::Atomic::Add(p, s(i+offset.x,j+offset.y,k+offset.z,n+srccomp));
-    });
+    detail::basefab_atomic_add<run_on>(*this, src, srcbox, destbox,
+                                       srccomp, destcomp, numcomp);
 
     return *this;
 }

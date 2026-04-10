@@ -7,6 +7,8 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+
 ErrorRec::ErrorFunc::ErrorFunc () = default;
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
@@ -25,7 +27,6 @@ ErrorRec::ErrorFunc::clone () const
     return new ErrorFunc(*this);
 }
 
-// \cond CODEGEN
 void
 ErrorRec::ErrorFunc::operator () (int* tag, AMREX_D_DECL(const int&tlo0,const int&tlo1,const int&tlo2),
                                   AMREX_D_DECL(const int&thi0,const int&thi1,const int&thi2),
@@ -63,7 +64,6 @@ ErrorRec::ErrorFunc::operator () (int* tag, const int* tlo, const int* thi,
              AMREX_ARLIM_3D(domain_lo),AMREX_ARLIM_3D(domain_hi),
              AMREX_ZFILL(dx),AMREX_ZFILL(xlo),AMREX_ZFILL(prob_lo),time,level);
 }
-// \endcond
 
 ErrorRec::ErrorFunc2::ErrorFunc2 () = default;
 
@@ -542,5 +542,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
         }
     }
 }
+
+/// \endcond
 
 }

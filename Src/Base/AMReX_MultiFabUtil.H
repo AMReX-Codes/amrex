@@ -219,29 +219,36 @@ namespace amrex
     //! are set to fine_value, whereas other cells are set to crse_value.
     template <typename FAB>
     iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-                            int crse_value = 0, int fine_value = 1);
+                            int crse_value = 0, int fine_value = 1,
+                            MFInfo const& info = MFInfo());
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
-                            int crse_value = 0, int fine_value = 1);
+                            int crse_value = 0, int fine_value = 1,
+                            MFInfo const& info = MFInfo());
     template <typename FAB>
     iMultiFab makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value);
+                            Periodicity const& period, int crse_value, int fine_value,
+                            MFInfo const& info = MFInfo());
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value);
-    template <typename FAB>
-    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
-                            const IntVect& cnghost, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value);
+                            Periodicity const& period, int crse_value, int fine_value,
+                            MFInfo const& info = MFInfo());
     template <typename FAB>
     iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
                             const IntVect& cnghost, const IntVect& ratio,
                             Periodicity const& period, int crse_value, int fine_value,
-                            LayoutData<int>& has_cf);
+                            MFInfo const& info = MFInfo());
+    template <typename FAB>
+    iMultiFab makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
+                            const IntVect& cnghost, const IntVect& ratio,
+                            Periodicity const& period, int crse_value, int fine_value,
+                            LayoutData<int>& has_cf,
+                            MFInfo const& info = MFInfo());
 
     MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                            const BoxArray& fba, const IntVect& ratio,
-                           Real crse_value, Real fine_value);
+                           Real crse_value, Real fine_value,
+                           MFInfo const& info = MFInfo());
 
     //! Computes divergence of face-data stored in the umac MultiFab.
     void computeDivergence (MultiFab& divu, const Array<MultiFab const*,AMREX_SPACEDIM>& umac,
@@ -457,6 +464,44 @@ namespace amrex
     ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f);
 
     /**
+     * \brief Reduce FabArray/MultiFab data to plane FabArray for patchy BoxArrays
+     *
+     * This function is similar to ReduceToPlaneMF2, but it supports
+     * non-rectangular (patchy) input BoxArrays. The return data are a pair
+     * of FabArrays. The first FA stores local per-box reduction results on
+     * a projected BoxArray that can contain overlapping Boxes. The second
+     * FA stores globally accumulated results on a unique projected 2D
+     * BoxArray.
+     *
+     * \tparam Op  reduce operator (Must be ReduceSum for now.)
+     * \tparam FA  Type of FabArray
+     * \tparam F   callable type like a lambda function
+     *
+     * \param direction normal direction of the plane (e.g., 0, 1 and 2)
+     * \param domain    domain Box. For patchy inputs this must cover the full
+     *                  extent of mf.boxArray() (subdomains are not supported).
+     * \param mf        a FabArray/MultiFab object specifying the iteration space
+     * \param plane_max_grid_size
+     *                  the desired max_grid_size of the unique projected 2D
+     *                  BoxArray. The collapsed direction is forced to 1.
+     * \param f         a callable object returning data for reduction. It takes
+     *                  four ints, where the first int is the local box index and
+     *                  the others are spatial indices for x, y, and z-directions.
+     *
+     * \return reduction result (std::pair<FA,FA>)
+     */
+    template <typename Op, typename FA, typename F,
+              std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                               && IsCallableR<typename FA::value_type,
+                                              F,int,int,int,int>::value
+#endif
+                               , int> FOO = 0>
+    std::pair<FA,FA>
+    ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
+                            IntVect const& plane_max_grid_size, F const& f);
+
+    /**
      * \brief Sum MultiFab data to line
      *
      * Return a HostVector that contains the sum of the given MultiFab data in the plane
@@ -548,28 +593,31 @@ namespace amrex {
 template <typename FAB>
 iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-              int crse_value, int fine_value)
+              int crse_value, int fine_value, MFInfo const& info)
 {
     return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
-                        fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
+                        fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value,
+                        info);
 }
 
 template <typename FAB>
 iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const BoxArray& fba, const IntVect& ratio,
-              Periodicity const& period, int crse_value, int fine_value)
+              Periodicity const& period, int crse_value, int fine_value,
+              MFInfo const& info)
 {
     return makeFineMask(cmf.boxArray(), cmf.DistributionMap(), cmf.nGrowVect(),
-                        fba, ratio, period, crse_value, fine_value);
+                        fba, ratio, period, crse_value, fine_value, info);
 }
 
 template <typename FAB>
 iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
               const IntVect& cnghost, const IntVect& ratio,
-              Periodicity const& period, int crse_value, int fine_value)
+              Periodicity const& period, int crse_value, int fine_value,
+              MFInfo const& info)
 {
-    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost, info);
     mask.setVal(crse_value);
 
     iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
@@ -585,9 +633,9 @@ iMultiFab
 makeFineMask (const FabArray<FAB>& cmf, const FabArray<FAB>& fmf,
               const IntVect& cnghost, const IntVect& ratio,
               Periodicity const& period, int crse_value, int fine_value,
-              LayoutData<int>& has_cf)
+              LayoutData<int>& has_cf, MFInfo const& info)
 {
-    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost);
+    iMultiFab mask(cmf.boxArray(), cmf.DistributionMap(), 1, cnghost, info);
     mask.setVal(crse_value);
 
     iMultiFab foo(amrex::coarsen(fmf.boxArray(),ratio), fmf.DistributionMap(),
@@ -1196,6 +1244,7 @@ MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
     }
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename Op, typename T, typename F>
 void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box_no,
@@ -1280,6 +1329,7 @@ void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box
 #endif
 }
 }
+/// \endcond
 
 template <typename Op, typename T, typename FAB, typename F,
           std::enable_if_t<IsBaseFab<FAB>::value
@@ -1311,11 +1361,14 @@ ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F co
             detail::reduce_to_plane<Op, T>(ar, direction, bx, box_no, f);
         }
     }
-    Gpu::streamSynchronize();
+    if (!Gpu::inNoSyncRegion()) {
+        Gpu::streamSynchronize();
+    }
 
     return r;
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename Op, typename FA, typename F>
 FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
@@ -1351,7 +1404,9 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
 
     return tmpfa;
 }
+
 }
+/// \endcond
 
 template <typename Op, typename FA, typename F,
           std::enable_if_t<IsMultiFabLike_v<FA>
@@ -1400,6 +1455,67 @@ ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
 
     BoxArray ba2d(std::move(bl2d));
     DistributionMapping dm2d(std::move(procmap2d));
+
+    FA mf2d(ba2d, dm2d, 1, 0);
+    mf2d.setVal(initval);
+
+    static_assert(std::is_same_v<Op, ReduceOpSum>, "Currently only ReduceOpSum is supported.");
+    mf2d.ParallelAdd(tmpmf);
+
+    return std::make_pair(std::move(tmpmf), std::move(mf2d));
+}
+
+template <typename Op, typename FA, typename F,
+          std::enable_if_t<IsMultiFabLike_v<FA>
+#ifndef AMREX_USE_CUDA
+                           && IsCallableR<typename FA::value_type,
+                                          F,int,int,int,int>::value
+#endif
+                           , int> FOO>
+std::pair<FA,FA>
+ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
+                        IntVect const& plane_max_grid_size, F const& f)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf.is_cell_centered(),
+        "ReduceToPlaneMF2Patchy: only cell-centered data is supported.");
+
+    Box const ndomain = amrex::convert(domain, mf.ixType());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ndomain.contains(mf.boxArray().minimalBox()),
+        "ReduceToPlaneMF2Patchy: subdomains are not supported; domain must cover the full extent of mf.boxArray().");
+
+    using T = typename FA::value_type;
+    T initval;
+    Op().init(initval);
+
+    BoxList bl_patch2d = mf.boxArray().boxList();
+    for (auto& b : bl_patch2d) {
+        b.setRange(direction, 0);
+    }
+    BoxArray ba_patch2d(std::move(bl_patch2d));
+    FA tmpmf(ba_patch2d, mf.DistributionMap(), 1, 0);
+    tmpmf.setVal(initval);
+
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi)
+    {
+        Box bx = mfi.validbox() & ndomain;
+        if (bx.ok()) {
+            int box_no = mfi.LocalIndex();
+            detail::reduce_to_plane<Op, T>(tmpmf.array(mfi), direction, bx, box_no, f);
+        }
+    }
+
+    BoxList bl_unique = ba_patch2d.boxList();
+    bl_unique.simplify(); // reduces work for .removeOverlap()
+    BoxArray ba2d(std::move(bl_unique));
+    ba2d.removeOverlap();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(plane_max_grid_size.allGE(1),
+        "ReduceToPlaneMF2Patchy: plane_max_grid_size must be >= 1 in every direction.");
+    IntVect mgs2d = plane_max_grid_size;
+    mgs2d[direction] = 1;
+    ba2d.maxSize(mgs2d);
+
+    DistributionMapping dm2d(ba2d);
 
     FA mf2d(ba2d, dm2d, 1, 0);
     mf2d.setVal(initval);

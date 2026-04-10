@@ -100,7 +100,7 @@ int main (int argc, char* argv[])
 
         int num_non_zeros = 2*AMREX_SPACEDIM+1;
         SpMatrix<Real> mat(xvec.partition(), num_non_zeros);
-        mat.setVal(set_stencil);
+        mat.setVal(set_stencil, CsrSorted{false});
 
         GMRES_MV<Real> gmres(&mat);
         gmres.setPrecond(JacobiSmoother<Real>(&mat));
@@ -113,7 +113,11 @@ int main (int argc, char* argv[])
         amrex::Axpy(xvec, Real(-1.0), exact);
         auto error = xvec.norminf();
         amrex::Print() << " Max norm error: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+        AMREX_ALWAYS_ASSERT(error < eps);
+#else
         AMREX_ALWAYS_ASSERT(error*10 < eps);
+#endif
     }
     amrex::Finalize();
 }

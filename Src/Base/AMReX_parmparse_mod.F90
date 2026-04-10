@@ -234,9 +234,11 @@ module amrex_parmparse_module
      end subroutine amrex_parmparse_add_stringarr
   end interface
 
+#ifdef __NVCOMPILER
   interface amrex_parmparse_destroy
      module procedure amrex_parmparse_destroy
   end interface amrex_parmparse_destroy
+#endif
 
 contains
 
@@ -252,7 +254,7 @@ contains
   end subroutine amrex_parmparse_build
 
   subroutine amrex_parmparse_destroy (this)
-    type(amrex_parmparse) :: this
+    type(amrex_parmparse), intent(inout) :: this
     if (this%owner) then
        if (c_associated(this%p)) then
           call amrex_delete_parmparse(this%p)

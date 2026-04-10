@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 
+/// \cond DOXYGEN_IGNORE
 namespace amrex::detail {
 
 std::ostream&
@@ -49,3 +50,4 @@ index_type_read (std::istream& is, unsigned int& iv, int dim)
 }
 
 }
+/// \endcond

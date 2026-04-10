@@ -1054,9 +1054,13 @@ selectActualNeighbors (CheckPair const& check_pair, int num_cells)
                 int nz = hi.z-lo.z+1;
 
                 bool isActualNeighbor = false;
-                for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx); ++ii) {
-                    for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny); ++jj) {
-                        for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz); ++kk) {
+                // These loops mirror the way the neighbor particles were originally constructed, except
+                // it adds a call to check_pair. Thus the maximum number value of "loc" below is the
+                // number of neighbors minus 1, and the buffer pointed to by p_boundary_particle_ids
+                // will not be overwritten.
+                for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                    for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
+                        for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                             if (isActualNeighbor) { break; }
                             int nbr_cell_id = (ii * ny + jj) * nz + kk;
                             for (auto p = poffset[nbr_cell_id]; p < poffset[nbr_cell_id+1]; ++p) {

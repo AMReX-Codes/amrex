@@ -1,6 +1,10 @@
 name: SUNDIALS
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-sundials
@@ -20,13 +24,13 @@ jobs:
        CCACHE_COMPRESSLEVEL: 10
        CCACHE_MAXSIZE: 20M
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -42,8 +46,8 @@ jobs:
         mkdir instdir builddir
         cd builddir
         cmake .. \
+            -DCMAKE_CXX_STANDARD=20                  \
             -DCMAKE_INSTALL_PREFIX=${PWD}/../instdir \
-            -DCMAKE_CXX_STANDARD=17                  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache
         make -j4
@@ -51,22 +55,22 @@ jobs:
         cd ../..
     - name: Compile Test
       run: |
-        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 17
+        .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         export CXXFLAGS="-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs"
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
             -DAMReX_SUNDIALS=ON         \
             -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
-            -DCMAKE_CXX_STANDARD=17     \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
-            CLANG_TIDY=clang-tidy-17 \
+            CLANG_TIDY=clang-tidy-21 \
             CLANG_TIDY_ARGS="--config-file=${{github.workspace}}/.clang-tidy --warnings-as-errors=*"
 
         ccache -s
@@ -82,13 +86,13 @@ jobs:
        CCACHE_COMPRESSLEVEL: 10
        CCACHE_MAXSIZE: 75M
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -110,10 +114,10 @@ jobs:
         mkdir instdir builddir
         cd builddir
         cmake ..                                     \
+            -DCMAKE_CXX_STANDARD=20                  \
             -DENABLE_CUDA=ON                         \
             -DCMAKE_INSTALL_PREFIX=${PWD}/../instdir \
             -DCMAKE_CUDA_ARCHITECTURES=80            \
-            -DCMAKE_CXX_STANDARD=17                  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache       \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
@@ -128,6 +132,7 @@ jobs:
         which nvcc || echo "nvcc not in PATH!"
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
             -DAMReX_GPU_BACKEND=CUDA    \

@@ -7,8 +7,8 @@
 
 namespace amrex {
 
-// (alpha * a - beta * (del dot b grad)) phi
-
+/// \ingroup amrex_solver_mlmg
+/// (alpha * a - beta * (del dot b grad)) phi
 template <typename MF>
 class MLABecLaplacianT
     : public MLCellABecLapT<MF>
@@ -200,13 +200,13 @@ public:
 
 protected:
 
-    bool m_needs_update = true;
-
     Vector<int> m_is_singular;
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 
 private:
+
+    bool m_needs_update = true;
 
     int m_ncomp = 1;
 
@@ -391,7 +391,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
     const int ncomp = this->getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            m_b_coeffs[amrlev][0][idim].setVal(RT(beta[icomp]));
+            m_b_coeffs[amrlev][0][idim].setVal(RT(beta[icomp], icomp, 1, 0));
         }
     }
     m_needs_update = true;
@@ -483,6 +483,7 @@ MLABecLaplacianT<MF>::applyMetricTermsCoeffs ()
 //    \tilde{alpha}_i = alpha_i + (1-B) beta_{i+1/2} / h^2
 //    \tilde{rhs}_i = rhs_i + A beta_{i+1/2} / h^2
 //
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename LP>
 void applyRobinBCTermsCoeffs (LP& linop)
@@ -597,6 +598,7 @@ void applyRobinBCTermsCoeffs (LP& linop)
     }
 }
 } // namespace detail
+/// \endcond
 
 template <typename MF>
 void
@@ -1470,6 +1472,7 @@ MLABecLaplacianT<MF>::copyNSolveSolution (MF& dst, MF const& src) const
 
 extern template class MLABecLaplacianT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLABecLaplacian = MLABecLaplacianT<MultiFab>;
 
 }

@@ -1,6 +1,8 @@
 
 // Used by EB_LSCore only.  Might be removed in the future.  So don't use.
 
+/// \cond DOXYGEN_IGNORE
+
 namespace amrex::MFUtil {
 
     //! General collection of MultiFab utilities
@@ -117,3 +119,6 @@ namespace amrex::MFUtil {
         }
 
 }
+
+/// \endcond
+

@@ -8,6 +8,11 @@
 #include <AMReX_Interpolater.H>
 #include <AMReX_MultiFab.H>
 
+/**
+ * \file AMReX_Derive.H
+ * \brief Infrastructure for registering and computing derived quantities from state data.
+ */
+
 #include <list>
 #include <string>
 
@@ -21,25 +26,25 @@ extern "C"
     *
     * Note that AMREX_ARLIM_P will be preprocessed into DIM const int&'s.
     *
-    * \param data
-    * \param AMREX_ARLIM_P(dlo)
-    * \param AMREX_ARLIM_P(dhi)
-    * \param nvar
-    * \param compdat
-    * \param AMREX_ARLIM_P(compdat_lo)
-    * \param AMREX_ARLIM_P(compdat_hi)
-    * \param ncomp
-    * \param lo
-    * \param hi
-    * \param domain_lo
-    * \param domain_hi
-    * \param delta
-    * \param xlo
-    * \param time
-    * \param dt
-    * \param bcrec
-    * \param level
-    * \param grid_no
+    * \param data Pointer to the destination data slab that will store the derived quantity.
+    * \param AMREX_ARLIM_P(dlo) Lower index bounds of \p data (macro expands to i/j/k references).
+    * \param AMREX_ARLIM_P(dhi) Upper index bounds of \p data.
+    * \param nvar Number of components laid out in \p data (destination FAB).
+    * \param compdat Pointer to the source state data for the requested component set.
+    * \param AMREX_ARLIM_P(compdat_lo) Lower bounds of the source data buffer.
+    * \param AMREX_ARLIM_P(compdat_hi) Upper bounds of the source data buffer.
+    * \param ncomp Number of source components provided through \p compdat.
+    * \param lo Cell-space lower bounds of the target region currently being filled.
+    * \param hi Cell-space upper bounds (inclusive) of that region.
+    * \param domain_lo Lower bounds of the problem domain (helps apply BCs).
+    * \param domain_hi Upper bounds of the problem domain.
+    * \param delta Cell spacing vector (dx,dy,dz).
+    * \param xlo Physical-space origin of the owning grid.
+    * \param time Physical time at which the derived quantity should be evaluated.
+    * \param dt Time step associated with the state data (old-to-new interval).
+    * \param bcrec Encoded boundary condition types for each component.
+    * \param level AMR level index containing the data.
+    * \param grid_no Grid identifier within that level.
     */
     using DeriveFunc = void (*)(amrex::Real* data, AMREX_ARLIM_P(dlo), AMREX_ARLIM_P(dhi),
                                 const int* nvar, const amrex::Real* compdat,
@@ -55,25 +60,25 @@ extern "C"
     /**
     * \brief This is dimension agnostic.  For example, dlo always has three elements.
     *
-    * \param data
-    * \param dlo
-    * \param dhi
-    * \param nvar
-    * \param compdat
-    * \param clo
-    * \param chi
-    * \param ncomp
-    * \param lo
-    * \param hi
-    * \param domain_lo
-    * \param domain_hi
-    * \param delta
-    * \param xlo
-    * \param time
-    * \param dt
-    * \param bcrec
-    * \param level
-    * \param grid_no
+    * \param data Pointer to the destination FAB data.
+    * \param dlo Lower index bounds of the destination FAB.
+    * \param dhi Upper index bounds of the destination FAB.
+    * \param nvar Number of destination components.
+    * \param compdat Pointer to the source state data.
+    * \param clo Lower index bounds of the source buffer.
+    * \param chi Upper index bounds of the source buffer.
+    * \param ncomp Number of source components available.
+    * \param lo Cell-space lower bounds of the region being filled.
+    * \param hi Cell-space upper bounds of that region.
+    * \param domain_lo Lower bounds of the domain (for BC handling).
+    * \param domain_hi Upper bounds of the domain.
+    * \param delta Cell spacing vector (dx,dy,dz).
+    * \param xlo Physical origin of the owning grid.
+    * \param time Physical time at which the derived quantity is evaluated.
+    * \param dt Time step between the stored state slots.
+    * \param bcrec Encoded boundary condition identifiers.
+    * \param level AMR level index.
+    * \param grid_no Grid identifier within that level.
     */
     using DeriveFunc3D = void (*)(amrex::Real* data, const int* dlo, const int* dhi, const int* nvar,
                                   const amrex::Real* compdat, const int* clo, const int* chi, const int* ncomp,
@@ -117,8 +122,18 @@ public:
     */
     using DeriveBoxMap = std::function<Box(const Box&)>;
 
+    /**
+     * \brief Identity mapping from destination to source boxes.
+     *
+     * \param box Destination box passed to the callback.
+     */
     static Box TheSameBox (const Box& box) noexcept;
 
+    /**
+     * \brief Convenience mapper that grows the supplied box by one cell in every direction.
+     *
+     * \param box Destination box; the return value is `grow(box,1)`.
+     */
     static Box GrowBoxByOne (const Box& box) noexcept;
 
     /**
@@ -126,9 +141,13 @@ public:
     */
     ~DeriveRec ();
 
+    //! Non-copyable; derived metadata owns non-trivial resources.
     DeriveRec (DeriveRec const&) = delete;
+    //! Non-movable to keep internal pointers/registrations stable.
     DeriveRec (DeriveRec &&) = delete;
+    //! Copy assignment disabled for the same reason as the copy constructor.
     DeriveRec& operator= (DeriveRec const&) = delete;
+    //! Move assignment disabled to avoid dangling references inside registries.
     DeriveRec& operator= (DeriveRec &&) = delete;
 
     /**
@@ -137,9 +156,7 @@ public:
     [[nodiscard]] const std::string& name () const noexcept;
 
     /**
-    * \brief The names of components
-    *
-    * \param comp
+    * \brief Return the name of derived component \p comp.
     */
     [[nodiscard]] const std::string& variableName (int comp) const noexcept;
 
@@ -152,8 +169,11 @@ public:
     * \brief The DeriveFunc used to calculate the derived type.
     */
     [[nodiscard]] DeriveFunc    derFunc    () const noexcept;
+    //! Dimension-agnostic version of derFunc() that always takes 3-component bounds.
     [[nodiscard]] DeriveFunc3D  derFunc3D  () const noexcept;
+    //! Callable that operates on a FAB-sized box instead of raw pointers.
     [[nodiscard]] DeriveFuncFab derFuncFab () const noexcept;
+    //! MultiFab variant that fills directly without per-box callbacks.
     [[nodiscard]] DeriveFuncMF  derFuncMF () const noexcept;
 
     /**
@@ -185,17 +205,16 @@ public:
     * \brief The boundary conditions.
     */
     [[nodiscard]] const int* getBC () const noexcept;
+    //! Boundary-condition array padded/truncated to three entries.
     [[nodiscard]] const int* getBC3D () const noexcept;
 
     /**
-    * \brief Sets state_indx, src_comp and num_comp for the kth
-    * range (or chunk) of state data components needed to calculate
-    * the derived quantity.
+    * \brief Describe which chunk of state data is needed for derived component range \p k.
     *
-    * \param k
-    * \param state_indx
-    * \param src_comp
-    * \param num_comp
+    * \param k           Range index in [0,numRange()).
+    * \param state_indx  Output: index into the state descriptor array.
+    * \param src_comp    Output: starting component in the chosen state.
+    * \param num_comp    Output: number of components to read.
     */
     void getRange (int  k,
                    int& state_indx,
@@ -203,15 +222,15 @@ public:
                    int& num_comp) const;
 
     /**
-    * \brief Constructor.
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param der_func
-    * \param box_map
-    * \param interp
-    */
+     * \brief Construct a record driven by a Fortran-style DeriveFunc.
+     *
+     * \param name         Derived quantity name (unique registry key).
+     * \param result_type  Index type describing the derived FAB layout.
+     * \param nvar_derive  Number of components produced by the derive function.
+     * \param der_func     Function pointer invoked to compute the quantity.
+     * \param box_map      Mapping from destination boxes back to source boxes.
+     * \param interp       Interpolater used when populating finer levels (defaults to piecewise-constant).
+     */
     DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
@@ -219,6 +238,11 @@ public:
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
+    /**
+     * \brief Construct a record using a dimension-agnostic DeriveFunc3D callback.
+     *
+     * Parameters mirror the DeriveFunc constructor but \p der_func_3d follows the 3-D argument shape.
+     */
     DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
@@ -226,6 +250,11 @@ public:
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
+    /**
+     * \brief Construct a record whose implementation operates directly on FABs.
+     *
+     * Parameters match the scalar constructor but \p der_func_fab is a callable accepting FABs.
+     */
     DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
@@ -233,6 +262,11 @@ public:
                DeriveBoxMap   box_map,
                Interpolater*  interp = &pc_interp);
 
+    /**
+     * \brief Construct a record whose implementation operates on MultiFabs.
+     *
+     * Parameters match the scalar constructor but \p der_func_mf takes MultiFabs.
+     */
     DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
@@ -242,29 +276,29 @@ public:
 
 
     /**
-    * \brief Constructor without a Fortran function
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param box_map
-    */
+     * \brief Construct a placeholder record without attaching a callable yet.
+     *
+     * \param name        Derived quantity name.
+     * \param result_type Index type describing the derived FAB layout.
+     * \param nvar_derive Number of components produced.
+     * \param box_map     Mapping from destination boxes back to source boxes.
+     */
     DeriveRec (std::string    name,
                IndexType      result_type,
                int            nvar_derive,
                DeriveRec::DeriveBoxMap box_map);
 
     /**
-    * \brief Constructor.
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param var_names
-    * \param der_func
-    * \param box_map
-    * \param interp
-    */
+     * \brief Same as the basic constructor but labels each derived component.
+     *
+     * \param name         Derived quantity name.
+     * \param result_type  Index type describing the derived FAB layout.
+     * \param nvar_derive  Number of components produced.
+     * \param var_names    Human-readable names for each component.
+     * \param der_func     Fortran-style callback.
+     * \param box_map      Mapping from destination to source boxes.
+     * \param interp       Interpolater override (defaults to piecewise-constant).
+     */
     DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
@@ -273,6 +307,7 @@ public:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
+    //! 3-D callback variant (parameters mirror the previous constructor).
     DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
@@ -281,6 +316,7 @@ public:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
+    //! FAB callback variant (parameters mirror the previous constructor).
     DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
@@ -289,6 +325,7 @@ public:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
+    //! MultiFab callback variant (parameters mirror the previous constructor).
     DeriveRec (std::string         name,
                IndexType           result_type,
                int                 nvar_derive,
@@ -297,12 +334,22 @@ public:
                DeriveBoxMap        box_map,
                Interpolater*       interp = &pc_interp);
 
+    /**
+     * \brief Append another chunk of state data requirements.
+     *
+     * \param d_list      Descriptor registry providing metadata.
+     * \param state_indx  Index into the descriptor list.
+     * \param src_comp    Starting component inside the chosen state descriptor.
+     * \param num_comp    Number of components to sample for this range.
+     */
     void addRange (const DescriptorList& d_list,
                    int                   state_indx,
                    int                   src_comp,
                    int                   num_comp);
 
+    //! Build the 1D/2D BC arrays from the registered state descriptors \p d_list.
     void buildBC (const DescriptorList& d_list);
+    //! Build the 3D BC arrays from the registered state descriptors \p d_list.
     void buildBC3D (const DescriptorList& d_list);
 
     //! An element of a linked list to point to state quantities in AmrLevels.
@@ -369,36 +416,41 @@ public:
     */
     DeriveList () = default;
 
+    //! Destructor (defaulted to keep header-only implementation trivial).
     ~DeriveList () = default;
+    //! Non-copyable registry; it owns pointers to callback records.
     DeriveList (const DeriveList&) = delete;
+    //! Non-movable because the registry’s entries self-register with static globals.
     DeriveList (DeriveList &&) = delete;
+    //! Copy assignment disabled for the same reason as the copy constructor.
     DeriveList& operator= (const DeriveList&) = delete;
+    //! Move assignment disabled to avoid dangling pointers inside DeriveRec entries.
     DeriveList& operator= (DeriveList &&) = delete;
 
     /**
-    * \brief Determines whether quantity identified by \<name\> is in the registry.
-    *
-    * \param name
-    */
+     * \brief Determines whether quantity identified by \p name is registered.
+     *
+     * \param name Derived quantity name.
+     */
     [[nodiscard]] bool canDerive (const std::string& name) const;
 
     /**
-    * \brief Access the particular record in registry.
-    *
-    * \param name
-    */
+     * \brief Access the particular record in registry.
+     *
+     * \param name Derived quantity name.
+     */
     [[nodiscard]] const DeriveRec* get (const std::string& name) const;
 
     /**
-    * \brief Adds another entry to the registry.
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param der_func
-    * \param bx_map
-    * \param interp
-    */
+     * \brief Register a new derived quantity backed by a DeriveFunc.
+     *
+     * \param name        Derived quantity name.
+     * \param result_type Index type describing the derived FAB layout.
+     * \param nvar_derive Number of components produced.
+     * \param der_func    Function pointer to invoke.
+     * \param bx_map      Mapping from destination boxes to required source boxes.
+     * \param interp      Interpolater used on finer levels (defaults to piecewise-constant).
+     */
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -406,6 +458,7 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    //! DeriveFunc3D variant (parameters mirror the DeriveFunc version).
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -413,6 +466,7 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    //! DeriveFuncFab variant (parameters mirror the DeriveFunc version).
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -420,6 +474,7 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    //! DeriveFuncMF variant (parameters mirror the DeriveFunc version).
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
@@ -428,29 +483,29 @@ public:
               Interpolater*           interp = &pc_interp);
 
     /**
-    * \brief This version doesn't take a Fortran function.
-    *
-    * \param name
-    * \param result_type
-    * \param nvar_derive
-    * \param box_map
-    */
+     * \brief Register a placeholder record without attaching a callable yet.
+     *
+     * \param name        Derived quantity name.
+     * \param result_type Index type describing the derived FAB layout.
+     * \param nvar_derive Number of components produced.
+     * \param box_map     Mapping from destination boxes to required source boxes.
+     */
     void add (const std::string&      name,
               IndexType               result_type,
               int                     nvar_derive,
               const DeriveRec::DeriveBoxMap& box_map = &DeriveRec::TheSameBox );
 
     /**
-    * \brief Adds another entry to the registry.
-    *
-    * \param name
-    * \param res_typ
-    * \param nvar_derive
-    * \param vars
-    * \param der_func
-    * \param bx_map
-    * \param interp
-    */
+     * \brief Register a derived quantity and supply per-component names up front.
+     *
+     * \param name        Derived quantity name.
+     * \param res_typ     Index type describing the derived FAB layout.
+     * \param nvar_derive Number of components produced.
+     * \param vars        Component names (size \p nvar_derive).
+     * \param der_func    Function pointer to invoke.
+     * \param bx_map      Mapping from destination boxes to source boxes.
+     * \param interp      Interpolater used on finer levels.
+     */
     void add (const std::string&      name,
               IndexType               res_typ,
               int                     nvar_derive,
@@ -459,6 +514,7 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    //! Named-component variant using DeriveFunc3D callbacks.
     void add (const std::string&      name,
               IndexType               res_typ,
               int                     nvar_derive,
@@ -467,6 +523,7 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    //! Named-component variant using DeriveFuncFab callbacks.
     void add (const std::string&      name,
               IndexType               res_typ,
               int                     nvar_derive,
@@ -475,6 +532,7 @@ public:
               const DeriveRec::DeriveBoxMap& bx_map,
               Interpolater*           interp = &pc_interp);
 
+    //! Named-component variant using DeriveFuncMF callbacks.
     void add (const std::string&      name,
               IndexType               res_typ,
               int                     nvar_derive,
@@ -484,22 +542,24 @@ public:
               Interpolater*           interp = &pc_interp);
 
     /**
-    * \brief Adds another StateRange to the DeriveRec identified by \<name\>.
-    *
-    * \param name
-    * \param d_list
-    * \param state_indx
-    * \param s_comp
-    * \param n_comp
-    */
+     * \brief Adds another StateRange to the DeriveRec identified by \p name.
+     *
+     * \param name       Derived quantity being augmented.
+     * \param d_list     Descriptor registry providing metadata.
+     * \param state_indx State descriptor index supplying data.
+     * \param s_comp     Starting component within that descriptor.
+     * \param n_comp     Number of components included in the range.
+     */
     void addComponent (const std::string&    name,
                        const DescriptorList& d_list,
                        int                   state_indx,
                        int                   s_comp,
                        int                   n_comp);
 
+    //! Mutable access to the underlying list of records.
     [[nodiscard]] std::list<DeriveRec>& dlist ();
 
+    //! Remove all registered derived records.
     void clear () { lst.clear(); }
 
 private:

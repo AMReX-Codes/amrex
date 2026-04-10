@@ -209,9 +209,9 @@ BLBackTrace::print_backtrace_info (FILE* f)
     {
         constexpr std::size_t len = 64;
         char host_name[len];
-        host_name[len-1] = '\n';
-        // The returned buffer may not include '\n', when truncation occurs.
-        // So we insert one just in case.
+        host_name[len-1] = '\0';
+        // The returned buffer may not be null-terminated when truncation occurs.
+        // So we insert a null terminator just in case.
         const int ret = gethostname(host_name, len-1);
         if (ret == 0) {
             std::fprintf(f, "Host Name: %s\n", host_name);

@@ -410,7 +410,12 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                     if (do_periodic_shift)
                     {
                         ParticleReal pos[AMREX_SPACEDIM];
-                        amrex::Gpu::memcpy(&pos[0], &p_snd_buffer[dst_offset],
+                        Long pos_offset = dst_offset;
+                        // for pure SoA positions come after idcpu
+                        if constexpr (PC::ParticleType::is_soa_particle) {
+                            pos_offset += sizeof(uint64_t);
+                        }
+                        amrex::Gpu::memcpy(&pos[0], &p_snd_buffer[pos_offset],
                                            AMREX_SPACEDIM*sizeof(ParticleReal));
                         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
                         {
@@ -421,7 +426,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                                 pos[idim] -= phi[idim] - plo[idim];
                             }
                         }
-                        amrex::Gpu::memcpy(&p_snd_buffer[dst_offset], &pos[0],
+                        amrex::Gpu::memcpy(&p_snd_buffer[pos_offset], &pos[0],
                                            AMREX_SPACEDIM*sizeof(ParticleReal));
                     }
                 }
@@ -661,8 +666,6 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
                 ptd.unpackParticleData(p_rcv_buffer, src_offset, dst_index,
                                        p_comm_real, p_comm_int);
               });
-
-            Gpu::streamSynchronize();
         }
     }
 #else

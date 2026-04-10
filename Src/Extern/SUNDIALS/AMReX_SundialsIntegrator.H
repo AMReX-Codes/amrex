@@ -17,28 +17,30 @@
 #include <arkode/arkode_arkstep.h>
 #include <arkode/arkode_mristep.h>
 
+/**
+ * \file AMReX_SundialsIntegrator.H
+ *
+ * Templates that adapt AMReX IntegratorBase to the SUNDIALS solvers (ARKStep /
+ * MRIStep) plus the callback glue structures they require.
+ */
+
 namespace amrex {
 
+/**
+ * \brief User-supplied callbacks consumed by the AMReX/SUNDIALS bridge.
+ *
+ * Each functor must implement the signatures noted below and follow the SUNDIALS
+ * convention of returning 0 on success and non-zero on failure.
+ */
 struct SundialsUserData {
-    // ERK or DIRK right-hand side function
-    // EX-MRI or IM-MRI slow right-hand side function
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> f;
-
-    // ImEx-RK right-hand side functions
-    // ImEx-MRI slow right-hand side functions
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fi;
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fe;
-
-    // MRI fast time scale right-hand side function
-    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;
-
-    // Post stage and step actions
-    std::function<int(amrex::Real, N_Vector, void*)> post_stage;
-    std::function<int(amrex::Real, N_Vector, void*)> post_step;
-
-    // Post fast stage and step actions
-    std::function<int(amrex::Real, N_Vector, void*)> post_fast_stage;
-    std::function<int(amrex::Real, N_Vector, void*)> post_fast_step;
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> f;   //!< ERK/DIRK RHS or MRI slow RHS.
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fi;  //!< Implicit RHS for ImEx schemes.
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fe;  //!< Explicit RHS for ImEx schemes.
+    std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;  //!< MRI fast-scale RHS.
+    std::function<int(amrex::Real, N_Vector, void*)> post_stage;    //!< Hook invoked after each stage.
+    std::function<int(amrex::Real, N_Vector, void*)> post_step;     //!< Hook invoked after each time step.
+    std::function<int(amrex::Real, N_Vector, void*)> post_fast_stage; //!< Hook for MRI fast stages.
+    std::function<int(amrex::Real, N_Vector, void*)> post_fast_step;  //!< Hook for MRI fast steps.
 };
 
 namespace SundialsUserFun {
@@ -83,6 +85,11 @@ namespace SundialsUserFun {
     }
 }
 
+/**
+ * \brief IntegratorBase implementation powered by SUNDIALS ARKStep/MRIStep.
+ *
+ * \tparam T State container type (typically MultiFab) operated on by the user callbacks.
+ */
 template<class T>
 class SundialsIntegrator : public IntegratorBase<T>
 {
@@ -93,9 +100,9 @@ private:
     std::string type = "ERK";
 
     // Use SUNDIALS default methods
-    std::string method   = "DEFAULT";
-    std::string method_e = "DEFAULT";
-    std::string method_i = "DEFAULT";
+    std::string method   = "DEFAULT"; // ERK, DIRK, or slow method with MRI
+    std::string method_e = "DEFAULT"; // ERK in IMEX-RK
+    std::string method_i = "DEFAULT"; // DIRK in IMEX-RK
 
     // Fast method type (ERK or DIRK) and method
     std::string fast_type   = "ERK";
@@ -278,7 +285,7 @@ private:
         }
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        flag = ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
@@ -289,7 +296,7 @@ private:
 
         // Create the fast integrator and select method
         if (fast_type == "ERK") {
-            if (amrex::Verbose()) { amrex::Print() << "Fast ERK method: " << method << "\n"; }
+            if (amrex::Verbose()) { amrex::Print() << "Fast ERK method: " << fast_method << "\n"; }
             arkode_fast_mem = ARKStepCreate(SundialsUserFun::ff, nullptr, time, y_data, sunctx);
             AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
             if (fast_method != "DEFAULT") {
@@ -298,7 +305,7 @@ private:
             }
         }
         else if (fast_type == "DIRK") {
-            if (amrex::Verbose()) { amrex::Print() << "Fast DIRK method: " << method << "\n"; }
+            if (amrex::Verbose()) { amrex::Print() << "Fast DIRK method: " << fast_method << "\n"; }
             arkode_fast_mem = ARKStepCreate(nullptr, SundialsUserFun::ff, time, y_data, sunctx);
             AMREX_ALWAYS_ASSERT(arkode_fast_mem != nullptr);
             if (fast_method != "DEFAULT") {
@@ -313,10 +320,10 @@ private:
             if (fast_nonlinear_solver == "fixed-point") {
                 fast_NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
                 AMREX_ALWAYS_ASSERT(fast_NLS != nullptr);
-                flag = ARKStepSetNonlinearSolver(arkode_mem, fast_NLS);
+                flag = ARKStepSetNonlinearSolver(arkode_fast_mem, fast_NLS);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
-            flag = ARKStepSetMaxNonlinIters(arkode_mem, fast_max_nonlinear_iters);
+            flag = ARKStepSetMaxNonlinIters(arkode_fast_mem, fast_max_nonlinear_iters);
             AMREX_ALWAYS_ASSERT(flag == 0);
 
             if (fast_nonlinear_solver == "Newton") {
@@ -326,7 +333,7 @@ private:
                 }
                 fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
                 AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_mem, fast_LS, nullptr);
+                flag = ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
@@ -352,7 +359,7 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
+        flag = ARKStepSetMaxNumSteps(arkode_fast_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Wrap fast integrator as an inner stepper
@@ -411,10 +418,10 @@ private:
             if (nonlinear_solver == "fixed-point") {
                 NLS = SUNNonlinSol_FixedPoint(y_data, 0, sunctx);
                 AMREX_ALWAYS_ASSERT(NLS != nullptr);
-                flag = ARKStepSetNonlinearSolver(arkode_mem, NLS);
+                flag = MRIStepSetNonlinearSolver(arkode_mem, NLS);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
-            flag = ARKStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
+            flag = MRIStepSetMaxNonlinIters(arkode_mem, max_nonlinear_iters);
             AMREX_ALWAYS_ASSERT(flag == 0);
 
             if (nonlinear_solver == "Newton") {
@@ -424,7 +431,7 @@ private:
                 }
                 LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
                 AMREX_ALWAYS_ASSERT(LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+                flag = MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
                 AMREX_ALWAYS_ASSERT(flag == 0);
             }
         }
@@ -438,12 +445,12 @@ private:
         // Set a stop time
         if (set_stop_time) {
             if (amrex::Verbose()) { amrex::Print() << "Stop time: " << stop_time << "\n"; }
-          flag = ARKStepSetStopTime(arkode_mem, stop_time);
+          flag = MRIStepSetStopTime(arkode_mem, stop_time);
           AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set max number of steps between returns
-        ARKStepSetMaxNumSteps(arkode_mem, max_num_steps);
+        flag = MRIStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
     }
 
@@ -564,13 +571,28 @@ private:
     };
 
 public:
+    /**
+     * \brief Construct an uninitialized integrator; call initialize() before use.
+     */
     SundialsIntegrator () {}
 
+    /**
+     * \brief Construct and immediately configure the integrator with \p S_data at time \p time.
+     *
+     * \param S_data Initial state used to size and seed the solver.
+     * \param time   Physical time associated with \p S_data.
+     */
     SundialsIntegrator (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize(S_data, time);
     }
 
+    /**
+     * \brief Configure (or reconfigure) the SUNDIALS integrator for the provided state.
+     *
+     * \param S_data State snapshot used to size vector storage.
+     * \param time   Start time associated with \p S_data.
+     */
     void initialize (const T& S_data, const amrex::Real time = 0.0)
     {
         initialize_parameters();
@@ -703,6 +725,9 @@ public:
         N_VDestroy(y_data);
     }
 
+    /**
+     * \brief Destroy the integrator, printing summary statistics when verbose.
+     */
     virtual ~SundialsIntegrator () {
         // Print integrator statistics
         if (amrex::Verbose()) {
@@ -733,6 +758,15 @@ public:
         ARKStepFree(&arkode_mem);
     }
 
+    /**
+     * \brief Take a single time step of size \p dt starting from \p S_old.
+     *
+     * \param S_old State at the beginning of the step (wrapped and passed to SUNDIALS).
+     * \param S_new Output state receiving the step result.
+     * \param time  Beginning-of-step time.
+     * \param dt    Requested time step.
+     * \return The step size actually taken (currently \p dt).
+     */
     amrex::Real advance (T& S_old, T& S_new, amrex::Real time, const amrex::Real dt) override
     {
         amrex::Real tout = time + dt;
@@ -762,6 +796,12 @@ public:
         return dt;
     }
 
+    /**
+     * \brief Evolve the solution in \p S_out up to \p time_out using ARKStep/MRIStep.
+     *
+     * \param S_out    State providing the initial condition and receiving the final solution.
+     * \param time_out Target time for the evolution.
+     */
     void evolve (T& S_out, const amrex::Real time_out) override
     {
         int flag = 0;         // SUNDIALS return status
@@ -792,8 +832,14 @@ public:
         N_VDestroy(y_out);
     }
 
+    /**
+     * \brief Interpolate between SUNDIALS stages (not yet implemented for this integrator).
+     */
     void time_interpolate (const T& /* S_new */, const T& /* S_old */, amrex::Real /* timestep_fraction */, T& /* data */) override {}
 
+    /**
+     * \brief Apply a user-supplied mapping to every MultiFab in the integrator (unused placeholder).
+     */
     void map_data (std::function<void(T&)> /* Map */) override {}
 };
 

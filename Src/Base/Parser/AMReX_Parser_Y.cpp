@@ -20,6 +20,7 @@ amrex_parsererror (char const *s, ...)
 namespace amrex {
 
 namespace {
+    // Not thread safe. Concurrent Parser construction will corrupt these.
     struct parser_node* parser_root = nullptr;
     std::vector<void*>  parser_ptrs;
 }
@@ -366,7 +367,7 @@ parser_ast_size (struct parser_node* node)
         break;
     }
     case PARSER_ASSIGN:
-        result += parser_aligned_size(sizeof(struct parser_node))
+        result = parser_aligned_size(sizeof(struct parser_node))
             + parser_ast_size((struct parser_node*)(((struct parser_assign*)node)->s))
             + parser_ast_size(((struct parser_assign*)node)->v);
         break;
@@ -1059,6 +1060,15 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
                               parser_get_number(node->l->r));
             parser_ast_optimize(node,local_consts);
         }
+        else if (node->l->type != PARSER_NUMBER &&
+                 node->l->type != PARSER_SYMBOL &&
+                 parser_node_equal(node->l, node->r))
+        { // f(x) * f(x) => pow(f(x), 2)
+            parser_set_number(node->r, 2.0);
+            ((struct parser_f2*)node)->ftype = PARSER_POW;
+            node->type = PARSER_F2;
+            parser_ast_optimize(node, local_consts);
+        }
         else if (node->r->type == PARSER_F2 &&
                  ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
                  parser_node_equal(((struct parser_f2*)(node->r))->l, node->l))
@@ -1324,9 +1334,11 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
         }
         else if (node->l->type == PARSER_F2 &&
                  node->r->type == PARSER_F2 &&
+                 ((struct parser_f2*)(node->l))->ftype == PARSER_POW &&
+                 ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
                  parser_node_equal(((struct parser_f2*)(node->l))->l,
                                    ((struct parser_f2*)(node->r))->l))
-        { // pow(x^m) / pow(x^n) => pow(x^(m-n))
+        { // pow(x,m) / pow(x,n) => pow(x,(m-n))
             auto* l = node->l;
             auto* r = node->r;
             std::memcpy(node, node->l, sizeof(struct parser_node));
@@ -1339,6 +1351,7 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
             parser_ast_optimize(node,local_consts);
         }
         else if (node->r->type == PARSER_F2 &&
+                 ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
                  ((struct parser_f2*)(node->r))->r->type == PARSER_NUMBER)
         { // f(.) / pow(x,n) => f(.) * pow(x,-n)
             node->type = PARSER_MUL;

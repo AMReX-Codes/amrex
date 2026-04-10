@@ -17,7 +17,9 @@
 #  include <sycl/sycl.hpp>
 #endif
 
-namespace amrex { inline namespace disabled {
+namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
+/// \cond DOXYGEN_IGNORE
+inline namespace disabled {
     // If it is inside namespace amrex, or amrex namespace is imported with using namespace amrex or
     // amrex::disabled, unqualified abs functions are disabled with a compile time error such as,
     // call of overload abs(int&) is ambiguous, or a link time error such as, undefined reference to
@@ -30,7 +32,9 @@ namespace amrex { inline namespace disabled {
     AMREX_GPU_HOST_DEVICE int abs (int);
     AMREX_GPU_HOST_DEVICE long abs (long);
     AMREX_GPU_HOST_DEVICE long long abs (long long);
-}}
+}
+/// \endcond
+}
 
 namespace amrex::Math {
 
@@ -114,6 +118,7 @@ float sinpi (float x)
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
     AMREX_FORCE_INLINE void sincos (double x, double* sinx, double* cosx) {
 #if defined(_GNU_SOURCE) && !defined(__APPLE__)
@@ -133,6 +138,7 @@ namespace detail {
 #endif
     }
 }
+/// \endcond
 
 #ifdef AMREX_USE_SIMD
 //! Return sine and cosine of given number
@@ -323,6 +329,62 @@ T comp_ellint_2 (T k)
     }
 
     return Kcomp*sum_val;
+}
+
+//! Return inverse square root of x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double rsqrt (double x)
+{
+    double r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::rsqrt(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = 1. / std::sqrt(x); ))
+    return r;
+}
+
+//! Return inverse square root of x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+float rsqrt (float x)
+{
+    float r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::rsqrt(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::rsqrtf(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = 1.F / std::sqrt(x); ))
+    return r;
+}
+
+//! Return 10**x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+double exp10 (double x)
+{
+    double r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::exp10(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::exp10(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = std::pow(10.0, x); ))
+    return r;
+}
+
+//! Return 10**x
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+float exp10 (float x)
+{
+    float r;
+#if defined(AMREX_USE_SYCL)
+    AMREX_IF_ON_DEVICE(( r = sycl::exp10(x); ))
+#else
+    AMREX_IF_ON_DEVICE(( r = ::exp10f(x); ))
+#endif
+    AMREX_IF_ON_HOST(( r = std::pow(10.0F, x); ))
+    return r;
 }
 
 /***************************************************************************************************

@@ -107,7 +107,9 @@ while ( false )
     void Initialize ();
     void Finalize ();
 
+    /// \cond DOXYGEN_IGNORE
     extern AMREX_EXPORT bool use_gpu_aware_mpi;
+    /// \endcond
     inline bool UseGpuAwareMpi () { return use_gpu_aware_mpi; }
 
     //! Split the process pool into teams
@@ -120,12 +122,14 @@ while ( false )
     */
     void EndParallel ();
 
+    /// \ingroup amrex_mpi
     //! return the rank number local to the current Parallel Context
     inline int
     MyProc () noexcept
     {
         return ParallelContext::MyProcAll();
     }
+    /// \ingroup amrex_mpi
     inline int
     MyProc (MPI_Comm comm) noexcept
     {
@@ -189,6 +193,7 @@ while ( false )
         [[nodiscard]] const MPI_Comm& get_team_comm() const { return m_team_comm; }
         [[nodiscard]] const MPI_Comm& get_lead_comm() const { return m_lead_comm; }
 
+        /// \cond DOXYGEN_IGNORE
         int    m_numTeams;
         int    m_size;
         int    m_color;
@@ -198,46 +203,53 @@ while ( false )
 
         MPI_Comm  m_team_comm;
         MPI_Comm  m_lead_comm;
+        /// \endcond
     };
 
+    /// \cond DOXYGEN_IGNORE
     extern AMREX_EXPORT ProcessTeam m_Team;
-
     extern AMREX_EXPORT int m_MinTag, m_MaxTag;
+    extern AMREX_EXPORT MPI_Comm m_comm;
+    extern AMREX_EXPORT int m_nprocs_per_node;
+    extern AMREX_EXPORT int m_rank_in_node;
+    extern AMREX_EXPORT int m_nprocs_per_processor;
+    extern AMREX_EXPORT int m_rank_in_processor;
+    extern AMREX_EXPORT const int ioProcessor;
+    /// \endcond
+
     inline int MinTag () noexcept { return m_MinTag; }
     inline int MaxTag () noexcept { return m_MaxTag; }
 
-    extern AMREX_EXPORT MPI_Comm m_comm;
     inline MPI_Comm Communicator () noexcept { return m_comm; }
 
-    extern AMREX_EXPORT int m_nprocs_per_node;
     //! Return the number of MPI ranks per node as defined by
     //! MPI_COMM_TYPE_SHARED. This might be the same or different from
     //! NProcsPerProcessor based on MPI_Get_processor_name.
     inline int NProcsPerNode () noexcept { return m_nprocs_per_node; }
 
-    extern AMREX_EXPORT int m_rank_in_node;
     //! Return the rank in a node defined by MPI_COMM_TYPE_SHARED. This
     //! might be the same or different from MyRankInProcessor based on
     //! MPI_Get_processor_name.
     inline int MyRankInNode () noexcept { return m_rank_in_node; }
 
-    extern AMREX_EXPORT int m_nprocs_per_processor;
     //! Return the number of MPI ranks per node as defined by
     //! MPI_Get_processor_name. This might be the same or different from
     //! NProcsPerNode based on MPI_COMM_TYPE_SHARED.
     inline int NProcsPerProcessor () noexcept { return m_nprocs_per_processor; }
 
-    extern AMREX_EXPORT int m_rank_in_processor;
     //! Return the rank in a node defined by MPI_Get_processor_name. This
     //! might be the same or different from MyRankInNode based on
     //! MPI_COMM_TYPE_SHARED.
     inline int MyRankInProcessor () noexcept { return m_rank_in_processor; }
 
 #ifdef AMREX_USE_MPI
-    extern Vector<MPI_Datatype*> m_mpi_types;
-    extern Vector<MPI_Op*> m_mpi_ops;
+    /// \cond DOXYGEN_IGNORE
+    extern AMREX_EXPORT Vector<MPI_Datatype*> m_mpi_types;
+    extern AMREX_EXPORT Vector<MPI_Op*> m_mpi_ops;
+    /// \endcond
 #endif
 
+    /// \ingroup amrex_mpi
     //! return the number of MPI ranks local to the current Parallel Context
     inline int
     NProcs () noexcept
@@ -245,6 +257,7 @@ while ( false )
         return ParallelContext::NProcsAll();
     }
 
+    /// \ingroup amrex_mpi
     inline int
     NProcs (MPI_Comm comm) noexcept
     {
@@ -258,16 +271,17 @@ while ( false )
 #endif
     }
     /**
+    * \ingroup amrex_mpi
     * \brief The MPI rank number of the I/O Processor (probably rank 0).
     * This rank is usually used to write to stdout.
     */
-    extern AMREX_EXPORT const int ioProcessor;
     inline int
     IOProcessorNumber () noexcept
     {
         return ioProcessor;
     }
     /**
+    * \ingroup amrex_mpi
     * \brief Is this CPU the I/O Processor?
     * To get the rank number, call IOProcessorNumber()
     */
@@ -277,12 +291,14 @@ while ( false )
          return MyProc() == IOProcessorNumber();
     }
 
+    /// \ingroup amrex_mpi
     inline int
     IOProcessorNumber (MPI_Comm comm) noexcept
     {
         return (comm == ParallelDescriptor::Communicator()) ? ioProcessor : 0;
     }
 
+    /// \ingroup amrex_mpi
     inline bool
     IOProcessor (MPI_Comm comm) noexcept
     {
@@ -419,7 +435,9 @@ while ( false )
         }
     }
 
+    /// \ingroup amrex_mpi
     void Barrier (const std::string& message = Unnamed);
+    /// \ingroup amrex_mpi
     void Barrier (const MPI_Comm &comm, const std::string& message = Unnamed);
     Message Abarrier ();
     Message Abarrier (const MPI_Comm &comm);
@@ -435,21 +453,27 @@ while ( false )
     //! Returns wall-clock seconds since start of execution.
     double second () noexcept;
 
+    /// \ingroup amrex_mpi
     //! And-wise boolean reduction.
     void ReduceBoolAnd (bool& rvar);
+    /// \ingroup amrex_mpi
     //! And-wise boolean reduction to specified cpu.
     void ReduceBoolAnd (bool& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Or-wise boolean reduction.
     void ReduceBoolOr  (bool& rvar);
+    /// \ingroup amrex_mpi
     //! Or-wise boolean reduction to specified cpu.
     void ReduceBoolOr  (bool& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Real sum reduction.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar);
 
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt);
@@ -457,15 +481,18 @@ while ( false )
     // Having this for backward compatibility
     void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar);
 
+    /// \ingroup amrex_mpi
     //! Real sum reduction to specified cpu.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (T* rvar, int cnt, int cpu);
@@ -473,15 +500,18 @@ while ( false )
     // Having this for backward compatibility
     void ReduceRealSum (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealSum (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Real max reduction.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar);
 
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt);
@@ -489,15 +519,18 @@ while ( false )
     // Having this for backward compatibility
     void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar);
 
+    /// \ingroup amrex_mpi
     //! Real max reduction to specified cpu.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (T* rvar, int cnt, int cpu);
@@ -505,15 +538,18 @@ while ( false )
     // Having this for backward compatibility
     void ReduceRealMax (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMax (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Real min reduction.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar);
 
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt);
@@ -521,15 +557,18 @@ while ( false )
     // Having this for backward compatibility
     void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar);
 
+    /// \ingroup amrex_mpi
     //! Real min reduction to specified cpu.
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (T* rvar, int cnt, int cpu);
@@ -537,73 +576,117 @@ while ( false )
     // Having this for backward compatibility
     void ReduceRealMin (Vector<std::reference_wrapper<Real> > const& rvar, int cpu);
     //
+    /// \ingroup amrex_mpi
     template <typename T>
     std::enable_if_t<std::is_floating_point_v<T>>
     ReduceRealMin (Vector<std::reference_wrapper<T> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Integer sum reduction.
     void ReduceIntSum (int& rvar);
+    /// \ingroup amrex_mpi
     void ReduceIntSum (int* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Integer sum reduction to specified cpu.
     void ReduceIntSum (int& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntSum (int* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntSum (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Integer max reduction.
     void ReduceIntMax (int& rvar);
+    /// \ingroup amrex_mpi
     void ReduceIntMax (int* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Integer max reduction to specified cpu.
     void ReduceIntMax (int& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntMax (int* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntMax (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Integer min reduction.
     void ReduceIntMin (int& rvar);
+    /// \ingroup amrex_mpi
     void ReduceIntMin (int* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Integer min reduction to specified cpu.
     void ReduceIntMin (int& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntMin (int* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceIntMin (Vector<std::reference_wrapper<int> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long sum reduction.
     void ReduceLongSum (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongSum (Long* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long sum reduction to specified cpu.
     void ReduceLongSum (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongSum (Long* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongSum (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long max reduction.
     void ReduceLongMax (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongMax (Long* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long max reduction to specified cpu.
     void ReduceLongMax (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongMax (Long* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongMax (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long min reduction.
     void ReduceLongMin (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongMin (Long* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long min reduction to specified cpu.
     void ReduceLongMin (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongMin (Long* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongMin (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Long and-wise reduction.
     void ReduceLongAnd (Long& rvar);
+    /// \ingroup amrex_mpi
     void ReduceLongAnd (Long* rvar, int cnt);
+    /// \ingroup amrex_mpi
     void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar);
+    /// \ingroup amrex_mpi
     //! Long and-wise reduction to specified cpu.
     void ReduceLongAnd (Long& rvar, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongAnd (Long* rvar, int cnt, int cpu);
+    /// \ingroup amrex_mpi
     void ReduceLongAnd (Vector<std::reference_wrapper<Long> > const& rvar, int cpu);
 
+    /// \ingroup amrex_mpi
     //! Parallel gather.
     void Gather (Real const* sendbuf, int nsend, Real* recvbuf, int root);
     /**
@@ -651,6 +734,7 @@ while ( false )
     void Waitany  (Vector<MPI_Request>& reqs, int &index, MPI_Status& status);
     void Waitsome (Vector<MPI_Request>&, int&, Vector<int>&, Vector<MPI_Status>&);
 
+    /// \ingroup amrex_mpi
     void ReadAndBcastFile(const std::string &filename, Vector<char> &charBuf,
                           bool bExitOnError = true,
                           const MPI_Comm &comm = Communicator() );
@@ -1231,6 +1315,7 @@ namespace ParallelDescriptor {
 
 #ifdef AMREX_USE_MPI
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template<typename T>
@@ -1268,6 +1353,7 @@ void DoReduce (T* r, MPI_Op op, int cnt, int cpu)
 }
 
 }
+/// \endcond
 
     //! Real sum reduction.
     template <typename T>

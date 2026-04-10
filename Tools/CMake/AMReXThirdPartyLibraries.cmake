@@ -117,7 +117,7 @@ endif ()
 #
 #  Catalyst
 #
-if (AMReX_CATALYST) 
+if (AMReX_CATALYST)
     find_package(Catalyst REQUIRED PATHS "$ENV{CATALYST_IMPLEMENTATION_PATHS}")
     foreach(D IN LISTS AMReX_SPACEDIM)
         target_link_libraries(amrex_${D}d PUBLIC catalyst::catalyst)
@@ -128,7 +128,9 @@ endif ()
 # Conduit
 #
 if (AMReX_CONDUIT)
-    find_package(Conduit REQUIRED)
+    if(NOT TARGET conduit::conduit)
+        find_package(Conduit REQUIRED)
+    endif()
     foreach(D IN LISTS AMReX_SPACEDIM)
         if (AMReX_MPI)
             target_link_libraries(amrex_${D}d PUBLIC conduit::conduit_mpi)

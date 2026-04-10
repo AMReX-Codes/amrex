@@ -2,14 +2,17 @@
 #define AMREX_MLPOISSON_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_iMultiFab.H>
 #include <AMReX_MLCellABecLap.H>
 #include <AMReX_MLPoisson_K.H>
 #include <AMReX_MLALaplacian.H>
+#include <AMReX_MultiFab.H>
 
 namespace amrex {
 
 // del dot grad phi
 
+/// \ingroup amrex_solver_mlmg
 template <typename MF>
 class MLPoissonT
     : public MLCellABecLapT<MF>
@@ -1202,6 +1205,7 @@ MLPoissonT<MF>::get_dpdn_on_domain_faces (Array<MF*,AMREX_SPACEDIM> const& dpdn,
 
 extern template class MLPoissonT<MultiFab>;
 
+/// \ingroup amrex_solver_mlmg
 using MLPoisson = MLPoissonT<MultiFab>;
 
 }

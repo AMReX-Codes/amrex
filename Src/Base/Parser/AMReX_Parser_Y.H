@@ -2,6 +2,11 @@
 #define AMREX_PARSER_Y_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Parser_Y.H
+ * \brief Parser symbol-table definitions shared by the generated lexer/parser.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>
 #include <AMReX_Math.H>
@@ -121,7 +126,7 @@ std::string_view parser_f2_s[] =
     "leq",
     "eq",
     "neq",
-    "and",
+    "cmp_chain",
     "and",
     "or",
     "heaviside",
@@ -529,7 +534,13 @@ parser_call_f2 (enum parser_f2_t type, double a, double b)
     case PARSER_OR:
         return ((a != 0.0) || (b != 0.0)) ? 1.0 : 0.0;
     case PARSER_HEAVISIDE:
-        return (a < 0.0) ? 0.0 : ((a > 0.0) ? 1.0 : b);
+        if (a < 0.0) {
+            return 0.0;
+        } else if (a > 0.0) {
+            return 1.0;
+        } else {
+            return b;
+        }
     case PARSER_JN:
         return parser_math_jn<double>(int(a),b);
     case PARSER_YN:

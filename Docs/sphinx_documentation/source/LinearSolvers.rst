@@ -14,7 +14,8 @@ system using the geometric multigrid method.  The constructor of
 class of various linear operator
 classes, :cpp:`MLABecLaplacian`, :cpp:`MLPoisson`,
 :cpp:`MLNodeLaplacian`, etc.  We choose the type of linear operator
-class according to the type the linear system to solve.
+class according to the type of linear system to solve. Examples of the
+linear operators include
 
 - :cpp:`MLABecLaplacian` for cell-centered canonical form (equation :eq:`eqn::abeclap`).
 
@@ -97,7 +98,7 @@ use to set the coefficients. These functions solely copy the constant value(s) t
 internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
 For :cpp:`MLNodeLaplacian`,
-one can set a variable :cpp:`sigma` with the member function
+one can set the variable :cpp:`sigma` with the member function
 
 .. highlight:: c++
 
@@ -185,7 +186,7 @@ After the solver returns successfully, if needed, we can call
                        const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
 
-to compute residual (i.e., :math:`f - L(\phi)`) given the solution and
+to compute the residual (i.e., :math:`f - L(\phi)`) given the solution and
 the right-hand side.  For cell-centered solvers, we can also call the
 following functions to compute gradient :math:`\nabla \phi` and fluxes
 :math:`-\beta \nabla \phi`.
@@ -238,7 +239,8 @@ if we want to do a linear solve where the boundary conditions on the
 coarsest AMR level of the solve come from a coarser level (e.g. the
 base AMR level of the solve is > 0 and does not cover the entire domain),
 we must explicitly provide the coarser data.  Boundary conditions from a
-coarser level are always Dirichlet.
+coarser level are Dirichlet by default and can be changed to homogeneous
+Neumann (i.e., :cpp:`LinOpBCType::Neumann`).
 
 Note that this step, if needed, must be performed before the step below.
 The :cpp:`MLLinOp` member function for this step is
@@ -247,13 +249,17 @@ The :cpp:`MLLinOp` member function for this step is
 
 ::
 
-    void setCoarseFineBC (const MultiFab* crse, int crse_ratio);
+    void setCoarseFineBC (const MultiFab* crse, int crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet);
+
+    void setCoarseFineBC (const MultiFab* crse, IntVect const& crse_ratio,
+                          LinOpBCType bc_type = LinOpBCType::Dirichlet);
 
 Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
 level below it.  The MultiFab :cpp:`crse` does not need to have ghost cells
-itself. If the coarse grid bc's for the solve are identically zero,
+itself. If the coarse-grid BCs for the solve are identically zero,
 :cpp:`nullptr` can be passed instead of :cpp:`crse`.
 
 3) Cell-centered solvers only:
@@ -286,7 +292,7 @@ If the boundary conditions contain no inhomogeneous Dirichlet or Neumann boundar
 we can pass :cpp:`nullptr` instead of a MultiFab.
 
 We can use the solution array itself to hold these values;
-the values are copied to internal arrays and will not be over-written
+the values are copied to internal arrays and will not be overwritten
 when the solution array itself is being updated by the solver.
 Note, however, that this call does not provide an initial guess for the solve.
 
@@ -321,7 +327,7 @@ There are many parameters that can be set.  Here we discuss some
 commonly used ones.
 
 :cpp:`MLLinOp::setVerbose(int)`, :cpp:`MLMG::setVerbose(int)` and
-:cpp:`MLMG:setBottomVerbose(int)` control the verbosity of the
+:cpp:`MLMG::setBottomVerbose(int)` control the verbosity of the
 linear operator, multigrid solver and the bottom solver, respectively.
 
 The multigrid solver is an iterative solver.  The maximal number of
@@ -359,7 +365,7 @@ biconjugate gradient stabilized method, but can easily be changed with the :cpp:
 
     void setBottomSolver (BottomSolver s);
 
-Available choices are
+Available choices of the bottom solver are
 
 - :cpp:`MLMG::BottomSolver::bicgstab`: The default.
 
@@ -374,23 +380,35 @@ Available choices are
 - :cpp:`MLMG::BottomSolver::cgbicg`: Start with cg. Switch to bicgstab
   if cg fails.  The matrix must be symmetric.
 
-- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through hypre;
+- :cpp:`MLMG::BottomSolver::hypre`: One of the solvers available through HYPRE;
   see the section below on External Solvers
 
 - :cpp:`MLMG::BottomSolver::petsc`: Currently for cell-centered only.
 
+The :cpp:`LPInfo` class can be used to control the agglomeration and
+consolidation strategy for multigrid coarsening.
+
 - :cpp:`LPInfo::setAgglomeration(bool)` (by default true) can be used
-  continue to coarsen the multigrid by copying what would have been the
-  bottom solver to a new :cpp:`MultiFab` with a new :cpp:`BoxArray` with
-  fewer, larger grids, to allow for additional coarsening.
+  to copy the current level of multigrid data to fewer, larger
+  boxes. Two advantages of using this option are that the bottom solver will become
+  smaller, and communication overhead is reduced.
+
+- :cpp:`LPInfo::setAgglomerationGridSize(int)` controls the grid-length
+  threshold used for agglomeration. By default, the threshold length is set
+  to 32 for GPU builds, and 8, 16 and 32 for CPU builds in 1D, 2D and 3D,
+  respectively. The corresponding volume threshold is :math:`L^D`, where
+  :math:`L` is the length threshold and :math:`D` is
+  :cpp:`AMREX_SPACEDIM`. When the average box volume falls below this volume
+  threshold, boxes are agglomerated until this is no longer the case. Note
+  that this action is recursive and can happen at several different levels
+  in the multigrid hierarchy.
 
 - :cpp:`LPInfo::setConsolidation(bool)` (by default true) can be used
-  continue to transfer a multigrid problem to fewer MPI ranks.
+  to continue to transfer a multigrid problem to fewer MPI ranks.
   There are more setting such as :cpp:`LPInfo::setConsolidationGridSize(int)`,
   :cpp:`LPInfo::setConsolidationRatio(int)`, and
   :cpp:`LPInfo::setConsolidationStrategy(int)`, to give control over how this
-  process works.
-
+  process works.  If agglomeration is used, consolidation is ignored.
 
 :cpp:`MLMG::setThrowException(bool)` controls whether multigrid failure results
 in aborting (default) or throwing an exception, whereby control will return to the calling
@@ -501,7 +519,7 @@ To set homogeneous Dirichlet boundary conditions, call
 
     ml_ebabeclap->setEBHomogDirichlet(lev, coeff);
 
-where coeff can be a real number (i.e. the value is the same at every cell)
+where coeff can be a real number (i.e., the value is the same at every cell)
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
 In other words, coeff is :math:`\beta` in the canonical form given in equation :eq:`eqn::abeclap`
 located at the EB surface centroid.
@@ -517,7 +535,7 @@ To set inhomogeneous Dirichlet boundary conditions, call
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
 and coeff again is a real number
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face,
-i.e. :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
+i.e., :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
@@ -534,7 +552,7 @@ at cell centroids, you must set
     ml_ebabeclap->setPhiOnCentroid();
 
 The default is for the face-based coefficients to be defined at face centers;
-to tell the that the face-based coefficients should be interpreted
+to tell the solver that the face-based coefficients should be interpreted
 as living at face centroids, modify the setBCoeffs command to be
 
 .. highlight:: c++
@@ -546,13 +564,13 @@ as living at face centroids, modify the setBCoeffs command to be
 External Solvers
 ================
 
-AMReX provides interfaces to the `hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
+AMReX provides interfaces to the `HYPRE <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ preconditioners and solvers, including BoomerAMG, GMRES (all variants), PCG, and BICGStab as
 solvers, and BoomerAMG and Euclid as preconditioners.  These can be called as
 as bottom solvers for both cell-centered and node-based problems.
 
-If it is built with Hypre support, AMReX initializes Hypre by default in
-`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up Hypre
-to run on device by default.  The user can choose to disable the Hypre
+If it is built with HYPRE support, AMReX initializes HYPRE by default in
+`amrex::Initialize`.  If it is built with CUDA, AMReX will also set up HYPRE
+to run on device by default.  The user can choose to disable the HYPRE
 initialization by AMReX with :cpp:`ParmParse` parameter
 ``amrex.init_hypre=[0|1]``.
 
@@ -563,9 +581,9 @@ passed to the constructor of a linear operator to disable the
 coarsening completely.  In that case the bottom solver is solving the
 residual correction form of the original problem.
 
-As of March 2025, AMReX supports and is tested with Hypre version 2.32.0 (check
+As of March 2025, AMReX supports and is tested with HYPRE version 2.32.0 (check
 ``amrex/.github/workflows/hypre.yml`` so see what versions are currently tested).
-To build Hypre, follow the next steps:
+To build HYPRE, follow the next steps:
 
 .. highlight:: console
 
@@ -575,12 +593,12 @@ To build Hypre, follow the next steps:
     2.- cd hypre/src
     3.- git checkout v2.32.0
     4.- ./configure
-        (if you want to build hypre with long long int, do ./configure --enable-bigint )
+        (if you want to build HYPRE with long long int, do ./configure --enable-bigint )
     5.- make install
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use Hypre with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for Hypre matches with that of AMReX. By default, Hypre assumes its architecture number to be 70 and it is best to build Hypre for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
+To use HYPRE with CUDA, the `nvcc` compiler is needed along with all other requirements for the CPU build (e.g., `gcc`, `mpicc`). It is very important that the GPU architecture for HYPRE matches that of AMReX. By default, HYPRE assumes its architecture number to be 70, and it is best to build HYPRE for multiple architectures by specifying multiple compute capability numbers (e.g., 80 and 90). If you see a runtime error similar to
 ``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
 
 ::
@@ -589,23 +607,23 @@ To use Hypre with CUDA, nvcc compiler is needed along with all other requirement
     2.- cd hypre/src
     3.- git checkout v2.32.0
     4.- ./configure --with-cuda --with-gpu-arch='80 90' --enable-unified-memory
-        (you can figure out the gpu arch from command line using
-        nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
+        (you can determine the GPU architecture from the command line using
+        nvidia-smi --query-gpu=compute_cap --format=csv; if it gives 9.0, gpu-arch is 90)
     5.- make install
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use hypre, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
-For examples of using hypre, we refer the reader to
+To use HYPRE, one must include ``amrex/Src/Extern/HYPRE`` in the build system.
+For examples of using HYPRE, we refer the reader to
 `ABecLaplacian`_ or `NodeTensorLap`_.
 
 .. _`ABecLaplacian`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
 .. _`NodeTensorLap`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
-The following parameter should be set to True if the problem to be solved has a singular matrix.
-In this case, the solution is only defined to within a constant.  Setting this parameter to True
-replaces one row in the matrix sent to hypre from AMReX by a row that sets the value at one cell to 0.
+The following parameter should be set to true if the problem to be solved has a singular matrix.
+In this case, the solution is only defined to within a constant.  Setting this parameter to true
+replaces one row in the matrix sent to HYPRE from AMReX by a row that sets the value at one cell to 0.
 
 - :cpp:`hypre.adjust_singular_matrix`:   Default is false.
 
@@ -618,14 +636,14 @@ The following parameters can be set in the inputs file to control the choice of 
 
 - :cpp:`hypre.recompute_preconditioner`: Default true.  Option to recompute the preconditioner.
 
-- :cpp:`hypre.write_matrix_files`: Default false.   Option to write out matrix into text files.
+- :cpp:`hypre.write_matrix_files`: Default false.   Option to write the matrix to text files.
 
-- :cpp:`hypre.overwrite_existing_matrix_files`: Default false.   Option to over-write existing matrix files.
+- :cpp:`hypre.overwrite_existing_matrix_files`: Default false.   Option to overwrite existing matrix files.
 
 
 The following parameters can be set in the inputs file to control the BoomerAMG solver specifically:
 
-- :cpp:`hypre.bamg_verbose`: verbosity of BoomerAMG preconditioner. Default 0. See `HYPRE_BoomerAMGSetPrintLevel`
+- :cpp:`hypre.bamg_verbose`: Verbosity of the BoomerAMG preconditioner. Default 0. See `HYPRE_BoomerAMGSetPrintLevel`
 
 - :cpp:`hypre.bamg_logging`: Default 0. See `HYPRE_BoomerAMGSetLogging`
 
@@ -646,7 +664,7 @@ The following parameters can be set in the inputs file to control the BoomerAMG 
 - :cpp:`hypre.bamg_interp_type`:  Default 0.  See `HYPRE_BoomerAMGSetInterpType`
 
 The user is referred to the
-`hypre <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ Hypre Reference Manual for full details on the usage of the parameters described briefly above.
+`HYPRE <https://computing.llnl.gov/projects/hypre-scalable-linear-solvers-multigrid-methods>`_ HYPRE Reference Manual for full details on the usage of the parameters described briefly above.
 
 AMReX can also use `PETSc <https://www.mcs.anl.gov/petsc/>`_ as a bottom solver for cell-centered
 problems. To build PETSc, follow the next steps:
@@ -796,12 +814,12 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
 (Note: only operators of the form :math:`D:\mathbb{R}^n\to\mathbb{R}^n` are currently allowed.)
 
 - To implement a multi-component *cell-based* operator, inherit from the ``MLCellLinOp`` class.
-  Override the ``getNComp`` function to return the number of components (``N``)that the operator will use.
+  Override the ``getNComp`` function to return the number of components (``N``) that the operator will use.
   The solution and rhs fabs must also have at least one ghost node.
   ``Fapply``, ``Fsmooth``, ``Fflux`` must be implemented such that the solution and rhs fabs all have ``N`` components.
 
 - Implementing a multi-component *node-based* operator is slightly different.
-  A MC nodal operator must specify that the reflux-free coarse/fine strategy is being used by the solver.
+  An MC nodal operator must specify that the reflux-free coarse/fine strategy is being used by the solver.
 
   .. code::
 
@@ -813,7 +831,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   The second (outermost) layer of nodes is treated as constant by the relaxation, essentially acting as a Dirichlet boundary.
   The first layer of nodes is evolved using the relaxation, in the same manner as the rest of the solution.
   When the residual is restricted onto the coarse level (in ``reflux``) this allows the residual at the coarse-fine boundary to be interpolated using the first layer of ghost nodes.
-  :numref:`fig::refluxfreecoarsefine` illustrates the how the coarse-fine update takes place.
+  :numref:`fig::refluxfreecoarsefine` illustrates how the coarse-fine update takes place.
 
   .. _fig::refluxfreecoarsefine:
 
@@ -827,7 +845,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
      and the first level of ghost nodes.
      Coarse nodes underneath level 2 ghost nodes are not updated.
-     The remaining coarse nodes are updates by restriction.
+     The remaining coarse nodes are updated by restriction.
 
   The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
   ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
@@ -836,4 +854,76 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
 
 See ``amrex-tutorials/ExampleCodes/LinearSolvers/MultiComponent`` for a complete working example.
 
-.. solver reuse
+
+Curl-Curl
+=========
+
+The curl-curl solver supports solving the linear system arising from the
+discretized form of
+
+.. math:: \nabla \times (\alpha \nabla \times \vec{E}) + \beta \vec{E} = \vec{f},
+
+where :math:`\vec{E}` and :math:`\vec{f}` are defined on cell edges,
+:math:`\alpha` is a positive scalar, and :math:`\beta` is a non-negative
+scalar (either a constant or a field). An :cpp:`Array` of three
+:cpp:`MultiFab`\ s is used to store the components of :math:`\vec{E}` and
+:math:`\vec{f}`. It is the user's responsibility to ensure that the
+right-hand-side data are consistent on edges shared by multiple
+:cpp:`Box`\ es.  If needed, you can call :cpp:`MLCurlCurl::prepareRHS` to
+perform this synchronization.
+
+The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
+:math:`\vec{E}` still has three components, one for each spatial
+direction.
+
+Open Boundary Poisson Solver
+============================
+
+To solve Poisson's equation for isolated sources (i.e., no sources outside
+the boundary), there are several options. One option is to use :cpp:`MLMG`
+and :cpp:`MLPoisson` with Dirichlet boundary conditions. The Dirichlet
+boundary values can be computed using the multipole method, as done in the
+Castro code (see e.g.,
+https://amrex-astro.github.io/Castro/docs/file/Gravity_8H.html#_CPPv49multipole).
+Another option is to use the FFT-based solver
+:cpp:`amrex::FFT::PoissonOpenBC` (see chapter :ref:`Chap:FFT`). A third
+option is :cpp:`amrex::OpenBCSolver`, which implements James's method
+("The Solution of Poisson's Equation for Isolated Source
+Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
+71). Below are some of the member functions of :cpp:`OpenBCSolver`.
+
+.. highlight:: c++
+
+::
+
+    OpenBCSolver (const Vector<Geometry>& a_geom,
+                  const Vector<BoxArray>& a_grids,
+                  const Vector<DistributionMapping>& a_dmap,
+                  const LPInfo& a_info = LPInfo());
+
+    Real solve (const Vector<MultiFab*>& a_sol,
+                const Vector<MultiFab const*>& a_rhs,
+                 Real a_tol_rel, Real a_tol_abs);
+
+
+GMRES
+=====
+
+AMReX provides a template implementation of the generalized minimal residual
+method (GMRES). The class template parameters are :cpp:`V` for a linear
+algebra vector class and :cpp:`M` for a linear operator class. The linear
+algebra vector class can contain one or several :cpp:`MultiFab`\ s, or your
+own data container. The linear operator class represents a matrix
+conceptually. Although it does not need to store the matrix explicitly, it
+must be able to apply the matrix vector product for a given vector. It also
+must provide some basic operations such as dot product and linear
+combination. For the full set of requirements on the operator class, see
+https://amrex-codes.github.io/amrex/doxygen/classamrex_1_1GMRES.html#details.
+
+An example of using GMRES combined with a Jacobi preconditioner to solve
+Poisson's equation can be found at
+https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html.
+
+AMReX also provides :cpp:`GMRESMLMGT`, a class template that solves the
+linear system in :cpp:`MLMG` using GMRES with :cpp:`MLMG` itself serving as
+the preconditioner.

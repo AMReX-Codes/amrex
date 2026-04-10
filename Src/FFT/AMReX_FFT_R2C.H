@@ -11,11 +11,18 @@
 namespace amrex::FFT
 {
 
+/**
+ * \file AMReX_FFT_R2C.H
+ *
+ * Parallel real-to-complex FFT wrappers that operate on MultiFabs/FabArrays.
+ */
+
 template <typename T> class OpenBCSolver;
 template <typename T> class Poisson;
 template <typename T> class PoissonHybrid;
 
 /**
+ * \ingroup amrex_fft
  * \brief Parallel Discrete Fourier Transform
  *
  * This class supports Fourier transforms between real and complex data. The
@@ -95,8 +102,8 @@ public:
      * This should only be called once unless the domain decomposition
      * changes.
      *
-     * local_start starting indices of the local domain
-     * local_size size of the local domain
+     * \param local_start Starting indices of the local domain in each direction.
+     * \param local_size  Extent of the local domain handled by this rank.
      */
     void setLocalDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
                          std::array<int,AMREX_SPACEDIM> const& local_size);
@@ -111,6 +118,8 @@ public:
      * This is needed, only if one uses the raw pointer interfaces, not the
      * amrex::MulitFab interfaces. Only one of the functions, setLocalDomain
      * and getLocalDomain, should be called.
+     *
+     * \return Pair of (local start indices, local extents).
      */
     std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
     getLocalDomain () const;
@@ -140,8 +149,8 @@ public:
      * This should only be called once unless the domain decomposition
      * changes.
      *
-     * local_start starting indices of the local domain
-     * local_size size of the local domain
+     * \param local_start Starting indices of the local spectral sub-domain.
+     * \param local_size  Extent of the spectral data handled by this rank.
      */
     void setLocalSpectralDomain (std::array<int,AMREX_SPACEDIM> const& local_start,
                                  std::array<int,AMREX_SPACEDIM> const& local_size);
@@ -162,6 +171,7 @@ public:
      * decomposition. Also note that the entire spectral domain has the size
      * of (nx+1)/2 * ny * nz, if the real domain is nx * ny * nz.
      *
+     * \return Pair of (local start indices, local extents).
      */
     std::pair<std::array<int,AMREX_SPACEDIM>,std::array<int,AMREX_SPACEDIM>>
     getLocalSpectralDomain () const;
@@ -180,7 +190,7 @@ public:
      * \param outmf        output data in MultiFab or FabArray<BaseFab<float>>
      * \param post_forward a callable object for processing the post-forward
      *                     data before the backward transform. Its interface
-     *                     is `(int,int,int,GpuComplex<T>&)`, where the integers
+     *                     is `void(int,int,int,GpuComplex<T>&)`, where the integers
      *                     are indices in the spectral space, and the reference
      *                     to the complex number allows for the modification of
      *                     the spectral data at that location.
@@ -192,6 +202,9 @@ public:
     void forwardThenBackward (MF const& inmf, MF& outmf, F const& post_forward,
                               int incomp = 0, int outcomp = 0)
     {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            !m_info.twod_mode && m_info.batch_size == 1,
+            "FFT::R2C::forwardThenBackward(post_forward) currently supports only !twod_mode and batch_size==1");
         BL_PROFILE("FFT::R2C::forwardbackward");
         this->forward(inmf, incomp);
         this->post_forward_doit_0(post_forward);
@@ -239,6 +252,9 @@ public:
      * because it has better performance. All processes need to call this
      * function even if their local size is zero. If the local size is zero,
      * one can pass nullptrs.
+     *
+     * \param in  Real-domain input data laid out as specified by setLocalDomain.
+     * \param out Complex-domain buffer that receives the Hermitian half-spectrum.
      */
     template <typename RT, typename CT, Direction DIR=D, bool CP=C,
               std::enable_if_t<(DIR == Direction::forward ||
@@ -286,6 +302,9 @@ public:
      * because it has better performance. All processes need to call this
      * function even if their local size is zero. If the local size is zero,
      * one can pass nullptrs.
+     *
+     * \param in  Complex-domain data.
+     * \param out Real-domain buffer that receives the transformed data.
      */
     template <typename CT, typename RT, Direction DIR=D, bool CP=C,
               std::enable_if_t<(DIR == Direction::backward ||
@@ -294,9 +313,13 @@ public:
                                    (sizeof(RT) == sizeof(CT) && CP)), int> = 0>
     void backward (CT const* in, RT* out);
 
-    //! Scaling factor. If the data goes through forward and then backward,
-    //! the result multiplied by the scaling factor is equal to the original
-    //! data.
+    /**
+     * \brief Scaling factor. If the data goes through forward and then backward,
+     * the result multiplied by the scaling factor is equal to the original
+     * data.
+     *
+     * \return Normalization factor (1 divided by the logical domain size).
+     */
     [[nodiscard]] T scalingFactor () const;
 
     /**
@@ -307,6 +330,8 @@ public:
      * the returned data array does not have the usual ordering of
      * `(x,y,z)`. The order is specified in the second part of the return
      * value.
+     *
+     * \return Pair of (spectral MultiFab pointer, permutation describing storage order).
      */
     template <Direction DIR=D, std::enable_if_t<DIR == Direction::forward ||
                                                 DIR == Direction::both, int> = 0>
@@ -318,14 +343,25 @@ public:
      * The returned BoxArray and DistributionMapping can be used to build
      * FabArray<BaseFab<GpuComplex<T>>> for spectral data. The returned
      * BoxArray has the usual order of `(x,y,z)`.
+     *
+     * \return Layout describing the complex-space tiling and distribution.
      */
     [[nodiscard]] std::pair<BoxArray,DistributionMapping> getSpectralDataLayout () const;
 
-    // This is a private function, but it's public for cuda.
+    /**
+     * \brief CUDA-visible hook that walks internal spectral data and applies \p post_forward.
+     *
+     * \param post_forward Functor invoked on each spectral coefficient (`void(int,int,int,GpuComplex<T>&)`).
+     */
     template <typename F>
     void post_forward_doit_0 (F const& post_forward);
 
     template <typename F>
+    /**
+     * \brief CUDA-visible helper that redistributes and applies \p post_forward for the batched layout.
+     *
+     * \param post_forward Functor invoked on each spectral coefficient (`void(int,int,int,GpuComplex<T>&)`).
+     */
     void post_forward_doit_1 (F const& post_forward);
 
 private:
@@ -502,12 +538,13 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         }
     }
 
-    if (m_info.twod_mode) {
-        m_slab_decomp = true;
-    } else if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
-        m_slab_decomp = true;
+    if (!m_info.oned_mode) {
+        if (m_info.twod_mode) {
+            m_slab_decomp = true;
+        } else if (m_info.domain_strategy == DomainStrategy::slab && (m_real_domain.length(1) > 1)) {
+            m_slab_decomp = true;
+        }
     }
-
 #endif
 
     auto const ncomp = m_info.batch_size;
@@ -528,7 +565,8 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         m_cx.define(cbax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
     }
 
-    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) && (! m_info.twod_mode);
+    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) &&
+                    (! m_info.twod_mode) && (! m_info.oned_mode);
 
     if (!m_do_alld_fft) // do a series of 1d or 2d ffts
     {
@@ -538,7 +576,7 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 
 #if (AMREX_SPACEDIM >= 2)
         DistributionMapping cdmy;
-        if ((m_real_domain.length(1) > 1) && !m_slab_decomp)
+        if ((m_real_domain.length(1) > 1) && !m_slab_decomp && !m_info.oned_mode)
         {
             auto cbay = amrex::decompose(m_spectral_domain_y, nprocs,
                                          {AMREX_D_DECL(false,true,true)}, true);
@@ -552,8 +590,9 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        if (m_real_domain.length(1) > 1 &&
-            (! m_info.twod_mode && m_real_domain.length(2) > 1))
+        if (!m_info.oned_mode && !m_info.twod_mode &&
+            m_real_domain.length(1) > 1 &&
+            m_real_domain.length(2) > 1)
         {
             auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
                                          {false,true,true}, true);
@@ -724,15 +763,15 @@ R2C<T,D,C>::make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const&
     IntVect len(local_size);
     Box bx(lo, lo+len-1);
 #ifdef AMREX_USE_MPI
-    Vector<Box> allboxes(ParallelDescriptor::NProcs());
+    Vector<Box> allboxes(ParallelContext::NProcsSub());
     MPI_Allgather(&bx, 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
                   allboxes.data(), 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
-                  ParallelDescriptor::Communicator());
+                  ParallelContext::CommunicatorSub());
     Vector<int> pmap;
     pmap.reserve(allboxes.size());
     for (int i = 0; i < allboxes.size(); ++i) {
         if (allboxes[i].ok()) {
-            pmap.push_back(i);
+            pmap.push_back(ParallelContext::local_to_global_rank(i));
         }
     }
     allboxes.erase(std::remove_if(allboxes.begin(), allboxes.end(),
@@ -760,7 +799,7 @@ R2C<T,D,C>::getLocalDomain () const
     m_raw_mf = MF(m_rx.boxArray(), m_rx.DistributionMap(), m_rx.nComp(), 0,
                   MFInfo{}.SetAlloc(false));
 
-    auto const myproc = ParallelDescriptor::MyProc();
+    auto const myproc = ParallelContext::MyProcSub();
     if (myproc < m_rx.size()) {
         Box const& box = m_rx.box(myproc);
         return std::make_pair(box.smallEnd().toArray(),
@@ -788,7 +827,7 @@ R2C<T,D,C>::getLocalSpectralDomain () const
 
     m_raw_cmf = cMF(ba, dm, ncomp, 0, MFInfo{}.SetAlloc(false));
 
-    auto const myproc = ParallelDescriptor::MyProc();
+    auto const myproc = ParallelContext::MyProcSub();
     if (myproc < m_raw_cmf.size()) {
         Box const& box = m_raw_cmf.box(myproc);
         return std::make_pair(box.smallEnd().toArray(), box.length().toArray());
@@ -1211,9 +1250,15 @@ template <typename T, Direction D, bool C>
 T R2C<T,D,C>::scalingFactor () const
 {
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.twod_mode) {
+    if (m_info.oned_mode && !m_info.twod_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)));
+    } else if (m_info.twod_mode) {
         return T(1)/T(Long(m_real_domain.length(0)) *
                       Long(m_real_domain.length(1)));
+    } else
+#elif (AMREX_SPACEDIM == 2)
+    if (m_info.oned_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)));
     } else
 #endif
     {

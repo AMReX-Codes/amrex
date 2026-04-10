@@ -7,7 +7,12 @@ amrex.v = 0
 name = "I am w" \
        "line 2"
 
+# string arrays
+sa = abc xyz 123
+sb = "abc" "xyz" "123"
+
 b = ((1, 2, 3) (7, 8,9) (1,0,   1))
+b2 = "((1, 2, 3)(7,8,9)(1,0,1))"
 
 # three numbers. whitespaces inside `""` are okay.
 f = 3+4  99  "5 + 6"
@@ -64,6 +69,14 @@ ny = nx
 
 do_this = 1
 
+# boolean strings
+bool.true_val = true
+bool.false_val = false
+bool.True_val = True
+bool.FALSE_val = FALSE
+bool.t_val = t
+bool.f_val = f
+
 # query bool with parser
 my_value = 10
 my_threshold = 3
@@ -85,3 +98,71 @@ t.table2 = # col 1    2    3
               { 21,  22,  23 },   # row 2
               { 31,  32,  33 },   # row 3
               { 41,  42,  43 } } # row 4
+
+
+#if (AMREX_SPACEDIM == 1)
+macro.spacedim.n_cell = 256
+#  ifndef AMREX_USE_GPU
+macro.spacedim.use_gpu = 0
+#  else
+macro.spacedim.use_gpu = 1
+#  endif
+#elif (AMREX_SPACEDIM == 2)
+macro.spacedim.n_cell = 128 128
+#  ifndef AMREX_USE_GPU
+macro.spacedim.use_gpu = 0
+#  else
+macro.spacedim.use_gpu = 1
+#  endif
+#else
+macro.spacedim.n_cell = 64 64 64
+#  ifndef AMREX_USE_GPU
+macro.spacedim.use_gpu = 0
+#  else
+macro.spacedim.use_gpu = 1
+#  endif
+#endif
+
+#if AMREX_SPACEDIM >= 2
+macro.spacedim.t = 0.5
+#else
+macro.spacedim.t = 1.5
+#endif
+
+#ifdef AMREX_USE_GPU
+
+macro.use_gpu.foo = 64
+macro.use_gpu.bar = "use_gpu"
+
+#  if (AMREX_SPACEDIM == 1)
+macro.use_gpu.spacedim = 10
+#  elif (AMREX_SPACEDIM == 2)
+macro.use_gpu.spacedim = 20
+#  else
+macro.use_gpu.spacedim = 30
+#  endif
+
+#else
+
+macro.use_gpu.foo = 32
+macro.use_gpu.bar = "use_cpu"
+
+#  if (AMREX_SPACEDIM == 1)
+macro.use_gpu.spacedim = 1
+#  elif (AMREX_SPACEDIM == 2)
+macro.use_gpu.spacedim = 2
+#  else
+macro.use_gpu.spacedim = 3
+#  endif
+
+#endif
+
+# UNSET directive tests
+unset_me = 123
+UNSET = unset_me
+
+unset_multi_a = 1
+unset_multi_b = 2
+UNSET = unset_multi_a unset_multi_b
+
+unset_kept = 77

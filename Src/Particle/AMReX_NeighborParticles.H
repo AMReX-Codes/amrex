@@ -9,6 +9,7 @@
 #include <AMReX_NeighborList.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTileRT.H>
 
 namespace amrex {
 
@@ -454,7 +455,9 @@ protected:
 
     // These are used to keep track of which particles need to be ghosted to which grids
     bool m_neighbor_mask_initialized = false;
-    std::unique_ptr<amrex::iMultiFab> m_neighbor_mask_ptr;
+    amrex::BoxArray m_cached_neighbor_ba;
+    amrex::DistributionMapping m_cached_neighbor_dm;
+
     // {pboxid: [[neighbor codes] size= #intersected nbrs] size= #boundary boxes}
     std::map<int, std::vector<std::vector<NeighborCode> > > m_grid_map;
 

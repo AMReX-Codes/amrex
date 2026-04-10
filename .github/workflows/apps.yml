@@ -1,6 +1,10 @@
 name: apps
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-apps
@@ -16,7 +20,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Get Latest Release Tag
       run: |
         CASTRO_TAG=$(wget https://github.com/AMReX-Astro/Castro/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
@@ -24,13 +28,13 @@ jobs:
         MICROPHYSICS_TAG=$(wget https://github.com/AMReX-Astro/Microphysics/releases/latest 2>&1 | grep Location: | awk '{print $2}' | awk -F/ '{print $NF}')
         echo "MICROPHYSICS_TAG=$MICROPHYSICS_TAG" >> $GITHUB_ENV
     - name: Download Castro
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'AMReX-Astro/Castro'
         ref: ${{env.CASTRO_TAG}}
         path: 'Castro'
     - name: Download Microphysics
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'AMReX-Astro/Microphysics'
         ref: ${{env.MICROPHYSICS_TAG}}
@@ -40,7 +44,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -58,6 +62,7 @@ jobs:
         export MICROPHYSICS_HOME=${PWD}/Microphysics
         cd Castro/Exec/hydro_tests/Sedov/
         make -j4 CCACHE=ccache USE_MPI=FALSE \
+            CXXSTD=c++20 \
             USE_LINEAR_SOLVERS_INCFLO=FALSE \
             USE_LINEAR_SOLVERS_EM=FALSE
 
@@ -70,9 +75,9 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Download WarpX
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'BLAST-WarpX/warpx'
         ref: development
@@ -82,7 +87,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -102,6 +107,7 @@ jobs:
             -DWarpX_OPENPMD=OFF                   \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache  \
+            -DCMAKE_CXX_STANDARD=20               \
             -DAMReX_FFT=ON
         cmake --build WarpX/build -j 4
 
@@ -114,9 +120,9 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Checkout pyamrex
-      uses: actions/checkout@v5
+      uses: actions/checkout@v6
       with:
         repository: 'AMReX-Codes/pyamrex'
         ref: 'development'
@@ -126,7 +132,7 @@ jobs:
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -148,6 +154,7 @@ jobs:
         cd pyamrex
 
         cmake -S . -B build               \
+              -DCMAKE_CXX_STANDARD=20     \
               -DCMAKE_BUILD_TYPE=RelWithDebInfo \
               -DCMAKE_VERBOSE_MAKEFILE=ON \
               -DBUILD_SHARED_LIBS=ON      \

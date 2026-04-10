@@ -13,6 +13,12 @@
 #include <AMReX_Math.H>
 #include <AMReX_Periodicity.H>
 
+/**
+ * \file AMReX_FFT_Helper.H
+ *
+ * Internal helper types and vendor-plan abstractions shared by all FFT backends.
+ */
+
 #if defined(AMREX_USE_CUDA)
 #  include <cufft.h>
 #  include <cuComplex.h>
@@ -68,29 +74,90 @@ struct Info
     //! batch size.
     bool twod_mode = false;
 
+    //! - 2D builds: oned_mode=true means we FFT in x only and treat y as the
+    //!   batch size.
+    //! - 3D builds with twod_mode=false: same behavior as the 2D case, but the
+    //!   z-dimension also participates in the batch.
+    //! - 3D builds with twod_mode=true: setting oned_mode=true further signals
+    //!   that exactly one of {nx, ny} is 1, so only the non-degenerate
+    //!   direction needs FFT work while the other stays batched.
+    bool oned_mode = false;
+
     //! Batched FFT size. Only support in R2C, not R2X.
     int batch_size = 1;
 
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
 
+    /**
+     * \brief Select how the domain is decomposed across MPI ranks.
+     *
+     * \param s Strategy (automatic|slab|pencil).
+     * \return Reference to this Info.
+     */
     Info& setDomainStrategy (DomainStrategy s) { domain_strategy = s; return *this; }
+    /**
+     * \brief Override the slab→pencil break-even threshold for the automatic strategy.
+     *
+     * \param t Minimum cells per rank before switching to pencil decomposition.
+     * \return Reference to this Info.
+     */
     Info& setPencilThreshold (int t) { pencil_threshold = t; return *this; }
+    /**
+     * \brief Restrict transforms to the first two dimensions (3-D problems only).
+     *
+     * \param x True to operate on x/y planes while batching along z.
+     * \return Reference to this Info.
+     */
     Info& setTwoDMode (bool x) { twod_mode = x; return *this; }
+    /**
+     * \brief Flag the degenerate 2-D mode (`nx==1` or `ny==1`) that still batches along z.
+     *
+     * This keeps the solver in “two-dimensional” mode but makes it clear that
+     * only one transverse direction has more than one cell; the z-direction
+     * remains the batch axis.
+     *
+     * \param x True when running on effectively 1-D x/y planes while batching along z.
+     * \return Reference to this Info.
+     */
+    Info& setOneDMode (bool x) { oned_mode = x; return *this; }
+    /**
+     * \brief Specify the batch size for FFT.
+     *
+     * \param bsize Number of independent transforms executed together.
+     * \return Reference to this Info.
+     */
     Info& setBatchSize (int bsize) { batch_size = bsize; return *this; }
+    /**
+     * \brief Cap the number of MPI ranks used by FFT.
+     *
+     * \param n Maximum participating ranks.
+     * \return Reference to this Info.
+     */
     Info& setNumProcs (int n) { nprocs = n; return *this; }
 };
 
 #ifdef AMREX_USE_HIP
+/// \cond DOXYGEN_IGNORE
 namespace detail { void hip_execute (rocfft_plan plan, void **in, void **out); }
+/// \endcond
 #endif
 
 #ifdef AMREX_USE_SYCL
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
+inline void assert_no_external_stream ()
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !amrex::Gpu::Device::usingExternalStream(),
+        "SYCL FFT does not support external GPU streams.");
+}
+
 template <typename T, Direction direction, typename P, typename TI, typename TO>
 void sycl_execute (P* plan, TI* in, TO* out)
 {
+    assert_no_external_stream();
 #ifndef AMREX_USE_MKL_DFTI_2024
     std::int64_t workspaceSize = 0;
 #else
@@ -119,6 +186,7 @@ void sycl_execute (P* plan, TI* in, TO* out)
     amrex::The_Arena()->free(buffer);
 }
 }
+/// \endcond
 #endif
 
 template <typename T>
@@ -162,12 +230,21 @@ struct Plan
     void* pb = nullptr;
 
 #ifdef AMREX_USE_GPU
+    /**
+     * \brief Register device pointers used by the forward/backward executions.
+     *
+     * \param p0 Forward buffer pointer.
+     * \param p1 Backward buffer pointer.
+     */
     void set_ptrs (void* p0, void* p1) {
         pf = p0;
         pb = p1;
     }
 #endif
 
+    /**
+     * \brief Release any vendor FFT plan objects owned by this Plan.
+     */
     void destroy ()
     {
         if (defined) {
@@ -182,6 +259,15 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Initialize a 1-D or 2-D real-to-complex plan over the supplied Box.
+     *
+     * \param box              Real-space domain
+     * \param pr               Pointer to the real data buffer.
+     * \param pc               Pointer to the complex data buffer.
+     * \param is_2d_transform  True for 2d tranfrom.
+     * \param ncomp            Number of real components packed into the buffer.
+     */
     template <Direction D>
     void init_r2c (Box const& box, T* pr, VendorComplex* pc, bool is_2d_transform = false, int ncomp = 1)
     {
@@ -277,6 +363,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -306,9 +393,33 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Initialize an M-dimensional batched real-to-complex plan.
+     *
+     * \param fft_size Logical FFT extent per dimension.
+     * \param pbf      Forward (real) buffer pointer.
+     * \param pbb      Backward (complex) buffer pointer.
+     * \param cache    Whether to cache vendor plans (GPU backends only).
+     * \param ncomp    Number of transforms sharing the same plan.
+     */
     template <Direction D, int M>
-    void init_r2c (IntVectND<M> const& fft_size, void*, void*, bool cache, int ncomp = 1);
+    void init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool cache, int ncomp = 1);
 
+    /**
+     * \brief Initialize a complex-to-complex plan across 1/2/3 dimensions.
+     *
+     * The batch size equals the number of components \p ncomp multiplied by
+     * the cell counts along directions that are not transformed. For example,
+     * in a 3-D build with \p ndims = 1 we perform an x-line transform batched
+     * over every y–z cell, so the batch count becomes
+     * `ncomp * box.length(1) * box.length(2)`. Likewise, a 2-D transform in a
+     * 3-D build batches along the remaining z slices.
+     *
+     * \param box   Box describing the logical FFT extents.
+     * \param p     Pointer to the in-place complex buffer.
+     * \param ncomp Number of independent components per cell.
+     * \param ndims Dimensionality of the transform (1, 2, or 3).
+     */
     template <Direction D>
     void init_c2c (Box const& box, VendorComplex* p, int ncomp = 1, int ndims = 1)
     {
@@ -402,7 +513,7 @@ struct Plan
         strides[0] = 0;
         strides[ndims] = 1;
         for (int i = ndims-1; i >= 1; --i) {
-            strides[i] = strides[i+1] * len[ndims-1-i];
+            strides[i] = strides[i+1] * len[i];
         }
 #ifndef AMREX_USE_MKL_DFTI_2024
         pp->set_value(oneapi::mkl::dft::config_param::FWD_STRIDES, strides);
@@ -413,6 +524,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -470,6 +582,12 @@ struct Plan
     }
 #endif
 
+    /**
+     * \brief Map boundary conditions to the Plan Kind for real-to-real transforms.
+     *
+     * \param bc Pair denoting (low, high) boundary type.
+     * \return Corresponding Kind enum (sine/cosine variants).
+     */
     template <Direction D>
     Kind get_r2r_kind (std::pair<Boundary,Boundary> const& bc)
     {
@@ -496,6 +614,14 @@ struct Plan
 
     }
 
+    /**
+     * \brief Initialize a real-to-real (cosine/sine) plan that operates on real buffers.
+     *
+     * \param box              Box describing the transform size.
+     * \param p                Pointer to the real input/output buffer.
+     * \param bc               Boundary-condition pair.
+     * \param howmany_initval  Number of transforms batched together.
+     */
     template <Direction D>
     void init_r2r (Box const& box, T* p, std::pair<Boundary,Boundary> const& bc,
                    int howmany_initval = 1)
@@ -573,6 +699,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -592,6 +719,13 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Initialize a real-to-real plan that reads/writes complex storage.
+     *
+     * \param box  1-D Box describing the transform size.
+     * \param pc   Pointer to the complex buffer (two real components interleaved).
+     * \param bc   Boundary-condition pair.
+     */
     template <Direction D>
     void init_r2r (Box const& box, VendorComplex* pc,
                    std::pair<Boundary,Boundary> const& bc)
@@ -635,6 +769,11 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Execute the previously initialized real-to-complex plan.
+     *
+     * The direction is determined by the template parameter.
+     */
     template <Direction D>
     void compute_r2c ()
     {
@@ -684,6 +823,9 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Execute the complex-to-complex plan in place.
+     */
     template <Direction D>
     void compute_c2c ()
     {
@@ -724,6 +866,11 @@ struct Plan
     }
 
 #ifdef AMREX_USE_GPU
+    /**
+     * \brief Allocate GPU scratch space large enough to hold packed R2R data.
+     *
+     * \return Device pointer owned by The_Arena().
+     */
     [[nodiscard]] void* alloc_scratch_space () const
     {
         int nc = 0;
@@ -738,8 +885,17 @@ struct Plan
         return The_Arena()->alloc(sizeof(GpuComplex<T>)*nc*howmany);
     }
 
+    /**
+     * \brief Release GPU scratch allocated via alloc_scratch_space().
+     */
     static void free_scratch_space (void* p) { The_Arena()->free(p); }
 
+    /**
+     * \brief Expand the real R2R input into the symmetry-extended buffer expected by CUFFT/rocFFT.
+     *
+     * \param pbuf Destination buffer (scratch).
+     * \param psrc Source real data.
+     */
     void pack_r2r_buffer (void* pbuf, T const* psrc) const
     {
         auto* pdst = (T*) pbuf;
@@ -972,6 +1128,12 @@ struct Plan
         }
     }
 
+    /**
+     * \brief Collapse the spectral R2R result back into the original real layout.
+     *
+     * \param pdst Destination real buffer.
+     * \param pbuf Scratch buffer holding the spectral data.
+     */
     void unpack_r2r_buffer (T* pdst, void const* pbuf) const
     {
         auto const* psrc = (GpuComplex<T> const*) pbuf;
@@ -1121,6 +1283,9 @@ struct Plan
     }
 #endif
 
+    /**
+     * \brief Execute the real-to-real plan, including GPU packing/unpacking.
+     */
     template <Direction D>
     void compute_r2r ()
     {
@@ -1176,6 +1341,9 @@ struct Plan
 #endif
     }
 
+    /**
+     * \brief Helper that destroys a vendor plan of the appropriate backend type.
+     */
     static void destroy_vendor_plan (VendorPlan plan)
     {
 #if defined(AMREX_USE_CUDA)
@@ -1194,15 +1362,20 @@ struct Plan
     }
 };
 
+/// \cond DOXYGEN_IGNORE
+
 using Key = std::tuple<IntVectND<3>,int,Direction,Kind>;
 using PlanD = typename Plan<double>::VendorPlan;
 using PlanF = typename Plan<float>::VendorPlan;
 
-PlanD* get_vendor_plan_d (Key const& key);
-PlanF* get_vendor_plan_f (Key const& key);
+namespace detail {
+    PlanD* get_vendor_plan_d (Key const& key);
+    PlanF* get_vendor_plan_f (Key const& key);
 
-void add_vendor_plan_d (Key const& key, PlanD plan);
-void add_vendor_plan_f (Key const& key, PlanF plan);
+    void add_vendor_plan_d (Key const& key, PlanD plan);
+    void add_vendor_plan_f (Key const& key, PlanF plan);
+}
+/// \endcond
 
 template <typename T>
 template <Direction D, int M>
@@ -1224,9 +1397,9 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
     if (cache) {
         VendorPlan* cached_plan = nullptr;
         if constexpr (std::is_same_v<float,T>) {
-            cached_plan = get_vendor_plan_f(key);
+            cached_plan = detail::get_vendor_plan_f(key);
         } else {
-            cached_plan = get_vendor_plan_d(key);
+            cached_plan = detail::get_vendor_plan_d(key);
         }
         if (cached_plan) {
             plan = *cached_plan;
@@ -1320,6 +1493,7 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #endif
     pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                   oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+    detail::assert_no_external_stream();
     pp->commit(amrex::Gpu::Device::streamQueue());
     plan = pp;
 
@@ -1356,14 +1530,15 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #if defined(AMREX_USE_GPU)
     if (cache) {
         if constexpr (std::is_same_v<float,T>) {
-            add_vendor_plan_f(key, plan);
+            detail::add_vendor_plan_f(key, plan);
         } else {
-            add_vendor_plan_d(key, plan);
+            detail::add_vendor_plan_d(key, plan);
         }
     }
 #endif
 }
 
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     DistributionMapping make_iota_distromap (Long n);
@@ -1419,6 +1594,9 @@ namespace detail
         return std::unique_ptr<char,DataDeleter>((char*)p, DataDeleter{The_Arena()});
     }
 }
+/// \endcond
+
+/// \cond DOXYGEN_IGNORE
 
 struct Swap01
 {
@@ -1516,6 +1694,9 @@ struct RotateBwd
     }
 };
 
+/// \endcond
+
+/// \cond DOXYGEN_IGNORE
 namespace detail
 {
     struct SubHelper
@@ -1592,6 +1773,7 @@ namespace detail
 #endif
     };
 }
+/// \endcond
 
 }
 

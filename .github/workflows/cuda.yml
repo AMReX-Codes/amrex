@@ -1,6 +1,10 @@
 name: cuda
 
-on: [push, pull_request]
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+  pull_request:
 
 concurrency:
   group: ${{ github.ref }}-${{ github.head_ref }}-cuda
@@ -12,18 +16,19 @@ jobs:
 
   # Build libamrex and all tests with CUDA 12.6
   tests-cuda12:
-    name: CUDA@12.6 C++17 Release [tests]
+    name: CUDA@12.6 Release [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvcc.sh 12.6
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -42,6 +47,7 @@ jobs:
         which nvcc || echo "nvcc not in PATH!"
 
         cmake -S . -B build                              \
+            -DCMAKE_CXX_STANDARD=20                      \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_FFT=ON                               \
             -DAMReX_EB=ON                                \
@@ -65,7 +71,7 @@ jobs:
 
   # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 11.7
   tests-cuda11-clang:
-    name: Clang@15 CUDA@11.7 C++17 Release [tests]
+    name: Clang@15 CUDA@11.7 Release [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -79,13 +85,14 @@ jobs:
       CUDAARCHS: "70"
       AMReX_CUDA_ARCH: "7.0"
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_llvm_cuda11_clang15.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -103,6 +110,7 @@ jobs:
         export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
 
         cmake -S . -B build                              \
+            -DCMAKE_CXX_STANDARD=20                      \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_MPI=OFF                              \
             -DAMReX_FFT=ON                               \
@@ -120,19 +128,19 @@ jobs:
 
   # Build libamrex and all tests with NVHPC (recent supported)
   tests-nvhpc-nvcc:
-    name: NVHPC NVCC/NVC++ C++17 Release [tests]
+    name: NVHPC NVCC/NVC++ Release [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvhpc.sh
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -161,6 +169,7 @@ jobs:
         cmake --version
 
         cmake -S . -B build                              \
+            -DCMAKE_CXX_STANDARD=20                      \
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_TEST_TYPE=Small                      \
@@ -190,13 +199,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - name: Dependencies
       run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_nvcc_2404.sh 13.0
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -211,11 +221,7 @@ jobs:
 
         export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
         ./configure --dim 3 --with-cuda yes --enable-eb yes --enable-xsdk-defaults yes --with-fortran no --enable-fft yes
-        #
-        # /home/runner/work/amrex/amrex/Src/Base/AMReX_GpuLaunchGlobal.H:16:41: error: unused parameter ‘f0’ [-Werror=unused-parameter]
-        #    16 |     AMREX_GPU_GLOBAL void launch_global (L f0) { f0(); }
-        #
-        make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Wno-unused-parameter -Werror=deprecated-declarations" CCACHE=ccache CUDA_ARCH="8.0 9.0"
+        make -j4 CXXSTD=c++20 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS="-fno-operator-names -Werror=deprecated-declarations" CCACHE=ccache CUDA_ARCH="8.0 9.0"
         make install
 
         ccache -s

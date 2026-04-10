@@ -7,6 +7,11 @@
 #include <AMReX_BndryData.H>
 #include <AMReX_InterpBndryData_K.H>
 
+/**
+ * \file AMReX_InterpBndryData.H
+ * \brief Boundary data specialization that interpolates coarse data into fine ghost cells.
+ */
+
 namespace amrex {
 
 /**

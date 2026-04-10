@@ -4,6 +4,7 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 template <typename F, typename MF>
@@ -28,6 +29,7 @@ auto call_interp_hook (F const& f, MF& mf, int icomp, int ncomp)
 }
 
 }
+/// \endcond
 
 template <typename Interp>
 bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
@@ -78,11 +80,11 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 {
     BL_PROFILE("FillPatchSingleLevel");
 
-    AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
-    AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
-    AMREX_ASSERT(smf.size() == stime.size());
-    AMREX_ASSERT(!smf.empty());
-    AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
+    AMREX_ASSERT((!smf.empty()) &&
+                 (scomp+ncomp <= smf[0]->nComp()) &&
+                 (dcomp+ncomp <= mf.nComp()) &&
+                 (smf.size() == stime.size()) &&
+                 nghost.allLE(mf.nGrowVect()));
 
     IntVect src_ghost(0);
     if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
@@ -192,6 +194,23 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     physbcf(mf, dcomp, ncomp, nghost, time, bcfcomp);
 }
 
+/**
+ * \brief Helper that applies a MFInterpolater to fill a fine patch from a coarse patch.
+ *
+ * \param mf_fine_patch Destination fine patch MultiFab.
+ * \param fcomp         Starting component in the fine patch.
+ * \param mf_crse_patch Source coarse patch MultiFab.
+ * \param ccomp         Starting component in the coarse patch.
+ * \param ncomp         Number of components to interpolate.
+ * \param ng            Fine ghost-cell vector to fill.
+ * \param cgeom         Coarse Geometry.
+ * \param fgeom         Fine Geometry.
+ * \param dest_domain   Fine-domain box describing where values are valid.
+ * \param ratio         Refinement ratio.
+ * \param mapper        MFInterpolater to use.
+ * \param bcs           Boundary-condition records per component.
+ * \param bcscomp       Starting component within the BC array.
+ */
 void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crse_patch, int ccomp,
                       int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
                       Box const& dest_domain, const IntVect& ratio,
@@ -302,6 +321,7 @@ InterpFace (InterpBase *interp,
 }
 
 
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
 // ======== FArrayBox
@@ -790,6 +810,7 @@ namespace detail {
     }
 
 } // namespace detail
+/// \endcond
 
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 std::enable_if_t<IsFabArray<MF>::value>

@@ -13,6 +13,13 @@
 namespace amrex {
 
 /**
+ * \file AMReX_GMRES.H
+ *
+ * Generic GMRES implementation for user-provided vector/operator types.
+ */
+
+/**
+ * \ingroup amrex_solver_gmres
  * \brief GMRES
  *
  * This class implements the GMRES algorithm. The template parameter V is
@@ -82,11 +89,17 @@ public:
 
     using RT = typename M::RT; // double or float
 
+    //! Construct a GMRES solver with the default restart length.
     GMRES ();
 
-    //! Defines with a reference to M. It's the user's responsibility to
-    //! keep the M object alive for GMRES to be functional. This function
-    //! must be called before solve() can be called.
+    /**
+     * \brief Bind the solver to a linear operator.
+     *
+     * It's the caller's responsibility to keep \p linop alive for as long
+     * as the solver is in use. Call this before solve().
+     *
+     * \param linop Linear operator providing the required GMRES hooks.
+     */
     void define (M& linop);
 
     /**
@@ -100,22 +113,30 @@ public:
      */
     void solve (V& a_sol, V const& a_rhs, RT a_tol_rel, RT a_tol_abs, int a_its=-1);
 
-    //! Sets verbosity.
+    //! Set verbosity level \p v (0 = silent).
     void setVerbose (int v) { m_verbose = v; }
 
-    //! Sets restart length. The default is 30.
+    /**
+     * \brief Set the Krylov restart length.
+     *
+     * \param rl Number of Krylov vectors retained between restarts.
+     */
     void setRestartLength (int rl);
 
-    //! Sets the max number of iterations
+    /**
+     * \brief Cap the number of iterations performed by solve().
+     *
+     * \param niters Maximum iterations; negative preserves the previous limit.
+     */
     void setMaxIters (int niters) { m_maxiter = niters; }
 
-    //! Gets the number of iterations.
+    //! Number of iterations executed by the last solve().
     [[nodiscard]] int getNumIters () const { return m_its; }
 
-    //! Gets the solver status.
+    //! Status flag from the last solve() (0 success, >0 failure).
     [[nodiscard]] int getStatus () const { return m_status; }
 
-    //! Gets the 2-norm of the residual.
+    //! Final residual 2-norm from the last solve().
     [[nodiscard]] RT getResidualNorm () const { return m_res; }
 
 private:

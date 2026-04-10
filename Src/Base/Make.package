@@ -53,8 +53,8 @@ C$(AMREX_BASE)_headers += AMReX_ParallelReduce.H
 C$(AMREX_BASE)_headers += AMReX_ForkJoin.H AMReX_ParallelContext.H
 C$(AMREX_BASE)_sources += AMReX_ForkJoin.cpp AMReX_ParallelContext.cpp
 
-C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_PArena.cpp
-C$(AMREX_BASE)_headers += AMReX_VisMFBuffer.H AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_PArena.H
+C$(AMREX_BASE)_sources += AMReX_VisMF.cpp AMReX_Arena.cpp AMReX_BArena.cpp AMReX_CArena.cpp AMReX_PArena.cpp AMReX_SArena.cpp
+C$(AMREX_BASE)_headers += AMReX_VisMFBuffer.H AMReX_VisMF.H AMReX_Arena.H AMReX_BArena.H AMReX_CArena.H AMReX_PArena.H AMReX_SArena.H
 
 C$(AMREX_BASE)_headers += AMReX_DataAllocator.H
 
@@ -83,7 +83,7 @@ C$(AMREX_BASE)_headers += AMReX_GpuKernelInfo.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.H AMReX_GpuLaunchFunctsG.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosG.nolint.H
-C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H
+C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.H AMReX_GpuLaunchFunctsC.H AMReX_GpuLaunchFunctsSIMD.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchMacrosC.nolint.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunchGlobal.H
 C$(AMREX_BASE)_headers += AMReX_GpuLaunch.H

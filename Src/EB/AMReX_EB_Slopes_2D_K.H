@@ -7,6 +7,53 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
+namespace amrex {
+
+template <int N, typename DU>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+GpuArray<Real,AMREX_SPACEDIM>
+calc_slopes_eb (Real A[N][AMREX_SPACEDIM], DU const& f, int nx, int ny)
+{
+    Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM] = {};
+    Real Atb[AMREX_SPACEDIM] = {};
+
+    int lc = 0;
+    for (int jj = -ny; jj <= ny; ++jj) {
+    for (int ii = -nx; ii <= nx; ++ii) {
+        AtA[0][0] += A[lc][0] * A[lc][0];
+        AtA[0][1] += A[lc][0] * A[lc][1];
+        AtA[1][1] += A[lc][1] * A[lc][1];
+        auto du = f(ii,jj);
+        Atb[0] += A[lc][0]*du;
+        Atb[1] += A[lc][1]*du;
+        ++lc;
+    }}
+
+    // Fill in symmetric
+    AtA[1][0] = AtA[0][1];
+
+    Real detAtA =
+      (AtA[0][0]*AtA[1][1])-
+      (AtA[0][1]*AtA[1][0]);
+
+    Real detAtA_x =
+        (Atb[0]   *AtA[1][1]) -
+        (AtA[0][1]*Atb[1]);
+
+    // Slope at centroid of (i,j,k)
+    Real xs = detAtA_x / detAtA;
+
+    Real detAtA_y =
+        (AtA[0][0]*Atb[1]) -
+        (Atb[0] * AtA[1][0]);
+
+    // Slope at centroid of (i,j,k)
+    Real ys = detAtA_y / detAtA;
+
+    return {xs,ys};
+}
+}
+
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
 // least squares linear fit to the 8 nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
@@ -22,65 +69,15 @@ amrex_calc_slopes_eb_given_A (int i, int j, int /*k*/, int n,
                               amrex::Array4<amrex::Real const> const& state,
                               amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    constexpr int dim_a = 9;
-    amrex::Real du[dim_a];
-
-    int ll=0;
-    for(int jj(-1); jj<=1; jj++){
-      for(int ii(-1); ii<=1; ii++){
-        if( flag(i,j,0).isConnected(ii,jj,0) &&
-            ! (ii==0 && jj==0)) {
-          du[ll] = state(i+ii,j+jj,0,n) - state(i,j,0,n);
+    auto f = [&] (int ii, int jj) {
+        if( flag(i,j,0).isConnected(ii,jj,0) && !(ii==0 && jj==0))
+        {
+            return state(i+ii,j+jj,0,n) - state(i,j,0,n);
         } else {
-          du[ll] = amrex::Real(0.0);
+            return amrex::Real(0.0);
         }
-        ll++;
-      }
-    }
-
-    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
-    amrex::Real Atb[AMREX_SPACEDIM];
-
-    for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
-    {
-      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-        AtA[jj][ii] = amrex::Real(0.0);
-      }
-      Atb[jj] = amrex::Real(0.0);
-    }
-
-    for(int lc(0); lc<dim_a; ++lc)
-    {
-        AtA[0][0] += A[lc][0]* A[lc][0];
-        AtA[0][1] += A[lc][0]* A[lc][1];
-        AtA[1][1] += A[lc][1]* A[lc][1];
-
-        Atb[0] += A[lc][0]*du[lc];
-        Atb[1] += A[lc][1]*du[lc];
-    }
-
-    // Fill in symmetric
-    AtA[1][0] = AtA[0][1];
-
-    amrex::Real detAtA =
-      (AtA[0][0]*AtA[1][1])-
-      (AtA[0][1]*AtA[1][0]);
-
-    amrex::Real detAtA_x =
-        (Atb[0]   *AtA[1][1]) -
-        (AtA[0][1]*Atb[1]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real xs = detAtA_x / detAtA;
-
-    amrex::Real detAtA_y =
-        (AtA[0][0]*Atb[1]) -
-        (Atb[0] * AtA[1][0]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real ys = detAtA_y / detAtA;
-
-   return {xs,ys};
+    };
+    return amrex::calc_slopes_eb<9>(A, f, 1, 1);
 }
 
 // amrex_calc_slopes_eb_grown calculates the slope in each coordinate direction using a
@@ -101,61 +98,15 @@ amrex_calc_slopes_eb_given_A_grown (int i, int j, int /*k*/, int n, int nx, int 
     AMREX_ASSERT(nx == 1 || nx == 2);
     AMREX_ASSERT(ny == 1 || ny == 2);
 
-    constexpr int dim_a = 25;
-
-    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
-    amrex::Real Atb[AMREX_SPACEDIM];
-
-    for(int jj(0); jj<AMREX_SPACEDIM; ++jj)
-    {
-        for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
-          AtA[jj][ii] = amrex::Real(0.0);
+    auto f = [&] (int ii, int jj) {
+        if(!flag(i+ii,j+jj,0).isCovered() && !(ii==0 && jj==0))
+        {
+            return state(i+ii,j+jj,0,n) - state(i,j,0,n);
+        } else {
+            return amrex::Real(0);
         }
-        Atb[jj] = amrex::Real(0.0);
-    }
-
-    amrex::Real du;
-    for(int jj(-ny); jj<=ny; jj++){
-      for(int ii(-nx); ii<=nx; ii++){
-          int lc = (jj+ny)*(2*nx+1) + ii+nx;
-          if(!flag(i+ii,j+jj,0).isCovered() && !(ii==0 && jj==0)) {
-              du = state(i+ii,j+jj,0,n) - state(i,j,0,n);
-              Atb[0] += A[lc][0]*du;
-              Atb[1] += A[lc][1]*du;
-          }
-          lc++;
-      }
-    }
-
-    for(int lc(0); lc<dim_a; ++lc)
-    {
-        AtA[0][0] += A[lc][0]* A[lc][0];
-        AtA[0][1] += A[lc][0]* A[lc][1];
-        AtA[1][1] += A[lc][1]* A[lc][1];
-    }
-
-    // Fill in symmetric
-    AtA[1][0] = AtA[0][1];
-
-    amrex::Real detAtA =
-      (AtA[0][0]*AtA[1][1])-
-      (AtA[0][1]*AtA[1][0]);
-
-    amrex::Real detAtA_x =
-        (Atb[0]   *AtA[1][1]) -
-        (AtA[0][1]*Atb[1]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real xs = detAtA_x / detAtA;
-
-    amrex::Real detAtA_y =
-        (AtA[0][0]*Atb[1]) -
-        (Atb[0] * AtA[1][0]);
-
-    // Slope at centroid of (i,j,k)
-    amrex::Real ys = detAtA_y / detAtA;
-
-   return {xs,ys};
+    };
+    return amrex::calc_slopes_eb<25>(A, f, nx, ny);
 }
 
 //
@@ -724,8 +675,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(0); jj<=1; jj++){
             for(int ii(-1); ii<=1; ii++){
                 if ( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0) ) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
@@ -747,8 +698,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(-1); jj<=0; jj++){
             for(int ii(-1); ii<=1; ii++){
                 if ( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0) ) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
@@ -769,8 +720,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
             for(int ii(0); ii<=1; ii++){
                 if ( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0) ) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }
@@ -791,8 +742,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
         for(int jj(-1); jj<=1; jj++){
             for(int ii(-1); ii<=0; ii++){
                 if( flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0)) {
-                    if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
-                    if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
+                    q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
+                    q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
                 }
             }
         }

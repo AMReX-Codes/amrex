@@ -1669,6 +1669,7 @@ void mlndlap_restriction_rap (int i, int j, int /*k*/, Array4<Real> const& crse,
 
 #ifdef AMREX_USE_EB
 
+/// \cond DOXYGEN_IGNORE
 namespace nodelap_detail {
     constexpr int i_S_x     = 0;
     constexpr int i_S_y     = 1;
@@ -1682,6 +1683,7 @@ namespace nodelap_detail {
     constexpr int i_B_xy    = 2;
     constexpr int n_Bintg   = 3;
 }
+/// \endcond
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,

@@ -24,6 +24,19 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
     m_grids = a_grids;
     m_dmap = a_dmap;
     m_info = a_info;
+    m_box_offset.clear();
+    m_momtags_h.clear();
+    m_nblocks_local = 0;
+    m_nblocks = 0;
+#ifdef AMREX_USE_MPI
+    m_countvec.clear();
+    m_offset.clear();
+#endif
+#ifdef AMREX_USE_GPU
+    m_momtags_d.clear();
+    m_ngpublocks_h.clear();
+    m_ngpublocks_d.clear();
+#endif
     for (auto& grids : m_grids) {
         grids.enclosedCells();
     }
