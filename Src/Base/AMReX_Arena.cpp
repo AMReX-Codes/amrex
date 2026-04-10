@@ -383,12 +383,6 @@ namespace {
         void free (void*) override {}
     };
 
-    Arena* The_Null_Arena ()
-    {
-        static NullArena the_null_arena;
-        return &the_null_arena;
-    }
-
     Arena* The_BArena ()
     {
         static BArena the_barena;
@@ -801,6 +795,12 @@ Arena::Finalize ()
     The_BArena()->deregisterFromProfiling();
 }
 
+bool
+Arena::IsInitialized ()
+{
+    return initialized;
+}
+
 Arena*
 The_Arena ()
 {
@@ -869,6 +869,13 @@ The_Comms_Arena ()
     } else {
         return The_Null_Arena();
     }
+}
+
+Arena*
+The_Null_Arena ()
+{
+    static NullArena the_null_arena;
+    return &the_null_arena;
 }
 
 #ifdef AMREX_TINY_PROFILING

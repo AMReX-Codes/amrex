@@ -64,7 +64,11 @@ int main (int argc, char* argv[])
 #endif
         }
 
-        auto [plane_patch, plane_unique] = ReduceToPlaneMF2Patchy<ReduceOpSum>(dir, domain, mf,
+        IntVect plane_max_grid_size(4);
+        plane_max_grid_size[dir] = 1;
+
+        auto [plane_patch, plane_unique] = ReduceToPlaneMF2Patchy<ReduceOpSum>(
+            dir, domain, mf, plane_max_grid_size,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) -> Real
             {
                 return ma[box_no](i,j,k);
