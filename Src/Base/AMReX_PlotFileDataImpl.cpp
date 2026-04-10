@@ -121,7 +121,7 @@ PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) n
 }
 
 MultiFab
-PlotFileDataImpl::get (int level) noexcept
+PlotFileDataImpl::get (int level)
 {
     MultiFab mf(m_ba[level], m_dmap[level], m_ncomp, m_ngrow[level]);
     VisMF::Read(mf, m_mf_name[level]);
