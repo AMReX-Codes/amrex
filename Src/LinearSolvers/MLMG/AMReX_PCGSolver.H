@@ -34,7 +34,7 @@ int pcg_solve (T* AMREX_RESTRICT x, T* AMREX_RESTRICT r,
 
     int iter = 0;
     T rho_prev = T(1.0); // initialized to quiet gcc warning
-    T p[N];
+    T p[N] = {}; // initialized to quiet gcc warning
     for (iter = 1; iter <= maxiter; ++iter) {
         T z[N];
         precond(z, r);
