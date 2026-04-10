@@ -187,10 +187,12 @@ namespace amrex
      * \brief Find the index of the interval containing a value in a sorted
      * array.
      *
-     * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1].  It is
-     * assumed that the input data are sorted and d[lo] <= v < d[hi].  Note
-     * that this is different from std::lower_bound that searches for the
-     * first element which is not less than `v`.
+     * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1]. It is
+     * assumed that the input data is sorted.
+     * The elements d[lo] and d[hi] are never acessed.
+     * If v < d[lo+1], lo is returned, and if v >= d[hi-1], hi-1 is returned.
+     * Note that this is different from std::lower_bound that searches
+     * for the first element which is not less than `v`.
      *
      * \tparam T value type.
      * \tparam I integral index type.
@@ -198,23 +200,21 @@ namespace amrex
      * \param lo inclusive lower bound of the search range.
      * \param hi exclusive upper bound of the search range.
      * \param v value to be located.
-     * \return an index `i` such that `d[i] <= v < d[i+1]`.
+     * \return an index `i` such that `d[i] <= v < d[i+1]`, with `lo <= i < hi`.
      */
     template <typename T, typename I,
               std::enable_if_t<std::is_integral_v<I>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
-        while (lo <= hi) {
-            int mid = lo + (hi-lo)/2;
-            if (v >= d[mid] && v < d[mid+1]) {
-                return mid;
-            } else if (v < d[mid]) {
-                hi = mid-1;
+        while (lo < hi - 1) {
+            I mid = lo + (hi - lo) / 2;
+            if (v < d[mid]) {
+                hi = mid;
             } else {
-                lo = mid+1;
+                lo = mid;
             }
         };
-        return hi;
+        return lo;
     }
 
     /**
