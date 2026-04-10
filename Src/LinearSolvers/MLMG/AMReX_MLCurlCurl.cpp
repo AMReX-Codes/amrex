@@ -593,7 +593,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
-            bool valid_x = i <= xhi;
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d_alpha_beta(i,j,k,ex[bno],ey[bno],ez[bno],
                                             rhsx[bno],rhsy[bno],rhsz[bno],
                                             bcx[bno],bcy[bno],bcz[bno],
@@ -605,7 +605,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& acz = m_acoefs[amrlev][mglev][2]->const_arrays();
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
-            bool valid_x = i <= xhi;
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d_alpha(i,j,k,ex[bno],ey[bno],ez[bno],
                                        rhsx[bno],rhsy[bno],rhsz[bno],
                                        b,
@@ -618,7 +618,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
         auto const& bcz = m_bcoefs[amrlev][mglev][2]->const_arrays();
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
-            bool valid_x = i <= xhi;
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d(i,j,k,ex[bno],ey[bno],ez[bno],
                                  rhsx[bno],rhsy[bno],rhsz[bno],
                                  bcx[bno],bcy[bno],bcz[bno],
@@ -627,7 +627,7 @@ void MLCurlCurl::smooth1D (int amrlev, int mglev, MF& sol, MF const& rhs,
     } else {
         ParallelFor( nmf, [=] AMREX_GPU_DEVICE(int bno, int i, int j, int k)
         {
-            bool valid_x = i <= xhi;
+            bool valid_x = i <= xhi; // x is cell-centered, not nodal
             mlcurlcurl_smooth_1d(i,j,k,ex[bno],ey[bno],ez[bno],
                                  rhsx[bno],rhsy[bno],rhsz[bno],
                                  b,adxinv,color,dinfo,valid_x,coord);
