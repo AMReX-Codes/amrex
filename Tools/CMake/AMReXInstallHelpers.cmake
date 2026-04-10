@@ -72,12 +72,17 @@ function (install_amrex_targets)
        # legacy symlink for: libamrex.[so|a] / amrex.[dll.lib]
        #   escape spaces for generated cmake_install.cmake file
        install(CODE "
-           file(TO_CMAKE_PATH \"\${CMAKE_INSTALL_PREFIX}/lib\" ABS_INSTALL_LIB_DIR)
+           file(TO_CMAKE_PATH \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" ABS_INSTALL_LIB_DIR)
+           set(symlink_name
+               \"\${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\")
+           set(symlink_manifest_name
+               \"\${CMAKE_INSTALL_PREFIX}/lib/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\")
 
            file(CREATE_LINK
                 $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
-                \"\${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\"
-                COPY_ON_ERROR SYMBOLIC)"
+                \"\${symlink_name}\"
+                COPY_ON_ERROR SYMBOLIC)
+           list(APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${symlink_manifest_name}\")"
        )
 
        # Install fortran modules if Fortran is enabled
