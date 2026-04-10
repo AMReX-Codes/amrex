@@ -20,6 +20,25 @@
 
 namespace amrex {
 
+#if defined(AMREX_USE_MPI)
+struct ParticleHandshakeWindow
+{
+    ParticleHandshakeWindow () = default;
+
+    ParticleHandshakeWindow (const ParticleHandshakeWindow&) = delete;
+    ParticleHandshakeWindow& operator= (const ParticleHandshakeWindow&) = delete;
+    ParticleHandshakeWindow (ParticleHandshakeWindow&&) = delete;
+    ParticleHandshakeWindow& operator= (ParticleHandshakeWindow&&) = delete;
+
+    ~ParticleHandshakeWindow ();
+
+    MPI_Win win = MPI_WIN_NULL;
+    Long* ptr = nullptr;
+    int nprocs = 0;
+    MPI_Comm comm = MPI_COMM_NULL;
+};
+#endif
+
 class ParticleContainerBase
 {
 public:
@@ -73,13 +92,13 @@ public:
     {
     }
 
-    virtual ~ParticleContainerBase ();
+    virtual ~ParticleContainerBase () = default;
 
     ParticleContainerBase ( const ParticleContainerBase &) = delete;
     ParticleContainerBase& operator= ( const ParticleContainerBase & ) = delete;
 
-    ParticleContainerBase ( ParticleContainerBase && other ) noexcept;
-    ParticleContainerBase& operator= ( ParticleContainerBase && other ) noexcept;
+    ParticleContainerBase ( ParticleContainerBase && ) noexcept = default;
+    ParticleContainerBase& operator= ( ParticleContainerBase && ) noexcept = default;
 
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
@@ -240,9 +259,10 @@ public:
 
 #if defined(AMREX_USE_MPI)
     void ensureParticleHandshakeWindow () const;
-    void releaseParticleHandshakeWindow ();
-    [[nodiscard]] Long* particleHandshakeBuffer () const { return m_particle_handshake_ptr; }
-    [[nodiscard]] MPI_Win particleHandshakeWindow () const { return m_particle_handshake_win; }
+    [[nodiscard]] Long* particleHandshakeBuffer () const
+        { return m_particle_handshake_window ? m_particle_handshake_window->ptr : nullptr; }
+    [[nodiscard]] MPI_Win particleHandshakeWindow () const
+        { return m_particle_handshake_window ? m_particle_handshake_window->win : MPI_WIN_NULL; }
 #endif
 
     Vector<int> NeighborProcs(int ngrow) const
@@ -293,10 +313,7 @@ protected:
     mutable ParticleBufferMap m_buffer_map;
 
 #if defined(AMREX_USE_MPI)
-    mutable MPI_Win m_particle_handshake_win = MPI_WIN_NULL;
-    mutable Long* m_particle_handshake_ptr = nullptr;
-    mutable int m_particle_handshake_nprocs = 0;
-    mutable MPI_Comm m_particle_handshake_comm = MPI_COMM_NULL;
+    mutable std::unique_ptr<ParticleHandshakeWindow> m_particle_handshake_window;
 #endif
 
 };

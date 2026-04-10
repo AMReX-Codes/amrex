@@ -12,78 +12,6 @@ IntVect ParticleContainerBase::tile_size { AMREX_D_DECL(1024000,8,8) };
 bool    ParticleContainerBase::memEfficientSort = true;
 bool    ParticleContainerBase::use_comms_arena = false;
 
-ParticleContainerBase::~ParticleContainerBase ()
-{
-#if defined(AMREX_USE_MPI)
-    releaseParticleHandshakeWindow();
-#endif
-}
-
-ParticleContainerBase::ParticleContainerBase (ParticleContainerBase&& other) noexcept
-    : m_particle_locator(std::move(other.m_particle_locator)),
-      m_verbose(other.m_verbose),
-      m_stable_redistribute(other.m_stable_redistribute),
-      m_gdb_object(std::move(other.m_gdb_object)),
-      m_gdb(other.m_gdb),
-      m_dummy_mf(std::move(other.m_dummy_mf)),
-      m_arena(other.m_arena),
-      redistribute_mask_ptr(std::move(other.redistribute_mask_ptr)),
-      redistribute_mask_nghost(other.redistribute_mask_nghost),
-      neighbor_procs(std::move(other.neighbor_procs)),
-      m_buffer_map(std::move(other.m_buffer_map))
-#if defined(AMREX_USE_MPI)
-    , m_particle_handshake_win(other.m_particle_handshake_win),
-      m_particle_handshake_ptr(other.m_particle_handshake_ptr),
-      m_particle_handshake_nprocs(other.m_particle_handshake_nprocs),
-      m_particle_handshake_comm(other.m_particle_handshake_comm)
-#endif
-{
-    other.m_gdb = nullptr;
-#if defined(AMREX_USE_MPI)
-    other.m_particle_handshake_win = MPI_WIN_NULL;
-    other.m_particle_handshake_ptr = nullptr;
-    other.m_particle_handshake_nprocs = 0;
-    other.m_particle_handshake_comm = MPI_COMM_NULL;
-#endif
-}
-
-ParticleContainerBase&
-ParticleContainerBase::operator= (ParticleContainerBase&& other) noexcept
-{
-    if (this != &other)
-    {
-#if defined(AMREX_USE_MPI)
-        releaseParticleHandshakeWindow();
-#endif
-
-        m_particle_locator = std::move(other.m_particle_locator);
-        m_verbose = other.m_verbose;
-        m_stable_redistribute = other.m_stable_redistribute;
-        m_gdb_object = std::move(other.m_gdb_object);
-        m_gdb = other.m_gdb;
-        m_dummy_mf = std::move(other.m_dummy_mf);
-        m_arena = other.m_arena;
-        redistribute_mask_ptr = std::move(other.redistribute_mask_ptr);
-        redistribute_mask_nghost = other.redistribute_mask_nghost;
-        neighbor_procs = std::move(other.neighbor_procs);
-        m_buffer_map = std::move(other.m_buffer_map);
-#if defined(AMREX_USE_MPI)
-        m_particle_handshake_win = other.m_particle_handshake_win;
-        m_particle_handshake_ptr = other.m_particle_handshake_ptr;
-        m_particle_handshake_nprocs = other.m_particle_handshake_nprocs;
-        m_particle_handshake_comm = other.m_particle_handshake_comm;
-
-        other.m_particle_handshake_win = MPI_WIN_NULL;
-        other.m_particle_handshake_ptr = nullptr;
-        other.m_particle_handshake_nprocs = 0;
-        other.m_particle_handshake_comm = MPI_COMM_NULL;
-#endif
-        other.m_gdb = nullptr;
-    }
-
-    return *this;
-}
-
 void ParticleContainerBase::Define (const Geometry            & geom,
                                     const DistributionMapping & dmap,
                                     const BoxArray            & ba)
@@ -153,16 +81,16 @@ ParticleContainerBase::defineBufferMap () const
 }
 
 #if defined(AMREX_USE_MPI)
-void ParticleContainerBase::releaseParticleHandshakeWindow ()
+ParticleHandshakeWindow::~ParticleHandshakeWindow ()
 {
-    if (m_particle_handshake_win != MPI_WIN_NULL) {
-        BL_MPI_REQUIRE(MPI_Win_free(&m_particle_handshake_win));
+    if (win != MPI_WIN_NULL) {
+        BL_MPI_REQUIRE(MPI_Win_free(&win));
     }
-    if (m_particle_handshake_comm != MPI_COMM_NULL) {
-        BL_MPI_REQUIRE(MPI_Comm_free(&m_particle_handshake_comm));
+    if (comm != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE(MPI_Comm_free(&comm));
     }
-    m_particle_handshake_ptr = nullptr;
-    m_particle_handshake_nprocs = 0;
+    ptr = nullptr;
+    nprocs = 0;
 }
 
 void ParticleContainerBase::ensureParticleHandshakeWindow () const
@@ -170,21 +98,21 @@ void ParticleContainerBase::ensureParticleHandshakeWindow () const
     const int nprocs = ParallelContext::NProcsSub();
     MPI_Comm comm = ParallelContext::CommunicatorSub();
 
-    bool needs_rebuild = (m_particle_handshake_win == MPI_WIN_NULL)
-        || (m_particle_handshake_nprocs != nprocs)
-        || (m_particle_handshake_comm == MPI_COMM_NULL);
+    auto const* handshake_window = m_particle_handshake_window.get();
+    bool needs_rebuild = (handshake_window == nullptr)
+        || (handshake_window->win == MPI_WIN_NULL)
+        || (handshake_window->nprocs != nprocs)
+        || (handshake_window->comm == MPI_COMM_NULL);
 
     if (!needs_rebuild)
     {
         int cmp = MPI_UNEQUAL;
-        BL_MPI_REQUIRE(MPI_Comm_compare(comm, m_particle_handshake_comm, &cmp));
+        BL_MPI_REQUIRE(MPI_Comm_compare(comm, handshake_window->comm, &cmp));
         needs_rebuild = (cmp != MPI_IDENT && cmp != MPI_CONGRUENT);
     }
 
     if (needs_rebuild)
     {
-        const_cast<ParticleContainerBase*>(this)->releaseParticleHandshakeWindow();
-
         Long* baseptr = nullptr;
         MPI_Win win = MPI_WIN_NULL;
         BL_MPI_REQUIRE(MPI_Win_allocate(static_cast<MPI_Aint>(nprocs*sizeof(Long)),
@@ -197,10 +125,11 @@ void ParticleContainerBase::ensureParticleHandshakeWindow () const
         MPI_Comm dup_comm = MPI_COMM_NULL;
         BL_MPI_REQUIRE(MPI_Comm_dup(comm, &dup_comm));
 
-        m_particle_handshake_ptr = baseptr;
-        m_particle_handshake_win = win;
-        m_particle_handshake_nprocs = nprocs;
-        m_particle_handshake_comm = dup_comm;
+        m_particle_handshake_window = std::make_unique<ParticleHandshakeWindow>();
+        m_particle_handshake_window->ptr = baseptr;
+        m_particle_handshake_window->win = win;
+        m_particle_handshake_window->nprocs = nprocs;
+        m_particle_handshake_window->comm = dup_comm;
     }
 }
 #endif
