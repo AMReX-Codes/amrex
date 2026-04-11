@@ -191,8 +191,8 @@ namespace amrex
         [[nodiscard]] int nComp () const noexcept { return m_impl->nComp(); }
         [[nodiscard]] IntVect nGrowVect (int level) const noexcept { return m_impl->nGrowVect(level); }
 
-        MultiFab get (int level) noexcept { return m_impl->get(level); }
-        MultiFab get (int level, std::string const& varname) noexcept { return m_impl->get(level, varname); }
+        MultiFab get (int level) { return m_impl->get(level); }
+        MultiFab get (int level, std::string const& varname) { return m_impl->get(level, varname); }
 
     private:
         std::unique_ptr<PlotFileDataImpl> m_impl;

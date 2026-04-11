@@ -203,7 +203,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Real> const& fcx, Array4<Real> const& fcy,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts, int& nsmallfaces) noexcept
+                 bool cover_multiple_cuts, int& nsmallfaces)
 {
 #ifdef AMREX_USE_FLOAT
     constexpr Real sml = 1.e-5_rt;

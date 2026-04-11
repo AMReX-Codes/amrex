@@ -36,7 +36,7 @@ void CuptiFinalize ()
 }
 
 void CUPTIAPI
-bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords) noexcept
+bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords)
 {
     // Allocate a buffer for use by CUPTI; activity records are stored in the buffer
     uint8_t* buffer = (uint8_t*) std::malloc(BFR_SIZE + ALIGNMENT);
@@ -56,7 +56,7 @@ bfrRequestCallback (uint8_t* *bfr, size_t* size, size_t* maxNumRecords) noexcept
 
 void CUPTIAPI
 bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
-                     size_t size, size_t validSize) noexcept
+                     size_t size, size_t validSize)
 {
     CUptiResult status;
     CUpti_Activity* record = NULL;

@@ -45,8 +45,8 @@ public:
     [[nodiscard]] int nComp () const noexcept { return m_ncomp; }
     [[nodiscard]] IntVect nGrowVect (int level) const noexcept { return m_ngrow[level]; }
 
-    MultiFab get (int level) noexcept;
-    MultiFab get (int level, std::string const& varname) noexcept;
+    MultiFab get (int level);
+    MultiFab get (int level, std::string const& varname);
 
 private:
     std::string m_plotfile_name;

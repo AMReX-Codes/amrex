@@ -26,7 +26,7 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
 template <class F, std::enable_if_t<!IsGPUable<F>::value>* BAR = nullptr>
 AMREX_GPU_HOST_DEVICE
 Real
-IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
+IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p)
 {
     AMREX_IF_ON_DEVICE((
         amrex::ignore_unused(f,p);
@@ -41,7 +41,7 @@ AMREX_GPU_HOST_DEVICE
 Real
 BrentRootFinder (GpuArray<Real,AMREX_SPACEDIM> const& lo,
                  GpuArray<Real,AMREX_SPACEDIM> const& hi,
-                 int rangedir, F const& f) noexcept
+                 int rangedir, F const& f)
 {
 #ifdef AMREX_USE_FLOAT
     const Real tol = 1.e-4_rt;

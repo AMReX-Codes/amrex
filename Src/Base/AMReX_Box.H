@@ -328,7 +328,7 @@ public:
 
     /// \cond DOXYGEN_IGNORE
     //! Assert that there are no int/Long overflows when calling length or numPts.
-    void checkOverflow () const noexcept {
+    void checkOverflow () const {
         if (ok()) {
             for (int i = 0; i < dim; ++i) {
                 auto lo = static_cast<Long>(smallend[i]);
