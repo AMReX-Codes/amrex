@@ -1191,7 +1191,7 @@ AmrMesh::checkInput ()
     // Check that max_grid_size is a multiple of blocking_factor at every level.
     //   (only check if blocking_factor <= max_grid_size)
     //
-    for (int i = 0; i < max_level; i++)
+    for (int i = 0; i <= max_level; i++)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
