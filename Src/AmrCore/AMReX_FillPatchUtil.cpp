@@ -55,7 +55,7 @@ namespace amrex
                 const DistributionMapping& dm = cfinfo.dm_cfb;
 
 #ifdef AMREX_USE_EB
-                amrex::Abort("InterpCrseFineBndryEMfield: EB is allowed");
+                amrex::Abort("InterpCrseFineBndryEMfield: EB is not allowed");
 #endif
 
                 cmf[idim].define(cba, dm, 1, 1, MFInfo(), crse[0]->Factory());
@@ -123,7 +123,6 @@ namespace amrex
                         const BoxArray& fine_ba = fine[idim]->boxArray();
                         const Box& fine_valid_box = fine_ba[fi];
                         Box b = bfab[idim].box();
-                        b &= fine_valid_box;
                         const BoxList& diff = amrex::boxDiff(b, fine_valid_box); // skip valid cells
                         FArrayBox& fine_fab = (*fine[idim])[fi];
                         for (const auto& x : diff)
