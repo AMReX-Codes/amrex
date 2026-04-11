@@ -1,0 +1,13 @@
+redistribute_global.size = (64, 64, 64)
+redistribute_global.max_grid_size = 32
+redistribute_global.is_periodic = 1
+redistribute_global.num_ppc = 2
+redistribute_global.nsteps = 200
+redistribute_global.nlevs = 1
+
+redistribute_global.num_runtime_real = 0
+redistribute_global.num_runtime_int = 0
+
+redistribute_global.sort = 0
+
+amrex.use_gpu_aware_mpi = 0
