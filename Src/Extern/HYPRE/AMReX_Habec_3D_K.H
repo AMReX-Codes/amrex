@@ -502,7 +502,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             if (cell_id(i+1,j,k) >= 0) {
                 mat_tmp(0,0,0) += tmp*f;
                 mat_tmp(1,0,0) -= tmp*f;
-            } else if (cell_id(i-1,j,k) < 0 || apx(i-1,j,k) == Real(0.0)) {
+            } else if (cell_id(i-1,j,k) < 0 || apx(i,j,k) == Real(0.0)) {
                 mat_tmp(0,0,0) += tmp*(f+bflo);
             } else {
                 mat_tmp( 0,0,0) += tmp*(f+bf1);
@@ -514,7 +514,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(i,jj,k) >= 0 && cell_id(i+1,jj,k) >= 0) {
                     mat_tmp(0,joff,0) += tmp*f;
                     mat_tmp(1,joff,0) -= tmp*f;
-                } else if (cell_id(i-1,jj,k) < 0 || apx(i-1,jj,k) == Real(0.0)) {
+                } else if (cell_id(i-1,jj,k) < 0 || apx(i,jj,k) == Real(0.0)) {
                     mat_tmp(0,joff,0) += tmp*(f+bflo);
                 } else {
                     mat_tmp( 0,joff,0) += tmp*(f+bf1);
@@ -527,7 +527,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(i,j,kk) >= 0 && cell_id(i+1,j,kk) >= 0) {
                     mat_tmp(0,0,koff) += tmp*f;
                     mat_tmp(1,0,koff) -= tmp*f;
-                } else if (cell_id(i-1,j,kk) < 0 || apx(i-1,j,kk) == Real(0.0)) {
+                } else if (cell_id(i-1,j,kk) < 0 || apx(i,j,kk) == Real(0.0)) {
                     mat_tmp(0,0,koff) += tmp*(f+bflo);
                 } else {
                     mat_tmp( 0,0,koff) += tmp*(f+bf1);
@@ -540,7 +540,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(i,jj,kk) >= 0 && cell_id(i+1,jj,kk) >= 0) {
                     mat_tmp(0,joff,koff) += tmp*f;
                     mat_tmp(1,joff,koff) -= tmp*f;
-                } else if (cell_id(i-1,jj,kk) < 0 || apx(i-1,jj,kk) == Real(0.0)) {
+                } else if (cell_id(i-1,jj,kk) < 0 || apx(i,jj,kk) == Real(0.0)) {
                     mat_tmp(0,joff,koff) += tmp*(f+bflo);
                 } else {
                     mat_tmp( 0,joff,koff) += tmp*(f+bf1);
@@ -684,7 +684,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             if (cell_id(i,j+1,k) >= 0) {
                 mat_tmp(0,0,0) += tmp*f;
                 mat_tmp(0,1,0) -= tmp*f;
-            } else if (cell_id(i,j-1,k) < 0 || apy(i,j-1,k) == Real(0.0)) {
+            } else if (cell_id(i,j-1,k) < 0 || apy(i,j,k) == Real(0.0)) {
                 mat_tmp(0,0,0) += tmp*(f+bflo);
             } else {
                 mat_tmp(0, 0,0) += tmp*(f+bf1);
@@ -696,7 +696,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(ii,j,k) >= 0 && cell_id(ii,j+1,k) >= 0) {
                     mat_tmp(ioff,0,0) += tmp*f;
                     mat_tmp(ioff,1,0) -= tmp*f;
-                } else if (cell_id(ii,j-1,k) < 0 || apy(ii,j-1,k) == Real(0.0)) {
+                } else if (cell_id(ii,j-1,k) < 0 || apy(ii,j,k) == Real(0.0)) {
                     mat_tmp(ioff,0,0) += tmp*(f+bflo);
                 } else {
                     mat_tmp(ioff, 0,0) += tmp*(f+bf1);
@@ -709,7 +709,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(i,j,kk) >= 0 && cell_id(i,j+1,kk) >= 0) {
                     mat_tmp(0,0,koff) += tmp*f;
                     mat_tmp(0,1,koff) -= tmp*f;
-                } else if (cell_id(i,j-1,kk) < 0 || apy(i,j-1,kk) == Real(0.0)) {
+                } else if (cell_id(i,j-1,kk) < 0 || apy(i,j,kk) == Real(0.0)) {
                     mat_tmp(0,0,koff) += tmp*(f+bflo);
                 } else {
                     mat_tmp(0, 0,koff) += tmp*(f+bf1);
@@ -722,7 +722,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(ii,j,kk) >= 0 && cell_id(ii,j+1,kk) >= 0) {
                     mat_tmp(ioff,1,koff) -= tmp*f;
                     mat_tmp(ioff,0,koff) += tmp*f;
-                } else if (cell_id(ii,j-1,kk) < 0 || apy(ii,j-1,kk) == Real(0.0)) {
+                } else if (cell_id(ii,j-1,kk) < 0 || apy(ii,j,kk) == Real(0.0)) {
                     mat_tmp(ioff,0,koff) += tmp*(f+bflo);
                 } else {
                     mat_tmp(ioff, 0,koff) += tmp*(f+bf1);
@@ -866,7 +866,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
             if (cell_id(i,j,k+1) >= 0) {
                 mat_tmp(0,0,0) += tmp*f;
                 mat_tmp(0,0,1) -= tmp*f;
-            } else if (cell_id(i,j,k-1) < 0 || apz(i,j,k-1) == Real(0.0)) {
+            } else if (cell_id(i,j,k-1) < 0 || apz(i,j,k) == Real(0.0)) {
                 mat_tmp(0,0,0) += tmp*(f+bflo);
             } else {
                 mat_tmp(0,0, 0) += tmp*(f+bf1);
@@ -878,7 +878,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(ii,j,k) >= 0 && cell_id(ii,j,k+1) >= 0) {
                     mat_tmp(ioff,0,0) += tmp*f;
                     mat_tmp(ioff,0,1) -= tmp*f;
-                } else if (cell_id(ii,j,k-1) < 0 || apz(ii,j,k-1) == Real(0.0)) {
+                } else if (cell_id(ii,j,k-1) < 0 || apz(ii,j,k) == Real(0.0)) {
                     mat_tmp(ioff,0,0) += tmp*(f+bflo);
                 } else {
                     mat_tmp(ioff,0, 0) += tmp*(f+bf1);
@@ -891,7 +891,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(i,jj,k) >= 0 && cell_id(i,jj,k+1) >= 0) {
                     mat_tmp(0,joff,0) += tmp*f;
                     mat_tmp(0,joff,1) -= tmp*f;
-                } else if (cell_id(i,jj,k-1) < 0 || apz(i,jj,k-1) == Real(0.0)) {
+                } else if (cell_id(i,jj,k-1) < 0 || apz(i,jj,k) == Real(0.0)) {
                     mat_tmp(0,joff,0) += tmp*(f+bflo);
                 } else {
                     mat_tmp(0,joff, 0) += tmp*(f+bf1);
@@ -904,7 +904,7 @@ void habec_ijmat_eb (GpuArray<Real,27>& sten, Array4<Int> const& ncols,
                 if (cell_id(ii,jj,k+1) >= 0 && cell_id(ii,jj,k) >= 0) {
                     mat_tmp(ioff,joff,1) -= tmp*f;
                     mat_tmp(ioff,joff,0) += tmp*f;
-                } else if (cell_id(ii,jj,k-1) < 0 || apz(ii,jj,k-1) == Real(0.0)) {
+                } else if (cell_id(ii,jj,k-1) < 0 || apz(ii,jj,k) == Real(0.0)) {
                     mat_tmp(ioff,joff,0) += tmp*(f+bflo);
                 } else {
                     mat_tmp(ioff,joff, 0) += tmp*(f+bf1);
