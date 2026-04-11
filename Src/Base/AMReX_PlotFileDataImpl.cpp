@@ -104,7 +104,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
 }
 
 void
-PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
+PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src)
 {
     int nlevs_min = std::min(m_nlevels, src.m_nlevels);
     for (int ilev = 0; ilev < nlevs_min; ++ilev) {
@@ -113,7 +113,7 @@ PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
 }
 
 void
-PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) noexcept
+PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src)
 {
     if (level <= src.finestLevel() && m_dmap[level].size() == src.DistributionMap(level).size()) {
         m_dmap[level] = src.DistributionMap(level);
