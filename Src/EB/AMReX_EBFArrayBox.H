@@ -4,19 +4,39 @@
 
 #include <AMReX_FArrayBox.H>
 
+/**
+ * \file AMReX_EBFArrayBox.H
+ *
+ * EB-aware FArrayBox wrapper that carries EB metadata pointers for quick access.
+ */
+
 namespace amrex {
 
 class EBCellFlagFab;
 class EBFArrayBoxFactory;
 
+//! FArrayBox variant that can query accompanying EB geometric data.
 class EBFArrayBox
     : public FArrayBox
 {
 public:
+    //! Construct an empty EB-aware FAB.
     EBFArrayBox ();
+    //! Construct using a specific memory arena \p ar.
     explicit EBFArrayBox (Arena* ar);
+    /**
+     * \brief Construct an EB FAB referencing EB cell flags and optional factory data.
+     *
+     * \param ebflag      EBCellFlag data covering \p bx.
+     * \param bx          Valid box.
+     * \param ncomps      Number of components.
+     * \param ar          Arena used for allocation.
+     * \param factory     Optional factory that owns auxiliary EB arrays.
+     * \param box_index   Index into the factory-owned EBDataCollection.
+     */
     EBFArrayBox (const EBCellFlagFab& ebflag, const Box& bx, int ncomps, Arena* ar,
                  const EBFArrayBoxFactory* factory=nullptr, int box_index=-1);
+    //! Sub-FAB constructor mirroring BaseFab semantics.
     EBFArrayBox (EBFArrayBox const& rhs, MakeType make_type, int scomp, int ncomp);
 
     EBFArrayBox (EBFArrayBox&& rhs) noexcept = default;
@@ -71,6 +91,7 @@ private:
     int m_box_index = -1;
 };
 
+//! Helper to downcast an FArrayBox and return its EB cell-flag data.
 const EBCellFlagFab& getEBCellFlagFab (const FArrayBox& fab);
 
 }

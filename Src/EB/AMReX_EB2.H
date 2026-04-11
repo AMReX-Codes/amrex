@@ -19,9 +19,9 @@ namespace amrex::EB2 {
 extern AMREX_EXPORT int max_grid_size;
 /// \endcond
 
-void useEB2 (bool);
-
+//! Initialize EB2’s global state (call before constructing geometries by amrex::Initialize).
 void Initialize ();
+//! Tear down EB2 global resources (called automatically at shutdown).
 void Finalize ();
 
 class IndexSpace
@@ -70,7 +70,9 @@ protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
 };
 
+//! Return the top IndexSpace if one has been built (nullptr otherwise).
 const IndexSpace* TopIndexSpaceIfPresent () noexcept;
+//! Return the top IndexSpace if one has been built (nullptr otherwise).
 inline const IndexSpace* TopIndexSpace () noexcept { return TopIndexSpaceIfPresent(); }
 
 template <typename G>
@@ -122,10 +124,39 @@ private:
 
 #include <AMReX_EB2_IndexSpaceI.H>
 
+//! Return whether EB2 builders should extend the domain face when outlining geometry.
+//! The flag seeds the default `extend_domain_face` argument in EB2::Build.  It returns true
+//! unless overridden at runtime via the `eb2.extend_domain_face` parameter, letting users
+//! control whether embedded boundaries outside the domain are extrapolated from the domain
+//! face (i.e., extended beyond the physical boundary).
 bool ExtendDomainFace ();
+
+//! Default number of coarsening options to probe when building the EB hierarchy.
+//! The value seeds the default `num_coarsen_opt` argument in EB2::Build and defaults to
+//! 0 (no extra coarse probes) unless overridden via the runtime parameter
+//! `eb2.num_coarsen_opt`.  It specifies how many successive coarse representations we
+//! may inspect to avoid missing fine EB structures inside a sub-box when searching for
+//! embedded boundaries.  As soon as EB is detected the hierarchy is rebuilt at full
+//! resolution, so varying this value only affects the probability of missing features
+//! during the coarse scan—not the final EB geometry if nothing is missed.
 int NumCoarsenOpt ();
 
-/// \ingroup amrex_eb
+/**
+ * \brief Build EB geometry from a GeometryShop \p gshop and a single AMR Geometry.
+ *
+ * \tparam G GeometryShop type (see EB2::GeometryShop helpers).
+ * \param gshop  Construct describing the implicit surface.
+ * \param geom   Finest-level Geometry.
+ * \param required_coarsening_level Number of coarse levels required by the application.
+ * \param max_coarsening_level      Upper bound on the number of coarsenings we attempt
+ *        when generating the EB hierarchy (the builder simply stops earlier if the
+ *        EB cannot be coarsened that far; it is not treated as an error).
+ * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
+ * \param extend_domain_face Whether to extrapolate the EB description from the domain face to the outside of the domain (defaults to EB2::ExtendDomainFace / runtime param `eb2.extend_domain_face`).
+ * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
+ *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
+ */
 template <typename G>
 void
 Build (const G& gshop, const Geometry& geom,
@@ -141,7 +172,17 @@ Build (const G& gshop, const Geometry& geom,
                       num_coarsen_opt));
 }
 
-/// \ingroup amrex_eb
+/**
+ * \brief Build EB geometry from a GeometryShop and a vector of Geometries (one per level).
+ *
+ * \tparam G GeometryShop type.
+ * \param gshop  Construct describing the implicit surface.
+ * \param geom   Vector of Geometries from finest to coarsest (will be sorted by refinement).
+ * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
+ * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
+ *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
+ */
 template <typename G>
 void
 Build (const G& gshop, Vector<Geometry> geom,
@@ -155,7 +196,27 @@ Build (const G& gshop, Vector<Geometry> geom,
                      (gshop, geom, ngrow, extend_domain_face, num_coarsen_opt));
 }
 
-/// \ingroup amrex_eb
+/**
+ * \brief Build EB geometry using the runtime-configured EB2 geometry type.
+ *
+ * This overload does not take an explicit GeometryShop; instead it inspects the `eb2`
+ * ParmParse namespace (notably `eb2.geom_type` along with its shape-specific parameters)
+ * and instantiates the matching implicit function.  Supported values currently include
+ * `all_regular`, `box`, `cylinder`, `plane`, `sphere`, `torus`, `parser`, and `stl`.
+ *
+ * \param geom   Finest-level Geometry.
+ * \param required_coarsening_level Number of coarse levels required by the application.
+ * \param max_coarsening_level      Upper bound on the number of coarsenings we attempt;
+ *        it is safe if fewer levels are actually realizable.
+ * \param ngrow  Number of EB grow cells to build (default 4).
+ * \param build_coarse_level_by_coarsening When true, coarsen from finer levels; otherwise rebuild.
+ * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
+ * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
+ *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
+ * \param support_mvmc Whether to build multi-valued multi-cut support. (Only honored when
+ *        `eb2.geom_type` is `stl`; other geometries ignore it and emit a warning.
+ *        Even for STL, this is not supported yet.)
+ */
 void Build (const Geometry& geom,
             int required_coarsening_level,
             int max_coarsening_level,
@@ -165,6 +226,12 @@ void Build (const Geometry& geom,
             int num_coarsen_opt = NumCoarsenOpt(),
             bool support_mvmc = false);
 
+/**
+ * \brief Build EB geometry dedicated to multi-valued multi-cut support.
+ *
+ * Parameters mirror Build() but always enables multi-valued structures.
+ * @warning This pathway is experimental and not supported yet.
+ */
 void BuildMultiValuedMultiCut (const Geometry& geom,
                                int required_coarsening_level,
                                int max_coarsening_level,
@@ -173,6 +240,18 @@ void BuildMultiValuedMultiCut (const Geometry& geom,
                                bool extend_domain_face = ExtendDomainFace(),
                                int num_coarsen_opt = NumCoarsenOpt());
 
+/**
+ * \brief Rebuild an IndexSpace from a checkpoint file.
+ *
+ * \param fname   Path to the checkpoint file.
+ * \param geom    Geometry describing the finest level.
+ * \param required_coarsening_level Number of coarse levels required.
+ * \param max_coarsening_level      Upper bound on the number of coarsenings to try
+ *        when reconstructing from disk (no error if the stored data yields fewer).
+ * \param ngrow  Number of grow cells.
+ * \param build_coarse_level_by_coarsening Whether to coarsen or rebuild coarse levels.
+ * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
+ */
 void BuildFromChkptFile (std::string const& fname,
                          const Geometry& geom,
                          int required_coarsening_level,
@@ -181,11 +260,15 @@ void BuildFromChkptFile (std::string const& fname,
                          bool build_coarse_level_by_coarsening = true,
                          bool extend_domain_face = ExtendDomainFace());
 
+//! Return the maximum coarsening level supported for given \p geom.
 int maxCoarseningLevel (const Geometry& geom);
+//! Same as above but for a specific IndexSpace pointer \p ebis.
 int maxCoarseningLevel (IndexSpace const* ebis, const Geometry& geom);
 
+//! Add \p num_new_fine_levels to the EB hierarchy.
 void addFineLevels (int num_new_fine_levels);
 
+//! Add \p num_new_coarse_levels regular levels below the current coarsest level.
 void addRegularCoarseLevels (int num_new_coarse_levels);
 
 }
