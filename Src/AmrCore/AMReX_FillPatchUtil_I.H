@@ -1521,6 +1521,10 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
             for (auto const* p : fmf) {
                 fmf_raii.emplace_back(*p,  amrex::make_alias, scomp, ncomp);
             }
+            fmf.clear();
+            for (auto& a : fmf_raii) {
+                fmf.push_back(&a);
+            }
         }
 
         detail::FillPatchTwoLevels_doit(mf, nghost, time,
@@ -1530,7 +1534,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         geom[level-1], geom[level],
                                         bc[level-1], bccomp,
                                         bc[level  ], bccomp,
-                                        ratio[level-1], mapper, bcr, bccomp,
+                                        ratio[level-1], mapper, bcr, bcrcomp,
                                         hook, hook, index_space);
     }
 }
