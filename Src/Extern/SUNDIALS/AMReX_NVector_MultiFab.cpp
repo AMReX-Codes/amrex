@@ -378,27 +378,8 @@ amrex::Real N_VDotProd_MultiFab(N_Vector x, N_Vector y)
 
 amrex::Real N_VMaxNorm_MultiFab(N_Vector x)
 {
-    using namespace amrex;
-
-    MultiFab *mf_x = amrex::sundials::getMFptr(x);
-    int ncomp = mf_x->nComp();
-    int startComp = 0;
-    int nghost = 0;  // do not include ghost cells in the norm
-
-    amrex::Real max = mf_x->max(startComp, nghost);
-
-    // continue with rest of comps
-    for (int c = 1; c < ncomp; ++c)
-    {
-         amrex::Real comp_max = mf_x->max(c, nghost); // comp c, no ghost zones
-         if (comp_max > max)
-         {
-            max = comp_max;
-         }
-    }
-
-    // no reduction needed, done in multifab
-    return max;
+    amrex::MultiFab *mf_x = amrex::sundials::getMFptr(x);
+    return mf_x->norminf(0, mf_x->nComp(), IntVect(0));
 }
 
 amrex::Real N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
