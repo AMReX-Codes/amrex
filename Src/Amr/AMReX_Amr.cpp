@@ -2732,7 +2732,7 @@ Amr::regrid (int  lbase,
             a->init();
             amr_level[lev].reset(a);
             if (lev > 0) {
-                level_steps[lev] = level_steps[lev-1] * n_cycle[lev-1];
+                level_steps[lev] = level_steps[lev-1] * n_cycle[lev];
             }
             this->SetBoxArray(lev, amr_level[lev]->boxArray());
             this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());
