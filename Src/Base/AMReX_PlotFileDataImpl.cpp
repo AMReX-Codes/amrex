@@ -121,7 +121,7 @@ PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) n
 }
 
 MultiFab
-PlotFileDataImpl::get (int level) noexcept
+PlotFileDataImpl::get (int level)
 {
     MultiFab mf(m_ba[level], m_dmap[level], m_ncomp, m_ngrow[level]);
     VisMF::Read(mf, m_mf_name[level]);
@@ -129,7 +129,7 @@ PlotFileDataImpl::get (int level) noexcept
 }
 
 MultiFab
-PlotFileDataImpl::get (int level, std::string const& varname) noexcept
+PlotFileDataImpl::get (int level, std::string const& varname)
 {
     MultiFab mf(m_ba[level], m_dmap[level], 1, m_ngrow[level]);
     auto r = std::find(std::begin(m_var_names), std::end(m_var_names), varname);

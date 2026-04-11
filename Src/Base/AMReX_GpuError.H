@@ -47,7 +47,7 @@ gpuGetErrorString (gpuError_t error) {
 
 namespace Gpu {
 
-    inline void ErrorCheck (const char* file, int line) noexcept
+    inline void ErrorCheck (const char* file, int line)
     {
         gpuError_t err = gpuGetLastError();
         if (gpuSuccess != err) {

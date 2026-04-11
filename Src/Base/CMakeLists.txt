@@ -241,6 +241,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_GpuReduce.H
        AMReX_GpuAllocators.H
        AMReX_GpuContainers.H
+       AMReX_TrackedVector.H
        AMReX_MFParallelFor.H
        AMReX_MFParallelForC.H
        AMReX_MFParallelForG.H

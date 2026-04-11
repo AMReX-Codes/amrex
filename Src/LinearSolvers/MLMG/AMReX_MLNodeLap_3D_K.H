@@ -664,7 +664,7 @@ void mlndlap_gauss_seidel_c (Box const& bx, Array4<Real> const& sol,
 AMREX_FORCE_INLINE
 void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
                         Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
-                        int ilen ) noexcept
+                        int ilen )
 {
     Real bet = b_ls(0);
     u_ls(0) = r_ls(0) / bet;
@@ -684,7 +684,7 @@ inline
 void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const& sol,
                               Array4<Real const> const& rhs, Array4<Real const> const& sig,
                               Array4<int const> const& msk,
-                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                              GpuArray<Real,AMREX_SPACEDIM> const& dxinv)
 {
     Real facx = Real(1.0/36.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/36.0)*dxinv[1]*dxinv[1];
@@ -1093,7 +1093,7 @@ void mlndlap_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_interpadd_aa (int i, int j, int k, Array4<Real> const& fine,
                            Array4<Real const> const& crse, Array4<Real const> const& sig,
-                           Array4<int const> const& msk, int idir) noexcept
+                           Array4<int const> const& msk, int idir)
 {
     if (idir == 2 )
     {

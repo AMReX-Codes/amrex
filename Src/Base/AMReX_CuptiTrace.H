@@ -13,9 +13,9 @@
 namespace amrex {
 
 void CUPTIAPI bfrRequestCallback (uint8_t* *bfr, size_t* size,
-                                  size_t* maxNumRecords) noexcept;
+                                  size_t* maxNumRecords);
 void CUPTIAPI bfrCompleteCallback (CUcontext ctx, uint32_t streamId, uint8_t* bfr,
-                                   size_t size, size_t validSize) noexcept;
+                                   size_t size, size_t validSize);
 
 void initCuptiTrace () noexcept;
 void cuptiTraceStart () noexcept;

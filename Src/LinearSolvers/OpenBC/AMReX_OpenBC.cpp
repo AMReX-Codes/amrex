@@ -204,7 +204,7 @@ void OpenBCSolver::setBottomVerbose (int v) noexcept
     m_bottom_verbose = v;
 }
 
-void OpenBCSolver::useHypre (bool use_hypre) noexcept
+void OpenBCSolver::useHypre (bool use_hypre)
 {
     if (use_hypre) {
         m_bottom_solver_type = BottomSolver::hypre;
