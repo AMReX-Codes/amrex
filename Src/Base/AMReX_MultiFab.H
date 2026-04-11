@@ -143,6 +143,8 @@ public:
     /**
     * \brief Returns the minimum value contained in component \p comp of the
     * MultiFab.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     *
     * The parameter \p nghost determines the number of
     * boundary cells to search for the minimum. The default is to
@@ -154,6 +156,8 @@ public:
     /**
     * \brief Identical to min() function, but confines its
     * search to intersection of Box b and the MultiFab.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real min (const Box& region,
               int        comp,
@@ -162,6 +166,8 @@ public:
     /**
     * \brief Returns the maximum value contained in component \p comp of the
     * MultiFab.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     *
     * The parameter \p nghost determines the number of
     * boundary cells to search for the maximum. The default is to
@@ -173,6 +179,8 @@ public:
     /**
     * \brief Identical to the previous `max()` function, but confines its
     * search to intersection of Box b and the MultiFab.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real max (const Box& region,
               int        comp,
@@ -181,6 +189,8 @@ public:
     /**
     * \brief Returns the maximum *absolute* value contained in
     * component comp of the MultiFab.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real norm0 (int comp = 0, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
     /// \ingroup amrex_fabarray_communication
@@ -188,12 +198,22 @@ public:
         return norm0(comp,nghost,local,ignore_covered);
     }
 
+    /**
+    * \brief Returns the maximum absolute value inside the region where \p mask is non-zero.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
+    */
     [[nodiscard]] Real norm0 (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const;
     /// \ingroup amrex_fabarray_communication
     [[nodiscard]] Real norminf (const iMultiFab& mask, int comp = 0, int nghost = 0, bool local = false) const {
         return norm0(mask,comp,nghost,local);
     }
 
+    /**
+    * \brief Returns the maximum absolute value across \p ncomp components.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
+    */
     [[nodiscard]] Real norm0 (int comp, int ncomp, IntVect const& nghost, bool local = false,
                 bool ignore_covered = false) const;
 
@@ -202,6 +222,8 @@ public:
     /**
     * \brief Returns the maximum *absolute* values contained in
     * each component of \p comps of the MultiFab. \p nghost ghost cells are used.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Vector<Real> norm0 (const Vector<int>& comps, int nghost = 0, bool local = false, bool ignore_covered = false ) const;
     /// \ingroup amrex_fabarray_communication
@@ -213,52 +235,70 @@ public:
     * \brief Returns the L1 norm of component \p comp over the MultiFab.
     *
     * No ghost cells are used.  This version has no double counting for nodal data.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     [[nodiscard]] Real norm1 (int comp, const Periodicity& period, bool ignore_covered = false) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the L1 norm of component \p comp over the MultiFab.
     * \p ngrow ghost cells are used.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real norm1 (int comp = 0, int ngrow = 0, bool local = false) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the L1 norm of each component of "comps" over the MultiFab.
     * ngrow ghost cells are used.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Vector<Real> norm1 (const Vector<int>& comps, int ngrow = 0, bool local = false) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     [[nodiscard]] Real norm2 (int comp = 0) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of \p numcomp components starting from \p comp component over the MultiFab.
     * No ghost cells are used.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     [[nodiscard]] Real norm2 (int comp, int numcomp) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of component \p comp over the MultiFab.
     * No ghost cells are used. This version has no double counting for nodal data.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     [[nodiscard]] Real norm2 (int comp, const Periodicity& period) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the L2 norm of each component of "comps" over the MultiFab.
     * No ghost cells are used.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     [[nodiscard]] Vector<Real> norm2 (const Vector<int>& comps) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the sum of component "comp" over the MultiFab -- no ghost cells are included.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real sum (int comp = 0, bool local = false) const;
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the sum of component "comp" in the given "region". -- no ghost cells are included.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real sum (Box const& region, int comp = 0, bool local = false) const;
 
@@ -268,6 +308,8 @@ public:
     * \ingroup amrex_fabarray_communication
     * \brief Same as sum with \p local =false, but for non-cell-centered data, this
     * only adds non-unique points that are owned by multiple boxes once.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real sum_unique (int comp = 0,
                      bool local = false,
@@ -277,6 +319,8 @@ public:
     * region. Non-unique points owned by multiple boxes in the MultiFab are
     * only added once. No ghost cells are included. This function does not take
     * periodicity into account in the determination of uniqueness of points.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] Real sum_unique (Box const& region, int comp = 0, bool local = false) const;
     /**
@@ -438,11 +482,19 @@ public:
     void negate (const Box& region,
                  int        nghost = 0);
 
-    /// \ingroup amrex_fabarray_communication
+    /**
+    * \ingroup amrex_fabarray_communication
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
+    */
     [[nodiscard]] IntVect minIndex (int comp,
                       int nghost = 0) const;
 
-    /// \ingroup amrex_fabarray_communication
+    /**
+    * \ingroup amrex_fabarray_communication
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
+    */
     [[nodiscard]] IntVect maxIndex (int comp,
                       int nghost = 0) const;
     /**
@@ -488,6 +540,8 @@ public:
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the dot product of two MultiFabs.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     static Real Dot (const MultiFab& x, int xcomp,
                      const MultiFab& y, int ycomp,
@@ -496,11 +550,15 @@ public:
     /**
     * \ingroup amrex_fabarray_communication
     * \brief Returns the dot product of a MultiFab with itself.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     static Real Dot (const MultiFab& x, int xcomp,
                      int numcomp, int nghost, bool local = false);
 
     /// \ingroup amrex_fabarray_communication
+    /// \warning Unless \p local is true, this routine performs an MPI collective
+    /// and every rank in the current active MPI communicator must participate.
     static Real Dot (const iMultiFab& mask,
                      const MultiFab& x, int xcomp,
                      const MultiFab& y, int ycomp,
@@ -688,6 +746,8 @@ public:
     * machine doesn't support the appropriate NaN and Inf testing functions.
     *
     * This version checks all components and grow cells.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] bool is_finite (bool local=false) const;
     [[nodiscard]] bool is_finite (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
@@ -699,6 +759,8 @@ public:
     * doesn't support the appropriate NaN testing functions.
     *
     * This version checks all components and grow cells.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] bool contains_nan (bool local=false) const;
     [[nodiscard]] bool contains_nan (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
@@ -708,6 +770,8 @@ public:
     * This may return false, even if the MF contains Infs, if the machine
     * doesn't support the appropriate Inf testing functions.
     * This version checks all components and grow cells.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     [[nodiscard]] bool contains_inf (bool local=false) const;
     [[nodiscard]] bool contains_inf (int scomp, int ncomp, int ngrow = 0, bool local=false) const;
