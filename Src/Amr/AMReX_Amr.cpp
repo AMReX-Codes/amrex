@@ -141,6 +141,7 @@ void
 Amr::Finalize ()
 {
     Amr::state_plot_vars.clear();
+    Amr::state_small_plot_vars.clear();
     Amr::derive_plot_vars.clear();
     Amr::derive_small_plot_vars.clear();
     Amr::regrid_ba.clear();
