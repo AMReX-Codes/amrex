@@ -596,7 +596,7 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
     /* Return false if any constraint was violated */
     ParallelAllReduce::Max(temp, ParallelContext::CommunicatorSub());
 
-    return (temp == amrex::Real(1.0)) ? SUNFALSE : SUNTRUE;
+    return (temp > amrex::Real(0.0)) ? SUNFALSE : SUNTRUE;
 }
 
 amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
