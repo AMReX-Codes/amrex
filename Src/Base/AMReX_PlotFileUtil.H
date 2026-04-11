@@ -40,16 +40,16 @@ namespace amrex
 
     /**
     * \brief  prebuild a hierarchy of directories
-    *  dirName is built first.  if dirName exists, it is renamed.  then build
-    *  dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
+    *  dirName is built first. If dirName exists, it is renamed, then build
+    *  dirName/Level_0 .. dirName/Level_{nSubDirs-1}
     *  if callBarrier is true, call ParallelDescriptor::Barrier()
     *  after all directories are built
     *  ParallelDescriptor::IOProcessor() creates the directories
     *
-    * \param &dirName
-    * \param &subDirPrefix
-    * \param nSubDirs
-    * \param callBarrier
+    * \param dirName Directory name.
+    * \param subDirPrefix This is ignored.
+    * \param nSubDirs Number of subdirectories.
+    * \param callBarrier Whether MPI_Barrier is called.
     */
     void PreBuildDirectorHierarchy (const std::string &dirName,
                                     const std::string &subDirPrefix,
