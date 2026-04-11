@@ -43,6 +43,10 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
 - Testing accountability: every substantive change must state which tests ran (and command lines) in the PR/issue.
 - Historical hotspots: mirrored kernels and dimension-specific paths often drift—compare siblings whenever you touch them.
 
+## GPU Lambda Safety
+
+- `AMREX_GPU_DEVICE`/`ParallelFor` lambdas run on the GPU, so never capture host-only pointers (e.g., `Geometry::CellSize()`, `Geometry::ProbLo()`). Take the device-safe views first—e.g., `auto const dx = geom.CellSizeArray();`, `auto const problo = geom.ProbLoArray();`—and pass those by value into the lambda.
+
 ## Task Playbooks
 
 ### PR & Bug Review
