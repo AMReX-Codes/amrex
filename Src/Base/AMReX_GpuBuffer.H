@@ -88,7 +88,7 @@ public:
 
     [[nodiscard]] bool empty () const noexcept { return h_vect.size() == 0; }
 
-    void resize (const std::size_t n) noexcept {
+    void resize (const std::size_t n) {
         h_vect.resize(n);
         if (useDVect()) {
             d_vect.resize(n);
@@ -100,12 +100,12 @@ public:
         d_vect.clear();
     }
 
-    void shrink_to_fit () noexcept {
+    void shrink_to_fit () {
         h_vect.shrink_to_fit();
         d_vect.shrink_to_fit();
     }
 
-    void reserve (const std::size_t n) noexcept {
+    void reserve (const std::size_t n) {
         h_vect.reserve(n);
         if (useDVect()) {
             d_vect.reserve(n);
@@ -131,11 +131,11 @@ public:
     *   // Use buf.hostData() or buf[] on the CPU
     * \endcode
     */
-    void push_back (const T& value) noexcept {
+    void push_back (const T& value) {
         h_vect.push_back(value);
     }
 
-    T* copyToDeviceAsync () noexcept {
+    T* copyToDeviceAsync () {
 #ifdef AMREX_USE_GPU
         if (useDVect() && !h_vect.empty())
         {
@@ -147,7 +147,7 @@ public:
         return h_vect.data();
     }
 
-    T* copyToHost () noexcept {
+    T* copyToHost () {
 #ifdef AMREX_USE_GPU
         if (useDVect() && !d_vect.empty())
         {
