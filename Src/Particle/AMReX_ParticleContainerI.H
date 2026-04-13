@@ -1467,7 +1467,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #endif
 
 #if defined(AMREX_USE_OMP) || defined(AMREX_USE_GPU)
-    BL_PROFILE_VAR_START(blp_partition_prepare);
     Vector<std::pair<int, int> > grid_tile_ids;
     Vector<ParticleTileType*> ptile_ptrs;
     Vector<int> plevs;
@@ -1527,10 +1526,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #endif
         }
     }
-    BL_PROFILE_VAR_STOP(blp_partition_prepare);
 #endif
 
-    BL_PROFILE_VAR_START(blp_partition_parallel);
 #if defined(AMREX_USE_OMP) || defined(AMREX_USE_GPU)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for
@@ -1615,7 +1612,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 #endif
-    BL_PROFILE_VAR_STOP(blp_partition_parallel);
     BL_PROFILE_VAR_STOP(blp_partition);
 
     ParticleCopyPlan plan;
