@@ -48,13 +48,13 @@ Geometry::Geometry () noexcept
 }
 
 Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,
-                    int const* is_per) noexcept
+                    int const* is_per)
 {
     define(dom,rb,coord,is_per);
 }
 
 Geometry::Geometry (const Box& dom, const RealBox& rb, int coord,
-                    Array<int,AMREX_SPACEDIM> const& is_per) noexcept
+                    Array<int,AMREX_SPACEDIM> const& is_per)
 {
     define(dom,rb,coord,is_per);
 }

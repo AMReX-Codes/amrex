@@ -616,7 +616,7 @@ namespace amrex {
     static void Sync(const std::string& name) noexcept;
     static void Sync(const char* name) noexcept;
 
-    static void InitParams() noexcept;
+    static void InitParams();
 
     static void StartSyncRegion() noexcept;
     static void StartSyncRegion(const std::string& name) noexcept;

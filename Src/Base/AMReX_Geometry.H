@@ -96,7 +96,7 @@ public:
     explicit Geometry (const Box&     dom,
                        const RealBox* rb     =  nullptr,
                        int            coord  = -1,
-                       int const*     is_per =  nullptr) noexcept;
+                       int const*     is_per =  nullptr);
     /**
      * Constructs a fully-defined geometry object that describes the problem domain and coordinate system.
      *
@@ -112,7 +112,7 @@ public:
      *        Default is non-periodic.
      */
     Geometry (const Box& dom, const RealBox& rb, int coord,
-              Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
+              Array<int,AMREX_SPACEDIM> const& is_per);
 
     ~Geometry () = default;
     Geometry (const Geometry& rhs) = default;
