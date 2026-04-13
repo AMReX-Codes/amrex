@@ -1462,7 +1462,9 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     int num_levels = finest_lev_particles + 1;
     op.setNumLevels(num_levels);
     Vector<std::map<std::pair<int, int>, int> > new_sizes(num_levels);
+#ifndef AMREX_USE_GPU
     const int myproc = ParallelContext::MyProcSub();
+#endif
 #ifdef AMREX_USE_GPU
     auto assign_grid = m_particle_locator.getGridAssignor();
     const auto plo    = Geom(0).ProbLoArray();
