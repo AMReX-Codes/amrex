@@ -1545,8 +1545,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         int lev = plevs[pmap_it];
         int gid = grid_tile_ids[pmap_it].first;
         int tid = grid_tile_ids[pmap_it].second;
-        auto index = std::make_pair(gid, tid);
-
         auto& src_tile = *ptile_ptrs[pmap_it];
         const size_t np = src_tile.numParticles();
         if (np == 0) {continue;}
@@ -1564,44 +1562,45 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                                                     boxes, levels, tiles,
                                                     src_indices, periodic_shift);
 #else // GPU algorithm
-            int num_stay = partitionParticlesByDest(src_tile, assign_grid,
-                                                    std::forward<CellAssignor>(CellAssignor{}),
-                                                    BufferMap(),
-                                                    plo, phi, rlo, rhi, is_per, lev, gid, tid,
-                                                    lev_min, lev_max, nGrow, remove_negative);
+        int num_stay = partitionParticlesByDest(src_tile, assign_grid,
+                                                std::forward<CellAssignor>(CellAssignor{}),
+                                                BufferMap(),
+                                                plo, phi, rlo, rhi, is_per, lev, gid, tid,
+                                                lev_min, lev_max, nGrow, remove_negative);
 
-            int num_move = np - num_stay;
-            *new_size_ptrs[pmap_it] = num_stay;
-            op.resize(gid, tid, lev, num_move);
+        int num_move = np - num_stay;
+        *new_size_ptrs[pmap_it] = num_stay;
+        op.resize(gid, tid, lev, num_move);
 
-            auto* p_boxes = op.m_boxes[lev][index].dataPtr();
-            auto* p_levs = op.m_levels[lev][index].dataPtr();
-            auto* p_tiles = op.m_tiles[lev][index].dataPtr();
-            auto* p_src_indices = op.m_src_indices[lev][index].dataPtr();
-            auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
-            auto ptd = src_tile.getParticleTileData();
+        auto index = std::make_pair(gid, tid);
+        auto* p_boxes = op.m_boxes[lev][index].dataPtr();
+        auto* p_levs = op.m_levels[lev][index].dataPtr();
+        auto* p_tiles = op.m_tiles[lev][index].dataPtr();
+        auto* p_src_indices = op.m_src_indices[lev][index].dataPtr();
+        auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
+        auto ptd = src_tile.getParticleTileData();
 
-            amrex::ParallelFor(num_move, [=] AMREX_GPU_DEVICE (int i)
+        amrex::ParallelFor(num_move, [=] AMREX_GPU_DEVICE (int i)
+        {
+            const auto p = ptd[i + num_stay];
+
+            if (!p.id().is_valid())
             {
-                const auto p = ptd[i + num_stay];
-
-                if (!p.id().is_valid())
-                {
-                    p_boxes[i] = -1;
-                    p_tiles[i] = -1;
-                    p_levs[i]  = -1;
-                }
-                else
-                {
-                    const auto tup = assign_grid(p, lev_min, lev_max, nGrow,
-                                                 std::forward<CellAssignor>(CellAssignor{}));
-                    p_boxes[i] = amrex::get<0>(tup);
-                    p_tiles[i] = amrex::get<1>(tup);
-                    p_levs[i]  = amrex::get<2>(tup);
-                }
-                p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
-                p_src_indices[i] = i+num_stay;
-            });
+                p_boxes[i] = -1;
+                p_tiles[i] = -1;
+                p_levs[i]  = -1;
+            }
+            else
+            {
+                const auto tup = assign_grid(p, lev_min, lev_max, nGrow,
+                                             std::forward<CellAssignor>(CellAssignor{}));
+                p_boxes[i] = amrex::get<0>(tup);
+                p_tiles[i] = amrex::get<1>(tup);
+                p_levs[i]  = amrex::get<2>(tup);
+            }
+            p_periodic_shift[i] = IntVect(AMREX_D_DECL(0,0,0));
+            p_src_indices[i] = i+num_stay;
+        });
 #endif
     }
 #else
