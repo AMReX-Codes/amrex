@@ -1254,17 +1254,19 @@ AmrMesh::checkInput ()
 
     //
     // Check that max_grid_size is a multiple of blocking_factor at every level.
-    //   (only check if blocking_factor <= max_grid_size)
+    //   (only check if max_level > 0 && blocking_factor <= max_grid_size)
     //
-    for (int i = 0; i <= max_level; i++)
-    {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
-                if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
-                    amrex::Print() << "max_grid_size in direction " << idim
-                                   << " is " << max_grid_size[i][idim] << '\n'
-                                   << "blocking_factor is " << blocking_factor[i][idim] << '\n';
-                    amrex::Error("max_grid_size not divisible by blocking_factor");
+    if (max_level > 0) {
+        for (int i = 0; i <= max_level; i++)
+        {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
+                    if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+                        amrex::Print() << "max_grid_size in direction " << idim
+                                       << " is " << max_grid_size[i][idim] << '\n'
+                                       << "blocking_factor is " << blocking_factor[i][idim] << '\n';
+                        amrex::Error("max_grid_size not divisible by blocking_factor");
+                    }
                 }
             }
         }
