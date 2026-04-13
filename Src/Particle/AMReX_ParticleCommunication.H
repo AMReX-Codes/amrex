@@ -165,12 +165,12 @@ struct ParticleCopyPlan
         m_box_counts_d.resize(0);
         m_box_counts_d.resize(num_buckets+1, 0);
         m_box_offsets.resize(num_buckets+1);
-        auto* p_dst_box_counts = m_box_counts_d.dataPtr();
         auto getBucket = pc.stableRedistribute() ? pc.BufferMap().getHostBucketFunctor() : pc.BufferMap().getBucketFunctor();
 
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
         constexpr bool use_host_bucket_counters = true;
 #else
+        auto* p_dst_box_counts = m_box_counts_d.dataPtr();
         constexpr bool use_host_bucket_counters = false;
 #endif
         Gpu::HostVector<unsigned int> h_box_counts;
@@ -522,8 +522,6 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
         {
             auto index = kv.first;
             auto& src_tile = plev.at(index);
-            const auto& ptd = src_tile.getConstParticleTileData();
-
             int num_copies = op.numCopies(index, lev);
             if (num_copies == 0) { continue; }
 
@@ -538,6 +536,7 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
                                      p_src_indices, p_periodic_shift, p_dst_indices, num_copies});
             omp_pack_offsets.push_back(omp_pack_offsets.back() + num_copies);
 #else
+            const auto& ptd = src_tile.getConstParticleTileData();
             auto* p_snd_buffer = snd_buffer.dataPtr();
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
             amrex::ParallelFor(num_copies, [=] AMREX_GPU_DEVICE (int i)
@@ -726,7 +725,6 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             auto& tile = plev[index];
 
             GetSendBufferOffset get_offset(plan, pc.BufferMap());
-            auto p_snd_buffer = snd_buffer.dataPtr();
 
             int offset = offsets[uindex];
             int size = sizes[uindex];
@@ -736,6 +734,7 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
             omp_unpack_work.push_back({&tile, gid, tid, lev, offset, size});
             omp_unpack_offsets.push_back(omp_unpack_offsets.back() + size);
 #else
+            auto p_snd_buffer = snd_buffer.dataPtr();
             auto ptd = tile.getParticleTileData();
             amrex::ParallelFor(size, [=] AMREX_GPU_DEVICE (int i)
             {
