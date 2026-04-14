@@ -1453,10 +1453,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     this->defineBufferMap();
 
+#ifndef AMREX_USE_GPU
     if (local > 0) { BuildRedistributeMask(0, local); }
-
+#else
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
+#endif
+
     BL_PROFILE_VAR_START(blp_partition);
     ParticleCopyOp op;
     int num_levels = finest_lev_particles + 1;
