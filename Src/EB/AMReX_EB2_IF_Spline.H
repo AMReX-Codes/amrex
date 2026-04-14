@@ -10,14 +10,23 @@
 #include <AMReX_Array.H>
 #include <AMReX_distFcnElement.H>
 
+/**
+ * \file AMReX_EB2_IF_Spline.H
+ *
+ * Build an implicit surface defined by spline and line segments.
+ */
+
 namespace amrex::EB2 {
 
-/*
- * Implicit function to specify a spline through a set of control points
- */
+//! Implicit function that measures distance to a poly-spline curve in 2-D.
 class SplineIF {
  public:
 
+  /**
+   * \brief Append a spline segment described by control points \p pts.
+   *
+   * Ownership stays with the SplineIF; callers must allocate on host.
+   */
   void addSplineElement(std::vector<amrex::RealVect> pts) {
     auto* theSpline = new SplineDistFcnElement2d();
     theSpline->set_control_points(std::move(pts));
@@ -25,12 +34,20 @@ class SplineIF {
     geomElements.push_back(theSpline);
   }
 
+  /**
+   * \brief Append a straight line segment with endpoints/control points \p pts.
+   */
   void addLineElement(std::vector<amrex::RealVect> pts) {
     auto* theLine = new LineDistFcnElement2d();
     theLine->set_control_points(std::move(pts));
     geomElements.push_back(theLine);
   }
 
+  /**
+   * \brief Signed distance to the closest spline/line element through \p p.
+   *
+   * Uses `cpside` to determine which side of the spline is considered inside.
+   */
   [[nodiscard]] amrex::Real operator() (const amrex::RealArray& p) const {
     amrex::RealVect cp;
     distFcnElement2d * closesetGeomElement = nullptr;
@@ -48,8 +65,7 @@ class SplineIF {
     return dist*side;
   }
 
-  //! private:
-  //! The geometry elements used to compute distance function
+  //! Collection of geometry elements that define the curve.
   amrex::Vector<distFcnElement2d*> geomElements;
 };
 

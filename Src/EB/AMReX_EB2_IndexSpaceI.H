@@ -1,4 +1,11 @@
 
+/**
+ * \file AMReX_EB2_IndexSpaceI.H
+ *
+ * Template definitions for EB2::IndexSpaceImp helper methods. Public interfaces
+ * are declared in AMReX_EB2.H; this file simply provides their implementations.
+ */
+
 template <typename G>
 IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
                                  int required_coarsening_level,

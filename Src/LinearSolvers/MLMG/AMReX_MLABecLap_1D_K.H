@@ -229,7 +229,7 @@ void abec_gsrb_with_line_solve (
                 Array4<int const> const& /*m1*/,
                 Array4<T const> const& /*f0*/,
                 Array4<T const> const& /*f1*/,
-                Box const& /*vbox*/, int /*redblack*/, int /*nc*/) noexcept
+                Box const& /*vbox*/, int /*redblack*/, int /*nc*/)
 {
     amrex::Abort("abec_gsrb_with_line_solve not implemented in 1D");
 }

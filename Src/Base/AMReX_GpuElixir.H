@@ -42,7 +42,7 @@ public:
 
     ~Elixir () { clear(); }
 
-    void clear () noexcept;
+    void clear ();
 
 private:
     Vector<std::pair<void*,Arena*> > m_pa;

@@ -25,9 +25,9 @@ box_write (std::ostream& os,
            int dim)
 {
     os << '(';
-    int_vector_write(os, smallend, dim) << ' ';
-    int_vector_write(os, bigend, dim) << ' ';
-    int_vector_write(os, type, dim) << ')';
+    T_vector_write(os, smallend, dim) << ' ';
+    T_vector_write(os, bigend, dim) << ' ';
+    T_vector_write(os, type, dim) << ')';
 
     if (os.fail()) {
         amrex::Error("operator<<(ostream&,Box&) failed");
@@ -58,28 +58,28 @@ box_read (std::istream& is,
 
     if (c == '(')
     {
-        int_vector_read(is, smallend, dim);
-        int_vector_read(is, bigend, dim);
+        T_vector_read(is, smallend, dim);
+        T_vector_read(is, bigend, dim);
         is >> c;
         // Read an optional IndexType
         is.putback(c);
         if ( c == '(' )
         {
-            int_vector_read(is, type, dim);
+            T_vector_read(is, type, dim);
         }
         is.ignore(BL_IGNORE_MAX,')');
     }
     else if (c == '<')
     {
         is.putback(c);
-        int_vector_read(is, smallend, dim);
-        int_vector_read(is, bigend, dim);
+        T_vector_read(is, smallend, dim);
+        T_vector_read(is, bigend, dim);
         is >> c;
         // Read an optional IndexType
         is.putback(c);
         if ( c == '<' )
         {
-            int_vector_read(is, type, dim);
+            T_vector_read(is, type, dim);
         }
         //is.ignore(BL_IGNORE_MAX,'>');
     }

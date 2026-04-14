@@ -840,7 +840,7 @@ Device::usingExternalStream () noexcept
 #endif
 
 void
-Device::synchronize () noexcept
+Device::synchronize ()
 {
 #ifdef AMREX_USE_GPU
     AMREX_HIP_OR_CUDA( AMREX_HIP_SAFE_CALL(hipDeviceSynchronize());,

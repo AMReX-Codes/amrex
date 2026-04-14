@@ -157,7 +157,7 @@ public:
      * \param hibc upper boundaries
      */
     void setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& lobc,
-                      const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc) noexcept;
+                      const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc);
 
     /**
      * \brief Set location of domain boundaries.
@@ -1217,7 +1217,7 @@ MLLinOpT<MF>::setDomainBC (const Array<BCType,AMREX_SPACEDIM>& a_lobc,
 template <typename MF>
 void
 MLLinOpT<MF>::setDomainBC (const Vector<Array<BCType,AMREX_SPACEDIM> >& a_lobc,
-                           const Vector<Array<BCType,AMREX_SPACEDIM> >& a_hibc) noexcept
+                           const Vector<Array<BCType,AMREX_SPACEDIM> >& a_hibc)
 {
     const int ncomp = getNComp();
     AMREX_ASSERT_WITH_MESSAGE(ncomp == a_lobc.size() && ncomp == a_hibc.size(),

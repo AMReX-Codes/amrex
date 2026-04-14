@@ -94,7 +94,7 @@ TinyProfiler::~TinyProfiler ()
 }
 
 void
-TinyProfiler::start () noexcept
+TinyProfiler::start ()
 {
     if (!enabled) { return; }
 
@@ -155,7 +155,7 @@ TinyProfiler::start () noexcept
 }
 
 void
-TinyProfiler::stop () noexcept
+TinyProfiler::stop ()
 {
     if (!enabled) { return; }
 
@@ -356,7 +356,7 @@ TinyProfiler::MemoryInitialize ()
 }
 
 void
-TinyProfiler::Finalize (bool bFlushing) noexcept
+TinyProfiler::Finalize (bool bFlushing)
 {
     if (!enabled) { return; }
 
@@ -449,7 +449,7 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 }
 
 void
-TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
+TinyProfiler::MemoryFinalize (bool bFlushing)
 {
     if (!memprof_enabled) { return; }
 

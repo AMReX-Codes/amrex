@@ -354,12 +354,6 @@ else
   WARN_ERROR := FALSE
 endif
 
-ifdef GPU_ERROR_CHECK
-  GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
-else
-  GPU_ERROR_CHECK := TRUE
-endif
-
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
 else
@@ -865,9 +859,6 @@ endif
 
 ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS -DAMREX_GPU_MAX_THREADS=$(GPU_MAX_THREADS)
-    ifeq ($(GPU_ERROR_CHECK),FALSE)
-        DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
-    endif
     ifeq ($(USE_GPU_RDC),TRUE)
         DEFINES += -DAMREX_USE_GPU_RDC
     endif

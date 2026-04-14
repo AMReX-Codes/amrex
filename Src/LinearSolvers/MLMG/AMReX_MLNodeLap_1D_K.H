@@ -224,7 +224,7 @@ void mlndlap_gauss_seidel_c (Box const& bx, Array4<Real> const& sol,
 inline
 void mlndlap_gauss_seidel_with_line_solve_aa(Box const&, Array4<Real> const&,
                                              Array4<Real const> const&, Array4<Real const> const&,
-                                             Array4<int const> const&, GpuArray<Real,AMREX_SPACEDIM> const&) noexcept
+                                             Array4<int const> const&, GpuArray<Real,AMREX_SPACEDIM> const&)
 {
     amrex::Abort("mlndlap_gauss_seidel_with_line_solve_aa: not implemented in 1D");
 }
