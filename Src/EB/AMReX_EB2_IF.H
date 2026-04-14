@@ -24,4 +24,11 @@
 #include <AMReX_EB2_IF_Union.H>
 #include <AMReX_EB2_IF_DevicePtr.H>
 
+/**
+ * \file AMReX_EB2_IF.H
+ *
+ * Umbrella header that includes the standard EB2 implicit-function building
+ * blocks (planes, boxes, CSG operations, parser-based shapes, etc.).
+ */
+
 #endif

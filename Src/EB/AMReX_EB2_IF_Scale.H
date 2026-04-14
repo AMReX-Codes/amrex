@@ -7,15 +7,23 @@
 
 #include <type_traits>
 
+/**
+ * \file AMReX_EB2_IF_Scale.H
+ *
+ * Helper that anisotropically scales an implicit function.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Scale an implicit function by arbitrary per-axis factors.
 class ScaleIF
 {
 public:
 
+    //! Construct with the child implicit function and scaling factors.
     ScaleIF (F a_f, const RealArray& a_scalefactor)
         : m_f(std::move(a_f)),
 #if (AMREX_SPACEDIM == 3)

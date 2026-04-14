@@ -23,6 +23,7 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTileRT.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParticleUtil.H>
@@ -180,8 +181,14 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
+    static constexpr bool is_rtsoa_pc = ParticleType::is_rtsoa_particle;
+
     using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
-    using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParticleTileType = std::conditional_t<
+        is_rtsoa_pc,
+        ParticleTileRT<typename ParticleType::RealType, typename ParticleType::IntType>,
+        ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>
+    >;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     //! A single level worth of particles is indexed (grid id, tile id)
@@ -202,7 +209,7 @@ public:
     static constexpr bool has_polymorphic_allocator =
         IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
 
-    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM,
+    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM || is_rtsoa_pc,
                   "Pure SoA particle containers require at least AMREX_SPACEDIM real components for positions");
 
     //! \brief Default constructor - construct an empty particle container that has no concept
@@ -1467,12 +1474,13 @@ protected:
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
 public:
+    using FlagsVector = PODVector<int, Allocator<int>>;
+
     void
     WriteParticles (int level, std::ofstream& ofs, int fnum,
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
-
+                    const Vector<std::map<std::pair<int, int>,FlagsVector>>& particle_io_flags, bool is_checkpoint) const;
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticlesHDF5.H"
 #endif
@@ -1563,6 +1571,9 @@ using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStru
 
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
+using ParticleContainerRTSoA = ParticleContainer_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 
 }
 

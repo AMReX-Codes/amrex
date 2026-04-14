@@ -3,9 +3,9 @@
 Welcome to AMReX's documentation
 ================================
 
-AMReX is a software framework containing all the functionality to write
+AMReX is a software framework containing all the functionality needed to write
 massively parallel, block-structured adaptive mesh refinement (AMR)
-applications. AMReX is freely available `on Github
+applications. AMReX is freely available `on GitHub
 <https://github.com/AMReX-Codes/amrex>`_.
 
 AMReX is a project of the `High Performance Software Foundation (HPSF)
@@ -18,14 +18,14 @@ of each month.
 
 We are always happy to have users contribute to the AMReX source code. To
 contribute, issue a pull request against the development branch (details `here
-<https://help.github.com/articles/creating-a-pull-request/>`_).  Any level of
-changes are welcomed: documentation, bug fixes, new test problems, new solvers,
+<https://help.github.com/articles/creating-a-pull-request/>`_).  Changes at any
+level are welcome: documentation, bug fixes, new test problems, new solvers,
 etc.  To obtain help, simply post a
 `discussion <https://github.com/AMReX-Codes/amrex/discussions>`_
 or an `issue <https://github.com/AMReX-Codes/amrex/issues>`_
 on the AMReX GitHub webpage.
 
-To learn AMReX there are walk-through guides and small stand-alone example codes that
+To learn AMReX, there are walk-through guides and small stand-alone example codes that
 demonstrate how to use different parts of the AMReX functionality. Extensive documentation
 is available at `AMReX Guided Tutorials and Example Codes`_.
 
@@ -72,9 +72,9 @@ Documentation on migration from BoxLib is available in the AMReX repository at D
    :maxdepth: 1
    :caption: API
 
-The copyright notice of AMReX is included in the AMReX home directory
-as README.md.
-Your use of this software is under the 3-clause BSD license -- the license agreement is included in the
-AMReX home directory as LICENSE.
+The copyright notice for AMReX is included in the AMReX home directory
+as ``README.md``.
+Your use of this software is subject to the 3-clause BSD license; the license agreement is included in the
+AMReX home directory as ``LICENSE``.
 
-For a pdf version of this documentation, click :download:`here <amrex.pdf>`.
+For a PDF version of this documentation, click :download:`here <amrex.pdf>`.

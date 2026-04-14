@@ -578,6 +578,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->src = &src;
         pcd->op = op;
         pcd->tag = tag;
+        // Deterministic GPU unpacking is currently implemented only for ADD.
+        pcd->deterministic = deterministic && (op == FabArrayBase::ADD);
 
         NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == NC);
@@ -708,7 +710,8 @@ FabArray<FAB>::ParallelCopy_finish ()
         if (Gpu::inLaunchRegion())
         {
             unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id, false);
+                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id,
+                                   pcd->deterministic);
         }
         else
 #endif
@@ -765,7 +768,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         T* const p0 = dest.dataPtr(dcomp);
         T* pb = p0;
 #ifdef AMREX_USE_GPU
-        if (dest.arena()->isDevice()) {
+        if (dest.arena()->isDevice() && !ParallelDescriptor::UseGpuAwareMpi()) {
             pb = (T*)The_Pinned_Arena()->alloc(sizeof(T)*count);
             Gpu::dtoh_memcpy_async(pb, p0, sizeof(T)*count);
             Gpu::streamSynchronize();
@@ -777,6 +780,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         if (pb != p0) {
             Gpu::htod_memcpy_async(p0, pb, sizeof(T)*count);
             Gpu::streamSynchronize();
+            The_Pinned_Arena()->free(pb);
         }
 #endif
     }

@@ -3,6 +3,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_RealVect.H>
 
 using namespace amrex;
 
@@ -40,8 +41,16 @@ int main(int argc, char* argv[])
         std::vector<std::string> sa;
         std::vector<std::string> sb;
         pp.getarr("sa", sa);
-        pp.getarr("sa", sb);
+        pp.getarr("sb", sb);
         AMREX_ALWAYS_ASSERT(sa == sb && (sa == std::vector<std::string>{"abc","xyz","123"}));
+
+        IntVect iv;
+        pp.query("iv3", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(100,200,300)));
+        pp.query("iv2", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(10,20,0)));
+        pp.query("iv1", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(5,0,0)));
 
         Box box;
         pp.query("b", box);
@@ -316,24 +325,42 @@ int main(int argc, char* argv[])
             AMREX_ALWAYS_ASSERT(s == sv[i]);
         }
     }
-    if (ParallelDescriptor::IOProcessor()) // print & addfile
+
+    // print & addfile
     {
-        {
-            ParmParse pp;
-            pp.add("string-for-testing-addfile", "string for testing addfile");
-            pp.add("string-for-testing-addfile", "string for testing addfile");
-            int n = pp.countname("string-for-testing-addfile");
-            AMREX_ALWAYS_ASSERT(n==2);
-        }
+        ParmParse pp;
+        pp.add("string-for-testing-addfile", "string for testing addfile");
+        pp.add("string-for-testing-addfile", "string for testing addfile");
+        int n = pp.countname("string-for-testing-addfile");
+        AMREX_ALWAYS_ASSERT(n==2);
+    }
+    if (ParallelDescriptor::IOProcessor()) {
         std::ofstream ofs("my-inputs");
         ParmParse::prettyPrintTable(ofs);
-        ofs.close();
+    }
+    {
         ParmParse::addfile("my-inputs");
         std::string s;
         ParmParse pp;
         pp.get("string-for-testing-addfile", s);
         int n = pp.countname("string-for-testing-addfile");
         AMREX_ALWAYS_ASSERT(n==3 && s == "string for testing addfile");
+    }
+
+    { // UNSET directive
+        ParmParse pp;
+        // "unset_me" is defined then immediately unset in the inputs file
+        int v = -1;
+        int found = pp.query("unset_me", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_multi_a" and "unset_multi_b" are unset together in inputs
+        found = pp.query("unset_multi_a", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        found = pp.query("unset_multi_b", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_kept" is NOT unset, so it should still be present
+        pp.get("unset_kept", v);
+        AMREX_ALWAYS_ASSERT(v == 77);
     }
     {
         amrex::Print() << "SUCCESS\n";

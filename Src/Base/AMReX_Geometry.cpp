@@ -48,27 +48,27 @@ Geometry::Geometry () noexcept
 }
 
 Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,
-                    int const* is_per) noexcept
+                    int const* is_per)
 {
     define(dom,rb,coord,is_per);
 }
 
 Geometry::Geometry (const Box& dom, const RealBox& rb, int coord,
-                    Array<int,AMREX_SPACEDIM> const& is_per) noexcept
+                    Array<int,AMREX_SPACEDIM> const& is_per)
 {
     define(dom,rb,coord,is_per);
 }
 
 void
 Geometry::define (const Box& dom, const RealBox& rb, int coord,
-                  Array<int,AMREX_SPACEDIM> const& is_per) noexcept
+                  Array<int,AMREX_SPACEDIM> const& is_per)
 {
     define(dom, &rb, coord, is_per.data());
 }
 
 void
 Geometry::define (const Box& dom, const RealBox* rb, int coord,
-                  int const* is_per) noexcept
+                  int const* is_per)
 {
     AMREX_ASSERT(dom.cellCentered());
 
@@ -105,7 +105,7 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 }
 
 void
-Geometry::Setup (const RealBox* rb, int coord, int const* isper) noexcept
+Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 {
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
@@ -520,14 +520,28 @@ Geometry::growPeriodicDomain (int ngrow) const noexcept
 void
 Geometry::computeRoundoffDomain ()
 {
+    bool valid_domain = true;
     for (int k = 0; k < AMREX_SPACEDIM; k++)
     {
         offset[k] = prob_domain.lo(k);
         dx[k] = prob_domain.length(k)/(Real(domain.length(k)));
         inv_dx[k] = 1.0_rt/dx[k];
+        valid_domain = valid_domain && (prob_domain.length(k) > 0) &&
+            (domain.length(k) > 0);
     }
 
+    std::stringstream ss;
+    ss << std::setprecision(std::numeric_limits<double>::max_digits10)
+       << prob_domain << " " << domain << " sizeof Real: "
+       << sizeof(Real) << " sizeof ParticleReal: " << sizeof(ParticleReal);
+    auto const error_msg = ss.str();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(valid_domain, error_msg);
+
     constexpr int maxiters = 200;
+
+    std::string error_msg_2("computeRoundoffDomain failed to converge. To help us improve, please submit a GitHub issue with the following information: ");
+    error_msg_2.append(error_msg);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim)
     {
@@ -539,7 +553,7 @@ Geometry::computeRoundoffDomain ()
         Real dxinv = InvCellSize(idim);
 
         // Check that the grid is well formed and that deltax > roundoff
-        AMREX_ASSERT((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)));
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((plo + ihi*CellSize(idim)) < (plo + (ihi + 1)*CellSize(idim)), error_msg_2);
 
         // roundoff_lo will be the lowest value that will be inside the domain
         // roundoff_hi will be the highest value that will be inside the domain
@@ -571,8 +585,8 @@ Geometry::computeRoundoffDomain ()
                 ++iters;
             }
             // The assertion on rlo_out makes sure the compiler cannot optimize it away.
-            AMREX_ALWAYS_ASSERT(rlo_out > std::numeric_limits<ParticleReal>::lowest()
-                                && iters < maxiters);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rlo_out > std::numeric_limits<ParticleReal>::lowest()
+                                             && iters < maxiters, error_msg_2);
         }
         else
         {
@@ -587,8 +601,8 @@ Geometry::computeRoundoffDomain ()
             rlo_out = rlo;
             rlo = rtmp;
             // The assertion on rtmp makes sure the compiler cannot optimize it away.
-            AMREX_ALWAYS_ASSERT(rtmp > std::numeric_limits<ParticleReal>::lowest()
-                                && iters < maxiters);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rtmp > std::numeric_limits<ParticleReal>::lowest()
+                                             && iters < maxiters, error_msg_2);
         }
 
         {
@@ -618,8 +632,8 @@ Geometry::computeRoundoffDomain ()
                 ++iters;
             }
             // The assertion on rlo_minus makes sure the compiler cannot optimize it away.
-            AMREX_ALWAYS_ASSERT(rlo_minus > std::numeric_limits<ParticleReal>::lowest()
-                                && iters < maxiters);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rlo_minus > std::numeric_limits<ParticleReal>::lowest()
+                                             && iters < maxiters, error_msg_2);
         }
 
         ParticleReal rhi_out;
@@ -634,8 +648,8 @@ Geometry::computeRoundoffDomain ()
                 ++iters;
             }
             // The assertion on rhi_out makes sure the compiler cannot optimize it away.
-            AMREX_ALWAYS_ASSERT(rhi_out > std::numeric_limits<ParticleReal>::lowest()
-                                && iters < maxiters);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rhi_out > std::numeric_limits<ParticleReal>::lowest()
+                                             && iters < maxiters, error_msg_2);
         }
         else
         {
@@ -653,8 +667,8 @@ Geometry::computeRoundoffDomain ()
             rhi_out = rhi;
             rhi = rtmp;
             // The assertion on rtmp makes sure the compiler cannot optimize it away.
-            AMREX_ALWAYS_ASSERT(rtmp > std::numeric_limits<ParticleReal>::lowest()
-                                && iters < maxiters);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rtmp > std::numeric_limits<ParticleReal>::lowest()
+                                             && iters < maxiters, error_msg_2);
         }
 
         {
@@ -684,8 +698,8 @@ Geometry::computeRoundoffDomain ()
                 ++iters;
             }
             // The assertion on rhi_plus makes sure the compiler cannot optimize it away.
-            AMREX_ALWAYS_ASSERT(rhi_plus > std::numeric_limits<ParticleReal>::lowest()
-                                && iters < maxiters);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rhi_plus > std::numeric_limits<ParticleReal>::lowest()
+                                             && iters < maxiters, error_msg_2);
         }
     }
 }

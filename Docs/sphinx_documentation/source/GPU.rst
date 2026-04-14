@@ -256,7 +256,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    | AMReX_CUDA_ERROR_CROSS       |  Error if a host function is called from a host | NO          | YES, NO         |
    | _EXECUTION_SPACE_CALL        |  device function                                |             |                 |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_KEEP_FILES        |  Keep intermediately files (folder: nvcc_tmp)   | NO          | YES, NO         |
+   | AMReX_CUDA_KEEP_FILES        |  Keep intermediate files (folder: nvcc_tmp)     | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -279,8 +279,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
 
 The target architecture to build for can be specified via the configuration option
 ``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU generation, i.e. ``Turing``, ``Volta``, ``Ampere``, ``...`` , or its
-`compute capability <https://developer.nvidia.com/cuda-gpus>`_, i.e. ``10.0``, ``9.0``,  ``...`` .
+the name of the NVIDIA GPU generation, e.g., ``Turing``, ``Volta``, or ``Ampere``, or its
+`compute capability <https://developer.nvidia.com/cuda-gpus>`_, e.g., ``10.0`` or ``9.0``.
 For example, on Cori GPUs you can specify the architecture as follows:
 
 .. highlight:: console
@@ -295,7 +295,7 @@ If no architecture is specified, CMake will default to the architecture defined 
 If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
 If more than one is found, CMake will build for all of them.
 If autodetection fails, a list of "common" architectures is assumed.
-`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as semicolon-separated list, e.g. ``-DAMReX_CUDA_ARCH=7.0;8.0``.
+`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as a semicolon-separated list, e.g., ``-DAMReX_CUDA_ARCH=7.0;8.0``.
 Building for multiple CUDA architectures will generally result in a larger library and longer build times.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
@@ -372,8 +372,8 @@ for example ``CMAKE_CXX_FLAGS``, can be used for HIP as well.
 Since CMake does not support autodetection of HIP compilers/target architectures
 yet, ``CMAKE_CXX_COMPILER`` must be set to a valid HIP compiler, i.e. ``clang++`` or ``hipcc``,
 and ``AMReX_AMD_ARCH`` to the target architecture you are building for.
-Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user-inputs when AMReX_GPU_BACKEND=HIP**.
-We again read also an *environment variable*: ``AMREX_AMD_ARCH`` (note: all caps) and the C++ compiler can be hinted as always, e.g. with ``export CXX=$(which clang++)``.
+Thus **AMReX_AMD_ARCH and CMAKE_CXX_COMPILER are required user inputs when AMReX_GPU_BACKEND=HIP**.
+We also read the *environment variable* ``AMREX_AMD_ARCH`` (note: all caps), and the C++ compiler can be specified as usual, e.g., with ``export CXX=$(which clang++)``.
 Below is an example configuration for HIP on Tulip:
 
 .. highlight:: console
@@ -400,7 +400,7 @@ for example ``CMAKE_CXX_FLAGS``, can be used for SYCL as well.
 
 
 Since CMake does not support autodetection of SYCL compilers yet,
-``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler. i.e. ``icpx``.
+``CMAKE_CXX_COMPILER`` must be set to a valid SYCL compiler, i.e., ``icpx``.
 Thus **CMAKE_CXX_COMPILER is a required user-input when AMReX_GPU_BACKEND=SYCL**.
 At this time, **the only supported SYCL compiler is icpx**.
 Below is an example configuration for SYCL:
@@ -607,12 +607,12 @@ AMReX GPU work takes place inside of MFIter and ParIter loops.
 Therefore, there are two ways classes and functions have been modified
 to interact with the GPU:
 
-1. A number of functions used within these loops are labelled using
+1. A number of functions used within these loops are labeled using
 ``AMREX_GPU_HOST_DEVICE`` and can be called on the device. This includes member
 functions, such as :cpp:`IntVect::type()`, as well as non-member functions,
 such as :cpp:`amrex::min` and :cpp:`amrex::max`. In specialized cases,
-classes are labeled such that the object can be constructed, destructed
-and its functions can be implemented on the device, including ``IntVect``.
+classes are labeled such that objects can be constructed and destroyed
+on the device, and their functions can be called there, including ``IntVect``.
 
 2. Functions that contain MFIter or ParIter loops have been rewritten
 to contain device launches. For example, the :cpp:`FillBoundary`
@@ -752,6 +752,153 @@ Also note: :cpp:`Gpu::ManagedVector` is not async-safe.  It cannot be safely
 constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
+
+.. _sec:gpu:buffer_managed_tracked:
+
+Gpu::Buffer, Gpu::ManagedVector, and Gpu::TrackedVector
+-------------------------------------------------------
+
+:cpp:`Gpu::Buffer` (``AMReX_GpuBuffer.H``) and :cpp:`Gpu::TrackedVector`
+(``AMReX_TrackedVector.H``) pair a host allocation with a device mirror.
+
+:cpp:`Gpu::Buffer` uses :cpp:`Gpu::PinnedVector` on the host and
+``copyToDeviceAsync()`` / ``copyToHost()`` for transfers.  Use it for
+**frequent, performance-oriented** async copies during a normal GPU run.
+
+:cpp:`Gpu::ManagedVector` is the arena-backed unified-memory vector introduced
+under **Gpu Vectors** above (``The_Managed_Arena()``).  Like :cpp:`Gpu::Buffer`
+it can only be used while AMReX is initialized / a GPU device context exists.
+
+:cpp:`Gpu::TrackedVector` exposes a host ``std::vector`` via ``host()`` /
+``host_const()`` and a device :cpp:`Gpu::NonManagedDeviceVector` via
+``device()`` / ``device_const()`` (GPU builds only).  Every accessor **automatically
+synchronizes** the other side when needed: if the host was modified and you
+call ``device()`` or ``device_const()``, a synchronous host-to-device copy
+runs first (and vice versa).  Writable accessors (``host()``, ``device()``)
+additionally mark the returned side as dirty so that the next access to the
+opposite side triggers a copy back.  Read-only accessors
+(``host_const()``, ``device_const()``) leave the status as ``up_to_date``
+after syncing.  You may populate the host **before**
+:cpp:`amrex::Initialize()`. Device memory is only valid while AMReX is
+initialized.  On :cpp:`amrex::Finalize()`, AMReX clears device storage via
+``release_gpu()`` and leaves the host copy for reuse, which supports
+**Python / pyAMReX** and other workflows that cross multiple AMReX
+initialize/finalize cycles.  Use read-only ``host_const()`` /
+``device_const()`` when you are not writing, so the object does not flip to a
+dirty state unnecessarily.
+
+.. _tab:gpu:buffer_managed_tracked:
+
+.. list-table::
+   :widths: 12 28 28 28
+   :header-rows: 1
+
+   * -
+     - :cpp:`Gpu::Buffer`
+     - :cpp:`Gpu::ManagedVector`
+     - :cpp:`Gpu::TrackedVector`
+   * - **Lifetime**
+     - Only between ``amrex::Initialize/Finalize()``
+     - Only between ``amrex::Initialize/Finalize()``
+     - Anytime and cross-session, GPU part only between ``amrex::Initialize/Finalize()``
+   * - **Usage**
+     - ``operator[]`` etc., explicit ``copyToDeviceAsync`` /
+       ``copyToHost``
+     - Single ``data()`` like :cpp:`amrex::Vector`
+     - Separate ``host()`` / ``device()`` (and ``*_const``)
+   * - **Synchronization**
+     - explicit
+     - implicit
+     - automatic on access, tracks status
+   * - **Performance**
+     - Best: pinned host enables asynchronous transfers
+     - Implicit memory migration can add latency
+     - Synchronous copy adds latency
+   * - **Best for**
+     - hot copy loops inside a run
+     - maximum simplicity
+     - interactive and cross-AMReX session usage, e.g., in pyAMReX for user inputs that do not change often
+
+
+A minimal :cpp:`Gpu::Buffer` pattern (host fill, async upload, kernel pointer):
+
+.. highlight:: c++
+
+::
+
+    amrex::Initialize(argc, argv);
+
+    Gpu::Buffer<int> buf(n);
+    for (int i = 0; i < n; ++i) { buf[i] = i; }
+
+    int* dp = buf.copyToDeviceAsync();
+    // launch kernels using dp, then optionally:
+    buf.copyToHost();
+
+:cpp:`Gpu::ManagedVector` example (unified memory, accessible from both host and device):
+
+.. highlight:: c++
+
+::
+
+    amrex::Initialize(argc, argv);
+
+    Gpu::ManagedVector<int> mv(n);
+    for (int i = 0; i < n; ++i) { mv[i] = i; }
+
+    int* dp = mv.data();
+    amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (int i) {
+        dp[i] *= 2;  // access on device
+    });
+
+    Gpu::streamSynchronize();
+    // mv[i] now accessible on host with updated values
+
+:cpp:`Gpu::TrackedVector` example:
+On GPU builds, you can create this type at any time, even before ``amrex::Initialize()``.
+``amrex::Finalize()`` releases device storage for the vector but
+keeps the host ``std::vector``, so a later ``Initialize()`` session
+can access ``device_const()`` or ``device()`` and the host data is
+automatically copied to the device.
+
+.. highlight:: c++
+
+::
+
+    // Host data before AMReX init; GPU available after Initialize().
+    amrex::Gpu::TrackedVector<int> cross_session;
+    cross_session.host() = {7, 8, 9};
+
+    // ... a lot of other interactive user code, e.g., to set up
+    // complex input data, optimization libraries or ML frameworks
+    // in multi-simulation workflows ...
+
+    amrex::Initialize(argc, argv);
+    {
+        // device access auto-syncs host data to device.
+        int const* dp = cross_session.device_const().data();
+        // use dp in kernels ...
+    }
+    amrex::Finalize();
+
+    // cross_session.device() is not available now and will throw,
+    // but you can keep using cross_session.host() / .host_const()
+
+    amrex::Initialize(argc, argv);
+    {
+        // Device buffer is re-created automatically on access.
+        int const* dp = cross_session.device_const().data();
+        // kernels may read via device_const().data()
+        // or write via device().data()
+    }
+    amrex::Finalize();
+
+Optional: Call ``release_gpu()`` when you need to free device memory while
+keeping the host ``std::vector`` for later (unless already released,
+``amrex::Finalize()`` clears device storage registered for the object).
+
+Generally, after device kernels, call :cpp:`Gpu::streamSynchronize()`
+(or equivalent ordering) before relying on host data, as for any other device work.
 
 MultiFab Reductions
 -------------------
@@ -1243,7 +1390,7 @@ to implementations used on the CPU.  These macros return the
 individual components of the AMReX C++ objects to allow passing to
 the Fortran function.
 
-The corresponding OpenACC labelled loop in ``plusone_acc`` is:
+The corresponding OpenACC labeled loop in ``plusone_acc`` is:
 
 .. highlight:: fortran
 
@@ -1268,7 +1415,7 @@ about OpenACC programming, consult the OpenACC user's guide.
 
 The OpenMP implementation of this loop is similar, only requiring
 changing the pragmas utilized to obtain the proper offloading. The
-OpenMP labelled version of this loop is:
+OpenMP labeled version of this loop is:
 
 .. highlight:: fortran
 

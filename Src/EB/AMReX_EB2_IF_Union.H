@@ -9,6 +9,12 @@
 #include <algorithm>
 #include <utility>
 
+/**
+ * \file AMReX_EB2_IF_Union.H
+ *
+ * Constructive solid-geometry helper that unions multiple implicit functions.
+ */
+
 namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
@@ -46,6 +52,7 @@ namespace UIF_detail {
 /// \endcond
 
 template <class... Fs>
+//! Implicit function representing the union of several objects.
 class UnionIF
     : public GpuTuple<Fs...>
 {

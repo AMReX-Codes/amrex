@@ -34,6 +34,15 @@ auto call_f (F const& f,
         return f(p, i);
     }
 }
+
+template <typename F, template<class, class> class PTDType, class RType, class IType>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const PTDType<RType, IType>& p,
+             const int i) noexcept
+{
+    return f(p, i);
+}
 }
 /// \endcond
 

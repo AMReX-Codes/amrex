@@ -7,7 +7,7 @@ Amr Source Code
 
 The source code in ``amrex/Src/Amr`` contains a number of classes, most notably
 :cpp:`Amr`, :cpp:`AmrLevel`, and :cpp:`LevelBld`.
-These classes provide a more well developed set of tools for writing AMR codes
+These classes provide a more well-developed set of tools for writing AMR codes
 than the classes created for the Advection_AmrCore tutorial.
 
 -  The :cpp:`Amr` class is derived from :cpp:`AmrCore`, and manages data across the
@@ -40,7 +40,7 @@ inherit directly from :cpp:`AmrLevel`. These include:
 
 The tutorial code in ``amrex-tutorials/ExampleCodes/Amr/Advection_AmrLevel`` gives a simple
 example of a class derived from :cpp:`AmrLevel` that can be used to solve the
-advection equation on a subcycling-in-time AMR hierarchy. Note that example is
+advection equation on a subcycling-in-time AMR hierarchy. Note that this example is
 essentially the same as the `Advection AmrCore`_ tutorial and
 documentation in the chapter on :ref:`Chap:AmrCore`, except now we use the
 provided libraries in ``amrex/Src/Amr``.

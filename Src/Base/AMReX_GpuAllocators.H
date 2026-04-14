@@ -103,7 +103,13 @@ namespace amrex {
         explicit constexpr PolymorphicArenaWrapper (Arena* a_arena)
             : m_arena(a_arena) {}
         [[nodiscard]] Arena* arena () const noexcept {
-            return (m_arena) ? m_arena : The_Arena();
+            //! After Arena::Finalize() the cached pointer is stale;
+            //! fall back to The_Null_Arena().
+            if (Arena::IsInitialized()) {
+                return (m_arena) ? m_arena : The_Arena();
+            } else {
+                return The_Null_Arena();
+            }
         }
         Arena* m_arena = nullptr;
     };

@@ -1,3 +1,153 @@
+# 26.04
+
+ ## Highlights:
+
+  * Fix a number of bugs found by AIs.
+    - Fix facediv_int z indexing (#5239)
+    - FilFC: Fix a copy-paste typo (#5240)
+    - ParReduce: Fix comments (#5238)
+    - Fix assertions in particle IO to include runtime int comps (#5205)
+    - Filter transform fix (#5192)
+    - Fix empty vector dereference in HDF5 particle IO (#5195)
+    - Fix Dual Grid restart with HDF5 format (#5137)
+    - Make sure number of neighbor particles is preserved on swap (#5186)
+    - Fix HDF5 handle leaks in early exits (#5187)
+    - Fix InitFromBinary for the case that NP % NReaders != 0 (#5184)
+    - Fix resource leaks in ParticleContainer::RestartHDF5 (#5185)
+    - SUNDIALS: remove MemoryHelper's move operator= (#5178)
+    - SUNDIALS: Fix a memory leak in N_VDestroy_MultiFab (#5176)
+    - SUNDIALS: Fix memory leak in N_VWL2Norm_MultiFab (#5177)
+    - Fix typo in N_VConstrMask_MultiFab (#5175)
+    - HDF5: Fix missing GPU device-to-host_copy in writing plotfile (#5174)
+    - Fix BaseFab::contains (#5171)
+    - Fix assertion in bisect (#5169)
+    - Fix bug in `bisect` (#5167)
+    - Fix restart where you lose a level and NReaders > NProcs() (#5074)
+    - Fix caching mechanism for neighbor particle mask (#5080)
+    - FileSystem::Remove: Fix return value (#5136)
+    - Mask: Fix writeOn/readFrom for multiple components (#5117)
+    - BndryRegister: Make sure assertion does not access out-of-bound memory (#5112)
+    - FillPatcher: Robustify assertions (#5120)
+    - VisMF: Avoid UB-prone assertions on potentially empty strings (#5133)
+    - AmrLevel::FillPatch: Fix assertion (#5127)
+
+  * Implement pure-SoA HDF5 particle IO (#5204)
+
+  * Add external GPU stream override support (#5199)
+    Expose APIs to install and reset a user-managed GPU stream, document the
+    new behavior, and add a GPU test covering the external-stream execution
+    path.
+
+  * Parser: fix self assignment of locals (#5189)
+    When a local variable appeared on both sides of an assignment (e.g., `r
+    = x*x + y*y; r = sqrt(r);`), the parser would compile the RHS while the
+    new `r` slot was already active, so the RHS saw the uninitialized
+    version of `r`. We now compile the RHS first and only add/update the
+    local slot after, so self-referential assignments evaluate correctly.
+
+  * Add FillBoundaryAndSync(Vector) (#5138)
+    This is similar to FillBoundary(Vector). It can reduce latency when
+    FillBoundaryAndSync is needed for multiple FabArrays/MultiFabs. In the
+    future, we could further optimize it by more aggressive GPU kernel
+    fusion and MPI aggregation.
+    Also add FillBoundary_nowait(Vector), FillBoundary_finish(Vector),
+    FillBoundaryAndSync_nowait(Vector), and
+    FillBoundaryAndSync_finish(Vector).
+
+  * ParmParse: Add TOML-like features (#4950)
+    Add new TOML-like features:
+      - Multi-line string using `"""`.
+      - Array using square brackets.
+      - Table using [table] as header.
+
+ ## Other major changes:
+
+  * FFT: Fix one-d mode in 2D & 3D builds (#5225)
+
+  * Avoid invalid in AMReX_MFInterp_3D_C.H (#5215)
+
+  * Geometry: Exceptions (#5219)
+
+  * Add section on using LLMs to CONTRIBUTING.md (#5211)
+
+  * Avoid undefined behavior in Random_int by having it always return 0 for n = 0. (#5206)
+
+  * Clean up RedistributeCPU (#4529)
+
+  * ParmParse::add: Improve TOML compatibility (#5196)
+
+  * Fix tracer particle Timestamp to respect indices argument (#5194)
+
+  * Managed Arena: Do not pre-allocate if managed memory is not supported. (#5183)
+
+  * ParmParse: Preserve quotes when printing strings (#5188)
+
+  * Fix hidden direction support for multilevel composite solves (#5141)
+
+  * ParmParse: accept true/false t/f for int keys (#5150)
+
+  * ParmParse: Fix printing TOML array (#5180)
+
+  * BLBackTrace: Fix null terminator (#5173)
+
+  * ParmParse: Support query/get a specific element from TOML array. (#5149)
+
+  * Parser optimization by Claude (#5146)
+
+  * Add Gpu::isStreamActive function (#5139)
+
+  * ParmParse: Refactor countval for TOML arrays (#5143)
+
+  * Move PETSc Initialize and Finalize to amrex::Initialize and Finalize (#5098)
+
+  * Hypre: No need to call hypre if local row count is zero (#5104)
+
+  * HypOptParse: Remove operator()(key, func) (#5105)
+
+  * LineDistFcnElement2d::single_seg_cpdist: Fix degenerate case (#5106)
+
+  * COMM_PROFILING: Fix size bug (#5135)
+
+  * Boundary: Fix forward declarations (#5114)
+
+  * EB: Assert there is no int overflow (#5111)
+
+  * Marching Cubes: Fix GPU memcpy (#5110)
+
+  * Update Fortran BC type module (#5113)
+
+  * BndryData: Robustify reuse check (#5116)
+
+  * StateDescriptor: Remove deprecated functions (#5126)
+
+  * MultiMask: Fix initval for multiple components (#5118)
+
+  * Fujitsu MPI: Fix potential null-dereference (#5122)
+
+  * AmrMesh: Validate input (#5119)
+
+  * Hypre: Remove unimplemented 1d functions to avoid confusion (#5103)
+
+  * Rename the `NonManagedVector` to `NonManagedDeviceVector` (#5124)
+
+  * ParallelDescriptor: Avoid the non-standard variable-length array (#5130)
+
+  * ReadAndBcastFile: Use the correct I/O process when sub-communicator is used. (#5131)
+
+  * OpenBCSolver: Make `define` safer (#5129)
+
+  * EB: Validate lookup status in getLevel/getGeometry (#5107)
+
+  * Nosync broadly (#4957)
+
+  * FFT: Use ParallelContext's communicator (#5088)
+
+  * FFT::Clear: Clear the map after the stored plans are destroyed (#5089)
+
+  * PETSc: Use PetscInt (#5090)
+
+  * PETSc: Fix potential memory leak (#5097)
+
 # 26.03
 
  ## Highlights:

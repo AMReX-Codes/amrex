@@ -46,8 +46,8 @@ jobs:
         mkdir instdir builddir
         cd builddir
         cmake .. \
+            -DCMAKE_CXX_STANDARD=20                  \
             -DCMAKE_INSTALL_PREFIX=${PWD}/../instdir \
-            -DCMAKE_CXX_STANDARD=17                  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache
         make -j4
@@ -60,11 +60,11 @@ jobs:
         export CCACHE_EXTRAFILES=${{ github.workspace }}/.clang-tidy
         export CCACHE_LOGFILE=${{ github.workspace }}/ccache.log.txt
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
             -DAMReX_SUNDIALS=ON         \
             -DSUNDIALS_ROOT=${PWD}/sundials-6.5.0/instdir \
-            -DCMAKE_CXX_STANDARD=17     \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
 
@@ -114,10 +114,10 @@ jobs:
         mkdir instdir builddir
         cd builddir
         cmake ..                                     \
+            -DCMAKE_CXX_STANDARD=20                  \
             -DENABLE_CUDA=ON                         \
             -DCMAKE_INSTALL_PREFIX=${PWD}/../instdir \
             -DCMAKE_CUDA_ARCHITECTURES=80            \
-            -DCMAKE_CXX_STANDARD=17                  \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache     \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache       \
             -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
@@ -132,6 +132,7 @@ jobs:
         which nvcc || echo "nvcc not in PATH!"
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DUSE_XSDK_DEFAULTS=ON      \
             -DAMReX_GPU_BACKEND=CUDA    \

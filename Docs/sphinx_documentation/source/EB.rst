@@ -9,9 +9,9 @@
 Initializing the Geometric Database
 ===================================
 
-In AMReX geometric information is stored in a distributed database
+In AMReX, geometric information is stored in a distributed database
 class that must be initialized at the start of the calculation. The
-procedure for this goes as follows:
+procedure is as follows:
 
 - Define an implicit function of position which describes the surface of the
   embedded object. Specifically, the function class must have a public member
@@ -61,7 +61,7 @@ initialization is done by calling
                int ngrow = 4,
                bool build_coarse_level_by_coarsening = true);
 
-Additionally one can use ``eb2.stl_scale``, ``eb2.stl_center`` and
+Additionally, one can use ``eb2.stl_scale``, ``eb2.stl_center`` and
 ``eb2.stl_reverse_normal`` to scale, translate and reverse the object,
 respectively.
 
@@ -71,7 +71,7 @@ Implicit Function
 -----------------
 
 In ``amrex/Src/EB/``, there are a number of predefined implicit function classes
-for basic shapes. One can use these directly or as template for their own
+for basic shapes. One can use these directly or as templates for their own
 classes.
 
 - :cpp:`AllRegularIF`:  No embedded boundaries at all.
@@ -88,8 +88,8 @@ classes.
 
 AMReX also provides a number of transformation operations to apply to an object.
 
-- :cpp:`makeComplement`: Complement of an object. E.g. a sphere with fluid on
-  outside becomes a sphere with fluid inside.
+- :cpp:`makeComplement`: Complement of an object. E.g., a sphere with fluid on
+  the outside becomes a sphere with fluid inside.
 
 - :cpp:`makeIntersection`: Intersection of two or more objects.
 
@@ -194,7 +194,7 @@ For applications requiring explicit control over the geometry at each AMR level:
                      int num_coarsen_opt = NumCoarsenOpt());
 
 This version takes a :cpp:`Vector<Geometry>` where each element corresponds to
-the geometry of a specific AMR level. The Vector can be unordered, as it will be
+the geometry of a specific AMR level. The vector can be unordered, as it will be
 sorted based on :cpp:`numPts`.
 Unlike the standard :cpp:`Build` function, coarse level EB data is generated
 directly from the provided geometries rather than through automatic coarsening.
@@ -225,7 +225,7 @@ This requires setting :cpp:`ParmParse` parameters ``eb2.geom_type = stl`` and
 **Managing IndexSpace Objects**
 
 Regardless of which :cpp:`Build` variant is used, the newly built
-:cpp:`EB2::IndexSpace` is pushed on to a stack. Static function
+:cpp:`EB2::IndexSpace` is pushed onto a stack. Static function
 :cpp:`EB2::IndexSpace::top()` returns a :cpp:`const &` to the new
 :cpp:`EB2::IndexSpace` object. We usually only need to build one
 :cpp:`EB2::IndexSpace` object. However, if your application needs multiple
@@ -236,7 +236,7 @@ this chapter.
 EBFArrayBoxFactory
 ==================
 
-After the EB database is initialized, the next thing we build is
+After the EB database is initialized, the next object we build is
 :cpp:`EBFArrayBoxFactory`. This object provides access to the EB database in the
 format of basic AMReX objects such as :cpp:`BaseFab`, :cpp:`FArrayBox`,
 :cpp:`FabArray`, and :cpp:`MultiFab`. We can construct it with
@@ -269,15 +269,15 @@ ghost cells we need for EB data at various :cpp:`EBSupport` levels,
 and argument :cpp:`EBSupport a_support` specifies the level of support
 needed.
 
-- :cpp:`EBSupport:basic`:  basic flags for cell types
-- :cpp:`EBSupport:volume`: basic plus volume fraction and centroid
-- :cpp:`EBSupport:full`: volume plus area fraction, boundary centroid
+- :cpp:`EBSupport::basic`:  basic flags for cell types
+- :cpp:`EBSupport::volume`: basic plus volume fraction and centroid
+- :cpp:`EBSupport::full`: volume plus area fraction, boundary centroid
   and face centroid
 
 :cpp:`EBFArrayBoxFactory` is derived from :cpp:`FabFactory<FArrayBox>`.
 :cpp:`MultiFab` constructors have an optional argument :cpp:`const
 FabFactory<FArrayBox>&`.  We can use :cpp:`EBFArrayBoxFactory` to
-build :cpp:`MultiFab`\ s that carry EB data.  Member function of
+build :cpp:`MultiFab`\ s that carry EB data. The member function of
 :cpp:`FabArray`
 
 .. highlight: c++
@@ -335,18 +335,18 @@ following data:
     // face centroid
     Array<const MultiCutFab*,AMREX_SPACEDIM> getFaceCent () const;
 
-- **Volume fraction** is in a single-component :cpp:`MultiFab`. Data are in the range
+- **Volume fraction** is stored in a single-component :cpp:`MultiFab`. Data are in the range
   of :math:`[0,1]` with zero representing covered cells and one for regular
   cells.
 
 - **Volume centroid** (also called cell centroid) is
   in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM`` components. Each component
-  of the data is in the range of :math:`[-0.5,0.5]`, based on each
+  of the data is in the range :math:`[-0.5,0.5]`, based on each
   cell's local coordinates with respect to the regular cell's center.
 
 - **Boundary centroid** is also in a :cpp:`MultiCutFab` with
   ``AMREX_SPACEDIM`` components.  Each component
-  of the data is in the range of :math:`[-0.5,0.5]`, based on each
+  of the data is in the range :math:`[-0.5,0.5]`, based on each
   cell's local coordinates with respect to the regular cell's center.
 
 - **Boundary normal** is in a :cpp:`MultiCutFab` with ``AMREX_SPACEDIM``
@@ -361,12 +361,12 @@ following data:
   :math:`n` is the boundary normal vector.
 
 - **Area fractions** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
-  pointers. For each direction, area fraction is for the face of that direction.
+  pointers. For each direction, the area fraction is for the face in that direction.
   Data are in the range of :math:`[0,1]` with zero representing a covered face
   and one an un-cut face.
 
 - **Face centroids** are returned in an :cpp:`Array` of :cpp:`MultiCutFab`
-  pointers. There are two components for each direction and the
+  pointers. There are two components for each direction, and the
   ordering is always the same as the original ordering of the coordinates. For
   example, for :math:`y` face, the component 0 is for :math:`x` coordinate and 1
   for :math:`z`. The coordinates are in each face's local frame normalized to the
@@ -441,7 +441,7 @@ testing cell types and getting neighbor information. For example
         do j = ...
             do i = ...
                 if (is_covered_cell(flags(i,j,k))) then
-                    ! this is a completely covered cells
+                    ! this is a completely covered cell
                 else if (is_regular_cell(flags(i,j,k))) then
                     ! this is a regular cell
                 else if (is_single_valued_cell(flags(i,j,k))) then
@@ -528,7 +528,7 @@ other.
    \end{center}
 
 
-Small Cells And Stability
+Small Cells and Stability
 -------------------------
 
 In the context of time-explicit advance methods for, say hyperbolic
@@ -573,7 +573,7 @@ For each cell cut by the EB geometry, compute the non-conservative update, :math
 
 where :math:`N(i)` is the index set of cell :math:`i` and its neighbors.
 
-For each cell cut by the EB geometry, compute the convective update :math:`\nabla \cdot{F}^{EB}` follows:
+For each cell cut by the EB geometry, compute the convective update :math:`\nabla \cdot{F}^{EB}` as follows:
 
 .. math:: \nabla \cdot{F}^{EB}_i = \mathcal{K}_i\nabla \cdot{F}^{c}_i +(1-\mathcal{K}_i) \nabla \cdot \mathcal{F}^{nc}_i
 
@@ -581,7 +581,7 @@ For each cell cut by the EB geometry, redistribute its mass loss, :math:`\delta 
 
 .. math::  \nabla \cdot {F}^{EB}_j :=   \nabla \cdot {F}^{EB}_j + w_{ij}\delta M_i\, \qquad \forall j\in N(i)\setminus i
 
-where the mass loss in cell :math:`i` , :math:`\delta M_i` , is given by
+where the mass loss in cell :math:`i`, :math:`\delta M_i`, is given by
 
 .. math:: \delta M_i =  \mathcal{K}_i(1- \mathcal{K}_i)[ \nabla \cdot {F}^c_i-  \nabla \cdot {F}^{nc}_i]
 
@@ -606,7 +606,7 @@ e.g., :numref:`fig::redistribution`)
 .. figure:: ./EB/redist.png
    :width: 50.0%
 
-   : Redistribution illustration. Excess update distributed to neighbor cells.
+   Redistribution illustration. Excess update distributed to neighbor cells.
 
 .. raw:: latex
 
@@ -616,9 +616,9 @@ e.g., :numref:`fig::redistribution`)
 State Redistribution
 -----------------------------
 
-For state redistribution we implement the weighted state
+For state redistribution, we implement the weighted state
 redistribution algorithm as described in Guiliani et al (2021),
-which is available on `arxiv  <https://arxiv.org/abs/2112.12360>`_ .
+which is available on `arXiv <https://arxiv.org/abs/2112.12360>`_.
 This is an extension of the original state redistribution algorithm
 of Berger and Guiliani (2020).
 
@@ -627,7 +627,7 @@ Linear Solvers
 ==============
 
 Linear solvers for the canonical form (equation :eq:`eqn::abeclap`)
-have been discussed in chapter :ref:`Chap:LinearSolvers`.
+have been discussed in Chapter :ref:`Chap:LinearSolvers`.
 
 AMReX supports multi-level
 1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
@@ -691,7 +691,7 @@ at cell centroids, you must set
     ml_ebabeclap->setPhiOnCentroid();
 
 The default is for the face-based coefficients to be defined at face centers;
-to tell the that the face-based coefficients should be interpreted
+to tell the solver that the face-based coefficients should be interpreted
 as living at face centroids, modify the setBCoeffs command to be
 
 .. highlight:: c++

@@ -1724,7 +1724,9 @@ public:
     //! duplicates, only the last one is printed.
     static void prettyPrintUsedInputs (std::ostream& os);
 
-    //! Add keys and values from a file to the end of the PP table.
+    //! Add keys and values from a file to the end of the PP table.  This
+    //! function must be called on all MPI processes because it contains a
+    //! call to MPI_Bcast.
     static void addfile (std::string const& filename);
 
     static bool QueryUnusedInputs ();
@@ -1772,6 +1774,9 @@ public:
 
     //! keyword for files to load
     static std::string const FileKeyword;
+
+    //! keyword for removing entries from the table
+    static std::string const UnsetKeyword;
 
     static std::string ParserPrefix;
 

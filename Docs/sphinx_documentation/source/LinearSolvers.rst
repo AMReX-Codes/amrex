@@ -98,7 +98,7 @@ use to set the coefficients. These functions solely copy the constant value(s) t
 internal to ``MLMG`` and so no appreciable efficiency gains can be expected.
 
 For :cpp:`MLNodeLaplacian`,
-one can set a variable :cpp:`sigma` with the member function
+one can set the variable :cpp:`sigma` with the member function
 
 .. highlight:: c++
 
@@ -186,7 +186,7 @@ After the solver returns successfully, if needed, we can call
                        const Vector<MultiFab*>& a_sol,
                        const Vector<MultiFab const*>& a_rhs);
 
-to compute residual (i.e., :math:`f - L(\phi)`) given the solution and
+to compute the residual (i.e., :math:`f - L(\phi)`) given the solution and
 the right-hand side.  For cell-centered solvers, we can also call the
 following functions to compute gradient :math:`\nabla \phi` and fluxes
 :math:`-\beta \nabla \phi`.
@@ -259,7 +259,7 @@ Here :cpp:`const MultiFab* crse` contains the Dirichlet boundary
 values at the coarse resolution, and :cpp:`int crse_ratio` (e.g., 2)
 is the refinement ratio between the coarsest solver level and the AMR
 level below it.  The MultiFab :cpp:`crse` does not need to have ghost cells
-itself. If the coarse grid bc's for the solve are identically zero,
+itself. If the coarse-grid BCs for the solve are identically zero,
 :cpp:`nullptr` can be passed instead of :cpp:`crse`.
 
 3) Cell-centered solvers only:
@@ -292,7 +292,7 @@ If the boundary conditions contain no inhomogeneous Dirichlet or Neumann boundar
 we can pass :cpp:`nullptr` instead of a MultiFab.
 
 We can use the solution array itself to hold these values;
-the values are copied to internal arrays and will not be over-written
+the values are copied to internal arrays and will not be overwritten
 when the solution array itself is being updated by the solver.
 Note, however, that this call does not provide an initial guess for the solve.
 
@@ -519,7 +519,7 @@ To set homogeneous Dirichlet boundary conditions, call
 
     ml_ebabeclap->setEBHomogDirichlet(lev, coeff);
 
-where coeff can be a real number (i.e. the value is the same at every cell)
+where coeff can be a real number (i.e., the value is the same at every cell)
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face.
 In other words, coeff is :math:`\beta` in the canonical form given in equation :eq:`eqn::abeclap`
 located at the EB surface centroid.
@@ -535,7 +535,7 @@ To set inhomogeneous Dirichlet boundary conditions, call
 where phi_on_eb is the MultiFab holding the Dirichlet values in every cut cell,
 and coeff again is a real number
 or a MultiFab holding the coefficient of the gradient at each cell with an EB face,
-i.e. :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
+i.e., :math:`\beta` in equation :eq:`eqn::abeclap` located at the EB surface centroid.
 
 Currently there are options to define the face-based coefficients on
 face centers vs face centroids, and to interpret the solution variable
@@ -598,7 +598,7 @@ To build HYPRE, follow the next steps:
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
-To use HYPRE with CUDA, nvcc compiler is needed along with all other requirements for CPU (e.g. gcc, mpicc). It is very important that the GPU architecture for HYPRE matches with that of AMReX. By default, HYPRE assumes its architecture number to be 70 and it is best to build HYPRE for multiple architectures by specifying multiple compute capability numbers (e.g. 80 and 90). If you see a runtime error similar to
+To use HYPRE with CUDA, the `nvcc` compiler is needed along with all other requirements for the CPU build (e.g., `gcc`, `mpicc`). It is very important that the GPU architecture for HYPRE matches that of AMReX. By default, HYPRE assumes its architecture number to be 70, and it is best to build HYPRE for multiple architectures by specifying multiple compute capability numbers (e.g., 80 and 90). If you see a runtime error similar to
 ``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
 
 ::
@@ -607,8 +607,8 @@ To use HYPRE with CUDA, nvcc compiler is needed along with all other requirement
     2.- cd hypre/src
     3.- git checkout v2.32.0
     4.- ./configure --with-cuda --with-gpu-arch='80 90' --enable-unified-memory
-        (you can figure out the gpu arch from command line using
-        nvidia-smi --query-gpu=compute_cap --format=csv, if it gives 9.0, gpu-arch is 90)
+        (you can determine the GPU architecture from the command line using
+        nvidia-smi --query-gpu=compute_cap --format=csv; if it gives 9.0, gpu-arch is 90)
     5.- make install
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
@@ -621,8 +621,8 @@ For examples of using HYPRE, we refer the reader to
 
 .. _`NodeTensorLap`: https://amrex-codes.github.io/amrex/tutorials_html/LinearSolvers_Tutorial.html
 
-The following parameter should be set to True if the problem to be solved has a singular matrix.
-In this case, the solution is only defined to within a constant.  Setting this parameter to True
+The following parameter should be set to true if the problem to be solved has a singular matrix.
+In this case, the solution is only defined to within a constant.  Setting this parameter to true
 replaces one row in the matrix sent to HYPRE from AMReX by a row that sets the value at one cell to 0.
 
 - :cpp:`hypre.adjust_singular_matrix`:   Default is false.
@@ -636,14 +636,14 @@ The following parameters can be set in the inputs file to control the choice of 
 
 - :cpp:`hypre.recompute_preconditioner`: Default true.  Option to recompute the preconditioner.
 
-- :cpp:`hypre.write_matrix_files`: Default false.   Option to write out matrix into text files.
+- :cpp:`hypre.write_matrix_files`: Default false.   Option to write the matrix to text files.
 
-- :cpp:`hypre.overwrite_existing_matrix_files`: Default false.   Option to over-write existing matrix files.
+- :cpp:`hypre.overwrite_existing_matrix_files`: Default false.   Option to overwrite existing matrix files.
 
 
 The following parameters can be set in the inputs file to control the BoomerAMG solver specifically:
 
-- :cpp:`hypre.bamg_verbose`: verbosity of BoomerAMG preconditioner. Default 0. See `HYPRE_BoomerAMGSetPrintLevel`
+- :cpp:`hypre.bamg_verbose`: Verbosity of the BoomerAMG preconditioner. Default 0. See `HYPRE_BoomerAMGSetPrintLevel`
 
 - :cpp:`hypre.bamg_logging`: Default 0. See `HYPRE_BoomerAMGSetLogging`
 
@@ -814,12 +814,12 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
 (Note: only operators of the form :math:`D:\mathbb{R}^n\to\mathbb{R}^n` are currently allowed.)
 
 - To implement a multi-component *cell-based* operator, inherit from the ``MLCellLinOp`` class.
-  Override the ``getNComp`` function to return the number of components (``N``)that the operator will use.
+  Override the ``getNComp`` function to return the number of components (``N``) that the operator will use.
   The solution and rhs fabs must also have at least one ghost node.
   ``Fapply``, ``Fsmooth``, ``Fflux`` must be implemented such that the solution and rhs fabs all have ``N`` components.
 
 - Implementing a multi-component *node-based* operator is slightly different.
-  A MC nodal operator must specify that the reflux-free coarse/fine strategy is being used by the solver.
+  An MC nodal operator must specify that the reflux-free coarse/fine strategy is being used by the solver.
 
   .. code::
 
@@ -831,7 +831,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
   The second (outermost) layer of nodes is treated as constant by the relaxation, essentially acting as a Dirichlet boundary.
   The first layer of nodes is evolved using the relaxation, in the same manner as the rest of the solution.
   When the residual is restricted onto the coarse level (in ``reflux``) this allows the residual at the coarse-fine boundary to be interpolated using the first layer of ghost nodes.
-  :numref:`fig::refluxfreecoarsefine` illustrates the how the coarse-fine update takes place.
+  :numref:`fig::refluxfreecoarsefine` illustrates how the coarse-fine update takes place.
 
   .. _fig::refluxfreecoarsefine:
 
@@ -845,7 +845,7 @@ An example (implemented in the ``MultiComponent`` tutorial) might be:
      Coarse nodes (large blue) on the coarse/fine boundary are updated by restricting with interior nodes
      and the first level of ghost nodes.
      Coarse nodes underneath level 2 ghost nodes are not updated.
-     The remaining coarse nodes are updates by restriction.
+     The remaining coarse nodes are updated by restriction.
 
   The MC nodal operator can inherit from the ``MCNodeLinOp`` class.
   ``Fapply``, ``Fsmooth``, and ``Fflux`` must update level 1 ghost nodes that are inside the domain.
@@ -867,7 +867,7 @@ where :math:`\vec{E}` and :math:`\vec{f}` are defined on cell edges,
 :math:`\alpha` is a positive scalar, and :math:`\beta` is a non-negative
 scalar (either a constant or a field). An :cpp:`Array` of three
 :cpp:`MultiFab`\ s is used to store the components of :math:`\vec{E}` and
-:math:`\vec{f}`. It's the user's responsibility to ensure that the
+:math:`\vec{f}`. It is the user's responsibility to ensure that the
 right-hand-side data are consistent on edges shared by multiple
 :cpp:`Box`\ es.  If needed, you can call :cpp:`MLCurlCurl::prepareRHS` to
 perform this synchronization.
@@ -885,9 +885,9 @@ and :cpp:`MLPoisson` with Dirichlet boundary conditions. The Dirichlet
 boundary values can be computed using the multipole method, as done in the
 Castro code (see e.g.,
 https://amrex-astro.github.io/Castro/docs/file/Gravity_8H.html#_CPPv49multipole).
-Another option is to use the FFT based solver
+Another option is to use the FFT-based solver
 :cpp:`amrex::FFT::PoissonOpenBC` (see chapter :ref:`Chap:FFT`). A third
-option is :cpp:`amrex::OpenBCSolver`, which implements the James's method
+option is :cpp:`amrex::OpenBCSolver`, which implements James's method
 ("The Solution of Poisson's Equation for Isolated Source
 Distributions", R. A. James, 1977, Journal of Computational Physics, 25,
 71). Below are some of the member functions of :cpp:`OpenBCSolver`.

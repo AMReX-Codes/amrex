@@ -31,7 +31,7 @@ Pure virtual functions include:
 
    -  :cpp:`advance` Advance the grids at a level.
 
-   -  :cpp:`post_timestep` Work after at time step at a given level. In this
+   -  :cpp:`post_timestep` Work after a time step at a given level. In this
       tutorial we do the AMR synchronization here.
 
    -  :cpp:`post_regrid` Work after regridding. In this tutorial we redistribute
@@ -60,7 +60,7 @@ together make up the level.
 :cpp:`StateData` is a class that essentially holds a pair of MultiFabs: one at
 the old time and one at the new time. AMReX knows how to interpolate in time
 between these states to get data at any intermediate point in time. The main
-data that we care about in our applications codes (such as the fluid state)
+data that we care about in our application codes (such as the fluid state)
 will be stored as :cpp:`StateData`.  Essentially, data is made :cpp:`StateData`
 if we need it to be stored in checkpoints/plotfiles, and/or we want it to be
 automatically interpolated when we refine.  An :cpp:`AmrLevel` stores an array
@@ -88,7 +88,7 @@ LevelBld Class
 The :cpp:`LevelBld` class is a pure virtual class for defining variable types
 and attributes. To more easily understand its usage, refer to the derived
 class, :cpp:`LevelBldAdv` in the tutorial. The :cpp:`variableSetUp` and
-:cpp:`variableCleanUp` are implemented, and in this tutorial call routines in
+:cpp:`variableCleanUp` functions are implemented, and in this tutorial they call routines in
 the :cpp:`AmrLevelAdv` class, e.g.,
 
 .. highlight:: c++
@@ -139,9 +139,9 @@ The Advection_AmrLevel example is documented in detail
 `here <https://amrex-codes.github.io/amrex/tutorials_html/AMR_Tutorial.html#advection-amrlevel>`__
 in the AMReX tutorial documentation.
 
-The ``Src`` subdirectory contains source code that is specific to this example. Most notably is the :cpp:`AmrLevelAdv` class, which is derived from the base
+The ``Src`` subdirectory contains source code that is specific to this example. Most notably, it contains the :cpp:`AmrLevelAdv` class, which is derived from the base
 :cpp:`AmrLevel` class, and the :cpp:`LevelBldAdv` class, derived from the base
-:cpp:`LevelBld` class as described above. The subdirectory ``Src/Src_K`` contain GPU kernels.
+:cpp:`LevelBld` class as described above. The subdirectory ``Src/Src_K`` contains GPU kernels.
 
 The ``Exec`` subdirectory contains two examples: ``SingleVortex`` and
 ``UniformVelocity``. Each subdirectory contains problem-specific source code
@@ -178,8 +178,8 @@ Particles
 
 There is an option to turn on passively advected particles. In the
 ``GNUmakefile``, add the line ``USE_PARTICLES = TRUE`` and build the code
-(do a ``make realclean first``).
+(run ``make realclean`` first).
 In the inputs file, add the line ``adv.do_tracers = 1``.
 When you run the code, within each plotfile directory there will be a
 subdirectory called "Tracer". These can be visualized using either yt or
-Paraview (refer to the chapter on :ref:`Chap:Visualization`).
+ParaView (refer to the chapter on :ref:`Chap:Visualization`).

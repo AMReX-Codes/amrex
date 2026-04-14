@@ -20,12 +20,12 @@ equation **S**\olvers. It consists of the following six solvers:
 
 
 AMReX provides interfaces to the SUNDIALS suite. For time integration, users can
-refer to the section :ref:`sec:time_int:sundials` for more information.
+refer to :ref:`sec:time_int:sundials` for more information.
 In addition, an example code demonstrating time integration with SUNDIALS
-can be found in the tutorials at, `SUNDIALS and Time Integrators`_
+can be found in the tutorials at `SUNDIALS and Time Integrators`_.
 
 .. _`SUNDIALS and Time Integrators`: https://amrex-codes.github.io/amrex/tutorials_html/SUNDIALS_Tutorial.html#tutorials-sundials
 
 
-For more information on SUNDIALS please see
+For more information on SUNDIALS, please see
 their `readthedocs page <https://sundials.readthedocs.io/en/latest/>`_.

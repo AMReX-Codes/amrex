@@ -4,12 +4,24 @@
 
 #include <AMReX_MultiFab.H>
 
+/**
+ * \file AMReX_algoim.H
+ *
+ * Wrapper routines for the Algoim EB integration library.
+ */
+
 namespace amrex::algoim {
 
+//! Compute volume integrals of monomials over cut cells (using \p nghost ghost cells, but
+//! effectively clamped to the component-wise minimum of \p nghost and intg.nGrowVect()).
 void compute_integrals (MultiFab& intg, int nghost = 100);
+//! Overload that accepts an IntVect grow vector.
 void compute_integrals (MultiFab& intg, IntVect nghost);
 
+//! Compute surface integrals over EB faces (using \p nghost ghost cells, but
+//! effectively clamped to the component-wise minimum of \p nghost and intg.nGrowVect()).
 void compute_surface_integrals (MultiFab& sintg, int nghost = 100);
+//! Overload accepting anisotropic grow vector.
 void compute_surface_integrals (MultiFab& sintg, IntVect nghost);
 
 /// \cond DOXYGEN_IGNORE

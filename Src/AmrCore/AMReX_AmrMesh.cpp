@@ -64,6 +64,7 @@ AmrMesh::AmrMesh (Geometry const& level_0_geom, AmrInfo const& amr_info)
     geom.push_back(level_0_geom);
     for (int lev = 1; lev <= max_level; ++lev) {
         geom.push_back(amrex::refine(geom[lev-1], ref_ratio[lev-1]));
+        geom.back().computeRoundoffDomain();
     }
 
     finest_level = -1;
@@ -593,10 +594,10 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     Vector<BoxArray> p_n_comp_ba(max_level); // Complement proper nesting domain.
     BoxList p_n, p_n_comp;
 
-    BoxList bl = grids[lbase].simplified_list();
-    bl.coarsen(bf_lev[lbase]);
-    p_n_comp.parallelComplementIn(pc_domain[lbase],bl);
-    bl.clear();
+    BoxList bl_base = grids[lbase].simplified_list();
+    bl_base.coarsen(bf_lev[lbase]);
+    p_n_comp.parallelComplementIn(pc_domain[lbase],bl_base);
+    bl_base.clear();
     p_n_comp.simplify();
     p_n_comp.accrete(n_proper);
     if (geom[lbase].isAnyPeriodic()) {
@@ -644,28 +645,8 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
     for (int levc = max_crse; levc >= lbase; levc--)
     {
         int levf = levc+1;
-        //
-        // Construct TagBoxArray with sufficient grow factor to contain
-        // new levels projected down to this level.
-        //
-        IntVect ngt = n_error_buf[levc];
-        BoxArray ba_proj;
-        if (levf < new_finest)
-        {
-            ba_proj = new_grids[levf+1].simplified();
-            ba_proj.coarsen(ref_ratio[levf]);
-            ba_proj.growcoarsen(n_proper, ref_ratio[levc]);
 
-            BoxArray levcBA = grids[levc].simplified();
-            int ngrow = 0;
-            while (!levcBA.contains(ba_proj))
-            {
-                levcBA.grow(1);
-                ++ngrow;
-            }
-            ngt.max(IntVect(ngrow));
-        }
-        TagBoxArray tags(grids[levc],dmap[levc],ngt);
+        TagBoxArray tags(grids[levc],dmap[levc],n_error_buf[levc]);
 
         //
         // Only use error estimation to tag cells for the creation of new grids
@@ -712,12 +693,92 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         ManualTagsPlacement(levc, tags, bf_lev);
         //
         // If new grids have been constructed above this level, project
-        // those grids down and tag cells on intersections to ensure
-        // proper nesting.
+        // those grids down and tag cells on intersections to ensure proper
+        // nesting. Note that the projected BoxArray may contain cells
+        // outside the TagBoxArray's domain. For those, we collect them in
+        // Vector tag_proj.
         //
+        Vector<IntVect> tags_proj;
         if (levf < new_finest) {
-            ba_proj.coarsen(bf_lev[levc]);
+            BoxArray ba_tags = tags.boxArray();
+            BoxList bl_proj = new_grids[levf+1].simplified_list();
+            auto& bxs = bl_proj.data();
+            Long nbxs = bl_proj.size();
+            Vector<Vector<IntVect>> tags_proj_priv(OpenMP::get_max_threads());
+            Box domain = Geom(levc).Domain();
+            domain.coarsen(bf_lev[levc]);
+            auto const& domain_lo = domain.smallEnd();
+            auto const& domain_hi = domain.bigEnd();
+            auto const& domain_len = domain.length();
+            auto const& is_periodic = Geom(levc).isPeriodicArray();
+#ifdef AMREX_USE_OMP
+#pragma omp parallel
+#endif
+            {
+                auto& tv = tags_proj_priv[OpenMP::get_thread_num()];
+                std::vector<std::pair<int,Box>> isects;
+                BoxList bl1(ba_tags.ixType());
+                BoxList bl2(ba_tags.ixType());
+                BoxList bltmp;
+#ifdef AMREX_USE_OMP
+#pragma omp for
+#endif
+                for (Long ibx = 0; ibx < nbxs; ++ibx) {
+                    Box& b = bxs[ibx];
+                    b.coarsen(ref_ratio[levf]);
+                    b.grow(bf_lev[levf]*n_proper);
+                    b.coarsen(ref_ratio[levc]);
+                    b.coarsen(bf_lev[levc]);
+
+                    ba_tags.intersections(b, isects, false, tags.nGrowVect());
+                    bl1.clear();
+                    bl1.push_back(b);
+                    for (auto const& kv : isects) {
+                        bl2.clear();
+                        for (auto & btmp : bl1) {
+                            amrex::boxDiff(bltmp, btmp, kv.second);
+                            bl2.join(bltmp);
+                        }
+                        std::swap(bl1,bl2);
+                    }
+                    for (auto const& bleft : bl1) {
+                        amrex::LoopOnCpu(bleft, [&] (IntVect iv)
+                        {
+                            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                                if (iv[idim] < domain_lo[idim]) {
+                                    if (is_periodic[idim]) {
+                                        iv[idim] += domain_len[idim];
+                                    } else {
+                                        return;
+                                    }
+                                } else if (iv[idim] > domain_hi[idim]) {
+                                    if (is_periodic[idim]) {
+                                        iv[idim] -= domain_len[idim];
+                                    } else {
+                                        return;
+                                    }
+                                }
+                            }
+                            tv.push_back(iv);
+                        });
+                    }
+                }
+            }
+
+            BoxArray ba_proj(std::move(bl_proj));
             tags.setVal(ba_proj,TagBox::SET);
+
+            Long nextra = 0;
+            for (auto const& tv : tags_proj_priv) {
+                nextra += tv.size();
+            }
+            if (nextra > 0) {
+                tags_proj.reserve(nextra);
+                for (auto const& tv : tags_proj_priv) {
+                    tags_proj.insert(std::end(tags_proj), std::begin(tv), std::end(tv));
+                }
+                amrex::RemoveDuplicates(tags_proj);
+            }
         }
         //
         // Map tagged points through periodic boundaries, if any.
@@ -737,6 +798,11 @@ AmrMesh::MakeNewGrids (int lbase, Real time, int& new_finest, Vector<BoxArray>& 
         Gpu::PinnedVector<IntVect> tagvec;
         tags.collate(tagvec);
         tags.clear();
+
+        if (!tags_proj.empty()) {
+            tagvec.insert(tagvec.end(), tags_proj.data(), tags_proj.data()+tags_proj.size());
+            tags_proj.clear();
+        }
 
         if (!tagvec.empty())
         {
@@ -1188,17 +1254,19 @@ AmrMesh::checkInput ()
 
     //
     // Check that max_grid_size is a multiple of blocking_factor at every level.
-    //   (only check if blocking_factor <= max_grid_size)
+    //   (only check if max_level > 0 && blocking_factor <= max_grid_size)
     //
-    for (int i = 0; i < max_level; i++)
-    {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
-                if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
-                    amrex::Print() << "max_grid_size in direction " << idim
-                                   << " is " << max_grid_size[i][idim] << '\n'
-                                   << "blocking_factor is " << blocking_factor[i][idim] << '\n';
-                    amrex::Error("max_grid_size not divisible by blocking_factor");
+    if (max_level > 0) {
+        for (int i = 0; i <= max_level; i++)
+        {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                if (blocking_factor[i][idim] <= max_grid_size[i][idim]) {
+                    if (max_grid_size[i][idim]%blocking_factor[i][idim] != 0) {
+                        amrex::Print() << "max_grid_size in direction " << idim
+                                       << " is " << max_grid_size[i][idim] << '\n'
+                                       << "blocking_factor is " << blocking_factor[i][idim] << '\n';
+                        amrex::Error("max_grid_size not divisible by blocking_factor");
+                    }
                 }
             }
         }

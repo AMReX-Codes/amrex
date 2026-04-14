@@ -7,15 +7,23 @@
 
 #include <type_traits>
 
+/**
+ * \file AMReX_EB2_IF_Extrusion.H
+ *
+ * Helpers for extruding a lower-dimensional implicit function along one axis.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Extrude a 2-D implicit function uniformly along a coordinate direction.
 class ExtrusionIF
 {
 public:
 
+    //! Store the child implicit function and the axis to extrude (0/1/2).
     ExtrusionIF (F a_f, int direction)
         : m_f(std::move(a_f)),
           m_direction(direction)

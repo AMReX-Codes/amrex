@@ -15,8 +15,8 @@ assigned to each grid.  (The exception to this is the KD-tree approach in which 
 grid creation process is governed by trying to balance the work in each grid.)
 
 Single-level load balancing algorithms are sequentially applied to each AMR level independently,
-and the resulting distributions are mapped onto the ranks taking into account the weights
-already assigned to them (assign heaviest set of grids to the least loaded rank).  Note that the
+and the resulting distributions are mapped onto the ranks, taking into account the weights
+already assigned to them (by assigning the heaviest grids to the least loaded rank).  Note that the
 load of each process is measured by how much memory has already been allocated, not how much memory
 will be allocated.  Therefore the following code is not recommended because it tends to generate
 non-optimal distributions.
@@ -32,7 +32,7 @@ non-optimal distributions.
        // build MultiFabs for Level lev
    }
 
-Instead, one should do,
+Instead, one should do the following:
 
 .. highlight:: c++
 
@@ -49,7 +49,7 @@ Distribution options supported by AMReX include the following; the default is SF
   but AMReX supports the option to pass an array of weights -- one per grid -- or alternatively
   to pass in a MultiFab of weights per cell which is used to compute the weight per grid.
 
-- SFC: enumerate grids with a space-filling Z-morton curve, then partition the
+- SFC: enumerate grids with a space-filling Z-Morton curve, then partition the
   resulting ordering across ranks in a way that balances the load.
 
 - Round-robin: sort grids and assign them to ranks in round-robin fashion -- specifically

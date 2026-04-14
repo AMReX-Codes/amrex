@@ -141,6 +141,7 @@ void
 Amr::Finalize ()
 {
     Amr::state_plot_vars.clear();
+    Amr::state_small_plot_vars.clear();
     Amr::derive_plot_vars.clear();
     Amr::derive_small_plot_vars.clear();
     Amr::regrid_ba.clear();
@@ -2732,7 +2733,7 @@ Amr::regrid (int  lbase,
             a->init();
             amr_level[lev].reset(a);
             if (lev > 0) {
-                level_steps[lev] = level_steps[lev-1] * n_cycle[lev-1];
+                level_steps[lev] = level_steps[lev-1] * n_cycle[lev];
             }
             this->SetBoxArray(lev, amr_level[lev]->boxArray());
             this->SetDistributionMap(lev, amr_level[lev]->DistributionMap());

@@ -57,7 +57,7 @@ jobs:
         export AMREX_BITTREE_HOME=${{ github.workspace }}/libbittree
         cd ${{ github.workspace }}/Tests/Amr/Advection_AmrCore/Exec
         make -j4 USE_MPI=TRUE USE_BITTREE=TRUE DIM=2 TEST=TRUE \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main2d.gnu.TEST.MPI.ex inputs_bittree amr.plot_int=1000
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
@@ -111,7 +111,7 @@ jobs:
         export AMREX_BITTREE_HOME=${{ github.workspace }}/libbittree
         cd ${{ github.workspace }}/Tests/Amr/Advection_AmrCore/Exec
         make -j4 USE_MPI=TRUE USE_BITTREE=TRUE DIM=3 TEST=TRUE BL_NO_FORT=TRUE\
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         mpiexec -n 2 ./main3d.gnu.TEST.MPI.ex inputs_bittree max_step=10
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt

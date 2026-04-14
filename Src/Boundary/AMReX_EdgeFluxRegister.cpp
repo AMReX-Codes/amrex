@@ -60,7 +60,7 @@ void EdgeFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             if (direction != idim) {
                 // For x-direction, we store Ey and then Ez in m_E_fine.
                 // For y-direction, we store Ex and then Ez in m_E_fine.
-                // For z-direction, we store Ey and then Ez in m_E_fine.
+                // For z-direction, we store Ex and then Ey in m_E_fine.
                 const int m = (idim < direction) ? idim : idim-1;
                 fmf[count++] = & m_E_fine[face][m];
             }
@@ -227,7 +227,7 @@ void EdgeFluxRegister::FineAdd (MFIter const& mfi, const Array<FArrayBox const*,
             if (direction != idim) {
                 // For x-direction, we store Ey and then Ez in m_E_fine.
                 // For y-direction, we store Ex and then Ez in m_E_fine.
-                // For z-direction, we store Ey and then Ez in m_E_fine.
+                // For z-direction, we store Ex and then Ey in m_E_fine.
                 const int m = (idim < direction) ? idim : idim-1;
                 auto const& dst = m_E_fine[face][m].array(mfi);
                 AMREX_ASSERT(E_fine[idim]->box().ixType() == m_E_fine[face][m].ixType());
@@ -297,7 +297,7 @@ void EdgeFluxRegister::Reflux (Array<MultiFab*,AMREX_SPACEDIM> const& B_crse) co
             if (direction != idim) {
                 // For x-direction, we store Ey and then Ez in m_E_fine.
                 // For y-direction, we store Ex and then Ez in m_E_fine.
-                // For z-direction, we store Ey and then Ez in m_E_fine.
+                // For z-direction, we store Ex and then Ey in m_E_fine.
                 const int m = (idim < direction) ? idim : idim-1;
                 E_cfine[idim].ParallelCopy(m_E_fine[face][m], m_crse_geom.periodicity());
             }
