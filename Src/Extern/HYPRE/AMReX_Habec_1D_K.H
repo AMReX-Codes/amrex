@@ -45,6 +45,12 @@ void habec_mat (GpuArray<Real,2*AMREX_SPACEDIM+1>& sten, int i, int j, int k,
             sten[2] = Real(0.0);
         }
     }
+
+    diaginv(i,j,k) = Real(1.0) / sten[0];
+    sten[0] = Real(1.0);
+    for (int m = 1; m < 2*AMREX_SPACEDIM+1; ++m) {
+        sten[m] *= diaginv(i,j,k);
+    }
 }
 
 template <typename Int>

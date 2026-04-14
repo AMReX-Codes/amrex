@@ -40,16 +40,16 @@ namespace amrex
 
     /**
     * \brief  prebuild a hierarchy of directories
-    *  dirName is built first.  if dirName exists, it is renamed.  then build
-    *  dirName/subDirPrefix_0 .. dirName/subDirPrefix_nSubDirs-1
+    *  dirName is built first. If dirName exists, it is renamed, then build
+    *  dirName/Level_0 .. dirName/Level_{nSubDirs-1}
     *  if callBarrier is true, call ParallelDescriptor::Barrier()
     *  after all directories are built
     *  ParallelDescriptor::IOProcessor() creates the directories
     *
-    * \param &dirName
-    * \param &subDirPrefix
-    * \param nSubDirs
-    * \param callBarrier
+    * \param dirName Directory name.
+    * \param subDirPrefix This is ignored.
+    * \param nSubDirs Number of subdirectories.
+    * \param callBarrier Whether MPI_Barrier is called.
     */
     void PreBuildDirectorHierarchy (const std::string &dirName,
                                     const std::string &subDirPrefix,
@@ -165,31 +165,38 @@ namespace amrex
 
         [[nodiscard]] int finestLevel () const noexcept { return m_impl->finestLevel(); }
 
-        [[nodiscard]] int refRatio (int level) const noexcept { return m_impl->refRatio(level); }
+        //! Note that the refinement ratio stored in plotfiles are integers,
+        //! not IntVects, for backward compatibility. If you have
+        //! non-uniform refinement ratio, you could compute it by using
+        //! `probDomain(int level)`.
+        [[nodiscard]] int refRatio (int level) const { return m_impl->refRatio(level); }
 
-        [[nodiscard]] int levelStep (int level) const noexcept { return m_impl->levelStep(level); }
+        //! Return the per-direction refinement ratio vector for the requested level.
+        [[nodiscard]] IntVect refRatioVect (int level) const { return m_impl->refRatioVect(level); }
 
-        [[nodiscard]] const BoxArray& boxArray (int level) const noexcept { return m_impl->boxArray(level); }
+        [[nodiscard]] int levelStep (int level) const { return m_impl->levelStep(level); }
 
-        [[nodiscard]] const DistributionMapping& DistributionMap (int level) const noexcept { return m_impl->DistributionMap(level); }
+        [[nodiscard]] const BoxArray& boxArray (int level) const { return m_impl->boxArray(level); }
 
-        void syncDistributionMap (PlotFileData const& src) noexcept { m_impl->syncDistributionMap(*src.m_impl); }
+        [[nodiscard]] const DistributionMapping& DistributionMap (int level) const { return m_impl->DistributionMap(level); }
 
-        void syncDistributionMap (int level, PlotFileData const& src) noexcept { m_impl->syncDistributionMap(level, *src.m_impl); }
+        void syncDistributionMap (PlotFileData const& src) { m_impl->syncDistributionMap(*src.m_impl); }
+
+        void syncDistributionMap (int level, PlotFileData const& src) { m_impl->syncDistributionMap(level, *src.m_impl); }
 
         [[nodiscard]] int coordSys () const noexcept { return m_impl->coordSys(); }
 
-        [[nodiscard]] Box probDomain (int level) const noexcept { return m_impl->probDomain(level); }
+        [[nodiscard]] Box probDomain (int level) const { return m_impl->probDomain(level); }
 
         [[nodiscard]] Array<Real,AMREX_SPACEDIM> probSize () const noexcept { return m_impl->probSize(); }
         [[nodiscard]] Array<Real,AMREX_SPACEDIM> probLo () const noexcept { return m_impl->probLo(); }
         [[nodiscard]] Array<Real,AMREX_SPACEDIM> probHi () const noexcept { return m_impl->probHi(); }
-        [[nodiscard]] Array<Real,AMREX_SPACEDIM> cellSize (int level) const noexcept { return m_impl->cellSize(level); }
+        [[nodiscard]] Array<Real,AMREX_SPACEDIM> cellSize (int level) const { return m_impl->cellSize(level); }
 
         [[nodiscard]] const Vector<std::string>& varNames () const noexcept { return m_impl->varNames(); }
 
         [[nodiscard]] int nComp () const noexcept { return m_impl->nComp(); }
-        [[nodiscard]] IntVect nGrowVect (int level) const noexcept { return m_impl->nGrowVect(level); }
+        [[nodiscard]] IntVect nGrowVect (int level) const { return m_impl->nGrowVect(level); }
 
         MultiFab get (int level) { return m_impl->get(level); }
         MultiFab get (int level, std::string const& varname) { return m_impl->get(level, varname); }

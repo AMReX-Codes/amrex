@@ -9,20 +9,29 @@
 #include <algorithm>
 #include <utility>
 
+/**
+ * \file AMReX_EB2_IF_Difference.H
+ *
+ * Constructive solid-geometry helper that subtracts one implicit function from another.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F, class G>
+//! Implicit function that keeps points inside \p F but outside \p G.
 class DifferenceIF
 {
 public:
 
+    //! Store the minuend `a_f` and subtrahend `a_g` implicit functions.
     DifferenceIF (F a_f, G a_g)
         : m_f(std::move(a_f)),
           m_g(std::move(a_g))
         {}
 
+    //! Evaluate the set difference at \p p.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         Real r1 = m_f(p);
@@ -30,6 +39,7 @@ public:
         return amrex::min(r1, -r2);
     }
 
+    //! Evaluate the set difference at given physical coordinates.
     template <class U=F, class V=G,
               std::enable_if_t<IsGPUable<U>::value &&
                                       IsGPUable<V>::value, int> = 0>
@@ -53,6 +63,7 @@ struct IsGPUable<DifferenceIF<F,G>, std::enable_if_t<IsGPUable<F>::value &&
     : std::true_type {};
 
 template <class F, class G>
+//! Helper that constructs a difference operator.
 constexpr DifferenceIF<std::decay_t<F>,
                        std::decay_t<G>>
 makeDifference (F&& f, G&& g)

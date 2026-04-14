@@ -110,7 +110,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_BoxIterator.H
        AMReX_Dim3.H
        AMReX_IntVect.H
-       AMReX_IntVect.cpp
        AMReX_IndexType.H
        AMReX_IndexType.cpp
        AMReX_Loop.H
@@ -123,7 +122,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_RealBox.H
        AMReX_RealBox.cpp
        AMReX_RealVect.H
-       AMReX_RealVect.cpp
        # Unions of rectangle -----------------------------------------------------
        AMReX_BoxList.H
        AMReX_BoxList.cpp

@@ -521,8 +521,8 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
           Real d0    = 0.5_rt + ccent(i, j,k,1);                                 // distance in y-dir from centroid(i,j  ) to face(i,j)
           Real d1    = 0.5_rt - ccent(i,jj,k,1);                                 // distance in y-dir from centroid(i,j-1) to face(i,j)
 
-          Real d0_ii = 0.5_rt + ccent(ii, j,k,0);                                 // distance from centroid(ii,j  ) to face(ii,j)
-          Real d1_ii = 0.5_rt - ccent(ii,jj,k,0);                                 // distance from centroid(ii,j-1) to face(ii,j)
+          Real d0_ii = 0.5_rt + ccent(ii, j,k,1);                                 // distance from centroid(ii,j  ) to face(ii,j)
+          Real d1_ii = 0.5_rt - ccent(ii,jj,k,1);                                 // distance from centroid(ii,j-1) to face(ii,j)
 
           Real a0    = d1 / (d0 + d1);                                         // coefficient of phi(i,j  ,k,n)
           Real a1    = d0 / (d0 + d1);                                         // coefficient of phi(i,j-1,k,n)
