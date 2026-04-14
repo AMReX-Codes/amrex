@@ -104,7 +104,7 @@ PlotFileDataImpl::PlotFileDataImpl (std::string const& plotfile_name)
 }
 
 void
-PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
+PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src)
 {
     int nlevs_min = std::min(m_nlevels, src.m_nlevels);
     for (int ilev = 0; ilev < nlevs_min; ++ilev) {
@@ -113,7 +113,7 @@ PlotFileDataImpl::syncDistributionMap (PlotFileDataImpl const& src) noexcept
 }
 
 void
-PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) noexcept
+PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src)
 {
     if (level <= src.finestLevel() && m_dmap[level].size() == src.DistributionMap(level).size()) {
         m_dmap[level] = src.DistributionMap(level);
@@ -121,7 +121,7 @@ PlotFileDataImpl::syncDistributionMap (int level, PlotFileDataImpl const& src) n
 }
 
 MultiFab
-PlotFileDataImpl::get (int level) noexcept
+PlotFileDataImpl::get (int level)
 {
     MultiFab mf(m_ba[level], m_dmap[level], m_ncomp, m_ngrow[level]);
     VisMF::Read(mf, m_mf_name[level]);
@@ -129,7 +129,7 @@ PlotFileDataImpl::get (int level) noexcept
 }
 
 MultiFab
-PlotFileDataImpl::get (int level, std::string const& varname) noexcept
+PlotFileDataImpl::get (int level, std::string const& varname)
 {
     MultiFab mf(m_ba[level], m_dmap[level], 1, m_ngrow[level]);
     auto r = std::find(std::begin(m_var_names), std::end(m_var_names), varname);

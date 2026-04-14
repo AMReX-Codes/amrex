@@ -139,7 +139,7 @@ Real mf_cell_quadratic_compute_slopes_zz (int i, int j, int k,
             zz = 0._rt;
         }
     }
-    if (k == domain.bigEnd(1) && (bc.hi(2) == BCType::ext_dir ||
+    if (k == domain.bigEnd(2) && (bc.hi(2) == BCType::ext_dir ||
                                   bc.hi(2) == BCType::hoextrap)) {
         if (k-2 >= u.begin[2]) {
             zz = 0._rt;
@@ -207,7 +207,7 @@ Real mf_cell_quadratic_compute_slopes_xz (int i, int j, int k,
             xz = 0._rt;
         }
     }
-    if (k == domain.bigEnd(1) && (bc.hi(2) == BCType::ext_dir ||
+    if (k == domain.bigEnd(2) && (bc.hi(2) == BCType::ext_dir ||
                                   bc.hi(2) == BCType::hoextrap)) {
         if (k-2 >= u.begin[2]) {
             xz = 0._rt;
@@ -241,7 +241,7 @@ Real mf_cell_quadratic_compute_slopes_yz (int i, int j, int k,
             yz = 0._rt;
         }
     }
-    if (k == domain.bigEnd(1) && (bc.hi(2) == BCType::ext_dir ||
+    if (k == domain.bigEnd(2) && (bc.hi(2) == BCType::ext_dir ||
                                   bc.hi(2) == BCType::hoextrap)) {
         if (k-2 >= u.begin[2]) {
             yz = 0._rt;

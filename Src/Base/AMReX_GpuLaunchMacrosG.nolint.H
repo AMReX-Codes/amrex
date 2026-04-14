@@ -403,6 +403,7 @@
                     case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                                 block2 \
                             } \
+                            break; \
                     case 2: for (auto const TI3 : amrex::Gpu::Range(amrex_i_tn3,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                                 block3 \
                             } \
@@ -439,6 +440,7 @@
             case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2)) { \
                         block2 \
                     } \
+                    break; \
             case 2: for (auto const TI3 : amrex::Gpu::Range(amrex_i_tn3)) { \
                         block3 \
                     } \

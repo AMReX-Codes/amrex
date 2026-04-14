@@ -70,6 +70,11 @@ Arena* The_Comms_Arena ();
 //! Return a pointer to `The_Cpu_Arena`, the CPU memory arena.
 Arena* The_Cpu_Arena ();
 
+//! Return a process-lifetime no-op arena used once other arenas are torn down.
+//! Note: still unsafe as a captured deallocator in foreign static objects,
+//! because C++ teardown order can destroy the null arena before they run.
+Arena* The_Null_Arena ();
+
 struct ArenaInfo
 {
     Long release_threshold = std::numeric_limits<Long>::max();
@@ -323,6 +328,9 @@ public:
     /// Reset the maximum usage counter. This is no-op in this
     /// implementation of the virtual function.
     virtual void ResetMaxUsageCounter () {}
+
+    /** Whether the Arena subsystem is initialized. */
+    [[nodiscard]] static bool IsInitialized ();
 
 protected:
 

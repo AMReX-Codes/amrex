@@ -1409,7 +1409,7 @@ std::pair<T,T> MinMax (N n, F const& f)
     return std::make_pair(r_min,r_max);
 }
 
-template <typename T, typename N, typename M>
+template <typename T, typename N, std::enable_if_t<std::is_integral_v<N>,int>>
 std::pair<T,T> MinMax (N n, T const* v)
 {
     return Reduce::MinMax<T>(n, [=] (N i) -> T { return v[i]; });

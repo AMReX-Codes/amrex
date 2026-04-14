@@ -11,12 +11,20 @@
 #include <map>
 #include <iosfwd>
 
+/**
+ * \file AMReX_EBCellFlag.H
+ *
+ * Bit-packed flags describing whether cells are regular, covered, or cut by EB.
+ */
+
 namespace amrex {
 
+//! Bit-coded helper that classifies EB cells and neighbor connectivity.
 class EBCellFlag
 {
 public:
 
+    //! Default-construct a flag with all bits cleared (treated as regular).
     constexpr EBCellFlag () noexcept = default;
     ~EBCellFlag () noexcept = default;
     constexpr EBCellFlag (const EBCellFlag& rhs) noexcept = default;
@@ -24,16 +32,20 @@ public:
     constexpr EBCellFlag& operator= (const EBCellFlag& rhs) noexcept = default;
     constexpr EBCellFlag& operator= (EBCellFlag&& rhs) noexcept = default;
 
+    //! Construct from a raw bit pattern.
     explicit constexpr EBCellFlag (uint32_t i) noexcept : flag(i) {}
 
+    //! Assign a raw bit pattern to this flag.
     constexpr EBCellFlag& operator= (uint32_t i) noexcept { flag = i; return *this; }
 
+    //! Disabled on purpose—EBCellFlag values are not additive.
     AMREX_GPU_HOST_DEVICE
     EBCellFlag& operator+= (const EBCellFlag& /* rhs */) {
         amrex::Abort("EBCellFlag::operator+= not supported");
         return *this;
     }
 
+    //! Mark this cell as purely regular (single volume fraction, no cuts).
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setRegular () noexcept {
         flag &= zero_lower_mask; //!< clean lower bits
@@ -41,11 +53,13 @@ public:
         flag |= single_vof_bits;
     }
 
+    //! Mark the cell as completely covered (solid).
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setCovered () noexcept {
         flag = covered_value;
     }
 
+    //! Mark the cell as single-valued (one cut)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSingleValued () noexcept {
         flag &= zero_lower_mask;
@@ -53,6 +67,7 @@ public:
         flag |= single_vof_bits;
     }
 
+    //! Mark the cell as multi-valued and store the number of VoFs (\p n).
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setMultiValued (int n) noexcept {
         flag &= zero_lower_mask;
@@ -61,44 +76,52 @@ public:
         flag |= static_cast<uint32_t>(n) << pos_numvofs;
     }
 
+    //! Compare two flags for bitwise equality.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator==(const EBCellFlag& a_input) const noexcept
     {
         return (flag == (a_input.flag));
     }
 
+    //! Compare two flags for inequality.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator!=(const EBCellFlag& a_input) const noexcept
     {
         return (flag != (a_input.flag));
     }
 
+    //! Number of volume-of-fluid entries for this cell (1 for regular or single-valued, 0 for covered).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int getNumVoFs () const noexcept
     {
         return static_cast<int>((flag & one_numvofs_mask) >> pos_numvofs);
     }
 
+    //! True if the stored type bits correspond to a regular cell.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isRegular () const noexcept {
         return (flag & one_type_mask) == regular_bits;
     }
 
+    //! True if the cell stores a single cut (one VoF).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isSingleValued () const noexcept {
         return (flag & one_type_mask) == single_valued_bits;
     }
 
+    //! True if the cell has multiple VoFs.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isMultiValued () const noexcept {
         return (flag & one_type_mask) == multi_valued_bits;
     }
 
+    //! True if the cell is fully covered (solid).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isCovered () const noexcept {
         return (flag & one_type_mask) == covered_bits;
     }
 
+    //! Return whether the EB cut is connected to the neighbor offset by \p iv.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isConnected (const IntVect& iv) const noexcept {
         int i=0, j=0, k=0;
@@ -107,12 +130,14 @@ public:
         return flag & (1 << n);
     }
 
+    //! Return whether the EB cut connects to neighbor at offset (i,j,k).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isConnected (int i, int j, int k) const  noexcept {
         const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         return flag & (1 << n);
     }
 
+    //! Inverse of isConnected(IntVect).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isDisconnected (const IntVect& iv) const noexcept {
         int i=0, j=0, k=0;
@@ -121,17 +146,20 @@ public:
         return !(flag & (1 << n));
     }
 
+    //! Inverse of isConnected(i,j,k).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool isDisconnected (int i, int j, int k) const  noexcept {
         const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         return !(flag & (1 << n));
     }
 
+    //! Clear all neighbor-connection bits.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setDisconnected () noexcept {
         flag &= one_lower_mask;
     }
 
+    //! Clear connectivity to neighbor at offset \p iv.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setDisconnected (const IntVect& iv) noexcept {
         int i=0, j=0, k=0;
@@ -140,17 +168,20 @@ public:
         flag &= ~(1 << n);
     }
 
+    //! Clear connectivity to neighbor at offset (i,j,k).
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setDisconnected (int i, int j, int k) noexcept {
         const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         flag &= ~(1 << n);
     }
 
+    //! Mark all neighbors as connected.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setConnected () noexcept {
         flag |= zero_lower_mask;
     }
 
+    //! Mark connectivity to neighbor offset by \p iv.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setConnected (const IntVect& iv) noexcept {
         int i=0, j=0, k=0;
@@ -159,12 +190,14 @@ public:
         flag |= 1 << n;
     }
 
+    //! Mark connectivity to neighbor at offset (i,j,k).
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setConnected (int i, int j, int k) noexcept {
         const int n = w_lower_mask + 13 + i + 3*j + k*9;  // pos_ngbr[k+1,j+1,i+1]
         flag |= 1 << n;
     }
 
+    //! Count how many neighbors are connected (including itself).
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int numNeighbors () const noexcept {
         int n = 1;
@@ -206,18 +239,21 @@ public:
         return n;
     }
 
+    //! Raw 32-bit encoding stored in this flag.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     uint32_t getValue() const noexcept
     {
         return flag;
     }
 
+    //! Convenience flag representing a completely regular cell.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr EBCellFlag TheDefaultCell () { return EBCellFlag{default_value}; }
 
     // DO NOT test covered cells using cell == TheCoveredCell()
     // Use cell.isCovered() instead.
     // Each covered cell is covered in its own way.
+    //! Convenience flag representing a fully covered cell.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     static constexpr EBCellFlag TheCoveredCell () { return EBCellFlag{covered_value}; }
 
@@ -282,21 +318,26 @@ private:
 template <>
 struct IsStoreAtomic<EBCellFlag> : std::true_type {};
 
+//! FAB storing EBCellFlag data per cell.
 class EBCellFlagFab final
     : public BaseFab<EBCellFlag>
 {
 public:
 
+    //! Construct an empty FAB that allocates from arena \p ar when defined later.
     explicit EBCellFlagFab (Arena* ar) noexcept;
 
+    //! Construct and allocate immediately for box \p b.
     explicit EBCellFlagFab (const Box& b, int ncomp, Arena* ar);
 
+    //! General constructor controlling allocation and sharing.
     explicit EBCellFlagFab (const Box& b,
                             int        ncomp=1,
                             bool       alloc=true,
                             bool       shared=false,
                             Arena*     ar = nullptr);
 
+    //! Restricted constructor used when creating alias FABs.
     EBCellFlagFab (const EBCellFlagFab& rhs, MakeType make_type, int scomp, int ncomp);
 
     EBCellFlagFab () = default;
@@ -307,36 +348,25 @@ public:
     EBCellFlagFab& operator= (const EBCellFlagFab&) = delete;
     EBCellFlagFab& operator= (EBCellFlagFab&&) = delete;
 
-    /**
-     * \brief Returns FabType of the whole EBCellFlagFab.
-     */
+    //! Returns FabType (regular, covered, etc.) for the entire FAB.
     FabType getType () const noexcept { return m_type; }
 
-    /**
-     * \brief Returns FabType in the given Box of this EBCellFlagFab.
-     */
+    //! Returns FabType for a specific sub-box \p bx.
     FabType getType (const Box& bx) const noexcept;
 
-    /**
-     * \brief Reset FabType
-     */
+    //! Recompute FabType using the given number of grow cells.
     void resetType (int ng);
 
-    /**
-     * \brief Returns the number of regular cells in the given Box.
-     */
+    //! Count regular cells within \p bx.
     int getNumRegularCells (const Box& bx) const noexcept;
 
-    /**
-     * \brief Returns the number of cut cells in the given Box.
-     */
+    //! Count cut cells within \p bx.
     int getNumCutCells (const Box& bx) const noexcept;
 
-    /**
-     * \brief Returns the number of covered cells in the given Box.
-     */
+    //! Count covered cells within \p bx.
     int getNumCoveredCells (const Box& bx) const noexcept;
 
+    //! Manually override the cached FabType.
     void setType (FabType t) noexcept { m_type = t; }
 
     struct NumCells {
@@ -352,6 +382,7 @@ private:
     mutable std::map<Box,NumCells> m_typemap;
 };
 
+//! Stream helper that prints the underlying flag bits.
 std::ostream& operator<< (std::ostream& os, const EBCellFlag& flag);
 
 }

@@ -3,8 +3,15 @@
 
 #include <cstdint>
 
+/**
+ * \file AMReX_mc_jgt_table.H
+ *
+ * Marching-cubes lookup tables from Lewiner et al. (JGT 2003).
+ */
+
 namespace amrex::MC {
 
+//! Lookup tables used by the Lewiner marching-cubes variant.
 struct LookUpTable {
 
 // http://thomas.lewiner.org/publication_page.php%EF%B9%96pubkey=marching_cubes_jgt.html

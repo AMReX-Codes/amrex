@@ -11,6 +11,7 @@
 #include <AMReX_MFIter.H>
 #include <AMReX_ParGDB.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTileRT.H>
 #include <AMReX_ParticleBufferMap.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_Scan.H>
@@ -377,17 +378,12 @@ IntVect getParticleCell (PTD const& ptd, int i,
                          amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dxi,
                          const Box& domain) noexcept
 {
-    if constexpr (PTD::ParticleType::is_soa_particle)
-    {
-        IntVect iv(
-                   AMREX_D_DECL(int(amrex::Math::floor((ptd.m_rdata[0][i]-plo[0])*dxi[0])),
-                                int(amrex::Math::floor((ptd.m_rdata[1][i]-plo[1])*dxi[1])),
-                                int(amrex::Math::floor((ptd.m_rdata[2][i]-plo[2])*dxi[2]))));
-        iv += domain.smallEnd();
-        return iv;
-    } else {
-        return getParticleCell(ptd.m_aos[i], plo, dxi, domain);;
-    }
+    IntVect iv(
+                AMREX_D_DECL(int(amrex::Math::floor((ptd.pos(0, i)-plo[0])*dxi[0])),
+                             int(amrex::Math::floor((ptd.pos(1, i)-plo[1])*dxi[1])),
+                             int(amrex::Math::floor((ptd.pos(2, i)-plo[2])*dxi[2]))));
+    iv += domain.smallEnd();
+    return iv;
 }
 
 struct DefaultAssignor
@@ -934,6 +930,176 @@ template <typename P>
 std::string getDefaultCompNameInt (const int i) {
     std::string const name{("int_comp" + std::to_string(i))};
     return name;
+}
+
+
+/**
+ * \brief Reorder particles on the tile ptile using a the permutations array.
+ *
+ * permutations is a pointer to an array on the GPU of size numParticles() with
+ * permutations[new index] = old index.
+ *
+ * \param ptile
+ * \param permutations
+ */
+template <class PTile, class index_type,
+          std::enable_if_t<!PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
+void
+ReorderParticles (PTile& ptile, const index_type* permutations)
+{
+    const size_t np       = ptile.numParticles();
+    const size_t np_total = np + ptile.numNeighborParticles();
+
+#if defined(AMREX_USE_CUDA) && defined(_WIN32)
+    if           (!PTile::ParticleType::is_soa_particle)
+#else
+    if constexpr (!PTile::ParticleType::is_soa_particle)
+#endif
+    {
+        static_assert(sizeof(typename PTile::ParticleType)%4 == 0 && sizeof(uint32_t) == 4);
+        using tmp_t = std::conditional_t<sizeof(typename PTile::ParticleType)%8 == 0,
+                                            uint64_t, uint32_t>;
+        constexpr std::size_t nchunks = sizeof(typename PTile::ParticleType) / sizeof(tmp_t);
+        Gpu::DeviceVector<tmp_t> tmp(np);
+        auto* ptmp = tmp.data();
+        auto* paos = (tmp_t*)(ptile.getParticleTileData().m_aos);
+        for (std::size_t ichunk = 0; ichunk < nchunks; ++ichunk) {
+            // Do not need to reorder neighbor particles
+            AMREX_HOST_DEVICE_FOR_1D(np, i,
+            {
+                ptmp[i] = paos[permutations[i]*nchunks+ichunk];
+            });
+            AMREX_HOST_DEVICE_FOR_1D(np, i,
+            {
+                paos[i*nchunks+ichunk] = ptmp[i];
+            });
+        }
+        Gpu::streamSynchronize();
+    } else {
+        typename PTile::SoA::IdCPU tmp_idcpu;
+        if constexpr (PTile::has_polymorphic_allocator) {
+            tmp_idcpu.setArena(ptile.GetStructOfArrays().GetIdCPUData().arena());
+        }
+        tmp_idcpu.resize(np_total);
+        auto src = ptile.GetStructOfArrays().GetIdCPUData().data();
+        uint64_t* dst = tmp_idcpu.data();
+        AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+        {
+            dst[i] = i < np ? src[permutations[i]] : src[i];
+        });
+
+        Gpu::streamSynchronize();
+
+        ptile.GetStructOfArrays().GetIdCPUData().swap(tmp_idcpu);
+    }
+
+    { // Create a scope for the temporary vector below
+        typename PTile::RealVector tmp_real;
+        if (ptile.NumRealComps() > 0) {
+            if constexpr (PTile::has_polymorphic_allocator) {
+                tmp_real.setArena(ptile.GetStructOfArrays().GetRealData(0).arena());
+            }
+            tmp_real.resize(np_total);
+        }
+        for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
+            auto src = ptile.GetStructOfArrays().GetRealData(comp).data();
+            ParticleReal* dst = tmp_real.data();
+            AMREX_HOST_DEVICE_FOR_1D( np_total, i,
+            {
+                dst[i] = i < np ? src[permutations[i]] : src[i];
+            });
+
+            Gpu::streamSynchronize();
+
+            ptile.GetStructOfArrays().GetRealData(comp).swap(tmp_real);
+        }
+    }
+
+    typename PTile::IntVector tmp_int;
+    if (ptile.NumIntComps() > 0) {
+        if constexpr (PTile::has_polymorphic_allocator) {
+            tmp_int.setArena(ptile.GetStructOfArrays().GetIntData(0).arena());
+        }
+        tmp_int.resize(np_total);
+    }
+
+    for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
+        auto src = ptile.GetStructOfArrays().GetIntData(comp).data();
+        int* dst = tmp_int.data();
+        AMREX_HOST_DEVICE_FOR_1D( np_total , i,
+        {
+            dst[i] = i < np ? src[permutations[i]] : src[i];
+        });
+
+        Gpu::streamSynchronize();
+
+        ptile.GetStructOfArrays().GetIntData(comp).swap(tmp_int);
+    }
+}
+
+/**
+ * \brief Reorder particles on the tile ptile using a the permutations array.
+ *
+ * permutations is a pointer to an array on the GPU of size numParticles() with
+ * permutations[new index] = old index.
+ *
+ * \param ptile
+ * \param permutations
+ */
+template <class PTile, class index_type,
+          std::enable_if_t<PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
+void
+ReorderParticles (PTile& ptile, const index_type* permutations)
+{
+    const size_t np = ptile.numParticles();
+    {
+        amrex::Gpu::AsyncVector<uint64_t> tmp_idcpu(np);
+
+        auto src = ptile.GetIdCPUData().data();
+        uint64_t* dst = tmp_idcpu.data();
+        amrex::ParallelFor(np,
+            [=] AMREX_GPU_DEVICE (size_t i) {
+                dst[i] = src[permutations[i]];
+            });
+        amrex::ParallelFor(np,
+            [=] AMREX_GPU_DEVICE (size_t i) {
+                src[i] = dst[i];
+            });
+    }
+    {
+        amrex::Gpu::AsyncVector<typename PTile::RealType> tmp_real(np);
+
+        for (int comp = 0; comp < ptile.NumRealComps(); ++comp) {
+            auto src = ptile.GetRealData(comp).data();
+            auto dst = tmp_real.data();
+            amrex::ParallelFor(np,
+                [=] AMREX_GPU_DEVICE (size_t i) {
+                    dst[i] = src[permutations[i]];
+                });
+            amrex::ParallelFor(np,
+                [=] AMREX_GPU_DEVICE (size_t i) {
+                    src[i] = dst[i];
+                });
+        }
+    }
+    {
+        amrex::Gpu::AsyncVector<typename PTile::IntType> tmp_int(np);
+
+        for (int comp = 0; comp < ptile.NumIntComps(); ++comp) {
+            auto src = ptile.GetIntData(comp).data();
+            auto dst = tmp_int.data();
+            amrex::ParallelFor(np,
+                [=] AMREX_GPU_DEVICE (size_t i) {
+                    dst[i] = src[permutations[i]];
+                });
+            amrex::ParallelFor(np,
+                [=] AMREX_GPU_DEVICE (size_t i) {
+                    src[i] = dst[i];
+                });
+        }
+    }
+    // stream sync for deallocation of permutations variable in user code
+    Gpu::streamSynchronize();
 }
 
 #ifdef AMREX_USE_HDF5_ASYNC

@@ -129,7 +129,7 @@ public:
     const Geometry& getGeom () const noexcept { return geom; }
 
     //! Set all components on boundary face \p face of grid \p n to scalar value \p val.
-    void setValue (Orientation face, int n, Real val) noexcept;
+    void setValue (Orientation face, int n, value_type val) noexcept;
 
     //! Set boundary type at grid index \p n, component \p comp, and face \p face to \p bcn.
     void setBoundCond (Orientation     face,
@@ -316,7 +316,7 @@ BndryDataT<MF>::define (const BoxArray& _grids,
 
 template <typename MF>
 void
-BndryDataT<MF>::setValue (Orientation face, int n, Real val) noexcept
+BndryDataT<MF>::setValue (Orientation face, int n, value_type val) noexcept
 {
     auto& fab = this->bndry[face][n];
     auto arr = fab.array();

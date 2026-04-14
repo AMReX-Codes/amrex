@@ -481,6 +481,9 @@ namespace amrex
      * \param domain    domain Box. For patchy inputs this must cover the full
      *                  extent of mf.boxArray() (subdomains are not supported).
      * \param mf        a FabArray/MultiFab object specifying the iteration space
+     * \param plane_max_grid_size
+     *                  the desired max_grid_size of the unique projected 2D
+     *                  BoxArray. The collapsed direction is forced to 1.
      * \param f         a callable object returning data for reduction. It takes
      *                  four ints, where the first int is the local box index and
      *                  the others are spatial indices for x, y, and z-directions.
@@ -495,7 +498,8 @@ namespace amrex
 #endif
                                , int> FOO = 0>
     std::pair<FA,FA>
-    ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const& f);
+    ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
+                            IntVect const& plane_max_grid_size, F const& f);
 
     /**
      * \brief Sum MultiFab data to line
@@ -1394,6 +1398,7 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
 
     return tmpfa;
 }
+
 }
 /// \endcond
 
@@ -1462,9 +1467,11 @@ template <typename Op, typename FA, typename F,
 #endif
                            , int> FOO>
 std::pair<FA,FA>
-ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const& f)
+ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
+                        IntVect const& plane_max_grid_size, F const& f)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf.is_cell_centered(), "ReduceToPlaneMF2Patchy: only cell-centered data is supported.");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf.is_cell_centered(),
+        "ReduceToPlaneMF2Patchy: only cell-centered data is supported.");
 
     Box const ndomain = amrex::convert(domain, mf.ixType());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ndomain.contains(mf.boxArray().minimalBox()),
@@ -1492,9 +1499,16 @@ ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf, F const&
     }
 
     BoxList bl_unique = ba_patch2d.boxList();
-    bl_unique.simplify();
+    bl_unique.simplify(); // reduces work for .removeOverlap()
     BoxArray ba2d(std::move(bl_unique));
     ba2d.removeOverlap();
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(plane_max_grid_size.allGE(1),
+        "ReduceToPlaneMF2Patchy: plane_max_grid_size must be >= 1 in every direction.");
+    IntVect mgs2d = plane_max_grid_size;
+    mgs2d[direction] = 1;
+    ba2d.maxSize(mgs2d);
+
     DistributionMapping dm2d(ba2d);
 
     FA mf2d(ba2d, dm2d, 1, 0);

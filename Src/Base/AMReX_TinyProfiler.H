@@ -41,8 +41,8 @@ public:
     TinyProfiler& operator= (TinyProfiler const&) = delete;
     TinyProfiler& operator= (TinyProfiler &&) = delete;
 
-    void start () noexcept;
-    void stop () noexcept;
+    void start ();
+    void stop ();
 
     void memory_start () const noexcept;
     void memory_stop () const noexcept;
@@ -52,10 +52,10 @@ public:
     static void memory_free (std::size_t nbytes, MemStat* stat) noexcept;
 
     static void Initialize ();
-    static void Finalize (bool bFlushing = false) noexcept;
+    static void Finalize (bool bFlushing = false);
 
     static void MemoryInitialize ();
-    static void MemoryFinalize (bool bFlushing = false) noexcept;
+    static void MemoryFinalize (bool bFlushing = false);
 
     static bool RegisterArena (const std::string& memory_name,
                                std::map<std::string, MemStat>& memstats) noexcept;

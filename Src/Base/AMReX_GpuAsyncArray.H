@@ -24,6 +24,11 @@ extern "C" {
 namespace amrex {
 namespace Gpu {
 
+/**
+ * \warning AsyncArray assumes the GPU launch-region state stays fixed for its
+ * lifetime. Flipping the launch-region flag between construction and
+ * destruction prevents the matching free and will leak memory.
+ */
 template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
 class AsyncArray
 {

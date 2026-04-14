@@ -1,4 +1,5 @@
 #include <AMReX_ParticleCommunication.H>
+#include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParallelDescriptor.H>
 
 namespace amrex {
@@ -45,7 +46,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_levs.clear();
 }
 
-void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
+void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc, const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
 
@@ -94,7 +95,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
         m_NumSnds += nbytes;
     }
 
-    doHandShake(m_Snds, m_Rcvs);
+    doHandShake(pc, m_Snds, m_Rcvs);
 
     const int SeqNum = ParallelDescriptor::SeqNum();
     Long tot_snds_this_proc = 0;
@@ -206,7 +207,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleBufferMap& map, Long psize) 
     snd_stats.resize(snd_reqs.size());
     ParallelDescriptor::Waitall(snd_reqs, snd_stats);
 #else
-    amrex::ignore_unused(map,psize);
+    amrex::ignore_unused(pc,map,psize);
 #endif
 }
 
@@ -259,11 +260,18 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(r
 #endif // MPI
 }
 
-void ParticleCopyPlan::doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
+void ParticleCopyPlan::doHandShake (const ParticleContainerBase& pc,
+                                    const Vector<Long>& Snds,
+                                    Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::doHandShake");
     if (m_local) { doHandShakeLocal(Snds, Rcvs); }
-    else         { doHandShakeGlobal(Snds, Rcvs); }
+    else if (m_do_one_sided_comms) {
+        doHandShakeOneSided(pc, Snds, Rcvs);
+    }
+    else {
+        doHandShakeReduceScatter(Snds, Rcvs);
+    }
 }
 
 void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
@@ -333,7 +341,7 @@ void ParticleCopyPlan::doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Lon
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs)
+void ParticleCopyPlan::doHandShakeReduceScatter (const Vector<Long>& Snds, Vector<Long>& Rcvs)
 {
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
@@ -378,6 +386,48 @@ void ParticleCopyPlan::doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>
     }
 #else
     amrex::ignore_unused(Snds,Rcvs);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeOneSided (const ParticleContainerBase& pc,
+                                            const Vector<Long>& Snds,
+                                            Vector<Long>& Rcvs)
+{
+#if defined(AMREX_USE_MPI)
+    const int MyProc = ParallelContext::MyProcSub();
+    const int NProcs = ParallelContext::NProcsSub();
+
+    AMREX_ALWAYS_ASSERT(static_cast<int>(Snds.size()) == NProcs);
+    AMREX_ALWAYS_ASSERT(static_cast<int>(Rcvs.size()) == NProcs);
+
+    pc.ensureParticleHandshakeWindow();
+    auto* handshake_buffer = pc.particleHandshakeBuffer();
+    AMREX_ALWAYS_ASSERT(handshake_buffer != nullptr);
+    std::fill_n(handshake_buffer, NProcs, Long(0));
+
+    MPI_Win win = pc.particleHandshakeWindow();
+    BL_MPI_REQUIRE(MPI_Win_fence(0, win));
+
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc || Snds[i] == 0) { continue; }
+
+        BL_MPI_REQUIRE(MPI_Put(&Snds[i],
+                               1,
+                               ParallelDescriptor::Mpi_typemap<Long>::type(),
+                               i,
+                               MyProc,
+                               1,
+                               ParallelDescriptor::Mpi_typemap<Long>::type(),
+                               win));
+    }
+
+    BL_MPI_REQUIRE(MPI_Win_fence(0, win));
+    std::copy_n(handshake_buffer, NProcs, Rcvs.begin());
+
+    AMREX_ASSERT(Rcvs[MyProc] == 0);
+#else
+    amrex::ignore_unused(pc,Snds,Rcvs);
 #endif
 }
 

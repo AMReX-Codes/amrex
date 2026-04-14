@@ -6,8 +6,13 @@
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
+/**
+ * \file AMReX_MultiCutFab.H
+ */
+
 namespace amrex {
 
+//! FArrayBox specialization used to store cut-cell data (may skip allocation).
 class CutFab final
     : public FArrayBox
 {
@@ -77,6 +82,7 @@ public:
     }
 };
 
+//! FabArray façade that only allocates cut-cell Fabs (skipping regular cells).
 class MultiCutFab
 {
 public:
@@ -97,12 +103,15 @@ public:
     void define (const BoxArray& ba, const DistributionMapping& dm,
                  int ncomp, int ngrow, const FabArray<EBCellFlagFab>& cellflags);
 
+    //! Access the CutFab for \p mfi.
     const CutFab& operator[] (const MFIter& mfi) const noexcept;
     CutFab& operator[] (const MFIter& mfi) noexcept;
 
+    //! Access by global box index (used outside MFIter loops).
     const CutFab& operator[] (int global_box_index) const noexcept;
     CutFab& operator[] (int global_box_index) noexcept;
 
+    //! Array4 accessors (mutable and const) matching MFIter order.
     Array4<Real      > array (const MFIter& mfi) noexcept;
     Array4<Real const> array (const MFIter& mfi) const noexcept;
     Array4<Real const> const_array (const MFIter& mfi) const noexcept;
@@ -125,6 +134,7 @@ public:
     //! Is it OK to call operator[] with this global box index?
     bool ok (int global_box_index) const noexcept;
 
+    //! Fill every stored CutFab with a constant \p val.
     void setVal (Real val);
 
     FabArray<CutFab>& data () noexcept { return m_data; }
@@ -135,9 +145,11 @@ public:
     int nComp () const noexcept { return m_data.nComp(); }
     int nGrow () const noexcept { return m_data.nGrow(); }
 
+    //! Copy overlapping data from \p src.
     void ParallelCopy (const MultiCutFab& src, int scomp, int dcomp, int ncomp, int sng, int dng,
                        const Periodicity& period = Periodicity::NonPeriodic());
 
+    //! Materialize the cut-cell data into a dense MultiFab.
     MultiFab ToMultiFab (Real regular_value, Real covered_value) const;
 
 private:

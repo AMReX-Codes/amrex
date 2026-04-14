@@ -278,7 +278,7 @@ template <typename MF>
 void
 InterpBndryDataT<MF>::setHomogValues ()
 {
-    this->setVal(0.);
+    this->setVal(0);
 }
 
 using InterpBndryData = InterpBndryDataT<MultiFab>;

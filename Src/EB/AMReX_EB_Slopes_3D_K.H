@@ -140,7 +140,7 @@ amrex_overwrite_with_regular_slopes(int i, int j, int k, int n,
                                     amrex::Real& zslope,
                                     amrex::Array4<amrex::Real const> const& state,
                                     amrex::Array4<amrex::Real const> const& vfrac,
-                                    int max_order) noexcept
+                                    int max_order)
 {
     //
     // Here we over-write -- if possible -- with a stencil not using the EB stencil

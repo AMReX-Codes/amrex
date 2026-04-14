@@ -7,27 +7,28 @@
 
 #include <algorithm>
 
+/**
+ * \file AMReX_EB2_IF_Cylinder.H
+ *
+ * Implicit function describing an axis-aligned solid or hollow cylinder.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
+//! Signed implicit function for cylinders along a coordinate axis.
 class CylinderIF
     : GPUable
 {
 public:
-    // inside: is the fluid inside the cylinder?
-
-    //! Overloaded constructor for infinite cylinder IF: if the user does not
-    //! provide a cylinder height, the IF corresponds to a cylinder that spans
-    //! the whole domain.
+    //! Build an infinite cylinder (extends across the domain in its axis direction).
     CylinderIF (Real a_radius, int a_direction,
                 const RealArray& a_center, bool a_inside)
         : CylinderIF(a_radius, -1.0_rt, a_direction, a_center, a_inside)
     { }
 
-    //! Overloaded constructor for finite cylinder IF: if the user does specify a
-    //! cylinder height (length), then the IF corresponds to a cylinder extending
-    //! only to height/2 from it's center.
+    //! Build a finite cylinder with height `a_height`.
     CylinderIF (Real a_radius, Real a_height, int a_direction,
                 const RealArray& a_center, bool a_inside)
         : m_radius(a_radius), m_height(a_height), m_direction(a_direction),
@@ -92,6 +93,7 @@ public:
         }
     }
 
+    //! Evaluate the implicit function at a given coordinate.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         return this->operator() (AMREX_D_DECL(p[0], p[1], p[2]));
