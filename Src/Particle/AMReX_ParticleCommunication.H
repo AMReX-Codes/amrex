@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <map>
 #include <numeric>
+#include <utility>
 
 namespace amrex {
 
@@ -129,6 +130,7 @@ struct ParticleCopyPlan
     {
         const int num_levels = op.numLevels();
         m_dst_indices.resize(num_levels);
+        auto&& batch_fn = std::forward<F>(f);
 
         for (int lev = 0; lev < num_levels; ++lev)
         {
@@ -141,7 +143,7 @@ struct ParticleCopyPlan
                 auto& dst_indices = m_dst_indices[lev][index];
                 dst_indices.resize(num_copies);
 
-                f(lev, index, num_copies, dst_indices);
+                batch_fn(lev, index, num_copies, dst_indices);
             }
         }
     }
