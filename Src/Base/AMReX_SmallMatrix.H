@@ -229,6 +229,29 @@ namespace amrex {
             return I;
         }
 
+        /** Returns the skew-symmetric matrix Omega (symplectic form)
+         *
+         * With 2x2 block-diagonal structure [[0,1],[-1,0]].
+         * Requires a square matrix of even dimension.
+         *
+         * @see https://en.wikipedia.org/wiki/Symplectic_matrix
+         */
+        template <int MM=NRows, int NN=NCols,
+                  std::enable_if_t<MM==NN && MM%2==0, int> = 0>
+        static constexpr
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
+        Omega () noexcept {
+            static_assert(StartIndex == 0 || StartIndex == 1);
+            SmallMatrix<T,NRows,NCols,ORDER,StartIndex> O{};
+            constexpr_for<0,NRows/2>(
+                [&] (int i) {
+                    O(2*i   + StartIndex, 2*i+1 + StartIndex) =  T(1);
+                    O(2*i+1 + StartIndex, 2*i   + StartIndex) = -T(1);
+                });
+            return O;
+        }
+
         //! Returns a matrix initialized with zeros
         static constexpr
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
