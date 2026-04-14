@@ -3,6 +3,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_RealVect.H>
 
 using namespace amrex;
 
@@ -42,6 +43,14 @@ int main(int argc, char* argv[])
         pp.getarr("sa", sa);
         pp.getarr("sa", sb);
         AMREX_ALWAYS_ASSERT(sa == sb && (sa == std::vector<std::string>{"abc","xyz","123"}));
+
+        IntVect iv;
+        pp.query("iv3", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(100,200,300)));
+        pp.query("iv2", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(10,20,0)));
+        pp.query("iv1", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(5,0,0)));
 
         Box box;
         pp.query("b", box);

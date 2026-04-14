@@ -204,7 +204,7 @@ namespace Gpu {
 #if !defined(AMREX_USE_GPU)
         void operator++ () noexcept { ++m_i; }
 #else
-        void operator++ () noexcept;
+        void operator++ ();
 #endif
 
     private:

@@ -2,6 +2,7 @@
 #define AMREX_INTVECT_H_
 #include <AMReX_Config.H>
 
+#include <AMReX.H>
 #include <AMReX_INT.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
@@ -40,6 +41,97 @@ int coarsen (int i) noexcept
 {
     return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
 }
+
+/// \cond DOXYGEN_IGNORE
+namespace detail
+{
+    template <typename T>
+    std::ostream& T_vector_write (std::ostream& os, const T* data, int dim)
+    {
+        os << '(' << data[0];
+        for (int i = 1; i < dim; ++i) {
+            os << ',' << data[i];
+        }
+        os << ')';
+        if (os.fail()) {
+            amrex::Error("operator<<(ostream&,[Int|Real]Vect&) failed");
+        }
+        return os;
+    }
+
+    template <typename T>
+    std::istream& T_vector_read (std::istream& is, T* data, int dim)
+    {
+        is >> std::ws;
+        char c;
+        is >> c;
+
+        for (int i = 0; i < dim; ++i) {
+            data[i] = T(0);
+        }
+
+        if (c == '(')
+        {
+            int component = 0;
+            bool need_comma = false;
+
+            while (true) {
+                is >> std::ws;
+                int ic = is.peek();
+
+                if (ic == std::char_traits<char>::eof()) {
+                    if (component == 0) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): missing first component");
+                    } else {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): premature EOF");
+                    }
+                }
+
+                if (ic == static_cast<int>(')')) {
+                    is.get();
+                    if (component == 0) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): missing first component");
+                    }
+                    break;
+                }
+
+                if (need_comma) {
+                    if (ic != static_cast<int>(',')) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): expected ',' or ')'");
+                    }
+                    is.get();
+                    is >> std::ws;
+                }
+
+                T value{};
+                if (!(is >> value)) {
+                    if (component == 0) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): missing first component");
+                    } else {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): premature EOF");
+                    }
+                }
+
+                if (component < dim) {
+                    data[component] = value;
+                }
+                ++component;
+                need_comma = true;
+            }
+        }
+        else
+        {
+            amrex::Error("operator>>(ostream&,[Int|Real]Vect&): expected '('");
+        }
+
+        if (is.fail()) {
+            amrex::Error("operator>>(ostream&,[Int|Real]Vect&) failed");
+        }
+
+        return is;
+    }
+}
+/// \endcond
 
 /**
 * \class amrex::IntVectND
@@ -1107,8 +1199,6 @@ Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
-    std::ostream& int_vector_write (std::ostream& os, const int* iv, int dim);
-    std::istream& int_vector_read (std::istream& is, int* iv, int dim);
 
     template<int dim>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
@@ -1143,18 +1233,33 @@ namespace detail {
 }
 /// \endcond
 
+/**
+ * \brief Streams an IntVectND as a parenthesized, comma-separated tuple.
+ *
+ * The output format is `(v0,v1,...,v{dim-1})`.
+ */
 template<int dim>
 std::ostream&
 operator<< (std::ostream& os, const IntVectND<dim>& iv)
 {
-    return detail::int_vector_write(os, iv.begin(), dim);
+    return detail::T_vector_write(os, iv.begin(), dim);
 }
 
+/**
+ * \brief Extracts an IntVectND from the canonical parenthesized tuple syntax.
+ *
+ * Accepts `(v0,v1,...,v{dim-1})` surrounded by optional whitespace.
+ * Missing trailing components are filled with zero, and any additional
+ * comma-separated values beyond `dim` are syntactically validated and then
+ * ignored so that higher-dimensional files are compatible with
+ * lower-dimensional readers.  Any structural or numeric errors will result
+ * in `amrex::Error`.
+ */
 template<int dim>
 std::istream&
 operator>> (std::istream& is, IntVectND<dim>& iv)
 {
-    return detail::int_vector_read(is, iv.begin(), dim);
+    return detail::T_vector_read(is, iv.begin(), dim);
 }
 
 /**

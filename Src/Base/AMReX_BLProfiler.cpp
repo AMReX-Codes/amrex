@@ -1731,7 +1731,7 @@ BLProfileSync::Sync (const char* name) noexcept
 }
 
 void
-BLProfileSync::InitParams () noexcept
+BLProfileSync::InitParams ()
 {
     ParmParse pParse("amrex");
     pParse.queryAdd("use_profiler_syncs", BLProfileSync::use_prof_syncs);

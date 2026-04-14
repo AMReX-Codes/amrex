@@ -496,6 +496,8 @@ public:
     * FABs are allocated for each Box in the BoxArray and the
     * sizes of the FABs and the number of components are consistent
     * with the definition of the FabArray.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     bool ok () const;
 
@@ -833,6 +835,8 @@ public:
     * \param comp   component
     * \param nghost number of ghost cells
     * \param local  If true, MPI communication is skipped.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
@@ -1446,6 +1450,8 @@ public:
      * \param nghost         number of ghost cells
      * \param local          If true, MPI communication is skipped.
      * \param ignore_covered ignore covered cells. Only relevant for cell-centered EB data.
+     * \warning Unless \p local is true, this routine performs an MPI collective
+     * and every rank in the current active MPI communicator must participate.
      */
     template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
@@ -1461,6 +1467,8 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      * \param local  If true, MPI communication is skipped.
+     * \warning Unless \p local is true, this routine performs an MPI collective
+     * and every rank in the current active MPI communicator must participate.
      */
     template <typename IFAB, typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
