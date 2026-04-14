@@ -168,13 +168,13 @@ struct ParticleCopyPlan
             Gpu::HostVector<int> h_tiles(d_tiles.size());
             Gpu::copy(Gpu::deviceToHost, d_tiles.begin(), d_tiles.end(), h_tiles.begin());
 
-	    Gpu::HostVector<int> h_dst_indices(num_copies);
+        Gpu::HostVector<int> h_dst_indices(num_copies);
 #else
             const Gpu::DeviceVector<int>& h_boxes = op.m_boxes[lev].at(index);
             const Gpu::DeviceVector<int>& h_levs = op.m_levels[lev].at(index);
             const Gpu::DeviceVector<int>& h_tiles = op.m_tiles[lev].at(index);
 
-	    Gpu::DeviceVector<int>& h_dst_indices = dst_indices;
+        Gpu::DeviceVector<int>& h_dst_indices = dst_indices;
 #endif
             for (int i = 0; i < num_copies; ++i) {
                 int dst_box = h_boxes[i];
@@ -412,7 +412,7 @@ public:
 
         ParmParse pp("particles");
         pp.query("do_one_sided_comms", m_do_one_sided_comms);
-	      const int num_buckets = pc.BufferMap().numBuckets();
+          const int num_buckets = pc.BufferMap().numBuckets();
         
         m_local = local;
         if (local)
