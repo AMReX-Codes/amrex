@@ -413,7 +413,7 @@ public:
         ParmParse pp("particles");
         pp.query("do_one_sided_comms", m_do_one_sided_comms);
           const int num_buckets = pc.BufferMap().numBuckets();
-        
+
         m_local = local;
         if (local)
         {
