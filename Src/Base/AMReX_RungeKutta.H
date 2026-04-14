@@ -200,7 +200,8 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
  * \param dt              time step
  * \param frhs            computing the right-hand side
  * \param fillbndry       filling ghost cells
- * \param store_crse_data storing right-hand side data for AMR
+ * \param store_crse_data storing right-hand side data for AMR.
+ *                        The caller must deep-copy the provided data.
  * \param post_stage      post-processing stage results
  */
 template <typename MF, typename F, typename FB, typename R,
@@ -250,7 +251,8 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
  * \param dt              time step
  * \param frhs            computing the right-hand side
  * \param fillbndry       filling ghost cells
- * \param store_crse_data storing right-hand side data for AMR
+ * \param store_crse_data storing right-hand side data for AMR.
+ *                        The caller must deep-copy the provided data.
  * \param post_stage      post-processing stage results
  */
 template <typename MF, typename F, typename FB, typename R,
