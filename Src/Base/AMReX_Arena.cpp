@@ -349,13 +349,11 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                 );
                 out_of_memory_abort("GPU device memory", nbytes, msg);
             }
-#ifdef AMREX_USE_HIP
-            AMREX_ALWAYS_ASSERT(is_aligned(p, align_size));
-#endif
         }
     }
 #endif
     AMREX_ALWAYS_ASSERT(p != nullptr);
+    AMREX_ALWAYS_ASSERT(is_aligned(p, align_size)); // for testing
     return p;
 }
 
