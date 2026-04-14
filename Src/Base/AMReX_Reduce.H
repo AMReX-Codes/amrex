@@ -632,7 +632,7 @@ public:
             int nblocks_ec = std::min(nblocks, reduce_data.maxBlocks());
             AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
             int& nblocks_ref = reduce_data.nBlocks(stream);
-            int old_nblocks = nblocks_ref;
+            auto old_nblocks = static_cast<unsigned int>(nblocks_ref);
             nblocks_ref = amrex::max(nblocks_ref, nblocks_ec);
             reduce_data.updateMaxStreamIndex(stream);
 
