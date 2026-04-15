@@ -408,7 +408,7 @@ public:
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
                 const Vector<int>& real_comp_mask,
-                bool local)
+                int local)
     {
         BL_PROFILE("ParticleCopyPlan::build");
 
