@@ -1358,6 +1358,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      Gpu::DeviceVector<int>& src_indices,
                      Gpu::DeviceVector<IntVect>& periodic_shift)
 {
+    auto this_grid_proc = BufferMap().procID(gid, tid, lev);
+
     ParticleLocData pld;
     auto ptd = src_tile.getParticleTileData();
     int num_move = 0;
@@ -1367,21 +1369,34 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     while (pindex <= last) {
         decltype(auto) p = ptd[pindex];
 
-        if ((remove_negative == false) && (!ptd.id(pindex).is_valid())) {
-            ++pindex;
-            continue;
-        }
-
+	// remove invalid if needed
         if (!ptd.id(pindex).is_valid()) {
-            copyParticle(ptd, ptd, last, pindex);
-            correctCellVectors(last, pindex, gid, p);
-            --last;
-            continue;
+	    if (remove_negative) {
+		copyParticle(ptd, ptd, last, pindex);
+		correctCellVectors(last, pindex, gid, p);
+		--last;
+	    } else {
+		++pindex;
+	    }
+	    continue;
         }
 
+        // Fast path: if on the finest level, try the last good location first
+	// If not on finest level, we need to do the full locate because even if
+	// the last assignment works, the particle might belong on a finer level.
+        if (this_grid_proc == myproc && lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev) {
+            const auto iv = Index(p, lev);
+            if (pld.m_tilebox.contains(iv)) {
+                ++pindex;
+                continue; // don't need correctCellVectors or particlePostLocate if it stays where it is
+            }
+        }
+
+	// full locate
         locateParticle(p, pld, lev_min, lev_max, nGrow, local ? gid : -1);
         particlePostLocate(p, pld, lev);
 
+	// particle may have been invalidated, so check if we need to remove again.
         if (!ptd.id(pindex).is_valid()) {
             copyParticle(ptd, ptd, last, pindex);
             correctCellVectors(last, pindex, gid, p);
@@ -1389,6 +1404,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             continue;
         }
 
+	// flag particle for move if needed
         if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid ||
             BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev) != myproc) {
             // the particle is valid but needs to be sent somewhere else
@@ -1403,7 +1419,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             continue;
         }
 
-        ++pindex;
+        ++pindex; // if here, particle stays
     }
 
     boxes.resize(num_move);
@@ -1428,8 +1444,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     BL_PROFILE("ParticleContainer::Redistribute_impl()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
-    BL_PROFILE_VAR_NS("Redistribute_partition_prepare", blp_partition_prepare);
-    BL_PROFILE_VAR_NS("Redistribute_partition_parallel", blp_partition_parallel);
 
     int theEffectiveFinestLevel = m_gdb->finestLevel();
     while (!m_gdb->LevelDefined(theEffectiveFinestLevel)) { theEffectiveFinestLevel--; }
