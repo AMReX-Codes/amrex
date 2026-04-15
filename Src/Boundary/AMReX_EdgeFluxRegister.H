@@ -88,9 +88,6 @@ public:
     void reset ();
 
     //! Accumulate another register with identical layout into this one.
-    EdgeFluxRegister& operator+= (EdgeFluxRegister const& rhs);
-
-    //! Convenience alias for operator+=.
     EdgeFluxRegister& plus (EdgeFluxRegister const& rhs);
 
 #if (AMREX_SPACEDIM == 3)
