@@ -236,6 +236,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(r
         m_rcv_box_offsets.resize(0);
         m_rcv_box_counts.resize(0);
         m_rcv_box_ids.resize(0);
+        m_rcv_box_tids.resize(0);
         m_rcv_box_levs.resize(0);
         m_rcv_box_pids.resize(0);
 
