@@ -184,7 +184,7 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
 
     // RK2 stage 2
     fillbndry(2, Unew, time+dt);
-    frhs(2, dUdt, Unew, time, Real(0.5)*dt);
+    frhs(2, dUdt, Unew, time+dt, Real(0.5)*dt);
     // Unew = (Uold+Unew)/2 + dUdt_2 * dt/2,
     // which is Unew = Uold + dt/2 * (dUdt_1 + dUdt_2)
     detail::rk2_update_2(Unew, Uold, dUdt, dt);
