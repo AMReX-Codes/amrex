@@ -1374,14 +1374,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         if (!ptd.id(pindex).is_valid()) {
             copyParticle(ptd, ptd, last, pindex);
+            correctCellVectors(last, pindex, gid, p);
             --last;
             continue;
         }
 
         locateParticle(p, pld, lev_min, lev_max, nGrow, local ? gid : -1);
+        particlePostLocate(p, pld, lev);
 
         if (!ptd.id(pindex).is_valid()) {
             copyParticle(ptd, ptd, last, pindex);
+            correctCellVectors(last, pindex, gid, p);
             --last;
             continue;
         }
@@ -1390,6 +1393,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev) != myproc) {
             // the particle is valid but needs to be sent somewhere else
             swapParticle(ptd, ptd, last, pindex);
+            correctCellVectors(last, pindex, gid, p);
             boxes[num_move] = pld.m_grid;
             levels[num_move] = pld.m_lev;
             tiles[num_move] = pld.m_tile;
