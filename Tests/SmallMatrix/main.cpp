@@ -4,12 +4,26 @@
 #include <AMReX_REAL.H>
 #include <AMReX_SmallMatrix.H>
 
+#include <type_traits>
+
 using namespace amrex;
+
+namespace
+{
+    template <typename Matrix, typename = void>
+    struct has_omega : std::false_type {};
+
+    template <typename Matrix>
+    struct has_omega<Matrix, std::void_t<decltype(Matrix::Omega())>> : std::true_type {};
+}
 
 int main (int argc, char* argv[])
 {
     static_assert(Order::C == Order::RowMajor &&
                   Order::F == Order::ColumnMajor);
+    static_assert(has_omega<SmallMatrix<Real,2,2>>::value);
+    static_assert(!has_omega<SmallMatrix<int,2,2>>::value);
+    static_assert(!has_omega<SmallMatrix<unsigned int,2,2>>::value);
 
     amrex::Initialize(argc, argv);
     // 0-based indexing
@@ -69,6 +83,13 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(almostEqual(r[0],v3[0]) &&
                             almostEqual(r[1],v3[1]) &&
                             almostEqual(r[2],v3[2]));
+    }
+    {
+        auto omega = SmallMatrix<Real,4,4>::Omega();
+        AMREX_ALWAYS_ASSERT(omega(0,0) == 0.0_rt && omega(0,1) == 1.0_rt &&
+                            omega(1,0) ==-1.0_rt && omega(1,1) == 0.0_rt &&
+                            omega(2,2) == 0.0_rt && omega(2,3) == 1.0_rt &&
+                            omega(3,2) ==-1.0_rt && omega(3,3) == 0.0_rt);
     }
     {
         SmallMatrix<int,4,3,Order::C> A{{1, 0, 1},
@@ -214,6 +235,13 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(almostEqual(r[1],v3[1]) &&
                             almostEqual(r[2],v3[2]) &&
                             almostEqual(r[3],v3[3]));
+    }
+    {
+        auto omega = SmallMatrix<Real,4,4,Order::F,1>::Omega();
+        AMREX_ALWAYS_ASSERT(omega(1,1) == 0.0_rt && omega(1,2) == 1.0_rt &&
+                            omega(2,1) ==-1.0_rt && omega(2,2) == 0.0_rt &&
+                            omega(3,3) == 0.0_rt && omega(3,4) == 1.0_rt &&
+                            omega(4,3) ==-1.0_rt && omega(4,4) == 0.0_rt);
     }
     {
         SmallMatrix<int,4,3,Order::C,1> A{{1, 0, 1},
