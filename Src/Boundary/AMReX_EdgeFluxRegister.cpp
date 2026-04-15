@@ -183,7 +183,7 @@ void EdgeFluxRegister::reset ()
 }
 
 EdgeFluxRegister&
-EdgeFluxRegister::operator+= (EdgeFluxRegister const& rhs)
+EdgeFluxRegister::plus (EdgeFluxRegister const& rhs)
 {
     AMREX_ALWAYS_ASSERT(m_ratio == rhs.m_ratio);
     AMREX_ALWAYS_ASSERT(m_ncomp == rhs.m_ncomp);
@@ -205,12 +205,6 @@ EdgeFluxRegister::operator+= (EdgeFluxRegister const& rhs)
 #endif
 
     return *this;
-}
-
-EdgeFluxRegister&
-EdgeFluxRegister::plus (EdgeFluxRegister const& rhs)
-{
-    return operator+=(rhs);
 }
 
 #if (AMREX_SPACEDIM == 3)
