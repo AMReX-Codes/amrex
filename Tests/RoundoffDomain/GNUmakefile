@@ -1,4 +1,4 @@
-AMREX_HOME ?= ../../../amrex
+AMREX_HOME ?= ../..
 
 PREC ?= 1
 
