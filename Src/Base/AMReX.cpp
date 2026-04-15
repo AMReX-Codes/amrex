@@ -754,6 +754,7 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
         hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
 #endif
+        HYPRE_DeviceInitialize();
 #endif
 
         if (system::verbose > 0) {
