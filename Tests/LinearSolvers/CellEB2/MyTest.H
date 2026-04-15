@@ -28,6 +28,9 @@ private:
     int max_level = 0;
     int ref_ratio = 2;
     int n_cell = 128;
+    int n_cell_x = 128;
+    int n_cell_y = 128;
+    int n_cell_z = 128;
     int max_grid_size = 64;
 
     int prob_type = 2;

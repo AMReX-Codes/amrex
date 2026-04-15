@@ -231,6 +231,15 @@ MyTest::readParameters ()
     ParmParse pp;
     pp.query("max_level", max_level);
     pp.query("n_cell", n_cell);
+    if (!pp.query("n_cell_x", n_cell_x)) {
+        n_cell_x = n_cell;
+    }
+    if (!pp.query("n_cell_y", n_cell_y)) {
+        n_cell_y = n_cell;
+    }
+    if (!pp.query("n_cell_z", n_cell_z)) {
+        n_cell_z = n_cell;
+    }
     pp.query("max_grid_size", max_grid_size);
     pp.query("prob_type", prob_type);
 
