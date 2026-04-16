@@ -1404,8 +1404,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
 
         // flag particle for move if needed
-        who =  BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev);
-        if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid || who != myproc) {
+        if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid ||
+            (who = BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev), who != myproc)) {
             // the particle is valid but needs to be sent somewhere else
             swapParticle(ptd, ptd, last, pindex);
             correctCellVectors(last, pindex, gid, p);
