@@ -1358,14 +1358,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                      Gpu::DeviceVector<int>& src_indices,
                      Gpu::DeviceVector<IntVect>& periodic_shift)
 {
-    int this_grid_proc = local ? BufferMap().procID(gid, tid, lev) : -1;
-
     ParticleLocData pld;
     auto ptd = src_tile.getParticleTileData();
     int num_move = 0;
 
     Long last = src_tile.numParticles() - 1;
     Long pindex = 0;
+    int who = -1;
     while (pindex <= last) {
         decltype(auto) p = ptd[pindex];
 
@@ -1384,7 +1383,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         // Fast path: if on the finest level, try the last good location first
         // If not on finest level, we need to do the full locate because even if
         // the last assignment works, the particle might belong on a finer level.
-        if (this_grid_proc == myproc && lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev) {
+        if (lev == lev_max && pld.m_tile == tid && pld.m_grid == gid && pld.m_lev == lev && who == myproc)  {
             const auto iv = Index(p, lev);
             if (pld.m_tilebox.contains(iv)) {
                 ++pindex;
@@ -1405,8 +1404,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
 
         // flag particle for move if needed
-        if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid ||
-            BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev) != myproc) {
+        who =  BufferMap().procID(pld.m_grid, pld.m_tile, pld.m_lev);
+        if (pld.m_lev != lev || pld.m_grid != gid || pld.m_tile != tid || who != myproc) {
             // the particle is valid but needs to be sent somewhere else
             swapParticle(ptd, ptd, last, pindex);
             correctCellVectors(last, pindex, gid, p);
