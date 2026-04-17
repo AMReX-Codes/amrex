@@ -96,13 +96,13 @@ namespace amrex
                                      const Geometry& geom,
                                      int ncomp,
                                      bool use_harmonic_averaging,
-                                     IntVect const& ng_vect);
+                                     const Array<IntVect, AMREX_SPACEDIM>& ng_vects);
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
                                      const MultiFab& cc,
                                      const Geometry& geom,
                                      int ncomp,
                                      bool use_harmonic_averaging,
-                                     IntVect const& ng_vect);
+                                     const Array<IntVect, AMREX_SPACEDIM>& ng_vects);
 
     //! Average fine face-based FabArray onto crse face-based FabArray.
     template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>
