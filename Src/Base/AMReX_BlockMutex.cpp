@@ -4,7 +4,7 @@ namespace amrex {
 
 #ifdef AMREX_USE_GPU
 
-void BlockMutex::init_states (state_t* state, int N) noexcept {
+void BlockMutex::init_states (state_t* state, int N) {
 #ifdef AMREX_USE_SYCL
     amrex::ignore_unused(state,N);
     amrex::Abort("xxxxx SYCL todo");

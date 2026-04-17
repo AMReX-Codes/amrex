@@ -120,7 +120,7 @@ public:
      *
      * \param use_hypre True to use Hypre; false for AMReX-native solvers.
      */
-    void useHypre (bool use_hypre) noexcept;
+    void useHypre (bool use_hypre);
 
     /**
      * \brief Solve the isolated Poisson problem.

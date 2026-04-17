@@ -114,7 +114,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
         }
         HeaderFile << '\n';
         for (int i = 0; i < finest_level; ++i) {
-            HeaderFile << ref_ratio[i][0] << ' ';
+            HeaderFile << ref_ratio[i][0] << ' '; // For backward compatibility, ref_ratio is saved as a scalar.
         }
         HeaderFile << '\n';
         for (int i = 0; i <= finest_level; ++i) {

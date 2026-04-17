@@ -1,6 +1,10 @@
+if (NOT AMReX_LINEAR_SOLVERS_EM)
+    return()
+endif ()
+
 foreach(D IN LISTS AMReX_SPACEDIM)
-    if (D EQUAL 1 OR NOT AMReX_LINEAR_SOLVERS_EM)
-       return()
+    if (D EQUAL 1)
+       continue()
     endif ()
 
     set(_sources

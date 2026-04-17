@@ -10,10 +10,13 @@
 #include <AMReX_Scan.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_MakeParticle.H>
+#include <AMReX_ParmParse.H>
 
 #include <map>
 
 namespace amrex {
+
+class ParticleContainerBase;
 
 struct NeighborUnpackPolicy
 {
@@ -137,6 +140,8 @@ struct ParticleCopyPlan
         BL_PROFILE("ParticleCopyPlan::build");
 
         m_local = local;
+        ParmParse pp("particles");
+        pp.query("do_one_sided_comms", m_do_one_sided_comms);
 
         const int ngrow = 1;  // note - fix
 
@@ -265,7 +270,7 @@ struct ParticleCopyPlan
         m_superparticle_size += num_real_comm_comp * sizeof(typename PC::ParticleType::RealType)
                               + num_int_comm_comp  * sizeof(int);
 
-        buildMPIStart(pc.BufferMap(), m_superparticle_size);
+        buildMPIStart(pc, pc.BufferMap(), m_superparticle_size);
     }
 
     void clear ();
@@ -274,14 +279,14 @@ struct ParticleCopyPlan
 
 private:
 
-    void buildMPIStart (const ParticleBufferMap& map, Long psize);
+    void buildMPIStart (const ParticleContainerBase& pc, const ParticleBufferMap& map, Long psize);
 
     //
     // Snds - a Vector with the number of bytes that is process will send to each proc.
     // Rcvs - a Vector that, after calling this method, will contain the
     //        number of bytes this process will receive from each proc.
     //
-    void doHandShake (const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
+    void doHandShake (const ParticleContainerBase& pc, const Vector<Long>& Snds, Vector<Long>& Rcvs) const;
 
     //
     // In the local version of this method, each proc knows which other
@@ -294,14 +299,22 @@ private:
     // In the global version, we don't know who we'll receive from, so we
     // need to do some collective communication first.
     //
-    static void doHandShakeGlobal (const Vector<Long>& Snds, Vector<Long>& Rcvs);
+    static void doHandShakeReduceScatter (const Vector<Long>& Snds, Vector<Long>& Rcvs);
+
+    //
+    // Another version of the global handshake implemented with MPI-3
+    // one-sided communication.
+    //
+    static void doHandShakeOneSided (const ParticleContainerBase& pc,
+                                     const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
     //
     // Another version of the above that is implemented using MPI All-to-All
     //
     static void doHandShakeAllToAll (const Vector<Long>& Snds, Vector<Long>& Rcvs);
 
-    bool m_local;
+    bool m_local = false;
+    int m_do_one_sided_comms = 0;
 };
 
 struct GetSendBufferOffset

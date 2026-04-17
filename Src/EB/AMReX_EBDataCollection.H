@@ -7,6 +7,12 @@
 #include <AMReX_EBSupport.H>
 #include <AMReX_Array.H>
 
+/**
+ * \file AMReX_EBDataCollection.H
+ *
+ * Manages EB geometry data (flags, centroids, etc.) extracted from EB2::Level.
+ */
+
 namespace amrex {
 
 class EBFArrayBoxFactory;
@@ -16,12 +22,23 @@ class iMultiFab;
 class MultiCutFab;
 namespace EB2 { class Level; }
 
+//! Aggregates the EB data required to build EB-aware MultiFabs/FabFactories.
 class EBDataCollection
 {
 public:
 
     friend class EBFArrayBoxFactory;
 
+    /**
+     * \brief Allocate EB data components with the requested support level.
+     *
+     * \param a_level   EB2 level providing data.
+     * \param a_geom    Geometry used for filling.
+     * \param a_ba      Grid layout.
+     * \param a_dm      Distribution mapping for data ownership.
+     * \param a_ngrow   Grow cells per component (basic/volume/full).
+     * \param a_support Requested EBSupport tier (basic/volume/full).
+     */
     EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
                       const BoxArray& a_ba, const DistributionMapping& a_dm,
                       Vector<int>  a_ngrow, EBSupport a_support);
@@ -33,16 +50,27 @@ public:
     EBDataCollection& operator= (const EBDataCollection&) = delete;
     EBDataCollection& operator= (EBDataCollection&&) = delete;
 
+    //! Access the EBCellFlag data (always available at least for EBSupport::basic).
     [[nodiscard]] const FabArray<EBCellFlagFab>& getMultiEBCellFlagFab () const;
+    //! Level set field of the EB (basic support and above).
     [[nodiscard]] const MultiFab& getLevelSet () const;
+    //! Volume fraction (EBSupport::volume/full).
     [[nodiscard]] const MultiFab& getVolFrac () const;
+    //! Cell-centroid MultiCutFab.
     [[nodiscard]] const MultiCutFab& getCentroid () const;
+    //! Boundary centroid MultiCutFab.
     [[nodiscard]] const MultiCutFab& getBndryCent () const;
+    //! Boundary area MultiCutFab.
     [[nodiscard]] const MultiCutFab& getBndryArea () const;
+    //! Boundary normal MultiCutFab.
     [[nodiscard]] const MultiCutFab& getBndryNormal () const;
+    //! Area fractions for faces in each coordinate direction.
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getAreaFrac () const;
+    //! Face centroid MultiCutFabs.
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getFaceCent () const;
+    //! Edge centroid MultiCutFabs.
     [[nodiscard]] Array<const MultiCutFab*, AMREX_SPACEDIM> getEdgeCent () const;
+    //! cut-cell mask. The returned pointer is nullptr for AllRegular EB.
     [[nodiscard]] const iMultiFab* getCutCellMask () const;
 
     // public for cuda

@@ -56,7 +56,12 @@ MyTest::solvePoisson ()
     info.setDeterministic(deterministic);
     info.setMaxCoarseningLevel(max_coarsening_level);
 
-    const auto tol_rel = Real(1.e-10);
+    Real tol_rel;
+    if constexpr (std::is_same_v<double,Real>) {
+        tol_rel = Real(1.0e-10);
+    } else {
+        tol_rel = Real(1.0e-4);
+    }
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());
@@ -157,7 +162,12 @@ MyTest::solveABecLaplacian ()
     info.setMaxCoarseningLevel(max_coarsening_level);
     info.setMaxSemicoarseningLevel(max_semicoarsening_level);
 
-    const auto tol_rel = Real(1.e-10);
+    Real tol_rel;
+    if constexpr (std::is_same_v<double,Real>) {
+        tol_rel = Real(1.0e-10);
+    } else {
+        tol_rel = Real(1.0e-4);
+    }
     const auto tol_abs = Real(0.0);
 
     const auto nlevels = static_cast<int>(geom.size());

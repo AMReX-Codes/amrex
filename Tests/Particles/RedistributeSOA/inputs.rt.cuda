@@ -10,3 +10,5 @@ redistribute.do_regrid = 1
 
 redistribute.num_runtime_real = 2
 redistribute.num_runtime_int = 3
+
+particles.do_one_sided_comms = 1

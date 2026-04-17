@@ -431,7 +431,7 @@ template <typename T>
 AMREX_FORCE_INLINE
 void tridiagonal_solve (Array1D<T,0,31>& a_ls, Array1D<T,0,31>& b_ls, Array1D<T,0,31>& c_ls,
                         Array1D<T,0,31>& r_ls, Array1D<T,0,31>& u_ls, Array1D<T,0,31>& gam,
-                        int ilen ) noexcept
+                        int ilen )
 {
     T bet = b_ls(0);
     u_ls(0) = r_ls(0) / bet;
@@ -463,7 +463,7 @@ void abec_gsrb_with_line_solve (
                 Array4<T const> const& f4,
                 Array4<T const> const& f1, Array4<T const> const& f3,
                 Array4<T const> const& f5,
-                Box const& vbox, int redblack, int nc) noexcept
+                Box const& vbox, int redblack, int nc)
 {
     const auto lo = amrex::lbound(box);
     const auto hi = amrex::ubound(box);

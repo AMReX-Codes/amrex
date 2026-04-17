@@ -753,6 +753,153 @@ constructed inside of an MFIter loop with GPU kernels and great care should
 be used when accessing :cpp:`Gpu::ManagedVector` data on GPUs to avoid race
 conditions.
 
+.. _sec:gpu:buffer_managed_tracked:
+
+Gpu::Buffer, Gpu::ManagedVector, and Gpu::TrackedVector
+-------------------------------------------------------
+
+:cpp:`Gpu::Buffer` (``AMReX_GpuBuffer.H``) and :cpp:`Gpu::TrackedVector`
+(``AMReX_TrackedVector.H``) pair a host allocation with a device mirror.
+
+:cpp:`Gpu::Buffer` uses :cpp:`Gpu::PinnedVector` on the host and
+``copyToDeviceAsync()`` / ``copyToHost()`` for transfers.  Use it for
+**frequent, performance-oriented** async copies during a normal GPU run.
+
+:cpp:`Gpu::ManagedVector` is the arena-backed unified-memory vector introduced
+under **Gpu Vectors** above (``The_Managed_Arena()``).  Like :cpp:`Gpu::Buffer`
+it can only be used while AMReX is initialized / a GPU device context exists.
+
+:cpp:`Gpu::TrackedVector` exposes a host ``std::vector`` via ``host()`` /
+``host_const()`` and a device :cpp:`Gpu::NonManagedDeviceVector` via
+``device()`` / ``device_const()`` (GPU builds only).  Every accessor **automatically
+synchronizes** the other side when needed: if the host was modified and you
+call ``device()`` or ``device_const()``, a synchronous host-to-device copy
+runs first (and vice versa).  Writable accessors (``host()``, ``device()``)
+additionally mark the returned side as dirty so that the next access to the
+opposite side triggers a copy back.  Read-only accessors
+(``host_const()``, ``device_const()``) leave the status as ``up_to_date``
+after syncing.  You may populate the host **before**
+:cpp:`amrex::Initialize()`. Device memory is only valid while AMReX is
+initialized.  On :cpp:`amrex::Finalize()`, AMReX clears device storage via
+``release_gpu()`` and leaves the host copy for reuse, which supports
+**Python / pyAMReX** and other workflows that cross multiple AMReX
+initialize/finalize cycles.  Use read-only ``host_const()`` /
+``device_const()`` when you are not writing, so the object does not flip to a
+dirty state unnecessarily.
+
+.. _tab:gpu:buffer_managed_tracked:
+
+.. list-table::
+   :widths: 12 28 28 28
+   :header-rows: 1
+
+   * -
+     - :cpp:`Gpu::Buffer`
+     - :cpp:`Gpu::ManagedVector`
+     - :cpp:`Gpu::TrackedVector`
+   * - **Lifetime**
+     - Only between ``amrex::Initialize/Finalize()``
+     - Only between ``amrex::Initialize/Finalize()``
+     - Anytime and cross-session, GPU part only between ``amrex::Initialize/Finalize()``
+   * - **Usage**
+     - ``operator[]`` etc., explicit ``copyToDeviceAsync`` /
+       ``copyToHost``
+     - Single ``data()`` like :cpp:`amrex::Vector`
+     - Separate ``host()`` / ``device()`` (and ``*_const``)
+   * - **Synchronization**
+     - explicit
+     - implicit
+     - automatic on access, tracks status
+   * - **Performance**
+     - Best: pinned host enables asynchronous transfers
+     - Implicit memory migration can add latency
+     - Synchronous copy adds latency
+   * - **Best for**
+     - hot copy loops inside a run
+     - maximum simplicity
+     - interactive and cross-AMReX session usage, e.g., in pyAMReX for user inputs that do not change often
+
+
+A minimal :cpp:`Gpu::Buffer` pattern (host fill, async upload, kernel pointer):
+
+.. highlight:: c++
+
+::
+
+    amrex::Initialize(argc, argv);
+
+    Gpu::Buffer<int> buf(n);
+    for (int i = 0; i < n; ++i) { buf[i] = i; }
+
+    int* dp = buf.copyToDeviceAsync();
+    // launch kernels using dp, then optionally:
+    buf.copyToHost();
+
+:cpp:`Gpu::ManagedVector` example (unified memory, accessible from both host and device):
+
+.. highlight:: c++
+
+::
+
+    amrex::Initialize(argc, argv);
+
+    Gpu::ManagedVector<int> mv(n);
+    for (int i = 0; i < n; ++i) { mv[i] = i; }
+
+    int* dp = mv.data();
+    amrex::ParallelFor(n, [=] AMREX_GPU_DEVICE (int i) {
+        dp[i] *= 2;  // access on device
+    });
+
+    Gpu::streamSynchronize();
+    // mv[i] now accessible on host with updated values
+
+:cpp:`Gpu::TrackedVector` example:
+On GPU builds, you can create this type at any time, even before ``amrex::Initialize()``.
+``amrex::Finalize()`` releases device storage for the vector but
+keeps the host ``std::vector``, so a later ``Initialize()`` session
+can access ``device_const()`` or ``device()`` and the host data is
+automatically copied to the device.
+
+.. highlight:: c++
+
+::
+
+    // Host data before AMReX init; GPU available after Initialize().
+    amrex::Gpu::TrackedVector<int> cross_session;
+    cross_session.host() = {7, 8, 9};
+
+    // ... a lot of other interactive user code, e.g., to set up
+    // complex input data, optimization libraries or ML frameworks
+    // in multi-simulation workflows ...
+
+    amrex::Initialize(argc, argv);
+    {
+        // device access auto-syncs host data to device.
+        int const* dp = cross_session.device_const().data();
+        // use dp in kernels ...
+    }
+    amrex::Finalize();
+
+    // cross_session.device() is not available now and will throw,
+    // but you can keep using cross_session.host() / .host_const()
+
+    amrex::Initialize(argc, argv);
+    {
+        // Device buffer is re-created automatically on access.
+        int const* dp = cross_session.device_const().data();
+        // kernels may read via device_const().data()
+        // or write via device().data()
+    }
+    amrex::Finalize();
+
+Optional: Call ``release_gpu()`` when you need to free device memory while
+keeping the host ``std::vector`` for later (unless already released,
+``amrex::Finalize()`` clears device storage registered for the object).
+
+Generally, after device kernels, call :cpp:`Gpu::streamSynchronize()`
+(or equivalent ordering) before relying on host data, as for any other device work.
+
 MultiFab Reductions
 -------------------
 
