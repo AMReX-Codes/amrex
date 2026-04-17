@@ -194,22 +194,25 @@ MyTest::writePlotfile ()
     if (gpu_regtest) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
-            plotmf[ilev].define(grids[ilev],dmap[ilev], 5, 0);
+            const MultiFab& barea = factory[ilev]->getBndryArea().ToMultiFab(0.0, 0.0);
+            plotmf[ilev].define(grids[ilev],dmap[ilev], 6, 0);
             MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
             MultiFab::Copy(plotmf[ilev], phiexact[ilev], 0, 1, 1, 0);
             MultiFab::Copy(plotmf[ilev], vfrc, 0, 2, 1, 0);
             MultiFab::Copy(plotmf[ilev], fluxeb_sol[ilev], 0, 3, 1, 0);
             MultiFab::Copy(plotmf[ilev], fluxeb_exact[ilev], 0, 4, 1, 0);
+            MultiFab::Copy(plotmf[ilev], barea, 0, 2, 1, 0);
         }
         WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                                 amrex::GetVecOfConstPtrs(plotmf),
-                                {"phi","exact","vfrac","EB flux sol","EB flux exact"},
+                                {"phi","exact","vfrac","eb flux","eb flux exact","barea"},
                                 geom, 0.0, Vector<int>(max_level+1,0),
                                 Vector<IntVect>(max_level,IntVect{2}));
     } else {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
-            plotmf[ilev].define(grids[ilev],dmap[ilev], 8, 0);
+            const MultiFab& barea = factory[ilev]->getBndryArea().ToMultiFab(0.0, 0.0);
+            plotmf[ilev].define(grids[ilev],dmap[ilev], 10, 0);
 
             MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
 
@@ -231,10 +234,19 @@ MyTest::writePlotfile ()
 
             MultiFab::Copy(    plotmf[ilev], fluxeb_sol[ilev], 0, 7, 1, 0);
             MultiFab::Subtract(plotmf[ilev], fluxeb_exact[ilev], 0, 7, 1, 0);
+
+            MultiFab::Copy(    plotmf[ilev], fluxeb_sol[ilev], 0, 8, 1, 0);
+            MultiFab::Subtract(plotmf[ilev], fluxeb_exact[ilev], 0, 8, 1, 0);
+            MultiFab::Multiply(plotmf[ilev], barea, 0, 8, 1, 0);
+
+            MultiFab::Copy(plotmf[ilev], barea, 0, 9, 1, 0);
         }
         WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                                 amrex::GetVecOfConstPtrs(plotmf),
-                                {"phi","exact","error","error*vfrac","vfrac","EB flux sol","EB flux exact","EB flux error"},
+                                {
+                                    "phi", "exact", "error", "error*vfrac", "vfrac",
+                                    "eb flux", "eb flux exact", "flux error", "(flux error)*barea", "barea"
+                                },
                                 geom, 0.0, Vector<int>(max_level+1,0),
                                 Vector<IntVect>(max_level,IntVect{2}));
     }
