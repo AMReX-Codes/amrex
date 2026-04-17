@@ -69,18 +69,40 @@ namespace amrex
     void average_face_to_cellcenter (MultiFab& cc,
                                      const Array<const MultiFab*,AMREX_SPACEDIM>& fc,
                                      const Geometry& geom);
-    //! Average cell-centered MultiFab onto face-based MultiFab with geometric weighting.
+    /**
+     * \brief Average cell-centered MultiFab onto face-based MultiFab with
+     * geometric weighting.
+     *
+     * Fills in \p ngrow ghost cells in each face-centered MultiFab.
+     * The cell-centred MultiFab must have at least one more than \p ngrow
+     * ghost cells.
+     */
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
                                      const MultiFab& cc,
                                      const Geometry& geom,
                                      int ncomp = 1,
-                                     bool use_harmonic_averaging = false);
+                                     bool use_harmonic_averaging = false,
+                                     int ngrow = 0);
     //! Average cell-centered MultiFab onto face-based MultiFab with geometric weighting.
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
                                      const MultiFab& cc,
                                      const Geometry& geom,
                                      int ncomp = 1,
-                                     bool use_harmonic_averaging = false);
+                                     bool use_harmonic_averaging = false,
+                                     int ngrow = 0);
+
+    void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
+                                     const MultiFab& cc,
+                                     const Geometry& geom,
+                                     int ncomp,
+                                     bool use_harmonic_averaging,
+                                     IntVect const& ng_vect);
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
+                                     const MultiFab& cc,
+                                     const Geometry& geom,
+                                     int ncomp,
+                                     bool use_harmonic_averaging,
+                                     IntVect const& ng_vect);
 
     //! Average fine face-based FabArray onto crse face-based FabArray.
     template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int> = 0>

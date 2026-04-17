@@ -238,24 +238,49 @@ namespace amrex
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
-                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging)
+                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging, int ngrow)
     {
         average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-                                   cc, geom, ncomp, use_harmonic_averaging);
+                                   cc, geom, ncomp, use_harmonic_averaging, ngrow);
     }
 
 
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
-                                    const Geometry& geom, int ncomp, bool use_harmonic_averaging)
+                                    const Geometry& geom, int ncomp, bool use_harmonic_averaging, int ngrow)
+    {
+        IntVect ng_vect(ngrow);
+        average_cellcenter_to_face(fc, cc, geom, ncomp, use_harmonic_averaging, ng_vect);
+    }
+
+    void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
+                                     const MultiFab& cc,
+                                     const Geometry& geom,
+                                     int ncomp,
+                                     bool use_harmonic_averaging,
+                                     IntVect const& ng_vect)
+    {
+        average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
+                                   cc, geom, ncomp, use_harmonic_averaging, ng_vect);
+    }
+
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
+                                     const MultiFab& cc,
+                                     const Geometry& geom,
+                                     int ncomp,
+                                     bool use_harmonic_averaging,
+                                     IntVect const& ng_vect)
     {
         AMREX_ASSERT(cc.nComp() == ncomp);
-        AMREX_ASSERT(cc.nGrowVect().allGE(1));
+        AMREX_ASSERT(cc.nGrowVect().allGE(ng_vect+1));
         AMREX_ASSERT(fc[0]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(fc[0]->nGrowVect().allGE(ng_vect));
 #if (AMREX_SPACEDIM >= 2)
         AMREX_ASSERT(fc[1]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(fc[1]->nGrowVect().allGE(ng_vect));
 #endif
 #if (AMREX_SPACEDIM == 3)
         AMREX_ASSERT(fc[2]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(fc[2]->nGrowVect().allGE(ng_vect));
 #endif
 
 
@@ -282,6 +307,7 @@ namespace amrex
             {
                 Box ccbx(ccma[box_no]);
                 ccbx.grow(ng);
+                ccbx.grow(ng_vect);
                 AMREX_D_TERM(Box const& xbx = amrex::surroundingNodes(ccbx,0);,
                              Box const& ybx = amrex::surroundingNodes(ccbx,1);,
                              Box const& zbx = amrex::surroundingNodes(ccbx,2););
@@ -304,9 +330,9 @@ namespace amrex
 #endif
             for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
-                             const Box& ybx = mfi.nodaltilebox(1);,
-                             const Box& zbx = mfi.nodaltilebox(2););
+                AMREX_D_TERM(const Box& xbx = mfi.grownnodaltilebox(0, ng_vect);,
+                             const Box& ybx = mfi.grownnodaltilebox(1, ng_vect);,
+                             const Box& zbx = mfi.grownnodaltilebox(2, ng_vect););
                 const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
                 AMREX_D_TERM(Array4<Real> const& fxarr = fc[0]->array(mfi);,
