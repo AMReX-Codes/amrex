@@ -14,8 +14,8 @@ CArena::CArena (std::size_t hunk_size, ArenaInfo info)
     : m_hunk(align(hunk_size == 0 ? DefaultHunkSize : hunk_size))
 {
     arena_info = info;
-    BL_ASSERT(m_hunk >= hunk_size);
-    BL_ASSERT(m_hunk%Arena::align_size == 0);
+    AMREX_ALWAYS_ASSERT(m_hunk >= hunk_size);
+    AMREX_ALWAYS_ASSERT(m_hunk%Arena::align_size == 0);
 }
 
 CArena::~CArena ()
@@ -87,6 +87,8 @@ CArena::alloc_protected (std::size_t nbytes)
                 N = freeable_nbytes;
             }
         }
+
+        N = Arena::align(N);
 
         vp = allocate_system(N);
 

@@ -306,19 +306,15 @@ public:
 
     static void Finalize (); ///< Used internally by amrex
 
-#if 0
-    union Word
-    {
-        void*  p;
-        long long ll;
-        long double ld;
-        void (*f) ();
-    };
-    static const std::size_t align_size = sizeof(Word);
-#endif
-
     /// The alignment of allocated memory
-    static const std::size_t align_size = 16;
+    /// 256 bytes is the default alignment that cudaMalloc uses.
+    /// If the native allocation function were to give memory that
+    /// has a smaller alignment than align_size, memory from
+    /// the Arena will also only have this smaller alignment.
+    /// In practice, native allocation functions have >= 256 bytes
+    /// of alignment. In all cases, memory should be at least
+    /// aligned to std::max_align_t, usually 16.
+    static const std::size_t align_size = 256;
 
     /**
      *  \brief Return the ArenaInfo object for querying
