@@ -3,7 +3,6 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_GpuQualifiers.H>
-#include <AMReX_GpuTypes.H>
 
 #include <utility>
 
@@ -33,10 +32,26 @@
 #define AMREX_HIP_OR_CUDA_OR_SYCL(a,b,c) ((void)0);
 #endif
 
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_CUDA)
+#define AMREX_HIP_CUDA_OR_SYCL_OR_CPU(a,b,c) a
+#elif defined(AMREX_USE_SYCL)
+#define AMREX_HIP_CUDA_OR_SYCL_OR_CPU(a,b,c) b
+#else
+#define AMREX_HIP_CUDA_OR_SYCL_OR_CPU(a,b,c) c
+#endif
+
 #ifdef AMREX_USE_GPU
 #define AMREX_GPU_OR_CPU(a,b) a
 #else
 #define AMREX_GPU_OR_CPU(a,b) b
+#endif
+
+#ifdef AMREX_USE_SYCL
+#define AMREX_IF_SYCL(...) __VA_ARGS__
+#define AMREX_IF_NOT_SYCL(...)
+#else
+#define AMREX_IF_SYCL(...)
+#define AMREX_IF_NOT_SYCL(...) __VA_ARGS__
 #endif
 
 #ifdef AMREX_USE_SYCL
@@ -75,15 +90,7 @@ namespace amrex {
 #define AMREX_DEFAULT_RUNON =amrex::RunOn::Host // by default run on Host when compiling for Cpu
 #endif
 
-namespace amrex { // NOLINT(modernize-concat-nested-namespaces)
-
-#ifdef AMREX_USE_HIP
-using gpuStream_t = hipStream_t;
-#elif defined(AMREX_USE_CUDA)
-using gpuStream_t = cudaStream_t;
-#endif
-
-namespace Gpu {
+namespace amrex::Gpu {
 
 #if defined(AMREX_USE_GPU)
 
@@ -225,7 +232,6 @@ namespace Gpu {
 
 #endif
 
-}
 }
 
 #endif

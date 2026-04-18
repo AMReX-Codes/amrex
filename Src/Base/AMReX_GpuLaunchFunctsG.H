@@ -896,6 +896,110 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     }
 }
 
+template<int MT, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, L const& f)
+{
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
+    auto& q = Gpu::Device::streamQueue();
+
+    sycl::range<1> threads_per_block{MT};
+    sycl::range<1> threads_total{MT};
+
+    for (int i=0; i<dim; ++i) {
+        threads_total[0] *= static_cast<std::size_t>(nblocks[i]);
+    }
+
+    // With SYCL it is difficult to combine a 1D blockDim with an ND gridDim,
+    // so we use a 1D sycl range and split the blockID with BoxIndexerND. Note that
+    // BoxIndexerND is a bit inefficient since it is adding the smallEnd which is always zero here.
+    BoxIndexerND<dim> bxi(BoxND<dim>{IntVectND<dim>(0), nblocks - 1});
+
+    try {
+        q.submit([&] (sycl::handler& h) {
+            h.parallel_for(sycl::nd_range<1>(threads_total, threads_per_block),
+                [=] (sycl::nd_item<1> item)
+                [[sycl::reqd_work_group_size(MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+                {
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        (*pf)(Gpu::LaunchHandler<MT, void, dim>{
+                            &item,
+                            bxi.intVect(item.get_group(0)),
+                            nullptr
+                        });
+                    } else {
+                        f(Gpu::LaunchHandler<MT, void, dim>{
+                            &item,
+                            bxi.intVect(item.get_group(0)),
+                            nullptr
+                        });
+                    }
+                });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("LaunchRaw: ")+ex.what()+"!!!!!");
+    }
+}
+
+template<int MT, typename T, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
+{
+    detail::SyclKernelDevPtr<L> skdp(f, Gpu::gpuStream());
+    L const* pf = skdp.template get<0>();
+    amrex::ignore_unused(pf);
+
+    auto& q = Gpu::Device::streamQueue();
+    // use double4 for shared memory as it has the largest alignment of types that might be used
+    using ST = sycl::double4;
+    static_assert(alignof(ST) >= alignof(T));
+    const std::size_t shared_mem_num = (shared_mem_elements*sizeof(T)+sizeof(ST)-1) / sizeof(ST);
+
+    sycl::range<1> threads_per_block{MT};
+    sycl::range<1> threads_total{MT};
+
+    for (int i=0; i<dim; ++i) {
+        threads_total[0] *= static_cast<std::size_t>(nblocks[i]);
+    }
+
+    // With SYCL it is difficult to combine a 1D blockDim with an ND gridDim,
+    // so we use a 1D sycl range and split the blockID with BoxIndexerND. Note that
+    // BoxIndexerND is a bit inefficient since it is adding the smallEnd which is always zero here.
+    BoxIndexerND<dim> bxi(BoxND<dim>{IntVectND<dim>(0), nblocks - 1});
+
+    try {
+        q.submit([&] (sycl::handler& h) {
+            sycl::local_accessor<ST> shared_data(sycl::range<1>(shared_mem_num), h);
+            h.parallel_for(sycl::nd_range<1>(threads_total, threads_per_block),
+                [=] (sycl::nd_item<1> item)
+                [[sycl::reqd_work_group_size(MT)]]
+                [[sycl::reqd_sub_group_size(Gpu::Device::warp_size)]]
+                {
+                    T* shared_mem = reinterpret_cast<T*>(
+                        shared_data.template get_multi_ptr<sycl::access::decorated::yes>().get());
+                    if constexpr (detail::is_big_kernel<L>()) {
+                        (*pf)(Gpu::LaunchHandler<MT, T, dim>{
+                            &item,
+                            bxi.intVect(item.get_group(0)),
+                            shared_mem
+                        });
+                    } else {
+                        f(Gpu::LaunchHandler<MT, T, dim>{
+                            &item,
+                            bxi.intVect(item.get_group(0)),
+                            shared_mem
+                        });
+                    }
+                });
+        });
+    } catch (sycl::exception const& ex) {
+        amrex::Abort(std::string("LaunchRaw: ")+ex.what()+"!!!!!");
+    }
+}
+
+
 #else
 // CUDA or HIP
 
@@ -1281,6 +1385,87 @@ ParallelFor (Gpu::KernelInfo const&,
             }
         }
     });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ * that provides low-level access to GPU thread blocks through \ref amrex::Gpu::LaunchHandler.
+ *
+ * The number of threads per block is a compile-time-known one-dimensional value that usually
+ * should be one of 128, 256, 512 or 1024.
+ *
+ * The number of total blocks can be a 1D, 2D or 3D IntVectND. Internally this uses the native
+ * way to split the index for CUDA and HIP, using blockIdx.x, blockIdx.y and blockIdx.z.
+ * Note that this uses types int and unsigned int which might overflow if many blocks or
+ * total threads are needed. In case this is an issue, it is necessary to explicitly add
+ * a 64-bit grid-strided loop or to call LaunchRaw multiple times with fewer blocks.
+ *
+ * \tparam MT number of threads per GPU block.
+ * \param nblocks number of GPU blocks to launch.
+ * \param f a callable object that takes amrex::Gpu::LaunchHandler as input.
+ */
+template<int MT, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, L const& f)
+{
+    dim3 num_blocks;
+    num_blocks.x = nblocks[0];
+    if constexpr (dim >= 2) {
+        num_blocks.y = nblocks[1];
+    }
+    if constexpr (dim == 3) {
+        num_blocks.z = nblocks[2];
+    }
+
+    AMREX_LAUNCH_KERNEL(MT, num_blocks, MT, 0, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            f(Gpu::LaunchHandler<MT, void, dim>{});
+        });
+    AMREX_GPU_ERROR_CHECK();
+}
+
+/**
+ * \ingroup amrex_execution
+ * \brief Performance-portable kernel launch function
+ * that provides low-level access to GPU thread blocks and shared memory
+ * through \ref amrex::Gpu::LaunchHandler.
+ *
+ * The number of threads per block is a compile-time-known one-dimensional value that usually
+ * should be one of 128, 256, 512 or 1024.
+ *
+ * The number of total blocks can be a 1D, 2D or 3D IntVectND. Internally this uses the native
+ * way to split the index for CUDA and HIP, using blockIdx.x, blockIdx.y and blockIdx.z.
+ * Note that this uses types int and unsigned int which might overflow if many blocks or
+ * total threads are needed. In case this is an issue, it is necessary to explicitly add
+ * a 64-bit grid-strided loop or to call LaunchRaw multiple times with fewer blocks.
+ *
+ * This version of LaunchRaw supports the use of dynamic shared memory inside the thread block.
+ * Shared memory is a fast cache local to thread blocks. It has different names in
+ * different GPU backends (CUDA: shared memory, HIP: local data share, SYCL: local memory).
+ *
+ * \tparam MT number of threads per GPU block.
+ * \tparam T data type of shared memory elements.
+ * \param nblocks number of GPU blocks to launch.
+ * \param shared_mem_elements number of shared memory elements per block to allocate.
+ * \param f a callable object that takes amrex::Gpu::LaunchHandler as input.
+ */
+template<int MT, typename T, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
+{
+    dim3 num_blocks;
+    num_blocks.x = nblocks[0];
+    if constexpr (dim >= 2) {
+        num_blocks.y = nblocks[1];
+    }
+    if constexpr (dim == 3) {
+        num_blocks.z = nblocks[2];
+    }
+
+    AMREX_LAUNCH_KERNEL(MT, num_blocks, MT, shared_mem_elements * sizeof(T), Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE () noexcept {
+            f(Gpu::LaunchHandler<MT, T, dim>{});
+        });
     AMREX_GPU_ERROR_CHECK();
 }
 

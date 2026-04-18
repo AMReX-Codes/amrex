@@ -2,6 +2,8 @@
 #define AMREX_GPU_LAUNCH_FUNCTS_C_H_
 #include <AMReX_Config.H>
 
+#include <vector>
+
 namespace amrex {
 
 /// \cond DOXYGEN_IGNORE
@@ -129,6 +131,65 @@ void launch (T const& n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     std::forward<L>(f)(n);
+}
+
+template<int MT, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, L const& f)
+{
+    static_assert(MT == 1, "LaunchRaw with CPU backend only works with one thread per block! "
+        "Otherwise the syncthreads function would not work");
+    if constexpr(dim == 1) {
+        for (int bx=0; bx < nblocks[0]; ++bx) {
+            f(Gpu::LaunchHandler<MT, void, dim>{
+                IntVectND<1>{bx}, nblocks, nullptr});
+        }
+    } else if constexpr(dim == 2) {
+        for (int by=0; by < nblocks[1]; ++by) {
+            for (int bx=0; bx < nblocks[0]; ++bx) {
+                f(Gpu::LaunchHandler<MT, void, dim>{
+                    IntVectND<2>{bx, by}, nblocks, nullptr});
+            }
+        }
+    } else {
+        for (int bz=0; bz < nblocks[2]; ++bz) {
+            for (int by=0; by < nblocks[1]; ++by) {
+                for (int bx=0; bx < nblocks[0]; ++bx) {
+                    f(Gpu::LaunchHandler<MT, void, dim>{
+                        IntVectND<3>{bx, by, bz}, nblocks, nullptr});
+                }
+            }
+        }
+    }
+}
+
+template<int MT, typename T, int dim, typename L>
+void LaunchRaw (IntVectND<dim> nblocks, std::size_t shared_mem_elements, L const& f)
+{
+    static_assert(MT == 1, "LaunchRaw with CPU backend only works with one thread per block! "
+        "Otherwise the syncthreads function would not work");
+    std::vector<T> smem(shared_mem_elements);
+    if constexpr(dim == 1) {
+        for (int bx=0; bx < nblocks[0]; ++bx) {
+            f(Gpu::LaunchHandler<MT, T, dim>{
+                IntVectND<1>{bx}, nblocks, smem.data()});
+        }
+    } else if constexpr(dim == 2) {
+        for (int by=0; by < nblocks[1]; ++by) {
+            for (int bx=0; bx < nblocks[0]; ++bx) {
+                f(Gpu::LaunchHandler<MT, T, dim>{
+                    IntVectND<2>{bx, by}, nblocks, smem.data()});
+            }
+        }
+    } else {
+        for (int bz=0; bz < nblocks[2]; ++bz) {
+            for (int by=0; by < nblocks[1]; ++by) {
+                for (int bx=0; bx < nblocks[0]; ++bx) {
+                    f(Gpu::LaunchHandler<MT, T, dim>{
+                        IntVectND<3>{bx, by, bz}, nblocks, smem.data()});
+                }
+            }
+        }
+    }
 }
 
 template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >

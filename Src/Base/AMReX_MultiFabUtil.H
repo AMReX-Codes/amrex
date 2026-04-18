@@ -1257,20 +1257,14 @@ void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box
             const auto len = amrex::length(bx);
             constexpr int nthreads = 128;
             auto nblocks = static_cast<int>(b2d.numPts());
-#ifdef AMREX_USE_SYCL
-            constexpr std::size_t shared_mem_bytes = sizeof(T)*Gpu::Device::warp_size;
-            amrex::launch<nthreads>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
-                                    [=] AMREX_GPU_DEVICE (Gpu::Handler const& h)
+
+            amrex::LaunchRaw<nthreads, T>(amrex::IntVectND<1>{nblocks},
+                AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
+                [=] AMREX_GPU_DEVICE (auto lh)
             {
-                int bid = h.blockIdx();
-                int tid = h.threadIdx();
-#else
-            amrex::launch<nthreads>(nblocks, Gpu::gpuStream(),
-                                    [=] AMREX_GPU_DEVICE ()
-            {
-                int bid = blockIdx.x;
-                int tid = threadIdx.x;
-#endif
+                int bid = lh.blockIdx1D();
+                int tid = lh.threadIdx1D();
+
                 T tmp;
                 Op().init(tmp);
                 T* p;
@@ -1303,7 +1297,7 @@ void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box
                     p = ar.ptr(i,j,0);
                 }
 #ifdef AMREX_USE_SYCL
-                Op().template parallel_update<T>(*p, tmp, h);
+                Op().template parallel_update<T>(*p, tmp, lh.handler());
 #else
                 Op().template parallel_update<T,nthreads>(*p, tmp);
 #endif

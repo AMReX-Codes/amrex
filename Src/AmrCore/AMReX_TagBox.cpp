@@ -446,14 +446,14 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
         int* ntags = dv_ntags.data() + blockoffset[li];
         const int ncells = fai.fabbox().numPts();
         const char* tags = (*this)[fai].dataPtr();
-#ifdef AMREX_USE_SYCL
-        amrex::launch<block_size>(nblocks[li], sizeof(int)*Gpu::Device::warp_size,
-                                  Gpu::Device::gpuStream(),
-        [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
+
+        amrex::LaunchRaw<block_size, int>(amrex::IntVectND<1>{nblocks[li]},
+        AMREX_IF_SYCL(Gpu::Device::warp_size) AMREX_IF_NOT_SYCL(0),
+        [=] AMREX_GPU_DEVICE (auto lh) noexcept
         {
-            int bid = h.item->get_group_linear_id();
-            int tid = h.item->get_local_id(0);
-            int icell = h.item->get_global_id(0);
+            int bid = lh.blockIdx1D();
+            int tid = lh.threadIdx1D();
+            int icell = lh.globalIdx1D();
 
             int t = 0;
             if (icell < ncells && tags[icell] != TagBox::CLEAR) {
@@ -461,31 +461,12 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             }
 
             t = Gpu::blockReduce<Gpu::Device::warp_size>
-                (t, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0, h);
+                (t, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0
+                AMREX_IF_SYCL(, lh.handler()));
             if (tid == 0) {
                 ntags[bid] = t;
             }
         });
-#else
-        amrex::launch<block_size>(nblocks[li], Gpu::Device::gpuStream(),
-        [=] AMREX_GPU_DEVICE () noexcept
-        {
-            int bid = blockIdx.x;
-            int tid = threadIdx.x;
-            int icell = block_size*blockIdx.x+threadIdx.x;
-
-            int t = 0;
-            if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                t = 1;
-            }
-
-            t = Gpu::blockReduce<Gpu::Device::warp_size>
-                (t, Gpu::warpReduce<Gpu::Device::warp_size,int,amrex::Plus<int> >(), 0);
-            if (tid == 0) {
-                ntags[bid] = t;
-            }
-        });
-#endif
     }
 
     Gpu::PinnedVector<int> hv_ntags(ntotblocks);
@@ -524,62 +505,37 @@ TagBoxArray::local_collate_gpu (Gpu::PinnedVector<IntVect>& v) const
             const auto lenx  = len.x;
             const int ncells = bx.numPts();
             const char* tags = (*this)[fai].dataPtr();
+            amrex::LaunchRaw<block_size, unsigned int>(amrex::IntVectND<1>{nblocks[li]}, 1,
+            [=] AMREX_GPU_DEVICE (auto lh) noexcept
+            {
+                int bid = lh.blockIdx1D();
+                int tid = lh.threadIdx1D();
+                int icell = lh.globalIdx1D();
+
+                unsigned int * shared_counter = lh.shared_memory();
+                if (tid == 0) {
+                    *shared_counter = 0;
+                }
+                lh.syncthreads();
+
+                if (icell < ncells && tags[icell] != TagBox::CLEAR) {
+
+                    unsigned int itag = Gpu::Atomic::Add
 #ifdef AMREX_USE_SYCL
-            amrex::launch<block_size>(nblocks[li], sizeof(unsigned int), Gpu::Device::gpuStream(),
-            [=] AMREX_GPU_DEVICE (Gpu::Handler const& h) noexcept
-            {
-                int bid = h.item->get_group(0);
-                int tid = h.item->get_local_id(0);
-                int icell = h.item->get_global_id(0);
-
-                unsigned int* shared_counter = (unsigned int*)h.local;
-                if (tid == 0) {
-                    *shared_counter = 0;
-                }
-                h.item->barrier(sycl::access::fence_space::local_space);
-
-                if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Add<unsigned int,
-                                                         sycl::access::address_space::local_space>
-                        (shared_counter, 1u);
-                    IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
-                    int k =  icell /   lenxy;
-                    int j = (icell - k*lenxy) /   lenx;
-                    int i = (icell - k*lenxy) - j*lenx;
-                    i += lo.x;
-                    j += lo.y;
-                    k += lo.z;
-                    p[itag] = IntVect(AMREX_D_DECL(i,j,k));
-                }
-            });
-#else
-            amrex::launch<block_size>(nblocks[li], sizeof(unsigned int), Gpu::Device::gpuStream(),
-            [=] AMREX_GPU_DEVICE () noexcept
-            {
-                int bid = blockIdx.x;
-                int tid = threadIdx.x;
-                int icell = block_size*blockIdx.x+threadIdx.x;
-
-                Gpu::SharedMemory<unsigned int> gsm;
-                unsigned int * shared_counter = gsm.dataPtr();
-                if (tid == 0) {
-                    *shared_counter = 0;
-                }
-                __syncthreads();
-
-                if (icell < ncells && tags[icell] != TagBox::CLEAR) {
-                    unsigned int itag = Gpu::Atomic::Add(shared_counter, 1u);
-                    IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
-                    int k =  icell /   lenxy;
-                    int j = (icell - k*lenxy) /   lenx;
-                    int i = (icell - k*lenxy) - j*lenx;
-                    i += lo.x;
-                    j += lo.y;
-                    k += lo.z;
-                    p[itag] = IntVect(AMREX_D_DECL(i,j,k));
-                }
-            });
+                        <unsigned int, sycl::access::address_space::local_space>
 #endif
+                        (shared_counter, 1u);
+
+                    IntVect* p = dp_tags + dp_tags_offset[iblock_begin+bid];
+                    int k =  icell /   lenxy;
+                    int j = (icell - k*lenxy) /   lenx;
+                    int i = (icell - k*lenxy) - j*lenx;
+                    i += lo.x;
+                    j += lo.y;
+                    k += lo.z;
+                    p[itag] = IntVect(AMREX_D_DECL(i,j,k));
+                }
+            });
         }
     }
 

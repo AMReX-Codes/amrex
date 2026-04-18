@@ -42,49 +42,27 @@ void fill (BaseFab<STRUCT>& aos_fab, F const& f)
         std::uint64_t nblocks_long = (ntotcells+nthreads_per_block-1)/nthreads_per_block;
         AMREX_ASSERT(nblocks_long <= std::uint64_t(std::numeric_limits<int>::max()));
         auto nblocks = int(nblocks_long);
-        std::size_t shared_mem_bytes = nthreads_per_block * sizeof(STRUCT);
+        std::size_t shared_mem_elem = nthreads_per_block * STRUCTSIZE;
         T* p = (T*)aos_fab.dataPtr();
-#ifdef AMREX_USE_SYCL
-        amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
+        amrex::LaunchRaw<nthreads_per_block, T>(amrex::IntVectND<1>{nblocks}, shared_mem_elem,
+        [=] AMREX_GPU_DEVICE (auto lh) noexcept
         {
-            auto const icell = std::uint64_t(handler.globalIdx());
-            std::uint64_t const blockDimx = handler.blockDim();
-            std::uint64_t const threadIdxx = handler.threadIdx();
-            std::uint64_t const blockIdxx = handler.blockIdx();
-            auto const shared = (T*)handler.sharedMemory();
+            std::uint64_t const icell =
+                std::uint64_t(lh.blockDim1D())*lh.blockIdx1D()+lh.threadIdx1D();
+            T* const shared = lh.shared_memory();
             if (icell < indexer.numPts()) {
-                auto ga = new(shared+threadIdxx*STRUCTSIZE) STRUCT;
+                auto ga = new(shared+std::uint64_t(lh.threadIdx1D())*STRUCTSIZE) STRUCT;
                 auto [i, j, k] = indexer(icell);
                 f(*ga, i, j, k);
             }
-            handler.sharedBarrier();
-            for (std::uint64_t m = threadIdxx,
-                     mend = amrex::min<std::uint64_t>(blockDimx, indexer.numPts()-blockDimx*blockIdxx) * STRUCTSIZE;
-                 m < mend; m += blockDimx) {
-                p[blockDimx*blockIdxx*STRUCTSIZE+m] = shared[m];
+            lh.syncthreads();
+            for (std::uint64_t m = lh.threadIdx1D(),
+                    mend = amrex::min<std::uint64_t>(lh.blockDim1D(),
+                    indexer.numPts()-std::uint64_t(lh.blockDim1D())*lh.blockIdx1D()) * STRUCTSIZE;
+                 m < mend; m += lh.blockDim1D()) {
+                p[std::uint64_t(lh.blockDim1D())*lh.blockIdx1D()*STRUCTSIZE+m] = shared[m];
             }
         });
-#else
-        amrex::launch<nthreads_per_block>(nblocks, shared_mem_bytes, Gpu::gpuStream(),
-        [=] AMREX_GPU_DEVICE () noexcept
-        {
-            std::uint64_t const icell = std::uint64_t(blockDim.x)*blockIdx.x+threadIdx.x;
-            Gpu::SharedMemory<T> gsm;
-            T* const shared = gsm.dataPtr();
-            if (icell < indexer.numPts()) {
-                auto ga = new(shared+std::uint64_t(threadIdx.x)*STRUCTSIZE) STRUCT;
-                auto [i, j, k] = indexer(icell);
-                f(*ga, i, j, k);
-            }
-            __syncthreads();
-            for (std::uint64_t m = threadIdx.x,
-                     mend = amrex::min<std::uint64_t>(blockDim.x, indexer.numPts()-std::uint64_t(blockDim.x)*blockIdx.x) * STRUCTSIZE;
-                 m < mend; m += blockDim.x) {
-                p[std::uint64_t(blockDim.x)*blockIdx.x*STRUCTSIZE+m] = shared[m];
-            }
-        });
-#endif
     } else
 #endif
     {

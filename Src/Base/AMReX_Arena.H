@@ -5,7 +5,7 @@
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_USE_GPU
-#include <AMReX_GpuControl.H>
+#include <AMReX_GpuTypes.H>
 #endif
 
 #ifdef AMREX_TINY_PROFILING
