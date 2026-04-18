@@ -170,8 +170,8 @@ void mytest_set_fluxeb (
             //       = pi/2 - atan2(y,x) + pi/2
             //       = pi - th
             // phi = r^4 cos(3 theta)
-            //     = r^4 cos(3*(pi - th))
-            // grad phi = rhat(+4 r^3 cos(3 theta)) + thhat(+3 r^3 sin(3 theta))
+            //     = r^4 cos(3 (pi - th))
+            // grad phi = rhat (+4 r^3 cos(3 theta)) + thhat (+3 r^3 sin(3 theta))
             // rhat  = (+x/r) xhat + (+y/r) yhat
             // thhat = (-y/r) xhat + (+x/r) yhat
             // grad_x phi = (+x/r)(+4 r^3 cos(3 theta)) + (-y/r)(+3 r^3 sin(3 theta))
@@ -195,10 +195,6 @@ void mytest_set_fluxeb (
         }
     }
 }
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void compute_bnorm(int i, int j, int k, )
-
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mytest_set_phi_boundary (int i, int j, int k, amrex::Array4<amrex::Real> const& phi,
