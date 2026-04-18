@@ -627,6 +627,8 @@ void
 TableData<T,N,ORDER>::copy (TableData<T,N,ORDER> const& rhs) noexcept
 {
     std::size_t count = sizeof(T)*size();
+    if (count == 0) { return; }
+    AMREX_ASSERT(count == sizeof(T)*rhs.size());
 #ifdef AMREX_USE_GPU
     bool this_on_device = arena()->isManaged() || arena()->isDevice();
     bool rhs_on_device = rhs.arena()->isManaged() || rhs.arena()->isDevice();
