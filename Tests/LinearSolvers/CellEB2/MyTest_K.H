@@ -164,17 +164,22 @@ void mytest_set_fluxeb (
             amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
 
-            // Compute grad phi Cartesian components
+            // Derivation of grad phi Cartesian components:
+            // th = atan2(y,x) is the polar angle
             // theta = atan2(x,y) + pi/2
             //       = pi/2 - atan2(y,x) + pi/2
             //       = pi - th
             // phi = r^4 cos(3 theta)
             //     = r^4 cos(3*(pi - th))
-            // grad phi = 4 r^3 cos(3 theta) rhat + 3 r^3 sin(3 theta) thhat
-            // rhat = (x/r) xhat + (y/r) yhat
-            // thhat = (-y/r) xhat + (x/r) yhat
-            amrex::Real gradphi_x = r2 * (x * 4.0 * std::cos(3.*theta) - y * 3.0 * std::sin(3.*theta));
-            amrex::Real gradphi_y = r2 * (y * 4.0 * std::cos(3.*theta) + x * 3.0 * std::sin(3.*theta));
+            // grad phi = rhat(+4 r^3 cos(3 theta)) + thhat(+3 r^3 sin(3 theta))
+            // rhat  = (+x/r) xhat + (+y/r) yhat
+            // thhat = (-y/r) xhat + (+x/r) yhat
+            // grad_x phi = (+x/r)(+4 r^3 cos(3 theta)) + (-y/r)(+3 r^3 sin(3 theta))
+            // grad_y phi = (-y/r)(+4 r^3 cos(3 theta)) + (+x/r)(+3 r^3 sin(3 theta))
+            amrex::Real gradphi_r_over_r = 4.0 * r2 * std::cos(3.*theta);
+            amrex::Real gradphi_t_over_r = 3.0 * r2 * std::sin(3.*theta);
+            amrex::Real gradphi_x = x * gradphi_r_over_r - y * gradphi_t_over_r;
+            amrex::Real gradphi_y = y * gradphi_r_over_r + x * gradphi_t_over_r;
 
             amrex::Real bx = 1.0;
             amrex::Real by = 1.0;
@@ -190,6 +195,10 @@ void mytest_set_fluxeb (
         }
     }
 }
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void compute_bnorm(int i, int j, int k, )
+
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mytest_set_phi_boundary (int i, int j, int k, amrex::Array4<amrex::Real> const& phi,
