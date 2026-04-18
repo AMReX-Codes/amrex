@@ -114,7 +114,7 @@ MyTest::solve ()
         const Real tol_abs = 0.0;
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
 
-        // Get EB fluxes
+        // Test getEBFluxes
         mleb.getEBFluxes(amrex::GetVecOfPtrs(fluxeb_sol), amrex::GetVecOfPtrs(phi));
     }
     else
@@ -159,7 +159,7 @@ MyTest::solve ()
             const Real tol_abs = 0.0;
             mlmg.solve({&phi[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
 
-            // Get EB fluxes
+            // Test getEBFluxes
             mleb.getEBFluxes({&fluxeb_sol[ilev]}, {&phi[ilev]});
         }
     }
@@ -182,15 +182,19 @@ MyTest::solve ()
         for (int ilev = 0; ilev <= max_level; ++ilev)
         {
             const MultiFab& barea = factory[ilev]->getBndryArea().ToMultiFab(0.0, 0.0);
+            const Real nxyzi = AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
 
             MultiFab mf_feb_err(fluxeb_sol[ilev].boxArray(), fluxeb_sol[ilev].DistributionMap(), 1, 0);
             MultiFab::Copy(mf_feb_err, fluxeb_sol[ilev], 0, 0, 1, 0);
             MultiFab::Subtract(mf_feb_err, fluxeb_exact[ilev], 0, 0, 1, 0);
+
+            amrex::Print() << "Level " << ilev << ": EB flux error norms "
+                << mf_feb_err.norm0() << ", " << mf_feb_err.norm1()*nxyzi << '\n';
+
             MultiFab::Multiply(mf_feb_err, barea, 0, 0, 1, 0);
 
-            Real norminf_feb = mf_feb_err.norm0();
-            Real norm1_feb = mf_feb_err.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
-            amrex::Print() << "Level " << ilev << ": EB flux error norms " << norminf_feb << ", " << norm1_feb << '\n';
+            amrex::Print() << "Level " << ilev << ": EB flux error weighted norms "
+                << mf_feb_err.norm0() << ", " << mf_feb_err.norm1()*nxyzi << '\n';
         }
     }
 }
@@ -214,7 +218,7 @@ MyTest::writePlotfile ()
             MultiFab::Copy(plotmf[ilev], vfrc, 0, 2, 1, 0);
             MultiFab::Copy(plotmf[ilev], fluxeb_sol[ilev], 0, 3, 1, 0);
             MultiFab::Copy(plotmf[ilev], fluxeb_exact[ilev], 0, 4, 1, 0);
-            MultiFab::Copy(plotmf[ilev], barea, 0, 2, 1, 0);
+            MultiFab::Copy(plotmf[ilev], barea, 0, 5, 1, 0);
         }
         WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                                 amrex::GetVecOfConstPtrs(plotmf),
