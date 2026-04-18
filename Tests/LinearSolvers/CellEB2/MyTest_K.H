@@ -154,79 +154,27 @@ void mytest_set_fluxeb (
         if (flag.isCovered()) {
             fluxeb_exact(i,j,k) = 0.0;
         } else if (flag.isSingleValued()) {
-            // amrex::Real const nx = ebdata.get<amrex::EBData_t::bndrynorm>(i,j,k,0);
-            // amrex::Real const ny = ebdata.get<amrex::EBData_t::bndrynorm>(i,j,k,1);
+            amrex::Real const nx = ebdata.get<amrex::EBData_t::bndrynorm>(i,j,k,0);
+            amrex::Real const ny = ebdata.get<amrex::EBData_t::bndrynorm>(i,j,k,1);
             amrex::Real const bcentx = ebdata.get<amrex::EBData_t::bndrycent>(i,j,k,0);
             amrex::Real const bcenty = ebdata.get<amrex::EBData_t::bndrycent>(i,j,k,1);
-
-#if (AMREX_SPACEDIM != 3)
-            amrex::Real apxm = ebdata.get<amrex::EBData_t::apx>(i  ,j,k);
-            amrex::Real apxp = ebdata.get<amrex::EBData_t::apx>(i+1,j,k);
-            amrex::Real apym = ebdata.get<amrex::EBData_t::apy>(i,j  ,k);
-            amrex::Real apyp = ebdata.get<amrex::EBData_t::apy>(i,j+1,k);
-            amrex::Real dapx = (apxm-apxp)*dx[1];
-            amrex::Real dapy = (apym-apyp)*dx[0];
-            amrex::Real anorm = std::hypot(dapx,dapy) + 1.e-30*std::sqrt(dx[0]*dx[1]);
-#else
-            amrex::Real apxm = ebdata.get<amrex::EBData_t::apx>(i  ,j,k);
-            amrex::Real apxp = ebdata.get<amrex::EBData_t::apx>(i+1,j,k);
-            amrex::Real apym = ebdata.get<amrex::EBData_t::apy>(i,j  ,k);
-            amrex::Real apyp = ebdata.get<amrex::EBData_t::apy>(i,j+1,k);
-            amrex::Real apzm = ebdata.get<amrex::EBData_t::apz>(i,j,k  );
-            amrex::Real apzp = ebdata.get<amrex::EBData_t::apz>(i,j,k+1);
-            amrex::Real dapx = (apxm-apxp)*dx[1]*dx[2];
-            amrex::Real dapy = (apym-apyp)*dx[0]*dx[2];
-            amrex::Real dapz = (apzm-apzp)*dx[0]*dx[1];
-            amrex::Real anorm = std::sqrt(dapx*dapx+dapy*dapy+dapz*dapz);
-#endif
-            amrex::Real anorminv = amrex::Real(1.0)/anorm;
-            amrex::Real nx = dapx * anorminv;
-            amrex::Real ny = dapy * anorminv;
-
-            amrex::Real const nx_ebdata = ebdata.get<amrex::EBData_t::bndrynorm>(i,j,k,0);
-            amrex::Real const ny_ebdata = ebdata.get<amrex::EBData_t::bndrynorm>(i,j,k,1);
 
             amrex::Real x = (i+0.5+bcentx)*dx[0] - 0.5;
             amrex::Real y = (j+0.5+bcenty)*dx[1] - 0.5;
             amrex::Real theta = std::atan2(x,y) + 0.5*pi;
             amrex::Real r2 = x*x+y*y;
-            amrex::Real r = std::sqrt(r2);
-            amrex::Real r3 = r*r2;
 
-            // amrex::Real gradphi_x = 0.5 * r3 * (-7.0*std::cos(2.*theta) - std::cos(4.*theta));
-            // amrex::Real gradphi_y = 0.5 * r3 * (-7.0*std::sin(2.*theta) + std::sin(4.*theta));
-
+            // Compute grad phi Cartesian components
+            // theta = atan2(x,y) + pi/2
+            //       = pi/2 - atan2(y,x) + pi/2
+            //       = pi - th
+            // phi = r^4 cos(3 theta)
+            //     = r^4 cos(3*(pi - th))
+            // grad phi = 4 r^3 cos(3 theta) rhat + 3 r^3 sin(3 theta) thhat
+            // rhat = (x/r) xhat + (y/r) yhat
+            // thhat = (-y/r) xhat + (x/r) yhat
             amrex::Real gradphi_x = r2 * (x * 4.0 * std::cos(3.*theta) - y * 3.0 * std::sin(3.*theta));
             amrex::Real gradphi_y = r2 * (y * 4.0 * std::cos(3.*theta) + x * 3.0 * std::sin(3.*theta));
-
-            amrex::Real th = atan2(y,x);
-            amrex::Real costh = std::cos(th);
-            amrex::Real sinth = std::sin(th);
-
-            // theta = pi - th
-            // phi = r^4 cos(theta) = r^4 cos(3*(pi - th))
-            amrex::Real gradphi_r = +4.0 * r3 * std::cos(3.*theta);
-            amrex::Real gradphi_t = +3.0 * r3 * std::sin(3.*theta);
-            amrex::Real gradphi_cyl_x = costh*gradphi_r - sinth*gradphi_t;
-            amrex::Real gradphi_cyl_y = sinth*gradphi_r + costh*gradphi_t;
-
-            if (std::hypot(nx - nx_ebdata, ny - ny_ebdata) >= 1.0e-7) {
-                amrex::Print() << "\n";
-                amrex::Print() << "i j k: " << i << " " << j << " " << k << "\n";
-                amrex::Print() << "    x = " << x << ", y = " << y << "\n";
-                amrex::Print() << "    r = " << r << ", th (degrees) = " << 180.0*th/pi << "\n";
-                amrex::Print() << "    n from ap = " << nx        << ", " << ny        << "\n";
-                amrex::Print() << "    n_ebdata  = " << nx_ebdata << ", " << ny_ebdata << "\n";
-                amrex::Print() << "\n";
-            }
-
-            // nx = nx_ebdata;
-            // ny = ny_ebdata;
-            // BL_ASSERT(std::abs(nx - nx_ebdata) < 1.0e-7);
-            // BL_ASSERT(std::abs(ny - ny_ebdata) < 1.0e-7);
-
-            BL_ASSERT(std::abs(gradphi_x - gradphi_cyl_x) < 1.0e-9);
-            BL_ASSERT(std::abs(gradphi_y - gradphi_cyl_y) < 1.0e-9);
 
             amrex::Real bx = 1.0;
             amrex::Real by = 1.0;
@@ -234,13 +182,12 @@ void mytest_set_fluxeb (
                 bx = 1.0 - r2;
                 by = 1.0 - r2;
             }
-            // flux on eb surface = - (area normal).(b tensor).(grad phi)
+            // Flux on EB surface = - (area normal).(b tensor).(grad phi)
             amrex::Real n_b_gradphi = nx * bx * gradphi_x + ny * by * gradphi_y;
             fluxeb_exact(i,j,k) = -n_b_gradphi;
         } else {
             fluxeb_exact(i,j,k) = 0.0;
         }
-        // fluxeb_exact(i,j,k) = 7.0;
     }
 }
 
