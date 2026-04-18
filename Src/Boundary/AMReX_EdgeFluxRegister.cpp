@@ -182,6 +182,31 @@ void EdgeFluxRegister::reset ()
     Gpu::synchronize();
 }
 
+EdgeFluxRegister&
+EdgeFluxRegister::plus (EdgeFluxRegister const& rhs)
+{
+    AMREX_ALWAYS_ASSERT(m_ratio == rhs.m_ratio);
+    AMREX_ALWAYS_ASSERT(m_ncomp == rhs.m_ncomp);
+
+#if (AMREX_SPACEDIM == 3)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiFab::Add(m_E_crse[idim], rhs.m_E_crse[idim], 0, 0, m_ncomp, 0);
+    }
+    for (int iface = 0; iface < AMREX_SPACEDIM*2; ++iface) {
+        for (int icomp = 0; icomp < 2; ++icomp) {
+            MultiFab::Add(m_E_fine[iface][icomp], rhs.m_E_fine[iface][icomp], 0, 0, m_ncomp, 0);
+        }
+    }
+#else
+    MultiFab::Add(m_E_crse, rhs.m_E_crse, 0, 0, m_ncomp, 0);
+    for (int iface = 0; iface < AMREX_SPACEDIM*2; ++iface) {
+        MultiFab::Add(m_E_fine[iface], rhs.m_E_fine[iface], 0, 0, m_ncomp, 0);
+    }
+#endif
+
+    return *this;
+}
+
 #if (AMREX_SPACEDIM == 3)
 
 void EdgeFluxRegister::CrseAdd (MFIter const& mfi, const Array<FArrayBox const*,3>& E_crse,

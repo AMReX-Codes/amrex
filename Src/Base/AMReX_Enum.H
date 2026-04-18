@@ -75,7 +75,7 @@ namespace detail
     /** Convert a string to an enum value
      *
      * Example:
-     * ```C++
+     * \code{.cpp}
      * AMREX_ENUM(Model,
      *     linear,
      *     nonlinear
@@ -83,7 +83,7 @@ namespace detail
      * std::string const model_str = "nonlinear";
      * Model const model = amrex::getEnum<Model>(model_str);
      * assert(model == Model::nonlinear);
-     * ```
+     * \endcode
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
@@ -109,7 +109,7 @@ namespace detail
      * Same as getEnum<T>, but case insensitive match to enum value.
      *
      * Example:
-     * ```C++
+     * \code{.cpp}
      * AMREX_ENUM(Model,
      *     linear,
      *     nonlinear
@@ -117,7 +117,7 @@ namespace detail
      * std::string const model_str = "NonLinear";
      * Model const model = amrex::getEnumCaseInsensitive<Model>(model_str);
      * assert(model == Model::nonlinear);
-     * ```
+     * \endcode
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>
@@ -142,7 +142,7 @@ namespace detail
     /** Get a string from an enum value
      *
      * Example:
-     * ```C++
+     * \code{.cpp}
      * AMREX_ENUM(Model,
      *     linear,
      *     nonlinear
@@ -150,7 +150,7 @@ namespace detail
      * Model model = Model::linear;
      * std::string model_str = amrex::getEnumNameString(model);
      * assert(model_str == "linear");
-     * ```
+     * \endcode
      */
     template <typename T, typename ET = amrex_enum_traits<T>,
               std::enable_if_t<ET::value,int> = 0>

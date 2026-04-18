@@ -200,7 +200,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
                 int ii = i*facx;
                 int jj = j*facy;
                 Real c = 0.;
-                for (int jref = 0; jref < facx; ++jref) {
+                for (int jref = 0; jref < facy; ++jref) {
                     c += fine(ii,jj+jref,0,n+fcomp);
                 }
                 crse(i,j,0,n+ccomp) = c * facInv;
@@ -239,7 +239,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
         const int ii = i*facx;
         const int jj = j*facy;
         Real c = 0.;
-        for (int jref = 0; jref < facx; ++jref) {
+        for (int jref = 0; jref < facy; ++jref) {
             c += fine(ii,jj+jref,0,n+fcomp);
         }
         crse(i,j,0,n+ccomp) = c * facInv;
