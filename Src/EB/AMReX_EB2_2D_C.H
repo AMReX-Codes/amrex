@@ -194,8 +194,8 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
             constexpr Real tiny = Real(16) * std::numeric_limits<Real>::min();
             if (nxy > tiny) {
                 Real nfac = 1.0_rt / nxy;
-                cbn(i,j,k,0) = nx*nfac;
-                cbn(i,j,k,1) = ny*nfac;
+                cbn(i,j,k,0) = nx * nfac;
+                cbn(i,j,k,1) = ny * nfac;
             } else {
                 Real absnx = std::abs(nx);
                 Real absny = std::abs(ny);
