@@ -416,8 +416,7 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real bctz = bc(i,j,k,2);
                 Real dx_eb = get_dx_eb(kappa);
 
-                Real dg = dx_eb / amrex::max(std::abs(dgxdg), std::abs(dgydg),
-                                             std::abs(dgzdg));
+                Real dg = dx_eb / amrex::max(std::abs(dgxdg), std::abs(dgydg), std::abs(dgzdg));
                 Real gx = bctx - dg*dgxdg;
                 Real gy = bcty - dg*dgydg;
                 Real gz = bctz - dg*dgzdg;
@@ -840,9 +839,7 @@ void mlebabeclap_gsrb (Box const& box,
                         Real bctz = ebdata.get<EBData_t::bndrycent>(i,j,k,2);
                         Real dx_eb = get_dx_eb(kappa);
 
-                        Real dg = dx_eb / amrex::max(std::abs(dgxdg),std::abs(dgydg),
-                                                     std::abs(dgzdg));
-
+                        Real dg = dx_eb / amrex::max(std::abs(dgxdg), std::abs(dgydg), std::abs(dgzdg));
                         Real gx = bctx - dg*dgxdg;
                         Real gy = bcty - dg*dgydg;
                         Real gz = bctz - dg*dgzdg;
@@ -1324,9 +1321,7 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real bctz = bc(i,j,k,2);
                 Real dx_eb = get_dx_eb(vfrc(i,j,k));
 
-                Real dg = dx_eb / amrex::max(std::abs(dgxdg),std::abs(dgydg),
-                                             std::abs(dgzdg));
-
+                Real dg = dx_eb / amrex::max(std::abs(dgxdg), std::abs(dgydg), std::abs(dgzdg));
                 Real gx = bctx - dg*dgxdg;
                 Real gy = bcty - dg*dgydg;
                 Real gz = bctz - dg*dgzdg;
