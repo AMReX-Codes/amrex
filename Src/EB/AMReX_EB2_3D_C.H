@@ -481,7 +481,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                 +     fbn(ii+1,jj  ,kk+1,2)*fba(ii+1,jj  ,kk+1)
                 +     fbn(ii  ,jj+1,kk+1,2)*fba(ii  ,jj+1,kk+1)
                 +     fbn(ii+1,jj+1,kk+1,2)*fba(ii+1,jj+1,kk+1);
-            Real nxyz = std::hypot(nx, ny, nz);
+            Real nxyz = std::sqrt(nx*ny + ny*ny + nz*nz);
             constexpr Real tiny = Real(16) * std::numeric_limits<Real>::min();
             if (nxyz > tiny) {
                 Real nfac = 1.0_rt / nxyz;
