@@ -269,8 +269,8 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 }
                 gx = (bctx - dg*anrmx);
                 gy = (bcty - dg*anrmy);
-                sx = std::copysign(Real(1.0),anrmx);
-                sy = std::copysign(Real(1.0),anrmy);
+                sx = std::copysign(Real(1.0),apxm-apxp);
+                sy = std::copysign(Real(1.0),apym-apyp);
 
                 int ii = i - static_cast<int>(sx);
                 int jj = j - static_cast<int>(sy);
@@ -340,8 +340,8 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         }
         gx = bctx - dg*anrmx;
         gy = bcty - dg*anrmy;
-        sx = std::copysign(Real(1.0),anrmx);
-        sy = std::copysign(Real(1.0),anrmy);
+        sx = std::copysign(Real(1.0),apxm-apxp);
+        sy = std::copysign(Real(1.0),apym-apyp);
 
         int ii = i - static_cast<int>(sx);
         int jj = j - static_cast<int>(sy);
@@ -539,8 +539,8 @@ void mlebabeclap_gsrb (Box const& box,
                         }
                         gx = bctx - dg*anrmx;
                         gy = bcty - dg*anrmy;
-                        sx = std::copysign(Real(1.0),anrmx);
-                        sy = std::copysign(Real(1.0),anrmy);
+                        sx = std::copysign(Real(1.0),apxm-apxp);
+                        sy = std::copysign(Real(1.0),apym-apyp);
 
                         int ii = i - static_cast<int>(sx);
                         int jj = j - static_cast<int>(sy);
@@ -832,8 +832,8 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 }
                 gx = bctx - dg*anrmx;
                 gy = bcty - dg*anrmy;
-                sx = std::copysign(Real(1.0),anrmx);
-                sy = std::copysign(Real(1.0),anrmy);
+                sx = std::copysign(Real(1.0),apxm-apxp);
+                sy = std::copysign(Real(1.0),apym-apyp);
 
                 Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
                 Real feb_gamma = -phig_gamma/dg * beb(i,j,k,n);

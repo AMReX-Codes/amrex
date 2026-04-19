@@ -424,9 +424,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
                 Real gx = bctx - dg*anrmx;
                 Real gy = bcty - dg*anrmy;
                 Real gz = bctz - dg*anrmz;
-                Real sx = std::copysign(Real(1.0),anrmx);
-                Real sy = std::copysign(Real(1.0),anrmy);
-                Real sz = std::copysign(Real(1.0),anrmz);
+                Real sx = std::copysign(Real(1.0),apxm-apxp);
+                Real sy = std::copysign(Real(1.0),apym-apyp);
+                Real sz = std::copysign(Real(1.0),apzm-apzp);
                 int ii = i - static_cast<int>(sx);
                 int jj = j - static_cast<int>(sy);
                 int kk = k - static_cast<int>(sz);
@@ -510,9 +510,9 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
         Real gx = bctx - dg*anrmx;
         Real gy = bcty - dg*anrmy;
         Real gz = bctz - dg*anrmz;
-        Real sx = std::copysign(Real(1.0),anrmx);
-        Real sy = std::copysign(Real(1.0),anrmy);
-        Real sz = std::copysign(Real(1.0),anrmz);
+        Real sx = std::copysign(Real(1.0),apxm-apxp);
+        Real sy = std::copysign(Real(1.0),apym-apyp);
+        Real sz = std::copysign(Real(1.0),apzm-apzp);
         int ii = i - static_cast<int>(sx);
         int jj = j - static_cast<int>(sy);
         int kk = k - static_cast<int>(sz);
@@ -852,9 +852,9 @@ void mlebabeclap_gsrb (Box const& box,
                         Real gx = bctx - dg*anrmx;
                         Real gy = bcty - dg*anrmy;
                         Real gz = bctz - dg*anrmz;
-                        Real sx = std::copysign(Real(1.0),anrmx);
-                        Real sy = std::copysign(Real(1.0),anrmy);
-                        Real sz = std::copysign(Real(1.0),anrmz);
+                        Real sx = std::copysign(Real(1.0),apxm-apxp);
+                        Real sy = std::copysign(Real(1.0),apym-apyp);
+                        Real sz = std::copysign(Real(1.0),apzm-apzp);
                         int ii = i - static_cast<int>(sx);
                         int jj = j - static_cast<int>(sy);
                         int kk = k - static_cast<int>(sz);
@@ -1339,9 +1339,9 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                 Real gx = bctx - dg*anrmx;
                 Real gy = bcty - dg*anrmy;
                 Real gz = bctz - dg*anrmz;
-                Real sx = std::copysign(Real(1.0),anrmx);
-                Real sy = std::copysign(Real(1.0),anrmy);
-                Real sz = std::copysign(Real(1.0),anrmz);
+                Real sx = std::copysign(Real(1.0),apxm-apxp);
+                Real sy = std::copysign(Real(1.0),apym-apyp);
+                Real sz = std::copysign(Real(1.0),apzm-apzp);
 
                 gx *= sx;
                 gy *= sy;
