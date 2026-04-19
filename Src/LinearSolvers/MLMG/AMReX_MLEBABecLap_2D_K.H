@@ -140,8 +140,8 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
             {
-                Real anrmx = (apxm-apxp) * dhx;
-                Real anrmy = (apym-apyp) * dhy;
+                Real anrmx = dhx * (apxm - apxp);
+                Real anrmy = dhy * (apym - apyp);
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,is_eb_inhomog,
