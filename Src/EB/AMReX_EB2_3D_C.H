@@ -481,10 +481,31 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                 +     fbn(ii+1,jj  ,kk+1,2)*fba(ii+1,jj  ,kk+1)
                 +     fbn(ii  ,jj+1,kk+1,2)*fba(ii  ,jj+1,kk+1)
                 +     fbn(ii+1,jj+1,kk+1,2)*fba(ii+1,jj+1,kk+1);
-            Real nfac = 1.0_rt / std::sqrt(nx*nx+ny*ny+nz*nz+1.e-30_rt);
-            cbn(i,j,k,0) = nx*nfac;
-            cbn(i,j,k,1) = ny*nfac;
-            cbn(i,j,k,2) = nz*nfac;
+            Real nxyz = std::hypot(nx, ny, nz);
+            constexpr Real tiny = Real(16) * std::numeric_limits<Real>::min();
+            if (nxyz > tiny) {
+                Real nfac = 1.0_rt / nxyz;
+                cbn(i,j,k,0) = nx * nfac;
+                cbn(i,j,k,1) = ny * nfac;
+                cbn(i,j,k,2) = nz * nfac;
+            } else {
+                Real absnx = std::abs(nx);
+                Real absny = std::abs(ny);
+                Real absnz = std::abs(nz);
+                if (absnx >= absny && absnx >= absnz) {
+                    cbn(i,j,k,0) = std::copysign(1.0_rt, nx);
+                    cbn(i,j,k,1) = 0.0_rt;
+                    cbn(i,j,k,2) = 0.0_rt;
+                } else if (absny >= absnz) {
+                    cbn(i,j,k,0) = 0.0_rt;
+                    cbn(i,j,k,1) = std::copysign(1.0_rt, ny);
+                    cbn(i,j,k,2) = 0.0_rt;
+                } else {
+                    cbn(i,j,k,0) = 0.0_rt;
+                    cbn(i,j,k,1) = 0.0_rt;
+                    cbn(i,j,k,2) = std::copysign(1.0_rt, nz);
+                }
+            }
             ierr = (nx == 0.0_rt && ny == 0.0_rt && nz == 0.0_rt)
                 // we must check the enclosing surface to make sure the coarse cell does not
                 // fully contains the geometry object.
