@@ -189,9 +189,9 @@ void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
 
             Real feb = Real(0.0);
             if (is_eb_dirichlet && flag(i,j,k).isSingleValued()) {
-                Real anrmx = dhx*(apxm - apxp);
-                Real anrmy = dhy*(apym - apyp);
-                Real anrmz = dhz*(apzm - apzp);
+                Real anrmx = dhx*(apxm-apxp);
+                Real anrmy = dhy*(apym-apyp);
+                Real anrmz = dhz*(apzm-apzp);
 
                 feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
                                                          anrmx,anrmy,anrmz,is_eb_inhomog,
@@ -405,12 +405,9 @@ void mlebabeclap_adotx (Box const& box, Array4<Real> const& y,
 
             Real feb = Real(0.0);
             if (is_dirichlet) {
-                Real dapx = apxm-apxp;
-                Real dapy = apym-apyp;
-                Real dapz = apzm-apzp;
-                Real anrmx = dapx * dhx;
-                Real anrmy = dapy * dhy;
-                Real anrmz = dapz * dhz;
+                Real anrmx = dhx*(apxm-apxp);
+                Real anrmy = dhy*(apym-apyp);
+                Real anrmz = dhz*(apzm-apzp);
 
                 Real phib = is_inhomog ? phieb(i,j,k,n) : Real(0.0);
 
@@ -835,12 +832,9 @@ void mlebabeclap_gsrb (Box const& box,
                          dhz*(apzm*ozm-apzp*ozp));
 
                     if (is_dirichlet) {
-                        Real dapx = apxm-apxp;
-                        Real dapy = apym-apyp;
-                        Real dapz = apzm-apzp;
-                        Real anrmx = dapx * dhx;
-                        Real anrmy = dapy * dhy;
-                        Real anrmz = dapz * dhz;
+                        Real anrmx = dhx*(apxm-apxp);
+                        Real anrmy = dhy*(apym-apyp);
+                        Real anrmz = dhz*(apzm-apzp);
                         Real bctx = ebdata.get<EBData_t::bndrycent>(i,j,k,0);
                         Real bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
                         Real bctz = ebdata.get<EBData_t::bndrycent>(i,j,k,2);
@@ -1322,12 +1316,9 @@ void mlebabeclap_normalize (Box const& box, Array4<Real> const& phi,
                  dhz*(apzm*szm-apzp*szp));
 
             if (is_dirichlet) {
-                Real dapx = apxm-apxp;
-                Real dapy = apym-apyp;
-                Real dapz = apzm-apzp;
-                Real anrmx = dapx * dhx;
-                Real anrmy = dapy * dhy;
-                Real anrmz = dapz * dhz;
+                Real anrmx = dhx*(apxm-apxp);
+                Real anrmy = dhy*(apym-apyp);
+                Real anrmz = dhz*(apzm-apzp);
                 Real bctx = bc(i,j,k,0);
                 Real bcty = bc(i,j,k,1);
                 Real bctz = bc(i,j,k,2);
