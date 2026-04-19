@@ -182,14 +182,14 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                  fba(ii  ,jj+1,k)*(0.5_rt*fbc(ii  ,jj+1,k,1)+0.25_rt) +
                  fba(ii+1,jj+1,k)*(0.5_rt*fbc(ii+1,jj+1,k,1)+0.25_rt));
 
-             Real nx = fbn(ii  ,jj  ,k,0)*fba(ii  ,jj  ,k)
-                 +     fbn(ii+1,jj  ,k,0)*fba(ii+1,jj  ,k)
-                 +     fbn(ii  ,jj+1,k,0)*fba(ii  ,jj+1,k)
-                 +     fbn(ii+1,jj+1,k,0)*fba(ii+1,jj+1,k);
-             Real ny = fbn(ii  ,jj  ,k,1)*fba(ii  ,jj  ,k)
-                 +     fbn(ii+1,jj  ,k,1)*fba(ii+1,jj  ,k)
-                 +     fbn(ii  ,jj+1,k,1)*fba(ii  ,jj+1,k)
-                 +     fbn(ii+1,jj+1,k,1)*fba(ii+1,jj+1,k);
+            Real nx = fbn(ii  ,jj  ,k,0)*fba(ii  ,jj  ,k)
+                +     fbn(ii+1,jj  ,k,0)*fba(ii+1,jj  ,k)
+                +     fbn(ii  ,jj+1,k,0)*fba(ii  ,jj+1,k)
+                +     fbn(ii+1,jj+1,k,0)*fba(ii+1,jj+1,k);
+            Real ny = fbn(ii  ,jj  ,k,1)*fba(ii  ,jj  ,k)
+                +     fbn(ii+1,jj  ,k,1)*fba(ii+1,jj  ,k)
+                +     fbn(ii  ,jj+1,k,1)*fba(ii  ,jj+1,k)
+                +     fbn(ii+1,jj+1,k,1)*fba(ii+1,jj+1,k);
             Real nxy = std::hypot(nx,ny);
             constexpr Real tiny = Real(16) * std::numeric_limits<Real>::min();
             if (nxy > tiny) {
@@ -207,13 +207,13 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                     cbn(i,j,k,1) = std::copysign(1.0_rt, ny);
                 }
             }
-             ierr = (nx == 0.0_rt && ny == 0.0_rt)
-                 // we must check the enclosing surface to make sure the coarse cell does not
-                 // fully contains the geometry object.
-                 || ( fapx(ii,jj  ,k)==1.0_rt && fapx(ii+2,jj  ,k)==1.0_rt
-                  && fapx(ii,jj+1,k)==1.0_rt && fapx(ii+2,jj+1,k)==1.0_rt
-                  && fapy(ii,jj  ,k)==1.0_rt && fapy(ii+1,jj  ,k)==1.0_rt
-                  && fapy(ii,jj+2,k)==1.0_rt && fapy(ii+1,jj+2,k)==1.0_rt);
+            ierr = (nx == 0.0_rt && ny == 0.0_rt)
+                // we must check the enclosing surface to make sure the coarse cell does not
+                // fully contains the geometry object.
+                || ( fapx(ii,jj  ,k)==1.0_rt && fapx(ii+2,jj  ,k)==1.0_rt
+                 && fapx(ii,jj+1,k)==1.0_rt && fapx(ii+2,jj+1,k)==1.0_rt
+                 && fapy(ii,jj  ,k)==1.0_rt && fapy(ii+1,jj  ,k)==1.0_rt
+                 && fapy(ii,jj+2,k)==1.0_rt && fapy(ii+1,jj+2,k)==1.0_rt);
         }
     }
     else if (gbx.contains(i,j,k))
