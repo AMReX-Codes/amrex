@@ -35,6 +35,9 @@ struct MFItInfo
     }
     MFItInfo& SetTiling (bool f) noexcept {
         do_tiling = f;
+        if (do_tiling && tilesize == 0) {
+            tilesize = FabArrayBase::mfiter_tile_size;
+        }
         return *this;
     }
     MFItInfo& SetDynamic (bool f) noexcept {
