@@ -190,9 +190,23 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                  +     fbn(ii+1,jj  ,k,1)*fba(ii+1,jj  ,k)
                  +     fbn(ii  ,jj+1,k,1)*fba(ii  ,jj+1,k)
                  +     fbn(ii+1,jj+1,k,1)*fba(ii+1,jj+1,k);
-             Real nfac = 1.0_rt/std::sqrt(nx*nx+ny*ny+1.e-30_rt);
-             cbn(i,j,k,0) = nx*nfac;
-             cbn(i,j,k,1) = ny*nfac;
+            Real nxy = std::hypot(nx,ny);
+            constexpr Real tiny = Real(16) * std::numeric_limits<Real>::min();
+            if (nxy > tiny) {
+                Real nfac = 1.0_rt / nxy;
+                cbn(i,j,k,0) = nx*nfac;
+                cbn(i,j,k,1) = ny*nfac;
+            } else {
+                Real absnx = std::abs(nx);
+                Real absny = std::abs(ny);
+                if (absnx >= absny) {
+                    cbn(i,j,k,0) = std::copysign(1.0_rt, nx);
+                    cbn(i,j,k,1) = 0.0_rt;
+                } else {
+                    cbn(i,j,k,0) = 0.0_rt;
+                    cbn(i,j,k,1) = std::copysign(1.0_rt, ny);
+                }
+            }
              ierr = (nx == 0.0_rt && ny == 0.0_rt)
                  // we must check the enclosing surface to make sure the coarse cell does not
                  // fully contains the geometry object.
