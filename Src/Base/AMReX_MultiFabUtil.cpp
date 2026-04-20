@@ -299,7 +299,7 @@ namespace amrex
                          MFInfo().SetAlloc(false));
             IntVect ng = -cc.nGrowVect();
             GpuArray<IntVect,AMREX_SPACEDIM> ngv{AMREX_D_DECL(ng_vects[0], ng_vects[1], ng_vects[2])};
-            ParallelFor(foo, IntVect(0), ncomp,
+            ParallelFor(foo, ng_foo, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 Box ccbx(ccma[box_no]);
