@@ -6,6 +6,7 @@
 #include <amrex_iparser.tab.h>
 
 #include <algorithm>
+#include <stdexcept>
 
 namespace amrex {
 
@@ -67,6 +68,9 @@ void
 IParser::setConstant (std::string const& name, long long c)
 {
     if (m_data && m_data->m_iparser) {
+        if (m_data->m_host_executor != nullptr) {
+            throw std::runtime_error("amrex::IParser::setConstant: cannot modify constants after compile()");
+        }
         iparser_setconst(m_data->m_iparser, name.c_str(), c);
     }
 }
@@ -74,6 +78,10 @@ IParser::setConstant (std::string const& name, long long c)
 void
 IParser::registerVariables (Vector<std::string> const& vars)
 {
+    if (m_data && m_data->m_host_executor != nullptr) {
+        throw std::runtime_error("amrex::IParser::registerVariables: cannot modify variables after compile()");
+    }
+
     if (m_data && m_data->m_iparser) {
         m_data->m_nvars = static_cast<int>(vars.size());
         for (int i = 0; i < m_data->m_nvars; ++i) {
