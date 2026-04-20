@@ -302,7 +302,11 @@ namespace amrex
             AMREX_D_TERM(auto const& fxma = fc[0]->arrays();,
                          auto const& fyma = fc[1]->arrays();,
                          auto const& fzma = fc[2]->arrays(););
-            MultiFab foo(amrex::convert(cc.boxArray(),IntVect(1)), cc.DistributionMap(), 1, 0,
+            IntVect ng_foo(0);
+            for (auto const& iv : ng_vects) {
+                ng_foo.max(iv);
+            }
+            MultiFab foo(amrex::convert(cc.boxArray(),IntVect(1)), cc.DistributionMap(), 1, ng_foo,
                          MFInfo().SetAlloc(false));
             IntVect ng = -cc.nGrowVect();
             GpuArray<IntVect,AMREX_SPACEDIM> ngv{AMREX_D_DECL(ng_vects[0], ng_vects[1], ng_vects[2])};
