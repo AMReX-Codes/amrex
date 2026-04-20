@@ -91,12 +91,6 @@ namespace amrex
                                      bool use_harmonic_averaging = false,
                                      int ngrow = 0);
 
-    void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
-                                     const MultiFab& cc,
-                                     const Geometry& geom,
-                                     int ncomp,
-                                     bool use_harmonic_averaging,
-                                     const Array<IntVect, AMREX_SPACEDIM>& ng_vects);
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
                                      const MultiFab& cc,
                                      const Geometry& geom,

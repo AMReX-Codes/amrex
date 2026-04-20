@@ -253,17 +253,6 @@ namespace amrex
                                    Array<IntVect,AMREX_SPACEDIM>{{AMREX_D_DECL(ng_vect,ng_vect,ng_vect)}});
     }
 
-    void average_cellcenter_to_face (const Vector<MultiFab*>& fc,
-                                     const MultiFab& cc,
-                                     const Geometry& geom,
-                                     int ncomp,
-                                     bool use_harmonic_averaging,
-                                     const Array<IntVect, AMREX_SPACEDIM>& ng_vects)
-    {
-        average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-                                   cc, geom, ncomp, use_harmonic_averaging, ng_vects);
-    }
-
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
                                      const MultiFab& cc,
                                      const Geometry& geom,
