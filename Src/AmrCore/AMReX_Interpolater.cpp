@@ -1345,7 +1345,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                          const int         /*actual_state*/,
                          const RunOn       runon)
 {
-    BL_PROFILE("FaceDivFree::interp()");
+    BL_PROFILE("FaceDivFree::interp_arr()");
 
     Array<IndexType, AMREX_SPACEDIM> types;
     for (int d=0; d<AMREX_SPACEDIM; ++d)
@@ -1376,7 +1376,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 0,
+                          amrex::facediv_face_interp<Real> (i,j,k,n,0,
                                                             crsearr[0], finearr[0], maskarr[0], ratio);
                       }
                   });
@@ -1387,7 +1387,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 1,
+                          amrex::facediv_face_interp<Real> (i,j,k,n,1,
                                                             crsearr[1], finearr[1], maskarr[1], ratio);
                       }
                   });
@@ -1398,7 +1398,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   {
                       for (int n=0; n<ncomp; ++n)
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,crse_comp+n,fine_comp+n, 2,
+                          amrex::facediv_face_interp<Real> (i,j,k,n,2,
                                                             crsearr[2], finearr[2], maskarr[2], ratio);
                       }
                   });
@@ -1406,7 +1406,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
     {
-        amrex::facediv_int<Real>(i, j, k, fine_comp+n, finearr, ratio, cell_size);
+        amrex::facediv_int<Real>(i, j, k, n, finearr, ratio, cell_size);
     });
 }
 
