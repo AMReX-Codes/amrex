@@ -258,7 +258,7 @@ namespace amrex
     using IsConvertible = std::conjunction<std::is_convertible<Args, T>...>;
 
     template <typename T, typename... Args>
-    inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value;
+    inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value; // NOLINT(modernize-type-traits)
 
     namespace detail {
         template <typename T, typename U, typename Enable = void>
