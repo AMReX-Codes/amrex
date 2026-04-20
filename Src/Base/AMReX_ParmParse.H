@@ -10,6 +10,7 @@
 #include <AMReX_IParser.H>
 #include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_Vector.H>
 
 #include <array>
 #include <iosfwd>
@@ -1040,7 +1041,7 @@ public:
      * added to the ParmParse database.  The return value indicates if it
      * existed previously.
      */
-    template <typename T, std::enable_if_t<!IsStdVector<T>::value, int> = 0>
+    template <typename T>
     int queryAdd (std::string_view name, T& ref) {
         int exist = this->query(name, ref);
         if (!exist) {
@@ -1077,6 +1078,11 @@ public:
             this->addarr(name, ref);
         }
         return exist;
+    }
+
+    template <typename T>
+    int queryAdd (std::string_view name, Vector<T>& ref) {
+        return this->queryAdd(name, static_cast<std::vector<T>&>(ref));
     }
 
     /**

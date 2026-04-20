@@ -301,16 +301,6 @@ namespace amrex
                                 std::is_arithmetic_v<T>
                                 && sizeof(T) <= 8 > >
         : std::true_type {};
-
-    template <class T, class Enable = void>
-    struct IsStdVector : std::false_type {};
-    //
-    template <class T>
-    struct IsStdVector<T, std::enable_if_t<std::is_base_of_v<std::vector<typename T::value_type,
-                                                                       typename T::allocator_type>,
-                                                           T>> >
-                       : std::true_type {};
-
 }
 
 #endif
