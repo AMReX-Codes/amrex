@@ -623,14 +623,11 @@ namespace HostDevice::Atomic {
         T old;
 #ifdef AMREX_USE_OMP
 #pragma omp atomic capture
+#endif
         {
             old = *sum;
             *sum += value;
         }
-#else
-        old = *sum;
-        *sum += value;
-#endif
         return old;
     }
 
