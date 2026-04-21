@@ -40,7 +40,6 @@ Checks: >
        -modernize-return-braced-init-list,
        -modernize-use-constraints,
        -modernize-use-designated-initializers,
-       -modernize-use-integer-sign-comparison,
        -modernize-use-ranges,
        -modernize-use-starts-ends-with,
        -modernize-use-std-numbers,
@@ -83,6 +82,5 @@ HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 # -modernize-use-designated-initializers
 # -modernize-use-std-numbers
 # -modernize-use-ranges
-# -modernize-use-integer-sign-comparison
 # -modernize-use-starts-ends-with
 # -readability-container-contains

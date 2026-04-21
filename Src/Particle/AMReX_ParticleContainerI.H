@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace amrex {
@@ -110,8 +111,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name
 )
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == NArrayReal, "rdata_name must be equal to NArrayReal");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == NArrayInt, "idata_name must be equal to NArrayInt");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::cmp_equal(rdata_name.size(), NArrayReal), "rdata_name must be equal to NArrayReal");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::cmp_equal(idata_name.size(), NArrayInt), "idata_name must be equal to NArrayInt");
 
     // ensure names for components are unique
     std::set<std::string> const unique_r_names(rdata_name.begin(), rdata_name.end());
@@ -256,7 +257,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
           bool findfirst = (nGrow == 0) ? true : false;
           ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
-          if (nGrow > 0 && isects.size() > 1) {
+          if (nGrow > 0 && std::cmp_greater(isects.size(), 1)) {
              for (auto & isect : isects) {
                  Box bx = ba.getCellCenteredBox(isect.first);
                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {

@@ -2,6 +2,8 @@
 #define AMREX_PARTICLEINIT_H
 #include <AMReX_Config.H>
 
+#include <utility>
+
 namespace amrex {
 
 /*
@@ -338,7 +340,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                if((host_real_attribs[lev][std::make_pair(grid, tile)]).size() > (long unsigned int) NArrayReal) {
+                if (std::cmp_greater((host_real_attribs[lev][std::make_pair(grid, tile)]).size(), NArrayReal)) {
                     for (int i = 0; i < NArrayReal; ++i) {
                         Gpu::copyAsync(Gpu::hostToDevice,
                                        host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
@@ -379,7 +381,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 Where(p, pld);
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-                if((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size() > (long unsigned int) (extradata - NStructReal)) {
+                if (std::cmp_greater((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size(),
+                                     extradata - NStructReal)) {
                     for (int n = NStructReal; n < extradata; n++)
                     {
                         Real rdata = nreals[n-NStructReal].back();
@@ -574,9 +577,9 @@ InitFromBinaryFile (const std::string& file,
 
                 readers.insert(n);
             }
-            while (static_cast<int>(readers.size()) < NReaders);
+            while (std::cmp_less(readers.size(), NReaders));
 
-            AMREX_ASSERT(static_cast<Long>(readers.size()) == rprocs.size());
+            AMREX_ASSERT(std::cmp_equal(readers.size(), rprocs.size()));
 
             int i = 0;
 
@@ -598,7 +601,7 @@ InitFromBinaryFile (const std::string& file,
         //
         readers.insert(rprocs.begin(), rprocs.end());
 
-        AMREX_ASSERT(static_cast<Long>(readers.size()) == rprocs.size());
+        AMREX_ASSERT(std::cmp_equal(readers.size(), rprocs.size()));
 
         AMREX_ASSERT(rprocs.size() == NReaders);
     }

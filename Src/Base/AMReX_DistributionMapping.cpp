@@ -22,6 +22,7 @@
 #include <string>
 #include <cstring>
 #include <iomanip>
+#include <utility>
 
 namespace {
     int flag_verbose_mapper;
@@ -177,7 +178,7 @@ void
 DistributionMapping::Sort (std::vector<LIpair>& vec,
                            bool                 reverse)
 {
-    if (vec.size() > 1)
+    if (std::cmp_greater(vec.size(), 1))
     {
         if (reverse) {
             std::stable_sort(vec.begin(), vec.end(), LIpairGT());
