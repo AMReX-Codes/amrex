@@ -253,27 +253,12 @@ namespace amrex
     ////////////////////////////////////////////////////////////////////////////////
     //                                                        [traits.IsConvertible]
 
-    /// \cond DOXYGEN_IGNORE
-    namespace detail {
-        template<typename T>
-        constexpr bool is_convertible(T) {return true;}
-
-        template <typename T, typename U, typename Enable = void>
-        struct IsConvertibleImp : std::false_type {};
-
-        template <typename T, typename U>
-        struct IsConvertibleImp<T, U, std::enable_if_t<is_convertible<T>(U{})>> : std::true_type {};
-    }
-    /// \endcond
-
     //! \brief Test if all the types Args... are automatically convertible to type T
     template <typename T, typename... Args>
-    struct IsConvertible {
-        static constexpr bool value = (... && detail::IsConvertibleImp<T, Args>::value);
-    };
+    using IsConvertible = std::conjunction<std::is_convertible<Args, T>...>;
 
     template <typename T, typename... Args>
-    inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value;
+    inline constexpr bool IsConvertible_v = IsConvertible<T, Args...>::value; // NOLINT(modernize-type-traits)
 
     namespace detail {
         template <typename T, typename U, typename Enable = void>
