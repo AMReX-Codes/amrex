@@ -36,8 +36,8 @@ list of important variables.
    | COMP            | gnu, cray, ibm, intel, intel-llvm,  |                    |
    |                 | intel-classic, llvm, or pgi         | none               |
    +-----------------+-------------------------------------+--------------------+
-   | CXXSTD          | C++ standard (``c++17``, ``c++20``) | compiler default,  |
-   |                 |                                     | at least ``c++17`` |
+   | CXXSTD          | C++ standard (e.g., ``c++20``)      | compiler default,  |
+   |                 |                                     | at least ``c++20`` |
    +-----------------+-------------------------------------+--------------------+
    | DEBUG           | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
@@ -123,7 +123,6 @@ MPI with support for concurrent MPI calls from multiple threads.
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_SYCL`` are used for
 targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
 the three can be TRUE.
-For HIP and SYCL builds, we currently test only against C++17 builds.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
 If enabled, the library path at link time will be saved as a
@@ -435,7 +434,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |                         | user-defined          |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/17             | 17, 20                |
+   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/20             | 20, 23                |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3 ``;``-separated list  | "1;2;3"               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -443,7 +442,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BUILD_SHARED_LIBS      |  Build as shared C++ library                    | NO (unless xSDK)        | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)          | YES, NO              |
+   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)         |  YES, NO              |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -781,7 +780,7 @@ The AMReX team does development on Linux machines, from laptops to supercomputer
 We do not officially support AMReX on Windows, and many of us do not have access to any Windows
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) AMReX mostly uses standard C++17.
+(1) AMReX mostly uses standard C++20.
 We run continuous integration tests on Windows with MSVC and Clang compilers.
 
 (2) We use POSIX signal handling when floating-point exceptions, segmentation faults, etc. happen.

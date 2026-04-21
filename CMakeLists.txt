@@ -128,8 +128,10 @@ endif ()
 #
 # Check compiler version
 #
-set_mininum_compiler_version(CXX GNU 5.1)
-set_mininum_compiler_version(CXX MSVC 19.23)
+set_mininum_compiler_version(CXX GNU 11.0)
+set_mininum_compiler_version(CXX Clang 14.0)
+set_mininum_compiler_version(CXX AppleClang 14.0)
+set_mininum_compiler_version(CXX MSVC 19.34)
 
 #
 # Set CMAKE_<LANG>_FLAGS_<CONFIG> if not already defined

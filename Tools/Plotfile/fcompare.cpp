@@ -10,8 +10,8 @@ using namespace amrex;
 
 struct ErrZone {
     Real max_abs_err = std::numeric_limits<Real>::lowest();
-    int level;
-    int grid_index;
+    int level = 0;
+    int grid_index = 0;
     IntVect cell;
 };
 
