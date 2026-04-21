@@ -9,6 +9,12 @@
 #include <memory>
 #include <cmath>
 
+/**
+ * \file AMReX_EB2_IF_Polynomial.H
+ *
+ * Support for implicit functions defined by multivariate polynomials.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
@@ -18,6 +24,7 @@ namespace amrex::EB2 {
  * Represents one term in a general polynomial                                  *
  *                                                                              *
  ********************************************************************************/
+//! Represents one monomial in a polynomial implicit function.
 class PolyTerm
 {
 public:
@@ -30,17 +37,19 @@ public:
 };
 
 template <unsigned int N>
+//! GPU-ready polynomial implicit function with a fixed number of terms.
 class PolyIF
     : public GPUable
 {
 public:
 
-    //! inside: is the fluid inside the ellipsoid?
+    //! Store the polynomial terms and orientation (inside/outside).
     PolyIF (const GpuArray<PolyTerm,N> & a_polynomial, bool a_inside = true)
         : m_polynomial(a_polynomial),
           m_sign( a_inside ? 1.0_rt : -1.0_rt )
     {}
 
+    //! Evaluate the polynomial at explicit coordinates.
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -53,6 +62,7 @@ public:
         return m_sign*retval;
     }
 
+    //! Array-based helper overload.
     AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }
@@ -63,11 +73,12 @@ protected:
 };
 
 
+//! Host-only dynamically-sized polynomial implicit function.
 class PolynomialIF  // No GPU support
 {
 public:
 
-    //! inside: is the fluid inside the ellipsoid?
+    //! Store the term vector and orientation (inside/outside).
     PolynomialIF (const Vector<PolyTerm> & a_polynomial, bool a_inside = true)
         : m_polynomial(a_polynomial),
           m_inside(a_inside),
@@ -93,6 +104,7 @@ public:
         return m_sign*retval;
     }
 
+    //! Array-based helper overload.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept {
         return this->operator()(AMREX_D_DECL(p[0],p[1],p[2]));
     }

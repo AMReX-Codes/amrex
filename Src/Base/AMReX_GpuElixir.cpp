@@ -32,7 +32,7 @@ extern "C" {
 }
 
 void
-Elixir::clear () noexcept
+Elixir::clear ()
 {
 #if defined(AMREX_USE_GPU)
     if (Gpu::inLaunchRegion())

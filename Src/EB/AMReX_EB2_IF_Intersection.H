@@ -9,6 +9,12 @@
 #include <algorithm>
 #include <utility>
 
+/**
+ * \file AMReX_EB2_IF_Intersection.H
+ *
+ * Constructive solid-geometry helper that intersects multiple implicit shapes.
+ */
+
 namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
@@ -46,6 +52,7 @@ namespace IIF_detail {
 /// \endcond
 
 template <class... Fs>
+//! Implicit function that evaluates the intersection of multiple objects.
 class IntersectionIF
     : public GpuTuple<Fs...>
 {

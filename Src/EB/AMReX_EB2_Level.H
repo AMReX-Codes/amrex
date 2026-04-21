@@ -42,47 +42,119 @@ class Level
 {
 public:
 
+    //! \return True if every cell in this level is regular (no cut cells).
     bool isAllRegular () const noexcept { return m_allregular; }
+    //! \return True if the level successfully built its EB description.
     bool isOK () const noexcept { return m_ok; }
+    /**
+     * \brief Fill \p cellflag with EBCellFlag data using geometry \p geom.
+     *
+     * \param cellflag Destination flag array.
+     * \param geom     Geometry describing the sampling box.
+     */
     void fillEBCellFlag (FabArray<EBCellFlagFab>& cellflag, const Geometry& geom) const;
+    /**
+     * \brief Populate volume fractions into \p vfrac using \p geom.
+     */
     void fillVolFrac (MultiFab& vfrac, const Geometry& geom) const;
+    /**
+     * \brief Populate cut-cell centroids into a MultiCutFab.
+     */
     void fillCentroid (MultiCutFab& centroid, const Geometry& geom) const;
+    //! \overload
     void fillCentroid (   MultiFab& centroid, const Geometry& geom) const;
+    /**
+     * \brief Populate boundary-face areas into \p bndryarea.
+     */
     void fillBndryArea (MultiCutFab& bndryarea, const Geometry& geom) const;
+    //! \overload
     void fillBndryArea (   MultiFab& bndryarea, const Geometry& geom) const;
+    /**
+     * \brief Populate boundary centroids into \p bndrycent.
+     */
     void fillBndryCent (MultiCutFab& bndrycent, const Geometry& geom) const;
+    //! \overload
     void fillBndryCent (   MultiFab& bndrycent, const Geometry& geom) const;
+    /**
+     * \brief Populate boundary normals into \p bndrynorm.
+     */
     void fillBndryNorm (MultiCutFab& bndrynorm, const Geometry& geom) const;
+    //! \overload
     void fillBndryNorm (   MultiFab& bndrynorm, const Geometry& geom) const;
+    /**
+     * \brief Populate face area fractions for each direction.
+     */
     void fillAreaFrac (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
+    //! \overload
     void fillAreaFrac (Array<   MultiFab*,AMREX_SPACEDIM> const& areafrac, const Geometry& geom) const;
+    /**
+     * \brief Populate face centroids for each direction.
+     */
     void fillFaceCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& facecent, const Geometry& geom) const;
+    //! \overload
     void fillFaceCent (Array<   MultiFab*,AMREX_SPACEDIM> const& facecent, const Geometry& geom) const;
+    /**
+     * \brief Populate edge centroids for each direction.
+     */
     void fillEdgeCent (Array<MultiCutFab*,AMREX_SPACEDIM> const& edgecent, const Geometry& geom) const;
+    //! \overload
     void fillEdgeCent (Array<   MultiFab*,AMREX_SPACEDIM> const& edgecent, const Geometry& geom) const;
+    /**
+     * \brief Write the implicit function values into \p levelset.
+     */
     void fillLevelSet (MultiFab& levelset, const Geometry& geom) const;
 
+    //! \return Grid layout associated with this level.
     const BoxArray& boxArray () const noexcept { return m_grids; }
+    //! \return Distribution mapping describing how grids are assigned to ranks.
     const DistributionMapping& DistributionMap () const noexcept { return m_dmap; }
 
+    //! Construct a Level bound to EB index space \p is and Geometry \p geom.
     Level (IndexSpace const* is, const Geometry& geom) : m_geom(geom), m_parent(is) {}
+    /**
+     * \brief Prepare for coarsening by copying from \p rhs, respecting max grid size and grow vector.
+     */
     void prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect const& ngrow);
 
+    //! \return Reference to the level Geometry.
     const Geometry& Geom () const noexcept { return m_geom; }
+    //! \return Pointer to the EB IndexSpace.
     IndexSpace const* getEBIndexSpace () const noexcept { return m_parent; }
 
+    //! \return EB grow-vector.
     IntVect const& nGrowVect () const noexcept { return m_ngrow; }
 
+    /**
+     * \brief Write this level’s EB data to a checkpoint file \p fname.
+     *
+     * \param fname              Target checkpoint file name.
+     * \param extend_domain_face Whether domain faces were extended.
+     * \param max_grid_size      Grid blocking factor used during build.
+     */
     void write_to_chkpt_file (const std::string& fname, bool extend_domain_face, int max_grid_size) const;
 
+    //! \return True if EB data (flags, area fractions, etc.) are available.
     bool hasEBInfo () const noexcept { return m_has_eb_info; }
+    //! Populate the cut-cell mask into \p cutcellmask.
     void fillCutCellMask (iMultiFab& cutcellmask, const Geometry& geom) const;
 
+    /**
+     * \brief Shift this level by \p ncells cells along direction \p direction (for periodic tiling).
+     */
     void setShift (int direction, int ncells);
 
 // public: // for cuda
+    /**
+     * \brief Coarsen EB data from \p fineLevel into this level.
+     *
+     * \param fineLevel Source level.
+     * \param fill_boundary Whether to fill boundary data after coarsening.
+     * \return 0 on success.
+     */
     int coarsenFromFine (Level& fineLevel, bool fill_boundary);
+    //! Build EBCellFlag data from the current implicit function field.
     void buildCellFlag ();
+    //! Build the cut-cell mask by coarsening from \p fine_level.
     void buildCutCellMask (Level const& fine_level);
 
 protected:
@@ -130,20 +202,34 @@ class GShopLevel
     : public Level
 {
 public:
+    /**
+     * \brief Build a level directly from a GeometryShop object.
+     */
     GShopLevel (IndexSpace const* is, G const& gshop, const Geometry& geom, int max_grid_size,
                 int ngrow, bool extend_domain_face, int num_crse_opt);
+    /**
+     * \brief Construct a coarse level by coarsening \p fineLevel.
+     */
     GShopLevel (IndexSpace const* is, int ilev, int max_grid_size, int ngrow,
                 const Geometry& geom, GShopLevel<G>& fineLevel);
+    //! Construct an empty level (usually regular) bound to \p geom.
     GShopLevel (IndexSpace const* is, const Geometry& geom);
+    //! Define data for the finest level using the supplied GeometryShop.
     void define_fine (G const& gshop, const Geometry& geom,
                       int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 
 #if (AMREX_SPACEDIM == 3)
     template <typename GS = G, std::enable_if_t<std::is_same_v<GS,STLtools>,int> FOO = 0>
+    /**
+     * \brief Define a fine level for multi-valued multi-cut STL geometries (3-D only).
+     */
     void define_fine_mvmc (GS const& gshop, const Geometry& geom,
                            int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 #endif
 
+    /**
+     * \brief Build a regular (no EB) level.
+     */
     static GShopLevel<G>
     makeAllRegular(IndexSpace const* is, const Geometry& geom)
     {

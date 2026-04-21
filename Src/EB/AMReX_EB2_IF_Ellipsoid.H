@@ -5,16 +5,23 @@
 #include <AMReX_Array.H>
 #include <AMReX_EB2_IF_Base.H>
 
+/**
+ * \file AMReX_EB2_IF_Ellipsoid.H
+ *
+ * Implicit function describing an ellipsoid aligned with the coordinate axes.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
+//! Signed implicit function for ellipsoids centered at \p a_center.
 class EllipsoidIF
     : public GPUable
 {
 public:
 
-    // inside: is the fluid inside the ellipsoid?
+    //! Construct an ellipsoid with semiaxes \p a_radii.
     EllipsoidIF (const RealArray& a_radii, const RealArray& a_center, bool a_inside)
         : m_radii(makeXDim3(a_radii)),
           m_center(makeXDim3(a_center)),

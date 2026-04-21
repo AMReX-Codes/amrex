@@ -501,7 +501,7 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                      char                   tagval,
                      amrex::Real            time,
                      int                    level,
-                     const amrex::Geometry& geom) const noexcept;
+                     const amrex::Geometry& geom) const;
 
     [[nodiscard]] int NGrow() const noexcept {return m_ngrow;}
     [[nodiscard]] const std::string& Field () const noexcept {return m_field;}

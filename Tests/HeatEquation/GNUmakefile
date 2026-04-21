@@ -1,5 +1,5 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
-AMREX_HOME ?= ../../../../amrex
+AMREX_HOME ?= ../..
 
 USE_ASSERTION = TRUE
 

@@ -12,9 +12,16 @@
 #include <limits>
 #include <utility>
 
+/**
+ * \file AMReX_EB_STL_utils.H
+ *
+ * Routines for sampling STL triangulations into EB level sets.
+ */
+
 namespace amrex
 {
 
+//! Utility class that loads STL meshes and samples them onto AMReX grids.
 class STLtools
 {
 public:
@@ -65,32 +72,50 @@ public:
     static constexpr int mixedcells = 0;
     static constexpr int allcovered = 1;
 
+    //! Enable/disable BVH acceleration when sampling.
     void setBVHOptimization (bool flag) { m_bvh_optimization = flag; }
 
+    /**
+     * \brief Read an STL file, apply scaling/translation, and store triangles.
+     *
+     * \param fname           Path to the STL mesh.
+     * \param scale           Uniform scaling factor applied to vertices.
+     * \param center          Translation applied to recenter the mesh.
+     * \param reverse_normal  Non-zero to flip normals.
+     */
     void read_stl_file (std::string const& fname, Real scale, Array<Real,3> const& center,
                         int reverse_normal);
 
+    /**
+     * \brief Fill a level-set MultiFab sampled from the STL mesh.
+     */
     void fill (MultiFab& mf, IntVect const& nghost, Geometry const& geom,
                Real outside_value = -1._rt, Real inside_value = 1._rt) const;
 
+    //! Return whether the EB is regular/covered/mixed inside \p box.
     [[nodiscard]] int getBoxType (Box const& box, Geometry const& geom, RunOn) const;
 
     static constexpr bool isGPUable () noexcept { return true; }
 
+    //! Fill a BaseFab with level-set data (host/device aware).
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const;
 
+    //! Compute intercepts and face types for EB geometry based on the STL mesh.
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const& lst, Geometry const& geom, RunOn,
                        Box const& bounding_box) const;
 
+    //! Update intercepts.
     static void updateIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                           Array<Array4<EB2::Type_t const>,AMREX_SPACEDIM> const& type_arr,
                           Array4<Real const> const& lst, Geometry const& geom) ;
 
+    //! Fill \p mf with signed-distance values sampled from the STL mesh.
     void fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry const& geom) const;
 
+    //! Upload triangle data to device memory (exposed for CUDA workflows).
     void prepare (Gpu::PinnedVector<Triangle> a_tri_pts);  // public for cuda
 
 private:

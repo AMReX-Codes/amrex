@@ -591,11 +591,11 @@ namespace detail {
         return Table2D<T,ORDER>(p, {lo[0],lo[1]}, {hi[0]+1,hi[1]+1});
     }
     template <typename T, Order ORDER>
-    Table3D<T> make_table (T* p, Array<int,3> const& lo, Array<int,3> const& hi) {
+    Table3D<T,ORDER> make_table (T* p, Array<int,3> const& lo, Array<int,3> const& hi) {
         return Table3D<T,ORDER>(p, {lo[0],lo[1],lo[2]}, {hi[0]+1,hi[1]+1,hi[2]+1});
     }
     template <typename T, Order ORDER>
-    Table4D<T> make_table (T* p, Array<int,4> const& lo, Array<int,4> const& hi) {
+    Table4D<T,ORDER> make_table (T* p, Array<int,4> const& lo, Array<int,4> const& hi) {
         return Table4D<T,ORDER>(p, {lo[0],lo[1],lo[2],lo[3]}, {hi[0]+1,hi[1]+1,hi[2]+1,hi[3]+1});
     }
 }
@@ -627,6 +627,8 @@ void
 TableData<T,N,ORDER>::copy (TableData<T,N,ORDER> const& rhs) noexcept
 {
     std::size_t count = sizeof(T)*size();
+    if (count == 0) { return; }
+    AMREX_ASSERT(count == sizeof(T)*rhs.size());
 #ifdef AMREX_USE_GPU
     bool this_on_device = arena()->isManaged() || arena()->isDevice();
     bool rhs_on_device = rhs.arena()->isManaged() || rhs.arena()->isDevice();

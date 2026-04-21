@@ -59,18 +59,23 @@ operator >> (std::istream &is, RealBox& b)
         amrex::Abort();
     }
 
-    Real lo[AMREX_SPACEDIM];
-    Real hi[AMREX_SPACEDIM];
+    Real lo[AMREX_SPACEDIM] = {};
+    Real hi[AMREX_SPACEDIM] = {};
 #ifdef BL_USE_FLOAT
-    double dlotemp, dhitemp;
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        is >> dlotemp >> dhitemp;
+        double dlotemp = 0.0;
+        double dhitemp = 0.0;
+        if (!(is >> dlotemp >> dhitemp)) {
+            amrex::Error("operator>>(istream&,RealBox&): premature EOF");
+        }
         lo[i] = static_cast<Real>(dlotemp);
         hi[i] = static_cast<Real>(dhitemp);
     }
 #else
     for (int i = 0; i < AMREX_SPACEDIM; i++) {
-        is >> lo[i] >> hi[i];
+        if (!(is >> lo[i] >> hi[i])) {
+            amrex::Error("operator>>(istream&,RealBox&): premature EOF");
+        }
     }
 #endif
 

@@ -71,11 +71,18 @@ function (install_amrex_targets)
 
        # legacy symlink for: libamrex.[so|a] / amrex.[dll.lib]
        #   escape spaces for generated cmake_install.cmake file
-       file(TO_CMAKE_PATH "${CMAKE_INSTALL_PREFIX}/lib" ABS_INSTALL_LIB_DIR)
-       install(CODE "file(CREATE_LINK
-           $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
-           \"${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\"
-           COPY_ON_ERROR SYMBOLIC)"
+       install(CODE "
+           file(TO_CMAKE_PATH \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/lib\" ABS_INSTALL_LIB_DIR)
+           set(symlink_name
+               \"\${ABS_INSTALL_LIB_DIR}/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\")
+           set(symlink_manifest_name
+               \"\${CMAKE_INSTALL_PREFIX}/lib/$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>\")
+
+           file(CREATE_LINK
+                $<TARGET_FILE_NAME:amrex_${AMReX_SPACEDIM_LAST}d>
+                \"\${symlink_name}\"
+                COPY_ON_ERROR SYMBOLIC)
+           list(APPEND CMAKE_INSTALL_MANIFEST_FILES \"\${symlink_manifest_name}\")"
        )
 
        # Install fortran modules if Fortran is enabled
@@ -139,21 +146,24 @@ macro( add_test_install_target _dir _amrex_root )
    # select the build type at build time. Others (GNUmake, Ninja, ...) select
    # the build type at configure time.
    get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-   set(_select_config)
-   set(_select_bldtype)
-   if(isMultiConfig)
-      set(_select_config "--config $<CONFIG>")
-   else()
-      set(_select_bldtype "-DCMAKE_BUILD_TYPE=$<CONFIG>")
-   endif()
+   set(_test_config "$<CONFIG>")
 
    # Fortran compiler used?
    get_filename_component( _dirname ${_dir} NAME )
    set(_builddir  ${CMAKE_CURRENT_BINARY_DIR}/${_dirname})
    set(_enable_fortran)
    if(AMReX_FORTRAN)
-      set(_enable_fortran -DCMAKE_Fortran_COMPILER=${CMAKE_Fortran_COMPILER})
+      set(_enable_fortran ${CMAKE_Fortran_COMPILER})
    endif()
+
+   list(LENGTH AMReX_SPACEDIM list_len)
+   math(EXPR list_last "${list_len} - 1")
+   list(GET AMReX_SPACEDIM ${list_last} AMReX_SPACEDIM_LAST)
+
+   set(_install_prefix ${CMAKE_CURRENT_BINARY_DIR}/test_install_prefix)
+   set(_stage_root ${CMAKE_CURRENT_BINARY_DIR}/test_install_stage_root)
+   set(_stage_prefix ${CMAKE_CURRENT_BINARY_DIR}/test_install_stage_prefix)
+   set(_verify_install_script ${_dir}/VerifyInstall.cmake)
 
    # Configure and Build
    # A registered POST_BUILD target in Tests/CMakeTestInstall will then also run the test.
@@ -163,11 +173,19 @@ macro( add_test_install_target _dir _amrex_root )
       COMMAND ${CMAKE_COMMAND} -E echo "     Testing AMReX installation     "
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
       COMMAND ${CMAKE_COMMAND} -E echo ""
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${_builddir}
-      COMMAND ${CMAKE_COMMAND} -E echo "Configuring test project"
-      COMMAND ${CMAKE_COMMAND} -S ${_dir} -B ${_builddir} ${_select_bldtype} -DAMReX_ROOT=${_amrex_root} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} ${_enable_fortran}
-      COMMAND ${CMAKE_COMMAND} -E echo "Building test project"
-      COMMAND ${CMAKE_COMMAND} --build ${_builddir} ${_select_config}
+      COMMAND ${CMAKE_COMMAND}
+         -DAMREX_TEST_INSTALL_BUILD_DIR=${PROJECT_BINARY_DIR}
+         -DAMREX_TEST_INSTALL_TEST_PROJECT_DIR=${_dir}
+         -DAMREX_TEST_INSTALL_TEST_BUILD_DIR=${_builddir}
+         -DAMREX_TEST_INSTALL_PREFIX=${_install_prefix}
+         -DAMREX_TEST_INSTALL_STAGE_ROOT=${_stage_root}
+         -DAMREX_TEST_INSTALL_STAGE_PREFIX=${_stage_prefix}
+         -DAMREX_TEST_INSTALL_CONFIG=${_test_config}
+         -DAMREX_TEST_INSTALL_IS_MULTI_CONFIG=${isMultiConfig}
+         -DAMREX_TEST_INSTALL_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+         -DAMREX_TEST_INSTALL_FORTRAN_COMPILER=${_enable_fortran}
+         -DAMREX_TEST_INSTALL_LEGACY_LIB_NAME=$<TARGET_FILE_PREFIX:amrex_${AMReX_SPACEDIM_LAST}d>amrex$<TARGET_FILE_SUFFIX:amrex_${AMReX_SPACEDIM_LAST}d>
+         -P ${_verify_install_script}
       COMMAND ${CMAKE_COMMAND} -E echo ""
       COMMAND ${CMAKE_COMMAND} -E echo "------------------------------------"
       COMMAND ${CMAKE_COMMAND} -E echo "   AMReX is installed correctly"

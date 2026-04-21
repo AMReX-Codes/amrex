@@ -3,8 +3,15 @@
 
 #include <AMReX_MultiFab.H>
 
+/**
+ * \file AMReX_EB_chkpt_file.H
+ *
+ * Utilities for reading/writing EB data to checkpoint files.
+ */
+
 namespace amrex::EB2 {
 
+//! Helper that serializes EB geometry to disk for restartability.
 class ChkptFile
 {
 private:
@@ -24,15 +31,23 @@ private:
     amrex::Vector<std::string> m_edgecent_name
         = {AMREX_D_DECL("edgecent_x", "edgecent_y", "edgecent_z")};
 
+    //! Write the checkpoint header describing the EB grids.
     void writeHeader (const BoxArray& cut_ba, const BoxArray& covered_ba, const Geometry& geom,
                       const IntVect& ngrow, bool extend_domain_face, int max_grid_size) const;
 
+    //! Write one MultiFab \p mf under name \p mf_name into the checkpoint.
     void writeToFile (const MultiFab& mf, const std::string& mf_name) const;
 
 
 public:
+    //! Build a checkpoint helper rooted at file/directory \p fname.
     ChkptFile (std::string fname);
 
+    /**
+     * \brief Read EB data from a checkpoint file.
+     *
+     * Populates the provided BoxArrays, DistributionMapping, and MultiFabs.
+     */
     void read_from_chkpt_file (BoxArray& cut_grids, BoxArray& covered_grids,
                                DistributionMapping& dmap,
                                MultiFab& volfrac, MultiFab& centroid, MultiFab& bndryarea,
@@ -43,6 +58,9 @@ public:
                                MultiFab& levelset, int ng_gfab, const Geometry& geom,
                                const IntVect& ngrow_finest, bool extend_domain_face, int max_grid_size) const;
 
+    /**
+     * \brief Write EB data to disk so the hierarchy can be reconstructed later.
+     */
     void write_to_chkpt_file (const BoxArray& cut_grids,
                               const BoxArray& covered_grids,
                               const MultiFab& volfrac,

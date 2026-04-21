@@ -254,18 +254,25 @@ namespace amrex::detail {
                 try {
                     m_stream.queue->wait_and_throw();
                 } catch (sycl::exception const& ex) {
-                    The_Arena()->free((void*)m_dp);
-                    m_hp->~Ls();
-                    The_Pinned_Arena()->free((void*)m_hp);
-                    m_dp = nullptr;
-                    m_hp = nullptr;
+                    if (m_dp) {
+                        The_Arena()->free((void*)m_dp);
+                        m_dp = nullptr;
+                    }
+                    if (m_hp) {
+                        m_hp->~Ls();
+                        The_Pinned_Arena()->free((void*)m_hp);
+                        m_hp = nullptr;
+                    }
                     amrex::Abort(std::string("~SyclKernelDevPtr: ")+ex.what());
                 }
                 if (m_dp) {
                     The_Arena()->free((void*)m_dp);
+                    m_dp = nullptr;
                 }
                 if (m_hp) {
+                    m_hp->~Ls();
                     The_Pinned_Arena()->free((void*)m_hp);
+                    m_hp = nullptr;
                 }
             }
         }

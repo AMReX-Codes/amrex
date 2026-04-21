@@ -84,7 +84,7 @@ void mlndlap_restriction (int i, int, int, Array4<Real> const& crse,
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_semi_restriction (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const&,
-                          Array4<Real const> const&, Array4<int const> const&, int) noexcept
+                          Array4<Real const> const&, Array4<int const> const&, int)
 {
     amrex::Abort("mlndlap_semi_restriction: not implemented in 1D");
 }

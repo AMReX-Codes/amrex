@@ -87,7 +87,12 @@ MyTest::solve ()
         mf.setVal(Real(0));
     }
 
-    auto tol_rel = Real(1.0e-10);
+    Real tol_rel;
+    if constexpr (std::is_same_v<double,Real>) {
+        tol_rel = Real(1.0e-10);
+    } else {
+        tol_rel = Real(1.0e-4);
+    }
     auto tol_abs = Real(0.0);
 
     if (use_gmres)

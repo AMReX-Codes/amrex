@@ -31,14 +31,14 @@ public:
     using std::vector<T, Allocator>::vector;
     using typename std::vector<T, Allocator>::size_type;
 
-    [[nodiscard]] T& operator[] (size_type i) noexcept
+    [[nodiscard]] T& operator[] (size_type i)
     {
         AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
                                   "Out of bound error, index: " + std::to_string(i) + " size: " + std::to_string(size()));
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
-    [[nodiscard]] const T& operator[] (size_type i) const noexcept
+    [[nodiscard]] const T& operator[] (size_type i) const
     {
         AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
                                   "Out of bound error, index: " + std::to_string(i) + " size: " + std::to_string(size()));
