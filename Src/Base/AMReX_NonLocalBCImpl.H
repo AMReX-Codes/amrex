@@ -16,7 +16,7 @@ struct Rotate90ClockWise {
 
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{a.y, -1-a.x, a.z};
+        return Dim3{.x = a.y, .y = -1-a.x, .z = a.z};
     }
 
     Box operator() (Box const& box) const noexcept {
@@ -37,7 +37,7 @@ struct Rotate90CounterClockWise {
 
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{-1-a.y, a.x, a.z};
+        return Dim3{.x = -1-a.y, .y = a.x, .z = a.z};
     }
 
     Box operator() (Box const& box) const noexcept {
@@ -72,7 +72,7 @@ struct Rotate180Fn {
 
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{-1-a.x, Ly-1-a.y, a.z};
+        return Dim3{.x = -1-a.x, .y = Ly-1-a.y, .z = a.z};
     }
 
     Box operator() (Box const& box) const noexcept {
@@ -105,7 +105,7 @@ struct PolarFn {
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{i_index(a.x), j_index(a.y), a.z};
+        return Dim3{.x = i_index(a.x), .y = j_index(a.y), .z = a.z};
     }
 
     [[nodiscard]] Box operator() (Box const& box) const noexcept {
@@ -146,7 +146,7 @@ struct PolarFn2 { // for the x-y corners
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{i_index(a.x), j_index(a.y), a.z};
+        return Dim3{.x = i_index(a.x), .y = j_index(a.y), .z = a.z};
     }
 
     [[nodiscard]] Box operator() (Box const& box) const noexcept {
@@ -198,7 +198,7 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
         auto const& dfab = dest.array      (tag.dstIndex);
         amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
         {
-            auto const si = dtos(Dim3{i,j,k});
+            auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
             dfab(i,j,k,dcomp+n) = proj(sfab,si,scomp+n);
         });
     }
@@ -231,7 +231,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
             auto const& dfab = mf.array(tag.dstIndex);
             auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
-                auto const si = dtos(Dim3{i, j, k});
+                auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
                 dfab(i, j, k, dcomp + n) = proj(sfab, si, n);
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
@@ -262,13 +262,15 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
     Vector<Array4Array4Box<T> > loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
     for (auto const& tag : local_tags) {
-        loc_copy_tags.push_back({dest.array(tag.dstIndex), src.const_array(tag.srcIndex), tag.dbox});
+        loc_copy_tags.push_back(Array4Array4Box<T>{.dfab = dest.array(tag.dstIndex),
+                                                   .sfab = src.const_array(tag.srcIndex),
+                                                   .dbox = tag.dbox});
     }
 
     ParallelFor(loc_copy_tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                             Array4Array4Box<T> const& tag) noexcept
     {
-        auto const si = dtos(Dim3{i,j,k});
+        auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
         tag.dfab(i,j,k,dcomp+n) = proj(tag.sfab, si, scomp+n);
     });
 }
@@ -323,7 +325,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
     ParallelFor(tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                    Array4Array4Box<T> const& tag) noexcept
     {
-        auto const si = dtos(Dim3{i,j,k});
+        auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
         tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
     });
 

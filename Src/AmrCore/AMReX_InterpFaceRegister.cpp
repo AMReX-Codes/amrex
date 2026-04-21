@@ -49,7 +49,7 @@ void InterpFaceRegister::define (BoxArray const& fba, DistributionMapping const&
                 ? crse_fine_face : fine_fine_face;
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion()) {
-                tags.emplace_back(Array4BoxValTag<int>{fab.array(),dbox,value});
+                tags.emplace_back(Array4BoxValTag<int>{.dfab = fab.array(), .dbox = dbox, .val = value});
             } else
 #endif
             {
@@ -143,8 +143,10 @@ InterpFaceRegister::interp (Array<MultiFab*, AMREX_SPACEDIM> const& fine, // NOL
                 auto const& chi_arr = chidata.const_array(mfi);
                 auto const& mlo_arr = mlo_mf.const_array(mfi);
                 auto const& mhi_arr = mhi_mf.const_array(mfi);
-                tags.push_back(IFRTag{fine_arr, slo_arr, clo_arr, mlo_arr, domlo});
-                tags.push_back(IFRTag{fine_arr, shi_arr, chi_arr, mhi_arr, domhi});
+                tags.push_back(IFRTag{.fine = fine_arr, .slope = slo_arr, .crse = clo_arr,
+                                      .mask = mlo_arr, .domface = domlo});
+                tags.push_back(IFRTag{.fine = fine_arr, .slope = shi_arr, .crse = chi_arr,
+                                      .mask = mhi_arr, .domface = domhi});
             }
 
             ParallelFor(tags, [=] AMREX_GPU_DEVICE (int i, int j, int k, IFRTag const& tag) noexcept

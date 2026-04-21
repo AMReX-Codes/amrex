@@ -2220,7 +2220,7 @@ OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& 
                     if (iv == 0 && b == bx) { continue; }
 #ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
-                        tags.push_back({arr,b});
+                        tags.push_back(Array4BoxTag<int>{.dfab = arr, .dbox = b});
                     } else
 #endif
                     {

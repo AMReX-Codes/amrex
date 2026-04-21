@@ -1391,7 +1391,9 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
                 auto const& sfab = (*a_bcoefs[idir])[t.srcIndex];
 #ifdef AMREX_USE_GPU
                 bc_send_tags.emplace_back(Array4PairTag<Real>
-                    {makeArray4<Real>((Real*)dptr, bx, ncomp), sfab.const_array(), bx});
+                    {.dfab = makeArray4<Real>((Real*)dptr, bx, ncomp),
+                     .sfab = sfab.const_array(),
+                     .dbox = bx});
                 std::size_t nbytes = bx.numPts()*sizeof(Real)*ncomp;
 #else
                 auto nbytes = sfab.copyToMem(bx, 0, ncomp, dptr);

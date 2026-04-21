@@ -39,7 +39,6 @@ Checks: >
        -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
        -modernize-use-constraints,
-       -modernize-use-designated-initializers,
        -modernize-use-integer-sign-comparison,
        -modernize-use-ranges,
        -modernize-use-starts-ends-with,
@@ -80,7 +79,6 @@ HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 
 # We will try to modernize this after switching to C++20
 # -modernize-use-constraints
-# -modernize-use-designated-initializers
 # -modernize-use-std-numbers
 # -modernize-use-ranges
 # -modernize-use-integer-sign-comparison

@@ -94,8 +94,8 @@ void OpenBCSolver::define (const Vector<Geometry>& a_geom,
             Orientation::Side side = (b2d.smallEnd(idim) == domain0.smallEnd(idim))
                 ? Orientation::low : Orientation::high;
             Orientation face(idim, side);
-            m_momtags_h.push_back({m_dpdn[idim].const_array(mfi), b2d, face,
-                                   nblocks});
+            m_momtags_h.push_back({.gp = m_dpdn[idim].const_array(mfi), .b2d = b2d,
+                                   .face = face, .offset = nblocks});
             nblocks += static_cast<int>(b2d.numPts())
                 / (m_coarsen_ratio*m_coarsen_ratio);
         }
