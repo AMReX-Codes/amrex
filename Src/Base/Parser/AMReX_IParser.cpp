@@ -22,9 +22,10 @@ IParser::define (std::string const& func_body)
 
     if (!func_body.empty()) {
         m_data->m_expression = func_body;
-        m_data->m_expression.erase(std::remove(m_data->m_expression.begin(),
-                                               m_data->m_expression.end(),'\n'),
-                                   m_data->m_expression.end());
+        m_data->m_expression.erase(
+            std::remove_if(m_data->m_expression.begin(), m_data->m_expression.end(),
+                           [](char c) { return c == '\n' || c == '\r'; }),
+            m_data->m_expression.end());
         std::string f = m_data->m_expression + "\n";
 
         YY_BUFFER_STATE buffer = amrex_iparser_scan_string(f.c_str());
