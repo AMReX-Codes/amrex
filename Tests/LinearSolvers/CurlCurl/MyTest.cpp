@@ -156,7 +156,7 @@ MyTest::readParameters ()
 void
 MyTest::initData ()
 {
-    RealBox rb({AMREX_D_DECL(0.,0.,0.)}, {AMREX_D_DECL(1.,1.,1.)});
+    RealBox rb(AMREX_D_DECL(0.,0.,0.), AMREX_D_DECL(1.,1.,1.));
     Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,1)};
     Geometry::Setup(&rb, 0, is_periodic.data());
     Box domain(IntVect(0), IntVect(n_cell-1));
