@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <numbers>
 #include <AMReX_Box.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
@@ -21,7 +22,7 @@ int main(int argc, char* argv[])
         ParmParse::SetParserPrefix("physical_constants");
         ParmParse pp("physical_constants");
         pp.add("c", 299792458.);
-        pp.add("pi", 3.14159265358979323846);
+        pp.add("pi", std::numbers::pi_v<double>);
     }
     {
         ParmParse pp;
@@ -106,9 +107,9 @@ int main(int argc, char* argv[])
         ParmParse pp;
         auto parser = pp.makeParser("pi*x+c*y", {"x","y"});
         auto exe = parser.compile<2>();
-        AMREX_ALWAYS_ASSERT(amrex::almostEqual(3.14159265358979323846+299792458.,
+        AMREX_ALWAYS_ASSERT(amrex::almostEqual(std::numbers::pi_v<double>+299792458.,
                                                exe(1.0,1.0)) &&
-                            amrex::almostEqual(3.14159265358979323846, exe(1.0,0.0)) &&
+                            amrex::almostEqual(std::numbers::pi_v<double>, exe(1.0,0.0)) &&
                             amrex::almostEqual(299792458., exe(0.0, 1.0)));
     }
     {

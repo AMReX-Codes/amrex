@@ -14,6 +14,7 @@
 
 #include <iosfwd>
 #include <map>
+#include <numbers>
 
 namespace amrex {
 
@@ -252,7 +253,7 @@ public:
             Real rl = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
             Real rr = rl + dx[0];
 
-            constexpr Real pi = Real(3.1415926535897932);
+            constexpr Real pi = std::numbers::pi_v<Real>;
             vol = (4.0_rt / 3.0_rt) * pi * dx[0] * (rl * rl + rl * rr + rr * rr);
         }
 
@@ -271,7 +272,7 @@ public:
             Real r_l = geomdata.ProbLo()[0] + static_cast<Real>(point[0]) * dx[0];
             Real r_r = geomdata.ProbLo()[0] + static_cast<Real>(point[0]+1) * dx[0];
 
-            constexpr Real pi = Real(3.1415926535897932);
+            constexpr Real pi = std::numbers::pi_v<Real>;
             vol = pi * (r_l + r_r) * dx[0] * dx[1];
         }
         else {
@@ -283,7 +284,7 @@ public:
             Real theta_l = geomdata.ProbLo()[1] + static_cast<Real>(point[1]) * dx[1];
             Real theta_r = geomdata.ProbLo()[1] + static_cast<Real>(point[1]+1) * dx[1];
 
-            constexpr Real twoThirdsPi = static_cast<Real>(2.0 * 3.1415926535897932 / 3.0);
+            constexpr Real twoThirdsPi = static_cast<Real>((2.0 / 3.0) * std::numbers::pi_v<Real>);
             vol = twoThirdsPi * (std::cos(theta_l) - std::cos(theta_r)) * dx[0] *
                 (r_r*r_r + r_r*r_l + r_l*r_l);
         }

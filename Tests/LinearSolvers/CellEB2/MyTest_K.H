@@ -3,6 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_EBCellFlag.H>
+#include <numbers>
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void mytest_set_phi_reg (int i, int j, int k, amrex::Array4<amrex::Real> const& phie,
@@ -13,7 +14,7 @@ void mytest_set_phi_reg (int i, int j, int k, amrex::Array4<amrex::Real> const& 
                          amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
                          int prob_type, amrex::Box const& vbx)
 {
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
     if (vbx.contains(iv)) {
@@ -70,7 +71,7 @@ void mytest_set_phi_eb (int i, int j, int k, amrex::Array4<amrex::Real> const& p
                         amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
                         int prob_type, amrex::Box const& vbx)
 {
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
     if (vbx.contains(iv)) {
@@ -141,7 +142,7 @@ void mytest_set_phi_boundary (int i, int j, int k, amrex::Array4<amrex::Real> co
                               amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> const& dx,
                               amrex::Box const& dbx)
 {
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
 
     if (!dbx.contains(amrex::IntVect(AMREX_D_DECL(i,j,k)))) {
         amrex::Real x, y;

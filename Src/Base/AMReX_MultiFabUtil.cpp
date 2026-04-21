@@ -1,6 +1,7 @@
 
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_Random.H>
+#include <numbers>
 #include <sstream>
 #include <iostream>
 
@@ -1052,7 +1053,7 @@ namespace amrex
                         if (m[box_no](i,j,k)) {
                             return Real(0.);
                         } else {
-                            constexpr Real pi = Real(3.1415926535897932);
+                            constexpr Real pi = std::numbers::pi_v<Real>;
                             Real ri = rlo + dx[0]*i;
                             Real ro = ri + dx[0];
                             return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
@@ -1072,7 +1073,7 @@ namespace amrex
                         } else {
                             Real ri = rlo + dx[0]*i;
                             Real ro = ri + dx[0];
-                            constexpr Real pi = Real(3.1415926535897932);
+                            constexpr Real pi = std::numbers::pi_v<Real>;
                             return pi*dx[1]*dx[0]*(ro+ri)
                                 * a[box_no](i,j,k,icomp);
                         }
@@ -1117,7 +1118,7 @@ namespace amrex
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                noexcept -> Real
                 {
-                    constexpr Real pi = Real(3.1415926535897932);
+                    constexpr Real pi = std::numbers::pi_v<Real>;
                     Real ri = rlo + dx[0]*i;
                     Real ro = ri + dx[0];
                     return Real(4./3.)*pi*(ro-ri)*(ro*ro+ro*ri+ri*ri)
@@ -1133,7 +1134,7 @@ namespace amrex
                 {
                     Real ri = rlo + dx[0]*i;
                     Real ro = ri + dx[0];
-                    constexpr Real pi = Real(3.1415926535897932);
+                    constexpr Real pi = std::numbers::pi_v<Real>;
                     return pi*dx[1]*dx[0]*(ro+ri)
                         * a[box_no](i,j,k,icomp);
                 });
