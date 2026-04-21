@@ -202,7 +202,7 @@ void MLCurlCurl::setAlpha (const Vector<MultiFab const*>& a_acoeffs)
                 }
                 if (az.contains(i,j,k)) {
 #if (AMREX_SPACEDIM == 1)
-                    az(i,j,k) = an(i,j,k);
+                    az(i,0,0) = Real(0.5)*(an(i,0,0)+an(i+1,0,0));
 #elif (AMREX_SPACEDIM >= 2)
                     az(i,j,k) = Real(0.25)*(an(i,j,k)+an(i+1,j,k)+an(i,j+1,k)+an(i+1,j+1,k));
 #endif
