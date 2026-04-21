@@ -244,7 +244,7 @@ fillNeighborsGPU ()
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(do_tiling == 0,
-        "Tiling on the GPU is not supported for neighbor particles."
+        "Tiling on the GPU is not supported for neighbor particles.");
 
     buildNeighborMask();
     this->defineBufferMap();
