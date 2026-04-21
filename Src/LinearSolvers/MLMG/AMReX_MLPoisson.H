@@ -148,8 +148,8 @@ MLPoissonT<MF>::prepareForSolve ()
 
     m_is_singular.clear();
     m_is_singular.resize(this->m_num_amr_levels, false);
-    auto itlo = std::find(this->m_lobc[0].begin(), this->m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(this->m_hibc[0].begin(), this->m_hibc[0].end(), BCType::Dirichlet);
+    auto itlo = std::ranges::find(this->m_lobc[0], BCType::Dirichlet);
+    auto ithi = std::ranges::find(this->m_hibc[0], BCType::Dirichlet);
     if (itlo == this->m_lobc[0].end() && ithi == this->m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev)

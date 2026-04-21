@@ -195,13 +195,13 @@ namespace amrex
     template <class T>
     void FillNull (Vector<T*>& a)
     {
-        std::for_each(a.begin(), a.end(), [](T*& p) { p = nullptr; });
+        std::ranges::for_each(a, [](T*& p) { p = nullptr; });
     }
 
     template <class T>
     void FillNull (Vector<std::unique_ptr<T> >& a)
     {
-        std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
+        std::ranges::for_each(a, [](std::unique_ptr<T>& p) { p.reset(); });
     }
 
     /////////////////////////////////////////////////////////////

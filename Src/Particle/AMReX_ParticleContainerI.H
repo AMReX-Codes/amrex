@@ -140,7 +140,7 @@ template<
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasRealComp (std::string const & name)
 {
-    return std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name) != std::end(m_soa_rdata_names);
+    return std::ranges::find(m_soa_rdata_names, name) != std::end(m_soa_rdata_names);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -148,7 +148,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasIntComp (std::string const & name)
 {
-    return std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name) != std::end(m_soa_idata_names);
+    return std::ranges::find(m_soa_idata_names, name) != std::end(m_soa_idata_names);
 }
 
 template<
@@ -161,7 +161,7 @@ template<
 int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetRealCompIndex (std::string const & name)
 {
-    const auto it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+    const auto it = std::ranges::find(m_soa_rdata_names, name);
 
     if (it == m_soa_rdata_names.end())
     {
@@ -183,7 +183,7 @@ template<
 int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetIntCompIndex (std::string const & name)
 {
-    const auto it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+    const auto it = std::ranges::find(m_soa_idata_names, name);
 
     if (it == m_soa_idata_names.end())
     {

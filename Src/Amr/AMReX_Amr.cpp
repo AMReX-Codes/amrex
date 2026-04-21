@@ -607,14 +607,14 @@ Amr::finalizeInSitu()
 bool
 Amr::isStatePlotVar (const std::string& name)
 {
-    auto it = std::find(state_plot_vars.begin(), state_plot_vars.end(), name);
+    auto it = std::ranges::find(state_plot_vars, name);
     return (it != state_plot_vars.end());
 }
 
 bool
 Amr::isStateSmallPlotVar (const std::string& name)
 {
-    auto it = std::find(state_small_plot_vars.begin(), state_small_plot_vars.end(), name);
+    auto it = std::ranges::find(state_small_plot_vars, name);
     return (it != state_small_plot_vars.end());
 }
 
@@ -685,14 +685,14 @@ Amr::deleteStatePlotVar (const std::string& name)
 bool
 Amr::isDerivePlotVar (const std::string& name) noexcept
 {
-    auto it = std::find(derive_plot_vars.begin(), derive_plot_vars.end(), name);
+    auto it = std::ranges::find(derive_plot_vars, name);
     return (it != derive_plot_vars.end());
 }
 
 bool
 Amr::isDeriveSmallPlotVar (const std::string& name) noexcept
 {
-    auto it = std::find(derive_small_plot_vars.begin(), derive_small_plot_vars.end(), name);
+    auto it = std::ranges::find(derive_small_plot_vars, name);
     return (it != derive_small_plot_vars.end());
 }
 

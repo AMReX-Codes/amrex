@@ -142,7 +142,7 @@ int main_main()
 
     Vector<int> ivar_b(ncomp_a,-1); // in case the variables are not in the same order
     for (int n_a = 0; n_a < ncomp_a; ++n_a) {
-        auto r = std::find(std::begin(names_b), std::end(names_b), names_a[n_a]);
+        auto r = std::ranges::find(names_b, names_a[n_a]);
         if (r == std::end(names_b)) {
             amrex::Print() << " WARNING: variable " << names_a[n_a] << " not found in plotfile 2\n";
             all_variables_found = false;
@@ -162,7 +162,7 @@ int main_main()
     // also print out, as a diagnostic, those variables in plotfile 1 that
     // are not in plotfile 2
     for (int n_b = 0; n_b < ncomp_b; ++n_b) {
-        auto r = std::find(std::begin(names_a),std::end(names_a),names_b[n_b]);
+        auto r = std::ranges::find(names_a, names_b[n_b]);
         if (r == std::end(names_a)) {
             amrex::Print() << " WARNING: variable " << names_b[n_b] << " not found in plotfile 1\n";
             all_variables_found = false;
@@ -332,8 +332,7 @@ int main_main()
         }
 
         global_error = std::max(global_error,
-                                *(std::max_element(aerror.begin(),
-                                                   aerror.end())));
+                                *(std::ranges::max_element(aerror)));
 
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
             any_nans = any_nans || has_nan_a[icomp_a] || has_nan_b[icomp_a];

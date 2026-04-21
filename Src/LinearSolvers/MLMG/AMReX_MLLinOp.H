@@ -1415,7 +1415,7 @@ MLLinOpT<MF>::makeSubCommunicator (const DistributionMapping& dm)
 #ifdef BL_USE_MPI
 
     Vector<int> newgrp_ranks = dm.ProcessorMap();
-    std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
+    std::ranges::sort(newgrp_ranks);
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
 

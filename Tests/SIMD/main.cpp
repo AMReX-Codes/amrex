@@ -266,7 +266,7 @@ int main (int argc, char* argv[])
             Gpu::ManagedVector<ParticleReal> x_data(n);
             Gpu::ManagedVector<ParticleReal> y_data(n);
             std::iota(x_data.begin(), x_data.end(), ParticleReal(0));
-            std::fill(y_data.begin(), y_data.end(), ParticleReal(100));
+            std::ranges::fill(y_data, ParticleReal(100));
 
             auto* x_ptr = x_data.data();
             auto* y_ptr = y_data.data();
@@ -322,7 +322,7 @@ int main (int argc, char* argv[])
             Gpu::ManagedVector<ParticleReal> x_data(n);
             Gpu::ManagedVector<ParticleReal> y_data(n);
             std::iota(x_data.begin(), x_data.end(), ParticleReal(0));
-            std::fill(y_data.begin(), y_data.end(), ParticleReal(10));
+            std::ranges::fill(y_data, ParticleReal(10));
 
             auto* x_ptr = x_data.data();
             auto* y_ptr = y_data.data();

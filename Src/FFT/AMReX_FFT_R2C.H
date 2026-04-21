@@ -774,9 +774,7 @@ R2C<T,D,C>::make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const&
             pmap.push_back(ParallelContext::local_to_global_rank(i));
         }
     }
-    allboxes.erase(std::remove_if(allboxes.begin(), allboxes.end(),
-                                  [=] (Box const& b) { return b.isEmpty(); }),
-                   allboxes.end());
+    std::erase_if(allboxes, [=] (Box const& b) { return b.isEmpty(); });
     BoxList bl(std::move(allboxes));
     return std::make_pair(BoxArray(std::move(bl)), DistributionMapping(std::move(pmap)));
 #else

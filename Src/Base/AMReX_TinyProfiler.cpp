@@ -954,7 +954,7 @@ TinyProfiler::StartRegion (std::string regname) noexcept
     if (!enabled) { return; }
 
     bool pushed = false;
-    if (std::find(regionstack.begin(), regionstack.end(), regname) == regionstack.end()) {
+    if (std::ranges::find(regionstack, regname) == regionstack.end()) {
         regionstack.emplace_back(regname);
         pushed = true;
     }

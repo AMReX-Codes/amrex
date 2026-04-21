@@ -142,7 +142,7 @@ void main_main()
     }
 
     const auto& var_names = pf.varNames();
-    if (std::find(var_names.begin(), var_names.end(), compname) == var_names.end()) {
+    if (std::ranges::find(var_names, compname) == var_names.end()) {
         amrex::Abort("ERROR: " + compname + " not found in pltfile " + pltfile);
     }
 

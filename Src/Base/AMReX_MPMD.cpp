@@ -25,7 +25,7 @@ namespace {
 template <typename T>
 int num_unique_elements (std::vector<T>& v)
 {
-    std::sort(v.begin(), v.end());
+    std::ranges::sort(v);
     auto last = std::unique(v.begin(), v.end());
     return last - v.begin();
 }

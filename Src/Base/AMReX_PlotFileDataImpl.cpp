@@ -132,7 +132,7 @@ MultiFab
 PlotFileDataImpl::get (int level, std::string const& varname)
 {
     MultiFab mf(m_ba[level], m_dmap[level], 1, m_ngrow[level]);
-    auto r = std::find(std::begin(m_var_names), std::end(m_var_names), varname);
+    auto r = std::ranges::find(m_var_names, varname);
     if (r == std::end(m_var_names)) {
         amrex::Abort("PlotFileDataImpl::get: varname not found "+varname);
     } else {

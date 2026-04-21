@@ -1482,7 +1482,7 @@ long long
 iparser_atoll (const char* str)
 {
     std::string s(str);
-    s.erase(std::remove(s.begin(), s.end(), '\''), s.end());
+    std::erase(s, '\'');
 
     auto pos_E = s.find('E');
     if (pos_E != std::string::npos) {
