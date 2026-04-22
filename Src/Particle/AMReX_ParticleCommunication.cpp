@@ -10,6 +10,7 @@ void ParticleCopyOp::clear ()
 {
     m_boxes.resize(0);
     m_levels.resize(0);
+    m_tiles.resize(0);
     m_src_indices.resize(0);
     m_periodic_shift.resize(0);
 }
@@ -18,20 +19,23 @@ void ParticleCopyOp::setNumLevels (int num_levels)
 {
     m_boxes.resize(num_levels);
     m_levels.resize(num_levels);
+    m_tiles.resize(num_levels);
     m_src_indices.resize(num_levels);
     m_periodic_shift.resize(num_levels);
 }
 
-void ParticleCopyOp::resize (int gid, int lev, int size)
+void ParticleCopyOp::resize (int gid, int tid, int lev, int size)
 {
     if (lev >= std::ssize(m_boxes))
     {
         setNumLevels(lev+1);
     }
-    m_boxes[lev][gid].resize(size);
-    m_levels[lev][gid].resize(size);
-    m_src_indices[lev][gid].resize(size);
-    m_periodic_shift[lev][gid].resize(size);
+    const auto index = std::make_pair(gid, tid);
+    m_boxes[lev][index].resize(size);
+    m_levels[lev][index].resize(size);
+    m_tiles[lev][index].resize(size);
+    m_src_indices[lev][index].resize(size);
+    m_periodic_shift[lev][index].resize(size, IntVect(AMREX_D_DECL(0,0,0)));
 }
 
 void ParticleCopyPlan::clear ()
@@ -44,6 +48,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_counts.clear();
     m_rcv_box_offsets.clear();
     m_rcv_box_ids.clear();
+    m_rcv_box_tids.clear();
     m_rcv_box_pids.clear();
     m_rcv_box_levs.clear();
 }
@@ -81,6 +86,7 @@ void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc, const Par
         for (auto bucket : box_buffer_indices)
         {
             int dst = map.bucketToGrid(bucket);
+            int tid = map.bucketToTile(bucket);
             int lev = map.bucketToLevel(bucket);
             AMREX_ASSERT(m_box_counts_h[bucket] <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
             int npart = static_cast<int>(m_box_counts_h[bucket]);
@@ -89,9 +95,10 @@ void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc, const Par
             if (i == MyProc) { continue; }
             snd_data[i].push_back(npart);
             snd_data[i].push_back(dst);
+            snd_data[i].push_back(tid);
             snd_data[i].push_back(lev);
             snd_data[i].push_back(MyProc);
-            nbytes += 4*sizeof(int);
+            nbytes += 5*sizeof(int);
         }
         m_Snds[i] = nbytes;
         m_NumSnds += nbytes;
@@ -231,17 +238,19 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(r
         m_rcv_box_offsets.resize(0);
         m_rcv_box_counts.resize(0);
         m_rcv_box_ids.resize(0);
+        m_rcv_box_tids.resize(0);
         m_rcv_box_levs.resize(0);
         m_rcv_box_pids.resize(0);
 
         m_rcv_box_offsets.push_back(0);
-        for (int i = 0, N = static_cast<int>(m_rcv_data.size()); i < N; i+=4)
+        for (int i = 0, N = static_cast<int>(m_rcv_data.size()); i < N; i+=5)
         {
             m_rcv_box_counts.push_back(m_rcv_data[i]);
-            AMREX_ASSERT(ParallelContext::MyProcSub() == map.procID(m_rcv_data[i+1], m_rcv_data[i+2]));
+            AMREX_ASSERT(ParallelContext::MyProcSub() == map.procID(m_rcv_data[i+1], m_rcv_data[i+2], m_rcv_data[i+3]));
             m_rcv_box_ids.push_back(m_rcv_data[i+1]);
-            m_rcv_box_levs.push_back(m_rcv_data[i+2]);
-            m_rcv_box_pids.push_back(m_rcv_data[i+3]);
+            m_rcv_box_tids.push_back(m_rcv_data[i+2]);
+            m_rcv_box_levs.push_back(m_rcv_data[i+3]);
+            m_rcv_box_pids.push_back(m_rcv_data[i+4]);
             m_rcv_box_offsets.push_back(m_rcv_box_offsets.back() + m_rcv_box_counts.back());
         }
     }
@@ -253,7 +262,7 @@ void ParticleCopyPlan::buildMPIFinish (const ParticleBufferMap& map) // NOLINT(r
         const auto Cnt    = m_Rcvs[Who]/sizeof(int);
 
         Long nparticles = 0;
-        for (auto i = offset; i < offset + Cnt; i +=4)
+        for (auto i = offset; i < offset + Cnt; i +=5)
         {
             nparticles += m_rcv_data[i];
         }
