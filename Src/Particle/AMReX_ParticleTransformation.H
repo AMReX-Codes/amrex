@@ -241,8 +241,8 @@ void copyParticles (DstTile& dst, const SrcTile& src) noexcept
  * \param n the number of particles to write
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Index, typename N>
+requires std::is_integral_v<Index>
 void copyParticles (DstTile& dst, const SrcTile& src,
                     Index src_start, Index dst_start, N n) noexcept
 {
@@ -297,8 +297,8 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
  * \param f the function that will be applied to each particle
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename N, typename F,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Index, typename N, typename F>
+requires std::is_integral_v<Index>
 void transformParticles (DstTile& dst, const SrcTile& src,
                          Index src_start, Index dst_start, N n, F const& f) noexcept
 {
@@ -359,8 +359,8 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src, F&&
  *
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile,
-          typename Index, typename N, typename F,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+          typename Index, typename N, typename F>
+requires std::is_integral_v<Index>
 void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                          Index src_start, Index dst1_start, Index dst2_start, N n, F const& f) noexcept
 {
@@ -388,8 +388,8 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  * \param mask pointer to the mask - 1 means copy, 0 means don't copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Index, typename N>
+requires std::is_integral_v<Index>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
 {
     return filterParticles(dst, src, mask, Index{0}, Index{0}, src.numParticles());
@@ -412,8 +412,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noex
  * \param n the number of particles to apply the operation to
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename N,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Index, typename N>
+requires std::is_integral_v<Index>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -450,8 +450,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  * \param p predicate function - particles will be copied if p returns true
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Pred>
+requires !std::is_pointer_v<std::decay_t<Pred>>
 int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 {
     return filterParticles(dst, src, std::forward<Pred>(p), 0, 0, src.numParticles());
@@ -474,8 +474,8 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  * \param n the number of particles to apply the operation to
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
+template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
+requires !std::is_pointer_v<std::decay_t<Pred>>
 Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -514,8 +514,8 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Index, typename F>
+requires std::is_integral_v<Index>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F const& f,
                                    Index src_start, Index dst_start) noexcept
 {
@@ -559,8 +559,8 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Index, typename F>
+requires std::is_integral_v<Index>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
 {
     return filterAndTransformParticles(dst, src, mask, std::forward<F>(f), Index{0}, Index{0});
@@ -581,8 +581,8 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename F,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,int> foo = 0>
+template <typename DstTile, typename SrcTile, typename Pred, typename F>
+requires !std::is_pointer_v<std::decay_t<Pred>>
 int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
 {
     using Index = decltype(src.numParticles());
@@ -607,8 +607,8 @@ int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&&
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F>
+requires std::is_integral_v<Index>
 Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
                                    const SrcTile& src, Index* mask, F const& f) noexcept
 {
@@ -652,8 +652,8 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
  * \param f defines the transformation that will be applied to the particles on copy
  *
  */
-template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>, int> foo = 0>
+template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
+requires !std::is_pointer_v<std::decay_t<Pred>>
 int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                                  Pred const& p, F&& f) noexcept
 {
@@ -694,8 +694,8 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  * \param dst_start the offset at which to start writing particles to dst
  *
  */
-template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index,
-          std::enable_if_t<!std::is_pointer_v<std::decay_t<Pred>>,Index> nvccfoo = 0>
+template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
+requires !std::is_pointer_v<std::decay_t<Pred>>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
 {
@@ -734,8 +734,8 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const&
  * \param inds pointer to the permutation array
  *
  */
-template <typename PTile, typename N, typename Index,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename PTile, typename N, typename Index>
+requires std::is_integral_v<Index>
 void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();
@@ -764,8 +764,8 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  * \param inds pointer to the permutation array
  *
  */
-template <typename PTile, typename N, typename Index,
-          std::enable_if_t<std::is_integral_v<Index>, int> foo = 0>
+template <typename PTile, typename N, typename Index>
+requires std::is_integral_v<Index>
 void scatterParticles (PTile& dst, const PTile& src, N np, const Index* inds)
 {
     const auto src_data = src.getConstParticleTileData();

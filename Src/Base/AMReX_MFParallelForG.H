@@ -56,7 +56,8 @@ namespace parfor_mf_detail {
 }
 
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F const& f)
 {
     const auto& index_array = mf.IndexArray();
@@ -107,7 +108,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
 }
 
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
 {
 #ifdef AMREX_USE_CUDA
@@ -119,7 +121,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
 }
 
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
 {
 #ifdef AMREX_USE_CUDA

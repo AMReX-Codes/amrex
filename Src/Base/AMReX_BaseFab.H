@@ -95,13 +95,14 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 }
 
 template <typename T>
-std::enable_if_t<std::is_arithmetic_v<T>>
+requires std::is_arithmetic_v<T>
+void
 placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-std::enable_if_t<std::is_trivially_default_constructible_v<T>
-                 && !std::is_arithmetic_v<T>>
+requires std::is_trivially_default_constructible_v<T> && !std::is_arithmetic_v<T>
+void
 placementNew (T* const ptr, Long n)
 {
     for (Long i = 0; i < n; ++i) {
@@ -110,7 +111,8 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-std::enable_if_t<!std::is_trivially_default_constructible_v<T>>
+requires !std::is_trivially_default_constructible_v<T>
+void
 placementNew (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
@@ -120,12 +122,14 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-std::enable_if_t<std::is_trivially_destructible_v<T>>
+requires std::is_trivially_destructible_v<T>
+void
 placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-std::enable_if_t<!std::is_trivially_destructible_v<T>>
+requires !std::is_trivially_destructible_v<T>
+void
 placementDelete (T* const ptr, Long n)
 {
     AMREX_HOST_DEVICE_FOR_1D (n, i,
@@ -253,7 +257,8 @@ public:
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    template <class U=T, std::enable_if_t<std::is_trivially_destructible_v<U>,int> = 0>
+    template <class U=T>
+    requires std::is_trivially_destructible_v<U>
     [[nodiscard]] Elixir elixir () noexcept;
 
     /**
@@ -462,7 +467,8 @@ public:
     void getVal (T* data, const IntVect& pos) const noexcept;
 
     template <RunOn run_on AMREX_DEFAULT_RUNON,
-              class U=T, std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>,int> FOO = 0>
+              class U=T>
+    requires std::is_same_v<U,float> || std::is_same_v<U,double>
     void fill_snan () noexcept;
 
     /**
@@ -1370,8 +1376,8 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
-template <RunOn run_on, class U,
-          std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>, int> FOO>
+template <RunOn run_on, class U>
+requires std::is_same_v<U,float> || std::is_same_v<U,double>
 void
 BaseFab<T>::fill_snan () noexcept
 {
@@ -1666,7 +1672,8 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 }
 
 template <class T>
-template <class U, std::enable_if_t<std::is_trivially_destructible_v<U>,int>>
+template <class U>
+requires std::is_trivially_destructible_v<U>
 Elixir
 BaseFab<T>::elixir () noexcept
 {
@@ -2848,8 +2855,8 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 namespace detail
 {
 
-template <RunOn run_on, typename T,
-          std::enable_if_t<HasAtomicAdd<T>::value,int> FOO = 0>
+template <RunOn run_on, typename T>
+requires HasAtomicAdd<T>::value
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
                          int srccomp, int destcomp, int numcomp) noexcept
@@ -2866,8 +2873,8 @@ void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
     });
 }
 
-template <RunOn run_on, typename T,
-          std::enable_if_t<! HasAtomicAdd<T>::value,int> FOO = 0>
+template <RunOn run_on, typename T>
+requires !HasAtomicAdd<T>::value
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
                          int srccomp, int destcomp, int numcomp)

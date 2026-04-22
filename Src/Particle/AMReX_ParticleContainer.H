@@ -592,7 +592,8 @@ public:
     /**
      * \brief Return capacity of memory for particles at specific grid
      */
-    template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
+    template <typename I>
+    requires std::is_integral_v<I> && (sizeof(I) >= sizeof(Long))
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
     /**
@@ -688,8 +689,8 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    template <class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    template <class PCType>
+    requires IsParticleContainer<PCType>::value
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -699,8 +700,8 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    template <class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    template <class PCType>
+    requires IsParticleContainer<PCType>::value
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -717,9 +718,8 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    template <class F, class PCType>
+    requires IsParticleContainer<PCType>::value && !std::is_integral_v<F>
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -735,9 +735,8 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    template <class F, class PCType>
+    requires IsParticleContainer<PCType>::value && !std::is_integral_v<F>
     void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
@@ -863,7 +862,8 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
+    template <class F>
+    requires !std::is_same_v<std::decay_t<F>, Vector<std::string>>
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
@@ -920,7 +920,8 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
+    template <class F>
+    requires !std::is_same_v<std::decay_t<F>, Vector<std::string>>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names, F&& f) const;
 

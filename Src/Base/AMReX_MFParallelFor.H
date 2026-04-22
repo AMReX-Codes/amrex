@@ -39,7 +39,8 @@ struct DynamicTiling {
  *           for x, y, and z-directions.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, F&& f)
 {
     detail::ParallelFor_doit(mf, IntVect(0), FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
@@ -62,7 +63,8 @@ ParallelFor (MF const& mf, F&& f)
  *           for x, y, and z-directions.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, F&& f)
 {
 #ifdef AMREX_USE_GPU
@@ -89,7 +91,8 @@ ParallelFor (MF const& mf, F&& f)
  *           for x, y, and z-directions.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, F&& f)
 {
     detail::ParallelFor_doit(mf, ng, FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
@@ -113,7 +116,8 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
  *           for x, y, and z-directions.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, F&& f)
 {
 #ifdef AMREX_USE_GPU
@@ -141,7 +145,8 @@ ParallelFor (MF const& mf, IntVect const& ng, F&& f)
  *           for x, y, and z-directions, and the last is for component.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
 {
     detail::ParallelFor_doit(mf, ng, ncomp, FabArrayBase::mfiter_tile_size, false, std::forward<F>(f));
@@ -166,7 +171,8 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
  *           for x, y, and z-directions, and the last is for component.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
 {
 #ifdef AMREX_USE_GPU
@@ -194,7 +200,8 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, F&& f)
  *           for x, y, and z-directions.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, TileSize const& ts, F&& f)
 {
     detail::ParallelFor_doit(mf, IntVect(0), ts.tile_size, false, std::forward<F>(f));
@@ -219,7 +226,8 @@ ParallelFor (MF const& mf, TileSize const& ts, F&& f)
  *           for x, y, and z-directions.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, TileSize const& ts, F&& f)
 {
 #ifdef AMREX_USE_GPU
@@ -248,7 +256,8 @@ ParallelFor (MF const& mf, TileSize const& ts, F&& f)
  *           for x, y, and z-directions.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
 {
     detail::ParallelFor_doit(mf, ng, ts.tile_size, false, std::forward<F>(f));
@@ -274,7 +283,8 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
  *           for x, y, and z-directions.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
 {
 #ifdef AMREX_USE_GPU
@@ -304,7 +314,8 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, F&& f)
  *           for x, y, and z-directions, and the last is for component.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&& f)
 {
     detail::ParallelFor_doit(mf, ng, ncomp, ts.tile_size, false, std::forward<F>(f));
@@ -331,7 +342,8 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&&
  *           for x, y, and z-directions, and the last is for component.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&& f)
 {
 #ifdef AMREX_USE_GPU
@@ -361,7 +373,8 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts, F&&
  *           for x, y, and z-directions.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, DynamicTiling dt, F&& f)
 {
     detail::ParallelFor_doit(mf, ng, ts.tile_size, dt.dynamic, std::forward<F>(f));
@@ -388,7 +401,8 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts, DynamicTiling 
  *           for x, y, and z-directions, and the last is for component.
  */
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
              DynamicTiling dt, F&& f)
 {
@@ -416,7 +430,8 @@ ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
  *           for x, y, and z-directions.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts,
              DynamicTiling dt, F&& f)
 {
@@ -449,7 +464,8 @@ ParallelFor (MF const& mf, IntVect const& ng, TileSize const& ts,
  *           for x, y, and z-directions, and the last is for component.
  */
 template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+requires IsFabArray<MF>::value
+void
 ParallelFor (MF const& mf, IntVect const& ng, int ncomp, TileSize const& ts,
              DynamicTiling dt, F&& f)
 {

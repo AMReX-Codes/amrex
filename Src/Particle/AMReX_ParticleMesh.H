@@ -55,7 +55,8 @@ auto call_f (F const& f,
 }
 /// \endcond
 
-template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class MF, class F>
+requires IsParticleContainer<PC>::value
 void
 ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=true)
 {
@@ -140,7 +141,8 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=t
     }
 }
 
-template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class MF, class F>
+requires IsParticleContainer<PC>::value
 void
 MeshToParticle (PC& pc, MF const& mf, int lev, F const& f)
 {

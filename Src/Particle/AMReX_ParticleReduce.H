@@ -86,7 +86,8 @@ auto call_f (F const& f,
  *    \endcode
  *
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceSum (PC const& pc, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -134,7 +135,8 @@ ReduceSum (PC const& pc, F&& f)
  *                  });
  *    \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceSum (PC const& pc, int lev, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -183,7 +185,8 @@ ReduceSum (PC const& pc, int lev, F&& f)
  *                  });
  *    \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -288,7 +291,8 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
  *                  });
  *    \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceMax (PC const& pc, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -337,7 +341,8 @@ ReduceMax (PC const& pc, F&& f)
  *     \endcode
  *
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceMax (PC const& pc, int lev, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -386,7 +391,8 @@ ReduceMax (PC const& pc, int lev, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -492,7 +498,8 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceMin (PC const& pc, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -540,7 +547,8 @@ ReduceMin (PC const& pc, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceMin (PC const& pc, int lev, F&& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -589,7 +597,8 @@ ReduceMin (PC const& pc, int lev, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
@@ -695,7 +704,8 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalAnd (PC const& pc, F&& f)
 {
@@ -742,7 +752,8 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalAnd (PC const& pc, int lev, F&& f)
 {
@@ -790,7 +801,8 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
 {
@@ -893,7 +905,8 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalOr (PC const& pc, F&& f)
 {
@@ -940,7 +953,8 @@ ReduceLogicalOr (PC const& pc, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalOr (PC const& pc, int lev, F&& f)
 {
@@ -988,7 +1002,8 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  *                  });
  *     \endcode
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
 {
@@ -1115,8 +1130,8 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
  *             }, reduce_ops);
  * \endcode
  */
-template <class RD, class PC, class F, class ReduceOps,
-          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class RD, class PC, class F, class ReduceOps>
+requires IsParticleContainer<PC>::value
 typename RD::Type
 ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
 {
@@ -1186,8 +1201,8 @@ ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
  *             }, reduce_ops);
  * \endcode
  */
-template <class RD, class PC, class F, class ReduceOps,
-          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class RD, class PC, class F, class ReduceOps>
+requires IsParticleContainer<PC>::value
 typename RD::Type
 ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
 {
@@ -1258,8 +1273,8 @@ ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
  *             }, reduce_ops);
  * \endcode
  */
-template <class RD, class PC, class F, class ReduceOps,
-          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class RD, class PC, class F, class ReduceOps>
+requires IsParticleContainer<PC>::value
 typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& reduce_ops)
 {

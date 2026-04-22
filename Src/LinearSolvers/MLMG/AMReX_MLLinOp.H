@@ -207,11 +207,13 @@ public:
     void setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    template <typename AMF>
+    requires !std::is_same_v<MF,AMF>
     void setCoarseFineBC (const AMF* crse, int crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    template <typename AMF>
+    requires !std::is_same_v<MF,AMF>
     void setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
@@ -238,8 +240,8 @@ public:
                              const MF* /*robinbc_b*/ = nullptr,
                              const MF* /*robinbc_f*/ = nullptr) = 0;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
-                                             IsMultiFabLike_v<AMF>, int> = 0>
+    template <typename AMF>
+    requires !std::is_same_v<MF,AMF> && IsMultiFabLike_v<AMF>
     void setLevelBC (int amrlev, const AMF* levelbcdata,
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,
@@ -1469,7 +1471,8 @@ MLLinOpT<MF>::setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+template <typename AMF>
+requires !std::is_same_v<MF,AMF>
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
                                LinOpBCType bc_type) noexcept
@@ -1478,7 +1481,8 @@ MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+template <typename AMF>
+requires !std::is_same_v<MF,AMF>
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                                LinOpBCType bc_type) noexcept
@@ -1620,8 +1624,8 @@ MLLinOpT<MF>::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
-                                         IsMultiFabLike_v<AMF>, int> >
+template <typename AMF>
+requires !std::is_same_v<MF,AMF> && IsMultiFabLike_v<AMF>
 void
 MLLinOpT<MF>::setLevelBC (int amrlev, const AMF* levelbcdata,
                           const AMF* robinbc_a, const AMF* robinbc_b,

@@ -102,10 +102,10 @@ struct CSR {
     void sort_on_host ();
 };
 
-template <typename C, typename T, template<typename> class AD, template<typename> class AS,
-          std::enable_if_t<std::is_same_v<C,Gpu::HostToDevice> ||
-                           std::is_same_v<C,Gpu::DeviceToHost> ||
-                           std::is_same_v<C,Gpu::DeviceToDevice>, int> = 0>
+template <typename C, typename T, template<typename> class AD, template<typename> class AS>
+requires std::is_same_v<C,Gpu::HostToDevice> ||
+         std::is_same_v<C,Gpu::DeviceToHost> ||
+         std::is_same_v<C,Gpu::DeviceToDevice>
 /**
  * \brief Copy CSR buffers between memory spaces asynchronously.
  *
