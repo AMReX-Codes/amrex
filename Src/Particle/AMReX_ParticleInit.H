@@ -602,7 +602,7 @@ InitFromBinaryFile (const std::string& file,
         //
         readers.insert(rprocs.begin(), rprocs.end());
 
-        AMREX_ASSERT(readers.ssize() == rprocs.ssize());
+        AMREX_ASSERT(std::ssize(readers) == rprocs.size());
 
         AMREX_ASSERT(rprocs.size() == NReaders);
     }
