@@ -108,12 +108,13 @@ namespace detail
 }
 /// \endcond
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 buildNeighborMask ()
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborMask");
+    BL_PROFILE("NeighborParticleContainer_impl::buildNeighborMask");
     m_neighbor_mask_initialized = true;
     const int lev = 0;
     const Geometry& geom = this->Geom(lev);
@@ -180,12 +181,13 @@ buildNeighborMask ()
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 buildNeighborCopyOp (bool use_boundary_neighbor)
 {
-    BL_PROFILE("NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::buildNeighborCopyOp()");
+    BL_PROFILE("NeighborParticleContainer_impl::buildNeighborCopyOp()");
 
     AMREX_ASSERT(!hasNeighbors() || use_boundary_neighbor);
 
@@ -206,8 +208,8 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         auto index = std::make_pair(gid, tid);
 
         auto& src_tile = plev[index];
-        auto& aos   = src_tile.GetArrayOfStructs();
-        const size_t np_real = aos.numParticles();
+        auto const src_ptile_data = src_tile.getConstParticleTileData();
+        const size_t np_real = src_tile.numParticles();
 
         size_t np = np_real;
         if (use_boundary_neighbor) {
@@ -225,7 +227,6 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         auto p_counts = counts.dataPtr();
         auto p_offsets = offsets.dataPtr();
 
-        ParticleType* p_ptr = aos.data();
         auto p_code_array   = m_code_array[gid].dataPtr();
         auto p_isec_boxes   = m_isec_boxes[gid].dataPtr();
         const int nisec_box = m_isec_boxes[gid].size();
@@ -242,7 +243,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
             if (use_boundary_neighbor) {
                 pid = p_bndry_pid[i];
             }
-            IntVect iv = getParticleCell(p_ptr[pid], plo, dxi, domain);
+            IntVect iv = getParticleCell(src_ptile_data, pid, plo, dxi, domain);
             for (int j=0; j<nisec_box; ++j) {
                 if (p_isec_boxes[j].contains(iv)) {
                     detail::forEachIntersectingTile(iv, nGrow,
@@ -285,7 +286,7 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
             if (use_boundary_neighbor) {
                 pid = p_bndry_pid[i];
             }
-            IntVect iv = getParticleCell(p_ptr[pid], plo, dxi, domain);
+            IntVect iv = getParticleCell(src_ptile_data, pid, plo, dxi, domain);
             int      k = p_offsets[i];
             for (int j=0; j<nisec_box; ++j) {
                 if (p_isec_boxes[j].contains(iv)) {
@@ -317,9 +318,10 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
     }
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 fillNeighborsGPU ()
 {
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
@@ -337,9 +339,10 @@ fillNeighborsGPU ()
     updateNeighborsGPU(false);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 updateNeighborsGPU (bool boundary_neighbors_only)
 {
     BL_PROFILE("NeighborParticleContainer::updateNeighborsGPU");
@@ -393,9 +396,10 @@ updateNeighborsGPU (bool boundary_neighbors_only)
     Gpu::streamSynchronize();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 clearNeighborsGPU()
 {
     BL_PROFILE("NeighborParticleContainer::clearNeighborsGPU");

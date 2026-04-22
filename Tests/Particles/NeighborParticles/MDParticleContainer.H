@@ -16,6 +16,7 @@ struct PIdx
 class MDParticleContainer
     : public amrex::NeighborParticleContainer<PIdx::ncomps, 1, 1, 1>
 {
+    using Base = amrex::NeighborParticleContainer<PIdx::ncomps, 1, 1, 1>;
 
 public:
 
@@ -23,7 +24,7 @@ public:
                          const amrex::DistributionMapping & a_dmap,
                          const amrex::BoxArray            & a_ba,
                          int                                a_numcells)
-        : NeighborParticleContainer<PIdx::ncomps, 1, 1, 1>(a_geom, a_dmap, a_ba, a_numcells)
+        : Base(a_geom, a_dmap, a_ba, a_numcells)
     {
         int num_runtime_real = 1;
         int num_runtime_int  = 1;

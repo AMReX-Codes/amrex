@@ -2,13 +2,196 @@
 #define AMREX_NEIGHBORPARTICLESCPUIMPL_H_
 #include <AMReX_Config.H>
 
+#include <array>
+#include <cstring>
+
 //! \cond CPU
 
 namespace amrex {
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+namespace detail {
+
+template <typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void applyNeighborPeriodicShift (T& value, int dir, const IntVect& periodic_shift,
+                                 const Periodicity& periodicity,
+                                 const RealBox& prob_domain) noexcept
+{
+    if (!periodicity.isPeriodic(dir)) { return; }
+    if (periodic_shift[dir] < 0) {
+        value += static_cast<T>(prob_domain.length(dir));
+    } else if (periodic_shift[dir] > 0) {
+        value -= static_cast<T>(prob_domain.length(dir));
+    }
+}
+
+template <typename PTD>
+AMREX_FORCE_INLINE
+void shiftNeighborParticlePositions (PTD const& ptd, int index, const IntVect& periodic_shift,
+                                     const Periodicity& periodicity,
+                                     const RealBox& prob_domain) noexcept
+{
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+        applyNeighborPeriodicShift(ptd.pos(dir, index), dir, periodic_shift, periodicity, prob_domain);
+    }
+}
+
+template <typename PTD>
+AMREX_FORCE_INLINE
+void packNeighborParticleData (char* dst, PTD const& src, int src_index,
+                               int num_real_comps, int num_int_comps,
+                               const Vector<int>& ghost_real_comp,
+                               const Vector<int>& ghost_int_comp,
+                               const IntVect& periodic_shift,
+                               const Periodicity& periodicity,
+                               const RealBox& prob_domain) noexcept
+{
+    using ParticleType = typename std::decay_t<PTD>::ParticleType;
+    constexpr int real_comm_comp_start =
+        ParticleType::is_soa_particle ? 0 : AMREX_SPACEDIM + ParticleType::NReal;
+    constexpr int int_comm_comp_start = 2 + ParticleType::NInt;
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        auto const p = src[src_index];
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+            if (!ghost_real_comp[dir]) { continue; }
+            auto value = p.pos(dir);
+            applyNeighborPeriodicShift(value, dir, periodic_shift, periodicity, prob_domain);
+            std::memcpy(dst, &value, sizeof(typename ParticleType::RealType));
+            dst += sizeof(typename ParticleType::RealType);
+        }
+        for (int ii = 0; ii < ParticleType::NReal; ++ii) {
+            if (!ghost_real_comp[AMREX_SPACEDIM + ii]) { continue; }
+            auto value = p.rdata(ii);
+            std::memcpy(dst, &value, sizeof(typename ParticleType::RealType));
+            dst += sizeof(typename ParticleType::RealType);
+        }
+    }
+
+    for (int ii = 0; ii < num_real_comps; ++ii) {
+        if (!ghost_real_comp[real_comm_comp_start + ii]) { continue; }
+
+        ParticleReal value;
+        if (ii < std::decay_t<PTD>::NAR) {
+            value = src.rdata(ii)[src_index];
+        } else {
+            value = src.m_runtime_rdata[ii - std::decay_t<PTD>::NAR][src_index];
+        }
+        if constexpr (ParticleType::is_soa_particle) {
+            if (ii < AMREX_SPACEDIM) {
+                applyNeighborPeriodicShift(value, ii, periodic_shift, periodicity, prob_domain);
+            }
+        }
+        std::memcpy(dst, &value, sizeof(ParticleReal));
+        dst += sizeof(ParticleReal);
+    }
+
+    std::array<int,2> idcpu_parts{};
+    auto const idcpu = src.idcpu(src_index);
+    std::memcpy(idcpu_parts.data(), &idcpu, sizeof(idcpu));
+    for (int ii = 0; ii < 2; ++ii) {
+        if (!ghost_int_comp[ii]) { continue; }
+        std::memcpy(dst, &idcpu_parts[ii], sizeof(int));
+        dst += sizeof(int);
+    }
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        auto const p = src[src_index];
+        for (int ii = 0; ii < ParticleType::NInt; ++ii) {
+            if (!ghost_int_comp[2 + ii]) { continue; }
+            auto value = p.idata(ii);
+            std::memcpy(dst, &value, sizeof(int));
+            dst += sizeof(int);
+        }
+    }
+
+    for (int ii = 0; ii < num_int_comps; ++ii) {
+        if (!ghost_int_comp[int_comm_comp_start + ii]) { continue; }
+
+        int value;
+        if (ii < std::decay_t<PTD>::NAI) {
+            value = src.idata(ii)[src_index];
+        } else {
+            value = src.m_runtime_idata[ii - std::decay_t<PTD>::NAI][src_index];
+        }
+        std::memcpy(dst, &value, sizeof(int));
+        dst += sizeof(int);
+    }
+}
+
+template <typename PTD>
+AMREX_FORCE_INLINE
+void unpackNeighborParticleData (PTD const& dst_ptd, int dst_index, const char*& src,
+                                 int num_real_comps, int num_int_comps,
+                                 const Vector<int>& ghost_real_comp,
+                                 const Vector<int>& ghost_int_comp) noexcept
+{
+    using ParticleType = typename std::decay_t<PTD>::ParticleType;
+    constexpr int real_comm_comp_start =
+        ParticleType::is_soa_particle ? 0 : AMREX_SPACEDIM + ParticleType::NReal;
+    constexpr int int_comm_comp_start = 2 + ParticleType::NInt;
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+            if (!ghost_real_comp[dir]) { continue; }
+            std::memcpy(&(dst_ptd.pos(dir, dst_index)), src, sizeof(typename ParticleType::RealType));
+            src += sizeof(typename ParticleType::RealType);
+        }
+        for (int ii = 0; ii < ParticleType::NReal; ++ii) {
+            if (!ghost_real_comp[AMREX_SPACEDIM + ii]) { continue; }
+            std::memcpy(&(dst_ptd[dst_index].rdata(ii)), src, sizeof(typename ParticleType::RealType));
+            src += sizeof(typename ParticleType::RealType);
+        }
+    }
+
+    for (int ii = 0; ii < num_real_comps; ++ii) {
+        if (!ghost_real_comp[real_comm_comp_start + ii]) { continue; }
+
+        if (ii < std::decay_t<PTD>::NAR) {
+            std::memcpy(dst_ptd.rdata(ii) + dst_index, src, sizeof(ParticleReal));
+        } else {
+            std::memcpy(dst_ptd.m_runtime_rdata[ii - std::decay_t<PTD>::NAR] + dst_index, src,
+                        sizeof(ParticleReal));
+        }
+        src += sizeof(ParticleReal);
+    }
+
+    std::array<int,2> idcpu_parts{};
+    std::memcpy(idcpu_parts.data(), &(dst_ptd.idcpu(dst_index)), sizeof(uint64_t));
+    for (int ii = 0; ii < 2; ++ii) {
+        if (!ghost_int_comp[ii]) { continue; }
+        std::memcpy(&idcpu_parts[ii], src, sizeof(int));
+        src += sizeof(int);
+    }
+    std::memcpy(&(dst_ptd.idcpu(dst_index)), idcpu_parts.data(), sizeof(uint64_t));
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        for (int ii = 0; ii < ParticleType::NInt; ++ii) {
+            if (!ghost_int_comp[2 + ii]) { continue; }
+            std::memcpy(&(dst_ptd[dst_index].idata(ii)), src, sizeof(int));
+            src += sizeof(int);
+        }
+    }
+
+    for (int ii = 0; ii < num_int_comps; ++ii) {
+        if (!ghost_int_comp[int_comm_comp_start + ii]) { continue; }
+
+        if (ii < std::decay_t<PTD>::NAI) {
+            std::memcpy(dst_ptd.idata(ii) + dst_index, src, sizeof(int));
+        } else {
+            std::memcpy(dst_ptd.m_runtime_idata[ii - std::decay_t<PTD>::NAI] + dst_index, src,
+                        sizeof(int));
+        }
+        src += sizeof(int);
+    }
+}
+
+}
+
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::fillNeighborsCPU () {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsCPU");
     if (!areMasksValid()) {
@@ -19,9 +202,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     updateNeighborsCPU(false);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::sumNeighborsCPU (int real_start_comp, int real_num_comp,
                    int int_start_comp,  int int_num_comp)
 {
@@ -106,9 +290,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     sumNeighborsMPI(isend_data, real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
                  int real_start_comp, int real_num_comp,
                  int int_start_comp, int int_num_comp)
@@ -272,9 +457,10 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 #endif
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::updateNeighborsCPU (bool reuse_rcv_counts) {
 
     BL_PROFILE_VAR("NeighborParticleContainer::updateNeighborsCPU", update);
@@ -289,7 +475,7 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
         for (MyParIter pti(*this, lev); pti.isValid(); ++pti) {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
-            auto src = pti.GetParticleTile().getParticleTileData();
+            auto const src = pti.GetParticleTile().getConstParticleTileData();
             for (int j = 0; j < num_threads; ++j) {
                 auto& tags = buffer_tag_cache[lev][src_index][j];
                 int num_tags = tags.size();
@@ -305,16 +491,8 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                         auto dst = neighbors[tag.level][dst_index].getParticleTileData();
                         copyParticle(dst, src, tag.src_index, tag.dst_index);
                         if (periodicity.isAnyPeriodic()) {
-                            auto& aos = neighbors[tag.level][dst_index].GetArrayOfStructs();
-                            ParticleType& p = aos[tag.dst_index];
-                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (! periodicity.isPeriodic(dir)) { continue; }
-                                if (tag.periodic_shift[dir] < 0) {
-                                    p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
-                                } else if (tag.periodic_shift[dir] > 0) {
-                                    p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
-                                }
-                            }
+                            detail::shiftNeighborParticlePositions(dst, tag.dst_index, tag.periodic_shift,
+                                                                  periodicity, prob_domain);
                         }
 
                         if ( enableInverse() )
@@ -327,52 +505,11 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
                             itags[tag.dst_index].src_level = lev;
                         }
                     } else {
-                        auto& aos = pti.GetArrayOfStructs();
-                        auto& soa = pti.GetStructOfArrays();
-                        ParticleType p = aos[tag.src_index];  // copy
-                        if (periodicity.isAnyPeriodic()) {
-                            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                                if (! periodicity.isPeriodic(dir)) { continue; }
-                                if (tag.periodic_shift[dir] < 0) {
-                                    p.pos(dir) += static_cast<ParticleReal> (prob_domain.length(dir));
-                                } else if (tag.periodic_shift[dir] > 0) {
-                                    p.pos(dir) -= static_cast<ParticleReal> (prob_domain.length(dir));
-                                }
-                            }
-                        }
-
                         char* dst_ptr = &send_data[who][tag.dst_index];
-                        char* src_ptr = (char *) &p;
-                        for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
-                            if (ghost_real_comp[ii]) {
-                                std::memcpy(dst_ptr, src_ptr, sizeof(typename ParticleType::RealType));
-                                dst_ptr += sizeof(typename ParticleType::RealType);
-                            }
-                            src_ptr += sizeof(typename ParticleType::RealType);
-                        }
-                        for (int ii = 0; ii < this->NumRealComps(); ++ii) {
-                            if (ghost_real_comp[ii+AMREX_SPACEDIM+NStructReal])
-                            {
-                                std::memcpy(dst_ptr, &(soa.GetRealData(ii)[tag.src_index]),
-                                            sizeof(typename ParticleType::RealType));
-                                dst_ptr += sizeof(typename ParticleType::RealType);
-                            }
-                        }
-                        for (int ii = 0; ii < 2 + NStructInt; ++ii) {
-                            if (ghost_int_comp[ii]) {
-                                std::memcpy(dst_ptr, src_ptr, sizeof(int));
-                                dst_ptr += sizeof(int);
-                            }
-                            src_ptr += sizeof(int);
-                        }
-                        for (int ii = 0; ii < this->NumIntComps(); ++ii) {
-                            if (ghost_int_comp[ii+2+NStructInt])
-                            {
-                                std::memcpy(dst_ptr, &(soa.GetIntData(ii)[tag.src_index]),
-                                            sizeof(int));
-                                dst_ptr += sizeof(int);
-                            }
-                        }
+                        detail::packNeighborParticleData(dst_ptr, src, tag.src_index,
+                                                         this->NumRealComps(), this->NumIntComps(),
+                                                         ghost_real_comp, ghost_int_comp,
+                                                         tag.periodic_shift, periodicity, prob_domain);
                         if ( enableInverse() )
                         {
                             std::memcpy(dst_ptr,&(src_index.first),sizeof(int)); dst_ptr += sizeof(int);
@@ -418,9 +555,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
 
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::clearNeighborsCPU ()
 {
     BL_PROFILE("NeighborParticleContainer::clearNeighborsCPU");
@@ -444,9 +582,10 @@ NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
     send_data.clear();
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 getRcvCountsMPI () {
 
     BL_PROFILE("NeighborParticleContainer::getRcvCountsMPI");
@@ -505,9 +644,10 @@ getRcvCountsMPI () {
 #endif // AMREX_USE_MPI
 }
 
-template <int NStructReal, int NStructInt, int NArrayReal, int NArrayInt>
+template <typename T_ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
 void
-NeighborParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
+NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 fillNeighborsMPI (bool reuse_rcv_counts) {
 
     BL_PROFILE("NeighborParticleContainer::fillNeighborsMPI");
@@ -598,40 +738,12 @@ fillNeighborsMPI (bool reuse_rcv_counts) {
                 }
                 neighbors[lev][dst_index].resize(new_size);
 
-                char* src = buffer;
+                auto dst_ptd = neighbors[lev][dst_index].getParticleTileData();
+                char const* src = buffer;
                 for (int n = 0; n < np; ++n) {
-                    char* dst_aos = (char*) &neighbors[lev][dst_index].GetArrayOfStructs()[old_size+n];
-                    auto& dst_soa = neighbors[lev][dst_index].GetStructOfArrays();
-                    for (int ii = 0; ii < AMREX_SPACEDIM + NStructReal; ++ii) {
-                        if (ghost_real_comp[ii]) {
-                            std::memcpy(dst_aos, src, sizeof(typename ParticleType::RealType));
-                            src += sizeof(typename ParticleType::RealType);
-                        }
-                        dst_aos += sizeof(typename ParticleType::RealType);
-                    }
-                    for (int ii = 0; ii < this->NumRealComps(); ++ii) {
-                        if (ghost_real_comp[ii+AMREX_SPACEDIM+NStructReal])
-                        {
-                            std::memcpy(&(dst_soa.GetRealData(ii)[old_size+n]),
-                                        src, sizeof(typename ParticleType::RealType));
-                            src += sizeof(typename ParticleType::RealType);
-                        }
-                    }
-                    for (int ii = 0; ii < 2 + NStructInt; ++ii) {
-                        if (ghost_int_comp[ii]) {
-                            std::memcpy(dst_aos, src, sizeof(int));
-                            src += sizeof(int);
-                        }
-                        dst_aos += sizeof(int);
-                    }
-                    for (int ii = 0; ii < this->NumIntComps(); ++ii) {
-                        if (ghost_int_comp[ii+2+NStructInt])
-                        {
-                            std::memcpy(&(dst_soa.GetIntData(ii)[old_size+n]),
-                                        src, sizeof(int));
-                            src += sizeof(int);
-                        }
-                    }
+                    detail::unpackNeighborParticleData(dst_ptd, int(old_size+n), src,
+                                                       this->NumRealComps(), this->NumIntComps(),
+                                                       ghost_real_comp, ghost_int_comp);
 
                     if ( enableInverse() )
                     {
