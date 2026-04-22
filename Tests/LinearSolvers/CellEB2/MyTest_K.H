@@ -149,24 +149,24 @@ void mytest_set_fluxeb_exact (
     amrex::IntVect iv(AMREX_D_DECL(i,j,k));
 
     if (vbx.contains(iv)) {
-        amrex::EBCellFlag const flag = flag_arr(i,j,k);
+        const amrex::EBCellFlag flag = flag_arr(i,j,k);
 
         if (flag.isCovered()) {
             fluxeb_exact(i,j,k) = 0.0;
         } else if (flag.isSingleValued()) {
-            amrex::Real const bcentx = ebdata.get<amrex::EBData_t::bndrycent>(i,j,k,0);
-            amrex::Real const bcenty = ebdata.get<amrex::EBData_t::bndrycent>(i,j,k,1);
+            const amrex::Real bcentx = ebdata.get<amrex::EBData_t::bndrycent>(i,j,k,0);
+            const amrex::Real bcenty = ebdata.get<amrex::EBData_t::bndrycent>(i,j,k,1);
 
             // Compute boundary area normal vector
-            amrex::Real apxm = ebdata.get<amrex::EBData_t::apx>(i  ,j,k);
-            amrex::Real apxp = ebdata.get<amrex::EBData_t::apx>(i+1,j,k);
+            const amrex::Real apxm = ebdata.get<amrex::EBData_t::apx>(i  ,j,k);
+            const amrex::Real apxp = ebdata.get<amrex::EBData_t::apx>(i+1,j,k);
             amrex::Real dapx = (apxm-apxp)/dx[0];
-            amrex::Real apym = ebdata.get<amrex::EBData_t::apy>(i,j  ,k);
-            amrex::Real apyp = ebdata.get<amrex::EBData_t::apy>(i,j+1,k);
+            const amrex::Real apym = ebdata.get<amrex::EBData_t::apy>(i,j  ,k);
+            const amrex::Real apyp = ebdata.get<amrex::EBData_t::apy>(i,j+1,k);
             amrex::Real dapy = (apym-apyp)/dx[1];
 #if (AMREX_SPACEDIM == 3)
-            amrex::Real apzm = ebdata.get<amrex::EBData_t::apz>(i,j,k  );
-            amrex::Real apzp = ebdata.get<amrex::EBData_t::apz>(i,j,k+1);
+            const amrex::Real apzm = ebdata.get<amrex::EBData_t::apz>(i,j,k  );
+            const amrex::Real apzp = ebdata.get<amrex::EBData_t::apz>(i,j,k+1);
             amrex::Real dapz = (apzm-apzp)/dx[2];
 #endif
             amrex::Real anorm = std::sqrt(AMREX_D_TERM(dapx*dapx, + dapy*dapy, + dapz*dapz));
