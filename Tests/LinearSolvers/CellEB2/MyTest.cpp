@@ -450,8 +450,7 @@ MyTest::initData ()
                                       AMREX_D_DECL(bx_arr,by_arr,bz_arr),
                                       beb_arr,flag_arr,cent_arr,bcent_arr,
                                       dx, lprob_type, bx);
-                    // feb_ex_arr(i,j,k) = 0.0;
-                    mytest_set_fluxeb(i,j,k,feb_ex_arr,flag_arr,ebdata,dx,lprob_type,bx);
+                    mytest_set_fluxeb_exact(i,j,k,feb_ex_arr,flag_arr,ebdata,dx,lprob_type,bx);
                 });
             }
 

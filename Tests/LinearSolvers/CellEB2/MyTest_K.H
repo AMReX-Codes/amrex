@@ -137,7 +137,7 @@ void mytest_set_phi_eb (int i, int j, int k, amrex::Array4<amrex::Real> const& p
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void mytest_set_fluxeb (
+void mytest_set_fluxeb_exact (
     int i, int j, int k,
     amrex::Array4<amrex::Real> const& fluxeb_exact,
     amrex::Array4<amrex::EBCellFlag const> const& flag_arr,
