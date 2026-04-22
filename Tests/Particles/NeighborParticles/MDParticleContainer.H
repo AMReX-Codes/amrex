@@ -45,7 +45,7 @@ public:
 
     void reset_test_id ();
 
-    void checkNeighborParticles ();
+    void checkNeighborParticles (bool use_source_grid = true);
 
     void checkNeighborList ();
 
