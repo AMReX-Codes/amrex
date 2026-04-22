@@ -435,6 +435,9 @@ MyTest::initData ()
                     mytest_set_phi_reg(i,j,k,phi_ex_arr,rhs_arr,
                                        AMREX_D_DECL(bx_arr,by_arr,bz_arr),
                                        dx, lprob_type, bx);
+                    if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        feb_ex_arr(i,j,k) = 0.0;
+                    }
                 });
             } else {
                 Array4<Real> const& beb_arr = bcoef_eb[ilev].array(mfi);
