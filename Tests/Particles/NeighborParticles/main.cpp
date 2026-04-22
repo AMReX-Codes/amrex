@@ -208,7 +208,8 @@ void testNeighborList ()
     pc.clearNeighbors();
     pc.fillNeighbors();
     pc.selectActualNeighbors(CheckPair());
-    pc.updateNeighbors();
+    pc.updateNeighbors(true);
+    pc.checkNeighborParticles();
     pc.buildNeighborList(CheckPair());
     if (params.check_answer) {
         pc.checkNeighborList();
