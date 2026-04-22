@@ -8,9 +8,11 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstring>
 #include <limits>
 #include <map>
 #include <tuple>
+#include <type_traits>
 
 using namespace amrex;
 
@@ -25,6 +27,17 @@ namespace
         int grid_id = -1;
         std::array<ParticleReal, AMREX_SPACEDIM> pos{};
     };
+
+    struct PackedSourceParticleData
+    {
+        Long id = 0;
+        int cpu = -1;
+        int grid_id = -1;
+        std::array<int, AMREX_SPACEDIM> cell{};
+        std::array<ParticleReal, AMREX_SPACEDIM> pos{};
+    };
+
+    static_assert(std::is_trivially_copyable_v<PackedSourceParticleData>);
 
     struct TileParticleRecord
     {
@@ -77,6 +90,28 @@ namespace
         u[0] = u_mean + ux_th;
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
+    }
+
+    auto unpack_source_particles (std::vector<PackedSourceParticleData> const& packed_particles)
+        -> std::map<ParticleKey, SourceParticleData>
+    {
+        std::map<ParticleKey, SourceParticleData> source_particles;
+
+        for (auto const& packed : packed_particles) {
+            ParticleKey key{packed.id, packed.cpu};
+            SourceParticleData pdata;
+            pdata.key = key;
+            pdata.grid_id = packed.grid_id;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                pdata.cell[idim] = packed.cell[idim];
+                pdata.pos[idim] = packed.pos[idim];
+            }
+            auto [it, inserted] = source_particles.emplace(key, pdata);
+            amrex::ignore_unused(it);
+            AMREX_ALWAYS_ASSERT(inserted);
+        }
+
+        return source_particles;
     }
 }
 
@@ -289,7 +324,7 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
     auto& plev  = GetParticles(lev);
 
     auto ngrids = int(ParticleBoxArray(0).size());
-    std::map<ParticleKey, SourceParticleData> source_particles;
+    std::vector<PackedSourceParticleData> local_source_particles;
 
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
@@ -305,18 +340,61 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
 
         for (int i = 0; i < np; ++i) {
             auto const& p = h_pstruct[i];
-            ParticleKey key{p.id(), p.cpu()};
-            SourceParticleData pdata;
-            pdata.key = key;
-            pdata.cell = getParticleCell(p, plo, dxi, domain);
+            PackedSourceParticleData pdata;
+            pdata.id = p.id();
+            pdata.cpu = p.cpu();
             pdata.grid_id = p.idata(0);
+            auto const cell = getParticleCell(p, plo, dxi, domain);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                pdata.cell[idim] = cell[idim];
                 pdata.pos[idim] = p.pos(idim);
             }
-            auto [it, inserted] = source_particles.emplace(key, pdata);
-            amrex::ignore_unused(it);
-            AMREX_ALWAYS_ASSERT(inserted);
+            local_source_particles.push_back(pdata);
         }
+    }
+
+    std::map<ParticleKey, SourceParticleData> source_particles;
+    if (ParallelDescriptor::NProcs() == 1) {
+        source_particles = unpack_source_particles(local_source_particles);
+    } else {
+        int const root = ParallelDescriptor::IOProcessorNumber();
+        int const local_nbytes =
+            static_cast<int>(local_source_particles.size() * sizeof(PackedSourceParticleData));
+
+        auto recvcounts = ParallelDescriptor::Gather(local_nbytes, root);
+        std::vector<int> displs;
+        std::vector<char> packed_bytes;
+
+        if (ParallelDescriptor::MyProc() == root) {
+            displs.resize(recvcounts.size(), 0);
+            int offset = 0;
+            for (int i = 0, n = static_cast<int>(recvcounts.size()); i < n; ++i) {
+                displs[i] = offset;
+                offset += recvcounts[i];
+            }
+            packed_bytes.resize(offset);
+        }
+
+        auto const* send_ptr = reinterpret_cast<char const*>(local_source_particles.data());
+        ParallelDescriptor::Gatherv(send_ptr, local_nbytes,
+                                    packed_bytes.data(), recvcounts, displs, root);
+
+        int total_nbytes = static_cast<int>(packed_bytes.size());
+        ParallelDescriptor::Bcast(&total_nbytes, 1, root);
+        if (ParallelDescriptor::MyProc() != root) {
+            packed_bytes.resize(total_nbytes);
+        }
+        if (total_nbytes > 0) {
+            ParallelDescriptor::Bcast(packed_bytes.data(), total_nbytes, root);
+        }
+
+        AMREX_ALWAYS_ASSERT(total_nbytes % sizeof(PackedSourceParticleData) == 0);
+        std::vector<PackedSourceParticleData> global_source_particles(
+            total_nbytes / static_cast<int>(sizeof(PackedSourceParticleData)));
+        if (total_nbytes > 0) {
+            std::memcpy(global_source_particles.data(), packed_bytes.data(), total_nbytes);
+        }
+        source_particles = unpack_source_particles(global_source_particles);
     }
 
     auto match_shift = [&] (ParticleType const& p, SourceParticleData const& src,
