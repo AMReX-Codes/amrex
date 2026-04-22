@@ -580,7 +580,7 @@ InitFromBinaryFile (const std::string& file,
             }
             while (std::ssize(readers) < NReaders);
 
-            AMREX_ASSERT(readers.ssize() == rprocs.ssize());
+            AMREX_ASSERT(std::ssize(readers) == rprocs.size());
 
             int i = 0;
 
