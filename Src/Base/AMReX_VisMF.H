@@ -668,7 +668,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
                 auto whichread = allreads[fi].begin();
                 for ( ; whichread != allreads[fi].end(); ++whichread) {
                     const int tryproc = whichread->first;
-                    if (busyprocs.find(tryproc) == busyprocs.end()) { // not busy
+                    if (!busyprocs.contains(tryproc)) { // not busy
                         busyprocs.insert(tryproc);
                         Vector<int> vreads;
                         vreads.reserve(whichread->second.size());

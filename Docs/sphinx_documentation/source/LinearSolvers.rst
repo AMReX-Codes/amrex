@@ -863,14 +863,16 @@ discretized form of
 
 .. math:: \nabla \times (\alpha \nabla \times \vec{E}) + \beta \vec{E} = \vec{f},
 
-where :math:`\vec{E}` and :math:`\vec{f}` are defined on cell edges,
-:math:`\alpha` is a positive scalar, and :math:`\beta` is a non-negative
-scalar (either a constant or a field). An :cpp:`Array` of three
-:cpp:`MultiFab`\ s is used to store the components of :math:`\vec{E}` and
-:math:`\vec{f}`. It is the user's responsibility to ensure that the
-right-hand-side data are consistent on edges shared by multiple
-:cpp:`Box`\ es.  If needed, you can call :cpp:`MLCurlCurl::prepareRHS` to
-perform this synchronization.
+where :math:`\vec{E}` and :math:`\vec{f}` are defined on cell edges.  The
+coefficient :math:`\alpha` may be supplied either as a single positive
+scalar through :cpp:`MLCurlCurl::setScalars`, or as a nodal :cpp:`MultiFab`
+by calling :cpp:`MLCurlCurl::setAlpha` with one entry per AMR level. The
+:math:`\beta` term can be a non-negative scalar or an edge-centered field
+set via :cpp:`setBeta`. An :cpp:`Array` of three :cpp:`MultiFab`\ s is used
+to store the components of :math:`\vec{E}` and :math:`\vec{f}`. It is the
+user's responsibility to ensure that the right-hand-side data are consistent
+on edges shared by multiple :cpp:`Box`\ es.  If needed, you can call
+:cpp:`MLCurlCurl::prepareRHS` to perform this synchronization.
 
 The solver supports 1D, 2D and 3D. Note that even in the 1D and 2D cases,
 :math:`\vec{E}` still has three components, one for each spatial

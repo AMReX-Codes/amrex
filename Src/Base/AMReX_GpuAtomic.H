@@ -18,8 +18,7 @@ namespace Gpu::Atomic {
 // For LogicalOr and LogicalAnd, the data type is int.
 // For Exch and CAS, the data type is generic.
 // All these functions are non-atomic in host code!!!
-// If one needs them to be atomic in host code, use HostDevice::Atomic::*.  Currently only
-// HostDevice::Atomic::Add is supported.  We could certainly add more.
+// If one needs them to be atomic in host code, use HostDevice::Atomic::*.
 // If we add more types for atomicAdd, we also need to update HasAtomicAdd in AMReX_TypeTraits.H.
 
 /// \cond DOXYGEN_IGNORE
@@ -618,11 +617,34 @@ namespace HostDevice::Atomic {
     }
 
     template <class T>
+    AMREX_FORCE_INLINE
+    T FetchAdd_Host (T* const sum, T const value) noexcept
+    {
+        T old;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic capture
+#endif
+        {
+            old = *sum;
+            *sum += value;
+        }
+        return old;
+    }
+
+    template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* const sum, T const value) noexcept
     {
         AMREX_IF_ON_DEVICE((Gpu::Atomic::AddNoRet(sum,value);))
         AMREX_IF_ON_HOST((Add_Host(sum,value);))
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T FetchAdd (T* const sum, T const value) noexcept
+    {
+        AMREX_IF_ON_DEVICE((return Gpu::Atomic::Add(sum,value);))
+        AMREX_IF_ON_HOST((return FetchAdd_Host(sum,value);))
     }
 
 }

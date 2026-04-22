@@ -605,7 +605,7 @@ InitFromBinaryFile (const std::string& file,
 
     int RealSizeInFile = 0;
 
-    if (readers.find(MyProc) != readers.end())
+    if (readers.contains(MyProc))
     {
         int DM = 0;
 
@@ -737,7 +737,7 @@ InitFromBinaryFile (const std::string& file,
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        if (readers.find(MyProc) != readers.end())
+        if (readers.contains(MyProc))
         {
             ParticleType p;
 
