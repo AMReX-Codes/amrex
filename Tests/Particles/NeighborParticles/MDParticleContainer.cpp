@@ -322,7 +322,7 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
     auto match_shift = [&] (ParticleType const& p, SourceParticleData const& src,
                             Box const& grown_tile_box) -> IntVect
     {
-        constexpr ParticleReal tol = ParticleReal(1.0e-12);
+        constexpr auto tol = ParticleReal(1.0e-12);
         IntVect matched_shift(std::numeric_limits<int>::max());
         int nmatches = 0;
         for (auto const& shift : pshifts) {
