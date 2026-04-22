@@ -106,7 +106,7 @@ class ForkJoin
     // TODO: may want to de-register MFs if they change across invocations
 
     MultiFab &get_mf (const std::string &name, int idx = 0) {
-        AMREX_ASSERT_WITH_MESSAGE(data.count(name) > 0 && idx < data[name].size(), "get_mf(): name or index not found");
+        AMREX_ASSERT_WITH_MESSAGE(data.contains(name) && idx < data[name].size(), "get_mf(): name or index not found");
         AMREX_ASSERT(task_me >= 0 && task_me < data[name][idx].forked.size());
         return data[name][idx].forked[task_me];
     }

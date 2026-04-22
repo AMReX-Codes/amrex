@@ -475,7 +475,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
 
         Total_Rcvs_Size += Cnt;
 
-        if (Rcvs.count(Who) > 0)
+        if (Rcvs.contains(Who))
         {
             Rcvs[Who] += 1;
         }
@@ -484,7 +484,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             Rcvs[Who] = 1;
         }
 
-        if (Npts.count(Who) > 0)
+        if (Npts.contains(Who))
         {
             Npts[Who] += Cnt;
         }
@@ -493,7 +493,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             Npts[Who] = Cnt;
         }
     }
-    BL_ASSERT(Rcvs.count(MyProc) == 0);
+    BL_ASSERT(!Rcvs.contains(MyProc));
 
     BL_ASSERT((Total_Rcvs_Size*sizeof(value_type))
               < static_cast<std::size_t>(std::numeric_limits<int>::max()));

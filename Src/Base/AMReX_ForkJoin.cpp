@@ -140,7 +140,7 @@ ForkJoin::reg_mf (MultiFab &mf, const std::string &name, int idx,
 void
 ForkJoin::modify_ngrow (const std::string &name, int idx, IntVect ngrow)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.count(name) > 0 && data[name].size() > idx,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.contains(name) && data[name].size() > idx,
                                      "(name, index) pair doesn't exist");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!flag_invoked,
                                      "Can only specify grow cells before first forkjoin() invocation");
@@ -154,7 +154,7 @@ ForkJoin::modify_ngrow (const std::string &name, int idx, IntVect ngrow)
 void
 ForkJoin::modify_split (const std::string &name, int idx, Vector<ComponentSet> comp_split)
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.count(name) > 0 && data[name].size() > idx,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(data.contains(name) && data[name].size() > idx,
                                      "(name, index) pair doesn't exist");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!flag_invoked,
                                      "Can only specify custom split before first forkjoin() invocation");

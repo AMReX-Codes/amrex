@@ -99,6 +99,7 @@ buildNeighborMask ()
             {
                 NeighborCode code;
                 code.grid_id        = nbor_grid.grid_id;
+                code.grid_box       = ba[nbor_grid.grid_id];
                 code.periodic_shift = nbor_grid.periodic_shift;
                 h_code_arr.push_back(code);
                 h_isec_boxes.push_back(nbor_grid.box);
@@ -170,6 +171,8 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         auto p_code_array   = m_code_array[gid].dataPtr();
         auto p_isec_boxes   = m_isec_boxes[gid].dataPtr();
         const int nisec_box = m_isec_boxes[gid].size();
+        const bool do_tiling = this->do_tiling;
+        const IntVect tile_size = this->tile_size;
         // auto p_code_offsets = m_code_offsets[gid].dataPtr();
 
         AMREX_FOR_1D ( np, i,
@@ -194,12 +197,14 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         Gpu::dtoh_memcpy_async(&num_copies, offsets.data()+np, sizeof(int));
         Gpu::streamSynchronize();
 
-        neighbor_copy_op.resize(gid, lev, num_copies);
+        neighbor_copy_op.resize(gid, tid, lev, num_copies);
 
-        auto p_boxes = neighbor_copy_op.m_boxes[lev][gid].dataPtr();
-        auto p_levs = neighbor_copy_op.m_levels[lev][gid].dataPtr();
-        auto p_src_indices = neighbor_copy_op.m_src_indices[lev][gid].dataPtr();
-        auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[lev][gid].dataPtr();
+        auto tile_index = std::make_pair(gid, tid);
+        auto p_boxes = neighbor_copy_op.m_boxes[lev][tile_index].dataPtr();
+        auto p_levs = neighbor_copy_op.m_levels[lev][tile_index].dataPtr();
+        auto p_tiles = neighbor_copy_op.m_tiles[lev][tile_index].dataPtr();
+        auto p_src_indices = neighbor_copy_op.m_src_indices[lev][tile_index].dataPtr();
+        auto p_periodic_shift = neighbor_copy_op.m_periodic_shift[lev][tile_index].dataPtr();
 
         Gpu::streamSynchronize();
         AMREX_FOR_1D ( np, i,
@@ -213,6 +218,9 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
             for (int j=0; j<nisec_box; ++j) {
                 if (p_isec_boxes[j].contains(iv)) {
                     p_boxes[k]          = p_code_array[j].grid_id;
+                    Box tbx;
+                    p_tiles[k]          = getTileIndex(iv, p_code_array[j].grid_box,
+                                                       do_tiling, tile_size, tbx);
                     p_levs[k]           = 0;
                     p_periodic_shift[k] = p_code_array[j].periodic_shift;
                     p_src_indices[k]    = pid;
@@ -234,6 +242,9 @@ fillNeighborsGPU ()
     BL_PROFILE("NeighborParticleContainer::fillNeighbors");
 
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(this->do_tiling == 0,
+        "Tiling on the GPU is not supported for neighbor particles.");
 
     buildNeighborMask();
     this->defineBufferMap();
