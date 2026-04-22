@@ -1740,8 +1740,9 @@ FabArrayBase::PolarB::define (const FabArrayBase& fa)
                                                                     m_domain.length(1)+m_ngrow[1],
                                                                     0)})};
 
-    auto const convert = NonLocalBC::PolarFn{m_domain.length(0), m_domain.length(1)};
-    auto const convert_corner = NonLocalBC::PolarFn2{m_domain.length(0), m_domain.length(1)};
+    auto const convert = NonLocalBC::PolarFn{.Lx = m_domain.length(0), .Ly = m_domain.length(1)};
+    auto const convert_corner = NonLocalBC::PolarFn2{.Lx = m_domain.length(0),
+                                                     .Ly = m_domain.length(1)};
 
     Array<Box,8> const domain_src{convert(domain_dst[0]), convert(domain_dst[1]),
                                   convert(domain_dst[2]), convert(domain_dst[3]),

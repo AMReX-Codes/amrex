@@ -1226,14 +1226,14 @@ CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
         }
     };
 
-    return CurlCurlDirichletInfo{IntVect(AMREX_D_DECL(helper(0,0),
-                                                      helper(1,0),
-                                                      helper(2,0))),
-                                 IntVect(AMREX_D_DECL(helper(0,1),
-                                                      helper(1,1),
-                                                      helper(2,1)))
+    return CurlCurlDirichletInfo{.dirichlet_lo = IntVect(AMREX_D_DECL(helper(0,0),
+                                                                      helper(1,0),
+                                                                      helper(2,0))),
+                                 .dirichlet_hi = IntVect(AMREX_D_DECL(helper(0,1),
+                                                                      helper(1,1),
+                                                                      helper(2,1)))
 #if (AMREX_SPACEDIM < 3)
-                                 ,m_coord
+                                 ,.coord = m_coord
 #endif
                                 };
 }
@@ -1268,12 +1268,12 @@ CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
         }
     };
 
-    return CurlCurlSymmetryInfo{IntVect(AMREX_D_DECL(helper(0,0),
-                                                     helper(1,0),
-                                                     helper(2,0))),
-                                IntVect(AMREX_D_DECL(helper(0,1),
-                                                     helper(1,1),
-                                                     helper(2,1)))};
+    return CurlCurlSymmetryInfo{.symmetry_lo = IntVect(AMREX_D_DECL(helper(0,0),
+                                                                    helper(1,0),
+                                                                    helper(2,0))),
+                                .symmetry_hi = IntVect(AMREX_D_DECL(helper(0,1),
+                                                                    helper(1,1),
+                                                                    helper(2,1)))};
 }
 
 void MLCurlCurl::update ()

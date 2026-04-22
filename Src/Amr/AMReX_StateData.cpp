@@ -30,8 +30,8 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 StateData::StateData ()
     :
-      new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME}
+      new_time{.start = INVALID_TIME, .stop = INVALID_TIME},
+      old_time{.start = INVALID_TIME, .stop = INVALID_TIME}
 
 {
 }
