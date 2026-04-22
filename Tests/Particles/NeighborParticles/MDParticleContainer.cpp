@@ -315,7 +315,6 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
 
     const int lev = 0;
     auto const& geom = Geom(lev);
-    auto const plo = geom.ProbLoArray();
     auto const dxi = geom.InvCellSizeArray();
     auto const domain = geom.Domain();
     auto const problo = geom.ProbLoArray();
@@ -344,7 +343,7 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
             pdata.id = p.id();
             pdata.cpu = p.cpu();
             pdata.grid_id = p.idata(0);
-            auto const cell = getParticleCell(p, plo, dxi, domain);
+            auto const cell = getParticleCell(p, problo, dxi, domain);
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 pdata.cell[idim] = cell[idim];
                 pdata.pos[idim] = p.pos(idim);
