@@ -541,7 +541,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     cnt[whichPrePost[lev][i]] += countPrePost[lev][i];
                 }
 
-                for(int i(0), N = std::ssize(cnt); i < N; ++i) {
+                for(int i = 0; i < std::ssize(cnt); ++i) {
                     if(cnt[i] == 0) {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
                         FileSystem::Remove(FullFileName);

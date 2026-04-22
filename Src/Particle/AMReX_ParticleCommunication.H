@@ -636,7 +636,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-        for (int i = 0, N = std::ssize(plan.m_rcv_box_counts); i < N; ++i)
+        for (int i = 0; i < std::ssize(plan.m_rcv_box_counts); ++i)
         {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
@@ -652,7 +652,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
         Gpu::streamSynchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-        for (int i = 0, N = std::ssize(plan.m_rcv_box_counts); i < N; ++i)
+        for (int i = 0; i < std::ssize(plan.m_rcv_box_counts); ++i)
         {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];

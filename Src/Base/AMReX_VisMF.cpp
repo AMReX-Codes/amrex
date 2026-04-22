@@ -2043,7 +2043,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::vector<int> recReads(nReqs, -1);
       while(nReqs > 0) {
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, readTag);
-        for(int ir(0); ir < static_cast<int>(rmess.count()); ++ir) {
+        for(std::size_t ir = 0; ir < rmess.count(); ++ir) {
           int mfIndex(recReads[ir]);
           VisMF::readFAB(mf,mfIndex, mf_name, hdr);
         }

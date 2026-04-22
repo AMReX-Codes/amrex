@@ -1101,7 +1101,7 @@ squeryval (const ParmParse::Table& table,
     //
     // Does it have ival values?
     //
-    if ( ival >= static_cast<int>(def->size()) )
+    if (ival >= std::ssize(*def))
     {
         amrex::ErrorStream() << "ParmParse::queryval no value number"
                              << ival << " for ";

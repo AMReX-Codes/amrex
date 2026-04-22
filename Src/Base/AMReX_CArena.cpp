@@ -37,7 +37,7 @@ void*
 CArena::alloc_protected (std::size_t nbytes)
 {
     bool freeunused_called = false;
-    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+    if (std::cmp_greater_equal(m_used+nbytes, arena_info.release_threshold)) {
         freeUnused_protected();
         freeunused_called = true;
     }

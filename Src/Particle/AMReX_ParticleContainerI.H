@@ -1578,7 +1578,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (plan.m_nrcvs > 0) {
         AMREX_ALWAYS_ASSERT(do_tiling == false);
-        for (int i = 0, N = std::ssize(plan.m_rcv_box_counts); i < N; ++i) {
+        for (int i = 0; i < std::ssize(plan.m_rcv_box_counts); ++i) {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
@@ -1770,7 +1770,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
                 Long tot_npart = particle_tile->numTotalParticles();
 
-                if (last != npart - 1) {
+                if (std::cmp_not_equal(last, npart - 1)) {
                     pindex = last + 1;
                     last = npart;
                     while (last < tot_npart) {
