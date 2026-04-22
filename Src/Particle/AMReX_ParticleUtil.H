@@ -947,7 +947,7 @@ std::string getDefaultCompNameInt (const int i) {
  * \param permutations
  */
 template <class PTile, class index_type>
-requires !PTile::ParticleType::is_rtsoa_particle
+requires (!PTile::ParticleType::is_rtsoa_particle)
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {

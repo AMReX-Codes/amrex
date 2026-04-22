@@ -219,7 +219,7 @@ void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crs
                       MFInterpolater* mapper, const Vector<BCRec>& bcs, int bcscomp);
 
 template <typename MF, typename Interp>
-requires IsFabArray<MF>::value && !std::is_same_v<Interp,MFInterpolater>
+requires (IsFabArray<MF>::value) && (!std::is_same_v<Interp,MFInterpolater>)
 void
 FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
                  int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
@@ -272,7 +272,7 @@ FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccom
 }
 
 template <typename MF, typename iMF, typename Interp>
-requires IsFabArray<MF>::value && !std::is_same_v<Interp,MFInterpolater>
+requires (IsFabArray<MF>::value) && (!std::is_same_v<Interp,MFInterpolater>)
 void
 InterpFace (Interp *interp,
             MF const& mf_crse_patch,    int crse_comp,
@@ -397,49 +397,49 @@ namespace detail {
 // ======== Not FArrayBox
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
     template <typename MF>
-    requires !std::is_same_v<typename MF::FABType::value_type, FArrayBox>
+    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
     void mf_set_domain_bndry (MF &/*mf*/, Geometry const & /*geom*/)
     {
         // nothing

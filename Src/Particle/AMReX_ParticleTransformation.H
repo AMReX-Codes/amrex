@@ -451,7 +451,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred>
-requires !std::is_pointer_v<std::decay_t<Pred>>
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 {
     return filterParticles(dst, src, std::forward<Pred>(p), 0, 0, src.numParticles());
@@ -475,7 +475,7 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
-requires !std::is_pointer_v<std::decay_t<Pred>>
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
                        Index src_start, Index dst_start, N n) noexcept
 {
@@ -582,7 +582,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename F>
-requires !std::is_pointer_v<std::decay_t<Pred>>
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
 {
     using Index = decltype(src.numParticles());
@@ -653,7 +653,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
  *
  */
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
-requires !std::is_pointer_v<std::decay_t<Pred>>
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                                  Pred const& p, F&& f) noexcept
 {
@@ -695,7 +695,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
  *
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
-requires !std::is_pointer_v<std::decay_t<Pred>>
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
 {

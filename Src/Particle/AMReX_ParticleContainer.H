@@ -719,7 +719,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType>
-    requires IsParticleContainer<PCType>::value && !std::is_integral_v<F>
+    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -736,7 +736,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType>
-    requires IsParticleContainer<PCType>::value && !std::is_integral_v<F>
+    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
     void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
@@ -863,7 +863,7 @@ public:
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>
-    requires !std::is_same_v<std::decay_t<F>, Vector<std::string>>
+    requires (!std::is_same_v<std::decay_t<F>, Vector<std::string>>)
     void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
 
     /**
@@ -921,7 +921,7 @@ public:
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>
-    requires !std::is_same_v<std::decay_t<F>, Vector<std::string>>
+    requires (!std::is_same_v<std::decay_t<F>, Vector<std::string>>)
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names, F&& f) const;
 

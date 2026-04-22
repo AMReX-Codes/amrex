@@ -101,7 +101,7 @@ placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-requires std::is_trivially_default_constructible_v<T> && !std::is_arithmetic_v<T>
+requires (std::is_trivially_default_constructible_v<T>) && (!std::is_arithmetic_v<T>)
 void
 placementNew (T* const ptr, Long n)
 {
@@ -111,7 +111,7 @@ placementNew (T* const ptr, Long n)
 }
 
 template <typename T>
-requires !std::is_trivially_default_constructible_v<T>
+requires (!std::is_trivially_default_constructible_v<T>)
 void
 placementNew (T* const ptr, Long n)
 {
@@ -128,7 +128,7 @@ placementDelete (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-requires !std::is_trivially_destructible_v<T>
+requires (!std::is_trivially_destructible_v<T>)
 void
 placementDelete (T* const ptr, Long n)
 {
@@ -468,7 +468,7 @@ public:
 
     template <RunOn run_on AMREX_DEFAULT_RUNON,
               class U=T>
-    requires std::is_same_v<U,float> || std::is_same_v<U,double>
+    requires (std::is_same_v<U,float>) || (std::is_same_v<U,double>)
     void fill_snan () noexcept;
 
     /**
@@ -1377,7 +1377,7 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 
 template <class T>
 template <RunOn run_on, class U>
-requires std::is_same_v<U,float> || std::is_same_v<U,double>
+requires (std::is_same_v<U,float>) || (std::is_same_v<U,double>)
 void
 BaseFab<T>::fill_snan () noexcept
 {
@@ -2874,7 +2874,7 @@ void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
 }
 
 template <RunOn run_on, typename T>
-requires !HasAtomicAdd<T>::value
+requires (!HasAtomicAdd<T>::value)
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
                          int srccomp, int destcomp, int numcomp)
