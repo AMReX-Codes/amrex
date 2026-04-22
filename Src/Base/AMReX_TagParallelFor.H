@@ -341,7 +341,7 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 {
     AMREX_ALWAYS_ASSERT(tv.is_defined());
 
-    if (tv.ntags == 0) { return; }
+    if (tv.ntags == 0 || tv.ntotwarps == 0) { return; }
 
     const auto d_tags = tv.d_tags;
     const auto d_nwarps = tv.d_nwarps;

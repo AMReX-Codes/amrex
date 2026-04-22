@@ -1218,6 +1218,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
 T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
+    if (n <= 0) { return 0; }
 #if defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
     void* d_temp = nullptr;
     std::size_t temp_bytes = 0;
@@ -1423,6 +1424,7 @@ namespace Gpu
     {
 #if defined(AMREX_USE_GPU)
         auto N = std::distance(begin, end);
+        if (N <= 0) { return result; }
         Scan::InclusiveSum(N, &(*begin), &(*result), Scan::noRetSum);
         OutIter result_end = result;
         std::advance(result_end, N);
@@ -1441,6 +1443,7 @@ namespace Gpu
     {
 #if defined(AMREX_USE_GPU)
         auto N = std::distance(begin, end);
+        if (N <= 0) { return result; }
         Scan::ExclusiveSum(N, &(*begin), &(*result), Scan::noRetSum);
         OutIter result_end = result;
         std::advance(result_end, N);

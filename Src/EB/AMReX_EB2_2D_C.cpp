@@ -101,14 +101,14 @@ void set_eb_data (const int i, const int j,
         }
         vcent(i,j,0,1) = 0.0_rt;
     } else {
-        Real aa = nxabs/ny*dx[0]/dx[1];
+        Real aa = nxabs/ny;
         const Real dxx = x_ym - x_yp;
         const Real dx2 = dxx * (x_ym + x_yp);
         const Real dx3 = dxx * (x_ym*x_ym + x_ym*x_yp + x_yp*x_yp);
         const Real af1 = 0.5_rt*(axm+axp)*dx[0] + aa*0.5_rt*dx2;
         vcent(i,j,0,0) = -0.125_rt*daxp*dx[0]*dx[0] + aa*(1._rt/6._rt)*dx3;
 
-        aa = nyabs/nx*dx[1]/dx[0];
+        aa = nyabs/nx;
         const Real dy = y_xm - y_xp;
         const Real dy2 = dy * (y_xm + y_xp);
         const Real dy3 = dy * (y_xm*y_xm + y_xm*y_xp + y_xp*y_xp);

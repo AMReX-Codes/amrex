@@ -1283,8 +1283,8 @@ public:
     void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                           bool remove_negative=true);
 
-    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                            bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
 
@@ -1545,6 +1545,17 @@ private:
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, int nGrow, int local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift);
 
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,

@@ -4,6 +4,8 @@
 
 using namespace amrex;
 
+enum class CoordID { Cartesian, Cyl1D, Cyl2D, Sph1D };
+
 void
 MyTest::initProb ()
 {
@@ -13,7 +15,6 @@ MyTest::initProb ()
     const auto b = beta;
     const auto ndhi = geom.Domain().bigEnd()+1;
 
-    enum class CoordID { Cartesian, Cyl1D, Cyl2D, Sph1D };
     auto cid = CoordID::Cartesian;
 #if (AMREX_SPACEDIM == 1)
     if (this->coord == 1) {
@@ -43,18 +44,22 @@ MyTest::initProb ()
         GpuArray<Array4<Real>,3> solfab{solution[0].array(mfi),
                                         solution[1].array(mfi),
                                         solution[2].array(mfi)};
+        Array4<Real> alphafab;
+        if (variable_alpha) {
+            alphafab = alpha_node.array(mfi);
+        }
         amrex::ParallelFor(gbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
 #if (AMREX_SPACEDIM == 1)
             if (cid == CoordID::Sph1D) {
-                actual_init_prob_sph1d(i,j,k,rhsfab,solfab,prob_lo,dx,a,b,ndhi);
+                actual_init_prob_sph1d(i,j,k,rhsfab,solfab,prob_lo,dx,a,b,ndhi,alphafab);
             } else if (cid == CoordID::Cyl1D) {
-                actual_init_prob_cyl1d(i,j,k,rhsfab,solfab,prob_lo,dx,a,b,ndhi);
+                actual_init_prob_cyl1d(i,j,k,rhsfab,solfab,prob_lo,dx,a,b,ndhi,alphafab);
             } else
 #endif
             {
-                actual_init_prob(i,j,k,rhsfab,solfab,prob_lo,dx,a,b);
+                actual_init_prob(i,j,k,rhsfab,solfab,prob_lo,dx,a,b,alphafab);
             }
         });
     }

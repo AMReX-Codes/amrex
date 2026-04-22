@@ -47,8 +47,8 @@ gcc_major_ge_12 = $(shell expr $(gcc_major_version) \>= 12)
 INLINE_LIMIT ?= 43210
 
 ifneq ($(NO_CONFIG_CHECKING),TRUE)
-ifneq ($(gcc_major_ge_8),1)
-  $(error GCC < 8 not supported)
+ifneq ($(gcc_major_ge_11),1)
+  $(error GCC < 11 not supported)
 endif
 endif
 
@@ -148,7 +148,7 @@ ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
   CXXFLAGS += -std=$(CXXSTD)
 else
-  CXXFLAGS += -std=c++17
+  CXXFLAGS += -std=c++20
 endif
 
 CFLAGS   += -std=c11
