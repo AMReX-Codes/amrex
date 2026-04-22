@@ -424,7 +424,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 
     if (LIpairV)
     {
-        BL_ASSERT(static_cast<int>(LIpairV->size()) == nboxes);
+        BL_ASSERT(std::ssize(*LIpairV) == nboxes);
 
         for (int i = 0; i < nboxes; ++i)
         {

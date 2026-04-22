@@ -1824,7 +1824,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                                                             afPtr, hdr.m_writtenRD);
                     } else {
                       auto nbytes = fab.nBytes();
-                      AMREX_ASSERT(bytesToRead > currentOffset && nbytes <= std::size_t(bytesToRead - currentOffset));
+                      AMREX_ASSERT(bytesToRead > currentOffset && std::cmp_less_equal(nbytes, (bytesToRead - currentOffset)));
                       std::memcpy(fabdata, afPtr, nbytes);
                     }
                     currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
