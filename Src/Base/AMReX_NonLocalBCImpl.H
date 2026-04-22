@@ -627,12 +627,12 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
     const FabArrayBase::PolarB& ThePolarB = mf.getPolarB(nghost, domain);
 
     auto handler = Comm_nowait(mf, scomp, ncomp, ThePolarB,
-                               PolarFn{domain.length(0), domain.length(1)},
+                               PolarFn{.Lx = domain.length(0), .Ly = domain.length(1)},
                                Identity{});
 
 #ifdef AMREX_USE_MPI
     Comm_finish(mf, scomp, ncomp, ThePolarB, std::move(handler),
-                PolarFn{domain.length(0), domain.length(1)}, Identity{});
+                PolarFn{.Lx = domain.length(0), .Ly = domain.length(1)}, Identity{});
 #else
     amrex::ignore_unused(handler);
 #endif
