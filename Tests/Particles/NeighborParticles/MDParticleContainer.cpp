@@ -331,9 +331,9 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 ParticleReal expected_pos = src.pos[idim];
                 if (shift[idim] > 0) {
-                    expected_pos += probhi[idim] - problo[idim];
+                    expected_pos += static_cast<ParticleReal>(probhi[idim] - problo[idim]);
                 } else if (shift[idim] < 0) {
-                    expected_pos -= probhi[idim] - problo[idim];
+                    expected_pos -= static_cast<ParticleReal>(probhi[idim] - problo[idim]);
                 }
                 if (std::abs(p.pos(idim) - expected_pos) > tol) {
                     matched = false;
