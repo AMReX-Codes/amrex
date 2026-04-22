@@ -1753,7 +1753,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           readRanks.push_back(*setIter);
         }
 
-        if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
+        if(rfrSet.contains(myProc)) {  // ---- myProc needs to read this file
           const std::string &fileName = rfrIter->first;
           std::string fullFileName(VisMF::DirName(mf_name) + fileName);
           frcIter = FileReadChains.find(fileName);
@@ -1969,7 +1969,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
               whichRead != allReads[arIndex].end(); ++whichRead)
           {
             int tryProc(whichRead->first);
-            if(busyProcs.find(tryProc) == busyProcs.end()) {  // tryProc not busy
+            if(!busyProcs.contains(tryProc)) {  // tryProc not busy
               busyProcs.insert(tryProc);
               int nReads= static_cast<int>(whichRead->second.size());
               int ir(0);

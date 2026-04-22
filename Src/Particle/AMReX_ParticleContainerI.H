@@ -1192,7 +1192,7 @@ addParticles (const PCType& other, F const& f, bool local)
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            if(plevel_other.find(index) == plevel_other.end()) { continue; }
+            if(!plevel_other.contains(index)) { continue; }
 
             DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
         }
@@ -1207,7 +1207,7 @@ addParticles (const PCType& other, F const& f, bool local)
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            if(plevel_other.find(index) == plevel_other.end()) { continue; }
+            if(!plevel_other.contains(index)) { continue; }
 
             // this has already had define() called above
             auto& ptile = ParticlesAt(lev, mfi.index(), mfi.LocalTileIndex());

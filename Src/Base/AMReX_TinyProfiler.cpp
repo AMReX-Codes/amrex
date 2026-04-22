@@ -422,7 +422,7 @@ TinyProfiler::Finalize (bool bFlushing)
 
         if (!alreadySynced) {
             for (auto const& s : syncedRegions) {
-                if (lstatsmap.find(s) == lstatsmap.end()) {
+                if (!lstatsmap.contains(s)) {
                     lstatsmap.insert(std::make_pair(s,std::map<std::string,Stats>()));
                 }
             }
@@ -530,7 +530,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (regstats.find(s) == regstats.end()) {
+                if (!regstats.contains(s)) {
                     regstats.insert(std::make_pair(s, Stats()));
                 }
             }
@@ -745,7 +745,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (memstats.find(s) == memstats.end()) {
+                if (!memstats.contains(s)) {
                     memstats[s]; // insert
                 }
             }
