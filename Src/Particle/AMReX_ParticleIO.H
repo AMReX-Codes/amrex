@@ -263,10 +263,10 @@ WritePlotFile (const std::string& dir, const std::string& name,
 /// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>*>
+template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::WritePlotFile (const std::string& dir, const std::string& name, F&& f) const
+::WritePlotFile (const std::string& dir, const std::string& name, F const& f) const
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
@@ -287,8 +287,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            std::forward<F>(f));
+                            real_comp_names, int_comp_names, f);
 }
 
 /// \ingroup amrex_io
@@ -299,7 +298,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
                  const Vector<std::string>& real_comp_names,
-                 const Vector<std::string>& int_comp_names, F&& f) const
+                 const Vector<std::string>& int_comp_names, F const& f) const
 {
     if constexpr(ParticleType::is_soa_particle) {
         AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
@@ -321,18 +320,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            std::forward<F>(f));
+                            real_comp_names, int_comp_names, f);
 }
 
 /// \ingroup amrex_io
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>*>
+template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFile (const std::string& dir, const std::string& name,
-                 const Vector<std::string>& real_comp_names, F&& f) const
+                 const Vector<std::string>& real_comp_names, F const& f) const
 {
     if constexpr(ParticleType::is_soa_particle) {
         AMREX_ALWAYS_ASSERT(real_comp_names.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
@@ -359,8 +357,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            std::forward<F>(f));
+                            real_comp_names, int_comp_names, f);
 }
 
 /// \ingroup amrex_io
@@ -372,7 +369,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 ::WritePlotFile (const std::string& dir,
                  const std::string& name,
                  const Vector<int>& write_real_comp,
-                 const Vector<int>& write_int_comp, F&& f) const
+                 const Vector<int>& write_int_comp, F const& f) const
 {
     if constexpr(ParticleType::is_soa_particle) {
         AMREX_ALWAYS_ASSERT(write_real_comp.size() == NumRealComps() + NStructReal - AMREX_SPACEDIM); // pure SoA: skip positions
@@ -395,8 +392,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     WriteBinaryParticleData(dir, name, write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            std::forward<F>(f));
+                            real_comp_names, int_comp_names, f);
 }
 
 /// \ingroup amrex_io
@@ -410,14 +406,13 @@ WritePlotFile (const std::string& dir, const std::string& name,
                const Vector<int>& write_int_comp,
                const Vector<std::string>& real_comp_names,
                const Vector<std::string>&  int_comp_names,
-               F&& f) const
+               F const& f) const
 {
     BL_PROFILE("ParticleContainer::WritePlotFile()");
 
     WriteBinaryParticleData(dir, name,
                             write_real_comp, write_int_comp,
-                            real_comp_names, int_comp_names,
-                            std::forward<F>(f));
+                            real_comp_names, int_comp_names, f);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -430,7 +425,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                            const Vector<int>& write_int_comp,
                            const Vector<std::string>& real_comp_names,
                            const Vector<std::string>& int_comp_names,
-                           F&& f, bool is_checkpoint) const
+                           F const& f, bool is_checkpoint) const
 {
     if (AsyncOut::UseAsyncOut()) {
         WriteBinaryParticleDataAsync(*this, dir, name,
@@ -441,7 +436,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         WriteBinaryParticleDataSync(*this, dir, name,
                                     write_real_comp, write_int_comp,
                                     real_comp_names, int_comp_names,
-                                    std::forward<F>(f), is_checkpoint);
+                                    f, is_checkpoint);
     }
 }
 
