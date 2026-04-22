@@ -5,6 +5,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
 
+#include <iterator>
 #include <limits>
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -206,7 +207,7 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
   std::set<int> copySet;
   uSet.clear();
-  while(static_cast<int>(copySet.size()) < setSize) {
+  while(std::ssize(copySet) < setSize) {
     int r = static_cast<int>(Random_int(poolSize));
     if(copySet.find(r) == copySet.end()) {
       copySet.insert(r);

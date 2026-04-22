@@ -12,6 +12,7 @@
 #include <AMReX_MakeParticle.H>
 #include <AMReX_ParmParse.H>
 
+#include <iterator>
 #include <map>
 
 namespace amrex {
@@ -23,7 +24,7 @@ struct NeighborUnpackPolicy
     template <class PTile>
     void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {
-        for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
+        for(int i = 0; i < std::ssize(sizes); ++i)
         {
             int offset = tiles[i]->numTotalParticles();
             int nn = tiles[i]->getNumNeighbors();
@@ -253,12 +254,12 @@ struct ParticleCopyPlan
         if constexpr (!PC::ParticleType::is_soa_particle) {
             comm_comps_start += AMREX_SPACEDIM + NStructReal;
         }
-        for (int i = comm_comps_start; i < real_comp_mask.size(); ++i) {
+        for (int i = comm_comps_start; i < std::ssize(real_comp_mask); ++i) {
             if (real_comp_mask[i]) {++num_real_comm_comp;}
         }
 
         int num_int_comm_comp = 0;
-        for (int i = 2 + NStructInt; i < int_comp_mask.size(); ++i) {
+        for (int i = 2 + NStructInt; i < std::ssize(int_comp_mask); ++i) {
             if (int_comp_mask[i])  {++num_int_comm_comp;}
         }
 
@@ -635,7 +636,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
+        for (int i = 0, N = std::ssize(plan.m_rcv_box_counts); i < N; ++i)
         {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
@@ -651,7 +652,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
         Gpu::streamSynchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
+        for (int i = 0, N = std::ssize(plan.m_rcv_box_counts); i < N; ++i)
         {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];

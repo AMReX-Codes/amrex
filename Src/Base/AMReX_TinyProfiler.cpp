@@ -32,8 +32,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
 #include <set>
 
 namespace amrex {
@@ -174,7 +175,7 @@ TinyProfiler::stop ()
 
         const double t = amrex::second();
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(ttstack) == global_depth,
             "TinyProfiler sections must be nested with respect to each other");
 #ifdef AMREX_USE_OMP
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(in_parallel_region == omp_in_parallel(),

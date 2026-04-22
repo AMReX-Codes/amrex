@@ -23,6 +23,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <iterator>
+
 #include <algorithm>
 #include <string>
 
@@ -837,7 +839,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 #endif
 
     m_num_amr_levels = 0;
-    for (int amrlev = 0; amrlev < a_geom.size(); amrlev++) {
+    for (int amrlev = 0; amrlev < std::ssize(a_geom); amrlev++) {
         if (!a_grids[amrlev].empty()) {
             m_num_amr_levels++;
         }
@@ -875,7 +877,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         m_geom[amrlev].push_back(a_geom[amrlev]);
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
-        if (amrlev < a_factory.size()) {
+        if (amrlev < std::ssize(a_factory)) {
             m_factory[amrlev].emplace_back(a_factory[amrlev]->clone());
         } else {
             m_factory[amrlev].push_back(std::make_unique<DefaultFabFactory<FAB>>());
@@ -1332,7 +1334,7 @@ MLLinOpT<MF>::makeAgglomeratedDMap (const Vector<BoxArray>& ba,
             const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
 
             const int nprocs = ParallelContext::NProcsSub();
-            AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+            AMREX_ASSERT(std::ssize(sfc) == nprocs);
 
             Vector<int> pmap(ba[i].size());
             for (int iproc = 0; iproc < nprocs; ++iproc) {

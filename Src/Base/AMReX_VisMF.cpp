@@ -8,6 +8,7 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <iterator>
 #include <limits>
 #include <vector>
 #include <utility>
@@ -1025,7 +1026,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     for(int i : pmap) {
       procsWithData.insert(i);
     }
-    if(allowSparseWrites && (static_cast<int>(procsWithData.size()) < nOutFiles)) {
+    if(allowSparseWrites && (std::ssize(procsWithData) < nOutFiles)) {
       useSparseFPP = true;
 //      amrex::Print() << "SSSSSSSS:  in VisMF::Write:  useSparseFPP for:  " << mf_name << '\n';
       for (auto const& x : procsWithData) {
@@ -2497,7 +2498,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
                 {
                     int k = -1;
                     do {
-                        if (lidx < gidx[rank].size()) {
+                        if (lidx < std::ssize(gidx[rank])) {
                             k = gidx[rank][lidx];
                             ++lidx;
                         } else {

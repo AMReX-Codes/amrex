@@ -13,6 +13,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
@@ -903,7 +904,7 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
 #pragma omp single nowait
 #endif
     {
-        if (ival >= int(entry.m_last_vals.size())) {
+        if (ival >= std::ssize(entry.m_last_vals)) {
             entry.m_last_vals.resize(ival+1);
         }
         entry.m_last_vals[ival] = ref;
@@ -1082,7 +1083,7 @@ squeryval (const ParmParse::Table& table,
     if (!(def->empty()) && is_toml_1d_array((*def)[0])) {
         std::vector<T> toml_vals;
         read_array_1d(toml_vals, (*def)[0]);
-        if (ival >= static_cast<int>(toml_vals.size())) {
+        if (ival >= std::ssize(toml_vals)) {
             amrex::ErrorStream() << "ParmParse::queryval no value number "
                                  << ival << " for ";
             if ( occurrence ==  ParmParse::LAST ) {
@@ -1265,7 +1266,7 @@ squeryarr (const ParmParse::Table& table,
                                            std::is_same_v<T,double>);
 
     int stop_ix = start_ix + num_val - 1;
-    if ( static_cast<int>(ref.size()) <= stop_ix )
+    if ( std::ssize(ref) <= stop_ix )
     {
         ref.resize(stop_ix + 1);
     }
@@ -2833,7 +2834,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
 
     auto const& entry = table.at(name);
 
-    AMREX_ALWAYS_ASSERT(int(vals.size()) == nvals);
+    AMREX_ALWAYS_ASSERT(std::ssize(vals) == nvals);
     for (int ival = 0; ival < nvals; ++ival) {
         bool r = pp_parser(table, parser_prefix, name, vals[ival], ptr[ival], true);
         if (r) {

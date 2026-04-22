@@ -12,11 +12,12 @@
 #endif
 
 #include <iostream>
-#include <map>
 #include <algorithm>
+#include <exception>
+#include <iterator>
+#include <map>
 #include <string>
 #include <unordered_set>
-#include <exception>
 
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
@@ -758,7 +759,7 @@ Device::setStream (gpuStream_t s) noexcept
         }
     }
     int const idx = streamIndex(s);
-    if (idx == static_cast<int>(gpu_stream_pool.size())) {
+    if (idx == std::ssize(gpu_stream_pool)) {
         amrex::Abort("Gpu::Device::setStream: stream is not managed by AMReX.");
     }
     gpu_stream_index[tid] = idx;

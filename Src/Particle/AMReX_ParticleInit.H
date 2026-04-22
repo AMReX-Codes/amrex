@@ -2,6 +2,7 @@
 #define AMREX_PARTICLEINIT_H
 #include <AMReX_Config.H>
 
+#include <iterator>
 #include <utility>
 
 namespace amrex {
@@ -323,7 +324,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        for (int lev = 0; lev < static_cast<int>(host_particles.size()); ++lev)
+        for (int lev = 0; lev < std::ssize(host_particles); ++lev)
         {
             for (auto& kv : host_particles[lev])
             {
@@ -340,7 +341,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 Gpu::copyAsync(Gpu::hostToDevice, src_tile.begin(), src_tile.end(),
                                dst_tile.GetArrayOfStructs().begin() + old_size);
 
-                if (std::cmp_greater((host_real_attribs[lev][std::make_pair(grid, tile)]).size(), NArrayReal)) {
+                if (std::ssize(host_real_attribs[lev][std::make_pair(grid, tile)]) > NArrayReal) {
                     for (int i = 0; i < NArrayReal; ++i) {
                         Gpu::copyAsync(Gpu::hostToDevice,
                                        host_real_attribs[lev][std::make_pair(grid,tile)][i].begin(),
@@ -381,8 +382,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 Where(p, pld);
 
                 host_particles[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)].push_back(p);
-                if (std::cmp_greater((host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]).size(),
-                                     extradata - NStructReal)) {
+                if (std::ssize(host_real_attribs[pld.m_lev][std::make_pair(pld.m_grid, pld.m_tile)]) >
+                    extradata - NStructReal) {
                     for (int n = NStructReal; n < extradata; n++)
                     {
                         Real rdata = nreals[n-NStructReal].back();
@@ -401,7 +402,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        for (int lev = 0; lev < static_cast<int>(host_particles.size()); ++lev)
+        for (int lev = 0; lev < std::ssize(host_particles); ++lev)
         {
             for (auto& kv : host_particles[lev])
             {
@@ -577,9 +578,9 @@ InitFromBinaryFile (const std::string& file,
 
                 readers.insert(n);
             }
-            while (std::cmp_less(readers.size(), NReaders));
+            while (std::ssize(readers) < NReaders);
 
-            AMREX_ASSERT(std::cmp_equal(readers.size(), rprocs.size()));
+            AMREX_ASSERT(readers.size() == rprocs.size());
 
             int i = 0;
 
@@ -601,7 +602,7 @@ InitFromBinaryFile (const std::string& file,
         //
         readers.insert(rprocs.begin(), rprocs.end());
 
-        AMREX_ASSERT(std::cmp_equal(readers.size(), rprocs.size()));
+        AMREX_ASSERT(readers.size() == rprocs.size());
 
         AMREX_ASSERT(rprocs.size() == NReaders);
     }
@@ -848,7 +849,7 @@ InitFromBinaryFile (const std::string& file,
             how_many_read += NRead;
         }
 
-        for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+        for (int host_lev = 0; host_lev < std::ssize(host_particles); ++host_lev)
         {
             for (auto& kv : host_particles[host_lev]) {
                 auto grid = kv.first.first;
@@ -873,7 +874,7 @@ InitFromBinaryFile (const std::string& file,
         // we don't keep trying to redistribute particles that have
         // already been redistributed correctly.
         //
-        for (int lev = 0; lev < m_particles.size(); lev++)
+        for (int lev = 0; lev < std::ssize(m_particles); lev++)
         {
             auto& pmap     = m_particles[lev];
             auto& tmp_pmap = tmp_particles[lev];
@@ -1145,7 +1146,7 @@ InitRandom (Long                    icount,
             }
         }
 
-        for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+        for (int host_lev = 0; host_lev < std::ssize(host_particles); ++host_lev)
         {
             for (auto& kv : host_particles[host_lev]) {
                 auto grid = kv.first.first;
@@ -1298,7 +1299,7 @@ InitRandom (Long                    icount,
             }
         }
 
-        for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+        for (int host_lev = 0; host_lev < std::ssize(host_particles); ++host_lev)
         {
             for (auto& kv : host_particles[host_lev]) {
                 auto grid = kv.first.first;
@@ -1390,7 +1391,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     m_particles.resize(m_gdb->finestLevel()+1);
 
-    for (int lev = 0; lev < m_particles.size(); lev++)
+    for (int lev = 0; lev < std::ssize(m_particles); lev++)
     {
         AMREX_ASSERT(m_particles[lev].empty());
     }
@@ -1564,7 +1565,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
 
     resizeData();
 
-    for (int lev = 0; lev < m_particles.size(); lev++) {
+    for (int lev = 0; lev < std::ssize(m_particles); lev++) {
         AMREX_ASSERT(m_particles[lev].empty());
     }
 
@@ -1642,7 +1643,7 @@ InitNRandomPerCell (int n_per_cell, const ParticleInitData& pdata)
             }
         }
 
-        for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+        for (int host_lev = 0; host_lev < std::ssize(host_particles); ++host_lev)
         {
             for (auto& kv : host_particles[host_lev]) {
                 auto gid = kv.first.first;
