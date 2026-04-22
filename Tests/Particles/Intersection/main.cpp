@@ -92,7 +92,7 @@ void testIntersection()
             auto* const grids_ptr = device_grids.dataPtr();
             amrex::ParallelFor(num_cells, [=] AMREX_GPU_DEVICE (int j) noexcept
             {
-                grids_ptr[j] = assign_grid(cells_ptr[j]);
+                grids_ptr[j] = assign_grid(cells_ptr[j]).first;
             });
 
             ReduceOps<ReduceOpSum> reduce_op;
