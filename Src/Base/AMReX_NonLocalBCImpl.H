@@ -875,47 +875,47 @@ struct SphThetaPhiRIndexMapping
         // theta-hi/r-lo edge, and r > r-hi.
         if (ilo && jmd && kmd)
         {
-            return {-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = -1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ihi && jmd && kmd)
         {
-            return {2*nx-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = 2*nx-1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (imd && jlo && kmd)
         {
-            return {i, j+ny, k};
+            return Dim3{.x = i, .y = j+ny, .z = k};
         }
         else if (imd && jhi && kmd)
         {
-            return {i, j-ny, k};
+            return Dim3{.x = i, .y = j-ny, .z = k};
         }
         else if (imd && jmd && klo)
         {
-            return {nx-1-i, (j+ny/2)%ny, -1-k};
+            return Dim3{.x = nx-1-i, .y = (j+ny/2)%ny, .z = -1-k};
         }
         else if (ilo && jlo && kmd)
         {
-            return {-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = -1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ihi && jlo && kmd)
         {
-            return {2*nx-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = 2*nx-1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ilo && jhi && kmd)
         {
-            return {-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = -1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ihi && jhi && kmd)
         {
-            return {2*nx-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = 2*nx-1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (imd && jlo && klo)
         {
-            return {nx-1-i, (j+ny/2)%ny, -1-k};
+            return Dim3{.x = nx-1-i, .y = (j+ny/2)%ny, .z = -1-k};
         }
         else if (imd && jhi && klo)
         {
-            return {nx-1-i, (j+ny/2)%ny, -1-k};
+            return Dim3{.x = nx-1-i, .y = (j+ny/2)%ny, .z = -1-k};
         }
         else
         {

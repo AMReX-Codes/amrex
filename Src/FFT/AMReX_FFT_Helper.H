@@ -1602,12 +1602,12 @@ struct Swap01
 {
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.y, i.x, i.z};
+        return Dim3{.x = i.y, .y = i.x, .z = i.z};
     }
 
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.y, i.x, i.z};
+        return Dim3{.x = i.y, .y = i.x, .z = i.z};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
@@ -1625,12 +1625,12 @@ struct Swap02
 {
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.z, i.y, i.x};
+        return Dim3{.x = i.z, .y = i.y, .z = i.x};
     }
 
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.z, i.y, i.x};
+        return Dim3{.x = i.z, .y = i.y, .z = i.x};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
@@ -1649,13 +1649,13 @@ struct RotateFwd
     // dest -> src: (x,y,z) -> (y,z,x)
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.y, i.z, i.x};
+        return Dim3{.x = i.y, .y = i.z, .z = i.x};
     }
 
     // src -> dest: (x,y,z) -> (z,x,y)
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.z, i.x, i.y};
+        return Dim3{.x = i.z, .y = i.x, .z = i.y};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
@@ -1674,13 +1674,13 @@ struct RotateBwd
     // dest -> src: (x,y,z) -> (z,x,y)
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.z, i.x, i.y};
+        return Dim3{.x = i.z, .y = i.x, .z = i.y};
     }
 
     // src -> dest: (x,y,z) -> (y,z,x)
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.y, i.z, i.x};
+        return Dim3{.x = i.y, .y = i.z, .z = i.x};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
