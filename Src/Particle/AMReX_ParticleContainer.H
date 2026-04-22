@@ -821,7 +821,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-                                  F&& f, bool is_checkpoint=false) const;
+                                  F const& f, bool is_checkpoint=false) const;
 
     void CheckpointPre ();
 
@@ -863,8 +863,8 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
-    void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
+    template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
@@ -894,7 +894,7 @@ public:
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names,
-                        const Vector<std::string>&  int_comp_names, F&& f) const;
+                        const Vector<std::string>&  int_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify
@@ -920,9 +920,9 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
+    template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
-                        const Vector<std::string>& real_comp_names, F&& f) const;
+                        const Vector<std::string>& real_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
@@ -956,7 +956,7 @@ public:
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
                         const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp, F&& f) const;
+                        const Vector<int>& write_int_comp, F const& f) const;
 
     /**
      * \brief This is the most general version of WritePlotFile, which takes component
@@ -1003,7 +1003,7 @@ public:
                         const Vector<int>& write_int_comp,
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names,
-                        F&& f) const;
+                        F const& f) const;
 
     void WritePlotFilePre ();
 
@@ -1283,8 +1283,8 @@ public:
     void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                           bool remove_negative=true);
 
-    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                            bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
 
@@ -1545,6 +1545,17 @@ private:
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, int nGrow, int local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift);
 
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,

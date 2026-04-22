@@ -16,6 +16,7 @@ namespace amrex {
   struct NeighborCode
   {
       int grid_id;
+      Box grid_box;
       IntVect periodic_shift;
   };
 

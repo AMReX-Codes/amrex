@@ -3,10 +3,6 @@ if (NOT AMReX_LINEAR_SOLVERS_EM)
 endif ()
 
 foreach(D IN LISTS AMReX_SPACEDIM)
-    if (D EQUAL 1)
-       continue()
-    endif ()
-
     set(_sources
        main.cpp
        MyTest.cpp
