@@ -23,9 +23,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_MultiFabUtil.H>
 
-#include <iterator>
-
 #include <algorithm>
+#include <iterator>
 #include <string>
 
 namespace amrex {
