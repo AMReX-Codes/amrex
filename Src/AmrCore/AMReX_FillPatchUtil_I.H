@@ -58,6 +58,7 @@ bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int n
     return crse_box.contains(fine_box_coarsened);
 }
 
+/// \cond DOXYGEN_IGNORE
 template <typename MF, typename BC>
 requires IsFabArray<MF>::value
 void
@@ -195,6 +196,7 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 
     physbcf(mf, dcomp, ncomp, nghost, time, bcfcomp);
 }
+/// \endcond
 
 /**
  * \brief Helper that applies a MFInterpolater to fill a fine patch from a coarse patch.
@@ -792,6 +794,7 @@ namespace detail {
 } // namespace detail
 /// \endcond
 
+/// \cond DOXYGEN_IGNORE
 template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     requires IsFabArray<MF>::value
     void
@@ -1534,6 +1537,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         hook, hook, index_space);
     }
 }
+/// \endcond
 
 }
 
