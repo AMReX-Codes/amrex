@@ -295,9 +295,6 @@ public:
     {
         const int lev = 0;
         auto const& geom = Geom(lev);
-        auto const plo = geom.ProbLoArray();
-        auto const dxi = geom.InvCellSizeArray();
-        auto const domain = geom.Domain();
         auto const problo = geom.ProbLoArray();
         auto const probhi = geom.ProbHiArray();
         auto const& pshifts = geom.periodicity().shiftIntVect();
