@@ -233,7 +233,6 @@ buildNeighborCopyOp (bool use_boundary_neighbor)
         const bool do_tiling = this->do_tiling;
         const IntVect tile_size = this->tile_size;
         const int nGrow = m_num_neighbor_cells;
-        // auto p_code_offsets = m_code_offsets[gid].dataPtr();
 
         AMREX_FOR_1D ( np, i,
         {

@@ -208,7 +208,7 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet.clear();
   while(static_cast<int>(copySet.size()) < setSize) {
     int r = static_cast<int>(Random_int(poolSize));
-    if(copySet.find(r) == copySet.end()) {
+    if(!copySet.contains(r)) {
       copySet.insert(r);
       uSet.push_back(r);
     }
