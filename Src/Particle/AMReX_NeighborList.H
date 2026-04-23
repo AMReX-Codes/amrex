@@ -39,6 +39,19 @@ namespace detail
 
     template <typename F,
               typename SrcData, typename DstData,
+              typename N1, typename N2,
+              std::enable_if_t<!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle, int> = 0>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair,
+                          const SrcData& src_tile, const DstData& /*dst_tile*/,
+                          N1 i, N2 j)
+        noexcept -> decltype(check_pair(src_tile.m_aos, i, j))
+    {
+        return check_pair(src_tile.m_aos, i, j);
+    }
+
+    template <typename F,
+              typename SrcData, typename DstData,
               typename N1, typename N2>
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
@@ -72,6 +85,19 @@ namespace detail
         noexcept -> decltype(check_pair(src_tile, dst_tile, i, j))
     {
         return check_pair(src_tile, dst_tile, i, j);
+    }
+
+    template <typename F,
+              typename SrcData, typename DstData,
+              typename N1, typename N2, typename N3, typename N4, typename N5,
+              std::enable_if_t<!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle, int> = 0>
+    AMREX_GPU_HOST_DEVICE
+    auto call_check_pair (F const& check_pair,
+                          const SrcData& src_tile, const DstData& /*dst_tile*/,
+                          N1 i, N2 j, N3 /*type*/, N4 /*ghost_i*/, N5 /*ghost_pid*/)
+        noexcept -> decltype(check_pair(src_tile.m_aos, i, j))
+    {
+        return check_pair(src_tile.m_aos, i, j);
     }
 
     template <typename F,
