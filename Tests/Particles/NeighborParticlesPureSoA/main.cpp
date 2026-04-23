@@ -203,19 +203,20 @@ public:
                     AMREX_D_TERM(host_real[0].push_back(static_cast<ParticleReal>(plo[0] + (iv[0] + r[0])*dx[0]));,
                                  host_real[1].push_back(static_cast<ParticleReal>(plo[1] + (iv[1] + r[1])*dx[1]));,
                                  host_real[2].push_back(static_cast<ParticleReal>(plo[2] + (iv[2] + r[2])*dx[2]));)
-                    host_real[MarkerRealComp].push_back(static_cast<ParticleReal>(marker));
-                    host_real[PayloadRealComp].push_back(static_cast<ParticleReal>(marker) + 0.5_rt);
+                    auto const marker_real = static_cast<ParticleReal>(marker);
+                    host_real[MarkerRealComp].push_back(marker_real);
+                    host_real[PayloadRealComp].push_back(marker_real + ParticleReal(0.5_rt));
 
                     host_int[GridIntComp].push_back(mfi.index());
                     host_int[MarkerIntComp].push_back(marker);
 
-                    host_runtime_real.push_back(static_cast<ParticleReal>(marker) + 1.25_rt);
+                    host_runtime_real.push_back(marker_real + ParticleReal(1.25_rt));
                     host_runtime_int.push_back(marker + 17);
                 }
             }
 
             auto& particle_tile = DefineAndReturnParticleTile(lev, mfi);
-            Long old_size = particle_tile.size();
+            Long old_size = static_cast<Long>(particle_tile.size());
             Long new_size = old_size + static_cast<Long>(host_idcpu.size());
             particle_tile.resize(new_size);
 
