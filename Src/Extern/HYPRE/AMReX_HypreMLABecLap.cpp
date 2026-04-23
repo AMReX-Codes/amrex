@@ -1451,7 +1451,9 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
                 auto* pdst = cf_bcoefs[idir][t.dstIndex]->data();
 
 #ifdef AMREX_USE_GPU
-                bc_recv_tags.emplace_back(BCCommTag{fsrc, offset, pdst, cbx, IntVect(0), idir});
+                bc_recv_tags.emplace_back(BCCommTag{.fsrc = fsrc, .offset = offset,
+                                                    .pdst = pdst, .cbx = cbx,
+                                                    .d2s = IntVect(0), .idir = idir});
 #else
                 IntVect rrface = rr;
                 rrface[idir] = 1;
@@ -1541,7 +1543,9 @@ void HypreMLABecLap::commBCoefs_local (int flev,
         auto* pdst = cf_bcoefs[idir][tag.dstIndex]->data();
 
 #ifdef AMREX_USE_GPU
-        bc_local_tags.emplace_back(BCCommTag{fsrc, offset, pdst, cbx, d2s, idir});
+        bc_local_tags.emplace_back(BCCommTag{.fsrc = fsrc, .offset = offset,
+                                             .pdst = pdst, .cbx = cbx,
+                                             .d2s = d2s, .idir = idir});
 #else
         IntVect rrface = rr;
         rrface[idir] = 1;
