@@ -167,6 +167,9 @@ public:
 
     void InitParticles (const IntVect& nppc, const IntVect& domain_size)
     {
+#if AMREX_SPACEDIM == 1
+        amrex::ignore_unused(domain_size);
+#endif
         const int lev = 0;
         const Real* dx = Geom(lev).CellSize();
         const Real* plo = Geom(lev).ProbLo();
