@@ -237,10 +237,10 @@ public:
             Gpu::copyAsync(Gpu::hostToDevice,
                            host_runtime_int.begin(), host_runtime_int.end(),
                            soa.GetIntData(NumInt).begin() + old_size);
-        }
 
-        Gpu::streamSynchronize();
-        RedistributeLocal();
+            Gpu::streamSynchronize();
+        }
+        captureOwnedParticles();
     }
 
     void moveParticles (ParticleReal shift)
@@ -258,6 +258,17 @@ public:
                     ptd.pos(dir, i) += shift;
                 }
             });
+        }
+
+        for (auto& [key, src] : m_local_source_particles) {
+            amrex::ignore_unused(key);
+            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                src.pos[dir] += shift;
+                src.cell[dir] = static_cast<int>(
+                    amrex::Math::floor((src.pos[dir] - Geom(lev).ProbLoArray()[dir])
+                                       * Geom(lev).InvCellSizeArray()[dir]))
+                    + Geom(lev).Domain().smallEnd(dir);
+            }
         }
     }
 
@@ -278,6 +289,15 @@ public:
                 ptd.m_runtime_rdata[0][i] += static_cast<ParticleReal>(delta);
                 ptd.m_runtime_idata[0][i] += delta;
             });
+        }
+
+        for (auto& [key, src] : m_local_source_particles) {
+            amrex::ignore_unused(key);
+            src.marker_int += delta;
+            src.runtime_int += delta;
+            src.marker_real += static_cast<ParticleReal>(delta);
+            src.payload_real += static_cast<ParticleReal>(delta);
+            src.runtime_real += static_cast<ParticleReal>(delta);
         }
     }
 
@@ -447,6 +467,48 @@ public:
     }
 
 private:
+    void captureOwnedParticles ()
+    {
+        const int lev = 0;
+        auto const plo = Geom(lev).ProbLoArray();
+        auto const dxi = Geom(lev).InvCellSizeArray();
+        auto const domain = Geom(lev).Domain();
+        auto const& plev = GetParticles(lev);
+
+        m_local_source_particles.clear();
+
+        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto const index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+            auto const& ptile = plev.at(index);
+            int const np = ptile.numParticles();
+            if (np == 0) { continue; }
+
+            HostTileData host;
+            copyTileToHost(ptile, np, host);
+
+            for (int i = 0; i < np; ++i) {
+                SourceParticleData src;
+                src.key = {ParticleIDWrapper(host.idcpu[i]), ParticleCPUWrapper(host.idcpu[i])};
+                src.grid_id = host.idata[GridIntComp][i];
+                src.marker_int = host.idata[MarkerIntComp][i];
+                src.runtime_int = host.runtime_int[0][i];
+                src.marker_real = host.real[MarkerRealComp][i];
+                src.payload_real = host.real[PayloadRealComp][i];
+                src.runtime_real = host.runtime_real[0][i];
+                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                    src.pos[dir] = host.real[dir][i];
+                    src.cell[dir] = static_cast<int>(
+                        amrex::Math::floor((src.pos[dir] - plo[dir])*dxi[dir])) + domain.smallEnd(dir);
+                }
+
+                auto [it, inserted] = m_local_source_particles.emplace(src.key, src);
+                amrex::ignore_unused(it);
+                AMREX_ALWAYS_ASSERT(inserted);
+            }
+        }
+    }
+
     void copyTileToHost (ParticleTile const& ptile, int np, HostTileData& host) const
     {
         auto const& soa = ptile.GetStructOfArrays();
@@ -489,40 +551,24 @@ private:
 
     std::map<ParticleKey, SourceParticleData> gatherSourceParticles () const
     {
-        const int lev = 0;
-        auto const plo = Geom(lev).ProbLoArray();
-        auto const dxi = Geom(lev).InvCellSizeArray();
-        auto const domain = Geom(lev).Domain();
-        auto const& plev = GetParticles(lev);
         std::vector<PackedSourceParticleData> local_source_particles;
 
-        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
-        {
-            auto const index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            auto const& ptile = plev.at(index);
-            int const np = ptile.numParticles();
-            if (np == 0) { continue; }
-
-            HostTileData host;
-            copyTileToHost(ptile, np, host);
-
-            for (int i = 0; i < np; ++i) {
-                PackedSourceParticleData pdata;
-                pdata.id = ParticleIDWrapper(host.idcpu[i]);
-                pdata.cpu = ParticleCPUWrapper(host.idcpu[i]);
-                pdata.grid_id = host.idata[GridIntComp][i];
-                pdata.marker_int = host.idata[MarkerIntComp][i];
-                pdata.runtime_int = host.runtime_int[0][i];
-                pdata.marker_real = host.real[MarkerRealComp][i];
-                pdata.payload_real = host.real[PayloadRealComp][i];
-                pdata.runtime_real = host.runtime_real[0][i];
-                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
-                    pdata.pos[dir] = host.real[dir][i];
-                    pdata.cell[dir] = static_cast<int>(
-                        amrex::Math::floor((pdata.pos[dir] - plo[dir])*dxi[dir])) + domain.smallEnd(dir);
-                }
-                local_source_particles.push_back(pdata);
+        local_source_particles.reserve(m_local_source_particles.size());
+        for (auto const& [key, src] : m_local_source_particles) {
+            PackedSourceParticleData pdata;
+            pdata.id = key.first;
+            pdata.cpu = key.second;
+            pdata.grid_id = src.grid_id;
+            pdata.marker_int = src.marker_int;
+            pdata.runtime_int = src.runtime_int;
+            pdata.marker_real = src.marker_real;
+            pdata.payload_real = src.payload_real;
+            pdata.runtime_real = src.runtime_real;
+            for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                pdata.pos[dir] = src.pos[dir];
+                pdata.cell[dir] = src.cell[dir];
             }
+            local_source_particles.push_back(pdata);
         }
 
         auto unpack = [] (std::vector<PackedSourceParticleData> const& packed) {
@@ -590,6 +636,8 @@ private:
         }
         return unpack(global_source_particles);
     }
+
+    std::map<ParticleKey, SourceParticleData> m_local_source_particles;
 };
 
 int main (int argc, char* argv[])

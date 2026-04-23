@@ -1032,7 +1032,8 @@ selectActualNeighbors (CheckPair const& check_pair, int num_cells)
             m_boundary_particle_ids[lev][index].resize(pti.numNeighborParticles());
             auto* p_boundary_particle_ids = m_boundary_particle_ids[lev][index].dataPtr();
 
-            const auto ptile_data = this->ParticlesAt(lev, pti).getConstParticleTileData();
+            auto const& ptile = this->ParticlesAt(lev, pti);
+            auto ptile_data = ptile.getConstParticleTileData();
 
             Box box       = pti.tilebox();
             Box grownBox  = box;
@@ -1046,7 +1047,7 @@ selectActualNeighbors (CheckPair const& check_pair, int num_cells)
             const auto  plo     = geom.ProbLoArray();
 
             const size_t  np_real  = pti.numRealParticles();
-            const size_t  np_total = pti.numTotalParticles();
+            const size_t  np_total = ptile.numTotalParticles();
 
             DenseBins<decltype(ptile_data)> bins;
             bins.build(np_total, ptile_data, grownBox,
