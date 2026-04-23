@@ -186,6 +186,90 @@ void unpackNeighborParticleData (PTD const& dst_ptd, int dst_index, const char*&
     }
 }
 
+template <typename PTD>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+ParticleReal getSummedRealComp (PTD const& ptd, int index, int comp) noexcept
+{
+    using ParticleType = typename std::decay_t<PTD>::ParticleType;
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        if (comp < ParticleType::NReal) {
+            return ptd[index].rdata(comp);
+        }
+        comp -= ParticleType::NReal;
+    }
+
+    if (comp < std::decay_t<PTD>::NAR) {
+        return ptd.rdata(comp)[index];
+    }
+
+    return ptd.m_runtime_rdata[comp - std::decay_t<PTD>::NAR][index];
+}
+
+template <typename PTD>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int getSummedIntComp (PTD const& ptd, int index, int comp) noexcept
+{
+    using ParticleType = typename std::decay_t<PTD>::ParticleType;
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        if (comp < ParticleType::NInt) {
+            return ptd[index].idata(comp);
+        }
+        comp -= ParticleType::NInt;
+    }
+
+    if (comp < std::decay_t<PTD>::NAI) {
+        return ptd.idata(comp)[index];
+    }
+
+    return ptd.m_runtime_idata[comp - std::decay_t<PTD>::NAI][index];
+}
+
+template <typename PTD>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void addSummedRealComp (PTD const& ptd, int index, int comp, ParticleReal value) noexcept
+{
+    using ParticleType = typename std::decay_t<PTD>::ParticleType;
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        if (comp < ParticleType::NReal) {
+            ptd[index].rdata(comp) += value;
+            return;
+        }
+        comp -= ParticleType::NReal;
+    }
+
+    if (comp < std::decay_t<PTD>::NAR) {
+        ptd.rdata(comp)[index] += value;
+        return;
+    }
+
+    ptd.m_runtime_rdata[comp - std::decay_t<PTD>::NAR][index] += value;
+}
+
+template <typename PTD>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void addSummedIntComp (PTD const& ptd, int index, int comp, int value) noexcept
+{
+    using ParticleType = typename std::decay_t<PTD>::ParticleType;
+
+    if constexpr (!ParticleType::is_soa_particle) {
+        if (comp < ParticleType::NInt) {
+            ptd[index].idata(comp) += value;
+            return;
+        }
+        comp -= ParticleType::NInt;
+    }
+
+    if (comp < std::decay_t<PTD>::NAI) {
+        ptd.idata(comp)[index] += value;
+        return;
+    }
+
+    ptd.m_runtime_idata[comp - std::decay_t<PTD>::NAI][index] += value;
+}
+
 }
 
 template <typename T_ParticleType, int NArrayReal, int NArrayInt,
@@ -226,13 +310,13 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
         {
             PairIndex src_index(pti.index(), pti.LocalTileIndex());
             const auto& tags = inverse_tags[lev][src_index];
-            const auto& neighbs = neighbors[lev][src_index].GetArrayOfStructs();
-            AMREX_ASSERT(tags.size() == neighbs.size());
+            const auto& neighb_tile = neighbors[lev][src_index];
+            const auto neighbs = neighb_tile.getConstParticleTileData();
+            const int num_neighbs = static_cast<int>(neighb_tile.size());
+            AMREX_ASSERT(tags.size() == static_cast<std::size_t>(num_neighbs));
 
-            const int num_neighbs = neighbs.size();
             for (int i = 0; i < num_neighbs; ++i)
             {
-                const auto& neighb = neighbs[i];
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
                 const int global_rank = this->ParticleDistributionMap(lev)[dst_grid];
@@ -245,17 +329,18 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                 {
                     auto pair = std::make_pair(dst_grid, dst_tile);
                     auto& dst_ptile = this->GetParticles(dst_level)[pair];
-                    auto& dst_parts = dst_ptile.GetArrayOfStructs();
-                    auto& p = dst_parts[dst_index];
+                    auto dst_ptd = dst_ptile.getParticleTileData();
 
                     for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
                     {
-                        p.rdata(comp) += neighb.rdata(comp);
+                        detail::addSummedRealComp(
+                            dst_ptd, dst_index, comp, detail::getSummedRealComp(neighbs, i, comp));
                     }
 
                     for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
                     {
-                        p.idata(comp) += neighb.idata(comp);
+                        detail::addSummedIntComp(
+                            dst_ptd, dst_index, comp, detail::getSummedIntComp(neighbs, i, comp));
                     }
                 }
 
@@ -272,13 +357,13 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                     std::memcpy(dst, &dst_level, sizeof(int)); dst += sizeof(int);
                     for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
                     {
-                        Real data = neighb.rdata(comp);
+                        ParticleReal data = detail::getSummedRealComp(neighbs, i, comp);
                         std::memcpy(dst, &data, sizeof(Real));
                         dst += sizeof(Real);
                     }
                     for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
                     {
-                        int data = neighb.idata(comp);
+                        int data = detail::getSummedIntComp(neighbs, i, comp);
                         std::memcpy(dst, &data, sizeof(int));
                         dst += sizeof(int);
                     }
@@ -432,14 +517,13 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
 
             auto pair = std::make_pair(grid, tile);
             auto& ptile = this->GetParticles(lev)[pair];
-            auto& parts = ptile.GetArrayOfStructs();
-            auto& p = parts[index];
+            auto dst_ptd = ptile.getParticleTileData();
 
             for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
             {
-                Real data;
+                ParticleReal data;
                 std::memcpy(&data, buffer, sizeof(Real));
-                p.rdata(comp) += data;
+                detail::addSummedRealComp(dst_ptd, index, comp, data);
                 buffer += sizeof(Real);
             }
 
@@ -447,7 +531,7 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
             {
                 int data;
                 std::memcpy(&data, buffer, sizeof(int));
-                p.idata(comp) += data;
+                detail::addSummedIntComp(dst_ptd, index, comp, data);
                 buffer += sizeof(int);
             }
         }
