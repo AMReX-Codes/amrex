@@ -1174,10 +1174,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             auto const& tri = tri_pts[it];
                             auto const& norm = tri_norm[it];
                             auto tmp = edge_tri_intersects(p1.y, y2, p1.z, p1.x,
-                                                           {tri.v1.y, tri.v1.z, tri.v1.x},
-                                                           {tri.v2.y, tri.v2.z, tri.v2.x},
-                                                           {tri.v3.y, tri.v3.z, tri.v3.x},
-                                                           {  norm.y,   norm.z,   norm.x},
+                                                           XDim3{.x = tri.v1.y, .y = tri.v1.z, .z = tri.v1.x},
+                                                           XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
+                                                           XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
+                                                           XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
                                                            lst(i,j+1,k)-lst(i,j,k));
                             if (tmp.first) {
                                 r = tmp.second;
@@ -1196,10 +1196,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                 auto const& tri = ptri[it];
                                 auto const& norm = ptrinorm[it];
                                 auto tmp = edge_tri_intersects(p1.y, y2, p1.z, p1.x,
-                                                               {tri.v1.y, tri.v1.z, tri.v1.x},
-                                                               {tri.v2.y, tri.v2.z, tri.v2.x},
-                                                               {tri.v3.y, tri.v3.z, tri.v3.x},
-                                                               {  norm.y,   norm.z,   norm.x},
+                                                               XDim3{.x = tri.v1.y, .y = tri.v1.z, .z = tri.v1.x},
+                                                               XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
+                                                               XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
+                                                               XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
                                                                lst(i,j+1,k)-lst(i,j,k));
                                 if (tmp.first) {
                                     r = tmp.second;
@@ -1223,10 +1223,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             auto const& tri = tri_pts[it];
                             auto const& norm = tri_norm[it];
                             auto tmp = edge_tri_intersects(p1.z, z2, p1.x, p1.y,
-                                                           {tri.v1.z, tri.v1.x, tri.v1.y},
-                                                           {tri.v2.z, tri.v2.x, tri.v2.y},
-                                                           {tri.v3.z, tri.v3.x, tri.v3.y},
-                                                           {  norm.z,   norm.x,   norm.y},
+                                                           XDim3{.x = tri.v1.z, .y = tri.v1.x, .z = tri.v1.y},
+                                                           XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
+                                                           XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
+                                                           XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
                                                            lst(i,j,k+1)-lst(i,j,k));
                             if (tmp.first) {
                                 r = tmp.second;
@@ -1245,10 +1245,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                 auto const& tri = ptri[it];
                                 auto const& norm = ptrinorm[it];
                                 auto tmp = edge_tri_intersects(p1.z, z2, p1.x, p1.y,
-                                                               {tri.v1.z, tri.v1.x, tri.v1.y},
-                                                               {tri.v2.z, tri.v2.x, tri.v2.y},
-                                                               {tri.v3.z, tri.v3.x, tri.v3.y},
-                                                               {  norm.z,   norm.x,   norm.y},
+                                                               XDim3{.x = tri.v1.z, .y = tri.v1.x, .z = tri.v1.y},
+                                                               XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
+                                                               XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
+                                                               XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
                                                                lst(i,j,k+1)-lst(i,j,k));
                                 if (tmp.first) {
                                     r = tmp.second;
