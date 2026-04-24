@@ -14,6 +14,63 @@ jobs:
   check_changes:
     uses: ./.github/workflows/check_changes.yml
 
+  # Build libamrex and all tests with CUDA 12.2
+  tests-cuda12-2:
+    name: CUDA@12.2 Release Single Precision Particle [tests]
+    runs-on: ubuntu-22.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    steps:
+    - uses: actions/checkout@v6
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/ubuntu_free_disk_space.sh
+        .github/workflows/dependencies/dependencies_nvcc.sh 12.2
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v5
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Install
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=235M
+        ccache -z
+
+        export PATH=/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+        export LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+        which nvcc || echo "nvcc not in PATH!"
+
+        cmake -S . -B build                              \
+            -DCMAKE_CXX_STANDARD=20                      \
+            -DCMAKE_VERBOSE_MAKEFILE=ON                  \
+            -DAMReX_PRECISION=DOUBLE                     \
+            -DAMReX_PARTICLES_PRECISION=SINGLE           \
+            -DAMReX_FFT=ON                               \
+            -DAMReX_EB=ON                                \
+            -DAMReX_ENABLE_TESTS=ON                      \
+            -DAMReX_FORTRAN=OFF                          \
+            -DAMReX_GPU_BACKEND=CUDA                     \
+            -DCMAKE_C_COMPILER=$(which gcc)              \
+            -DCMAKE_CXX_COMPILER=$(which g++)            \
+            -DCMAKE_CUDA_HOST_COMPILER=$(which g++)      \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran)   \
+            -DAMReX_CUDA_ARCH="8.0"                      \
+            -DAMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL=ON \
+            -DAMReX_CUDA_ERROR_CAPTURE_THIS=ON           \
+            -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache        \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+        cmake --build build -j 4
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
   # Build libamrex and all tests with CUDA 12.6
   tests-cuda12:
     name: CUDA@12.6 Release [tests]
