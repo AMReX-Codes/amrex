@@ -69,9 +69,9 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
-  # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 12.2
+  # Build libamrex and all tests for CUDA with LLVM Clang + libc++ + CTK 12.5
   tests-cuda-clang:
-    name: Clang@19 CUDA@12.2 Release [tests]
+    name: Clang@19 CUDA@12.5 Release [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -90,7 +90,7 @@ jobs:
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
         .github/workflows/dependencies/dependencies_clang.sh 19 yes
-        .github/workflows/dependencies/dependencies_nvcc_2404.sh 12.2
+        .github/workflows/dependencies/dependencies_nvcc_2404.sh 12.5
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
       uses: actions/cache@v5
