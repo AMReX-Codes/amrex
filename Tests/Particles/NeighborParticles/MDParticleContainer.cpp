@@ -5,10 +5,60 @@
 #include "Constants.H"
 #include "CheckPair.H"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstring>
+#include <limits>
+#include <map>
+#include <tuple>
+#include <type_traits>
+
 using namespace amrex;
 
 namespace
 {
+    using ParticleKey = std::pair<Long, int>;
+
+    struct SourceParticleData
+    {
+        ParticleKey key;
+        IntVect cell;
+        int grid_id = -1;
+        std::array<ParticleReal, AMREX_SPACEDIM> pos{};
+    };
+
+    struct PackedSourceParticleData
+    {
+        Long id = 0;
+        int cpu = -1;
+        int grid_id = -1;
+        std::array<int, AMREX_SPACEDIM> cell{};
+        std::array<ParticleReal, AMREX_SPACEDIM> pos{};
+    };
+
+    static_assert(std::is_trivially_copyable_v<PackedSourceParticleData>);
+
+    struct TileParticleRecord
+    {
+        ParticleKey key;
+        int grid_id = -1;
+        IntVect shift = IntVect(0);
+
+        bool operator< (TileParticleRecord const& other) const
+        {
+            return std::tie(key.first, key.second, grid_id,
+                            AMREX_D_DECL(shift[0], shift[1], shift[2]))
+                < std::tie(other.key.first, other.key.second, other.grid_id,
+                           AMREX_D_DECL(other.shift[0], other.shift[1], other.shift[2]));
+        }
+
+        bool operator== (TileParticleRecord const& other) const
+        {
+            return key == other.key && grid_id == other.grid_id && shift == other.shift;
+        }
+    };
+
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
@@ -40,6 +90,28 @@ namespace
         u[0] = u_mean + ux_th;
         u[1] = u_mean + uy_th;
         u[2] = u_mean + uz_th;
+    }
+
+    auto unpack_source_particles (std::vector<PackedSourceParticleData> const& packed_particles)
+        -> std::map<ParticleKey, SourceParticleData>
+    {
+        std::map<ParticleKey, SourceParticleData> source_particles;
+
+        for (auto const& packed : packed_particles) {
+            ParticleKey key{packed.id, packed.cpu};
+            SourceParticleData pdata;
+            pdata.key = key;
+            pdata.grid_id = packed.grid_id;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                pdata.cell[idim] = packed.cell[idim];
+                pdata.pos[idim] = packed.pos[idim];
+            }
+            auto [it, inserted] = source_particles.emplace(key, pdata);
+            amrex::ignore_unused(it);
+            AMREX_ALWAYS_ASSERT(inserted);
+        }
+
+        return source_particles;
     }
 }
 
@@ -237,55 +309,187 @@ void MDParticleContainer::writeParticles(int n)
     WriteAsciiFile(pltfile);
 }
 
-void MDParticleContainer::checkNeighborParticles()
+void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
 {
     BL_PROFILE("MDParticleContainer::checkNeighborParticles");
 
     const int lev = 0;
+    auto const& geom = Geom(lev);
+    auto const dxi = geom.InvCellSizeArray();
+    auto const domain = geom.Domain();
+    auto const problo = geom.ProbLoArray();
+    auto const probhi = geom.ProbHiArray();
+    const auto& pshifts = geom.periodicity().shiftIntVect();
     auto& plev  = GetParticles(lev);
 
     auto ngrids = int(ParticleBoxArray(0).size());
+    std::vector<PackedSourceParticleData> local_source_particles;
 
-    amrex::Gpu::DeviceVector<int> d_num_per_grid(ngrids,0);
-    amrex::Gpu::HostVector<int> h_num_per_grid(ngrids);
-
-    // CPU version
     for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        int gid = mfi.index();
-
-        if (gid != 0) { continue; }
-        int tid = mfi.LocalTileIndex();
-        auto index = std::make_pair(gid, tid);
-
+        auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         auto& ptile = plev[index];
-        auto& aos   = ptile.GetArrayOfStructs();
-        auto& soa   = ptile.GetStructOfArrays();
-        const int np = aos.numTotalParticles();
+        auto const& aos = ptile.GetArrayOfStructs();
+        int const np = aos.numParticles();
 
-        ParticleType* pstruct = aos().dataPtr();
-        auto* rdata = soa.GetRealData(0).dataPtr();
-        auto* idata = soa.GetIntData(0).dataPtr();
+        if (np == 0) { continue; }
 
-        int* p_num_per_grid = d_num_per_grid.data();
-        amrex::ParallelFor( np, [=] AMREX_GPU_DEVICE (int i) noexcept
-        {
-            ParticleType& p1 = pstruct[i];
-            Gpu::Atomic::AddNoRet(&(p_num_per_grid[p1.idata(0)]),1);
-            AMREX_ALWAYS_ASSERT(p1.idata(0) == (int) rdata[i]);
-            AMREX_ALWAYS_ASSERT(p1.idata(0) == idata[i]);
-        });
+        Gpu::HostVector<ParticleType> h_pstruct(np);
+        Gpu::copy(Gpu::deviceToHost, aos().dataPtr(), aos().dataPtr() + np, h_pstruct.begin());
 
-        Gpu::copy(Gpu::deviceToHost,
-                  d_num_per_grid.begin(), d_num_per_grid.end(), h_num_per_grid.begin());
-        amrex::AllPrintToFile("neighbor_test") << "FOR GRID " << gid << "\n";;
+        for (int i = 0; i < np; ++i) {
+            auto const& p = h_pstruct[i];
+            PackedSourceParticleData pdata;
+            pdata.id = p.id();
+            pdata.cpu = p.cpu();
+            pdata.grid_id = p.idata(0);
+            auto const cell = getParticleCell(p, problo, dxi, domain);
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                pdata.cell[idim] = cell[idim];
+                pdata.pos[idim] = p.pos(idim);
+            }
+            local_source_particles.push_back(pdata);
+        }
+    }
 
-        for (int i = 0; i < ngrids; i++) {
-          amrex::AllPrintToFile("neighbor_test") << "   there are " << h_num_per_grid[i] << " with grid id " << i << "\n";
+    std::map<ParticleKey, SourceParticleData> source_particles;
+    if (ParallelDescriptor::NProcs() == 1) {
+        source_particles = unpack_source_particles(local_source_particles);
+    } else {
+        int const root = ParallelDescriptor::IOProcessorNumber();
+        int const local_nbytes =
+            static_cast<int>(local_source_particles.size() * sizeof(PackedSourceParticleData));
+
+        auto recvcounts = ParallelDescriptor::Gather(local_nbytes, root);
+        std::vector<int> displs;
+        std::vector<char> packed_bytes;
+
+        if (ParallelDescriptor::MyProc() == root) {
+            displs.resize(recvcounts.size(), 0);
+            int offset = 0;
+            for (int i = 0, n = static_cast<int>(recvcounts.size()); i < n; ++i) {
+                displs[i] = offset;
+                offset += recvcounts[i];
+            }
+            packed_bytes.resize(offset);
         }
 
-        amrex::AllPrintToFile("neighbor_test") << " \n";
-        amrex::AllPrintToFile("neighbor_test") << " \n";
+        auto const* send_ptr = reinterpret_cast<char const*>(local_source_particles.data());
+        ParallelDescriptor::Gatherv(send_ptr, local_nbytes,
+                                    packed_bytes.data(), recvcounts, displs, root);
+
+        int total_nbytes = static_cast<int>(packed_bytes.size());
+        ParallelDescriptor::Bcast(&total_nbytes, 1, root);
+        if (ParallelDescriptor::MyProc() != root) {
+            packed_bytes.resize(total_nbytes);
+        }
+        if (total_nbytes > 0) {
+            ParallelDescriptor::Bcast(packed_bytes.data(), total_nbytes, root);
+        }
+
+        AMREX_ALWAYS_ASSERT(total_nbytes % sizeof(PackedSourceParticleData) == 0);
+        std::vector<PackedSourceParticleData> global_source_particles(
+            total_nbytes / static_cast<int>(sizeof(PackedSourceParticleData)));
+        if (total_nbytes > 0) {
+            std::memcpy(global_source_particles.data(), packed_bytes.data(), total_nbytes);
+        }
+        source_particles = unpack_source_particles(global_source_particles);
+    }
+
+    auto match_shift = [&] (ParticleType const& p, SourceParticleData const& src,
+                            Box const& grown_tile_box) -> IntVect
+    {
+        constexpr auto tol = ParticleReal(1.0e-12);
+        IntVect matched_shift(std::numeric_limits<int>::max());
+        int nmatches = 0;
+        for (auto const& shift : pshifts) {
+            if (!grown_tile_box.contains(src.cell + shift)) { continue; }
+            bool matched = true;
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                ParticleReal expected_pos = src.pos[idim];
+                if (shift[idim] > 0) {
+                    expected_pos += static_cast<ParticleReal>(probhi[idim] - problo[idim]);
+                } else if (shift[idim] < 0) {
+                    expected_pos -= static_cast<ParticleReal>(probhi[idim] - problo[idim]);
+                }
+                if (std::abs(p.pos(idim) - expected_pos) > tol) {
+                    matched = false;
+                    break;
+                }
+            }
+            if (matched) {
+                matched_shift = shift;
+                ++nmatches;
+            }
+        }
+        AMREX_ALWAYS_ASSERT(nmatches == 1);
+        return matched_shift;
+    };
+
+    for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        int const gid = mfi.index();
+        int const tid = mfi.LocalTileIndex();
+        auto index = std::make_pair(gid, tid);
+        auto& ptile = plev[index];
+        auto const& aos = ptile.GetArrayOfStructs();
+        auto const& soa = ptile.GetStructOfArrays();
+
+        int const np_total = aos.numTotalParticles();
+        if (np_total == 0) { continue; }
+
+        Gpu::HostVector<ParticleType> h_pstruct(np_total);
+        Gpu::HostVector<ParticleReal> h_rdata(np_total);
+        Gpu::HostVector<int> h_idata(np_total);
+        Gpu::copy(Gpu::deviceToHost, aos().dataPtr(), aos().dataPtr() + np_total, h_pstruct.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(0).begin(), soa.GetRealData(0).begin() + np_total,
+                  h_rdata.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(0).begin(), soa.GetIntData(0).begin() + np_total,
+                  h_idata.begin());
+
+        Box grown_tile_box = mfi.tilebox();
+        if (hasNeighbors()) {
+            grown_tile_box.grow(m_num_neighbor_cells);
+        }
+
+        std::vector<int> expected_per_grid(ngrids, 0);
+        std::vector<int> actual_per_grid(ngrids, 0);
+        std::vector<TileParticleRecord> expected_records;
+        std::vector<TileParticleRecord> actual_records;
+
+        for (auto const& [key, src] : source_particles) {
+            for (auto const& shift : pshifts) {
+                if (!grown_tile_box.contains(src.cell + shift)) { continue; }
+                int const expected_grid = use_source_grid ? src.grid_id : gid;
+                expected_records.push_back({key, expected_grid, shift});
+                ++expected_per_grid[expected_grid];
+            }
+        }
+
+        for (int i = 0; i < np_total; ++i) {
+            auto const& p = h_pstruct[i];
+            ParticleKey key{p.id(), p.cpu()};
+            auto it = source_particles.find(key);
+            AMREX_ALWAYS_ASSERT(it != source_particles.end());
+            auto const& src = it->second;
+            int const expected_grid = use_source_grid ? src.grid_id : gid;
+
+            AMREX_ALWAYS_ASSERT(p.idata(0) == expected_grid);
+            AMREX_ALWAYS_ASSERT(static_cast<int>(h_rdata[i]) == expected_grid);
+            AMREX_ALWAYS_ASSERT(h_idata[i] == expected_grid);
+
+            IntVect shift = match_shift(p, src, grown_tile_box);
+            actual_records.push_back({key, expected_grid, shift});
+            ++actual_per_grid[expected_grid];
+        }
+
+        for (int igrid = 0; igrid < ngrids; ++igrid) {
+            AMREX_ALWAYS_ASSERT(actual_per_grid[igrid] == expected_per_grid[igrid]);
+        }
+
+        std::sort(expected_records.begin(), expected_records.end());
+        std::sort(actual_records.begin(), actual_records.end());
+        AMREX_ALWAYS_ASSERT(actual_records == expected_records);
     }
 }
 
