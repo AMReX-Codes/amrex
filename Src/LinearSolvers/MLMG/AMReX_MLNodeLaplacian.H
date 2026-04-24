@@ -7,6 +7,15 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Vector.H>
 
+// Feature macro: when defined, MLNodeLaplacian::updateVelocity and
+// MLNodeLaplacian::getFluxes correctly route through the anisotropic
+// (harmonic-average) mknewu kernel when setMapped(true) was used.  Prior
+// to this, both functions only used sigma component 0 (sigma_x) for all
+// velocity/flux components, producing the wrong correction for
+// non-identity mesh mappings.  EB is not covered by this feature (see
+// comments in AMReX_MLNodeLaplacian_misc.cpp).
+#define AMREX_MLNODELAP_HAS_MKNEWU_HA 1
+
 namespace amrex {
 
 // del dot (sigma grad phi) = rhs

@@ -824,6 +824,29 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     }
 }
 
+// Harmonic-average (anisotropic sigma) variant.  Used when the node-
+// centered Poisson operator was set up with a multi-component sigma
+// (see MLNodeLaplacian::setSigma and setMapped) so each velocity
+// component is corrected with its own sigma direction.  Under RZ the
+// axial correction is applied to the y-component (which is the axial
+// direction in AMReX's 2D RZ convention).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                        Array4<Real const> const& sx,
+                        Array4<Real const> const& sy,
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                        bool is_rz) noexcept
+{
+    Real facx = Real(0.5)*dxinv[0];
+    Real facy = Real(0.5)*dxinv[1];
+    u(i,j,k,0) -= sx(i,j,k)*facx*(-p(i,j,k)+p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    u(i,j,k,1) -= sy(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
+    if (is_rz) {
+        Real frz = sy(i,j,k)*facy / static_cast<Real>(6*i+3);
+        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    }
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
                        Real sig,  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,

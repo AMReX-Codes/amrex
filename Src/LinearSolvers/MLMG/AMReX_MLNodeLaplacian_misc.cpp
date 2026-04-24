@@ -717,6 +717,10 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
+    // When sigma was set up with AMREX_SPACEDIM components (mesh mapping
+    // or harmonic averaging), each velocity component needs its own
+    // sigma direction.  Otherwise fall through to the scalar-sigma path.
+    const bool aniso_sigma = m_use_mapped;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -724,6 +728,12 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         const auto& sigma = m_sigma[amrlev][0][0];
+#if (AMREX_SPACEDIM >= 2)
+        const auto& sigma_y = m_sigma[amrlev][0][1];
+#endif
+#if (AMREX_SPACEDIM == 3)
+        const auto& sigma_z = m_sigma[amrlev][0][2];
+#endif
         const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
@@ -753,6 +763,9 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                 }
                 else if (type == FabType::singlevalued)
                 {
+                    // NOTE: mlndlap_mknewu_eb still uses only sigma_x.  Anisotropic
+                    // sigma with EB is not supported in this patch; add
+                    // mlndlap_mknewu_eb_ha if that combination is needed.
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
                         mlndlap_mknewu_eb(i,j,k, varr, solarr, sigmaarr, vfracarr, intgarr, dxinv);
@@ -768,17 +781,34 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
             {
                 if (sigma) {
                     Array4<Real const> const& sigmaarr = sigma->const_array(mfi);
+                    if (aniso_sigma) {
 #if (AMREX_SPACEDIM == 2)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-                    {
-                        mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv,is_rz);
-                    });
+                        Array4<Real const> const& syarr = sigma_y->const_array(mfi);
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu_ha(i,j,k,varr,solarr,sigmaarr,syarr,dxinv,is_rz);
+                        });
 #else
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-                    {
-                        mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv);
-                    });
+                        Array4<Real const> const& syarr = sigma_y->const_array(mfi);
+                        Array4<Real const> const& szarr = sigma_z->const_array(mfi);
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu_ha(i,j,k,varr,solarr,sigmaarr,syarr,szarr,dxinv);
+                        });
 #endif
+                    } else {
+#if (AMREX_SPACEDIM == 2)
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv,is_rz);
+                        });
+#else
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv);
+                        });
+#endif
+                    }
                 } else {
                     Real const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 2)
@@ -877,6 +907,10 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #if (AMREX_SPACEDIM == 2)
     bool is_rz = m_is_rz;
 #endif
+    // When sigma was set up with AMREX_SPACEDIM components (mesh mapping),
+    // each flux component needs its own sigma direction.  Otherwise fall
+    // through to the scalar-sigma path.
+    const bool aniso_sigma = m_use_mapped;
 
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
@@ -886,6 +920,12 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         const auto& sigma = m_sigma[amrlev][0][0];
+#if (AMREX_SPACEDIM >= 2)
+        const auto& sigma_y = m_sigma[amrlev][0][1];
+#endif
+#if (AMREX_SPACEDIM == 3)
+        const auto& sigma_z = m_sigma[amrlev][0][2];
+#endif
         const auto dxinv = m_geom[amrlev][0].InvCellSizeArray();
 #ifdef AMREX_USE_EB
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
@@ -919,6 +959,9 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
                 { }
                 else if (type == FabType::singlevalued)
                 {
+                    // NOTE: mlndlap_mknewu_eb still uses only sigma_x.  Anisotropic
+                    // sigma with EB is not supported in this patch; add
+                    // mlndlap_mknewu_eb_ha if that combination is needed.
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                     {
                         mlndlap_mknewu_eb(i,j,k, farr, solarr, sigmaarr, vfracarr, intgarr, dxinv);
@@ -934,17 +977,34 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
             {
                 if (sigma) {
                     Array4<Real const> const& sigmaarr = sigma->array(mfi);
+                    if (aniso_sigma) {
 #if (AMREX_SPACEDIM == 2)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-                    {
-                        mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv,is_rz);
-                    });
+                        Array4<Real const> const& syarr = sigma_y->const_array(mfi);
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu_ha(i,j,k,farr,solarr,sigmaarr,syarr,dxinv,is_rz);
+                        });
 #else
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-                    {
-                        mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv);
-                    });
+                        Array4<Real const> const& syarr = sigma_y->const_array(mfi);
+                        Array4<Real const> const& szarr = sigma_z->const_array(mfi);
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu_ha(i,j,k,farr,solarr,sigmaarr,syarr,szarr,dxinv);
+                        });
 #endif
+                    } else {
+#if (AMREX_SPACEDIM == 2)
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv,is_rz);
+                        });
+#else
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                        {
+                            mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv);
+                        });
+#endif
+                    }
                 } else {
                     Real const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 2)
