@@ -312,7 +312,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             const auto& tags = inverse_tags[lev][src_index];
             const auto& neighb_tile = neighbors[lev][src_index];
             const auto neighbs = neighb_tile.getConstParticleTileData();
-            const auto num_neighbs = neighb_tile.size();
+            const Long num_neighbs = static_cast<Long>(neighb_tile.size());
             AMREX_ASSERT(tags.size() == num_neighbs);
 
             for (int i = 0; i < static_cast<int>(num_neighbs); ++i)
