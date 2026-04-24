@@ -676,8 +676,8 @@ private:
         }
     }
 
-    std::map<ParticleKey, InverseContributionData>
-    gatherContributionData (std::map<ParticleKey, InverseContributionData> const& local_contributions) const
+    static std::map<ParticleKey, InverseContributionData>
+    gatherContributionData (std::map<ParticleKey, InverseContributionData> const& local_contributions)
     {
         std::vector<PackedContributionData> local_packed;
         local_packed.reserve(local_contributions.size());
