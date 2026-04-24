@@ -1,6 +1,11 @@
 
 namespace amrex {
 
+namespace detail {
+template <class>
+inline constexpr bool always_false_v = false;
+}
+
 template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 bool NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::use_mask = false;
@@ -675,7 +680,8 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                 int int_start_comp,  int int_num_comp) {
 #ifdef AMREX_USE_GPU
     amrex::ignore_unused(real_start_comp,real_num_comp,int_start_comp,int_num_comp);
-    amrex::Abort("Not implemented.");
+    static_assert(detail::always_false_v<T_ParticleType>,
+                  "NeighborParticleContainer::sumNeighbors is not implemented for GPU builds");
 #else
     sumNeighborsCPU(real_start_comp, real_num_comp, int_start_comp, int_num_comp);
 #endif
