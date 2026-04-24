@@ -41,7 +41,6 @@ Checks: >
        -modernize-use-constraints,
        -modernize-use-designated-initializers,
        -modernize-use-ranges,
-       -modernize-use-starts-ends-with,
        -modernize-use-std-numbers,
        -modernize-use-trailing-return-type,
      performance-*,
@@ -81,4 +80,3 @@ HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 # -modernize-use-designated-initializers
 # -modernize-use-std-numbers
 # -modernize-use-ranges
-# -modernize-use-starts-ends-with

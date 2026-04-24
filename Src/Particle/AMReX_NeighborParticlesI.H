@@ -1007,8 +1007,8 @@ selectActualNeighbors (CheckPair const& check_pair, int num_cells)
             const auto* pstruct = aos().dataPtr();
             const auto ptile_data = this->ParticlesAt(lev, pti).getConstParticleTileData();
 
-            Box box       = pti.validbox();
-            Box grownBox  = pti.tilebox();
+            Box box       = pti.tilebox();
+            Box grownBox  = box;
             grownBox.grow(computeRefFac(0, lev).max()*m_num_neighbor_cells);
             const auto lo = lbound(grownBox);
             const auto hi = ubound(grownBox);
