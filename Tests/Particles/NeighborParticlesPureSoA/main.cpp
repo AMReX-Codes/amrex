@@ -80,6 +80,28 @@ namespace
 
     static_assert(std::is_trivially_copyable_v<PackedSourceParticleData>);
 
+    struct InverseContributionData
+    {
+        ParticleReal marker_real = 0.0_rt;
+        ParticleReal payload_real = 0.0_rt;
+        ParticleReal runtime_real = 0.0_rt;
+        int marker_int = 0;
+        int runtime_int = 0;
+    };
+
+    struct PackedContributionData
+    {
+        Long id = 0;
+        int cpu = -1;
+        ParticleReal marker_real = 0.0_rt;
+        ParticleReal payload_real = 0.0_rt;
+        ParticleReal runtime_real = 0.0_rt;
+        int marker_int = 0;
+        int runtime_int = 0;
+    };
+
+    static_assert(std::is_trivially_copyable_v<PackedContributionData>);
+
     struct TileParticleRecord
     {
         ParticleKey key;
@@ -470,6 +492,107 @@ public:
         }
     }
 
+    void checkInverseSumNeighbors ()
+    {
+        constexpr ParticleReal marker_real_delta = 1.25_rt;
+        constexpr ParticleReal payload_real_delta = 2.5_rt;
+        constexpr ParticleReal runtime_real_delta = 3.75_rt;
+        constexpr int marker_int_delta = 11;
+        constexpr int runtime_int_delta = 13;
+
+        const int lev = 0;
+        std::map<ParticleKey, InverseContributionData> local_contributions;
+
+        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto& neighb_tile = GetNeighbors(lev, mfi.index(), mfi.LocalTileIndex());
+            int const nneighbs = static_cast<int>(neighb_tile.size());
+            if (nneighbs == 0) { continue; }
+
+            HostTileData host;
+            copyTileToHost(neighb_tile, nneighbs, host);
+
+            for (int i = 0; i < nneighbs; ++i) {
+                ParticleKey key{
+                    static_cast<Long>(ParticleIDWrapper(host.idcpu[i])),
+                    static_cast<int>(ParticleCPUWrapper(host.idcpu[i]))
+                };
+                auto& contribution = local_contributions[key];
+                contribution.marker_real += host.real[MarkerRealComp][i] + marker_real_delta;
+                contribution.payload_real += host.real[PayloadRealComp][i] + payload_real_delta;
+                contribution.runtime_real += host.runtime_real[0][i] + runtime_real_delta;
+                contribution.marker_int += host.idata[MarkerIntComp][i] + marker_int_delta;
+                contribution.runtime_int += host.runtime_int[0][i] + runtime_int_delta;
+            }
+
+            auto ptd = neighb_tile.getParticleTileData();
+            amrex::ParallelFor(nneighbs, [=] AMREX_GPU_DEVICE (int i) noexcept
+            {
+                ptd.rdata(MarkerRealComp)[i] += marker_real_delta;
+                ptd.rdata(PayloadRealComp)[i] += payload_real_delta;
+                ptd.m_runtime_rdata[0][i] += runtime_real_delta;
+                ptd.idata(MarkerIntComp)[i] += marker_int_delta;
+                ptd.m_runtime_idata[0][i] += runtime_int_delta;
+            });
+        }
+
+        Gpu::streamSynchronize();
+
+        auto const global_contributions = gatherContributionData(local_contributions);
+
+        int total_contributions = 0;
+        for (auto const& [key, contribution] : global_contributions) {
+            amrex::ignore_unused(key);
+            total_contributions += contribution.marker_int;
+        }
+        AMREX_ALWAYS_ASSERT(total_contributions > 0);
+
+        sumNeighbors(MarkerRealComp, 3, MarkerIntComp, 2);
+
+        auto const& plev = GetParticles(lev);
+        for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            auto const index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+            auto const& ptile = plev.at(index);
+            int const np = ptile.numParticles();
+            if (np == 0) { continue; }
+
+            HostTileData host;
+            copyTileToHost(ptile, np, host);
+
+            for (int i = 0; i < np; ++i) {
+                ParticleKey key{
+                    static_cast<Long>(ParticleIDWrapper(host.idcpu[i])),
+                    static_cast<int>(ParticleCPUWrapper(host.idcpu[i]))
+                };
+                auto const src_it = m_local_source_particles.find(key);
+                AMREX_ALWAYS_ASSERT(src_it != m_local_source_particles.end());
+                auto const& src = src_it->second;
+
+                auto const contribution_it = global_contributions.find(key);
+                InverseContributionData contribution;
+                if (contribution_it != global_contributions.end()) {
+                    contribution = contribution_it->second;
+                }
+
+                for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+                    AMREX_ALWAYS_ASSERT(almost_equal(host.real[dir][i], src.pos[dir]));
+                }
+                AMREX_ALWAYS_ASSERT(host.idata[GridIntComp][i] == src.grid_id);
+                AMREX_ALWAYS_ASSERT(host.idata[MarkerIntComp][i] == src.marker_int + contribution.marker_int);
+                AMREX_ALWAYS_ASSERT(host.runtime_int[0][i] == src.runtime_int + contribution.runtime_int);
+                AMREX_ALWAYS_ASSERT(almost_equal(
+                    host.real[MarkerRealComp][i], src.marker_real + contribution.marker_real));
+                AMREX_ALWAYS_ASSERT(almost_equal(
+                    host.real[PayloadRealComp][i], src.payload_real + contribution.payload_real));
+                AMREX_ALWAYS_ASSERT(almost_equal(
+                    host.runtime_real[0][i], src.runtime_real + contribution.runtime_real));
+            }
+        }
+
+        captureOwnedParticles();
+    }
+
 private:
     void captureOwnedParticles ()
     {
@@ -551,6 +674,100 @@ private:
                       soa.GetIntData(NumInt + i).begin(), soa.GetIntData(NumInt + i).begin() + np,
                       host.runtime_int[i].begin());
         }
+    }
+
+    std::map<ParticleKey, InverseContributionData>
+    gatherContributionData (std::map<ParticleKey, InverseContributionData> const& local_contributions) const
+    {
+        std::vector<PackedContributionData> local_packed;
+        local_packed.reserve(local_contributions.size());
+        for (auto const& [key, contribution] : local_contributions) {
+            local_packed.push_back(PackedContributionData{
+                key.first, key.second,
+                contribution.marker_real, contribution.payload_real, contribution.runtime_real,
+                contribution.marker_int, contribution.runtime_int
+            });
+        }
+
+        auto unpack = [] (std::vector<PackedContributionData> const& packed) {
+            std::map<ParticleKey, InverseContributionData> result;
+            for (auto const& item : packed) {
+                auto& contribution = result[{item.id, item.cpu}];
+                contribution.marker_real += item.marker_real;
+                contribution.payload_real += item.payload_real;
+                contribution.runtime_real += item.runtime_real;
+                contribution.marker_int += item.marker_int;
+                contribution.runtime_int += item.runtime_int;
+            }
+            return result;
+        };
+
+        if (ParallelDescriptor::NProcs() == 1) {
+            return unpack(local_packed);
+        }
+
+        int const root = ParallelDescriptor::IOProcessorNumber();
+        int const local_nbytes =
+            static_cast<int>(local_packed.size() * sizeof(PackedContributionData));
+        auto recvcounts = ParallelDescriptor::Gather(local_nbytes, root);
+
+        std::vector<int> displs;
+        std::vector<char> recv_bytes;
+
+        if (ParallelDescriptor::MyProc() == root) {
+            displs.resize(recvcounts.size(), 0);
+            int offset = 0;
+            for (int i = 0, n = static_cast<int>(recvcounts.size()); i < n; ++i) {
+                displs[i] = offset;
+                offset += recvcounts[i];
+            }
+            recv_bytes.resize(offset);
+        }
+
+        auto const* send_ptr = reinterpret_cast<char const*>(local_packed.data());
+        ParallelDescriptor::Gatherv(send_ptr, local_nbytes,
+                                    recv_bytes.data(), recvcounts, displs, root);
+
+        std::vector<PackedContributionData> global_packed;
+        if (ParallelDescriptor::MyProc() == root) {
+            AMREX_ALWAYS_ASSERT(recv_bytes.size() % sizeof(PackedContributionData) == 0);
+            std::vector<PackedContributionData> gathered(
+                recv_bytes.size() / sizeof(PackedContributionData));
+            if (!recv_bytes.empty()) {
+                std::memcpy(gathered.data(), recv_bytes.data(), recv_bytes.size());
+            }
+
+            auto const global_contributions = unpack(gathered);
+            global_packed.reserve(global_contributions.size());
+            for (auto const& [key, contribution] : global_contributions) {
+                global_packed.push_back(PackedContributionData{
+                    key.first, key.second,
+                    contribution.marker_real, contribution.payload_real, contribution.runtime_real,
+                    contribution.marker_int, contribution.runtime_int
+                });
+            }
+        }
+
+        int total_nbytes =
+            static_cast<int>(global_packed.size() * sizeof(PackedContributionData));
+        ParallelDescriptor::Bcast(&total_nbytes, 1, root);
+
+        std::vector<char> packed_bytes(total_nbytes);
+        if (ParallelDescriptor::MyProc() == root && total_nbytes > 0) {
+            std::memcpy(packed_bytes.data(), global_packed.data(), total_nbytes);
+        }
+
+        if (total_nbytes > 0) {
+            ParallelDescriptor::Bcast(packed_bytes.data(), total_nbytes, root);
+        }
+
+        AMREX_ALWAYS_ASSERT(total_nbytes % sizeof(PackedContributionData) == 0);
+        std::vector<PackedContributionData> unpacked(
+            total_nbytes / static_cast<int>(sizeof(PackedContributionData)));
+        if (total_nbytes > 0) {
+            std::memcpy(unpacked.data(), packed_bytes.data(), total_nbytes);
+        }
+        return unpack(unpacked);
     }
 
     std::map<ParticleKey, SourceParticleData> gatherSourceParticles () const
@@ -691,6 +908,13 @@ int main (int argc, char* argv[])
     pc.checkNeighbors();
     pc.buildNeighborList(CheckPair());
     pc.checkNeighborList();
+
+#ifndef AMREX_USE_GPU
+    // sumNeighbors() is currently only implemented on the CPU path.
+    pc.setEnableInverse(true);
+    pc.fillNeighbors();
+    pc.checkInverseSumNeighbors();
+#endif
 
     amrex::Finalize();
 }

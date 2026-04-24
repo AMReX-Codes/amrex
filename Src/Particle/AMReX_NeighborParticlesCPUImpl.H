@@ -38,7 +38,7 @@ void shiftNeighborParticlePositions (PTD const& ptd, int index, const IntVect& p
 
 template <typename PTD>
 AMREX_FORCE_INLINE
-void packNeighborParticleData (char* dst, PTD const& src, int src_index,
+void packNeighborParticleData (char*& dst, PTD const& src, int src_index,
                                int num_real_comps, int num_int_comps,
                                const Vector<int>& ghost_real_comp,
                                const Vector<int>& ghost_int_comp,
@@ -348,7 +348,8 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                 {
                     auto& sdata = isend_data[dst_proc];
                     auto old_size = sdata.size();
-                    auto new_size = old_size + real_num_comp*sizeof(Real) + int_num_comp*sizeof(int) + 4*sizeof(int);
+                    auto new_size = old_size + real_num_comp*sizeof(ParticleReal) + int_num_comp*sizeof(int)
+                        + 4*sizeof(int);
                     sdata.resize(new_size);
                     char* dst = &sdata[old_size];
                     std::memcpy(dst, &dst_grid, sizeof(int)); dst += sizeof(int);
@@ -358,8 +359,8 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                     for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
                     {
                         ParticleReal data = detail::getSummedRealComp(neighbs, i, comp);
-                        std::memcpy(dst, &data, sizeof(Real));
-                        dst += sizeof(Real);
+                        std::memcpy(dst, &data, sizeof(ParticleReal));
+                        dst += sizeof(ParticleReal);
                     }
                     for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)
                     {
@@ -493,7 +494,8 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
     {
         ParallelDescriptor::Waitall(rreqs, stats);
 
-        const size_t data_size = real_num_comp*sizeof(Real) + int_num_comp*sizeof(int) + 4 * sizeof(int);
+        const size_t data_size =
+            real_num_comp*sizeof(ParticleReal) + int_num_comp*sizeof(int) + 4 * sizeof(int);
 
         if (recvdata.size() % data_size != 0) {
             amrex::Print() << recvdata.size() << " " << data_size << "\n";
@@ -522,9 +524,9 @@ sumNeighborsMPI (std::map<int, Vector<char> >& not_ours,
             for (int comp = real_start_comp; comp < real_start_comp + real_num_comp; ++comp)
             {
                 ParticleReal data;
-                std::memcpy(&data, buffer, sizeof(Real));
+                std::memcpy(&data, buffer, sizeof(ParticleReal));
                 detail::addSummedRealComp(dst_ptd, index, comp, data);
-                buffer += sizeof(Real);
+                buffer += sizeof(ParticleReal);
             }
 
             for (int comp = int_start_comp; comp < int_start_comp + int_num_comp; ++comp)

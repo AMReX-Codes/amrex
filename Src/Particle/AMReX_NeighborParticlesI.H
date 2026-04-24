@@ -86,7 +86,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
     size_t comm_size = 0;
     for (int ii = 0; ii < numRealCommComps(); ++ii) {
         if (ghost_real_comp[ii]) {
-            comm_size += sizeof(typename ParticleType::RealType);
+            comm_size += sizeof(ParticleReal);
         }
     }
     for (int ii = 0; ii < numIntCommComps(); ++ii) {
