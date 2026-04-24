@@ -312,10 +312,10 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             const auto& tags = inverse_tags[lev][src_index];
             const auto& neighb_tile = neighbors[lev][src_index];
             const auto neighbs = neighb_tile.getConstParticleTileData();
-            const int num_neighbs = static_cast<int>(neighb_tile.size());
-            AMREX_ASSERT(tags.size() == static_cast<std::size_t>(num_neighbs));
+            const auto num_neighbs = neighb_tile.size();
+            AMREX_ASSERT(tags.size() == num_neighbs);
 
-            for (int i = 0; i < num_neighbs; ++i)
+            for (int i = 0; i < static_cast<int>(num_neighbs); ++i)
             {
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
