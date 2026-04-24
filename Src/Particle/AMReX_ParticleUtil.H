@@ -95,7 +95,7 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
  *
  */
 template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+Long
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
@@ -114,7 +114,7 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  *
  */
 template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+Long
 numParticlesOutOfRange (PC const& pc, IntVect nGrow)
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
@@ -135,7 +135,7 @@ numParticlesOutOfRange (PC const& pc, IntVect nGrow)
  *
  */
 template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
     BL_PROFILE("numParticlesOutOfRange()");
@@ -159,13 +159,13 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
  *
  */
 template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 {
     BL_PROFILE("numParticlesOutOfRange()");
 
     using ParIter = typename PC::ParConstIterType;
-    int num_wrong = 0;
+    Long num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
 #ifdef AMREX_USE_OMP
