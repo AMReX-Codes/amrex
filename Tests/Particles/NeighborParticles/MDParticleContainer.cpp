@@ -675,7 +675,6 @@ void MDParticleContainer::checkInverseSumNeighbors ()
     std::map<ParticleKey, InverseContributionData> local_contributions;
     for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
     {
-        auto const index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
         auto& neighb_tile = GetNeighbors(lev, mfi.index(), mfi.LocalTileIndex());
         auto& aos = neighb_tile.GetArrayOfStructs();
         auto& soa = neighb_tile.GetStructOfArrays();
