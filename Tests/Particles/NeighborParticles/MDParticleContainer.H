@@ -50,6 +50,8 @@ public:
 
     void checkNeighborList ();
 
+    void checkInverseSumNeighbors ();
+
     std::pair<amrex::Real, amrex::Real>  minAndMaxDistance ();
 
     void moveParticles (amrex::ParticleReal dx);

@@ -163,6 +163,15 @@ void testNeighborParticles ()
     pc.checkNeighborParticles();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
+
+#ifndef AMREX_USE_GPU
+    amrex::PrintToFile("neighbor_test") << "Testing inverse sumNeighbors \n";
+    pc.clearNeighbors();
+    pc.setEnableInverse(true);
+    pc.fillNeighbors();
+    pc.checkNeighborParticles();
+    pc.checkInverseSumNeighbors();
+#endif
 }
 
 void testNeighborList ()
