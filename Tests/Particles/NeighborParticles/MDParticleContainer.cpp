@@ -95,6 +95,14 @@ namespace
         }
     };
 
+    bool almost_equal (ParticleReal lhs, ParticleReal rhs)
+    {
+        auto const scale = std::max({ParticleReal(1.0), std::abs(lhs), std::abs(rhs)});
+        auto const tol = std::max(ParticleReal(1.0e-12),
+                                  ParticleReal(64.0) * std::numeric_limits<ParticleReal>::epsilon());
+        return std::abs(lhs - rhs) <= tol * scale;
+    }
+
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
         int nx = nppc[0];
@@ -435,7 +443,6 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
     auto match_shift = [&] (ParticleType const& p, SourceParticleData const& src,
                             Box const& grown_tile_box) -> IntVect
     {
-        constexpr auto tol = ParticleReal(1.0e-12);
         IntVect matched_shift(std::numeric_limits<int>::max());
         int nmatches = 0;
         for (auto const& shift : pshifts) {
@@ -448,7 +455,7 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
                 } else if (shift[idim] < 0) {
                     expected_pos -= static_cast<ParticleReal>(probhi[idim] - problo[idim]);
                 }
-                if (std::abs(p.pos(idim) - expected_pos) > tol) {
+                if (!almost_equal(p.pos(idim), expected_pos)) {
                     matched = false;
                     break;
                 }
@@ -876,18 +883,17 @@ void MDParticleContainer::checkInverseSumNeighbors ()
             }
 
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-                AMREX_ALWAYS_ASSERT(std::abs(p.pos(idim) - src.pos[idim]) <= ParticleReal(1.0e-12));
+                AMREX_ALWAYS_ASSERT(almost_equal(p.pos(idim), src.pos[idim]));
             }
             for (int comp = 0; comp < PIdx::ncomps; ++comp) {
-                AMREX_ALWAYS_ASSERT(std::abs(
-                    p.rdata(comp) - (src.struct_real[comp] + contribution.struct_real[comp]))
-                    <= ParticleReal(1.0e-12));
+                AMREX_ALWAYS_ASSERT(almost_equal(
+                    p.rdata(comp), src.struct_real[comp] + contribution.struct_real[comp]));
             }
             AMREX_ALWAYS_ASSERT(p.idata(0) == src.struct_int + contribution.struct_int);
-            AMREX_ALWAYS_ASSERT(std::abs(h_array_real[i] - (src.array_real + contribution.array_real))
-                                <= ParticleReal(1.0e-12));
-            AMREX_ALWAYS_ASSERT(std::abs(h_runtime_real[i] - (src.runtime_real + contribution.runtime_real))
-                                <= ParticleReal(1.0e-12));
+            AMREX_ALWAYS_ASSERT(almost_equal(
+                h_array_real[i], src.array_real + contribution.array_real));
+            AMREX_ALWAYS_ASSERT(almost_equal(
+                h_runtime_real[i], src.runtime_real + contribution.runtime_real));
             AMREX_ALWAYS_ASSERT(h_array_int[i] == src.array_int + contribution.array_int);
             AMREX_ALWAYS_ASSERT(h_runtime_int[i] == src.runtime_int + contribution.runtime_int);
         }
