@@ -218,4 +218,16 @@ namespace detail
     /** \endcond */ \
     CLASS##_EnumTraits amrex_get_enum_traits(CLASS)
 
+#define AMREX_ENUM_IN_CLASS(CLASS, ...) \
+    enum class CLASS : int { __VA_ARGS__ }; \
+    /** \cond DOXYGEN_IGNORE */ \
+    struct CLASS##_EnumTraits { \
+        using enum_class_t = CLASS; \
+        static constexpr bool value = true; \
+        static constexpr std::string_view class_name{#CLASS}; \
+        static constexpr std::string_view enum_names{#__VA_ARGS__}; \
+    }; \
+    /** \endcond */ \
+    friend CLASS##_EnumTraits amrex_get_enum_traits(CLASS) { return {}; }
+
 #endif
