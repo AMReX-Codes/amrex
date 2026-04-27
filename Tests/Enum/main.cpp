@@ -35,7 +35,7 @@ struct GreekMyth {
         pp.query("my_hero", m_my_hero);
     }
 
-    bool is_my_hero (std::string_view name) const {
+    [[nodiscard]] bool is_my_hero (std::string_view name) const {
         return m_my_hero == get_hero(name);
     }
 
