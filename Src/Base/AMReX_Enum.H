@@ -228,6 +228,7 @@ namespace detail
         static constexpr std::string_view enum_names{#__VA_ARGS__}; \
     }; \
     /** \endcond */ \
-    friend CLASS##_EnumTraits amrex_get_enum_traits(CLASS) { return {}; }
+    friend CLASS##_EnumTraits amrex_get_enum_traits(CLASS) { return {}; } \
+    /* This gets rid of trailing semicolon warning. */ static_assert(true, "")
 
 #endif
