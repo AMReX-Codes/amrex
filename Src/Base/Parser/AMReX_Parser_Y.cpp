@@ -264,6 +264,9 @@ amrex_parser_new ()
 
     std::map<std::string,double> local_consts;
     parser_ast_optimize(my_parser->ast, local_consts);
+    if (my_parser->ast == nullptr) {
+        amrex::Abort("amrex::Parser: expression optimizes to nothing");
+    }
     parser_ast_sort(my_parser->ast);
 
     return my_parser;
@@ -2059,6 +2062,9 @@ parser_setconst (struct amrex_parser* parser, char const* name, double c)
     parser_ast_setconst(parser->ast, name, c);
     std::map<std::string,double> local_consts;
     parser_ast_optimize(parser->ast, local_consts);
+    if (parser->ast == nullptr) {
+        amrex::Abort("amrex::Parser: expression optimizes to nothing");
+    }
     parser_ast_sort(parser->ast);
 }
 

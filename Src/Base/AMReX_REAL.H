@@ -99,10 +99,10 @@ inline namespace literals {
       C++ user literals ``_rt`` &  ``_prt`` for short-hand notations
 
       Use this to properly add types to constant such as
-      ```C++
+      \code{.cpp}
       auto const mypi = 3.14_rt;
       auto const sphere_volume = 4_rt / 3_rt * pow(r, 3) * mypi;
-      ```
+      \endcode
     */
     constexpr Real
     operator""_rt( long double x )

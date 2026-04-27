@@ -20,7 +20,7 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library:
-    name: GNU@14 Release [lib]
+    name: GNU@11 Release [lib]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
@@ -28,7 +28,7 @@ jobs:
     - uses: actions/checkout@v6
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 14
+        .github/workflows/dependencies/dependencies_gcc.sh 11
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
@@ -57,9 +57,9 @@ jobs:
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
-            -DCMAKE_C_COMPILER=$(which gcc-14)     \
-            -DCMAKE_CXX_COMPILER=$(which g++-14)   \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-14) \
+            -DCMAKE_C_COMPILER=$(which gcc-11)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-11)   \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-11) \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install

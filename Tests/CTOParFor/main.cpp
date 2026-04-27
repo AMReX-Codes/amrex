@@ -6,7 +6,6 @@ using namespace amrex;
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
-#if (__cplusplus >= 201703L)
     {
         enum A_options: int {
             A0 = 0, A1
@@ -57,8 +56,5 @@ int main (int argc, char* argv[])
             }
         }
     }
-#else
-    amrex::Print() << "This test requires C++17." << '\n';
-#endif
     amrex::Finalize();
 }

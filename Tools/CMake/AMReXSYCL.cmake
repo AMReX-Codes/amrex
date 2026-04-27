@@ -13,7 +13,7 @@ set(_cxx_sycl "$<AND:$<COMPILE_LANGUAGE:CXX>,${_cxx_sycl}>")
 add_library(SYCL INTERFACE)
 add_library(AMReX::SYCL ALIAS SYCL)
 
-target_compile_features(SYCL INTERFACE cxx_std_17)
+target_compile_features(SYCL INTERFACE cxx_std_20)
 
 
 #

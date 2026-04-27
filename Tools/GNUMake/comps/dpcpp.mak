@@ -79,7 +79,7 @@ endif
 ifdef CXXSTD
   CXXFLAGS += -std=$(strip $(CXXSTD))
 else
-  CXXFLAGS += -std=c++17
+  CXXFLAGS += -std=c++20
 endif
 
 CXXFLAGS += -fsycl
