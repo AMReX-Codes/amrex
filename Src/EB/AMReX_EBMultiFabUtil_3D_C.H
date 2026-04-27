@@ -1368,7 +1368,13 @@ void eb_add_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const
                        + vel_eb(i,j,k,1)*bnorm(i,j,k,1)
                        + vel_eb(i,j,k,2)*bnorm(i,j,k,2);
 
-        divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dxinv[0] / vfrc(i,j,k);
+        Real nx_dxinv = bnorm(i,j,k,0) * dxinv[0];
+        Real ny_dyinv = bnorm(i,j,k,1) * dxinv[1];
+        Real nz_dzinv = bnorm(i,j,k,2) * dxinv[2];
+
+        Real dl_eb_inv = std::sqrt(nx_dxinv*nx_dxinv + ny_dyinv*ny_dyinv + nz_dzinv*nz_dzinv);
+
+        divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dl_eb_inv / vfrc(i,j,k);
     }
 }
 
