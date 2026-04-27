@@ -11,6 +11,7 @@
 #include <AMReX_RealVect.H>
 
 #include <array>
+#include <numeric>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -809,12 +810,12 @@ private:
     }
 
     static size_type align_capacity (size_type capacity) {
-        const auto aligment_in_bytes = Arena::align_size;
-        const auto aligment_in_elements = aligment_in_bytes / std::gcd(
+        constexpr auto aligment_in_bytes = Arena::align_size;
+        constexpr auto aligment_in_elements = aligment_in_bytes / std::gcd(
             std::gcd(aligment_in_bytes, sizeof(uint64_t)),
             std::gcd(sizeof(RType), sizeof(IType))
         );
-        return (capacity + aligment_in_elements - 1) / aligment_in_elements * aligment_in_elements;
+        return amrex::aligned_size(aligment_in_elements, capacity);
     }
 
     bool m_defined = false;
