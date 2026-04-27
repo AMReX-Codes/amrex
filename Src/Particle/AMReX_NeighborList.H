@@ -126,11 +126,33 @@ namespace detail
 }
 /// \endcond
 
-template <class ParticleType, int NArrayReal, int NArrayInt>
+namespace detail
+{
+    template <class ParticleType, bool IsSoA = ParticleType::is_soa_particle>
+    struct NeighborParticleTypeTraits
+    {
+        using PTDType = ParticleType*;
+        using ConstPTDType = ParticleType const*;
+        using BinType = ParticleType;
+    };
+
+    template <class ParticleType>
+    struct NeighborParticleTypeTraits<ParticleType, true>
+    {
+        static constexpr int NArrayReal = ParticleType::NArrayReal;
+        static constexpr int NArrayInt = ParticleType::NArrayInt;
+        using PTDType = ParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+        using ConstPTDType = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+        using BinType = ConstPTDType;
+    };
+}
+
+template <class ParticleType>
 struct Neighbors
 {
-    using PTDType = ParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
-    using ConstPTDType = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using Traits = detail::NeighborParticleTypeTraits<ParticleType>;
+    using PTDType = typename Traits::PTDType;
+    using ConstPTDType = typename Traits::ConstPTDType;
 
     struct iterator
     {
@@ -239,11 +261,12 @@ private:
     ConstPTDType m_const_ptile_data;
 };
 
-template <class ParticleType, int NArrayReal, int NArrayInt>
+template <class ParticleType>
 struct NeighborData
 {
-    using PTDType = ParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
-    using ConstPTDType = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using Traits = detail::NeighborParticleTypeTraits<ParticleType>;
+    using PTDType = typename Traits::PTDType;
+    using ConstPTDType = typename Traits::ConstPTDType;
 
     NeighborData (const Gpu::DeviceVector<unsigned int>& offsets,
                   const Gpu::DeviceVector<unsigned int>& list,
@@ -255,9 +278,9 @@ struct NeighborData
     {}
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
-    amrex::Neighbors<ParticleType, NArrayReal, NArrayInt> getNeighbors (int i) const
+    amrex::Neighbors<ParticleType> getNeighbors (int i) const
     {
-        return Neighbors<ParticleType, NArrayReal, NArrayInt>(
+        return Neighbors<ParticleType>(
             i, m_nbor_offsets_ptr, m_nbor_list_ptr, m_ptile_data, m_const_ptile_data);
     }
 
@@ -283,12 +306,14 @@ bool isSame (A const* /*pa*/, B const* /*pb*/)
     return false;
 }
 
-template <class ParticleType, int NArrayReal=0, int NArrayInt=0>
+template <class ParticleType>
 class NeighborList
 {
 public:
-    using PTDType = ParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
-    using ConstPTDType = ConstParticleTileData<typename ParticleType::StorageParticleType, NArrayReal, NArrayInt>;
+    using Traits = detail::NeighborParticleTypeTraits<ParticleType>;
+    using PTDType = typename Traits::PTDType;
+    using ConstPTDType = typename Traits::ConstPTDType;
+    using BinType = typename Traits::BinType;
 
     template <class PTile, class CheckPair>
     void build (PTile& ptile,
@@ -348,8 +373,14 @@ public:
         // Bin particles to their respective grid(s)
         //---------------------------------------------------------------------------------------------------------
         auto const dst_ptile_data = target_tile.getConstParticleTileData();
-        m_ptile_data = target_tile.getParticleTileData();
-        m_const_ptile_data = dst_ptile_data;
+        if constexpr (ParticleType::is_soa_particle) {
+            m_ptile_data = target_tile.getParticleTileData();
+            m_const_ptile_data = dst_ptile_data;
+        } else {
+            auto* const pstruct_ptr = target_tile.GetArrayOfStructs()().dataPtr();
+            m_ptile_data = pstruct_ptr;
+            m_const_ptile_data = pstruct_ptr;
+        }
 
         const int np_total = target_tile.numTotalParticles();
         const int np_real  = src_tile.numRealParticles();
@@ -365,7 +396,11 @@ public:
         int tot_bins;
         Gpu::dtoh_memcpy( &tot_bins, off_bins_p + num_bin_types, sizeof(int) );
 
-        m_bins.build(np_total, dst_ptile_data, tot_bins, bm);
+        if constexpr (ParticleType::is_soa_particle) {
+            m_bins.build(np_total, dst_ptile_data, tot_bins, bm);
+        } else {
+            m_bins.build(np_total, m_ptile_data, tot_bins, bm);
+        }
 
 
         // First pass: count the number of neighbors for each particle
@@ -483,9 +518,9 @@ public:
         Gpu::Device::streamSynchronize();
     }
 
-    NeighborData<ParticleType, NArrayReal, NArrayInt> data ()
+    NeighborData<ParticleType> data ()
     {
-        return NeighborData<ParticleType, NArrayReal, NArrayInt>(
+        return NeighborData<ParticleType>(
             m_nbor_offsets, m_nbor_list, m_ptile_data, m_const_ptile_data);
     }
 
@@ -530,7 +565,7 @@ protected:
     Gpu::DeviceVector<unsigned int> m_nbor_list;
     Gpu::DeviceVector<unsigned int> m_nbor_counts;
 
-    DenseBins<ConstPTDType> m_bins;
+    DenseBins<BinType> m_bins;
 };
 
 }

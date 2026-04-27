@@ -44,7 +44,7 @@ public:
     using SuperParticleType = typename ParticleContainerType::SuperParticleType;
     using NeighborListContainerType =
         Vector<std::map<std::pair<int, int>,
-            amrex::NeighborList<ParticleType, T_NArrayReal, T_NArrayInt> > >;
+            amrex::NeighborList<ParticleType> > >;
 private:
     struct MaskComps
     {
@@ -278,9 +278,7 @@ public:
     template <class CheckPair, class OtherPCType>
     void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                             Vector<std::map<std::pair<int, int>,
-                                amrex::NeighborList<typename OtherPCType::ParticleType,
-                                                    OtherPCType::NArrayReal,
-                                                    OtherPCType::NArrayInt> > >& neighbor_lists,
+                                amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
 
     ///

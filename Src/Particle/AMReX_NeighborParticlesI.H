@@ -811,9 +811,7 @@ void
 NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
                    Vector<std::map<std::pair<int, int>,
-                       amrex::NeighborList<typename OtherPCType::ParticleType,
-                                           OtherPCType::NArrayReal,
-                                           OtherPCType::NArrayInt> > >& neighbor_lists,
+                       amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                    bool /*sort*/)
 {
     BL_PROFILE("NeighborParticleContainer::buildNeighborList");
