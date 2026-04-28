@@ -1125,7 +1125,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
                     auto const tstr = hss.view();
-                    nfi.Stream().write(tstr.data(), tstr.size());    // ---- the fab header
+                    nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));    // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
