@@ -39,6 +39,42 @@ namespace
 
     static_assert(std::is_trivially_copyable_v<PackedSourceParticleData>);
 
+    struct OwnedParticleData
+    {
+        ParticleKey key;
+        std::array<ParticleReal, AMREX_SPACEDIM> pos{};
+        std::array<ParticleReal, PIdx::ncomps> struct_real{};
+        int struct_int = 0;
+        ParticleReal array_real = 0.0_rt;
+        ParticleReal runtime_real = 0.0_rt;
+        int array_int = 0;
+        int runtime_int = 0;
+    };
+
+    struct InverseContributionData
+    {
+        std::array<ParticleReal, PIdx::ncomps> struct_real{};
+        int struct_int = 0;
+        ParticleReal array_real = 0.0_rt;
+        ParticleReal runtime_real = 0.0_rt;
+        int array_int = 0;
+        int runtime_int = 0;
+    };
+
+    struct PackedContributionData
+    {
+        Long id = 0;
+        int cpu = -1;
+        std::array<ParticleReal, PIdx::ncomps> struct_real{};
+        int struct_int = 0;
+        ParticleReal array_real = 0.0_rt;
+        ParticleReal runtime_real = 0.0_rt;
+        int array_int = 0;
+        int runtime_int = 0;
+    };
+
+    static_assert(std::is_trivially_copyable_v<PackedContributionData>);
+
     struct TileParticleRecord
     {
         ParticleKey key;
@@ -58,6 +94,14 @@ namespace
             return key == other.key && grid_id == other.grid_id && shift == other.shift;
         }
     };
+
+    bool almost_equal (ParticleReal lhs, ParticleReal rhs)
+    {
+        auto const scale = std::max({ParticleReal(1.0), std::abs(lhs), std::abs(rhs)});
+        auto const tol = std::max(ParticleReal(1.0e-12),
+                                  ParticleReal(64.0) * std::numeric_limits<ParticleReal>::epsilon());
+        return std::abs(lhs - rhs) <= tol * scale;
+    }
 
     void get_position_unit_cell(Real* r, const IntVect& nppc, int i_part)
     {
@@ -399,7 +443,6 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
     auto match_shift = [&] (ParticleType const& p, SourceParticleData const& src,
                             Box const& grown_tile_box) -> IntVect
     {
-        constexpr auto tol = ParticleReal(1.0e-12);
         IntVect matched_shift(std::numeric_limits<int>::max());
         int nmatches = 0;
         for (auto const& shift : pshifts) {
@@ -412,7 +455,7 @@ void MDParticleContainer::checkNeighborParticles(bool use_source_grid)
                 } else if (shift[idim] < 0) {
                     expected_pos -= static_cast<ParticleReal>(probhi[idim] - problo[idim]);
                 }
-                if (std::abs(p.pos(idim) - expected_pos) > tol) {
+                if (!almost_equal(p.pos(idim), expected_pos)) {
                     matched = false;
                     break;
                 }
@@ -574,6 +617,287 @@ void MDParticleContainer::checkNeighborList()
     }
 
     amrex::PrintToFile("neighbor_test") << "All the neighbor list particles match!" << '\n';
+}
+
+void MDParticleContainer::checkInverseSumNeighbors ()
+{
+    BL_PROFILE("MDParticleContainer::checkInverseSumNeighbors");
+
+    constexpr ParticleReal struct_real_delta = 1.5_rt;
+    constexpr int struct_int_delta = 9;
+    constexpr ParticleReal array_real_delta = 2.5_rt;
+    constexpr ParticleReal runtime_real_delta = 3.5_rt;
+    constexpr int array_int_delta = 11;
+    constexpr int runtime_int_delta = 13;
+
+    const int lev = 0;
+    auto& plev = GetParticles(lev);
+
+    std::map<ParticleKey, OwnedParticleData> local_owned_particles;
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        auto const index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+        auto& ptile = plev[index];
+        auto& aos = ptile.GetArrayOfStructs();
+        auto& soa = ptile.GetStructOfArrays();
+        int const np = aos.numParticles();
+        if (np == 0) { continue; }
+
+        Gpu::HostVector<ParticleType> h_pstruct(np);
+        Gpu::HostVector<ParticleReal> h_array_real(np);
+        Gpu::HostVector<ParticleReal> h_runtime_real(np);
+        Gpu::HostVector<int> h_array_int(np);
+        Gpu::HostVector<int> h_runtime_int(np);
+        Gpu::copy(Gpu::deviceToHost, aos().dataPtr(), aos().dataPtr() + np, h_pstruct.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(0).begin(), soa.GetRealData(0).begin() + np,
+                  h_array_real.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(1).begin(), soa.GetRealData(1).begin() + np,
+                  h_runtime_real.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(0).begin(), soa.GetIntData(0).begin() + np,
+                  h_array_int.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(1).begin(), soa.GetIntData(1).begin() + np,
+                  h_runtime_int.begin());
+
+        for (int i = 0; i < np; ++i) {
+            auto const& p = h_pstruct[i];
+            OwnedParticleData pdata;
+            pdata.key = {p.id(), p.cpu()};
+            AMREX_D_TERM(pdata.pos[0] = p.pos(0);,
+                         pdata.pos[1] = p.pos(1);,
+                         pdata.pos[2] = p.pos(2);)
+            for (int comp = 0; comp < PIdx::ncomps; ++comp) {
+                pdata.struct_real[comp] = p.rdata(comp);
+            }
+            pdata.struct_int = p.idata(0);
+            pdata.array_real = h_array_real[i];
+            pdata.runtime_real = h_runtime_real[i];
+            pdata.array_int = h_array_int[i];
+            pdata.runtime_int = h_runtime_int[i];
+            auto [it, inserted] = local_owned_particles.emplace(pdata.key, pdata);
+            amrex::ignore_unused(it);
+            AMREX_ALWAYS_ASSERT(inserted);
+        }
+    }
+
+    std::map<ParticleKey, InverseContributionData> local_contributions;
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        auto& neighb_tile = GetNeighbors(lev, mfi.index(), mfi.LocalTileIndex());
+        auto& aos = neighb_tile.GetArrayOfStructs();
+        auto& soa = neighb_tile.GetStructOfArrays();
+        int const nneighbs = static_cast<int>(aos.size());
+        if (nneighbs == 0) { continue; }
+
+        Gpu::HostVector<ParticleType> h_pstruct(nneighbs);
+        Gpu::HostVector<ParticleReal> h_array_real(nneighbs);
+        Gpu::HostVector<ParticleReal> h_runtime_real(nneighbs);
+        Gpu::HostVector<int> h_array_int(nneighbs);
+        Gpu::HostVector<int> h_runtime_int(nneighbs);
+        Gpu::copy(Gpu::deviceToHost, aos().dataPtr(), aos().dataPtr() + nneighbs, h_pstruct.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(0).begin(), soa.GetRealData(0).begin() + nneighbs,
+                  h_array_real.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(1).begin(), soa.GetRealData(1).begin() + nneighbs,
+                  h_runtime_real.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(0).begin(), soa.GetIntData(0).begin() + nneighbs,
+                  h_array_int.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(1).begin(), soa.GetIntData(1).begin() + nneighbs,
+                  h_runtime_int.begin());
+
+        for (int i = 0; i < nneighbs; ++i) {
+            auto const& p = h_pstruct[i];
+            ParticleKey key{p.id(), p.cpu()};
+            auto& contribution = local_contributions[key];
+            for (int comp = 0; comp < PIdx::ncomps; ++comp) {
+                contribution.struct_real[comp] += p.rdata(comp) + struct_real_delta;
+            }
+            contribution.struct_int += p.idata(0) + struct_int_delta;
+            contribution.array_real += h_array_real[i] + array_real_delta;
+            contribution.runtime_real += h_runtime_real[i] + runtime_real_delta;
+            contribution.array_int += h_array_int[i] + array_int_delta;
+            contribution.runtime_int += h_runtime_int[i] + runtime_int_delta;
+        }
+
+        ParticleType* pstruct = aos().dataPtr();
+        auto* array_real = soa.GetRealData(0).dataPtr();
+        auto* runtime_real = soa.GetRealData(1).dataPtr();
+        auto* array_int = soa.GetIntData(0).dataPtr();
+        auto* runtime_int = soa.GetIntData(1).dataPtr();
+        AMREX_FOR_1D(nneighbs, i,
+        {
+            ParticleType& p = pstruct[i];
+            for (int comp = 0; comp < PIdx::ncomps; ++comp) {
+                p.rdata(comp) += struct_real_delta;
+            }
+            p.idata(0) += struct_int_delta;
+            array_real[i] += array_real_delta;
+            runtime_real[i] += runtime_real_delta;
+            array_int[i] += array_int_delta;
+            runtime_int[i] += runtime_int_delta;
+        });
+    }
+
+    Gpu::streamSynchronize();
+
+    auto gather_contribution_data =
+        [&] (std::map<ParticleKey, InverseContributionData> const& local_data)
+    {
+        std::vector<PackedContributionData> local_packed;
+        local_packed.reserve(local_data.size());
+        for (auto const& [key, contribution] : local_data) {
+            local_packed.push_back(PackedContributionData{
+                key.first, key.second, contribution.struct_real, contribution.struct_int,
+                contribution.array_real, contribution.runtime_real,
+                contribution.array_int, contribution.runtime_int
+            });
+        }
+
+        auto unpack = [] (std::vector<PackedContributionData> const& packed) {
+            std::map<ParticleKey, InverseContributionData> result;
+            for (auto const& item : packed) {
+                auto& contribution = result[{item.id, item.cpu}];
+                for (int comp = 0; comp < PIdx::ncomps; ++comp) {
+                    contribution.struct_real[comp] += item.struct_real[comp];
+                }
+                contribution.struct_int += item.struct_int;
+                contribution.array_real += item.array_real;
+                contribution.runtime_real += item.runtime_real;
+                contribution.array_int += item.array_int;
+                contribution.runtime_int += item.runtime_int;
+            }
+            return result;
+        };
+
+        if (ParallelDescriptor::NProcs() == 1) {
+            return unpack(local_packed);
+        }
+
+        int const root = ParallelDescriptor::IOProcessorNumber();
+        int const local_nbytes =
+            static_cast<int>(local_packed.size() * sizeof(PackedContributionData));
+        auto recvcounts = ParallelDescriptor::Gather(local_nbytes, root);
+
+        std::vector<int> displs;
+        std::vector<char> recv_bytes;
+
+        if (ParallelDescriptor::MyProc() == root) {
+            displs.resize(recvcounts.size(), 0);
+            int offset = 0;
+            for (int i = 0, n = static_cast<int>(recvcounts.size()); i < n; ++i) {
+                displs[i] = offset;
+                offset += recvcounts[i];
+            }
+            recv_bytes.resize(offset);
+        }
+
+        auto const* send_ptr = reinterpret_cast<char const*>(local_packed.data());
+        ParallelDescriptor::Gatherv(send_ptr, local_nbytes,
+                                    recv_bytes.data(), recvcounts, displs, root);
+
+        std::vector<PackedContributionData> global_packed;
+        if (ParallelDescriptor::MyProc() == root) {
+            AMREX_ALWAYS_ASSERT(recv_bytes.size() % sizeof(PackedContributionData) == 0);
+            std::vector<PackedContributionData> gathered(
+                recv_bytes.size() / sizeof(PackedContributionData));
+            if (!recv_bytes.empty()) {
+                std::memcpy(gathered.data(), recv_bytes.data(), recv_bytes.size());
+            }
+
+            auto const global_data = unpack(gathered);
+            global_packed.reserve(global_data.size());
+            for (auto const& [key, contribution] : global_data) {
+                global_packed.push_back(PackedContributionData{
+                    key.first, key.second, contribution.struct_real, contribution.struct_int,
+                    contribution.array_real, contribution.runtime_real,
+                    contribution.array_int, contribution.runtime_int
+                });
+            }
+        }
+
+        int total_nbytes =
+            static_cast<int>(global_packed.size() * sizeof(PackedContributionData));
+        ParallelDescriptor::Bcast(&total_nbytes, 1, root);
+
+        std::vector<char> packed_bytes(total_nbytes);
+        if (ParallelDescriptor::MyProc() == root && total_nbytes > 0) {
+            std::memcpy(packed_bytes.data(), global_packed.data(), total_nbytes);
+        }
+
+        if (total_nbytes > 0) {
+            ParallelDescriptor::Bcast(packed_bytes.data(), total_nbytes, root);
+        }
+
+        AMREX_ALWAYS_ASSERT(total_nbytes % sizeof(PackedContributionData) == 0);
+        std::vector<PackedContributionData> unpacked(
+            total_nbytes / static_cast<int>(sizeof(PackedContributionData)));
+        if (total_nbytes > 0) {
+            std::memcpy(unpacked.data(), packed_bytes.data(), total_nbytes);
+        }
+        return unpack(unpacked);
+    };
+
+    auto const global_contributions = gather_contribution_data(local_contributions);
+    int total_contributions = 0;
+    for (auto const& [key, contribution] : global_contributions) {
+        amrex::ignore_unused(key);
+        total_contributions += contribution.struct_int;
+    }
+    AMREX_ALWAYS_ASSERT(total_contributions > 0);
+
+    sumNeighbors(0, PIdx::ncomps + NumRealComps(), 0, 1 + NumIntComps());
+
+    for (MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+    {
+        auto const index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
+        auto& ptile = plev[index];
+        auto& aos = ptile.GetArrayOfStructs();
+        auto& soa = ptile.GetStructOfArrays();
+        int const np = aos.numParticles();
+        if (np == 0) { continue; }
+
+        Gpu::HostVector<ParticleType> h_pstruct(np);
+        Gpu::HostVector<ParticleReal> h_array_real(np);
+        Gpu::HostVector<ParticleReal> h_runtime_real(np);
+        Gpu::HostVector<int> h_array_int(np);
+        Gpu::HostVector<int> h_runtime_int(np);
+        Gpu::copy(Gpu::deviceToHost, aos().dataPtr(), aos().dataPtr() + np, h_pstruct.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(0).begin(), soa.GetRealData(0).begin() + np,
+                  h_array_real.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetRealData(1).begin(), soa.GetRealData(1).begin() + np,
+                  h_runtime_real.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(0).begin(), soa.GetIntData(0).begin() + np,
+                  h_array_int.begin());
+        Gpu::copy(Gpu::deviceToHost, soa.GetIntData(1).begin(), soa.GetIntData(1).begin() + np,
+                  h_runtime_int.begin());
+
+        for (int i = 0; i < np; ++i) {
+            auto const& p = h_pstruct[i];
+            ParticleKey key{p.id(), p.cpu()};
+            auto const src_it = local_owned_particles.find(key);
+            AMREX_ALWAYS_ASSERT(src_it != local_owned_particles.end());
+            auto const& src = src_it->second;
+
+            auto const contribution_it = global_contributions.find(key);
+            InverseContributionData contribution;
+            if (contribution_it != global_contributions.end()) {
+                contribution = contribution_it->second;
+            }
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                AMREX_ALWAYS_ASSERT(almost_equal(p.pos(idim), src.pos[idim]));
+            }
+            for (int comp = 0; comp < PIdx::ncomps; ++comp) {
+                AMREX_ALWAYS_ASSERT(almost_equal(
+                    p.rdata(comp), src.struct_real[comp] + contribution.struct_real[comp]));
+            }
+            AMREX_ALWAYS_ASSERT(p.idata(0) == src.struct_int + contribution.struct_int);
+            AMREX_ALWAYS_ASSERT(almost_equal(
+                h_array_real[i], src.array_real + contribution.array_real));
+            AMREX_ALWAYS_ASSERT(almost_equal(
+                h_runtime_real[i], src.runtime_real + contribution.runtime_real));
+            AMREX_ALWAYS_ASSERT(h_array_int[i] == src.array_int + contribution.array_int);
+            AMREX_ALWAYS_ASSERT(h_runtime_int[i] == src.runtime_int + contribution.runtime_int);
+        }
+    }
 }
 
 void MDParticleContainer::reset_test_id()

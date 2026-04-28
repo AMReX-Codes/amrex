@@ -31,15 +31,20 @@ namespace amrex {
 /// in AMR subcycling to keep track of coarse level particles that may move on to fine
 /// levels during a fine level time step.
 ///
-template <int NStructReal, int NStructInt, int NArrayReal=0, int NArrayInt=0>
-class NeighborParticleContainer // NOLINT(cppcoreguidelines-virtual-class-destructor) // clang-tidy seems wrong.
-    : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+template <typename T_ParticleType, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator,
+          class CellAssignor=DefaultAssignor>
+class NeighborParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor) // clang-tidy seems wrong.
+    : public ParticleContainer_impl<T_ParticleType, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>
 {
 public:
-    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleContainerType =
+        ParticleContainer_impl<T_ParticleType, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
     using ParticleType = typename ParticleContainerType::ParticleType;
     using SuperParticleType = typename ParticleContainerType::SuperParticleType;
-    using NeighborListContainerType = Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > >;
+    using NeighborListContainerType =
+        Vector<std::map<std::pair<int, int>,
+            amrex::NeighborList<ParticleType> > >;
 private:
     struct MaskComps
     {
@@ -194,34 +199,43 @@ private:
 
 public:
 
-    using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    static constexpr int NArrayReal = ParticleContainerType::NArrayReal;
+    static constexpr int NArrayInt = ParticleContainerType::NArrayInt;
+    static constexpr int NStructReal = ParticleContainerType::NStructReal;
+    static constexpr int NStructInt = ParticleContainerType::NStructInt;
+    static constexpr int RealCommCompStart = ParticleType::is_soa_particle ? 0 : AMREX_SPACEDIM + NStructReal;
+    static constexpr int IntCommCompStart = 2 + NStructInt;
+
+    using MyParIter = typename ParticleContainerType::ParIterType;
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
-    using AoS = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AoS;
-    using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
-    using ParticleTile = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleTileType;
-    using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
+    using AoS = typename ParticleContainerType::AoS;
+    using ParticleVector = typename ParticleContainerType::ParticleVector;
+    using ParticleTile = typename ParticleContainerType::ParticleTileType;
+    using IntVector  = typename ParticleContainerType::IntVector;
+    using PTDType = typename ParticleContainerType::PTDType;
+    using ConstPTDType = typename ParticleContainerType::ConstPTDType;
 
-    NeighborParticleContainer (ParGDBBase* gdb, int ncells);
+    NeighborParticleContainer_impl (ParGDBBase* gdb, int ncells);
 
-    NeighborParticleContainer (const Geometry            & geom,
-                               const DistributionMapping & dmap,
-                               const BoxArray            & ba,
-                               int                         nneighbor);
+    NeighborParticleContainer_impl (const Geometry            & geom,
+                                    const DistributionMapping & dmap,
+                                    const BoxArray            & ba,
+                                    int                         nneighbor);
 
-    NeighborParticleContainer (const Vector<Geometry>            & geom,
-                               const Vector<DistributionMapping> & dmap,
-                               const Vector<BoxArray>            & ba,
-                               const Vector<int>                 & rr,
-                               int                               nneighbor);
+    NeighborParticleContainer_impl (const Vector<Geometry>            & geom,
+                                    const Vector<DistributionMapping> & dmap,
+                                    const Vector<BoxArray>            & ba,
+                                    const Vector<int>                 & rr,
+                                    int                               nneighbor);
 
-    ~NeighborParticleContainer () override = default;
+    ~NeighborParticleContainer_impl () override = default;
 
-    NeighborParticleContainer ( const NeighborParticleContainer &) = delete;
-    NeighborParticleContainer& operator= ( const NeighborParticleContainer & ) = delete;
+    NeighborParticleContainer_impl ( const NeighborParticleContainer_impl &) = delete;
+    NeighborParticleContainer_impl& operator= ( const NeighborParticleContainer_impl & ) = delete;
 
-    NeighborParticleContainer ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
-    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
+    NeighborParticleContainer_impl ( NeighborParticleContainer_impl && ) = default; // NOLINT(performance-noexcept-move-constructor)
+    NeighborParticleContainer_impl& operator= ( NeighborParticleContainer_impl && ) = default; // NOLINT(performance-noexcept-move-constructor)
 
     ///
     /// Regrid functions
@@ -263,7 +277,8 @@ public:
     ///
     template <class CheckPair, class OtherPCType>
     void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
-                            Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            Vector<std::map<std::pair<int, int>,
+                                amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
 
     ///
@@ -295,8 +310,7 @@ public:
               std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddRealComp (T communicate=true)
     {
-        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-            AddRealComp(communicate);
+        ParticleContainerType::AddRealComp(communicate);
         ghost_real_comp.push_back(communicate);
         calcCommSize();
     }
@@ -305,8 +319,7 @@ public:
               std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
     void AddIntComp (T communicate=true)
     {
-        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-            AddIntComp(communicate);
+        ParticleContainerType::AddIntComp(communicate);
         ghost_int_comp.push_back(communicate);
         calcCommSize();
     }
@@ -315,8 +328,7 @@ public:
                        bool remove_negative=true)
     {
         clearNeighbors();
-        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-            ::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
+        ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
     void RedistributeLocal (bool remove_negative=true)
@@ -355,6 +367,9 @@ public:
 
 protected:
 
+    [[nodiscard]] int numRealCommComps () const { return RealCommCompStart + this->NumRealComps(); }
+    [[nodiscard]] int numIntCommComps () const { return IntCommCompStart + this->NumIntComps(); }
+
     void cacheNeighborInfo ();
 
     ///
@@ -391,13 +406,15 @@ protected:
     ///
     void getRcvCountsMPI ();
 
+    template <typename P>
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
-                         const ParticleType& p,
+                          const P& p,
                           int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
+    template <typename P>
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
-                         const ParticleType& p,
-                         const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          const P& p,
+                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
 
     IntVect computeRefFac (int src_lev, int lev);
 
@@ -486,6 +503,17 @@ protected:
 
     bool m_has_neighbors = false;
 };
+
+template <int T_NStructReal, int T_NStructInt, int T_NArrayReal=0, int T_NArrayInt=0>
+using NeighborParticleContainer =
+    NeighborParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt>;
+
+template <int T_NArrayReal, int T_NArrayInt,
+          template<class> class Allocator=DefaultAllocator,
+          class CellAssignor=DefaultAssignor>
+using NeighborParticleContainerPureSoA =
+    NeighborParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>,
+                                   T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 }
 
