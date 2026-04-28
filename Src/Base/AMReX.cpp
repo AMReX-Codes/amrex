@@ -417,8 +417,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
-            system::exename = FileSystem::CurrentPath();
-            system::exename += "/";
+            auto const cwd = FileSystem::CurrentPath();
+            if (!cwd.empty()) {
+                system::exename = cwd;
+                system::exename += "/";
+            }
         }
         system::exename += argv[0];
 
