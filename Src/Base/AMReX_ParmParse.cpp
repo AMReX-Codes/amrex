@@ -86,7 +86,7 @@ std::string pp_to_pretty_string (std::string const& name,
     }
     if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
         int min_col = 36;
-        int pad = min_col - static_cast<int>(ss.str().size());
+        int pad = min_col - static_cast<int>(ss.view().size());
         if (pad > 0) {
             ss << std::string(pad, ' ');
         }

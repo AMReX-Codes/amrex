@@ -430,9 +430,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
             {
                 std::stringstream hss;
                 fio.write_header(hss, fab, fab.nComp());
-                auto hLength = static_cast<std::streamoff>(hss.tellp());
-                auto tstr = hss.str();
-                nfi.Stream().write(tstr.c_str(), hLength);
+                auto const tstr = hss.view();
+                nfi.Stream().write(tstr.data(), tstr.size());
                 nfi.Stream().flush();
             }
             auto const* fabdata = fab.dataPtr();
