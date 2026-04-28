@@ -1087,8 +1087,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
                     hLength = static_cast<std::streamoff>(hss.tellp());
-                    auto tstr = hss.str();
-                    std::memcpy(afPtr, tstr.c_str(), hLength);  // ---- the fab header
+                    auto const tstr = hss.view();
+                    std::memcpy(afPtr, tstr.data(), hLength);  // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1118,16 +1118,14 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
         } else {    // ---- write fabs individually
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                std::streamoff hLength = 0;
                 const FArrayBox &fab = mf[mfi];
                 writeDataItems = fab.box().numPts() * mf.nComp();
                 writeDataSize = writeDataItems * whichRDBytes;
                 if(oldHeader) {
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
-                    hLength = static_cast<std::streamoff>(hss.tellp());
-                    auto tstr = hss.str();
-                    nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
+                    auto const tstr = hss.view();
+                    nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));    // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
