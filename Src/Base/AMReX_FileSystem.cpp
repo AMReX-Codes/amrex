@@ -7,13 +7,9 @@
 #include <system_error>
 
 #if !defined(_WIN32)
-#include <cstdio>
-#include <cstddef>
+#include <cerrno>
 #include <cstring>
-#include <unistd.h>
 #include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #endif
 
 namespace amrex::FileSystem {
@@ -164,7 +160,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
       for(auto & i : pathError) {
           amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  "
                            << i.first << " :: "
-                           << strerror(i.second)
+                           << std::strerror(i.second)
                            << '\n';
       }
     }
