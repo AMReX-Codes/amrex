@@ -39,9 +39,9 @@
         amrex::launch_global    <<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
-        hipLaunchKernelGGL(launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
+        hipLaunchKernelGGL(amrex::launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
 #  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
-        hipLaunchKernelGGL(launch_global    , blocks, threads, sharedMem, stream, __VA_ARGS__)
+        hipLaunchKernelGGL(amrex::launch_global    , blocks, threads, sharedMem, stream, __VA_ARGS__)
 #endif
 
 
