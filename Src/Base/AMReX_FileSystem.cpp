@@ -3,32 +3,28 @@
 #include <AMReX_Vector.H>
 #include <AMReX.H>
 
-#if defined(_WIN32) // || __cplusplus >= 201703L
-
 #include <filesystem>
 #include <system_error>
 
-namespace amrex {
-namespace FileSystem {
+#if !defined(_WIN32)
+#include <cstdio>
+#include <cstddef>
+#include <cstring>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif
 
-bool
-CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
-{
-    std::error_code ec;
-    std::filesystem::create_directories(std::filesystem::path{p}, ec);
-    if (ec && verbose) {
-        amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
-                          << p << ": " << ec.message() << '\n';
-    }
-    return !ec;
-}
+namespace amrex::FileSystem {
 
 bool
 Exists (std::string const& filename)
 {
     std::error_code ec;
-    bool r = std::filesystem::exists(std::filesystem::path{filename}, ec);
-    if (ec && amrex::Verbose() > 0) {
+    auto const status = std::filesystem::symlink_status(std::filesystem::path{filename}, ec);
+    bool const r = std::filesystem::exists(status);
+    if (ec && (status.type() != std::filesystem::file_type::not_found) && amrex::Verbose() > 0) {
         amrex::AllPrint() << "amrex::FileSystem::Exists failed. " << ec.message() << '\n';
     }
     return r;
@@ -50,7 +46,10 @@ Remove (std::string const& filename)
 {
     std::error_code ec;
     bool r = std::filesystem::remove(std::filesystem::path{filename},ec);
-    return !ec;
+    if (ec && amrex::Verbose() > 0) {
+        amrex::AllPrint() << "amrex::FileSystem::Remove failed. " << ec.message() << '\n';
+    }
+    return r;
 }
 
 bool
@@ -58,22 +57,30 @@ RemoveAll (std::string const& p)
 {
     std::error_code ec;
     std::filesystem::remove_all(std::filesystem::path{p},ec);
+    if (ec) {
+        amrex::Error("amrex::FileSystem::RemoveAll failed to remove " + p
+                     + ": " + ec.message());
+        return false;
+    } else {
+        return true;
+    }
+}
+
+#if defined(_WIN32) // || __cplusplus >= 201703L
+
+bool
+CreateDirectories (std::string const& p, mode_t /*mode*/, bool verbose)
+{
+    std::error_code ec;
+    std::filesystem::create_directories(std::filesystem::path{p}, ec);
+    if (ec && verbose) {
+        amrex::AllPrint() << "amrex::UtilCreateDirectory failed to create "
+                          << p << ": " << ec.message() << '\n';
+    }
     return !ec;
 }
 
-}}
-
 #else
-
-#include <cstdio>
-#include <cstddef>
-#include <cstring>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-
-namespace amrex::FileSystem {
 
 bool
 CreateDirectories (std::string const& path, mode_t mode, bool verbose)
@@ -165,50 +172,6 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
     return retVal;
 }
 
-bool
-Exists (std::string const& filename)
-{
-    struct stat statbuff;
-    return (lstat(filename.c_str(), &statbuff) != -1);
-}
-
-std::string
-CurrentPath ()
-{
-    constexpr int bufSize = 1024;
-    char temp[bufSize];
-    char *rCheck = getcwd(temp, bufSize);
-    if(rCheck == nullptr) {
-        amrex::Abort("**** Error:  getcwd buffer too small.");
-        return std::string{};
-    } else {
-        return std::string(rCheck);
-    }
-}
-
-bool
-Remove (std::string const& filename)
-{
-    return (unlink(filename.c_str()) == 0);
-}
-
-bool
-RemoveAll (std::string const& p)
-{
-    if (p.size() >= 1990) {
-        amrex::Error("FileSystem::RemoveAll: Path name too long");
-        return false;
-    }
-    char command[2000];
-    std::snprintf(command, 2000, "\\rm -rf %s", p.c_str());;
-    int retVal = std::system(command);
-    if (retVal == -1 || WEXITSTATUS(retVal) != 0) {
-        amrex::Error("Removing old directory failed.");
-        return false;
-    }
-    return true;
-}
-
-}
-
 #endif
+
+}
