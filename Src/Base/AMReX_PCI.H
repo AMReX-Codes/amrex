@@ -102,10 +102,11 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4Tag<int> > masks_unique;
     Vector<Array4Tag<int> > masks;
-    if (!is_thread_safe && !deterministic)
+    if (!is_thread_safe)
     {
         if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
-            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value &&
+             !deterministic))
         {
             maskfabs.resize(this->local_size());
             masks_unique.reserve(this->local_size());
