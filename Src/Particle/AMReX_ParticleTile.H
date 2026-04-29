@@ -994,6 +994,7 @@ struct ParticleTile
 
     void setNumNeighbors (int num_neighbors)
     {
+        invalidateRuntimePtrCaches();
         if constexpr(!ParticleType::is_soa_particle) {
             m_aos_tile.setNumNeighbors(num_neighbors);
         }
