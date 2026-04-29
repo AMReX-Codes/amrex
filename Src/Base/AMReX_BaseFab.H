@@ -1212,10 +1212,9 @@ BaseFab<T>::prefetchToHost () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
             cudaMemLocation location = {};
-            location.type = cudaMemLocationTypeDevice;
-            location.id = cudaCpuDeviceId;
+            location.type = cudaMemLocationTypeHost;
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
                                                       Gpu::gpuStream()));
 #else
@@ -1244,7 +1243,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = Gpu::Device::deviceId();

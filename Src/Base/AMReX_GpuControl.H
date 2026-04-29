@@ -7,11 +7,7 @@
 
 #include <utility>
 
-#if defined(AMREX_USE_CUDA) && (__CUDACC_VER_MAJOR__ > 11 || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)))
-#define AMREX_CUDA_GE_11_2 1
-#endif
-
-#if defined(AMREX_USE_HIP) || defined(AMREX_CUDA_GE_11_2)
+#if defined(AMREX_USE_HIP) || defined(AMREX_USE_CUDA)
 #define AMREX_GPU_STREAM_ALLOC_SUPPORT 1
 #endif
 
