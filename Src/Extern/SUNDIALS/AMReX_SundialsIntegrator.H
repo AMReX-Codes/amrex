@@ -749,13 +749,17 @@ public:
         }
 
         // Clean up allocated memory
+        if (use_mri) {
+            MRIStepInnerStepper_Free(&fast_stepper);
+            ARKStepFree(&arkode_fast_mem);
+            MRIStepFree(&arkode_mem);
+        } else if (use_ark) {
+            ARKStepFree(&arkode_mem);
+        }
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
         SUNNonlinSolFree(NLS);
         SUNNonlinSolFree(fast_NLS);
-        MRIStepInnerStepper_Free(&fast_stepper);
-        MRIStepFree(&arkode_fast_mem);
-        ARKStepFree(&arkode_mem);
     }
 
     /**
