@@ -103,12 +103,17 @@ struct BARef
 #endif
 
     [[nodiscard]] bool HasHashMap () const {
-        bool r;
 #ifdef AMREX_USE_OMP
+        bool r;
 #pragma omp atomic read
-#endif
         r = has_hashmap;
+        if (r) {
+#pragma omp flush
+        }
         return r;
+#else
+        return has_hashmap;
+#endif
     }
 
     //
