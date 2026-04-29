@@ -400,7 +400,7 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
-        if (BaseT::use_adaptive_time_step || fast_type == "IM-MRI" || fast_type == "IMEX-MRI") {
+        if (BaseT::use_adaptive_time_step || type == "IM-MRI" || type == "IMEX-MRI") {
             if (amrex::Verbose()) {
                 amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
                 amrex::Print() << "Absolute tolerance: " << BaseT::abs_tol << "\n";
