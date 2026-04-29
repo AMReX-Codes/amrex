@@ -348,8 +348,8 @@ private:
                 amrex::Print() << "Fast relative tolerance: " << BaseT::fast_rel_tol << "\n";
                 amrex::Print() << "Fast absolute tolerance: " << BaseT::fast_abs_tol << "\n";
             }
-          flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
-          AMREX_ALWAYS_ASSERT(flag == 0);
+            flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+            AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set post stage and step function
