@@ -15,11 +15,13 @@ void main_main()
 {
     const int narg = amrex::command_argument_count();
 
-    std::string home(std::getenv("HOME")); // NOLINT(clang-analyzer-cplusplus.StringChecker)
-    if (home.empty()) {
-        amrex::Abort("Failed to get environment variable HOME is");
+    Array<std::string,3> pfname = {"", "", ""};
+    char const* home_env = std::getenv("HOME");
+    if (home_env != nullptr && home_env[0] != '\0') {
+        std::string home(home_env);
+        pfname[1] = home + "/.amrvis.Palette";
+        pfname[2] = home + "/.amrvis.palette";
     }
-    Array<std::string,3> pfname = {"", home+"/.amrvis.Palette", home+"/.amrvis.palette"};
 
     std::string pltfile;
     int ndir_pass = 3;
@@ -104,6 +106,7 @@ void main_main()
     // get the palette
     Array<unsigned char,256> r, g, b, a;
     int numElements = 0;
+    bool found_palette = false;
     for (int i = 0; i < 3; ++i) {
         if (!pfname[i].empty()) {
             bool exist = false;
@@ -113,11 +116,15 @@ void main_main()
             }
             if (exist) {
                 numElements = loadPalette(pfname[i], r, g, b, a);
+                found_palette = true;
                 break;
             }
         }
     }
     amrex::ignore_unused(numElements);
+    if (!found_palette) {
+        amrex::Abort("fsnapshot: no palette file found; use -p or install ~/.amrvis.Palette");
+    }
 
     PlotFileData pf(pltfile);
     int dim = pf.spaceDim();
