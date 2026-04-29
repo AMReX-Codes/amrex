@@ -175,6 +175,10 @@ types of Green's function, they could use :cpp:`FFT::PoissonOpenBC` as an
 example. Below is an example of solving Poisson's equation with open
 boundaries.
 
+:cpp:`FFT::OpenBCSolver` currently supports one right-hand-side component per
+solve. It does not support :cpp:`FFT::Info::setBatchSize` values greater than
+one.
+
 .. highlight:: c++
 
 ::

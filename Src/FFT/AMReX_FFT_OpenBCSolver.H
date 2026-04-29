@@ -18,6 +18,8 @@ namespace amrex::FFT
  *
  * The class wraps an internal `R2C` plan and multiplies spectral data by a user-provided
  * Green's function to solve Laplace/Poisson problems on a rectangular domain.
+ * It currently solves one right-hand-side component per call; the supplied
+ * `FFT::Info` must have `batch_size == 1`.
  */
 template <typename T = Real>
 class OpenBCSolver
@@ -30,7 +32,7 @@ public:
      * \brief Build a solver over \p domain using the FFT Info settings in \p info.
      *
      * \param domain Physical domain (cell or nodal indexing).
-     * \param info   Optional FFT configuration (domain strategy, batching, etc.).
+     * \param info   Optional FFT configuration. Batched solves are not supported.
      */
     explicit OpenBCSolver (Box const& domain, Info const& info = Info{});
 
@@ -87,6 +89,9 @@ OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
       m_r2c(OpenBCSolver<T>::make_grown_domain(domain,info),
             m_info.setDomainStrategy(FFT::DomainStrategy::slab))
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_info.batch_size == 1,
+        "FFT::OpenBCSolver does not support FFT::Info::batch_size > 1");
+
 #if (AMREX_SPACEDIM == 3)
     if (m_info.twod_mode) {
         auto gdom = make_grown_domain(domain,m_info);
