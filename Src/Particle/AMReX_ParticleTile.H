@@ -1488,7 +1488,7 @@ private:
             return;
         }
 #if defined(AMREX_USE_OMP)
-#pragma omp critical (amrex_particle_tile_data_cache)
+#pragma omp critical (amrex_const_particle_tile_data_cache)
 #endif
         {
             if (runtime_cptrs_dirty.load(std::memory_order_relaxed)) {
