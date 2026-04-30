@@ -718,6 +718,44 @@ struct ThisParticleTileHasNoAoS {
     using ParticleVector = ThisParticleTileHasNoParticleVector;
 };
 
+struct RuntimePtrCacheDirtyFlag
+{
+    RuntimePtrCacheDirtyFlag () noexcept = default;
+
+    RuntimePtrCacheDirtyFlag (RuntimePtrCacheDirtyFlag const&) noexcept
+        : m_value(true)
+    {}
+
+    RuntimePtrCacheDirtyFlag (RuntimePtrCacheDirtyFlag&&) noexcept
+        : m_value(true)
+    {}
+
+    RuntimePtrCacheDirtyFlag& operator= (RuntimePtrCacheDirtyFlag const&) noexcept
+    {
+        m_value.store(true, std::memory_order_relaxed);
+        return *this;
+    }
+
+    RuntimePtrCacheDirtyFlag& operator= (RuntimePtrCacheDirtyFlag&&) noexcept
+    {
+        m_value.store(true, std::memory_order_relaxed);
+        return *this;
+    }
+
+    void store (bool value, std::memory_order order = std::memory_order_seq_cst) noexcept
+    {
+        m_value.store(value, order);
+    }
+
+    [[nodiscard]] bool load (std::memory_order order = std::memory_order_seq_cst) const noexcept
+    {
+        return m_value.load(order);
+    }
+
+private:
+    std::atomic<bool> m_value {true};
+};
+
 template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator=DefaultAllocator>
 struct ParticleTile
@@ -1293,6 +1331,7 @@ struct ParticleTile
                          Vector<typename SoA::IdCPU*>& idcpuv,
                          Vector<RealVector*>& rv, Vector<IntVector*>& iv)
     {
+        invalidateRuntimePtrCaches();
         if constexpr (!ParticleType::is_soa_particle) {
             m_aos_tile.collectVectors(pv);
         } else {
@@ -1316,7 +1355,6 @@ struct ParticleTile
             Vector<std::pair<IntVector*,int>> ivs;
             for (auto [p,s] : addsizes) {
                 if (s > 0) {
-                    p->invalidateRuntimePtrCaches();
                     Vector<ParticleVector*> pv;
                     Vector<typename SoA::IdCPU*> idcpuv;
                     Vector<RealVector*> rv;
@@ -1421,21 +1459,20 @@ private:
 
     void invalidateRuntimePtrCaches () noexcept
     {
-        std::atomic_ref<bool>(m_runtime_ptrs_dirty).store(true, std::memory_order_release);
-        std::atomic_ref<bool>(m_runtime_cptrs_dirty).store(true, std::memory_order_release);
+        m_runtime_ptrs_dirty.store(true, std::memory_order_release);
+        m_runtime_cptrs_dirty.store(true, std::memory_order_release);
     }
 
     void refreshRuntimePtrCaches ()
     {
-        auto runtime_ptrs_dirty = std::atomic_ref<bool>(m_runtime_ptrs_dirty);
-        if (!runtime_ptrs_dirty.load(std::memory_order_acquire)) {
+        if (!m_runtime_ptrs_dirty.load(std::memory_order_acquire)) {
             return;
         }
 #if defined(AMREX_USE_OMP)
 #pragma omp critical (amrex_particle_tile_data_cache)
 #endif
         {
-            if (runtime_ptrs_dirty.load(std::memory_order_relaxed)) {
+            if (m_runtime_ptrs_dirty.load(std::memory_order_relaxed)) {
                 m_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
                 m_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
@@ -1477,22 +1514,21 @@ private:
                     m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
                 }
 #endif
-                runtime_ptrs_dirty.store(false, std::memory_order_release);
+                m_runtime_ptrs_dirty.store(false, std::memory_order_release);
             }
         }
     }
 
     void refreshConstRuntimePtrCaches () const
     {
-        auto runtime_cptrs_dirty = std::atomic_ref<bool>(m_runtime_cptrs_dirty);
-        if (!runtime_cptrs_dirty.load(std::memory_order_acquire)) {
+        if (!m_runtime_cptrs_dirty.load(std::memory_order_acquire)) {
             return;
         }
 #if defined(AMREX_USE_OMP)
 #pragma omp critical (amrex_const_particle_tile_data_cache)
 #endif
         {
-            if (runtime_cptrs_dirty.load(std::memory_order_relaxed)) {
+            if (m_runtime_cptrs_dirty.load(std::memory_order_relaxed)) {
                 m_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
                 m_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
@@ -1534,7 +1570,7 @@ private:
                     m_runtime_i_cptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
                 }
 #endif
-                runtime_cptrs_dirty.store(false, std::memory_order_release);
+                m_runtime_cptrs_dirty.store(false, std::memory_order_release);
             }
         }
     }
@@ -1556,8 +1592,8 @@ private:
     mutable amrex::Gpu::HostVector<const ParticleReal*> m_h_runtime_r_cptrs;
     mutable amrex::Gpu::HostVector<const int*> m_h_runtime_i_cptrs;
 
-    bool m_runtime_ptrs_dirty {true};
-    mutable bool m_runtime_cptrs_dirty {true};
+    RuntimePtrCacheDirtyFlag m_runtime_ptrs_dirty;
+    mutable RuntimePtrCacheDirtyFlag m_runtime_cptrs_dirty;
 };
 
 } // namespace amrex
