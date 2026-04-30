@@ -1740,7 +1740,7 @@ void
 AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 {
     BL_PROFILE("AmrLevel::derive()");
-    BL_ASSERT(dcomp < mf.nComp());
+    BL_ASSERT(dcomp >= 0);
 
     const int ngrow = mf.nGrow();
 
@@ -1748,10 +1748,14 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
 
     if (isStateVariable(name,index,scomp))
     {
+        BL_ASSERT(dcomp + 1 <= mf.nComp());
         FillPatch(*this,mf,ngrow,time,index,scomp,1,dcomp);
     }
     else if (const DeriveRec* rec = derive_lst.get(name))
     {
+        const int dncomp = rec->numDerive();
+        BL_ASSERT(dcomp + dncomp <= mf.nComp());
+
         rec->getRange(0,index,scomp,ncomp);
 
         const BoxArray& srcBA = state[index].boxArray();
@@ -1783,13 +1787,11 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
                 const Box& bx = mfi.growntilebox();
                 FArrayBox& derfab = mf[mfi];
                 FArrayBox const& datafab = srcMF[mfi];
-                const int dncomp = rec->numDerive();
                 rec->derFuncFab()(bx, derfab, dcomp, dncomp, datafab, geom, time, rec->getBC(), level);
             }
         }
         else if (rec->derFuncMF() != nullptr)
         {
-            const int dncomp = rec->numDerive();
             rec->derFuncMF()(mf, dcomp, dncomp, srcMF, geom, time, rec->getBC(), level);
         }
         else
@@ -1806,7 +1808,7 @@ AmrLevel::derive (const std::string& name, Real time, MultiFab& mf, int dcomp)
             const Box&  gtbx    = mfi.growntilebox();
             const int*  lo      = gtbx.loVect();
             const int*  hi      = gtbx.hiVect();
-            int         n_der   = rec->numDerive();
+            int         n_der   = dncomp;
             Real*       cdat    = srcMF[mfi].dataPtr();
             const int*  clo     = srcMF[mfi].loVect();
             const int*  chi     = srcMF[mfi].hiVect();
