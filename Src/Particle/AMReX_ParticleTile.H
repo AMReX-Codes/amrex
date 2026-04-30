@@ -722,6 +722,8 @@ struct RuntimePtrCacheDirtyFlag
 {
     RuntimePtrCacheDirtyFlag () noexcept = default;
 
+    ~RuntimePtrCacheDirtyFlag () = default;
+
     RuntimePtrCacheDirtyFlag (RuntimePtrCacheDirtyFlag const&) noexcept
         : m_value(true)
     {}
