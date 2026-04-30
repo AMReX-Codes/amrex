@@ -14,7 +14,6 @@
 #include <atomic>
 #include <string>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
 
@@ -762,49 +761,10 @@ struct ParticleTile
     ~ParticleTile () = default;
 
     ParticleTile (ParticleTile const&) = delete;
-    ParticleTile (ParticleTile && rhs) noexcept
-        : m_aos_tile(std::move(rhs.m_aos_tile)),
-          m_soa_tile(std::move(rhs.m_soa_tile)),
-          m_defined(rhs.m_defined),
-          m_runtime_r_ptrs(std::move(rhs.m_runtime_r_ptrs)),
-          m_runtime_i_ptrs(std::move(rhs.m_runtime_i_ptrs)),
-          m_runtime_r_cptrs(std::move(rhs.m_runtime_r_cptrs)),
-          m_runtime_i_cptrs(std::move(rhs.m_runtime_i_cptrs)),
-          m_h_runtime_r_ptrs(std::move(rhs.m_h_runtime_r_ptrs)),
-          m_h_runtime_i_ptrs(std::move(rhs.m_h_runtime_i_ptrs)),
-          m_h_runtime_r_cptrs(std::move(rhs.m_h_runtime_r_cptrs)),
-          m_h_runtime_i_cptrs(std::move(rhs.m_h_runtime_i_cptrs))
-    {
-        m_runtime_ptrs_dirty.store(rhs.m_runtime_ptrs_dirty.load(std::memory_order_relaxed),
-                                   std::memory_order_relaxed);
-        m_runtime_cptrs_dirty.store(rhs.m_runtime_cptrs_dirty.load(std::memory_order_relaxed),
-                                    std::memory_order_relaxed);
-        rhs.invalidateRuntimePtrCaches();
-    }
+    ParticleTile (ParticleTile &&) noexcept = default;
 
     ParticleTile& operator= (ParticleTile const&) = delete;
-    ParticleTile& operator= (ParticleTile && rhs) noexcept
-    {
-        if (this != &rhs) {
-            m_aos_tile = std::move(rhs.m_aos_tile);
-            m_soa_tile = std::move(rhs.m_soa_tile);
-            m_defined = rhs.m_defined;
-            m_runtime_r_ptrs = std::move(rhs.m_runtime_r_ptrs);
-            m_runtime_i_ptrs = std::move(rhs.m_runtime_i_ptrs);
-            m_runtime_r_cptrs = std::move(rhs.m_runtime_r_cptrs);
-            m_runtime_i_cptrs = std::move(rhs.m_runtime_i_cptrs);
-            m_h_runtime_r_ptrs = std::move(rhs.m_h_runtime_r_ptrs);
-            m_h_runtime_i_ptrs = std::move(rhs.m_h_runtime_i_ptrs);
-            m_h_runtime_r_cptrs = std::move(rhs.m_h_runtime_r_cptrs);
-            m_h_runtime_i_cptrs = std::move(rhs.m_h_runtime_i_cptrs);
-            m_runtime_ptrs_dirty.store(rhs.m_runtime_ptrs_dirty.load(std::memory_order_relaxed),
-                                       std::memory_order_relaxed);
-            m_runtime_cptrs_dirty.store(rhs.m_runtime_cptrs_dirty.load(std::memory_order_relaxed),
-                                        std::memory_order_relaxed);
-            rhs.invalidateRuntimePtrCaches();
-        }
-        return *this;
-    }
+    ParticleTile& operator= (ParticleTile &&) noexcept = default;
 #endif
 
     void define (
@@ -1460,20 +1420,21 @@ private:
 
     void invalidateRuntimePtrCaches () noexcept
     {
-        m_runtime_ptrs_dirty.store(true, std::memory_order_release);
-        m_runtime_cptrs_dirty.store(true, std::memory_order_release);
+        std::atomic_ref<bool>(m_runtime_ptrs_dirty).store(true, std::memory_order_release);
+        std::atomic_ref<bool>(m_runtime_cptrs_dirty).store(true, std::memory_order_release);
     }
 
     void refreshRuntimePtrCaches ()
     {
-        if (!m_runtime_ptrs_dirty.load(std::memory_order_acquire)) {
+        auto runtime_ptrs_dirty = std::atomic_ref<bool>(m_runtime_ptrs_dirty);
+        if (!runtime_ptrs_dirty.load(std::memory_order_acquire)) {
             return;
         }
 #if defined(AMREX_USE_OMP)
 #pragma omp critical (amrex_particle_tile_data_cache)
 #endif
         {
-            if (m_runtime_ptrs_dirty.load(std::memory_order_relaxed)) {
+            if (runtime_ptrs_dirty.load(std::memory_order_relaxed)) {
                 m_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
                 m_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
@@ -1515,21 +1476,22 @@ private:
                     m_runtime_i_ptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
                 }
 #endif
-                m_runtime_ptrs_dirty.store(false, std::memory_order_release);
+                runtime_ptrs_dirty.store(false, std::memory_order_release);
             }
         }
     }
 
     void refreshConstRuntimePtrCaches () const
     {
-        if (!m_runtime_cptrs_dirty.load(std::memory_order_acquire)) {
+        auto runtime_cptrs_dirty = std::atomic_ref<bool>(m_runtime_cptrs_dirty);
+        if (!runtime_cptrs_dirty.load(std::memory_order_acquire)) {
             return;
         }
 #if defined(AMREX_USE_OMP)
 #pragma omp critical (amrex_particle_tile_data_cache)
 #endif
         {
-            if (m_runtime_cptrs_dirty.load(std::memory_order_relaxed)) {
+            if (runtime_cptrs_dirty.load(std::memory_order_relaxed)) {
                 m_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
                 m_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
 #ifdef AMREX_USE_GPU
@@ -1571,7 +1533,7 @@ private:
                     m_runtime_i_cptrs[i] = m_soa_tile.GetIntData(i + NArrayInt).dataPtr();
                 }
 #endif
-                m_runtime_cptrs_dirty.store(false, std::memory_order_release);
+                runtime_cptrs_dirty.store(false, std::memory_order_release);
             }
         }
     }
@@ -1593,8 +1555,8 @@ private:
     mutable amrex::Gpu::HostVector<const ParticleReal*> m_h_runtime_r_cptrs;
     mutable amrex::Gpu::HostVector<const int*> m_h_runtime_i_cptrs;
 
-    std::atomic<bool> m_runtime_ptrs_dirty {true};
-    mutable std::atomic<bool> m_runtime_cptrs_dirty {true};
+    bool m_runtime_ptrs_dirty {true};
+    mutable bool m_runtime_cptrs_dirty {true};
 };
 
 } // namespace amrex
