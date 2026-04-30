@@ -96,7 +96,7 @@ public:
     explicit Geometry (const Box&     dom,
                        const RealBox* rb     =  nullptr,
                        int            coord  = -1,
-                       int const*     is_per =  nullptr) noexcept;
+                       int const*     is_per =  nullptr);
     /**
      * Constructs a fully-defined geometry object that describes the problem domain and coordinate system.
      *
@@ -112,7 +112,7 @@ public:
      *        Default is non-periodic.
      */
     Geometry (const Box& dom, const RealBox& rb, int coord,
-              Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
+              Array<int,AMREX_SPACEDIM> const& is_per);
 
     ~Geometry () = default;
     Geometry (const Geometry& rhs) = default;
@@ -128,7 +128,7 @@ public:
     }
 
     //! Read static values from ParmParse database.
-    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* isper = nullptr) noexcept;
+    static void Setup (const RealBox* rb = nullptr, int coord = -1, int const* isper = nullptr);
     static void ResetDefaultProbDomain (const RealBox& rb) noexcept;
     static void ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept;
     static void ResetDefaultCoord (int coord) noexcept;
@@ -148,7 +148,7 @@ public:
      * \param is_per pointer to memory space specifying periodicity in each coordinate direction.
      *        Optional. Default is non-periodic.
      */
-    void define (const Box& dom, const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr) noexcept;
+    void define (const Box& dom, const RealBox* rb = nullptr, int coord = -1, int const* is_per = nullptr);
 
     /**
      * Defines a geometry object that describes the problem domain and coordinate system for rectangular problem
@@ -165,12 +165,12 @@ public:
      * \param is_per amrex::Array specifying periodicity in each coordinate direction. Optional.
      *        Default is non-periodic.
      */
-    void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per) noexcept;
+    void define (const Box& dom, const RealBox& rb, int coord, Array<int,AMREX_SPACEDIM> const& is_per);
 
     //! Returns the problem domain.
     [[nodiscard]] const RealBox& ProbDomain () const noexcept { return prob_domain; }
     //! Sets the problem domain.
-    void ProbDomain (const RealBox& rb) noexcept
+    void ProbDomain (const RealBox& rb)
     {
         prob_domain = rb;
         computeRoundoffDomain();
@@ -210,7 +210,7 @@ public:
     //! Returns our rectangular domain.
     [[nodiscard]] const Box& Domain () const noexcept { return domain; }
     //! Sets our rectangular domain.
-    void Domain (const Box& bx) noexcept
+    void Domain (const Box& bx)
     {
         AMREX_ASSERT(bx.cellCentered());
         domain = bx;
@@ -433,10 +433,7 @@ public:
     */
     [[nodiscard]] bool insideRoundoffDomain (AMREX_D_DECL(ParticleReal x, ParticleReal y, ParticleReal z)) const;
 
-    /**
-    * \brief Compute the roundoff domain. Public because it contains an
-    *        extended host / device lambda.
-    */
+    //! Compute the roundoff domain.
     void computeRoundoffDomain ();
 
     //! Returns roundoff domain's lower end

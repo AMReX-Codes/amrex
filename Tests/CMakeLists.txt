@@ -99,6 +99,8 @@ endfunction ()
 
 if (AMReX_TEST_TYPE STREQUAL "Small")
 
+   add_subdirectory("Base/TrackedVector")
+
    add_subdirectory("Amr/Advection_AmrCore")
 
    if (AMReX_OMP)
@@ -125,9 +127,10 @@ else()
    #
    # List of subdirectories to search for CMakeLists.
    #
-   set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut CallNoinline CLZ CommType CTOParFor DeviceGlobal
-                            Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser
-                            Parser2 ParserUserFn Reducer ReduceToPlanePatchy Reinit RoundoffDomain SIMD SmallMatrix SumBoundary)
+   set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut Base CallNoinline CLZ CommType CTOParFor DeviceGlobal
+                            Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser Parser2
+                            ParserUserFn Reducer ReduceToPlanePatchy Reinit RoundoffDomain SIMD
+                            SmallMatrix SumBoundary TOML)
 
    if (AMReX_PARTICLES)
      list(APPEND AMREX_TESTS_SUBDIRS Particles)

@@ -545,7 +545,6 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
             m_slab_decomp = true;
         }
     }
-
 #endif
 
     auto const ncomp = m_info.batch_size;
@@ -566,7 +565,8 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
         m_cx.define(cbax, dmx, ncomp, 0, MFInfo().SetAlloc(false));
     }
 
-    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) && (! m_info.twod_mode);
+    m_do_alld_fft = (ParallelDescriptor::NProcs() == 1) &&
+                    (! m_info.twod_mode) && (! m_info.oned_mode);
 
     if (!m_do_alld_fft) // do a series of 1d or 2d ffts
     {
@@ -590,8 +590,9 @@ R2C<T,D,C>::R2C (Box const& domain, Info const& info)
 #endif
 
 #if (AMREX_SPACEDIM == 3)
-        if (m_real_domain.length(1) > 1 &&
-            (! m_info.twod_mode && m_real_domain.length(2) > 1))
+        if (!m_info.oned_mode && !m_info.twod_mode &&
+            m_real_domain.length(1) > 1 &&
+            m_real_domain.length(2) > 1)
         {
             auto cbaz = amrex::decompose(m_spectral_domain_z, nprocs,
                                          {false,true,true}, true);
@@ -762,15 +763,15 @@ R2C<T,D,C>::make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const&
     IntVect len(local_size);
     Box bx(lo, lo+len-1);
 #ifdef AMREX_USE_MPI
-    Vector<Box> allboxes(ParallelDescriptor::NProcs());
+    Vector<Box> allboxes(ParallelContext::NProcsSub());
     MPI_Allgather(&bx, 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
                   allboxes.data(), 1, ParallelDescriptor::Mpi_typemap<Box>::type(),
-                  ParallelDescriptor::Communicator());
+                  ParallelContext::CommunicatorSub());
     Vector<int> pmap;
     pmap.reserve(allboxes.size());
     for (int i = 0; i < allboxes.size(); ++i) {
         if (allboxes[i].ok()) {
-            pmap.push_back(i);
+            pmap.push_back(ParallelContext::local_to_global_rank(i));
         }
     }
     allboxes.erase(std::remove_if(allboxes.begin(), allboxes.end(),
@@ -798,7 +799,7 @@ R2C<T,D,C>::getLocalDomain () const
     m_raw_mf = MF(m_rx.boxArray(), m_rx.DistributionMap(), m_rx.nComp(), 0,
                   MFInfo{}.SetAlloc(false));
 
-    auto const myproc = ParallelDescriptor::MyProc();
+    auto const myproc = ParallelContext::MyProcSub();
     if (myproc < m_rx.size()) {
         Box const& box = m_rx.box(myproc);
         return std::make_pair(box.smallEnd().toArray(),
@@ -826,7 +827,7 @@ R2C<T,D,C>::getLocalSpectralDomain () const
 
     m_raw_cmf = cMF(ba, dm, ncomp, 0, MFInfo{}.SetAlloc(false));
 
-    auto const myproc = ParallelDescriptor::MyProc();
+    auto const myproc = ParallelContext::MyProcSub();
     if (myproc < m_raw_cmf.size()) {
         Box const& box = m_raw_cmf.box(myproc);
         return std::make_pair(box.smallEnd().toArray(), box.length().toArray());
@@ -1249,9 +1250,15 @@ template <typename T, Direction D, bool C>
 T R2C<T,D,C>::scalingFactor () const
 {
 #if (AMREX_SPACEDIM == 3)
-    if (m_info.twod_mode) {
+    if (m_info.oned_mode && !m_info.twod_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)));
+    } else if (m_info.twod_mode) {
         return T(1)/T(Long(m_real_domain.length(0)) *
                       Long(m_real_domain.length(1)));
+    } else
+#elif (AMREX_SPACEDIM == 2)
+    if (m_info.oned_mode) {
+        return T(1)/T(Long(m_real_domain.length(0)));
     } else
 #endif
     {

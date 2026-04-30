@@ -566,6 +566,9 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
     }
     ParallelDescriptor::Bcast((char*)(a_tri_pts.dataPtr()), m_num_tri*sizeof(Triangle));
 
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_num_tri > 0,
+                                     "STLtools::prepare: STL contains no triangles");
+
     Gpu::PinnedVector<Node> bvh_nodes;
     if (m_bvh_optimization) {
         BL_PROFILE("STLtools::build_bvh");

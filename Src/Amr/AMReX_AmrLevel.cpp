@@ -602,17 +602,17 @@ AmrLevel::reset ()
 }
 
 MultiFab&
-AmrLevel::get_data (int  state_indx, Real time) noexcept
+AmrLevel::get_data (int  state_indx, Real time)
 {
     const Real old_time = state[state_indx].prevTime();
     const Real new_time = state[state_indx].curTime();
     const Real eps = Real(0.001)*(new_time - old_time);
 
-    if (time > old_time-eps && time < old_time+eps)
+    if (time >= old_time-eps && time <= old_time+eps)
     {
         return get_old_data(state_indx);
     }
-    else if (time > new_time-eps && time < new_time+eps)
+    else if (time >= new_time-eps && time <= new_time+eps)
     {
         return get_new_data(state_indx);
     }
@@ -1507,12 +1507,14 @@ FillPatchIteratorHelper::fill (FArrayBox& fab,
                                          dcomp,
                                          m_scomp,
                                          m_ncomp);
+        // Must be unconditional: user kernels may write to fab (e.g. pinned); host may read.
         Gpu::streamSynchronize();  // In case this runs on GPU
     }
 
     if (m_FixUpCorners)
     {
         FixUpPhysCorners(fab,*m_amrlevel,m_index,m_time,m_scomp,dcomp,m_ncomp);
+        // Must be unconditional: same as above.
         Gpu::streamSynchronize();  // In case this runs on GPU
     }
 }
@@ -2202,7 +2204,7 @@ AmrLevel::FillPatch (AmrLevel& amrlevel,
                      int       dcomp)
 {
     BL_PROFILE("AmrLevel::FillPatch()");
-    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(dcomp >= 0 && ncomp > 0 && dcomp+ncomp <= leveldata.nComp());
     BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();
@@ -2220,7 +2222,7 @@ AmrLevel::FillPatchAdd (AmrLevel& amrlevel,
                         int       dcomp)
 {
     BL_PROFILE("AmrLevel::FillPatchAdd()");
-    BL_ASSERT(dcomp+ncomp-1 <= leveldata.nComp());
+    BL_ASSERT(dcomp >= 0 && ncomp > 0 && dcomp+ncomp <= leveldata.nComp());
     BL_ASSERT(leveldata.nGrowVect().allGE(boxGrow));
     FillPatchIterator fpi(amrlevel, leveldata, boxGrow, time, index, scomp, ncomp);
     const MultiFab& mf_fillpatched = fpi.get_mf();

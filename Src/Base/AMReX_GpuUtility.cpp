@@ -78,7 +78,7 @@ StreamIter::~StreamIter () { // NOLINT(modernize-use-equals-default)
 
 #ifdef AMREX_USE_GPU
 void
-StreamIter::operator++ () noexcept
+StreamIter::operator++ ()
 {
     ++m_i;
     if (m_threadsafe) {

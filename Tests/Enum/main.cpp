@@ -19,6 +19,34 @@ AMREX_ENUM(MyColor2,
 
 AMREX_ENUM(Location, entry = 1, exit = -1, after_exit);
 
+struct GreekMyth {
+    AMREX_ENUM_IN_CLASS(Hero, Achilles, Heracles, Jason);
+
+    static std::string get_name (Hero hero) {
+        return amrex::getEnumNameString(hero);
+    }
+
+    static Hero get_hero (std::string_view name) {
+        return amrex::getEnum<Hero>(name);
+    }
+
+    GreekMyth () {
+        ParmParse pp;
+        pp.query("my_hero", m_my_hero);
+    }
+
+    [[nodiscard]] bool is_my_hero (std::string_view name) const {
+        return m_my_hero == get_hero(name);
+    }
+
+    Hero m_my_hero = Hero::Achilles;
+};
+
+template <typename T>
+struct GreekAlphabet {
+    AMREX_ENUM_IN_CLASS(Letter, alpha, beta, gamma);
+};
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -98,6 +126,17 @@ int main (int argc, char* argv[])
                                 color[0] == my_namespace::MyColor::cyan &&
                                 color[1] == my_namespace::MyColor::yellow &&
                                 color[2] == my_namespace::MyColor::orange);
+            pp.getarr("colors_quoted", color);
+            AMREX_ALWAYS_ASSERT(color.size() == 3 &&
+                                color[0] == my_namespace::MyColor::cyan &&
+                                color[1] == my_namespace::MyColor::yellow &&
+                                color[2] == my_namespace::MyColor::orange);
+            pp.queryarr("colors_quoted", color2);
+            AMREX_ALWAYS_ASSERT(color.size() == 3 &&
+                                color == color2 &&
+                                color[0] == my_namespace::MyColor::cyan &&
+                                color[1] == my_namespace::MyColor::yellow &&
+                                color[2] == my_namespace::MyColor::orange);
             amrex::Print() << "colors:";
             for (auto const& c : color) {
                 amrex::Print() << " " << amrex::getEnumNameString(c);
@@ -166,6 +205,29 @@ int main (int argc, char* argv[])
         AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::entry) == "entry");
         AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::exit) == "exit");
         AMREX_ALWAYS_ASSERT(amrex::getEnumNameString(Location::after_exit) == "after_exit");
+    }
+
+    {
+        AMREX_ALWAYS_ASSERT
+            (GreekMyth::get_name(GreekMyth::Hero::Achilles) == "Achilles" &&
+             amrex::getEnumNameString(GreekMyth::Hero::Heracles) == "Heracles");
+        AMREX_ALWAYS_ASSERT
+            (GreekMyth::get_hero("Jason") == GreekMyth::Hero::Jason &&
+             amrex::getEnum<GreekMyth::Hero>("Jason") == GreekMyth::Hero::Jason);
+
+        GreekMyth myth;
+        AMREX_ALWAYS_ASSERT(myth.is_my_hero("Jason"));
+    }
+
+    {
+        AMREX_ALWAYS_ASSERT
+            (amrex::getEnumNameString(GreekAlphabet<int>::Letter::beta) == "beta" &&
+             amrex::getEnum<GreekAlphabet<Real>::Letter>("gamma") ==
+             GreekAlphabet<Real>::Letter::gamma);
+    }
+
+    {
+        amrex::Print() << "SUCCESS\n";
     }
 
     amrex::Finalize();

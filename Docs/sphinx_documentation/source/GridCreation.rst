@@ -18,7 +18,7 @@ domain in every direction so that each grid is no longer than :cpp:`max_grid_siz
 If not specified by the user, :cpp:`max_grid_size` defaults to 128 in 2D and 32 in 3D (in each coordinate direction).
 
 Another popular input is :cpp:`blocking_factor`.  The value of :cpp:`blocking_factor`
-constrains grid creation in that in that each grid must be divisible by :cpp:`blocking_factor`.
+constrains grid creation in that each grid must be divisible by :cpp:`blocking_factor`.
 Note that both the domain (at each level) and :cpp:`max_grid_size` must be divisible by :cpp:`blocking_factor`,
 and that :cpp:`blocking_factor` must be either 1 or a power of 2 (otherwise the gridding algorithm
 would not in fact create grids divisible by  :cpp:`blocking_factor` because of how  :cpp:`blocking_factor`
@@ -29,13 +29,13 @@ The typical purpose of :cpp:`blocking_factor` is to ensure that the grids will b
 sufficiently coarsenable for good multigrid performance.
 
 There is one more default behavior to be aware of.  There is a boolean :cpp:`refine_grid_layout`
-that defaults to true but can be over-ridden at run-time.
+that defaults to true but can be overridden at run time.
 If :cpp:`refine_grid_layout` is true and the number of grids created is less than the number of processors
 (Ngrids < Nprocs), then grids will be further subdivided until Ngrids >= Nprocs.
 
 Caveat: if subdividing the grids to achieve Ngrids >= Nprocs would violate the
-:cpp:`blocking_factor` criterion then additional grids are not created and the
-number of grids will remain less than the number of processors
+:cpp:`blocking_factor` criterion, then additional grids are not created and the
+number of grids will remain less than the number of processors.
 
 Note that :cpp:`n_cell` must be given as three separate integers, one for each coordinate direction.
 
@@ -65,7 +65,7 @@ The grid creation process at level 0 proceeds as follows (if not using the KD-tr
 
 #. If :cpp:`n_cell` is greater than :cpp:`max_grid_size` then the grids are subdivided until
    each grid is no longer than  :cpp:`max_grid_size` cells on each side.  The :cpp:`blocking_factor` criterion
-   (ie that the length of each side of each grid is divisible by :cpp:`blocking_factor` in that direction)
+   (i.e., that the length of each side of each grid is divisible by :cpp:`blocking_factor` in that direction)
    is satisfied during this process.
 
 #. Next, if :cpp:`refine_grid_layout = true` and there are more processors than grids
@@ -86,5 +86,4 @@ way to do this is to set :cpp:`amr.n_error_buf` to a large integer value (the de
 This parameter is used to increase the number of tagged cells before the grids are defined;
 if cell "*(i,j,k)*" satisfies the tagging criteria, then, for example, if :cpp:`amr.n_error_buf` is 3,
 all cells in the 7x7x7 box from lower corner "*(i-3,j-3,k-3)*" to "*(i+3,j+3,k+3)*" will be tagged.
-
 

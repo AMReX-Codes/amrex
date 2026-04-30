@@ -605,7 +605,7 @@ InitFromBinaryFile (const std::string& file,
 
     int RealSizeInFile = 0;
 
-    if (readers.find(MyProc) != readers.end())
+    if (readers.contains(MyProc))
     {
         int DM = 0;
 
@@ -702,9 +702,9 @@ InitFromBinaryFile (const std::string& file,
     //
     Long MyCnt = NP / NReaders;
 
-    if (MyProc == rprocs[0]) {
+    if (MyProc == rprocs[NReaders-1]) {
         //
-        // Give any remainder to the first reader.
+        // Give any remainder to the last reader.
         //
         MyCnt += NP % NReaders;
     }
@@ -737,7 +737,7 @@ InitFromBinaryFile (const std::string& file,
         host_particles.reserve(15);
         host_particles.resize(finestLevel()+1);
 
-        if (readers.find(MyProc) != readers.end())
+        if (readers.contains(MyProc))
         {
             ParticleType p;
 

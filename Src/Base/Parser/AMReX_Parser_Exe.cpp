@@ -95,6 +95,22 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
         else if (node->l->type == PARSER_NUMBER &&
                  node->r->type == PARSER_MUL &&
                  node->r->l->type == PARSER_NUMBER &&
+                 node->r->r->type == PARSER_SYMBOL)
+        { // b + a*x => fma(a, x, b)
+            if (p) {
+                auto *t = new(p) ParserExeFMA_VPV;
+                p      += sizeof(ParserExeFMA_VPV);
+                t->i = parser_symbol_idx(node->r->r);
+                t->a = parser_get_number(node->r->l);
+                t->b = parser_get_number(node->l);
+            }
+            exe_size += sizeof(ParserExeFMA_VPV);
+            ++stack_size;
+            max_stack_size = std::max(max_stack_size, stack_size);
+        }
+        else if (node->l->type == PARSER_NUMBER &&
+                 node->r->type == PARSER_MUL &&
+                 node->r->l->type == PARSER_NUMBER &&
                  parser_get_number(node->r->l) == -1.0)
         { // 3 + (-1)*f(x) => 3 - f(x)
             parser_compile_exe_size(node->r->r, p, exe_size, max_stack_size,
@@ -590,9 +606,9 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
     case PARSER_ASSIGN:
     {
         auto *asgn = (struct parser_assign*)node;
-        local_variables.push_back(asgn->s->name);
         parser_compile_exe_size(asgn->v, p, exe_size, max_stack_size, stack_size,
                                 local_variables, ufs);
+        local_variables.push_back(asgn->s->name);
         break;
     }
     case PARSER_LIST:
@@ -655,7 +671,7 @@ parser_compile_exe_size (struct parser_node* node, char*& p, std::size_t& exe_si
             t->fd = pp.second;
         }
         exe_size += sizeof(ParserExeUserFn);
-        stack_size -= (argc-1);;
+        stack_size -= (argc-1);
         break;
     }
     default:
@@ -1147,6 +1163,21 @@ void parser_exe_print(char const* p, Vector<std::string> const& vars,
                << "   "
                << pstack.back().first << "\n";
             p += sizeof(ParserExePOWI);
+            break;
+        }
+        case PARSER_EXE_FMA_VPV:
+        {
+            int i = ((ParserExeFMA_VPV*)p)->i;
+            auto a = ((ParserExeFMA_VPV*)p)->a;
+            auto b = ((ParserExeFMA_VPV*)p)->b;
+            auto tmp = make_op_string(get_val(a), {"*",paren_t::muldiv}, get_sym(i));
+            pstack.push_back(make_op_string(tmp, {"+",paren_t::plusminus}, get_val(b)));
+            os << std::setw(3) << count++
+               << std::setw(16) << "fmavpv"
+               << std::setw(12) << pstack.size()
+               << "   "
+               << pstack.back().first << "\n";
+            p += sizeof(ParserExeFMA_VPV);
             break;
         }
         case PARSER_EXE_IF:

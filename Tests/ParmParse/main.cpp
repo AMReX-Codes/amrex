@@ -3,6 +3,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_RealVect.H>
 
 using namespace amrex;
 
@@ -37,11 +38,28 @@ int main(int argc, char* argv[])
         pp.query("name", name, 1);
         AMREX_ALWAYS_ASSERT(name == "line 2");
 
+        std::vector<std::string> sa;
+        std::vector<std::string> sb;
+        pp.getarr("sa", sa);
+        pp.getarr("sb", sb);
+        AMREX_ALWAYS_ASSERT(sa == sb && (sa == std::vector<std::string>{"abc","xyz","123"}));
+
+        IntVect iv;
+        pp.query("iv3", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(100,200,300)));
+        pp.query("iv2", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(10,20,0)));
+        pp.query("iv1", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(5,0,0)));
+
         Box box;
         pp.query("b", box);
         AMREX_ALWAYS_ASSERT(box == Box(IntVect(AMREX_D_DECL(1,2,3)),
                                        IntVect(AMREX_D_DECL(7,8,9)),
                                        IntVect(AMREX_D_DECL(1,0,1))));
+        Box box2;
+        pp.get("b2", box2);
+        AMREX_ALWAYS_ASSERT(box == box2);
 
         double f0 = -1;
         pp.query("f", f0);
@@ -149,6 +167,48 @@ int main(int argc, char* argv[])
         pp.queryAsDouble("do_that", o_do_that);
         AMREX_ALWAYS_ASSERT(!o_do_that.has_value());
     }
+    { // boolean strings queried as int
+        ParmParse pp("bool");
+        int v = -1;
+        pp.get("true_val", v);
+        AMREX_ALWAYS_ASSERT(v == 1);
+        pp.get("false_val", v);
+        AMREX_ALWAYS_ASSERT(v == 0);
+        pp.get("True_val", v);
+        AMREX_ALWAYS_ASSERT(v == 1);
+        pp.get("FALSE_val", v);
+        AMREX_ALWAYS_ASSERT(v == 0);
+        pp.get("t_val", v);
+        AMREX_ALWAYS_ASSERT(v == 1);
+        pp.get("f_val", v);
+        AMREX_ALWAYS_ASSERT(v == 0);
+        long lv = -1;
+        pp.get("true_val", lv);
+        AMREX_ALWAYS_ASSERT(lv == 1);
+        pp.get("false_val", lv);
+        AMREX_ALWAYS_ASSERT(lv == 0);
+        long long llv = -1;
+        pp.get("true_val", llv);
+        AMREX_ALWAYS_ASSERT(llv == 1);
+        pp.get("false_val", llv);
+        AMREX_ALWAYS_ASSERT(llv == 0);
+    }
+    { // boolean strings queried as bool
+        ParmParse pp("bool");
+        bool v = false;
+        pp.get("true_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("false_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+        pp.get("True_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("FALSE_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+        pp.get("t_val", v);
+        AMREX_ALWAYS_ASSERT(v == true);
+        pp.get("f_val", v);
+        AMREX_ALWAYS_ASSERT(v == false);
+    }
     {
         ParmParse pp;
         bool my_bool_flag_1 = false;
@@ -236,6 +296,71 @@ int main(int argc, char* argv[])
 #else
         AMREX_ALWAYS_ASSERT(foo == 32 && bar == "use_cpu" && spacedim == AMREX_SPACEDIM);
 #endif
+    }
+    { // add & addarr
+        ParmParse pp;
+        pp.add("bt", true);
+        pp.add("bf", false);
+        std::string s;
+        pp.get("bt", s); // It is intentional to read bool as string
+        AMREX_ALWAYS_ASSERT(s == "true");
+        pp.get("bf", s); // It is intentional to read bool as string
+        AMREX_ALWAYS_ASSERT(s == "false");
+
+        pp.add("doubleone",double(1));
+        pp.get("doubleone", s); // It is intentional to read double as string
+        AMREX_ALWAYS_ASSERT(s == "1.0");
+        int intone;
+        pp.query("doubleone", intone); // We are allowed to read 1.0 as 1.
+        AMREX_ALWAYS_ASSERT(intone == 1);
+
+        pp.add("string_scalar", "An string with white spaces");
+        pp.get("string_scalar", s);
+        AMREX_ALWAYS_ASSERT(s == "An string with white spaces");
+
+        std::vector<std::string> sv{"string a", " string b", " string c ", "string-d"};
+        pp.addarr("string_vector", sv);
+        for (int i = 0; i < int(sv.size()); ++i) {
+            pp.get("string_vector", s, i);
+            AMREX_ALWAYS_ASSERT(s == sv[i]);
+        }
+    }
+
+    // print & addfile
+    {
+        ParmParse pp;
+        pp.add("string-for-testing-addfile", "string for testing addfile");
+        pp.add("string-for-testing-addfile", "string for testing addfile");
+        int n = pp.countname("string-for-testing-addfile");
+        AMREX_ALWAYS_ASSERT(n==2);
+    }
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream ofs("my-inputs");
+        ParmParse::prettyPrintTable(ofs);
+    }
+    {
+        ParmParse::addfile("my-inputs");
+        std::string s;
+        ParmParse pp;
+        pp.get("string-for-testing-addfile", s);
+        int n = pp.countname("string-for-testing-addfile");
+        AMREX_ALWAYS_ASSERT(n==3 && s == "string for testing addfile");
+    }
+
+    { // UNSET directive
+        ParmParse pp;
+        // "unset_me" is defined then immediately unset in the inputs file
+        int v = -1;
+        int found = pp.query("unset_me", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_multi_a" and "unset_multi_b" are unset together in inputs
+        found = pp.query("unset_multi_a", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        found = pp.query("unset_multi_b", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_kept" is NOT unset, so it should still be present
+        pp.get("unset_kept", v);
+        AMREX_ALWAYS_ASSERT(v == 77);
     }
     {
         amrex::Print() << "SUCCESS\n";

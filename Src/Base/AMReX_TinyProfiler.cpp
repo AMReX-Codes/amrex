@@ -94,7 +94,7 @@ TinyProfiler::~TinyProfiler ()
 }
 
 void
-TinyProfiler::start () noexcept
+TinyProfiler::start ()
 {
     if (!enabled) { return; }
 
@@ -155,7 +155,7 @@ TinyProfiler::start () noexcept
 }
 
 void
-TinyProfiler::stop () noexcept
+TinyProfiler::stop ()
 {
     if (!enabled) { return; }
 
@@ -356,7 +356,7 @@ TinyProfiler::MemoryInitialize ()
 }
 
 void
-TinyProfiler::Finalize (bool bFlushing) noexcept
+TinyProfiler::Finalize (bool bFlushing)
 {
     if (!enabled) { return; }
 
@@ -421,7 +421,7 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 
         if (!alreadySynced) {
             for (auto const& s : syncedRegions) {
-                if (lstatsmap.find(s) == lstatsmap.end()) {
+                if (!lstatsmap.contains(s)) {
                     lstatsmap.insert(std::make_pair(s,std::map<std::string,Stats>()));
                 }
             }
@@ -449,7 +449,7 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 }
 
 void
-TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
+TinyProfiler::MemoryFinalize (bool bFlushing)
 {
     if (!memprof_enabled) { return; }
 
@@ -529,7 +529,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (regstats.find(s) == regstats.end()) {
+                if (!regstats.contains(s)) {
                     regstats.insert(std::make_pair(s, Stats()));
                 }
             }
@@ -744,7 +744,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (memstats.find(s) == memstats.end()) {
+                if (!memstats.contains(s)) {
                     memstats[s]; // insert
                 }
             }

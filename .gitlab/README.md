@@ -4,7 +4,7 @@ at https://gitlab.spack.io/amrex/amrex. The GitLab mirror runs CI tests on
 runners hosted at
 https://systems.nic.uoregon.edu/internal-wiki/index.php?title=Category:Servers. We
 run three types of tests: nightly tests using the development branch, tests
-triggerd when new commits are pushed to the GitLab mirror (either through
+triggered when new commits are pushed to the GitLab mirror (either through
 GitLab's regular pulling of the latest development branch from GitHub or by
 the developers directly), and tests triggered by a special comment from
 maintainers.
@@ -12,7 +12,7 @@ maintainers.
 Instructions for creating a pull mirror can be found at
 https://docs.gitlab.com/user/project/repository/mirror/pull/. You can choose
 to pull selected branches or all branches. For AMReX, this choice does not
-matter since we only have one active branch. However, for repoositories with
+matter since we only have one active branch. However, for repositories with
 many active branches, pulling all branches may trigger CI jobs on every
 activity.
 
@@ -50,9 +50,9 @@ amrex repository, we got an installation ID. We then stored the app ID,
 installation ID and the private key in GitLab's `Settings -> CI/CD ->
 Variables`. The app ID isn't a secret. So you can store it as clear text. In
 fact, GitLab does not allow 7-digit masked variables anyway. The
-installation ID is also not senstive, but nevertheless we stored it as
+installation ID is also not sensitive, but nevertheless we stored it as
 protected and masked. The private key is a secret that must be protected and
-masked. We also diabled "Expand" for all of these variables because the CI
+masked. We also disabled "Expand" for all of these variables because the CI
 script doesn't need variable expansion. GitLab seems to have a bug that
 prevents saving the private key as a multi-line value, and saving it as a
 file didn't work either. So we encoded it with `base64 -w0` to turn it into

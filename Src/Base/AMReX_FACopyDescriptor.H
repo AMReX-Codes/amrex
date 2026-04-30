@@ -465,13 +465,17 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
         BL_ASSERT(it->procThatHasData   != MyProc);
 
         const int Who = it->procThatHasData;
-        const auto Cnt = static_cast<int>((it->box.numPts())*(it->nComp));
+        const Long cnt_long = it->box.numPts() * Long(it->nComp);
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cnt_long >= 0 &&
+                                         cnt_long <= Long(std::numeric_limits<int>::max()),
+                                         "CollectData: message chunk exceeds INT_MAX elements");
+        const int Cnt = static_cast<int>(cnt_long);
 
         RcvTags[Who].emplace_back(it);
 
         Total_Rcvs_Size += Cnt;
 
-        if (Rcvs.count(Who) > 0)
+        if (Rcvs.contains(Who))
         {
             Rcvs[Who] += 1;
         }
@@ -480,7 +484,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             Rcvs[Who] = 1;
         }
 
-        if (Npts.count(Who) > 0)
+        if (Npts.contains(Who))
         {
             Npts[Who] += Cnt;
         }
@@ -489,7 +493,7 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
             Npts[Who] = Cnt;
         }
     }
-    BL_ASSERT(Rcvs.count(MyProc) == 0);
+    BL_ASSERT(!Rcvs.contains(MyProc));
 
     BL_ASSERT((Total_Rcvs_Size*sizeof(value_type))
               < static_cast<std::size_t>(std::numeric_limits<int>::max()));
@@ -675,7 +679,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                 bxs.push_back(Box(IntVect(&md[4]),
                                   IntVect(&md[4+AMREX_SPACEDIM]),
                                   IntVect(&md[4+AMREX_SPACEDIM*2])));
-                npts[i] = static_cast<int>(bxs.back().numPts()*ncomp[i]);
+                const Long np_long = bxs.back().numPts() * Long(ncomp[i]);
+                AMREX_ALWAYS_ASSERT(np_long <= Long(std::numeric_limits<int>::max()));
+                npts[i] = static_cast<int>(np_long);
                 N += npts[i];
             }
 
@@ -743,7 +749,9 @@ FabArrayCopyDescriptor<FAB>::CollectData ()
                     {
                         BL_ASSERT(fcdp->localFabSource->dataPtr() != nullptr);
                         BL_ASSERT(fcdp->localFabSource->box() == tag.box);
-                        auto Cnt = static_cast<int>(tag.box.numPts()*tag.nComp);
+                        const Long cnt_long = tag.box.numPts() * Long(tag.nComp);
+                        AMREX_ALWAYS_ASSERT(cnt_long <= Long(std::numeric_limits<int>::max()));
+                        auto Cnt = static_cast<int>(cnt_long);
                         fcdp->localFabSource->template copyFromMem<RunOn::Host>(tag.box,0,tag.nComp,dptr);
                         dptr += Cnt;
                         break;

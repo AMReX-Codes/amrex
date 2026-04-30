@@ -16,6 +16,16 @@ amrex::SArena::free (void* pt)
     amrex::Gpu::freeAsync(The_Arena(), pt);
 }
 
+#ifdef AMREX_USE_GPU
+void
+amrex::SArena::streamOrderedFree (void* pt, gpuStream_t stream)
+{
+    if (pt == nullptr) { return; }
+    m_profiler.profile_free(pt);
+    amrex::Gpu::Device::streamOrderedFreeAsync(The_Arena(), pt, stream);
+}
+#endif
+
 bool
 amrex::SArena::isDeviceAccessible () const
 {

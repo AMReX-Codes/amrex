@@ -1,4 +1,5 @@
 #include <AMReX_HypreMLABecLap.H>
+#include <AMReX_Arena.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_HypreMLABecLap_K.H>
 
@@ -23,6 +24,12 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
       m_hypre_object_type((a_hypre_solver_id == HypreSolverID::BoomerAMG) ?
                           HYPRE_PARCSR : HYPRE_SSTRUCT)
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     BL_PROFILE("HypreMLABecLap::HypreMLABecLap");
 
 #ifndef AMREX_FEATURE_HYPRE_SSAMG
@@ -162,10 +169,18 @@ HypreMLABecLap::HypreMLABecLap (Vector<Geometry> a_geom,
     HYPRE_SStructMatrixCreate(m_comm, m_ss_graph, &m_ss_A);
     HYPRE_SStructMatrixSetObjectType(m_ss_A, m_hypre_object_type);
     HYPRE_SStructMatrixInitialize(m_ss_A);
+
+#endif
 }
 
 HypreMLABecLap::~HypreMLABecLap ()
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     HYPRE_SStructGridDestroy(m_ss_grid);
     HYPRE_SStructStencilDestroy(m_ss_stencil);
     HYPRE_SStructGraphDestroy(m_ss_graph);
@@ -195,10 +210,18 @@ HypreMLABecLap::~HypreMLABecLap ()
             }
         }
     }
+
+#endif
 }
 
 void HypreMLABecLap::addNonStencilEntriesToGraph ()
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     BL_PROFILE("HypreMLABecLap::addNonStencilEntriesToGraph");
 
     Vector<std::tuple<int,int,IntVect,int,IntVect>> entries;
@@ -315,6 +338,8 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             Gpu::htod_memcpy_async(m_c2f_nentries[clev][mfi].dataPtr(),
                                    h_c2f_nentries.dataPtr(),
                                    h_c2f_nentries.nBytes());
+            // Must sync: h_c2f_offset_from/to/nentries are pinned-memory locals
+            // whose lifetime ends at the close of this MFIter loop body.
             Gpu::streamSynchronize();
 #endif
             AMREX_ASSERT(c2f_total_to < Long(std::numeric_limits<int>::max()));
@@ -482,6 +507,8 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
             m_f2c_values[clev].resize(nvalues,Real(0.0));
         }
     }
+
+#endif
 }
 
 void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
@@ -492,6 +519,14 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                             Vector<MultiFab const*> const& a_levelbcdata,
                             std::pair<MultiFab const*, IntVect> const& a_coarse_bc)
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::ignore_unused(a_ascalar, a_bscalar, a_acoefs, a_bcoefs, a_lobc, a_hibc,
+                         a_levelbcdata, a_coarse_bc);
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     BL_PROFILE("HypreMLABecLap::setup");
 
     constexpr int ncomp = 1;
@@ -740,7 +775,10 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
                 }
             }
 
-            if (need_sync) { Gpu::streamSynchronize(); }
+            if (need_sync) {
+                // Sync required: matfab.dataPtr() is passed to HYPRE host API below
+                Gpu::streamSynchronize();
+            }
 
             HYPRE_Int vbxlo[] = {AMREX_D_DECL(vbx.smallEnd(0), vbx.smallEnd(1), vbx.smallEnd(2))};
             HYPRE_Int vbxhi[] = {AMREX_D_DECL(vbx.bigEnd(0), vbx.bigEnd(1), vbx.bigEnd(2))};
@@ -902,11 +940,20 @@ void HypreMLABecLap::setup (Real a_ascalar, Real a_bscalar,
         HYPRE_BoomerAMGSetMinIter(m_solver, 1);
         HYPRE_BoomerAMGSetMaxIter(m_solver, m_maxiter);
     }
+
+#endif
 }
 
 void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab const*> const& a_rhs,
                             Real a_reltol, Real a_abstol)
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::ignore_unused(a_sol, a_rhs, a_reltol, a_abstol);
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     BL_PROFILE("HypreMLABecLap::solve()");
 
     constexpr int ncomp = 1;
@@ -940,6 +987,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                     tmp.resize(vbx, ncomp);
                     psol = tmp.dataPtr();
                     solsrc.template copyToMem<RunOn::Device>(vbx, 0, ncomp, psol);
+                    // Must sync before host API uses device-written data (psol).
                     Gpu::streamSynchronize();
                 } else {
                     psol = solsrc.dataPtr();
@@ -965,6 +1013,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
                 {
                     hypmlabeclap_rhs(i, j, k, boxlo, boxhi, rhs1, rhs0, bcmsk, bcrhs);
                 });
+                // Must sync before host API uses device-written data (prhs).
                 Gpu::streamSynchronize();
                 HYPRE_SStructVectorSetBoxValues(m_ss_b, ilev, vbxlo, vbxhi, ivar, prhs);
                 Gpu::hypreSynchronize();
@@ -1045,7 +1094,7 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
         HYPRE_SStructVectorGather(m_ss_x);
 
         for (int ilev = 0; ilev < m_nlevels; ++ilev) {
-            FArrayBox sol;
+            FArrayBox sol(The_Async_Arena());
             bool has_ghostcells = (a_sol[ilev]->nGrowVect() != 0);
             for (MFIter mfi(*a_rhs[ilev]); mfi.isValid(); ++mfi) {
                 Box const& vbx = mfi.validbox();
@@ -1065,7 +1114,6 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
 
                 if (has_ghostcells) {
                     dest.template copyFromMem<RunOn::Device>(vbx, 0, ncomp, p);
-                    Gpu::streamSynchronize();
                 }
             }
         }
@@ -1079,9 +1127,11 @@ void HypreMLABecLap::solve (Vector<MultiFab*> const& a_sol, Vector<MultiFab cons
     for (int ilev = m_nlevels-2; ilev >= 0; --ilev) {
         amrex::average_down(*a_sol[ilev+1], *a_sol[ilev], 0, ncomp, m_ref_ratio[ilev]);
     }
+
+#endif
 }
 
-#ifdef AMREX_USE_GPU
+#if defined(AMREX_USE_GPU) && (AMREX_SPACEDIM > 1)
 namespace {
     struct BCCommTag
     {
@@ -1126,6 +1176,13 @@ namespace {
 
 void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs)
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::ignore_unused(flev, a_bcoefs);
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     AMREX_ASSERT(AMREX_D_TERM(a_bcoefs[0], && a_bcoefs[1], && a_bcoefs[2]));
 
     int const ncomp = 1;
@@ -1435,12 +1492,21 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
         ParallelDescriptor::Waitall(comm_data.request, comm_data.stats);
     }
 #endif
+
+#endif
 }
 
 void HypreMLABecLap::commBCoefs_local (int flev,
                                        Array<MultiFab const*,AMREX_SPACEDIM> const& a_bcoefs,
                                        Vector<FabArrayBase::CopyComTag> const& tags)
 {
+#if (AMREX_SPACEDIM == 1)
+
+    amrex::ignore_unused(flev, a_bcoefs, tags);
+    amrex::Abort("HypreMLABecLap not supported in 1D");
+
+#else
+
     if (tags.empty()) { return; }
 
     int const clev = flev-1;
@@ -1501,6 +1567,8 @@ void HypreMLABecLap::commBCoefs_local (int flev,
 
 #ifdef AMREX_USE_GPU
     unpack_bc(bc_local_tags, rr);
+#endif
+
 #endif
 }
 

@@ -206,8 +206,8 @@ public:
         AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
 
         //! create a grown domain box containing valid + periodic cells
-        const Box& domain = m_geom.Domain();
-        Box gdomain = amrex::convert(domain, mf.boxArray().ixType());
+        const Box& domain = amrex::convert(m_geom.Domain(), mf.boxArray().ixType());
+        Box gdomain = domain;
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             if (m_geom.isPeriodic(i)) {
                 gdomain.grow(i, nghost[i]);

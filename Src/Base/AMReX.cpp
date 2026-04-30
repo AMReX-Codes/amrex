@@ -29,6 +29,10 @@
 #include <AMReX_Sundials.H>
 #endif
 
+#ifdef AMREX_USE_PETSC
+#include <petscsys.h>
+#endif
+
 #ifdef AMREX_USE_CUPTI
 #include <AMReX_CuptiTrace.H>
 #endif
@@ -135,6 +139,12 @@ namespace {
     std::vector<std::string> command_arguments;
 }
 
+#ifdef AMREX_USE_PETSC
+namespace {
+    bool petsc_initialized_by_amrex = false;
+}
+#endif
+
 namespace {
     std::streamsize  prev_out_precision;
     std::streamsize  prev_err_precision;
@@ -196,10 +206,9 @@ amrex::write_to_stderr_without_buffering (const char* str)
     {
         std::ostringstream procall;
         procall << ParallelDescriptor::MyProc() << "::";
-        auto tmp = procall.str();
-        const char *cprocall = tmp.c_str();
+        auto const tmp = procall.view();
         const char * const end = " !!!\n";
-        std::fwrite(cprocall, strlen(cprocall), 1, stderr);
+        std::fwrite(tmp.data(), tmp.size(), 1, stderr);
         std::fwrite(str, strlen(str), 1, stderr);
         std::fwrite(end, strlen(end), 1, stderr);
     }
@@ -744,6 +753,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
         hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
 #endif
+#if (HYPRE_RELEASE_NUMBER >= 23100)
+        // Discussion in https://github.com/AMReX-Codes/amrex/pull/5336
+        HYPRE_DeviceInitialize();
+#endif
 #endif
 
         if (system::verbose > 0) {
@@ -758,6 +771,20 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
 #elif defined(HYPRE_RELEASE_VERSION)
             amrex::Print() << "HYPRE (" << HYPRE_RELEASE_VERSION << ") initialized" << '\n';
 #endif
+        }
+    }
+#endif
+
+#ifdef AMREX_USE_PETSC
+    {
+        PetscBool petsc_is_initialized = PETSC_FALSE;
+        PetscInitialized(&petsc_is_initialized);
+        if (!petsc_is_initialized) {
+            PetscErrorCode ierr = PetscInitialize(&argc, &argv, nullptr, nullptr);
+            if (ierr != 0) {
+                amrex::Abort("PetscInitialize failed");
+            }
+            petsc_initialized_by_amrex = true;
         }
     }
 #endif
@@ -796,6 +823,13 @@ amrex::Finalize (amrex::AMReX* pamrex)
 #endif
 
     AMReX::erase(pamrex);
+
+#ifdef AMREX_USE_PETSC
+    if (petsc_initialized_by_amrex) {
+        PetscFinalize();
+        petsc_initialized_by_amrex = false;
+    }
+#endif
 
 #ifdef AMREX_USE_HYPRE
     if (init_hypre) { HYPRE_Finalize(); }

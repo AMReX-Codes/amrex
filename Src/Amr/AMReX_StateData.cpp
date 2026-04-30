@@ -288,6 +288,8 @@ StateData::restart (const StateDescriptor& d,
     arena = nullptr;
     domain = rhs.domain;
     grids = rhs.grids;
+    dmap = rhs.dmap;
+    m_factory.reset(rhs.m_factory->clone());
     old_time.start = rhs.old_time.start;
     old_time.stop  = rhs.old_time.stop;
     new_time.start = rhs.new_time.start;
@@ -516,7 +518,8 @@ StateData::FillBoundary (FArrayBox&     dest,
 
 #ifdef AMREX_USE_GPU
     // Add a streamSynchronize here in case the user code launched kernels
-    // to handle the boundary fills.
+    // to handle the boundary fills (e.g. kernel writing to pinned memory).
+    // Must be unconditional: host may read dest after this.
     Gpu::streamSynchronize();
 #endif
 }

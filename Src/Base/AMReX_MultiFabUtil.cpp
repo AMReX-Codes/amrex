@@ -238,24 +238,41 @@ namespace amrex
     }
 
     void average_cellcenter_to_face (const Vector<MultiFab*>& fc, const MultiFab& cc,
-                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging)
+                                     const Geometry& geom, int ncomp, bool use_harmonic_averaging, int ngrow)
     {
         average_cellcenter_to_face(Array<MultiFab*,AMREX_SPACEDIM>{{AMREX_D_DECL(fc[0],fc[1],fc[2])}},
-                                   cc, geom, ncomp, use_harmonic_averaging);
+                                   cc, geom, ncomp, use_harmonic_averaging, ngrow);
     }
 
 
     void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc, const MultiFab& cc,
-                                    const Geometry& geom, int ncomp, bool use_harmonic_averaging)
+                                    const Geometry& geom, int ncomp, bool use_harmonic_averaging, int ngrow)
+    {
+        IntVect ng_vect(ngrow);
+        average_cellcenter_to_face(fc, cc, geom, ncomp, use_harmonic_averaging,
+                                   Array<IntVect,AMREX_SPACEDIM>{{AMREX_D_DECL(ng_vect,ng_vect,ng_vect)}});
+    }
+
+    void average_cellcenter_to_face (const Array<MultiFab*,AMREX_SPACEDIM>& fc,
+                                     const MultiFab& cc,
+                                     const Geometry& geom,
+                                     int ncomp,
+                                     bool use_harmonic_averaging,
+                                     const Array<IntVect, AMREX_SPACEDIM>& ng_vects)
     {
         AMREX_ASSERT(cc.nComp() == ncomp);
-        AMREX_ASSERT(cc.nGrowVect().allGE(1));
+        AMREX_ASSERT(cc.nGrowVect().allGE(ng_vects[0]+IntVect(AMREX_D_DECL(1,0,0))));
         AMREX_ASSERT(fc[0]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(fc[0]->nGrowVect().allGE(ng_vects[0]));
 #if (AMREX_SPACEDIM >= 2)
+        AMREX_ASSERT(cc.nGrowVect().allGE(ng_vects[1]+IntVect(AMREX_D_DECL(0,1,0))));
         AMREX_ASSERT(fc[1]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(fc[1]->nGrowVect().allGE(ng_vects[1]));
 #endif
 #if (AMREX_SPACEDIM == 3)
+        AMREX_ASSERT(cc.nGrowVect().allGE(ng_vects[2]+IntVect(AMREX_D_DECL(0,0,1))));
         AMREX_ASSERT(fc[2]->nComp() == ncomp); // We only expect fc to have the gradient perpendicular to the face
+        AMREX_ASSERT(fc[2]->nGrowVect().allGE(ng_vects[2]));
 #endif
 
 
@@ -274,17 +291,22 @@ namespace amrex
             AMREX_D_TERM(auto const& fxma = fc[0]->arrays();,
                          auto const& fyma = fc[1]->arrays();,
                          auto const& fzma = fc[2]->arrays(););
-            MultiFab foo(amrex::convert(cc.boxArray(),IntVect(1)), cc.DistributionMap(), 1, 0,
+            IntVect ng_foo(0);
+            for (auto const& iv : ng_vects) {
+                ng_foo.max(iv);
+            }
+            MultiFab foo(amrex::convert(cc.boxArray(),IntVect(1)), cc.DistributionMap(), 1, ng_foo,
                          MFInfo().SetAlloc(false));
             IntVect ng = -cc.nGrowVect();
-            ParallelFor(foo, IntVect(0), ncomp,
+            GpuArray<IntVect,AMREX_SPACEDIM> ngv{AMREX_D_DECL(ng_vects[0], ng_vects[1], ng_vects[2])};
+            ParallelFor(foo, ng_foo, ncomp,
             [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
             {
                 Box ccbx(ccma[box_no]);
                 ccbx.grow(ng);
-                AMREX_D_TERM(Box const& xbx = amrex::surroundingNodes(ccbx,0);,
-                             Box const& ybx = amrex::surroundingNodes(ccbx,1);,
-                             Box const& zbx = amrex::surroundingNodes(ccbx,2););
+                AMREX_D_TERM(Box const& xbx = grow(amrex::surroundingNodes(ccbx,0), ngv[0]);,
+                             Box const& ybx = grow(amrex::surroundingNodes(ccbx,1), ngv[1]);,
+                             Box const& zbx = grow(amrex::surroundingNodes(ccbx,2), ngv[2]););
 #if (AMREX_SPACEDIM == 1)
                 amrex_avg_cc_to_fc(i,j,k,n, xbx, fxma[box_no], ccma[box_no], gd, use_harmonic_averaging);
 #else
@@ -304,9 +326,9 @@ namespace amrex
 #endif
             for (MFIter mfi(cc,TilingIfNotGPU()); mfi.isValid(); ++mfi)
             {
-                AMREX_D_TERM(const Box& xbx = mfi.nodaltilebox(0);,
-                             const Box& ybx = mfi.nodaltilebox(1);,
-                             const Box& zbx = mfi.nodaltilebox(2););
+                AMREX_D_TERM(const Box& xbx = mfi.grownnodaltilebox(0, ng_vects[0]);,
+                             const Box& ybx = mfi.grownnodaltilebox(1, ng_vects[1]);,
+                             const Box& zbx = mfi.grownnodaltilebox(2, ng_vects[2]););
                 const auto& index_bounds = amrex::getIndexBounds(AMREX_D_DECL(xbx,ybx,zbx));
 
                 AMREX_D_TERM(Array4<Real> const& fxarr = fc[0]->array(mfi);,
@@ -628,10 +650,10 @@ namespace amrex
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const BoxArray& fba, const IntVect& ratio,
-                            int crse_value, int fine_value)
+                            int crse_value, int fine_value, MFInfo const& info)
     {
         return makeFineMask(cba, cdm, IntVect{0}, fba, ratio, Periodicity::NonPeriodic(),
-                            crse_value, fine_value);
+                            crse_value, fine_value, info);
     }
 
     namespace {
@@ -696,18 +718,20 @@ namespace amrex
 
     iMultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                             const IntVect& cnghost, const BoxArray& fba, const IntVect& ratio,
-                            Periodicity const& period, int crse_value, int fine_value)
+                            Periodicity const& period, int crse_value, int fine_value,
+                            MFInfo const& info)
     {
-        iMultiFab mask(cba, cdm, 1, cnghost);
+        iMultiFab mask(cba, cdm, 1, cnghost, info);
         makeFineMask_doit(mask, fba, ratio, period, crse_value, fine_value);
         return mask;
     }
 
     MultiFab makeFineMask (const BoxArray& cba, const DistributionMapping& cdm,
                            const BoxArray& fba, const IntVect& ratio,
-                           Real crse_value, Real fine_value)
+                           Real crse_value, Real fine_value,
+                           MFInfo const& info)
     {
-        MultiFab mask(cba, cdm, 1, 0);
+        MultiFab mask(cba, cdm, 1, 0, info);
         makeFineMask_doit(mask, fba, ratio, Periodicity::NonPeriodic(), crse_value, fine_value);
         return mask;
     }
@@ -995,7 +1019,8 @@ namespace amrex
         for (int ilev = 0; ilev < nlevels-1; ++ilev) {
             iMultiFab mask = makeFineMask(*mf[ilev], *mf[ilev+1], IntVect(0),
                                           ratio[ilev],Periodicity::NonPeriodic(),
-                                          0, 1);
+                                          0, 1,
+                                          MFInfo().SetArena(The_Async_Arena()));
             auto const& m = mask.const_arrays();
             auto const& a = mf[ilev]->const_arrays();
             auto const dx = geom[ilev].CellSizeArray();
@@ -1064,7 +1089,6 @@ namespace amrex
                     });
                 }
             }
-            Gpu::streamSynchronize();
         }
 
         auto const& a = mf.back()->const_arrays();

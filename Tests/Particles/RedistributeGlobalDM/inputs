@@ -1,0 +1,15 @@
+redistribute_global_dm.size = (64, 64, 64)
+redistribute_global_dm.max_grid_size = 8
+redistribute_global_dm.is_periodic = 1
+redistribute_global_dm.num_ppc = 2
+redistribute_global_dm.nsteps = 50
+redistribute_global_dm.nlevs = 1
+redistribute_global_dm.random_seed = 8675309
+redistribute_global_dm.check_answer_each_step = 1
+
+redistribute_global_dm.num_runtime_real = 0
+redistribute_global_dm.num_runtime_int = 0
+
+redistribute_global_dm.sort = 0
+
+amrex.use_gpu_aware_mpi = 0

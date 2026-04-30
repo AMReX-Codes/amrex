@@ -42,7 +42,6 @@ Checks: >
        -modernize-use-designated-initializers,
        -modernize-use-integer-sign-comparison,
        -modernize-use-ranges,
-       -modernize-use-starts-ends-with,
        -modernize-use-std-numbers,
        -modernize-use-trailing-return-type,
      performance-*,
@@ -53,7 +52,6 @@ Checks: >
      readability-*,
        -readability-avoid-nested-conditional-operator,
        -readability-avoid-unconditional-preprocessor-if,
-       -readability-container-contains,
        -readability-else-after-return,
        -readability-function-cognitive-complexity,
        -readability-function-size,
@@ -84,5 +82,3 @@ HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 # -modernize-use-std-numbers
 # -modernize-use-ranges
 # -modernize-use-integer-sign-comparison
-# -modernize-use-starts-ends-with
-# -readability-container-contains

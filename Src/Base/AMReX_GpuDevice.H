@@ -54,12 +54,20 @@ namespace amrex {
 namespace amrex::Gpu {
 
 #ifdef AMREX_USE_GPU
+enum class ExternalStreamSync {
+    Yes,
+    No
+};
+#endif
+
+#ifdef AMREX_USE_GPU
 class StreamManager {
     gpuStream_t m_stream;
     std::mutex m_mutex;
     Vector<std::pair<Arena*, void*>> m_free_wait_list;
 public:
-    [[nodiscard]] gpuStream_t& get ();
+    [[nodiscard]] gpuStream_t& getStream ();
+    [[nodiscard]] gpuStream_t const& getStream () const;
     void sync ();
     void free_async (Arena* arena, void* mem);
     std::size_t wait_list_size ();
@@ -76,7 +84,13 @@ public:
 
 #if defined(AMREX_USE_GPU)
     static gpuStream_t gpuStream () noexcept {
-        return gpu_stream_pool[gpu_stream_index[OpenMP::get_thread_num()]].get();
+        if (!external_stream_stack.empty()) {
+            AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
+            return external_stream_stack.back().manager->getStream();
+        } else {
+            int tid = OpenMP::get_thread_num();
+            return gpu_stream_pool[gpu_stream_index[tid]].getStream();
+        }
     }
 #ifdef AMREX_USE_CUDA
     /** for backward compatibility */
@@ -84,12 +98,16 @@ public:
 #endif
 #ifdef AMREX_USE_SYCL
     static sycl::queue& streamQueue () noexcept { return *(gpuStream().queue); }
-    static sycl::queue& streamQueue (int i) noexcept { return *(gpu_stream_pool[i].get().queue); }
+    static sycl::queue& streamQueue (int i) noexcept { return *(gpu_stream_pool[i].getStream().queue); }
 #endif
 #endif
 
     static int numGpuStreams () noexcept {
-        return inSingleStreamRegion() ? 1 : max_gpu_streams;
+#ifdef AMREX_USE_GPU
+        return (inSingleStreamRegion() || usingExternalStream()) ? 1 : max_gpu_streams;
+#else
+        return 1;
+#endif
     }
 
     static void setStreamIndex (int idx) noexcept;
@@ -100,6 +118,12 @@ public:
 
     static gpuStream_t setStream (gpuStream_t s) noexcept;
     static gpuStream_t resetStream () noexcept;
+
+    /** Override the current GPU stream with a user supplied stream. */
+    static void setExternalStream (gpuStream_t s);
+    /** Pop the current external stream and optionally synchronize it. */
+    static void resetExternalStream (ExternalStreamSync sync_stream = ExternalStreamSync::Yes) noexcept;
+    static bool usingExternalStream () noexcept;
 #endif
 
     static int deviceId () noexcept;
@@ -110,13 +134,16 @@ public:
      * Halt execution of code until GPU has finished processing all previously requested
      * tasks.
      */
-    static void synchronize () noexcept;
+    static void synchronize ();
 
     /**
      * Halt execution of code until the current AMReX GPU stream has finished processing all
      * previously requested tasks.
      */
     static void streamSynchronize () noexcept;
+#ifdef AMREX_USE_GPU
+    static void streamSynchronize (gpuStream_t s) noexcept;
+#endif
 
     /**
      * Halt execution of code until all active AMReX GPU streams have finished processing all
@@ -132,6 +159,9 @@ public:
     static void streamSynchronizeAll () noexcept;
 
     static void freeAsync (Arena* arena, void* mem) noexcept;
+#ifdef AMREX_USE_GPU
+    static void streamOrderedFreeAsync (Arena* arena, void* mem, gpuStream_t stream) noexcept;
+#endif
 
     static bool clearFreeAsyncBuffer () noexcept;
 
@@ -194,6 +224,8 @@ public:
 
 #ifdef AMREX_USE_GPU
 
+    static int managedMemorySupported () noexcept { return device_prop.managedMemory; }
+
     static int memoryPoolsSupported () noexcept { return memory_pools_supported; }
 
 #if defined(AMREX_USE_HIP)
@@ -235,12 +267,20 @@ private:
     static AMREX_EXPORT int memory_pools_supported;
     static AMREX_EXPORT unsigned int max_blocks_per_launch;
 
+    struct ExternalStream
+    {
+        std::unique_ptr<StreamManager> manager;
+        int saved_stream_index = 0;
+    };
+    static AMREX_EXPORT Vector<ExternalStream> external_stream_stack;
+
 #ifdef AMREX_USE_SYCL
     static AMREX_EXPORT std::unique_ptr<sycl::context> sycl_context;
     static AMREX_EXPORT std::unique_ptr<sycl::device>  sycl_device;
 #endif
 
     friend StreamManager;
+    friend struct ExternalGpuStreamRegion;
 #endif
 };
 
@@ -271,6 +311,14 @@ streamSynchronize () noexcept
 {
     Device::streamSynchronize();
 }
+
+#ifdef AMREX_USE_GPU
+inline void
+streamSynchronize (gpuStream_t s) noexcept
+{
+    Device::streamSynchronize(s);
+}
+#endif
 
 inline void
 streamSynchronizeActive () noexcept
@@ -307,6 +355,65 @@ clearFreeAsyncBuffer () noexcept
 {
     return Device::clearFreeAsyncBuffer();
 }
+
+#ifdef AMREX_USE_GPU
+
+/** \brief Provide a user-supplied GPU stream.
+ *
+ *  Nested calls form a stack.  Each new call makes the supplied stream
+ *  current for AMReX GPU launches until resetExternalGpuStream pops it and
+ *  restores the previous external stream, if any.  Calling this function
+ *  inside an OpenMP parallel region will trigger an assertion.
+ */
+inline void
+setExternalGpuStream (gpuStream_t stream)
+{
+    Device::setExternalStream(stream);
+}
+
+/** \brief Pop the current user-supplied GPU stream.
+ *
+ *  Must be called once for every preceding successful setExternalGpuStream
+ *  invocation (RAII helpers do this automatically).  When ``sync_stream``
+ *  is :cpp:`ExternalStreamSync::No` AMReX skips the stream-wide synchronize
+ *  unless deferred frees recorded by The_Async_Arena are pending, in which
+ *  case a synchronization is still forced for correctness.  If an older
+ *  external stream was active before the current one, it becomes current
+ *  again after the pop.  Not supported inside OpenMP parallel regions.
+ */
+inline void
+resetExternalGpuStream (ExternalStreamSync sync_stream = ExternalStreamSync::Yes) noexcept
+{
+    Device::resetExternalStream(sync_stream);
+}
+
+/** RAII helper that overrides the GPU stream for the current scope (optionally
+ *  skipping the synchronization on destruction when ``sync_on_exit`` is
+ *  :cpp:`ExternalStreamSync::No`).
+ */
+struct [[nodiscard]] ExternalGpuStreamRegion
+{
+    explicit ExternalGpuStreamRegion (gpuStream_t stream,
+                                      ExternalStreamSync sync_on_exit = ExternalStreamSync::Yes) noexcept
+        : m_sync_on_exit(sync_on_exit)
+    {
+        Device::setExternalStream(stream);
+    }
+
+    ExternalGpuStreamRegion (ExternalGpuStreamRegion&& rhs) noexcept = delete;
+    ExternalGpuStreamRegion& operator= (ExternalGpuStreamRegion&& rhs) noexcept = delete;
+    ExternalGpuStreamRegion (ExternalGpuStreamRegion const&) = delete;
+    ExternalGpuStreamRegion& operator= (ExternalGpuStreamRegion const&) = delete;
+
+    ~ExternalGpuStreamRegion ()
+    {
+        Device::resetExternalStream(m_sync_on_exit);
+    }
+
+private:
+    ExternalStreamSync m_sync_on_exit = ExternalStreamSync::Yes;
+};
+#endif
 
 #ifdef AMREX_USE_GPU
 
@@ -452,6 +559,9 @@ void memcpy_from_device_global_to_host_async (void* dst, T const& dg,
 }
 
 #ifdef AMREX_USE_GPU
+
+//! Check if the given stream is active.
+bool isStreamActive (gpuStream_t s);
 
 /**
  * This struct provides a RAII-style mechanism for disabling GPU

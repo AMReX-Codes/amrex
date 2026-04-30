@@ -80,11 +80,11 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 {
     BL_PROFILE("FillPatchSingleLevel");
 
-    AMREX_ASSERT(scomp+ncomp <= smf[0]->nComp());
-    AMREX_ASSERT(dcomp+ncomp <= mf.nComp());
-    AMREX_ASSERT(smf.size() == stime.size());
-    AMREX_ASSERT(!smf.empty());
-    AMREX_ASSERT(nghost.allLE(mf.nGrowVect()));
+    AMREX_ASSERT((!smf.empty()) &&
+                 (scomp+ncomp <= smf[0]->nComp()) &&
+                 (dcomp+ncomp <= mf.nComp()) &&
+                 (smf.size() == stime.size()) &&
+                 nghost.allLE(mf.nGrowVect()));
 
     IntVect src_ghost(0);
     if constexpr (std::is_same_v<BC,PhysBCFunctUseCoarseGhost>) {
@@ -194,6 +194,23 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
     physbcf(mf, dcomp, ncomp, nghost, time, bcfcomp);
 }
 
+/**
+ * \brief Helper that applies a MFInterpolater to fill a fine patch from a coarse patch.
+ *
+ * \param mf_fine_patch Destination fine patch MultiFab.
+ * \param fcomp         Starting component in the fine patch.
+ * \param mf_crse_patch Source coarse patch MultiFab.
+ * \param ccomp         Starting component in the coarse patch.
+ * \param ncomp         Number of components to interpolate.
+ * \param ng            Fine ghost-cell vector to fill.
+ * \param cgeom         Coarse Geometry.
+ * \param fgeom         Fine Geometry.
+ * \param dest_domain   Fine-domain box describing where values are valid.
+ * \param ratio         Refinement ratio.
+ * \param mapper        MFInterpolater to use.
+ * \param bcs           Boundary-condition records per component.
+ * \param bcscomp       Starting component within the BC array.
+ */
 void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crse_patch, int ccomp,
                       int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
                       Box const& dest_domain, const IntVect& ratio,
@@ -1504,6 +1521,10 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
             for (auto const* p : fmf) {
                 fmf_raii.emplace_back(*p,  amrex::make_alias, scomp, ncomp);
             }
+            fmf.clear();
+            for (auto& a : fmf_raii) {
+                fmf.push_back(&a);
+            }
         }
 
         detail::FillPatchTwoLevels_doit(mf, nghost, time,
@@ -1513,7 +1534,7 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         geom[level-1], geom[level],
                                         bc[level-1], bccomp,
                                         bc[level  ], bccomp,
-                                        ratio[level-1], mapper, bcr, bccomp,
+                                        ratio[level-1], mapper, bcr, bcrcomp,
                                         hook, hook, index_space);
     }
 }

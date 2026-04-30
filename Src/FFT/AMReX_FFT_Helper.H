@@ -74,7 +74,13 @@ struct Info
     //! batch size.
     bool twod_mode = false;
 
-    //! We might have a special twod_mode: nx or ny == 1 && nz > 1.
+    //! - 2D builds: oned_mode=true means we FFT in x only and treat y as the
+    //!   batch size.
+    //! - 3D builds with twod_mode=false: same behavior as the 2D case, but the
+    //!   z-dimension also participates in the batch.
+    //! - 3D builds with twod_mode=true: setting oned_mode=true further signals
+    //!   that exactly one of {nx, ny} is 1, so only the non-degenerate
+    //!   direction needs FFT work while the other stays batched.
     bool oned_mode = false;
 
     //! Batched FFT size. Only support in R2C, not R2X.
@@ -141,9 +147,17 @@ namespace detail { void hip_execute (rocfft_plan plan, void **in, void **out); }
 /// \cond DOXYGEN_IGNORE
 namespace detail
 {
+inline void assert_no_external_stream ()
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        !amrex::Gpu::Device::usingExternalStream(),
+        "SYCL FFT does not support external GPU streams.");
+}
+
 template <typename T, Direction direction, typename P, typename TI, typename TO>
 void sycl_execute (P* plan, TI* in, TO* out)
 {
+    assert_no_external_stream();
 #ifndef AMREX_USE_MKL_DFTI_2024
     std::int64_t workspaceSize = 0;
 #else
@@ -349,6 +363,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -509,6 +524,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -683,6 +699,7 @@ struct Plan
 #endif
         pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                       oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+        detail::assert_no_external_stream();
         pp->commit(amrex::Gpu::Device::streamQueue());
         plan = pp;
 
@@ -1476,6 +1493,7 @@ void Plan<T>::init_r2c (IntVectND<M> const& fft_size, void* pbf, void* pbb, bool
 #endif
     pp->set_value(oneapi::mkl::dft::config_param::WORKSPACE,
                   oneapi::mkl::dft::config_value::WORKSPACE_EXTERNAL);
+    detail::assert_no_external_stream();
     pp->commit(amrex::Gpu::Device::streamQueue());
     plan = pp;
 

@@ -14,8 +14,8 @@ CArena::CArena (std::size_t hunk_size, ArenaInfo info)
     : m_hunk(align(hunk_size == 0 ? DefaultHunkSize : hunk_size))
 {
     arena_info = info;
-    BL_ASSERT(m_hunk >= hunk_size);
-    BL_ASSERT(m_hunk%Arena::align_size == 0);
+    AMREX_ALWAYS_ASSERT(m_hunk >= hunk_size);
+    AMREX_ALWAYS_ASSERT(m_hunk%Arena::align_size == 0);
 }
 
 CArena::~CArena ()
@@ -88,6 +88,8 @@ CArena::alloc_protected (std::size_t nbytes)
             }
         }
 
+        N = Arena::align(N);
+
         vp = allocate_system(N);
 
         m_used += N;
@@ -119,7 +121,7 @@ CArena::alloc_protected (std::size_t nbytes)
     else
     {
         BL_ASSERT((*free_it).size() >= nbytes);
-        BL_ASSERT(m_busylist.find(*free_it) == m_busylist.end());
+        BL_ASSERT(!m_busylist.contains(*free_it));
 
         vp = (*free_it).block();
 
@@ -172,7 +174,7 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
             amrex::Abort("CArena::alloc_in_place: unknown pointer");
             return std::make_pair(nullptr,0);
         }
-        AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+        AMREX_ASSERT(!m_freelist.contains(*busy_it));
 
         if (busy_it->size() >= szmax) {
             return std::make_pair(pt, busy_it->size());
@@ -246,7 +248,7 @@ CArena::shrink_in_place (void* pt, std::size_t new_size)
         amrex::Abort("CArena::shrink_in_place: unknown pointer");
         return nullptr;
     }
-    AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+    AMREX_ASSERT(!m_freelist.contains(*busy_it));
 
     auto const old_size = busy_it->size();
 
@@ -310,7 +312,7 @@ CArena::free (void* vp)
         amrex::Abort("CArena::free: unknown pointer");
         return;
     }
-    BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+    BL_ASSERT(!m_freelist.contains(*busy_it));
 
     m_actually_used -= busy_it->size();
 

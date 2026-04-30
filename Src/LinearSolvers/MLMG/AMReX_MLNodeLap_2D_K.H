@@ -430,7 +430,7 @@ void mlndlap_gauss_seidel_c (Box const& bx, Array4<Real> const& sol,
 AMREX_FORCE_INLINE
 void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
                         Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
-                        int ilen ) noexcept
+                        int ilen )
 {
     Real bet = b_ls(0);
     u_ls(0) = r_ls(0) / bet;
@@ -451,7 +451,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                               Array4<Real const> const& rhs, Array4<Real const> const& sig,
                               Array4<int const> const& msk,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              bool is_rz) noexcept
+                              bool is_rz)
 {
     Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
@@ -1917,7 +1917,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
                               Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
                               Array4<Real const> const& ax, Array4<Real const> const& ay,
-                              Array4<Real const> const& bcen) noexcept
+                              Array4<Real const> const& bcen)
 {
     using namespace nodelap_detail;
 

@@ -740,7 +740,7 @@ Real grad_y_of_phi_on_centroids_extdir(int i,int j,int k,int n,
                 if (!flag(ii,jj,k).isCovered())
                 {
                     int a_ind  = (ii-(i-1)) + 3*(jj-(j-jm));
-                    AMREX_ASSERT(0<=irow && irow < 9);
+                    AMREX_ASSERT(0<=a_ind && a_ind < 9);
 
                     Real phi_val = Amatrix(a_ind,0)*phi(ii,jj,k,n);
 

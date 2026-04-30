@@ -5,9 +5,18 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
 
-#include <set>
-#include <random>
 #include <limits>
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
+#include <random>
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
+
+#include <set>
 
 namespace
 {
@@ -143,6 +152,7 @@ Real RandomGamma (Real alpha, Real beta)
 
 unsigned int Random_int (unsigned int n)
 {
+    if (n == 0) {return 0;}
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
@@ -150,6 +160,7 @@ unsigned int Random_int (unsigned int n)
 
 ULong Random_long (ULong n)
 {
+    if (n == 0) {return 0;}
     std::uniform_int_distribution<ULong> distribution(0, n-1);
     int tid = OpenMP::get_thread_num();
     return distribution(generators[tid]);
@@ -197,7 +208,7 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   uSet.clear();
   while(static_cast<int>(copySet.size()) < setSize) {
     int r = static_cast<int>(Random_int(poolSize));
-    if(copySet.find(r) == copySet.end()) {
+    if(!copySet.contains(r)) {
       copySet.insert(r);
       uSet.push_back(r);
     }

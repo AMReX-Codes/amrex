@@ -10,12 +10,12 @@ Getting Started
 
 We have discussed AMReX's build systems in the chapter on
 :ref:`Chap:BuildingAMReX`.  To build with GNU Make, we need to include the
-Fortran interface source tree into the make system. The source codes for the
+Fortran interface source tree into the make system. The source code for the
 Fortran interface are in ``amrex/Src/F_Interfaces`` and there are several
-sub-directories. The "Base" directory includes sources for the basic
+subdirectories. The "Base" directory includes sources for the basic
 functionality, the "AmrCore" directory wraps around the :cpp:`AmrCore` class
 (see the chapter on :ref:`Chap:AmrCore`), and the "Octree" directory adds
-support for octree type of AMR grids. Each directory has a "Make.package" file
+support for octree-type AMR grids. Each directory has a "Make.package" file
 that can be included in make files (see `HelloWorld_F`_ and
 `Advection_F`_ in the tutorials for examples). The libamrex approach includes the
 Fortran interface by default.
@@ -42,7 +42,7 @@ is shown below in its entirety.
     end program main
 
 To access the AMReX Fortran interfaces, we can use these three
-modules, ``amrex_base_module`` for the basics functionalities
+modules, ``amrex_base_module`` for the basic functionality
 (Section 2 `The Basics`_), ``amrex_amrcore_module`` for AMR
 support (Section 3 `Amr Core Infrastructure`_) and ``amrex_octree_module``
 for octree style AMR (Section 4 `Octree`_).
@@ -65,7 +65,7 @@ for AMReX Fortran interface is that coordinate direction index starts at 1.
 
 There is an integer parameter :fortran:`amrex_real`, a Fortran kind parameter
 for :fortran:`real`. Fortran :fortran:`real(amrex_real)` corresponds to
-:cpp:`amrex::Real` in C++, which is either double or single precision depending
+:cpp:`amrex::Real` in C++, which is either double or single precision depending on
 the setting of precision.
 
 The module :fortran:`amrex_parallel_module` (
@@ -74,7 +74,7 @@ The module :fortran:`amrex_parallel_module` (
 communication library used by AMReX (e.g. MPI).
 
 The module :cpp:`amrex_parmparse_module` (
-``amrex/Src/Base/AMReX_parmparse_mod.F90``) provides interface to
+``amrex/Src/Base/AMReX_parmparse_mod.F90``) provides an interface to
 :cpp:`ParmParse` (see the section on :ref:`sec:basics:parmparse`). Here are some
 examples.
 
@@ -88,7 +88,7 @@ examples.
       call pp%get("n_cell", n_cell)
       max_grid_size = 32 ! default size
       call pp%query("max_grid_size", max_grid_size)
-      call amrex_parmpase_destroy(pp) ! optional if compiler supports finalization
+      call amrex_parmparse_destroy(pp) ! optional if compiler supports finalization
 
 Finalization is a Fortran 2003 feature that some compilers may not support. For
 those compilers, we must explicitly destroy the objects, otherwise there will
@@ -109,11 +109,11 @@ of building it.
 
       integer :: n_cell
       type(amrex_box) :: domain
-      type(amrex_geometry) : geom
+      type(amrex_geometry) :: geom
       ! n_cell = ...
       ! Define a single box covering the domain
       domain = amrex_box((/0,0,0/), (/n_cell-1, n_cell-1, n_cell-1/))
-      ! This defines a amrex_geometry object.
+      ! This defines an amrex_geometry object.
       call amrex_geometry_build(geom, domain)
       !
       ! ...
@@ -132,7 +132,7 @@ wrapper for the :cpp:`BoxArray` class, and :fortran:`amrex_distromap` (
 
       integer :: n_cell
       type(amrex_box) :: domain
-      type(amrex_boxarray) : ba
+      type(amrex_boxarray) :: ba
       type(amrex_distromap) :: dm
       ! n_cell = ...
       ! Define a single box covering the domain
@@ -146,7 +146,7 @@ wrapper for the :cpp:`BoxArray` class, and :fortran:`amrex_distromap` (
       !
       ! ...
       !
-      call amrex_distromap_distromap(dm)
+      call amrex_distromap_destroy(dm)
       call amrex_boxarray_destroy(ba)
 
 Given :fortran:`amrex_boxarray` and :fortran:`amrex_distromap`, we can build
@@ -157,14 +157,14 @@ Given :fortran:`amrex_boxarray` and :fortran:`amrex_distromap`, we can build
 ::
 
       integer :: ncomp, nghost
-      type(amrex_boxarray) : ba
+      type(amrex_boxarray) :: ba
       type(amrex_distromap) :: dm
       type(amrex_multifab) :: mf, ndmf
       ! Build amrex_boxarray and amrex_distromap
       ! ncomp = ...
       ! nghost = ...
       ! ...
-      ! Build amrex_multifab with ncomp component and nghost ghost cells
+      ! Build amrex_multifab with ncomp components and nghost ghost cells
       call amrex_multifab_build(mf, ba, dm, ncomp, nghost)
       ! Build a nodal multifab
       call amrex_multifab_build(ndmf,ba,dm,ncomp,nghost,(/.true.,.true.,.true./))
@@ -174,7 +174,7 @@ Given :fortran:`amrex_boxarray` and :fortran:`amrex_distromap`, we can build
       call amrex_multifab_destroy(mf)
       call amrex_multifab_destroy(ndmf)
 
-There are many type-bound procedures for :fortran:`amrex_multifab`. For example
+There are many type-bound procedures for :fortran:`amrex_multifab`. For example:
 
 ::
 
@@ -187,7 +187,7 @@ Note that the copy function here only works on copying data from another
 :fortran:`amrex_multifab` built with the same :fortran:`amrex_distromap`, like
 the :cpp:`MultiFab::Copy` function in C++.  :fortran:`amrex_multifab` also has
 two parallel communication procedures, :fortran:`fill_boundary` and
-:fortran:`parallel_copy`. Their and interface and usage are very similar to
+:fortran:`parallel_copy`. Their interface and usage are very similar to
 functions :cpp:`FillBoundary` and :cpp:`ParallelCopy` for :cpp:`MultiFab` in
 C++.
 
@@ -204,7 +204,7 @@ C++.
       call mf%parallel_copy(mfsrc, geom) ! Parallel copy from another multifab
 
 It should be emphasized that the component index for :fortran:`amrex_multifab`
-starts with 1 following Fortran convention. This is different from the C++ part
+starts with 1, following Fortran convention. This is different from the C++ side
 of AMReX.
 
 AMReX provides a Fortran interface to :fortran:`MFIter` for iterating over the
@@ -396,13 +396,13 @@ is of type :fortran:`c_ptr` and its value is a pointer to a
       type(amrex_tagboxarray) :: tag
       tag = tags
 
-The module :fortran:`amrex_fillpatch_module` provides interface to
+The module :fortran:`amrex_fillpatch_module` provides an interface to
 C++ functions :cpp:`FillPatchSinglelevel` and :cpp:`FillPatchTwoLevels`. To use
 it, the application code needs to provide procedures for interpolation and
 filling physical boundaries.  See
 ``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Source/fillpatch_mod.F90`` for an example.
 
-Module :fortran:`amrex_fluxregister_module` provides interface to
+Module :fortran:`amrex_fluxregister_module` provides an interface to
 :cpp:`FluxRegister` (see the section on :ref:`sec:amrcore:fluxreg`). Its usage
 is demonstrated in the tutorial at `Advection_F`_.
 
@@ -415,7 +415,7 @@ Octree
 In AMReX, the union of fine level grids is properly contained within the union
 of coarse level grids. There are no required direct parent-child connections
 between levels. Therefore, grids in AMReX in general cannot be represented by
-trees. Nevertheless, octree type grids are supported via Fortran interface,
+trees. Nevertheless, octree-type grids are supported via the Fortran interface,
 because grids are more general than octree grids. A tutorial example using
 amrex_octree_module ( ``amrex/Src/F_Interfaces/Octree/AMReX_octree_mod.f90``) is
 available at ``amrex-tutorials/ExampleCodes/FortranInterface/Advection_F/Advection_octree_F/``. Procedures
@@ -431,7 +431,7 @@ called as follows,
         use amrex_octree_module
         implicit none
         call amrex_init()
-        call amrex_octree_int()  ! This should be called before amrex_amrcore_init.
+        call amrex_octree_init()  ! This should be called before amrex_amrcore_init.
         call amrex_amrcore_init()
         call my_amr_init()       ! user's own code, not part of AMReX
         ! ...

@@ -7,6 +7,8 @@
 
 namespace amrex {
 
+/// \cond DOXYGEN_IGNORE
+
 ErrorRec::ErrorFunc::ErrorFunc () = default;
 
 ErrorRec::ErrorFunc::ErrorFunc (ErrorFuncDefault inFunc)
@@ -236,7 +238,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
                          char            tagval,
                          Real            time,
                          int             level,
-                         const Geometry& geom) const noexcept
+                         const Geometry& geom) const
 {
     BL_PROFILE("AMRErrorTag::operator()");
 
@@ -540,5 +542,7 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
         }
     }
 }
+
+/// \endcond
 
 }

@@ -7,15 +7,23 @@
 #include <type_traits>
 #include <cmath>
 
+/**
+ * \file AMReX_EB2_IF_Rotation.H
+ *
+ * Helper that rotates an implicit function by a fixed angle about a coordinate axis.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Rotate an implicit surface around one of the coordinate axes.
 class RotationIF
 {
 public:
 
+    //! Store the child implicit function and rotation parameters.
     RotationIF (F a_f, Real angle, int dir)
         : m_f(std::move(a_f)),
           m_cos_angle(std::cos(angle)),

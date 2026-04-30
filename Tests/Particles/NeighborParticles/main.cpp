@@ -15,11 +15,16 @@ struct TestParams
 {
     IntVect size;
     int max_grid_size;
-    int num_ppc;
     int is_periodic;
     int do_plotfile;
     int check_answer;
 };
+
+namespace
+{
+    // The test assumes we have 1 ppc when checking the answer
+    constexpr int fixed_num_ppc = 1;
+}
 
 void testNeighborParticles();
 
@@ -43,7 +48,6 @@ void get_test_params(TestParams& params, const std::string& prefix)
     ParmParse pp(prefix);
     pp.get("size", params.size);
     pp.get("max_grid_size", params.max_grid_size);
-    pp.get("num_ppc", params.num_ppc);
     pp.get("is_periodic", params.is_periodic);
 
     params.do_plotfile = true;
@@ -83,7 +87,7 @@ void testNeighborParticles ()
     const int ncells = 1;
     MDParticleContainer pc(geom, dm, ba, ncells);
 
-    IntVect nppc(params.num_ppc);
+    IntVect nppc(fixed_num_ppc);
 
     if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "About to initialize particles \n";
@@ -118,7 +122,7 @@ void testNeighborParticles ()
     if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Check neighbors after reset ... \n";
     }
-    pc.checkNeighborParticles();
+    pc.checkNeighborParticles(false);
 
     if (ParallelDescriptor::MyProc() == dm[0]) {
         amrex::PrintToFile("neighbor_test") << "Now updateNeighbors again ...  \n";
@@ -142,20 +146,32 @@ void testNeighborParticles ()
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors \n";
     pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
+    pc.checkNeighborParticles();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors again \n";
     pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
+    pc.checkNeighborParticles();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
 
     amrex::PrintToFile("neighbor_test") << "Moving particles and updating neighbors yet again \n";
     pc.moveParticles(static_cast<amrex::ParticleReal> (0.1));
     pc.updateNeighbors();
+    pc.checkNeighborParticles();
 
     amrex::PrintToFile("neighbor_test") << "Min distance is " << pc.minAndMaxDistance() << ", should be (1, 1) \n";
+
+#ifndef AMREX_USE_GPU
+    amrex::PrintToFile("neighbor_test") << "Testing inverse sumNeighbors \n";
+    pc.clearNeighbors();
+    pc.setEnableInverse(true);
+    pc.fillNeighbors();
+    pc.checkNeighborParticles();
+    pc.checkInverseSumNeighbors();
+#endif
 }
 
 void testNeighborList ()
@@ -188,7 +204,7 @@ void testNeighborList ()
     const int ncells = 1;
     MDParticleContainer pc(geom, dm, ba, ncells);
 
-    IntVect nppc(params.num_ppc);
+    IntVect nppc(fixed_num_ppc);
 
     amrex::PrintToFile("neighbor_test") << "About to initialize particles" << '\n';
 
@@ -205,7 +221,8 @@ void testNeighborList ()
     pc.clearNeighbors();
     pc.fillNeighbors();
     pc.selectActualNeighbors(CheckPair());
-    pc.updateNeighbors();
+    pc.updateNeighbors(true);
+    pc.checkNeighborParticles();
     pc.buildNeighborList(CheckPair());
     if (params.check_answer) {
         pc.checkNeighborList();

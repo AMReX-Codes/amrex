@@ -8,22 +8,36 @@
 #include <algorithm>
 #include <limits>
 
+/**
+ * \file AMReX_EB2_IF_Box.H
+ *
+ * Axis-aligned box implicit function used to carve rectangular regions.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
+//! Signed implicit function for an axis-aligned box.
 class BoxIF
     : GPUable
 {
 public:
 
-    //! inside: is the fluid inside the box?
+    /**
+     * \brief Construct a box implicit surface.
+     *
+     * \param a_lo     Lower physical bounds.
+     * \param a_hi     Upper physical bounds.
+     * \param a_inside True if the interior should be treated as fluid (negative).
+     */
     BoxIF (const RealArray& a_lo, const RealArray& a_hi, bool a_inside)
         : m_lo(makeXDim3(a_lo)),
           m_hi(makeXDim3(a_hi)),
           m_sign( a_inside ? 1.0 : -1.0 )
         {}
 
+    //! Evaluate the implicit at the given coordinate.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -34,6 +48,7 @@ public:
         return r*m_sign;
     }
 
+    //! Evaluate the implicit at the given coordinate.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         return this->operator() (AMREX_D_DECL(p[0], p[1], p[2]));

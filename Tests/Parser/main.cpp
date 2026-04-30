@@ -186,7 +186,7 @@ int main (int argc, char* argv[])
                         {-1., -1., -1.0}, {1.0, 1.0, 1.0}, 100,
                         1.e-12, 1.e-15);
 
-        nerror += test3("r2=(z-zc)*(z-zc)+(y-yc)*(y-yc)+(x-xc)*(x-xc); r=sqrt(r2); if(r < (r_star-dR), 0.0, if(r <= r_star, dens, 0.0))",
+        nerror += test3("r=(z-zc)*(z-zc)+(y-yc)*(y-yc)+(x-xc)*(x-xc); r=sqrt(r); if(r < (r_star-dR), 0.0, if(r <= r_star, dens, 0.0))",
                         {{"xc", 0.1}, {"yc", -1.0}, {"zc", 0.2}, {"r_star", 0.73}, {"dR", 0.57}, {"dens", 12.}},
                         {"x","y","z"},
                         [=] (double x, double y, double z) -> double {

@@ -200,13 +200,13 @@ public:
 
 protected:
 
-    bool m_needs_update = true;
-
     Vector<int> m_is_singular;
 
     [[nodiscard]] bool supportRobinBC () const noexcept override { return true; }
 
 private:
+
+    bool m_needs_update = true;
 
     int m_ncomp = 1;
 
@@ -391,7 +391,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
     const int ncomp = this->getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         for (int icomp = 0; icomp < ncomp; ++icomp) {
-            m_b_coeffs[amrlev][0][idim].setVal(RT(beta[icomp], icomp, 1, 0));
+            m_b_coeffs[amrlev][0][idim].setVal(RT(beta[icomp]), icomp, 1, 0);
         }
     }
     m_needs_update = true;

@@ -260,7 +260,7 @@ public:
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
      */
-    void clear () noexcept;
+    void clear ();
 
     //! Release ownership of memory
     [[nodiscard]] std::unique_ptr<T,DataDeleter> release () noexcept;
@@ -334,7 +334,7 @@ public:
     */
     [[nodiscard]] bool contains (const BaseFab<T>& fab) const noexcept
     {
-        return box().contains(fab.box()) && this->nvar <= fab.nvar;
+        return box().contains(fab.box()) && this->nvar >= fab.nvar;
     }
 
     /**
@@ -579,11 +579,11 @@ public:
     *   p = 1  -> sum of ABS(FAB)
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
-    [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const noexcept;
+    [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const;
 
     //! Same as above except only on given subbox.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
-    [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const noexcept;
+    [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const;
     //!Compute absolute value for all components of this FAB.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs () noexcept;
@@ -1689,7 +1689,7 @@ BaseFab<T>::elixir () noexcept
 
 template <class T>
 void
-BaseFab<T>::clear () noexcept
+BaseFab<T>::clear ()
 {
     if (this->dptr)
     {
@@ -1706,12 +1706,9 @@ BaseFab<T>::clear () noexcept
             placementDelete(this->dptr, this->truesize);
 
 #ifdef AMREX_USE_GPU
-            auto current_stream = Gpu::Device::gpuStream();
-            Gpu::Device::setStream(alloc_stream);
-#endif
+            this->arena()->streamOrderedFree(this->dptr, alloc_stream);
+#else
             this->free(this->dptr);
-#ifdef AMREX_USE_GPU
-            Gpu::Device::setStream(current_stream);
 #endif
 
             if (this->nvar > 1) {
@@ -1909,7 +1906,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
 template <class T>
 template <RunOn run_on>
 Real
-BaseFab<T>::norm (int p, int comp, int numcomp) const noexcept
+BaseFab<T>::norm (int p, int comp, int numcomp) const
 {
     return norm<run_on>(this->domain,p,comp,numcomp);
 }
@@ -1917,7 +1914,7 @@ BaseFab<T>::norm (int p, int comp, int numcomp) const noexcept
 template <class T>
 template <RunOn run_on>
 Real
-BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcept
+BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const
 {
     BL_ASSERT(this->domain.contains(subbox));
     BL_ASSERT(comp >= 0 && comp + numcomp <= this->nvar);
@@ -2873,7 +2870,7 @@ template <RunOn run_on, typename T,
           std::enable_if_t<! HasAtomicAdd<T>::value,int> FOO = 0>
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
-                         int srccomp, int destcomp, int numcomp) noexcept
+                         int srccomp, int destcomp, int numcomp)
 {
     amrex::ignore_unused(dfab, sfab, srcbox, destbox, srccomp, destcomp, numcomp);
     amrex::Abort("BaseFab: atomicAdd not supported");

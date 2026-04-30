@@ -21,7 +21,7 @@ preprocessing or do
 
         use amrex_fort_module, only : amrex_spacedim
 
-The coordinate directions are zero based.
+The coordinate directions are zero-based.
 
 .. _sec:basics:vecandarr:
 
@@ -38,9 +38,9 @@ AMReX also provides :cpp:`GpuArray`, a trivial type that works on both host
 and device. (It was added when the minimal requirement for C++ standard was
 C++11, for which :cpp:`std::array` does not work on device.) It also works
 when compiled just for CPU.  Besides :cpp:`GpuArray`, AMReX also
-provides GPU safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
+provides GPU-safe :cpp:`Array1D`, :cpp:`Array2D` and :cpp:`Array3D` that are
 1, 2 and 3-dimensional fixed size arrays, respectively.  These three
-class templates can have non-zero based indexing.
+class templates can have non-zero-based indexing.
 
 Real
 ====
@@ -62,7 +62,7 @@ have a proper type for constants (e.g., :cpp:`2.7_rt`).
 Long
 ====
 
-AMReX defines a 64 bit integer type :cpp:`amrex::Long` that is an alias to
+AMReX defines a 64-bit integer type :cpp:`amrex::Long` that is an alias to
 :cpp:`long` on Unix-like systems and :cpp:`long long` on Windows.  In
 C, the type alias is :cpp:`amrex_long`.  In Fortran, one can use
 :cpp:`amrex_long` defined in :cpp:`amrex_fort_module`.
@@ -73,10 +73,10 @@ ParallelDescriptor
 ==================
 
 AMReX users do not need to use MPI directly. Parallel communication is often
-handled by the data abstraction classes (e.g.,MultiFab; section on
-:ref:`sec:basics:multifab`). In addition, AMReX has provided namespace
-:cpp:`ParallelDescriptor` in ``AMReX_ParallelDescriptor.H.`` The frequently
-used functions are
+handled by the data abstraction classes (e.g., MultiFab; see the section on
+:ref:`sec:basics:multifab`). In addition, AMReX has provided the namespace
+:cpp:`ParallelDescriptor` in ``AMReX_ParallelDescriptor.H``. The frequently
+used functions include
 
 .. highlight:: c++
 
@@ -111,7 +111,7 @@ ParallelContext
 
 Users can also use groups of MPI subcommunicators to perform
 simultaneous physics calculations.  These comms are managed by AMReX's
-:cpp:`ParallelContext` in ``AMReX_ParallelContext.H.``  It maintains a
+:cpp:`ParallelContext` in ``AMReX_ParallelContext.H``. It maintains a
 stack of :cpp:`MPI_Comm` handlers. A global comm is placed in the
 :cpp:`ParallelContext` stack during AMReX's initialization and
 additional subcommunicators can be handled by adding comms with
@@ -123,7 +123,7 @@ AMReX's base comm, independent of the status of the
 
 :cpp:`ParallelContext` also tracks and returns information about the
 local (most recently added) and global :cpp:`MPI_Comm`.  The most common
-access functions are given below.  See ``AMReX_ParallelContext.H.`` for
+access functions are given below. See ``AMReX_ParallelContext.H`` for
 a full listing of the available functions.
 
  .. highlight:: c++
@@ -198,8 +198,56 @@ get mixed up. Below are some examples.
 
 It should be emphasized that :cpp:`Print()` without any argument only
 prints on the I/O process.  A common mistake in using it for debug
-printing is one forgets that for non-I/O processes to print we should
+printing is that one forgets that for non-I/O processes to print we should
 use :cpp:`AllPrint()` or :cpp:`Print(rank)`.
+
+.. _sec:basics:enum:
+
+Enum Class
+==========
+
+.. versionadded:: 24.09
+   Enum class support.
+
+AMReX provides :cpp:`AMREX_ENUM` in ``AMReX_Enum.H`` for defining a
+reflected :cpp:`enum class`. Use :cpp:`AMREX_ENUM` at namespace scope.
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, red, green, blue);
+
+   void f ()
+   {
+       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
+       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
+       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
+       // names = {"red", "green", "blue"};
+       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
+   }
+
+Use :cpp:`AMREX_ENUM_IN_CLASS` for an enum class declared inside a class or
+class template.
+
+.. versionadded:: 26.05
+   :cpp:`AMREX_ENUM_IN_CLASS`.
+
+.. highlight:: c++
+
+::
+
+   struct Options {
+       AMREX_ENUM_IN_CLASS(Solver, cg, bicgstab, gmres);
+   };
+
+   template <typename T>
+   struct State {
+       AMREX_ENUM_IN_CLASS(Mode, init, run, stop);
+   };
+
+:cpp:`AMREX_ENUM_IN_CLASS` must be used inside a class definition. Use
+:cpp:`AMREX_ENUM` at namespace scope.
 
 .. _sec:basics:parmparse:
 
@@ -214,14 +262,14 @@ argument after the executable name (if there is one, and it does not contain the
 to be the inputs file, and the contents of the file are used to initialize the
 :cpp:`ParmParse` database. The rest of the command-line arguments are also
 parsed by :cpp:`ParmParse`, with the exception of those following a '\-\-' which signals
-command line sharing (see section :ref:`sec:basics:parmparse:sharingCL` ).
+command-line sharing (see section :ref:`sec:basics:parmparse:sharingCL`).
 
 Inputs File
 -----------
 
 The format of the inputs file is a series of definitions in the form of
-``prefix.name = value value ...``. For each line, text after # are
-comments. For values spanning multiple lines except for table, one must use
+``prefix.name = value value ...``. For each line, text after ``#`` is a
+comment. For values spanning multiple lines except for tables, one must use
 ``\`` at the end of a line for continuation, otherwise it's a runtime
 error. Note that there must be at least one space before the continuation
 character ``\``.  Multiple lines inside a pair of double quotes are
@@ -234,7 +282,7 @@ file.
 
     nsteps    = 100               # integer
     nsteps    = 1000              # nsteps appears a second time
-    dt        = 0.03              # floating point number
+    dt        = 0.03              # floating-point number
     ncells    = 128 64 32         # a list of 3 ints
     xrange    = -0.5 0.5          # a list of 2 reals
     title     = "Three Kingdoms"  # a string
@@ -279,7 +327,7 @@ The following code shows how to use :cpp:`ParmParse` to get/query the values.
      amrex::Print() << numcells.size() << "\n";  // 3
 
      Vector<Real> xr {-1.0, 1.0};
-     if (!queryarr("xrange", xr)) {
+     if (!pp.queryarr("xrange", xr)) {
          amrex::Print() << "Cannot find xrange in inputs, "
                         << "so the default {-1.0,1.0} will be used\n";
      }
@@ -306,7 +354,7 @@ Math Expressions
 .. versionadded:: 24.08
    Math expression support in :cpp:`ParmParse`.
 
-:cpp:`ParmParse` supports math expressions for integers and floating point
+:cpp:`ParmParse` supports math expressions for integers and floating-point
 numbers. For example,
 
 .. highlight:: python
@@ -406,7 +454,7 @@ The results will be
     double prob_lo[] = {1, 1, 1}
     double prob_hi[] = {1, 1, 1}
 
-Note that the empty spaces are significant for math expressions unless they
+Note that spaces are significant for math expressions unless they
 are inside a pair of ``"`` or explicitly parsed by
 :cpp:`ParmParse::queryWithParser` or :cpp:`ParmParse::getWithParser`. If the
 expression contains another variable, it will be looked up by
@@ -450,25 +498,8 @@ Enum Class
 .. versionadded:: 24.09
    Enum class support in :cpp:`ParmParse`.
 
-AMReX provides a macro :cpp:`AMREX_ENUM` for defining :cpp:`enum class` that
-supports reflection. For example,
-
-.. highlight:: c++
-
-::
-
-   AMREX_ENUM(MyColor, red, green, blue);
-
-   void f ()
-   {
-       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
-       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
-       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
-       // names = {"red", "green", "blue"};
-       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
-   }
-
-This allows us to read :cpp:`ParmParse` parameters into enum class objects.
+:cpp:`ParmParse` can read enum types declared with :cpp:`AMREX_ENUM` or
+:cpp:`AMREX_ENUM_IN_CLASS` (see :ref:`sec:basics:enum`).
 
 .. highlight:: python
 
@@ -477,22 +508,162 @@ This allows us to read :cpp:`ParmParse` parameters into enum class objects.
    color1 = red
    color2 = BLue
 
-The following code shows how to query the enumerators.
-
 .. highlight:: c++
 
 ::
 
    AMREX_ENUM(MyColor, none, red, green, blue);
 
-   void f (MyColor& c1, MyColor& c2)
-   {
-       ParmParse pp;
-       pp.query("color1", c1); // c1 becomes MyColor::red
-       pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
-       MyColor default_color; // MyColor::none
-       pp.query("color3", default_color); // Still MyColor::none
-   }
+   ParmParse pp;
+   MyColor c1 = MyColor::none;
+   MyColor c2 = MyColor::none;
+
+   pp.query("color1", c1); // c1 becomes MyColor::red
+   pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
+
+Other Useful Functions
+----------------------
+
+:cpp:`ParmParse` provides several additional member functions:
+
+- :cpp:`queryAdd(name, ref)` queries the database. If the name is
+  found, its value is stored in ``ref``. If not, the current value of ``ref``
+  is added to the database as a default. This is useful for setting
+  parameter defaults inside functions (see
+  :ref:`sec:basics:parmparse:functions`).
+
+- :cpp:`getline(name, ref)` / :cpp:`queryline(name, ref)` retrieve the
+  entire value list as a single whitespace-joined string. For example, if
+  the input contains ``foo = a b c``, then :cpp:`getline("foo", s)` sets
+  ``s`` to ``"a b c"``, whereas :cpp:`get("foo", s)` would set ``s`` to
+  ``"a"`` only.
+
+- :cpp:`queryAsDouble(name, ref)` / :cpp:`getAsDouble(name, ref)` parse
+  the value as a ``double`` math expression and then cast the result to the
+  type of ``ref`` (which can be an integer type). This avoids integer
+  truncation issues when the expression involves division.
+
+- :cpp:`eval(expr)` evaluates a math expression string directly, looking
+  up any unknown symbols in the :cpp:`ParmParse` database.
+
+  .. highlight:: c++
+
+  ::
+
+     ParmParse pp;
+     pp.add("two", 2.0);
+     double result = pp.eval<double>("two * 3.14"); // 6.28
+
+- :cpp:`remove(name)` removes a parameter from the database.
+
+- :cpp:`contains(name)` returns ``true`` if the parameter exists, without
+  retrieving its value.
+
+TOML-Like Features
+------------------
+
+Our :cpp:`ParmParse` format is somewhat similar to TOML. A subset of TOML
+can be processed by :cpp:`ParmParse`. For a key/value pair, the key starts
+with an alphabetical letter (a-zA-Z) followed by zero or more allowed
+characters (alphabetical letters, numbers, ``_``, ``-``, and ``.``).
+
+In TOML, the same key cannot appear more than once. In :cpp:`ParmParse`,
+this is allowed and the last one will overwrite previous ones.
+
+.. highlight:: python
+
+::
+
+   # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
+   a = 1
+   a = 2
+
+In :cpp:`ParmParse`, quotes (``"``) are optional for strings, whereas in TOML
+they are required. In :cpp:`ParmParse`, a basic string is a raw string. For
+compatibility, you should avoid special escape sequences in strings. UTF-8
+strings are allowed, but it might be better to avoid them unless it's
+absolutely necessary.
+
+In TOML, arrays are values inside square brackets and they can be
+nested. :cpp:`ParmParse` supports TOML-like arrays and arrays of arrays, but
+not more deeply nested arrays. :cpp:`ParmParse` also does not support mixed
+types in an array.
+
+Although math expressions are allowed in :cpp:`ParmParse`'s native array
+format, they are not allowed in arrays started by square brackets.
+
+.. highlight:: python
+
+::
+
+  a = [3+4, 5+6] # Not allowed
+  b = 3+4  5+6  # Allowed in ParmParse, but not in TOML. Same as b = [7,11].
+
+Tables in TOML are started by headers (e.g., ``[amr]`` on a line). By default,
+an entry before the table header is in the nameless top level table. Once a
+table header is defined, it will continue until another one is introduced.
+
+.. highlight:: python
+
+::
+
+   k = 1
+   p.k = 2
+
+   [a]
+   k = 3   # the full key/value pair is a.k = 3
+   b.k = 4 # the full key/value pair is a.b.k = 4
+
+   [b.c]
+   k = 5     # the full key/value pair is b.c.k = 5
+   d.e.k = 6 # the full key/value pair is b.c.d.e.k = 6
+
+The file above is the same as the following:
+
+.. highlight:: python
+
+::
+
+   k = 1
+   p.k = 2
+
+   a.k = 3
+   a.b.k = 4
+
+   b.c.k = 5
+   b.c.d.e.k = 6
+
+In TOML, it's not allowed to define a table more than once. But it's allowed
+in :cpp:`ParmParse`. If you want compatibility with TOML, you should avoid it.
+
+.. highlight:: python
+
+::
+
+   # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
+   [a]
+   b = 1
+   [a.b]     # a.b already defined
+   c = 2
+
+.. highlight:: python
+
+::
+
+   # Allowed in ParmParse, but do NOT do this if TOML compatibility is needed.
+   [a]
+   k = 1
+   [a]      # [a] already defined
+   b = 2
+
+Including Another File
+----------------------
+
+In :cpp:`ParmParse`, you can use ``FILE = another_file`` to add the contents
+of another file to the :cpp:`ParmParse` database of key/value pairs. Note
+that TOML-like table headers defined in the included file have no effect on
+the current environment. Likewise, the included file also does not inherit
+the active table header from the including file.
 
 Overriding Parameters with Command-Line Arguments
 -------------------------------------------------
@@ -508,11 +679,40 @@ run with:
 
 ::
 
-        myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9
+        myexecutable myinputsfile ncells="64 32 16" hydro.cfl=0.9 my_string=\"A String\"
 
+Note that the shell strips the quoting characters before the arguments reach
+:cpp:`main(int argc, char** argv)`. The quotes in ``ncells="64 32 16"`` only
+ensure that the spaces stay inside a single argument; the literal ``"``
+never arrives in :cpp:`argv`. If you actually need to pass a single string
+to the code (e.g., for :cpp:`my_string`), you must escape them as shown
+above. The example command line is equivalent to putting the following
+entries in an inputs file:
 
-Setting Default Via Environment Variable
-----------------------------------------
+.. code-block:: none
+
+   ncells = 64 32 16
+   hydro.cfl = 0.9
+   my_string = "A String"
+
+You can also remove the effect of having defined an input parameter at all using the
+``UNSET`` directive (parameters that are merely overridden will still be caught by
+:cpp:`pp.contains()` checks in code). Specifying ``keyword = 5`` in an input file and
+then ``UNSET = keyword`` subsequently in the input file or from the command line
+completely removes ``keyword`` from the ParmParse table. Multiple keywords can
+be removed simultaneously (``UNSET = key1 key2 key3``). if using the ``UNSET``
+directive with TOML-like input files, note that full parameter names must be used
+even if the UNSET falls within a TOML table:
+
+.. code-block:: none
+
+   [x]
+   a = 1  # Same as x.a = 1 at the root level
+
+   UNSET = x.a # full name required to remove x.a entry
+
+Setting Defaults via an Environment Variable
+--------------------------------------------
 
 You can specify default parameter values using the environment variable
 ``AMREX_DEFAULT_INIT``. This is useful for setting site-wide or
@@ -570,7 +770,7 @@ The above is equivalent to setting the following in the inputs file:
 Setting Parameter Values Inside Functions
 -----------------------------------------
 
-An application code may want to set values or defaults that differ from the
+An application code may want to set values or defaults that differ from
 those in AMReX in a function. This is accomplished in two steps:
 
 - First, define a function that sets the variable(s).
@@ -585,7 +785,7 @@ approaches to highlight subtle differences in implementation:
    void add_par () {
       ParmParse pp("eb2");
 
-      // `variable_one` can be overridden by an inputs file and/or command line argument.
+      // `variable_one` can be overridden by an inputs file and/or command-line argument.
       if(not pp.contains("variable_one")) {
          pp.add("variable_one",false);
       }
@@ -594,11 +794,11 @@ approaches to highlight subtle differences in implementation:
       bool variable_one_v2 = false;
       pp.queryAdd("variable_one_v2", variable_one_v2);
 
-      // The inputs file or command line arguments for `variable_two` are ignored.
+      // The inputs file or command-line arguments for `variable_two` are ignored.
       pp.add("variable_two",false);
    };
 
-First this function, :cpp:`add_par`, declares a ``ParmParse`` object that will be
+First, this function, :cpp:`add_par`, declares a ``ParmParse`` object that will be
 used to set variables. In the next section of code, we check if the value for
 ``variable_one`` has already been set elsewhere before writing to it. This
 approach prevents the function
@@ -608,7 +808,7 @@ concisely: it queries the database and, only if the parameter is not found,
 adds the value of its ``ref`` argument as a default.
 In the next section, we write a value to ``variable_two`` without a conditional
 statement. In this case, we will ignore values for ``variable_two`` set in the
-inputs file or as a command line argument ---effectively overriding them with
+inputs file or as a command-line argument, effectively overriding them with
 the value set here in the function.
 
 In the second step, we pass the name of the function we defined to ``amrex::Initialize``.
@@ -618,14 +818,14 @@ In the example above the function was called ``add_par``, and therefore we write
 
    amrex::Initialize(argc, argv, add_par);
 
-Now AMReX will use the user defined function to appropriately set the desired values.
+Now AMReX will use the user-defined function to appropriately set the desired values.
 
 .. _sec:basics:parmparse:sharingCL:
 
 Sharing the Command Line
 ------------------------
 
-In some cases we want AMReX to only read some of the command line
+In some cases we want AMReX to read only some of the command-line
 arguments -- this happens, for example, when we are going to use AMReX
 in cooperation with another code package and that code also takes arguments.
 
@@ -638,17 +838,17 @@ Consider:
     main2d.gnu.exe inputs amrex.v=1 amrex.fpe_trap_invalid=1 -- -tao_monitor
 
 In this example, AMReX will parse the inputs file and the optional AMReX
-command line arguments, but will ignore arguments after the double dashes.
+command-line arguments, but will ignore arguments after the double dashes.
 
 Command Line Flags
 ------------------
 
 AMReX allows application codes to parse flags such as ``-h`` or ``--help``
-while still making use of ParmParse for parsing other runtime parameters but only
-if it is the first argument after the executable. If the first argument following
+while still making use of ParmParse for parsing other runtime parameters, but only
+if the flag is the first argument after the executable. If the first argument following
 the executable name begins with a dash, AMReX will initialize without reading
 any parameters and the application code may then parse the command line and
-handle those cases. Several built in functions are available to help do this.
+handle those cases. Several built-in functions are available to help do this.
 They are briefly introduced in the table below.
 
 .. table:: AMReX functions for parsing the command line.
@@ -661,7 +861,7 @@ They are briefly introduced in the table below.
    | ``amrex::get_argument_count()``           | Int    | Get the number of command line arguments  |
    |                                           |        | after the executable.                     |
    +-------------------------------------------+--------+-------------------------------------------+
-   | ``amrex:get_command_argument(int n)``     | String | Returns the n-th argument after           |
+   | ``amrex::get_command_argument(int n)``    | String | Returns the n-th argument after           |
    |                                           |        | the executable.                           |
    +-------------------------------------------+--------+-------------------------------------------+
 
@@ -673,29 +873,51 @@ They are briefly introduced in the table below.
 Parser
 ======
 
-AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to evaluate mathematical
-expressions given in the form of string.  It supports ``+``, ``-``, ``*``,
-``/``, ``**`` (power), ``^`` (power), ``sqrt``, ``exp``, ``log``, ``log10``,
-``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``, ``atan2``, ``sinh``, ``cosh``,
-``tanh``, ``asinh``, ``acosh``, ``atanh``, ``abs``, ``floor``, ``ceil``, ``fmod``,
-and ``erf``. The minimum and maximum of two
-numbers can be computed with ``min`` and ``max``, respectively.  It supports
-the Heaviside step function, ``heaviside(x1,x2)`` that gives ``0``, ``x2``,
-``1``, for ``x1 < 0``, ``x1 = 0`` and ``x1 > 0``, respectively.
-It supports the Bessel function of the first kind of order ``n``
-``jn(n,x)``, and the Bessel function of the second kind of order ``n`` ``yn(n,x)``.
-Complete elliptic integrals of the first and second kind, ``comp_ellint_1(k)`` and ``comp_ellint_2(k)``,
-are supported.
-There is ``if(a,b,c)`` that gives ``b`` or ``c`` depending on the value of
-``a``.  A number of comparison operators are supported, including ``<``,
-``>``, ``==``, ``!=``, ``<=``, and ``>=``, and they can be chained.
-The Boolean results from
-comparison can be combined by ``and`` and ``or``, and they hold the value ``1``
-for true and ``0`` for false.  The precedence of the operators follows the
-convention of the C and C++ programming languages.  Here is an example of using
-the parser.
+AMReX provides a parser in ``AMReX_Parser.H`` that can be used at runtime to
+evaluate mathematical expressions given in the form of a string. The parser
+compiles expressions into a compact executable form that can be evaluated
+efficiently on both CPU and GPU. When :cpp:`compile` is called, the parser
+automatically performs constant folding and algebraic simplification.
 
-.. highlight: c++
+Supported Operators and Functions
+---------------------------------
+
+**Arithmetic operators:** ``+``, ``-``, ``*``, ``/``, ``**`` (power), ``^``
+(power).
+
+**Basic math functions:** ``sqrt``, ``abs``, ``floor``, ``ceil``, ``fmod``,
+``pow``, ``min``, ``max``.
+
+**Exponential and logarithmic:** ``exp``, ``log``, ``log10``.
+
+**Trigonometric:** ``sin``, ``cos``, ``tan``, ``asin``, ``acos``, ``atan``,
+``atan2``.
+
+**Hyperbolic:** ``sinh``, ``cosh``, ``tanh``, ``asinh``, ``acosh``, ``atanh``.
+
+**Special functions:** ``erf``, ``jn(n,x)`` (Bessel function of the first
+kind of order ``n``), ``yn(n,x)`` (Bessel function of the second kind of
+order ``n``), ``comp_ellint_1(k)`` and ``comp_ellint_2(k)`` (complete
+elliptic integrals of the first and second kind).
+
+**Heaviside step function:** ``heaviside(x1,x2)`` returns ``0`` when
+``x1 < 0``, ``x2`` when ``x1 = 0``, and ``1`` when ``x1 > 0``.
+
+**Conditional:** ``if(a,b,c)`` returns ``b`` if ``a`` is nonzero (true),
+``c`` if ``a`` is zero (false).
+
+**Comparison operators:** ``<``, ``>``, ``==``, ``!=``, ``<=``, ``>=``.
+Comparisons return ``1.0`` for true and ``0.0`` for false. They can be
+chained (e.g., ``a < x < b`` is equivalent to ``a < x and x < b``).
+
+**Logical operators:** ``and``, ``or``. A value is considered true if it is
+nonzero. The precedence of operators follows the convention of the C and C++
+programming languages.
+
+Basic Usage
+-----------
+
+.. highlight:: c++
 
 ::
 
@@ -717,9 +939,22 @@ the parser.
      }
    }
 
-Local automatic variables can be defined in the expression.  For example,
+Constants are set with :cpp:`setConstant` and are substituted into the
+expression when :cpp:`compile` is called (i.e., at parser compile time, not
+C++ compile time). Variables are registered with
+:cpp:`registerVariables` and their values are provided at evaluation time.
+The template parameter to :cpp:`compile` must match the number of registered
+variables.
 
-.. highlight: c++
+If the compiled executor is only needed on the host, :cpp:`compileHost` can
+be used instead of :cpp:`compile` to skip the GPU copy.
+
+Local Variables
+---------------
+
+Local automatic variables can be defined in the expression. For example,
+
+.. highlight:: c++
 
 ::
 
@@ -728,24 +963,73 @@ Local automatic variables can be defined in the expression.  For example,
    parser.registerVariables({"x","y"});
    auto f = parser.compile<2>();  // 2 because there are two variables.
 
-Note that an assignment to an automatic variable must be terminated with
-``;``, and one should avoid name conflict between the local variables and
-the constants set by :cpp:`setConstant` and the variables registered by
-:cpp:`registerVariables`.
+An assignment to a local variable must be terminated with ``;``. The final
+expression in the string (without a trailing ``;``) is the return value.
+One should avoid name conflicts between local variables and the constants set
+by :cpp:`setConstant` or the variables registered by :cpp:`registerVariables`.
 
-Besides :cpp:`amrex::Parser` for floating point numbers, AMReX also provides
-:cpp:`amrex::IParser` for integers.  The two parsers have a lot of
-similarity, but floating point number specific functions (e.g., ``sqrt``,
-``sin``, etc.) are not supported in ``IParser``.  In addition to ``/`` whose
-result truncates towards zero, the integer parser also supports ``//`` whose
-result truncates towards negative infinity. Single quotes ``'`` are allowed
-as a separator for :cpp:`IParser` numbers just like C++ integer
-literals. Additionally, a floating point like number with a positive
-exponent may be accepted as an integer if it is reasonable to do so. For
-example, it's okay to have ``1.234e3``, but ``1.234e2`` is an error.
+User-Defined Functions
+----------------------
+
+User-defined functions with one to four arguments can be registered with the
+parser. When the parser encounters an unknown function name in the expression,
+it is treated as a user-defined function. The user must then register a
+function pointer (for both host and device) before compiling.
+
+.. highlight:: c++
+
+::
+
+   Parser parser("my_fn(x, y) + z");
+   parser.registerVariables({"x","y","z"});
+
+   // Register host and device function pointers for my_fn (2 arguments).
+   parser.registerUserFn2("my_fn", my_host_fn, my_device_fn);
+
+   auto f = parser.compile<3>();
+
+The registration functions are :cpp:`registerUserFn1`, :cpp:`registerUserFn2`,
+:cpp:`registerUserFn3`, and :cpp:`registerUserFn4` for functions with one, two,
+three, and four arguments, respectively. In CPU-only builds, either function
+pointer argument may be ``nullptr`` and the non-null one will be used.
+
+Querying the Parser
+-------------------
+
+The :cpp:`Parser` class provides several methods for introspection:
+
+- :cpp:`symbols()` returns a ``std::set<std::string>`` of all variable names
+  found in the expression (excluding local variables and constants already set).
+- :cpp:`expr()` returns the original expression string.
+- :cpp:`print()` prints the abstract syntax tree (AST) of the expression.
+- :cpp:`printExe()` prints the compiled instruction sequence.
+
+Integer Parser
+--------------
+
+Besides :cpp:`amrex::Parser` for floating-point numbers, AMReX also provides
+:cpp:`amrex::IParser` for integers. The two parsers have a lot of similarity,
+but floating-point-specific functions (e.g., ``sqrt``, ``sin``, etc.)
+are not supported in ``IParser``. In addition to ``/`` whose result truncates
+towards zero, the integer parser also supports ``//`` whose result truncates
+towards negative infinity. Single quotes ``'`` are allowed as a separator for
+:cpp:`IParser` numbers just like C++ integer literals. Additionally, a
+floating-point-like number with a positive exponent may be accepted as an
+integer if it is reasonable to do so. For example, it's okay to have
+``1.234e3``, but ``1.234e2`` is an error.
 
   .. versionadded:: 24.08
      Support for ``'`` and ``e`` in :cpp:`IParser` integers.
+
+Thread Safety
+-------------
+
+Constructing a :cpp:`Parser` (or :cpp:`IParser`) object is **not** thread-safe
+because the underlying lex/yacc parser uses global state. If multiple threads
+need to construct parsers concurrently, external synchronization is required.
+Once compiled, the :cpp:`ParserExecutor` returned by :cpp:`compile` or
+:cpp:`compileHost` is thread-safe and can be called concurrently from multiple
+threads or GPU kernels.
 
 .. _sec:basics:initialize:
 
@@ -783,7 +1067,7 @@ are three versions of :cpp:`Initialize`.
                      int a_device_id = -1);
 
 :cpp:`Initialize` checks if MPI has been initialized.  If it has, AMReX will
-duplicate the ``MPI_Comm`` argument provided by the users in the first and
+duplicate the ``MPI_Comm`` argument provided by the user in the first and
 third versions or ``MPI_COMM_WORLD`` in the second version.  If not, AMReX
 will initialize MPI and ignore the ``MPI_Comm`` argument. Since AMReX 25.06,
 MPI types are no longer placed in the global namespace in non-MPI builds to
@@ -800,12 +1084,12 @@ optional error handler function.  If provided, AMReX will use it to handle
 errors and signals; otherwise, it will use its own function for error and
 signal handling.
 
-The first version of :cpp:`Initialize` does not parse the command line
-options. The second version builds ParmParse database (section
+The first version of :cpp:`Initialize` does not parse the command-line
+options. The second version builds the ParmParse database (section
 :ref:`sec:basics:parmparse`), and the third version does so as well unless
 the ``build_parm_parse`` parameter is set to :cpp:`false`. In both the
 second and third versions, the user may also pass a function that adds
-parameters to the ParmParse database instead of reading from command line or
+parameters to the ParmParse database instead of reading from the command line or
 input file.
 
 The last optional parameter, :cpp:`int a_device_id = -1`, applies to
@@ -820,8 +1104,8 @@ device ID by calling :cpp:`int amrex::Gpu::Device::deviceId()`.
 
 Because many AMReX classes and functions (including destructors
 inserted by the compiler) do not function properly after
-:cpp:`amrex::Finalize` is called, it's best to put the codes between
-:cpp:`amrex::Initialize` and :cpp:`amrex::Finalize` into its scope
+:cpp:`amrex::Finalize` is called, it's best to put the code between
+:cpp:`amrex::Initialize` and :cpp:`amrex::Finalize` into its own scope
 (e.g., a pair of curly braces or a separate function) to make sure
 resources are properly freed.
 
@@ -875,9 +1159,9 @@ dimension-dependent class. It has lower and upper corners (represented by
 IntVect
 -------
 
-:cpp:`IntVec` is a dimension-dependent class representing an integer vector in
+:cpp:`IntVect` is a dimension-dependent class representing an integer vector in
 :cpp:`AMREX_SPACEDIM`-dimensional space. An :cpp:`IntVect` can be constructed
-as follows,
+as follows:
 
 .. highlight:: c++
 
@@ -888,7 +1172,7 @@ as follows,
 Here :cpp:`AMREX_D_DECL` is a macro that expands :cpp:`AMREX_D_DECL(19,0,5)` to
 either :cpp:`19` or :cpp:`19, 0` or :cpp:`19, 0, 5` depending on the number of
 dimensions. The data can be accessed via :cpp:`operator[]`, and the internal
-data pointer can be returned by function :cpp:`getVect`. For example
+data pointer can be returned by the function :cpp:`getVect`. For example
 
 .. highlight:: c++
 
@@ -904,7 +1188,7 @@ vector, :cpp:`TheUnitVector()` returning the unit vector, and
 :cpp:`TheDimensionVector (int dir)` returning a reference to a constant
 :cpp:`IntVect` that is zero except in the :cpp:`dir`-direction. Note the
 direction is zero-based. :cpp:`IntVect` has a number of relational operators,
-:cpp:`==`, :cpp:`!=`, :cpp:`<`, :cpp:`<=`, :cpp:`>` , and :cpp:`>=` that can be
+:cpp:`==`, :cpp:`!=`, :cpp:`<`, :cpp:`<=`, :cpp:`>`, and :cpp:`>=` that can be
 used for lexicographical comparison (e.g., key of :cpp:`std::map`), and a class
 :cpp:`IntVect::shift_hasher` that can be used as a hash function (e.g., for
 :cpp:`std::unordered_map`). It also has various arithmetic operators. For
@@ -950,8 +1234,8 @@ therefore one can call
 IndexType
 ---------
 
-This class defines an index as being cell based or node based in each
-dimension. The default constructor defines a cell based type in all directions.
+This class defines an index as being cell-based or node-based in each
+dimension. The default constructor defines a cell-based type in all directions.
 One can also construct an :cpp:`IndexType` with an :cpp:`IntVect` with zero and
 one representing cell and node, respectively.
 
@@ -959,7 +1243,7 @@ one representing cell and node, respectively.
 
 ::
 
-     // Node in x-direction and cell based in y and z-directions
+     // Node in x-direction and cell-based in y and z-directions
      // (i.e., x-face of numerical cells)
      IndexType xface(IntVect{AMREX_D_DECL(1,0,0)});
 
@@ -969,16 +1253,16 @@ The class provides various functions including
 
 ::
 
-     // True if the IndexType is cell based in all directions.
+     // True if the IndexType is cell-based in all directions.
      bool cellCentered () const;
 
-     // True if the IndexType is cell based in dir-direction.
+     // True if the IndexType is cell-based in dir-direction.
      bool cellCentered (int dir) const;
 
-     // True if the IndexType is node based in all directions.
+     // True if the IndexType is node-based in all directions.
      bool nodeCentered () const;
 
-     // True if the IndexType is node based in dir-direction.
+     // True if the IndexType is node-based in dir-direction.
      bool nodeCentered (int dir) const;
 
 Index type is a very important concept in AMReX. It is a way of representing
@@ -1000,12 +1284,12 @@ of defining a :cpp:`Box` are
      IntVect lo(AMREX_D_DECL(64,64,64));
      IntVect hi(AMREX_D_DECL(127,127,127));
      IndexType typ({AMREX_D_DECL(1,1,1)});
-     Box cc(lo,hi);        // By default, Box is cell based.
+     Box cc(lo,hi);        // By default, Box is cell-based.
      Box nd(lo,hi+1,typ);  // Construct a nodal Box.
      Print() << "A cell-centered Box " << cc << "\n";
      Print() << "An all nodal Box    " << nd << "\n";
 
-Depending the dimensionality, the output of the code above is
+Depending on the dimensionality, the output of the code above is
 
 ::
 
@@ -1019,7 +1303,7 @@ respectively. For each tuple like :cpp:`(64,64,64)`, the 3 numbers are for 3
 directions. The two Boxes in the code above represent different indexing views
 of the same domain of :math:`64^3` cells. Note that in AMReX convention, the
 lower side of a cell has the same integer value as the cell centered index.
-That is if we consider a cell based index represent :math:`i`, the nodal index
+That is, if we consider a cell-based index to represent :math:`i`, the nodal index
 with the same integer value represents :math:`i-1/2`.
 :numref:`fig:basics:indextypes` shows some of the different index types for 2D.
 
@@ -1067,7 +1351,7 @@ There are a number of ways of converting a :cpp:`Box` from one type to another.
       b3.enclosedCells();             //  Exercise for you
 
 The internal data of :cpp:`Box` can be accessed via various member functions.
-Examples are
+Examples include:
 
 .. highlight:: c++
 
@@ -1325,7 +1609,7 @@ a collection, even though a single process in a parallel run only owns some of
 the Boxes via domain decomposition. In the example above, a 4-process run may
 divide the work and each process owns say 2 Boxes (see section
 on :ref:`sec:basics:dm`). Each process can then allocate memory for the
-floating point data on the Boxes it owns (see sections
+floating-point data on the Boxes it owns (see sections
 on :ref:`sec:basics:multifab` & :ref:`sec:basics:fab`).
 
 :cpp:`BoxArray` has an indexing type, just like :cpp:`Box`. Each Box in a
@@ -1348,7 +1632,7 @@ show how one can convert BoxArray to a different type.
 
 As shown in the example above, :cpp:`BoxArray` has an :cpp:`operator[]` that
 returns a :cpp:`Box` given an index. It should be emphasized that there is a
-difference between its behavior and the usual behavior of an subscript operator
+difference between its behavior and the usual behavior of a subscript operator
 one might expect. The subscript operator in :cpp:`BoxArray` returns by **value
 instead of reference**. This means code like below is meaningless because it
 modifies a temporary return value.
@@ -1469,8 +1753,8 @@ contiguous block of memory because of the ordering. For example, a
 :cpp:`BaseFab<Real>` with 4 components defined on a three-dimensional
 :cpp:`Box(IntVect{-4,8,32},IntVect{32,64,48})` is like a Fortran array of
 :fortran:`real(amrex_real), dimension(-4:32,8:64,32:48,0:3)`.  Note that the
-convention in C++ part of AMReX is the component index is zero based. The code
-for constructing such an object is as follows,
+convention in the C++ part of AMReX is that the component index is zero-based. The code
+for constructing such an object is as follows:
 
 .. highlight:: c++
 
@@ -1496,7 +1780,7 @@ call
 
       const Box& box() const;
 
-To the number of component, one can call
+To get the number of components, one can call
 
 .. highlight:: c++
 
@@ -1574,7 +1858,7 @@ FArrayBox.
       Real a = 3.0;
       fab2.saxpy(a, fab1); // For both components, fab2 <- a * fab1 + fab2
 
-These floating point operation functions are templated with parameter
+These floating-point operations are templated with the parameter
 :cpp:`RunOn` specifying where they run, :cpp:`RunOn::Host` or
 :cpp:`RunOn::Device`.  When AMReX is built just for CPU, the
 template parameter has a default value of :cpp:`RunOn::Host` so that
@@ -1638,7 +1922,7 @@ The behavior is in some sense similar to ``double const * const p``.
 
 :cpp:`BaseFab` and its derived classes are containers for data on :cpp:`Box`.
 Recall that :cpp:`Box` has various types (see the section on :ref:`sec:basics:box`).
-The examples in this section so far use the default cell based type.  However,
+The examples in this section so far use the default cell-based type. However,
 some functions will result in a runtime error if the types mismatch.  For
 example.
 
@@ -1815,9 +2099,9 @@ face averaged variables.
       MultiFab yflux(amrex::convert(ba, IntVect{0,1,0}), dm, ncomp, 0);
       MultiFab zflux(amrex::convert(ba, IntVect{0,0,1}), dm, ncomp, 0);
 
-Here all :cpp:`MultiFab`\ s  use the same :cpp:`DistributionMapping`, but their
+Here all :cpp:`MultiFab`\ s use the same :cpp:`DistributionMapping`, but their
 :cpp:`BoxArray`\ s have different index types. The state is cell-based, whereas
-the fluxes are on the faces. Suppose the cell based :cpp:`BoxArray` contains a
+the fluxes are on the faces. Suppose the cell-based :cpp:`BoxArray` contains a
 :cpp:`Box{(8,8,16), (15,15,31)}`. The state on that :cpp:`Box` is conceptually
 a Fortran Array with the dimension of :fortran:`(8:15,8:15,16:31,0:2)`. The
 fluxes are arrays with slightly different indices. For example, the
@@ -1882,7 +2166,7 @@ Note that :cpp:`FillBoundary` does not modify any valid cells. Also note that
 :cpp:`Geometry` has, and we can provide that information so that periodic
 boundaries can be filled as well. You might have noticed that a ghost cell
 could overlap with multiple valid cells from different FArrayBoxes in the case
-of nodal index type. In that case, it is unspecified that which valid cell's
+of nodal index type. In that case, it is unspecified which valid cell's
 value is used to fill the ghost cell. It ought to be the case the values in
 those overlapping valid cells are the same up to roundoff errors.  If
 a ghost cell does not overlap with any valid cells, its value will not
@@ -1913,7 +2197,7 @@ parameter is also optional and is set to :cpp:`FabArrayBase::COPY` by default.
 One could also use :cpp:`FabArrayBase::ADD`. This determines whether the
 function copies or adds data from the source to the
 destination. Similar to :cpp:`FillBoundary`, if a destination cell has
-multiple cells as source, it is unspecified that which source cell is used in
+multiple cells as source, it is unspecified which source cell is used in
 :cpp:`FabArrayBase::COPY`, and, for :cpp:`FabArrayBase::ADD`, the multiple
 values are all added to the destination cell.  This function has two
 variants, in which the periodicity and operation type are also optional.
@@ -2254,7 +2538,7 @@ tiling flag is on. One can change the default size using :cpp:`ParmParse`
    | | :math:`9\times 8` points. Note that points in one | | the symbols. There are 8 tiles in total. Some      |
    | | :cpp:`Box` may overlap with points in the other   | | tiles have :math:`5\times 4` points, whereas       |
    | | :cpp:`Box`. However, the memory locations for     | | others have :math:`4 \times 4` points. Points from |
-   | | storing floating point data of those points do    | | different Boxes may overlap, but points from       |
+   | | storing floating-point data of those points do    | | different Boxes may overlap, but points from       |
    | | not overlap, because they belong to separate      | | different tiles of the same Box do not.            |
    | | FArrayBoxes.                                      |                                                      |
    +-----------------------------------------------------+------------------------------------------------------+
@@ -2406,7 +2690,7 @@ To avoid some common bugs, it is not allowed to have multiple active
     call amrex_mfiter_build(mf1, ...)
     call amrex_mfiter_build(mf2, ...)
 
-The will results in an assertion failure at runtime.  To disable the
+This will result in an assertion failure at runtime.  To disable the
 assertion, one could call
 
 .. highlight:: c++
@@ -2524,7 +2808,7 @@ C++ passes an integer pointer pointing to an array of three integers Fortran
 can treat it as a 2-element integer array.
 
 Another commonly used macro is :cpp:`BL_TO_FORTRAN`. This macro takes an
-:cpp:`FArrayBox` and provides a real pointer for the floating point data array
+:cpp:`FArrayBox` and provides a real pointer for the floating-point data array
 and a number of integer scalars for the bounds.  However, the number of the
 integers depends on the dimensionality.  More specifically, there are 6 and 4
 integers for 2D and 3D, respectively. The first half of the integers are the
@@ -2596,8 +2880,8 @@ cannot catch it.  For example
 The code above will compile without errors even though the number of
 arguments and types don't match.
 
-To help detect this kind of issues, AMReX provides a type check tool.
-Note that it only works when GCC is used.  In the directory an AMReX
+To help detect this kind of issue, AMReX provides a type check tool.
+Note that it only works when GCC is used. In the directory where an AMReX-
 based code is compiled, type
 
 .. highlight:: console
@@ -2624,10 +2908,10 @@ reference.  In the example output above, ``pointer`` in ``Fortran type
 (i.e., C pointer), not a Fortran pointer.
 
 The type check tool has known limitations.  For a function to be
-checked by the tool in the GNU make build system, the declaration must
+checked by the tool in the GNU Make build system, the declaration must
 be in a header file named ``*_f.H`` or ``*_F.H``, and the header file
 must be in the ``CEXE_headers`` make variable.  The headers are
-preprocessed first by cpp as C language, and is then parsed by
+preprocessed first by cpp as C code, and then parsed by
 pycparser (https://pypi.python.org/pypi/pycparser) that needs to be
 installed on your system.  Because pycparser is a C parser, C++ parts
 of the headers (e.g., :cpp:`extern "C" {`) need to be hidden with
@@ -2640,9 +2924,9 @@ report issues to us.
 
 .. _sec:basics:cppkernel:
 
-Although Fortran has native multi-dimensional array, we recommend
+Although Fortran has native multi-dimensional arrays, we recommend
 writing kernels in C++ because of performance portability for CPU and
-GPU.  AMReX provides a multi-dimensional array type of syntax, similar
+GPU.  AMReX provides a multi-dimensional array syntax, similar
 to Fortran, that is readable and easy to implement.  We have
 demonstrated how to use :cpp:`Array4` in previous sections.  Because
 of its importance, we will summarize its basic usage again with the
@@ -2772,7 +3056,7 @@ There are other versions of :cpp:`ParallelFor`,
 Ghost Cells
 ===========
 
-AMReX uses a :cpp:`MultiFab` as a container for floating point data on
+AMReX uses a :cpp:`MultiFab` as a container for floating-point data on
 multiple Boxes at a single level of refinement. Each rectangular Box has its own boundaries
 on the low and high side in each coordinate direction.
 Each Box within a :cpp:`MultiFab` can have ghost cells for storing data outside
@@ -3072,9 +3356,9 @@ very important for GPU codes.  We will present more details about memory
 arenas in :ref:`sec:gpu:memory` in Chapter GPU.
 
 Every :cpp:`FArrayBox` in a :cpp:`MultiFab` has a contiguous chunk of memory
-for floating point data, whereas by default :cpp:`MultiFab` as a collection
-of multiple :cpp:`FArrayBox`\ s does not store all floating point data in
-contiguous chunk of memory. This behavior can be changed for all
+for floating-point data, whereas by default :cpp:`MultiFab`, as a collection
+of multiple :cpp:`FArrayBox`\ s, does not store all floating-point data in
+a contiguous chunk of memory. This behavior can be changed for all
 :cpp:`MultiFab`\ s with the :cpp:`ParmParse` parameter,
 ``amrex.mf.alloc_single_chunk=1``, or for a specific :cpp:`MultiFab` by
 passing a :cpp:`MFInfo` object (e.g.,
@@ -3129,13 +3413,13 @@ as a message.  A ``ParmParse`` runtime boolean parameter
 can be set to 1 (i.e., :cpp:`true`) so that AMReX will throw an
 exception instead of aborting.
 
-:cpp:`AMREX_ASSERT` is a macro that takes a Boolean expression. For debug build
+:cpp:`AMREX_ASSERT` is a macro that takes a Boolean expression. For a debug build
 (e.g., ``DEBUG=TRUE`` using the GNU Make build system), if the expression at
 runtime is evaluated to false, :cpp:`amrex::Abort` will be called and the run
-is thus terminated. For optimized build (e.g., ``DEBUG=FALSE`` using the GNU
+is thus terminated. For an optimized build (e.g., ``DEBUG=FALSE`` using the GNU
 Make build system), the :cpp:`AMREX_ASSERT` statement is removed at compile
 time and thus has no effect at runtime. We often use this as a means of putting
-debug statement in the code without adding any extra cost for production runs.
+debug statements in the code without adding any extra cost for production runs.
 For example,
 
 .. highlight:: c++

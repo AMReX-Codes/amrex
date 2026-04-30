@@ -7,7 +7,18 @@ amrex.v = 0
 name = "I am w" \
        "line 2"
 
+# string arrays
+sa = abc xyz 123
+sb = "abc" "xyz" "123"
+
+# IntVect
+iv1 = (5)
+iv2 = (10,20)
+iv3 = (100,200,300)
+
+# Box
 b = ((1, 2, 3) (7, 8,9) (1,0,   1))
+b2 = "((1, 2, 3)(7,8,9)(1,0,1))"
 
 # three numbers. whitespaces inside `""` are okay.
 f = 3+4  99  "5 + 6"
@@ -63,6 +74,14 @@ n_cell = nx nx nx
 ny = nx
 
 do_this = 1
+
+# boolean strings
+bool.true_val = true
+bool.false_val = false
+bool.True_val = True
+bool.FALSE_val = FALSE
+bool.t_val = t
+bool.f_val = f
 
 # query bool with parser
 my_value = 10
@@ -143,3 +162,13 @@ macro.use_gpu.spacedim = 3
 #  endif
 
 #endif
+
+# UNSET directive tests
+unset_me = 123
+UNSET = unset_me
+
+unset_multi_a = 1
+unset_multi_b = 2
+UNSET = unset_multi_a unset_multi_b
+
+unset_kept = 77

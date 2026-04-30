@@ -36,7 +36,7 @@ void set_eb_data (const int i, const int j, const int k,
                   Array4<Real> const& vfrac, Array4<Real> const& vcent,
                   Array4<Real> const& barea, Array4<Real> const& bcent,
                   Array4<Real> const& bnorm, Real small_volfrac,
-                  bool& is_small_cell, bool& is_multicut) noexcept
+                  bool& is_small_cell, bool& is_multicut)
 {
     const Real axm = apx(i,j,k);
     const Real axp = apx(i+1,j,k);
@@ -380,7 +380,7 @@ int build_faces (Box const& bx, Array4<EBCellFlag> const& cell,
                  Array4<Real> const& m2z,
                  GpuArray<Real,AMREX_SPACEDIM> const& dx,
                  GpuArray<Real,AMREX_SPACEDIM> const& problo,
-                 bool cover_multiple_cuts) noexcept
+                 bool cover_multiple_cuts)
 {
     Gpu::Buffer<int> nmulticuts = {0};
     int* hp = nmulticuts.hostData();
@@ -801,7 +801,7 @@ void build_cells (Box const& bx, Array4<EBCellFlag> const& cell,
                   Array4<Real> const& bnorm, Array4<EBCellFlag> const& ctmp,
                   Array4<Real> const& levset, Real small_volfrac, Geometry const& geom,
                   bool extend_domain_face, bool cover_multiple_cuts,
-                  int& nsmallcells, int& nmulticuts) noexcept
+                  int& nsmallcells, int& nmulticuts)
 {
     Gpu::Buffer<int> n_smallcell_multicuts = {0,0};
     int* hp = n_smallcell_multicuts.hostData();

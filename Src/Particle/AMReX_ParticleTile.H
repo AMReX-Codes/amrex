@@ -329,6 +329,7 @@ struct alignas(sizeof(double)) ConstSoAParticle : SoAParticleBase
     using StorageParticleType = SoAParticleBase;
     using ConstPTD = ConstParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_rtsoa_particle = false;
     static constexpr bool is_constsoa_particle = true;
 
     using RealType = ParticleReal;
@@ -392,6 +393,7 @@ struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
     using StorageParticleType = SoAParticleBase;
     using PTD = ParticleTileData<SoAParticleBase, NArrayReal, NArrayInt>;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_rtsoa_particle = false;
     static constexpr bool is_constsoa_particle = false;
 
     using ConstType = ConstSoAParticle<T_NArrayReal, T_NArrayInt>;
@@ -1418,7 +1420,7 @@ struct ParticleTile
                        (b.first->size() + b.second);
             });
 
-            // Handle big vectcors first
+            // Handle big vectors first
             {
                 int i_pvs = 0, i_ids = 0, i_rvs = 0, i_ivs = 0;
                 auto n_pvs = int(pvs.size());

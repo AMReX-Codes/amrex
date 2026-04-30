@@ -24,6 +24,12 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_SpMatrix.H
+ *
+ * Sparse matrix container built on top of CSR partitions (GPU-aware).
+ */
+
 //! GPU-ready non-owning CSR data container
 template <typename T>
 struct ParCsr {
@@ -47,6 +53,9 @@ struct CsrValid {
     explicit operator bool() const { return b; }
 };
 
+/**
+ * \brief Distributed CSR matrix that manages storage and GPU-friendly partitions.
+ */
 template <typename T, template<typename> class Allocator = DefaultAllocator>
 class SpMatrix
 {
@@ -164,6 +173,7 @@ public:
      */
     void define (AlgPartition partition, csr_type csr, CsrSorted is_sorted);
 
+    //! Row partition describing how matrix rows are distributed across ranks.
     [[nodiscard]] AlgPartition const& partition () const { return m_partition; }
 
     /**
@@ -175,8 +185,11 @@ public:
      */
     [[nodiscard]] AlgPartition const& columnPartition () const { return m_col_partition; }
 
+    //! Number of rows owned by this rank.
     [[nodiscard]] Long numLocalRows () const { return m_row_end - m_row_begin; }
+    //! Global row count.
     [[nodiscard]] Long numGlobalRows () const { return m_partition.numGlobalRows(); }
+    //! Number of nonzeros stored locally.
     [[nodiscard]] Long numLocalNonZeros () const { return m_nnz; }
 
     //! Inclusive global index begin.
@@ -249,14 +262,30 @@ public:
     //! used after the user sets the matrix manually or with `setVal`.
     void sortCSR ();
 
-    //! Return diagonal elements in a square matrix.
+    /**
+     * \brief Return (and cache) the diagonal entries of a square matrix.
+     *
+     * The diagonal is formed lazily and reused on subsequent calls.
+     */
     [[nodiscard]] AlgVector<T,AllocT> const& diagonalVector () const;
 
-    //! Return row-sum vector.
+    /**
+     * \brief Sum the values in each local row and return the result as an AlgVector.
+     *
+     * Each MPI rank receives the row sums for the rows it owns; if further
+     * reductions are needed they should be performed on the returned vector.
+     */
     [[nodiscard]] AlgVector<T,AllocT> rowSum () const;
 
+    /**
+     * \brief Build GPU-friendly CSR views split into diagonal/off-diagonal blocks.
+     *
+     * The returned structure aliases the underlying storage; do not outlive this matrix.
+     */
     [[nodiscard]] ParCsr<T      >       parcsr ()      ;
+    //! Const variant of parcsr().
     [[nodiscard]] ParCsr<T const>       parcsr () const;
+    //! Const-qualified alias of parcsr() for convenience.
     [[nodiscard]] ParCsr<T const> const_parcsr () const;
 
     template <typename U, template<typename> class M, typename N> friend
@@ -267,18 +296,34 @@ public:
 
     template <typename U> friend class AMG;
 
-    //! Private function, but public for cuda
+    //! Private helper (exposed for CUDA) that allocates fixed-connectivity matrices with \p nnz_per_row entries.
     void define_doit (int nnz_per_row);
 
-    //! Private function, but public for cuda
+    /**
+     * \brief Private helper (exposed for CUDA) that copies/filters CSR arrays into device storage.
+     *
+     * \tparam I Prefix-scan index type.
+     * \param mat        Input values array.
+     * \param col_index  Input column indices.
+     * \param nentries   Number of candidate entries.
+     * \param row_offset Row offsets array.
+     */
     template <typename I>
     void define_and_filter_doit (T const* mat, Long const* col_index,
                                  Long nentries, Long const* row_offset);
 
+    /**
+     * \brief Prepare halo exchanges for a subsequent SpMV using \p x as the source vector.
+     *
+     * Must be paired with finishComm_mv(); only available when MPI is enabled.
+     */
     void startComm_mv (AlgVector<T,AllocT> const& x);
+    //! Finish halo exchanges and accumulate contributions into \p y.
     void finishComm_mv (AlgVector<T,AllocT>& y);
 
+    //! Initiate communication required to build the transpose with column partition \p col_partition.
     void startComm_tr (AlgPartition const& col_partition);
+    //! Complete transpose communication, writing the assembled matrix into \p AT.
     void finishComm_tr (SpMatrix<T,Allocator>& AT);
 
 private:
@@ -1654,13 +1699,18 @@ void SpMatrix<T,Allocator>::prepare_comm_mv (AlgPartition const& col_partition)
     for (int iproc = 0; iproc < nprocs; ++iproc) {
         if ( ! m_remote_cols_vv[iproc].empty()) {
             mpi_requests.push_back(MPI_REQUEST_NULL);
+            auto const sz = m_remote_cols_vv[iproc].size();
+            if (sz > static_cast<Long>(std::numeric_limits<int>::max())) {
+                amrex::Abort("SpMatrix::prepare_comm_mv: remote column payload exceeds MPI int count range.");
+            }
+            auto const msg_count = static_cast<int>(sz);
             // I need to let other processes know what I need from them.
             BL_MPI_REQUIRE(MPI_Isend(m_remote_cols_vv[iproc].data(),
-                                     int(m_remote_cols_vv[iproc].size()),
+                                     msg_count,
                                      mpi_long, iproc, mpi_tag, mpi_comm,
                                      &(mpi_requests.back())));
             m_comm_mv.recv_from.push_back(iproc);
-            m_comm_mv.recv_counts.push_back(int(m_remote_cols_vv[iproc].size()));
+            m_comm_mv.recv_counts.push_back(msg_count);
         }
     }
 

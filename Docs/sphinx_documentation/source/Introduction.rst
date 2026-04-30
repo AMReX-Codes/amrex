@@ -11,7 +11,7 @@ Key features of AMReX include:
    - 1-, 2- and 3-D support
    - Support for cell-centered, face-centered, edge-centered, and nodal data
    - Support for hyperbolic, parabolic, and elliptic solves on hierarchical
-     adaptive grid structure
+     adaptive grid structures
    - Optional subcycling in time for time-dependent PDEs
    - Support for particles
    - Support for embedded boundary (cut cell) representations of complex geometries

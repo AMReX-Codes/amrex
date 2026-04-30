@@ -64,7 +64,7 @@ iMultiFab::Copy (iMultiFab& dst, const iMultiFab& src,
 {
 // don't have to BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost));
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("iMultiFab::Copy()");
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);

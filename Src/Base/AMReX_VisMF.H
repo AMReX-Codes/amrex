@@ -392,7 +392,7 @@ std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
-    AMREX_ASSERT(name.back() != '/');
+    AMREX_ASSERT(!name.empty() && name.back() != '/');
 
     auto data_descriptor = FAB::getDataDescriptor();
     int data_bytes = data_descriptor->numBytes();
@@ -430,9 +430,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
             {
                 std::stringstream hss;
                 fio.write_header(hss, fab, fab.nComp());
-                auto hLength = static_cast<std::streamoff>(hss.tellp());
-                auto tstr = hss.str();
-                nfi.Stream().write(tstr.c_str(), hLength);
+                auto const tstr = hss.view();
+                nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));
                 nfi.Stream().flush();
             }
             auto const* fabdata = fab.dataPtr();
@@ -571,7 +570,7 @@ std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");
-    AMREX_ASSERT(name.back() != '/');
+    AMREX_ASSERT(!name.empty() && name.back() != '/');
 
     BoxArray ba;
     int ncomp;
@@ -668,7 +667,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
                 auto whichread = allreads[fi].begin();
                 for ( ; whichread != allreads[fi].end(); ++whichread) {
                     const int tryproc = whichread->first;
-                    if (busyprocs.find(tryproc) == busyprocs.end()) { // not busy
+                    if (!busyprocs.contains(tryproc)) { // not busy
                         busyprocs.insert(tryproc);
                         Vector<int> vreads;
                         vreads.reserve(whichread->second.size());

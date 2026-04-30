@@ -20,6 +20,7 @@ amrex_parsererror (char const *s, ...)
 namespace amrex {
 
 namespace {
+    // Not thread safe. Concurrent Parser construction will corrupt these.
     struct parser_node* parser_root = nullptr;
     std::vector<void*>  parser_ptrs;
 }
@@ -263,6 +264,9 @@ amrex_parser_new ()
 
     std::map<std::string,double> local_consts;
     parser_ast_optimize(my_parser->ast, local_consts);
+    if (my_parser->ast == nullptr) {
+        amrex::Abort("amrex::Parser: expression optimizes to nothing");
+    }
     parser_ast_sort(my_parser->ast);
 
     return my_parser;
@@ -366,7 +370,7 @@ parser_ast_size (struct parser_node* node)
         break;
     }
     case PARSER_ASSIGN:
-        result += parser_aligned_size(sizeof(struct parser_node))
+        result = parser_aligned_size(sizeof(struct parser_node))
             + parser_ast_size((struct parser_node*)(((struct parser_assign*)node)->s))
             + parser_ast_size(((struct parser_assign*)node)->v);
         break;
@@ -1058,6 +1062,15 @@ parser_ast_optimize (struct parser_node*& node, std::map<std::string,double>& lo
             parser_set_number(node->l, parser_get_number(node->l->l) *
                               parser_get_number(node->l->r));
             parser_ast_optimize(node,local_consts);
+        }
+        else if (node->l->type != PARSER_NUMBER &&
+                 node->l->type != PARSER_SYMBOL &&
+                 parser_node_equal(node->l, node->r))
+        { // f(x) * f(x) => pow(f(x), 2)
+            parser_set_number(node->r, 2.0);
+            ((struct parser_f2*)node)->ftype = PARSER_POW;
+            node->type = PARSER_F2;
+            parser_ast_optimize(node, local_consts);
         }
         else if (node->r->type == PARSER_F2 &&
                  ((struct parser_f2*)(node->r))->ftype == PARSER_POW &&
@@ -2049,6 +2062,9 @@ parser_setconst (struct amrex_parser* parser, char const* name, double c)
     parser_ast_setconst(parser->ast, name, c);
     std::map<std::string,double> local_consts;
     parser_ast_optimize(parser->ast, local_consts);
+    if (parser->ast == nullptr) {
+        amrex::Abort("amrex::Parser: expression optimizes to nothing");
+    }
     parser_ast_sort(parser->ast);
 }
 

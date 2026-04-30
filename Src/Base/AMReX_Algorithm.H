@@ -156,8 +156,8 @@ namespace amrex
         T flo = f(lo);
         T fhi = f(hi);
 
-        if (flo == T(0)) { return flo; }
-        if (fhi == T(0)) { return fhi; }
+        if (flo == T(0)) { return lo; }
+        if (fhi == T(0)) { return hi; }
 
         AMREX_ASSERT_WITH_MESSAGE(flo * fhi <= T(0),
             "Error - calling bisect but lo and hi don't bracket a root.");
@@ -177,7 +177,7 @@ namespace amrex
             ++n;
         }
 
-        AMREX_ASSERT_WITH_MESSAGE(n < max_iter,
+        AMREX_ASSERT_WITH_MESSAGE(n <= max_iter,
             "Error - maximum number of iterations reached in bisect.");
 
         return mi;
@@ -187,10 +187,14 @@ namespace amrex
      * \brief Find the index of the interval containing a value in a sorted
      * array.
      *
-     * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1].  It is
-     * assumed that the input data are sorted and d[lo] <= v < d[hi].  Note
-     * that this is different from std::lower_bound that searches for the
-     * first element which is not less than `v`.
+     * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1]. It is
+     * assumed that the input data is sorted.
+     * The elements d[lo] and d[hi] are never accessed,
+     * so that d only needs to be valid in the exclusive range (lo,hi).
+     * It is not checked whether the value v is out-of-bounds.
+     * In that case, if v < d[lo], lo is returned, and if v >= d[hi], hi-1 is returned.
+     * Note that this is different from std::lower_bound that searches
+     * for the first element which is not less than `v`.
      *
      * \tparam T value type.
      * \tparam I integral index type.
@@ -198,23 +202,21 @@ namespace amrex
      * \param lo inclusive lower bound of the search range.
      * \param hi exclusive upper bound of the search range.
      * \param v value to be located.
-     * \return an index `i` such that `d[i] <= v < d[i+1]`.
+     * \return an index `i` such that `d[i] <= v < d[i+1]`, with `lo <= i < hi`.
      */
     template <typename T, typename I,
               std::enable_if_t<std::is_integral_v<I>,int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     I bisect (T const* d, I lo, I hi, T const& v) {
-        while (lo <= hi) {
-            int mid = lo + (hi-lo)/2;
-            if (v >= d[mid] && v < d[mid+1]) {
-                return mid;
-            } else if (v < d[mid]) {
-                hi = mid-1;
+        while (hi - lo > 1) {
+            I mid = lo + (hi - lo) / 2;
+            if (v < d[mid]) {
+                hi = mid;
             } else {
-                lo = mid+1;
+                lo = mid;
             }
         };
-        return hi;
+        return lo;
     }
 
     /**

@@ -87,9 +87,6 @@ PETScABecLap::PETScABecLap (const BoxArray& grids, const DistributionMapping& dm
 
     diaginv.define(grids,dmap,ncomp,0);
 
-    PETSC_COMM_WORLD = comm;
-    PetscInitialize(nullptr, nullptr, nullptr, nullptr);
-
     solver = std::make_unique<amrex_KSP>();
     A = std::make_unique<amrex_Mat>();
     b = std::make_unique<amrex_Vec>();
@@ -106,8 +103,6 @@ PETScABecLap::~PETScABecLap ()
     m_factory = nullptr;
     m_bndry = nullptr;
     m_maxorder = -1;
-
-    PetscFinalize();
 }
 
 void
@@ -181,8 +176,8 @@ void
 PETScABecLap::prepareSolver ()
 {
     int num_procs, myid;
-    MPI_Comm_size(PETSC_COMM_WORLD, &num_procs);
-    MPI_Comm_rank(PETSC_COMM_WORLD, &myid);
+    MPI_Comm_size(comm, &num_procs);
+    MPI_Comm_rank(comm, &myid);
 
     const BoxArray& ba = acoefs.boxArray();
     const DistributionMapping& dm = acoefs.DistributionMap();
@@ -253,6 +248,7 @@ PETScABecLap::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
+            // Sync required: cell_id is passed to PETSc host APIs below
             Gpu::streamSynchronize();
         } else
 #endif
@@ -315,6 +311,7 @@ PETScABecLap::prepareSolver ()
                     cell_id_ma[box_no](i,j,k) = std::numeric_limits<PetscInt>::lowest();
                 }
             });
+            // Sync required: cell_id is passed to PETSc host APIs below
             Gpu::streamSynchronize();
         } else
 #endif
@@ -341,7 +338,7 @@ PETScABecLap::prepareSolver ()
     Vector<PetscInt> ncells_allprocs(num_procs);
     MPI_Allgather(&ncells_proc, sizeof(PetscInt), MPI_CHAR,
                   ncells_allprocs.data(), sizeof(PetscInt), MPI_CHAR,
-                  PETSC_COMM_WORLD);
+                  comm);
     PetscInt proc_begin = 0;
     for (int i = 0; i < myid; ++i) {
         proc_begin += ncells_allprocs[i];
@@ -373,6 +370,7 @@ PETScABecLap::prepareSolver ()
             cell_id_ma[box_no](i,j,k) += poffset[box_no];
             cell_id_vec_ma[box_no](i,j,k) = cell_id_ma[box_no](i,j,k);
         });
+        // Sync required: cell_id/cell_id_vec are passed to PETSc host APIs below
         Gpu::streamSynchronize();
     } else
 #endif
@@ -400,7 +398,8 @@ PETScABecLap::prepareSolver ()
     PetscInt d_nz = (eb_stencil_size + regular_stencil_size) / 2;
     // estimated amount of block off diag elements
     PetscInt o_nz  = d_nz / 2;
-    MatCreate(PETSC_COMM_WORLD, &A->a);
+    if (A->a) { MatDestroy(&A->a); }
+    MatCreate(comm, &A->a);
     MatSetType(A->a, MATMPIAIJ);
     MatSetSizes(A->a, ncells_proc, ncells_proc, ncells_world, ncells_world);
     MatMPIAIJSetPreallocation(A->a, d_nz, nullptr, o_nz, nullptr );
@@ -575,8 +574,8 @@ PETScABecLap::prepareSolver ()
             Gpu::synchronize();
 
             //Load in by row!
-            int matid = 0;
-            for (int rit = 0; rit < nrows; ++rit)
+            PetscInt matid = 0;
+            for (PetscInt rit = 0; rit < nrows; ++rit)
             {
                 MatSetValues(A->a, 1, &rows[rit], ncols[rit], &cols[matid], &mat[matid], INSERT_VALUES);
                 matid += ncols[rit];
@@ -587,7 +586,8 @@ PETScABecLap::prepareSolver ()
     MatAssemblyBegin(A->a, MAT_FINAL_ASSEMBLY);
     MatAssemblyEnd(A->a, MAT_FINAL_ASSEMBLY);
     // create solver
-    KSPCreate(PETSC_COMM_WORLD, &solver->a);
+    if (solver->a) { KSPDestroy(&solver->a); }
+    KSPCreate(comm, &solver->a);
     KSPSetOperators(solver->a, A->a, A->a);
 
     // Set up preconditioner
@@ -603,7 +603,9 @@ PETScABecLap::prepareSolver ()
 
 // we are not using command line options    KSPSetFromOptions(solver->a);
     // create b & x
-    VecCreateMPI(PETSC_COMM_WORLD, ncells_proc, ncells_world, &x->a);
+    if (x->a) { VecDestroy(&x->a); }
+    if (b->a) { VecDestroy(&b->a); }
+    VecCreateMPI(comm, ncells_proc, ncells_world, &x->a);
     VecDuplicate(x->a, &b->a);
 }
 
@@ -626,14 +628,6 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
     {
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion() && rhs_diag.isFusingCandidate()) {
-            Gpu::HostVector<FabType> hv_type;
-            for (MFIter mfi(rhs_diag); mfi.isValid(); ++mfi) {
-                const Box& reg = mfi.validbox();
-                hv_type.push_back((*flags)[mfi].getType(reg));
-            }
-            Gpu::DeviceVector<FabType> dv_type(hv_type.size());
-            Gpu::copyAsync(Gpu::hostToDevice, hv_type.begin(), hv_type.end(), dv_type.begin());
-            auto ptype = dv_type.data();
             auto const& rhs_diag_ma = rhs_diag.arrays();
             auto const& rhs_ma = rhs.const_arrays();
             auto const& diaginv_ma = diaginv.const_arrays();
@@ -645,6 +639,7 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
                     (flag_ma[box_no](i,j,k).isCovered()) ?
                     Real(0.0) : rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
             });
+            // Sync required: rhs_diag is passed to PETSc host API (VecSetValues) below
             Gpu::streamSynchronize();
         } else
 #endif

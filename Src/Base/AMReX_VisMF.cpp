@@ -606,7 +606,7 @@ VisMF::readFAB (int idx, int icomp)
 std::string
 VisMF::BaseName (const std::string& filename)
 {
-    BL_ASSERT(filename[filename.length() - 1] != '/');
+    BL_ASSERT(!filename.empty() && filename.back() != '/');
 
     if(const char *slash = strrchr(filename.c_str(), '/')) {
         //
@@ -624,7 +624,7 @@ VisMF::BaseName (const std::string& filename)
 std::string
 VisMF::DirName (const std::string& filename)
 {
-    BL_ASSERT(filename[filename.length() - 1] != '/');
+    BL_ASSERT(!filename.empty() && filename.back() != '/');
 
     static const std::string TheNullString;
 
@@ -982,7 +982,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
               bool               set_ghost)
 {
     BL_PROFILE("VisMF::Write(FabArray)");
-    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(!mf_name.empty() && mf_name.back() != '/');
     BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
     // ---- add stream retry
@@ -1087,8 +1087,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
                     hLength = static_cast<std::streamoff>(hss.tellp());
-                    auto tstr = hss.str();
-                    std::memcpy(afPtr, tstr.c_str(), hLength);  // ---- the fab header
+                    auto const tstr = hss.view();
+                    std::memcpy(afPtr, tstr.data(), hLength);  // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1118,16 +1118,14 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
         } else {    // ---- write fabs individually
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                std::streamoff hLength = 0;
                 const FArrayBox &fab = mf[mfi];
                 writeDataItems = fab.box().numPts() * mf.nComp();
                 writeDataSize = writeDataItems * whichRDBytes;
                 if(oldHeader) {
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
-                    hLength = static_cast<std::streamoff>(hss.tellp());
-                    auto tstr = hss.str();
-                    nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
+                    auto const tstr = hss.view();
+                    nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));    // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1185,7 +1183,7 @@ VisMF::WriteOnlyHeader (const FabArray<FArrayBox> & mf,
                         VisMF::How                  how)
 {
 //    BL_PROFILE("VisMF::WriteOnlyHeader(FabArray)");
-    BL_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    BL_ASSERT(!mf_name.empty() && mf_name.back() != '/');
     BL_ASSERT(currentVersion != VisMF::Header::Undefined_v1);
 
 
@@ -1752,7 +1750,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
           readRanks.push_back(*setIter);
         }
 
-        if(rfrSet.find(myProc) != rfrSet.end()) {  // ---- myProc needs to read this file
+        if(rfrSet.contains(myProc)) {  // ---- myProc needs to read this file
           const std::string &fileName = rfrIter->first;
           std::string fullFileName(VisMF::DirName(mf_name) + fileName);
           frcIter = FileReadChains.find(fileName);
@@ -1968,7 +1966,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
               whichRead != allReads[arIndex].end(); ++whichRead)
           {
             int tryProc(whichRead->first);
-            if(busyProcs.find(tryProc) == busyProcs.end()) {  // tryProc not busy
+            if(!busyProcs.contains(tryProc)) {  // tryProc not busy
               busyProcs.insert(tryProc);
               int nReads= static_cast<int>(whichRead->second.size());
               int ir(0);
@@ -2349,7 +2347,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
 {
     BL_PROFILE("VisMF::AsyncWrite()");
 
-    AMREX_ASSERT(mf_name[mf_name.length() - 1] != '/');
+    AMREX_ASSERT(!mf_name.empty() && mf_name.back() != '/');
     static_assert(sizeof(int64_t) == sizeof(Real)*2 || sizeof(int64_t) == sizeof(Real),
                   "AsyncWrite: unsupported Real size");
 

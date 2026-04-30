@@ -93,10 +93,12 @@ public:
 
 protected:
 
-    bool m_needs_update = true;
-
     bool m_has_kappa = false;
     Vector<Vector<Array<MultiFab,AMREX_SPACEDIM> > > m_kappa;
+
+private:
+
+    bool m_needs_update = true;
 
 public: // for cuda
 

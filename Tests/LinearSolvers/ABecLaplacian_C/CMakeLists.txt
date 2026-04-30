@@ -1,6 +1,6 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
     if (D EQUAL 1)
-       return()
+       continue()
     endif ()
 
     set(_sources

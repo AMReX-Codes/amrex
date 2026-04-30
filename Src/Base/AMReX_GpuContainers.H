@@ -84,7 +84,7 @@ namespace amrex::Gpu {
     using HostVector = PODVector<T>;
 
     template <class T>
-    using NonManagedVector = PODVector<T>;
+    using NonManagedDeviceVector = PODVector<T>;
 
     template <class T>
     using ManagedVector = PODVector<T>;
@@ -312,6 +312,11 @@ namespace amrex::Gpu {
      * This is a no-op for host-only code.
      *
      * This version is blocking - CPU execution will halt until the migration is finished.
+     *
+     * \warning For GPU builds this helper only supports unified allocations
+     * (for example Gpu::ManagedVector). Passing iterators to non-managed
+     * memory, like the default DeviceVector or PinnedVector, will trigger a
+     * runtime error (cudaErrorInvalidValue) from cudaMemPrefetchAsync.
      */
     template<class Iter>
     void prefetchToHost (Iter begin, Iter end) noexcept
@@ -353,6 +358,11 @@ namespace amrex::Gpu {
      * This is a no-op for host-only code.
      *
      * This version is blocking - CPU execution will halt until the migration is finished.
+     *
+     * \warning For GPU builds this helper only supports unified allocations
+     * (for example Gpu::ManagedVector). Passing iterators to non-managed
+     * memory, like the default DeviceVector or PinnedVector, will trigger a
+     * runtime error (cudaErrorInvalidValue) from cudaMemPrefetchAsync.
      */
     template<class Iter>
     void prefetchToDevice (Iter begin, Iter end) noexcept
