@@ -810,19 +810,26 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
 #endif
                     }
 #else
-                  AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                  AMREX_HOST_DEVICE_PARALLEL_FOR_1D (bx, i,
                   {
-                      mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv);
+                      mlndlap_mknewu(i,i,i,varr,solarr,sigmaarr,dxinv);
                   });
 #endif
                 } else {
                     Real const_sigma = m_const_sigma;
+#if (AMREX_SPACEDIM == 1)
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (bx, i,
+                    {
+                        mlndlap_mknewu_c(i,i,i,varr,solarr,const_sigma,dxinv,is_rz);
+                    });
+#endif
 #if (AMREX_SPACEDIM == 2)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv,is_rz);
                     });
-#else
+#endif
+#if (AMREX_SPACEDIM == 3)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv);
@@ -1012,19 +1019,26 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #endif
                     }
 #else
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (bx, i,
                     {
-                        mlndlap_mknewu(i,j,k,farr,solarr,sigmaarr,dxinv);
+                        mlndlap_mknewu(i,i,i,farr,solarr,sigmaarr,dxinv);
                     }
 #endif
                 } else {
                     Real const_sigma = m_const_sigma;
+#if (AMREX_SPACEDIM == 1)
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i,
+                    {
+                        mlndlap_mknewu_c(i,i,j,farr,solarr,const_sigma,dxinv);
+                    }
+#endif
 #if (AMREX_SPACEDIM == 2)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,farr,solarr,const_sigma,dxinv,is_rz);
                     });
-#else
+#endif
+#if (AMREX_SPACEDIM == 3)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,farr,solarr,const_sigma,dxinv);
