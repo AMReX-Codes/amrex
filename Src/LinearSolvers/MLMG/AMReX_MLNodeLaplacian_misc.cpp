@@ -781,15 +781,15 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
             {
                 if (sigma) {
                     Array4<Real const> const& sigmaarr = sigma->const_array(mfi);
+#if (AMREX_SPACEDIM >= 2)
                     if (aniso_sigma) {
-#if (AMREX_SPACEDIM == 2)
                         Array4<Real const> const& syarr = sigma_y->const_array(mfi);
+#if (AMREX_SPACEDIM == 2)
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                         {
                             mlndlap_mknewu_ha(i,j,k,varr,solarr,sigmaarr,syarr,dxinv,is_rz);
                         });
 #else
-                        Array4<Real const> const& syarr = sigma_y->const_array(mfi);
                         Array4<Real const> const& szarr = sigma_z->const_array(mfi);
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                         {
@@ -809,6 +809,12 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                         });
 #endif
                     }
+#else
+                  AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
+                  {
+                      mlndlap_mknewu(i,j,k,varr,solarr,sigmaarr,dxinv);
+                  });
+#endif
                 } else {
                     Real const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 2)
