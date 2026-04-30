@@ -1316,6 +1316,7 @@ struct ParticleTile
             Vector<std::pair<IntVector*,int>> ivs;
             for (auto [p,s] : addsizes) {
                 if (s > 0) {
+                    p->invalidateRuntimePtrCaches();
                     Vector<ParticleVector*> pv;
                     Vector<typename SoA::IdCPU*> idcpuv;
                     Vector<RealVector*> rv;
