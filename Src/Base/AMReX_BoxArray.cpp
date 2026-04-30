@@ -192,7 +192,7 @@ BARef::resize (Long n) {
 #endif
     m_abox.resize(n);
     hash.clear();
-    has_hashmap = false;
+    has_hashmap.store(false, std::memory_order_release);
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
@@ -1445,7 +1445,7 @@ BoxArray::clear_hash_bin () const
         m_ref->updateMemoryUsage_hash(-1);
 #endif
         m_ref->hash.clear();
-        m_ref->has_hashmap = false;
+        m_ref->has_hashmap.store(false, std::memory_order_release);
     }
 }
 
@@ -1569,7 +1569,7 @@ BoxArray::getHashMap () const
 #pragma omp critical(intersections_lock)
 #endif
     {
-        if (BoxHashMap.empty() && size() > 0)
+        if (!m_ref->HasHashMap() && size() > 0)
         {
             //
             // Calculate the bounding box & maximum extent of the boxes.
@@ -1601,11 +1601,7 @@ BoxArray::getHashMap () const
             m_ref->updateMemoryUsage_hash(1);
 #endif
 
-#ifdef AMREX_USE_OMP
-#pragma omp flush
-#pragma omp atomic write
-#endif
-            m_ref->has_hashmap = true;
+            m_ref->has_hashmap.store(true, std::memory_order_release);
         }
     }
 
