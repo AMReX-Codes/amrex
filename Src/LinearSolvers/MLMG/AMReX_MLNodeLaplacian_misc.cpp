@@ -810,7 +810,8 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
 #endif
                     }
 #else
-                  AMREX_HOST_DEVICE_PARALLEL_FOR_1D (bx, i,
+                  size_t n = bx.size()[0];
+                  AMREX_HOST_DEVICE_PARALLEL_FOR_1D (n, i,
                   {
                       mlndlap_mknewu(i,i,i,varr,solarr,sigmaarr,dxinv);
                   });
@@ -818,9 +819,10 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                 } else {
                     Real const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 1)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (bx, i,
+                    size_t n = bx.size()[0];
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (n, i,
                     {
-                        mlndlap_mknewu_c(i,i,i,varr,solarr,const_sigma,dxinv,is_rz);
+                        mlndlap_mknewu_c(i,i,i,varr,solarr,const_sigma,dxinv);
                     });
 #endif
 #if (AMREX_SPACEDIM == 2)
@@ -1019,18 +1021,20 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #endif
                     }
 #else
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (bx, i,
+                    size_t n = bx.size()[0];
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (n, i,
                     {
                         mlndlap_mknewu(i,i,i,farr,solarr,sigmaarr,dxinv);
-                    }
+                    });
 #endif
                 } else {
                     Real const_sigma = m_const_sigma;
 #if (AMREX_SPACEDIM == 1)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i,
+                    size_t n = bx.size()[0];
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_1D (n, i,
                     {
-                        mlndlap_mknewu_c(i,i,j,farr,solarr,const_sigma,dxinv);
-                    }
+                        mlndlap_mknewu_c(i,i,i,farr,solarr,const_sigma,dxinv);
+                    });
 #endif
 #if (AMREX_SPACEDIM == 2)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
