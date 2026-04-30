@@ -720,7 +720,9 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping
     // or harmonic averaging), each velocity component needs its own
     // sigma direction.  Otherwise fall through to the scalar-sigma path.
+#if (AMREX_SPACEDIM >= 2)
     const bool aniso_sigma = m_use_mapped;
+#endif
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -925,7 +927,9 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
     // When sigma was set up with AMREX_SPACEDIM components (mesh mapping),
     // each flux component needs its own sigma direction.  Otherwise fall
     // through to the scalar-sigma path.
+#if (AMREX_SPACEDIM >= 2)
     const bool aniso_sigma = m_use_mapped;
+#endif
 
     AMREX_ASSERT(a_flux[0]->nComp() >= AMREX_SPACEDIM);
 
