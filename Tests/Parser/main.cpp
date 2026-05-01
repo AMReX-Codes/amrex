@@ -196,8 +196,8 @@ int test_concurrent_parser_construction ()
                     }
                     {
                         IParser iparser("a*x + b");
-                        auto const a = static_cast<long long>(tid+1);
-                        auto const b = static_cast<long long>(iter+3);
+                        auto const a = static_cast<long long>(tid) + 1;
+                        auto const b = static_cast<long long>(iter) + 3;
                         auto const x = static_cast<long long>((iter % 9) - 4);
                         iparser.setConstant("a", a);
                         iparser.setConstant("b", b);
