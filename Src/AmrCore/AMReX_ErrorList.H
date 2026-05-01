@@ -11,8 +11,9 @@
 #include <AMReX_TagBox.H>
 #include <AMReX_Vector.H>
 
-#include <string>
+#include <iterator>
 #include <memory>
+#include <string>
 
 namespace amrex {
 
@@ -433,7 +434,8 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
                  AMRErrorTag::TEST      test,
                  std::string            field,
                  const AMRErrorTagInfo& info = AMRErrorTagInfo()) noexcept
-      : m_value(info.m_max_level, value), m_test(test), m_field(std::move(field)), m_info(info),
+      : m_value((info.m_max_level > 0) ? info.m_max_level : 1, value),
+        m_test(test), m_field(std::move(field)), m_info(info),
         m_ngrow(SetNGrow())
       {
       }
@@ -446,14 +448,14 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
      * \param field MultiFab component name to examine.
      * \param info  Optional metadata (time window, level window, etc.).
      */
-    AMRErrorTag (amrex::Vector<amrex::Real>  value,
-                 AMRErrorTag::TEST           test,
-                 std::string                 field,
-                 const AMRErrorTagInfo&      info = AMRErrorTagInfo()) noexcept
+    AMRErrorTag (amrex::Vector<amrex::Real> const& value,
+                 AMRErrorTag::TEST                test,
+                 std::string                      field,
+                 const AMRErrorTagInfo&           info = AMRErrorTagInfo()) noexcept
       : m_test(test), m_field(std::move(field)), m_info(info), m_ngrow(SetNGrow())
       {
           AMREX_ASSERT(!value.empty());
-          m_value.resize(info.m_max_level);
+          m_value.resize((info.m_max_level > 0) ? info.m_max_level : 1);
           for (int i = 0; i < m_value.size() && i < value.size(); ++i) {
               m_value[i] = value[i];
           }
@@ -508,7 +510,13 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
 
     [[nodiscard]] AMRErrorTagInfo& GetInfo () noexcept {return m_info;}
     [[nodiscard]] AMRErrorTagInfo const& GetInfo () const noexcept {return m_info;}
-    void SetInfo (AMRErrorTagInfo const& info) noexcept {m_info = info;}
+    void SetInfo (AMRErrorTagInfo const& info) noexcept
+    {
+        if (!m_value.empty() && info.m_max_level > std::ssize(m_value)) {
+            m_value.resize(info.m_max_level, m_value.back());
+        }
+        m_info = info;
+    }
 
   protected:
     [[nodiscard]] int SetNGrow () const noexcept;
