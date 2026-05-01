@@ -6,9 +6,14 @@
 #include <amrex_iparser.tab.h>
 
 #include <algorithm>
+#include <mutex>
 #include <stdexcept>
 
 namespace amrex {
+
+namespace {
+    std::mutex iparser_mutex;
+}
 
 IParser::IParser (std::string const& func_body)
 {
@@ -28,6 +33,7 @@ IParser::define (std::string const& func_body)
             m_data->m_expression.end());
         std::string f = m_data->m_expression + "\n";
 
+        std::lock_guard<std::mutex> iparser_lock(iparser_mutex);
         YY_BUFFER_STATE buffer = amrex_iparser_scan_string(f.c_str());
         try {
             amrex_iparserparse();

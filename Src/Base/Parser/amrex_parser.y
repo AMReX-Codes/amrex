@@ -14,9 +14,9 @@ int amrex_parserlex (void);
 #endif
 %}
 
-/* We do not need to make this reentrant safe, because we use flex and
-   bison for generating AST only and this part doesn't need to be
-   thread safe.
+/* The generated scanner/parser use global state. Parser::define serializes
+   parser calls, and AMReX_Parser_Y.cpp keeps AST construction scratch state
+   thread-local so different Parser objects can be constructed concurrently.
 */
 /*%define api.pure full */
 %define api.prefix {amrex_parser}

@@ -1024,12 +1024,14 @@ integer if it is reasonable to do so. For example, it's okay to have
 Thread Safety
 -------------
 
-Constructing a :cpp:`Parser` (or :cpp:`IParser`) object is **not** thread-safe
-because the underlying lex/yacc parser uses global state. If multiple threads
-need to construct parsers concurrently, external synchronization is required.
-Once compiled, the :cpp:`ParserExecutor` returned by :cpp:`compile` or
-:cpp:`compileHost` is thread-safe and can be called concurrently from multiple
-threads or GPU kernels.
+Different :cpp:`Parser` (or :cpp:`IParser`) objects may be constructed
+concurrently from multiple host threads. Once compiled, the
+:cpp:`ParserExecutor` or :cpp:`IParserExecutor` returned by :cpp:`compile` or
+:cpp:`compileHost` may be called concurrently from multiple threads or GPU
+kernels. However, it is usually unnecessary and less efficient to construct one
+parser per thread merely to evaluate an expression in parallel. Construct,
+configure, and compile the parser once, then share the compiled executor while
+keeping the owning parser object alive.
 
 .. _sec:basics:initialize:
 
