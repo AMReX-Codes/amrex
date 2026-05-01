@@ -819,19 +819,12 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
 #endif
                 } else {
                     Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 1)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-                    {
-                        mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv);
-                    });
-#endif
 #if (AMREX_SPACEDIM == 2)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv,is_rz);
                     });
-#endif
-#if (AMREX_SPACEDIM == 3)
+#eles
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv);
@@ -1030,19 +1023,12 @@ MLNodeLaplacian::getFluxes (const Vector<MultiFab*> & a_flux, const Vector<Multi
 #endif
                 } else {
                     Real const_sigma = m_const_sigma;
-#if (AMREX_SPACEDIM == 1)
-                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
-                    {
-                        mlndlap_mknewu_c(i,j,k,farr,solarr,const_sigma,dxinv);
-                    });
-#endif
 #if (AMREX_SPACEDIM == 2)
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,farr,solarr,const_sigma,dxinv,is_rz);
                     });
-#endif
-#if (AMREX_SPACEDIM == 3)
+#else
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,farr,solarr,const_sigma,dxinv);
