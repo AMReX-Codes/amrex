@@ -39,7 +39,9 @@ namespace amrex {
         From value;
         bool swapEndian = (id.order() != amrex::FPC::NativeIntDescriptor().order());
         for (std::size_t j = 0; j < size; ++j) {
-            is.read((char*) &value, sizeof(From));
+            if (!is.read(reinterpret_cast<char*>(&value), sizeof(From))) {
+                amrex::Error("Failed to read integer data.");
+            }
             if (swapEndian) { value = swapBytes(value); }
             data[j] = static_cast<To>(value);
         }

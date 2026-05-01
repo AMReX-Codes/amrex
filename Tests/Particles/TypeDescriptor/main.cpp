@@ -1,4 +1,6 @@
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <cstring>
 
@@ -11,6 +13,33 @@
 #include "AMReX_Utility.H"
 
 using namespace amrex;
+
+namespace {
+
+[[noreturn]] void ThrowingErrorHandler (const char* msg)
+{
+    throw std::runtime_error(msg ? msg : "amrex::Error");
+}
+
+class ErrorHandlerScope
+{
+public:
+    explicit ErrorHandlerScope (amrex::ErrorHandler handler) noexcept
+        : m_old_handler(amrex::system::error_handler)
+    {
+        amrex::SetErrorHandler(handler);
+    }
+
+    ~ErrorHandlerScope () noexcept
+    {
+        amrex::SetErrorHandler(m_old_handler);
+    }
+
+private:
+    amrex::ErrorHandler m_old_handler;
+};
+
+}
 
 void testIntIO(const IntDescriptor& id_out) {
 
@@ -84,6 +113,45 @@ void testLongIO(const IntDescriptor& id_out) {
     for (int i = 0; i < static_cast<int>(idata_in.size()); ++i) {
         AMREX_ALWAYS_ASSERT(idata_in[i] == idata_out[i]);
     }
+}
+
+void testTruncatedIntegerIO () {
+
+    ErrorHandlerScope scope(ThrowingErrorHandler);
+
+    bool native_int_failed = false;
+    try {
+        amrex::Vector<int> idata_in(2);
+        std::istringstream is(std::string(sizeof(int), '\0'));
+        readIntData(idata_in.data(), idata_in.size(), is, FPC::NativeIntDescriptor());
+    } catch (std::runtime_error const&) {
+        native_int_failed = true;
+    }
+    AMREX_ALWAYS_ASSERT(native_int_failed);
+
+    bool native_long_failed = false;
+    try {
+        amrex::Vector<Long> idata_in(2);
+        std::istringstream is(std::string(sizeof(Long), '\0'));
+        readLongData(idata_in.data(), idata_in.size(), is, FPC::NativeLongDescriptor());
+    } catch (std::runtime_error const&) {
+        native_long_failed = true;
+    }
+    AMREX_ALWAYS_ASSERT(native_long_failed);
+
+    bool converted_int_failed = false;
+    try {
+        auto const native_order = FPC::NativeIntDescriptor().order();
+        auto const converted_order = (native_order == IntDescriptor::NormalOrder)
+            ? IntDescriptor::ReverseOrder : IntDescriptor::NormalOrder;
+        IntDescriptor id_in(FPC::NativeIntDescriptor().numBytes(), converted_order);
+        amrex::Vector<int> idata_in(2);
+        std::istringstream is(std::string(static_cast<std::size_t>(id_in.numBytes()), '\0'));
+        readIntData(idata_in.data(), idata_in.size(), is, id_in);
+    } catch (std::runtime_error const&) {
+        converted_int_failed = true;
+    }
+    AMREX_ALWAYS_ASSERT(converted_int_failed);
 }
 
 void testRealIO(const RealDescriptor& rd_out) {
@@ -239,6 +307,8 @@ int main(int argc, char* argv[])
     testLongIO(big16);
     testLongIO(big32);
     testLongIO(big64);
+
+    testTruncatedIntegerIO();
 
     testRealIO(FPC::NativeRealDescriptor());
     testRealIO(FPC::Native32RealDescriptor());
