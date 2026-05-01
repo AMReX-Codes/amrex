@@ -824,7 +824,7 @@ MLNodeLaplacian::updateVelocity (const Vector<MultiFab*>& vel, const Vector<Mult
                     {
                         mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv,is_rz);
                     });
-#eles
+#else
                     AMREX_HOST_DEVICE_PARALLEL_FOR_3D (bx, i, j, k,
                     {
                         mlndlap_mknewu_c(i,j,k,varr,solarr,const_sigma,dxinv);
