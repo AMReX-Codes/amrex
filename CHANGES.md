@@ -1,3 +1,159 @@
+# 26.05
+
+ ## Highlights:
+
+  * C++20
+    AMReX now requires C++20. The supported compilers are:
+    - GCC 11 or newer (for both host builds and CUDA host compilers).
+    - LLVM Clang 14 or newer, including AppleClang 14 on macOS.
+    - Microsoft Visual Studio 2022 (MSVC 19.34 / 17.4) or newer.
+    - NVIDIA CUDA Toolkit 12.2 or newer.
+    - AMD ROCm/HIP 6.0 or newer.
+    - Intel oneAPI DPC++ 2025.2 or newer.
+
+  * Fix OpenMP race conditions.
+    - Fix for race condition when using getConstParticleTileData in threaded region.
+    - Fix race condition in building hash map BoxArray-Box intersection.
+
+  * Support pure SoA for Neighbor particles.
+    Adds a pure SoA version of NeighborParticleContainer, allowing that
+    layout to be used in MFiX-Exa, FHDeX, etc.
+
+  * Add in-class AMREX enum registration macro AMREX_ENUM_IN_CLASS.
+    Add AMREX_ENUM_IN_CLASS for declaring reflected enum classes inside
+    class definitions, including class templates.
+
+  * Curl Curl: Add support for variable alpha.
+    Add support for solving `∇ × α ∇ × E + β E = f`, where `α` can be a
+    nodal MultiFab.
+
+  * Merge RedistributeCPU and RedistributeGPU into one implementation.
+    This merges RedistributeCPU and RedistributeGPU into one shared
+    implementation that works for both, improving the maintainability of the
+    code base. It also restructures the way OpenMP parallelism works in
+    Redistribute on the CPU, resulting in better OpenMP performance and
+    scaling. Another consequence is that particle tiling is now supported on
+    GPU (although probably not desirable in most cases).
+
+  * Fix a 2D bug in EB.
+    Fix set_eb_data that gave incorrect vcent and vfrac for anisotropic
+    cells (dx =/= dy).
+
+  * Align Arena allocations to 256 bytes.
+    This increases the alignment of Arena allocations from 16 to 256 bytes.
+
+  * Refactor AmrMesh::MakeNewGrids.
+    The refactor addresses two issues. First, there was a bug when
+    projecting grids during regrid. TagBoxArray might not have enough ghost
+    cells to guarantee proper nesting when the new fine level grows by a
+    lot. Second, it could be very inefficient to use the previous approach
+    of adding extra ghost cells to TagBoxArray for proper nesting. In some
+    users' cases, it may need more than 30 ghost cells.
+
+ ## Other major changes:
+
+  * Fix MLABecLaplacian::setBCoeffs(int,Vector) (#5382)
+
+  * HIP: Add amrex:: to robustify the AMREX_LAUNCH_KERNEL macro (#5328)
+
+  * Avoid stream string copies with view() (#5388)
+
+  * Align capacity to 256 bytes in ParticleTileRT (#5335)
+
+  * Call HYPRE_DeviceInitialize after HYPRE_Init if using GPUs (#5336)
+
+  * Fix eb_add_divergence_from_flow for anisotropic cells (#5385)
+
+  * Print: str() -> view() (#5377)
+
+  * Long in `numParticlesOutOfRange` (#5379)
+
+  * FaceDivFree interpolater: Fix component (#5361)
+
+  * TagParallelFor: Return early in case the number of warps is 0 (#5351)
+
+  * Scan: Handle empty range (#5348)
+
+  * Add option to fill ghost cells in `average_cellcenter_to_face` (#5345)
+
+  * Edge cases for boundary normal vector in coarsen_from_fine (#5352)
+
+  * Fix typo in amrex_avgdown_edges (#5340)
+
+  * EdgeFluxRegister: add plus() member function (#5329)
+
+  * `SmallMatrix`: `Omega` (#5330)
+
+  * MFIter Tiling: Set a default tile size in MFItInfo::SetTiling(bool) (#5334)
+
+  * RK2: pass time+dt as stage 2 time to the RHS function (#5326)
+
+  * Fix CPU implementation of `Reduce::MinMax(n, ptr)` (#5322)
+
+  * SYCL: Fix potential resource leak in the large kernel path (#5317)
+
+  * Fix bug in AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3 (#5316)
+
+  * Hypre 1D bug: Forgot to initialized diag_inv. (#5312)
+
+  * Hypre 3D: Fix index bug (#5313)
+
+  * Fix Hypre bug in 2D (#5314)
+
+  * PlotFileData: Add refRatioVect (#5300)
+
+  * FillPatchNLevels: Fix component bugs (#5288)
+
+  * SUNDIALS: Fix bug in N_VMaxNorm_MultiFab (#5301)
+
+  * SUNDIALS: Fix bug in N_VConstrMask_MultiFab (#5302)
+
+  * MFInterp quadratic slope: Fix index bugs (#5287)
+
+  * Fix bug in InterpCrseFineBndryEMfield (#5289)
+
+  * Amr::regrid used wrong `n_cycle` index for new levels (#5291)
+
+  * EB: Fix index bug in eb_interp_centroid2facecent_y (#5296)
+
+  * PhysBCFunct: Fix box index type (#5298)
+
+  * Add an implementation of ParticleCopyPlan::doHandShake that uses one-sided communication from MPI-3 (#5227)
+
+  * Fix out-of-bounds access in amrex::bisect (#5284)
+
+  * TrackedVector (#5253)
+
+  * Create symbolic link during install (#5277)
+
+  * Reduce memory usage in ReduceToPlaneMF2Patchy (#5258)
+
+  * Fix `PolymorphicArenaWrapper` Use-After-Free (#5270)
+
+  * Remove un-needed streamSynchronize from unpackRemotes (#5260)
+
+  * Update to new rocsparse (#5207)
+
+  * Add unset capability for ParmParse (#5263)
+
+  * Add version of ParticleTile using runtime-only 2D array (#4404)
+
+  * AmrMesh: Recompute roundoff domain for fine Geometry objects (#5248)
+
+  * AMREX_ENUM: Allow non-decimal base (#5251)
+
+  * SUNDIALS: Fix N_VInvTest_MultiFab (#5236)
+
+  * SUNDIALS: Use ParallelContext's communicator (#5237)
+
+  * FABio_8bit reader: Fix overflow (#5244)
+
+  * FabArray::copyTo(FAB): Fix a memory leak (#5246)
+
+  * ParallelAdd: Buffer unpacking should respect the deterministic flag (#5247)
+
+  * Fix DistributionMapping::SFC_Threshold (#5250)
+
 # 26.04
 
  ## Highlights:
