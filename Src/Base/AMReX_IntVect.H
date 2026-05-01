@@ -1002,7 +1002,6 @@ constexpr IntVectND<dim> operator+ (int s, const IntVectND<dim>& p) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-AMREX_GPU_HOST_DEVICE
 constexpr IntVectND<dim> operator- (int s, const IntVectND<dim>& p) noexcept
 {
     IntVectND<dim> retval = p;
