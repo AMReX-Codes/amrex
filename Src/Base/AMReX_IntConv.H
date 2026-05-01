@@ -28,7 +28,9 @@ namespace amrex {
         for (std::size_t j = 0; j < size; ++j) {
             value = static_cast<To>(data[j]);
             if (swapEndian) { value = swapBytes(value); }
-            os.write((char*) &value, sizeof(To));
+            if (!os.write(reinterpret_cast<char const*>(&value), sizeof(To))) {
+                amrex::Error("Failed to write integer data.");
+            }
         }
     }
 

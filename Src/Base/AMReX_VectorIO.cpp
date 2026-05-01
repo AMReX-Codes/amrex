@@ -8,7 +8,11 @@ void amrex::writeIntData (const int* data, std::size_t size, std::ostream& os,
 {
     if (id == FPC::NativeIntDescriptor())
     {
-        os.write((char*) data, static_cast<std::streamsize>(size*sizeof(int)));
+        if (!os.write(reinterpret_cast<char const*>(data),
+                      static_cast<std::streamsize>(size*sizeof(int))))
+        {
+            amrex::Error("Failed to write integer data.");
+        }
     }
     else if (id.numBytes() == 2)
     {
@@ -60,7 +64,11 @@ void amrex::writeLongData (const Long* data, std::size_t size, std::ostream& os,
 {
     if (id == FPC::NativeLongDescriptor())
     {
-        os.write((char*) data, static_cast<std::streamsize>(size*sizeof(Long)));
+        if (!os.write(reinterpret_cast<char const*>(data),
+                      static_cast<std::streamsize>(size*sizeof(Long))))
+        {
+            amrex::Error("Failed to write long integer data.");
+        }
     }
     else if (id.numBytes() == 2)
     {
