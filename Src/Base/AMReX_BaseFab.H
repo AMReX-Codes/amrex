@@ -21,6 +21,12 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_Scan.H>
 #include <AMReX_Math.H>
+#include <new>
+#ifdef AMREX_USE_HIP
+// GCC's <new> marks placement new as host-only; provide a device version for ROCm.
+__device__ inline void* operator new   ([[maybe_unused]] std::size_t, void* p) noexcept { return p; }
+__device__ inline void  operator delete([[maybe_unused]] void*,       void*  ) noexcept {}
+#endif
 #include <AMReX_OpenMP.H>
 #include <AMReX_MemPool.H>
 #include <AMReX_TypeTraits.H>
