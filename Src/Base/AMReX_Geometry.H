@@ -401,6 +401,12 @@ public:
         return r;
     }
 
+    /**
+     * \brief Coarsen the Geometry by \p rr.
+     *
+     * This does not refresh roundoff_lo/hi. Call computeRoundoffDomain() before
+     * using particle roundoff bounds from the modified Geometry.
+     */
     void coarsen (IntVect const& rr) {
         domain.coarsen(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -409,6 +415,12 @@ public:
         }
     }
 
+    /**
+     * \brief Refine the Geometry by \p rr.
+     *
+     * This does not refresh roundoff_lo/hi. Call computeRoundoffDomain() before
+     * using particle roundoff bounds from the modified Geometry.
+     */
     void refine (IntVect const& rr) {
         domain.refine(rr);
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
@@ -469,6 +481,12 @@ std::ostream& operator<< (std::ostream&, const Geometry&);
 //! Nice ASCII input.
 std::istream& operator>> (std::istream&, Geometry&);
 
+/**
+ * \brief Return a Geometry coarsened by \p rr.
+ *
+ * The returned Geometry's roundoff_lo/hi are not refreshed. Call
+ * computeRoundoffDomain() before using particle roundoff bounds from it.
+ */
 inline
 Geometry
 coarsen (Geometry const& fine, IntVect const& rr) {
@@ -477,10 +495,22 @@ coarsen (Geometry const& fine, IntVect const& rr) {
     return r;
 }
 
+/**
+ * \brief Return a Geometry coarsened by \p rr.
+ *
+ * The returned Geometry's roundoff_lo/hi are not refreshed. Call
+ * computeRoundoffDomain() before using particle roundoff bounds from it.
+ */
 inline
 Geometry
 coarsen (Geometry const& fine, int rr) { return coarsen(fine, IntVect(rr)); }
 
+/**
+ * \brief Return a Geometry refined by \p rr.
+ *
+ * The returned Geometry's roundoff_lo/hi are not refreshed. Call
+ * computeRoundoffDomain() before using particle roundoff bounds from it.
+ */
 inline
 Geometry
 refine (Geometry const& crse, IntVect const& rr) {
@@ -489,6 +519,12 @@ refine (Geometry const& crse, IntVect const& rr) {
     return r;
 }
 
+/**
+ * \brief Return a Geometry refined by \p rr.
+ *
+ * The returned Geometry's roundoff_lo/hi are not refreshed. Call
+ * computeRoundoffDomain() before using particle roundoff bounds from it.
+ */
 inline
 Geometry
 refine (Geometry const& crse, int rr) { return refine(crse, IntVect(rr)); }
