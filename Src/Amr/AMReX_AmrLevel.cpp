@@ -16,6 +16,7 @@
 #endif
 
 #include <sstream>
+#include <iterator>
 #include <memory>
 #include <limits>
 
@@ -108,7 +109,7 @@ AmrLevel::AmrLevel (Amr&            papa,
     }
 
     // Note that this creates a distribution map associated with grids.
-    for (int i = 0; i < state.size(); i++)
+    for (int i = 0; i < std::ssize(state); i++)
     {
         MultiFab::RegionTag statedata_tag("StateData_Level_" + std::to_string(lev));
         MultiFab::RegionTag statedata_index_tag("StateData_" + std::to_string(i) + "_Level_" + std::to_string(lev));
@@ -143,7 +144,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     // second component of pair is component # within the state_type
     //
     std::vector<std::pair<int,int> > plot_var_map;
-    for (int typ = 0; typ < desc_lst.size(); typ++)
+    for (int typ = 0; typ < std::ssize(desc_lst); typ++)
     {
         for (int comp = 0; comp < desc_lst[typ].nComp();comp++)
         {
@@ -197,7 +198,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         //
         // Names of variables
         //
-        for (i =0; i < static_cast<int>(plot_var_map.size()); i++)
+        for (i =0; i < std::ssize(plot_var_map); i++)
         {
             int typ = plot_var_map[i].first;
             int comp = plot_var_map[i].second;
@@ -286,7 +287,7 @@ AmrLevel::writePlotFile (const std::string& dir,
         os << level << ' ' << grids.size() << ' ' << cur_time << '\n';
         os << parent->levelSteps(level) << '\n';
 
-        for (i = 0; i < grids.size(); ++i)
+        for (i = 0; i < std::ssize(grids); ++i)
         {
             RealBox gridloc = RealBox(grids[i],geom.CellSize(),geom.ProbLo());
             for (n = 0; n < AMREX_SPACEDIM; n++) {
@@ -326,7 +327,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     // Cull data from state variables -- use no ghost cells.
     //
-    for (i = 0; i < static_cast<int>(plot_var_map.size()); i++)
+    for (i = 0; i < std::ssize(plot_var_map); i++)
     {
         int typ  = plot_var_map[i].first;
         int comp = plot_var_map[i].second;
@@ -477,7 +478,7 @@ AmrLevel::setTimeLevel (Real time,
                         Real dt_old,
                         Real dt_new)
 {
-    for (int k = 0; k < desc_lst.size(); k++)
+    for (int k = 0; k < std::ssize(desc_lst); k++)
     {
         state[k].setTimeLevel(time,dt_old,dt_new);
     }
@@ -486,7 +487,7 @@ AmrLevel::setTimeLevel (Real time,
 bool
 AmrLevel::isStateVariable (const std::string& name, int& state_indx, int& n)
 {
-    for (state_indx = 0; state_indx < desc_lst.size(); state_indx++)
+    for (state_indx = 0; state_indx < std::ssize(desc_lst); state_indx++)
     {
         const StateDescriptor& desc = desc_lst[state_indx];
 
@@ -577,7 +578,7 @@ AmrLevel::~AmrLevel ()
 void
 AmrLevel::allocOldData ()
 {
-    for (int i = 0; i < desc_lst.size(); i++)
+    for (int i = 0; i < std::ssize(desc_lst); i++)
     {
         state[i].allocOldData();
     }
@@ -586,7 +587,7 @@ AmrLevel::allocOldData ()
 void
 AmrLevel::removeOldData ()
 {
-    for (int i = 0; i < desc_lst.size(); i++)
+    for (int i = 0; i < std::ssize(desc_lst); i++)
     {
         state[i].removeOldData();
     }
@@ -595,7 +596,7 @@ AmrLevel::removeOldData ()
 void
 AmrLevel::reset ()
 {
-    for (int i = 0; i < desc_lst.size(); i++)
+    for (int i = 0; i < std::ssize(desc_lst); i++)
     {
         state[i].reset();
     }
@@ -1013,7 +1014,7 @@ FillPatchIterator::Initialize (int  boxGrow,
     const IndexType& boxType = m_leveldata->boxArray().ixType();
     const int level = m_amrlevel->level;
 
-    for (int i = 0, DComp = 0; i < static_cast<int>(m_range.size()); i++)
+    for (int i = 0, DComp = 0; i < std::ssize(m_range); i++)
     {
         const int SComp = m_range[i].first;
         const int NComp = m_range[i].second;

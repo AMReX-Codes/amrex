@@ -22,6 +22,8 @@
 #include <string>
 #include <cstring>
 #include <iomanip>
+#include <iterator>
+#include <utility>
 
 namespace {
     int flag_verbose_mapper;
@@ -177,7 +179,7 @@ void
 DistributionMapping::Sort (std::vector<LIpair>& vec,
                            bool                 reverse)
 {
-    if (vec.size() > 1)
+    if (std::ssize(vec) > 1)
     {
         if (reverse) {
             std::stable_sort(vec.begin(), vec.end(), LIpairGT());
@@ -422,7 +424,7 @@ DistributionMapping::RoundRobinDoIt (int                  nboxes,
 
     if (LIpairV)
     {
-        BL_ASSERT(static_cast<int>(LIpairV->size()) == nboxes);
+        BL_ASSERT(std::ssize(*LIpairV) == nboxes);
 
         for (int i = 0; i < nboxes; ++i)
         {
@@ -768,7 +770,7 @@ DistributionMapping::KnapSackDoIt (const std::vector<Long>& wgts,
         }
     }
 
-    BL_ASSERT(static_cast<int>(vec.size()) == nteams);
+    BL_ASSERT(std::ssize(vec) == nteams);
 
     std::vector<LIpair> LIpairV;
 
@@ -866,7 +868,7 @@ DistributionMapping::KnapSackProcessorMap (const std::vector<Long>& wgts,
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
 
-    if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
+    if (std::ssize(wgts) <= nprocs || nprocs < 2)
     {
         RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, sort);
 
@@ -896,7 +898,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
 
     ComputeDistributionMappingEfficiency(olddm, wgts, &old_efficiency);
 
-    if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
+    if (std::ssize(wgts) <= nprocs || nprocs < 2)
     {
         // Not enough boxes to reshuffle meaningfully; keep the existing
         // mapping so keep_ratio is honored and the reported efficiency
@@ -932,7 +934,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
                     w += wi;
                 }
             }
-            if (i < static_cast<int>(kb.size())) {
+            if (i < std::ssize(kb)) {
                 lb.insert(lb.end(), kb.begin()+i, kb.end());
                 kb.erase (          kb.begin()+i, kb.end());
             }
@@ -996,7 +998,7 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
             AMREX_ASSERT(max_weight > Real(0));
             new_efficiency = avg_weight / max_weight;
 
-            if (new_efficiency < max_efficiency && wblv.size() > 1) {
+            if (new_efficiency < max_efficiency && std::ssize(wblv) > 1) {
                 BL_PROFILE("knapsack()swap");
 
                 std::sort(wblv.begin(), wblv.end());
@@ -1213,7 +1215,7 @@ Distribute (const std::vector<SFCToken>&     tokens,
         }
     }
 
-    BL_ASSERT(static_cast<int>(v.size()) == nprocs);
+    BL_ASSERT(std::ssize(v) == nprocs);
 
     int  K        = 0;
     Real totalvol = 0;
@@ -1508,7 +1510,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       bool                     sort)
 {
     BL_ASSERT( ! boxes.empty());
-    BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
+    BL_ASSERT(boxes.size() == std::ssize(wgts));
 
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
@@ -1531,7 +1533,7 @@ DistributionMapping::SFCProcessorMap (const BoxArray&          boxes,
                                       bool                     sort)
 {
     BL_ASSERT( ! boxes.empty());
-    BL_ASSERT(boxes.size() == static_cast<int>(wgts.size()));
+    BL_ASSERT(boxes.size() == std::ssize(wgts));
 
     m_ref->clear();
     m_ref->m_pmap.resize(wgts.size());
@@ -1956,7 +1958,7 @@ operator<< (std::ostream&              os,
 {
     os << "(DistributionMapping" << '\n';
 
-    for (int i = 0; i < pmap.ProcessorMap().size(); ++i)
+    for (int i = 0; i < std::ssize(pmap.ProcessorMap()); ++i)
     {
         os << "m_pmap[" << i << "] = " << pmap.ProcessorMap()[i] << '\n';
     }
@@ -2026,7 +2028,7 @@ DistributionMapping MakeSimilarDM (const BoxArray& ba, const BoxArray& src_ba,
                               "input BoxArrays must have the same centering.");
 
     Vector<int> pmap(ba.size());
-    for (int i = 0; i < static_cast<int>(ba.size()); ++i) {
+    for (int i = 0; i < std::ssize(ba); ++i) {
         Box box = ba[i];
         box.grow(ng);
         bool first_only = false;

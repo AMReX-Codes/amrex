@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
@@ -1755,7 +1756,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != 0) {
         return true;
     }
     else {
@@ -1768,7 +1769,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 {
     int li = mfi.LocalIndex();
-    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         return true;
     }
     else {
@@ -1874,7 +1875,7 @@ FAB*
 FabArray<FAB>::release (int K)
 {
     const int li = localindex(K);
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -1894,7 +1895,7 @@ FAB*
 FabArray<FAB>::release (const MFIter& mfi)
 {
     const int li = mfi.LocalIndex();
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
