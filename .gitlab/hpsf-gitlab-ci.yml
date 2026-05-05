@@ -106,6 +106,9 @@ Intel-PVC:
 post_github_comment:
   stage: .post
   image: python:3.11-slim
+  environment:
+    name: github-status
+    action: verify
   script:
     - pip install PyJWT requests cryptography
     - |
