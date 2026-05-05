@@ -201,6 +201,54 @@ prints on the I/O process.  A common mistake in using it for debug
 printing is that one forgets that for non-I/O processes to print we should
 use :cpp:`AllPrint()` or :cpp:`Print(rank)`.
 
+.. _sec:basics:enum:
+
+Enum Class
+==========
+
+.. versionadded:: 24.09
+   Enum class support.
+
+AMReX provides :cpp:`AMREX_ENUM` in ``AMReX_Enum.H`` for defining a
+reflected :cpp:`enum class`. Use :cpp:`AMREX_ENUM` at namespace scope.
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, red, green, blue);
+
+   void f ()
+   {
+       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
+       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
+       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
+       // names = {"red", "green", "blue"};
+       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
+   }
+
+Use :cpp:`AMREX_ENUM_IN_CLASS` for an enum class declared inside a class or
+class template.
+
+.. versionadded:: 26.05
+   :cpp:`AMREX_ENUM_IN_CLASS`.
+
+.. highlight:: c++
+
+::
+
+   struct Options {
+       AMREX_ENUM_IN_CLASS(Solver, cg, bicgstab, gmres);
+   };
+
+   template <typename T>
+   struct State {
+       AMREX_ENUM_IN_CLASS(Mode, init, run, stop);
+   };
+
+:cpp:`AMREX_ENUM_IN_CLASS` must be used inside a class definition. Use
+:cpp:`AMREX_ENUM` at namespace scope.
+
 .. _sec:basics:parmparse:
 
 ParmParse
@@ -450,25 +498,8 @@ Enum Class
 .. versionadded:: 24.09
    Enum class support in :cpp:`ParmParse`.
 
-AMReX provides a macro :cpp:`AMREX_ENUM` for defining :cpp:`enum class` that
-supports reflection. For example,
-
-.. highlight:: c++
-
-::
-
-   AMREX_ENUM(MyColor, red, green, blue);
-
-   void f ()
-   {
-       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
-       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
-       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
-       // names = {"red", "green", "blue"};
-       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
-   }
-
-This allows us to read :cpp:`ParmParse` parameters into enum class objects.
+:cpp:`ParmParse` can read enum types declared with :cpp:`AMREX_ENUM` or
+:cpp:`AMREX_ENUM_IN_CLASS` (see :ref:`sec:basics:enum`).
 
 .. highlight:: python
 
@@ -477,22 +508,18 @@ This allows us to read :cpp:`ParmParse` parameters into enum class objects.
    color1 = red
    color2 = BLue
 
-The following code shows how to query the enumerators.
-
 .. highlight:: c++
 
 ::
 
    AMREX_ENUM(MyColor, none, red, green, blue);
 
-   void f (MyColor& c1, MyColor& c2)
-   {
-       ParmParse pp;
-       pp.query("color1", c1); // c1 becomes MyColor::red
-       pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
-       MyColor default_color; // MyColor::none
-       pp.query("color3", default_color); // Still MyColor::none
-   }
+   ParmParse pp;
+   MyColor c1 = MyColor::none;
+   MyColor c2 = MyColor::none;
+
+   pp.query("color1", c1); // c1 becomes MyColor::red
+   pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
 
 Other Useful Functions
 ----------------------

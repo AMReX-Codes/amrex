@@ -86,7 +86,7 @@ std::string pp_to_pretty_string (std::string const& name,
     }
     if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
         int min_col = 36;
-        int pad = min_col - static_cast<int>(ss.str().size());
+        int pad = min_col - static_cast<int>(ss.view().size());
         if (pad > 0) {
             ss << std::string(pad, ' ');
         }
@@ -549,7 +549,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
 
 std::string is_valid_table_key (std::string const& str)
 {
-    if (str.size() >= 8 && str.substr(0,6) == "$$ARR[" && str.back() == ']') {
+    if (str.size() >= 8 && str.starts_with("$$ARR[") && str.back() == ']') {
         auto key = str.substr(6, str.size()-7);
         bool r = std::isalpha(key[0]);
         for (std::size_t i = 1; i < key.size() && r; ++i) {
@@ -1191,7 +1191,7 @@ sgetval (const ParmParse::Table& table,
 // Checks if token matches $$ARR[...]
 bool is_toml_array (std::string const& token)
 {
-    return token.size() >= 7 && token.compare(0,6,"$$ARR[") == 0 &&
+    return token.size() >= 7 && token.starts_with("$$ARR[") &&
         token.back() == ']';
 }
 
@@ -1199,8 +1199,8 @@ bool is_toml_array (std::string const& token)
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
-    return sz >= 9 && token.compare(0,7,"$$ARR[[") == 0 &&
-        token.compare(sz-2,2,"]]") == 0;
+    return sz >= 9 && token.starts_with("$$ARR[[") &&
+        token.ends_with("]]");
 }
 
 // Checks if token matches $$ARR[...] but not $$ARR[[...]]
@@ -1477,7 +1477,7 @@ bool unused_table_entries_q (const ParmParse::Table& table,
         return std::any_of(table.begin(), table.end(),
                            [&] (auto const& x) -> bool {
                                return x.second.m_count == 0
-                                   && x.first.substr(0,s.size()) == s;
+                                   && x.first.starts_with(s);
                            });
     }
 }
@@ -1691,7 +1691,7 @@ ParmParse::getUnusedInputs (const std::string& prefix)
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
         if (entry.m_count == 0 &&
-            name.substr(0,prefixdot.size()) == prefixdot)
+            name.starts_with(prefixdot))
         {
             sorted_names.push_back(name);
         }
@@ -1720,7 +1720,7 @@ ParmParse::getEntries (const std::string& prefix)
     std::set<std::string> r;
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
-        if (name.substr(0,prefixdot.size()) == prefixdot) {
+        if (name.starts_with(prefixdot)) {
             r.insert(name);
         }
     }

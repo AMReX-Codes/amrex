@@ -1378,6 +1378,31 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
            +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
 }
 
+// Harmonic-average (anisotropic sigma) variant.  Used when the node-
+// centered Poisson operator was set up with a multi-component sigma
+// (see MLNodeLaplacian::setSigma and setMapped) so each velocity
+// component is corrected with its own sigma direction.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                        Array4<Real const> const& sx,
+                        Array4<Real const> const& sy,
+                        Array4<Real const> const& sz,
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = Real(0.25)*dxinv[0];
+    Real facy = Real(0.25)*dxinv[1];
+    Real facz = Real(0.25)*dxinv[2];
+    u(i,j,k,0) -= sx(i,j,k)*facx
+        * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  )
+           -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1));
+    u(i,j,k,1) -= sy(i,j,k)*facy
+        * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  )
+           -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+    u(i,j,k,2) -= sz(i,j,k)*facz
+        * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  )
+           +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
                        Real sig, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept

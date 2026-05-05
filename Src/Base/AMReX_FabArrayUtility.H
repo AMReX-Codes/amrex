@@ -1144,7 +1144,7 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
                 }
                 ss << dp[n-1];
                 amrex::AllPrint() << " At cell " << cell << " in Box " << bx
-                                  << ": " << ss.str() << '\n';
+                                  << ": " << ss.view() << '\n';
             }
         }
     }

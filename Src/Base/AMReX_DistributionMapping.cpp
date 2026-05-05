@@ -1593,6 +1593,8 @@ DistributionMapping::ConvertCostRealToLong (const Vector<Real>& rcost)
 {
     Vector<Long> cost(rcost.size());
 
+    if (rcost.empty()) { return cost; }
+
     Real wmax = *std::max_element(rcost.begin(), rcost.end());
     Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 

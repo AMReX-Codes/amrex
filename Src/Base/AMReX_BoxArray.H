@@ -10,6 +10,7 @@
 #include <AMReX_Vector.H>
 
 #include <iosfwd>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <map>
@@ -102,13 +103,8 @@ struct BARef
     void updateMemoryUsage_hash (int s);
 #endif
 
-    [[nodiscard]] bool HasHashMap () const {
-        bool r;
-#ifdef AMREX_USE_OMP
-#pragma omp atomic read
-#endif
-        r = has_hashmap;
-        return r;
+    [[nodiscard]] bool HasHashMap () const noexcept {
+        return has_hashmap.load(std::memory_order_acquire);
     }
 
     //
@@ -125,7 +121,7 @@ struct BARef
 
     mutable HashType hash;
 
-    mutable bool has_hashmap = false;
+    mutable std::atomic<bool> has_hashmap = false;
 
     static int  numboxarrays;
     static int  numboxarrays_hwm;

@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <numbers>
 #include <AMReX_Print.H>
 #include <AMReX_PlotFileUtil.H>
 #include <AMReX_MultiFabUtil.H>
@@ -89,7 +90,7 @@ void main_main()
 
     int coord = pf.coordSys();
 
-    constexpr Real pi = 3.1415926535897932;
+    constexpr Real pi = std::numbers::pi_v<Real>;
 
     for (int ilev = 0; ilev <= fine_level; ++ilev) {
 
