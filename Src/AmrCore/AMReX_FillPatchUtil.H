@@ -41,17 +41,17 @@ namespace amrex
       template <typename = void>
       requires IsBaseFabType<MFFAB>
       void operator() (MFFAB& /*fab*/, const amrex::Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
-      {}; 
+      {}
 
       template <typename = void>
       requires IsBaseFabType<MFFAB>
       void operator() (amrex::Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const amrex::Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const 
-      {}; 
+      {}
 
       template <typename = void>
       requires IsFabArrayType<MFFAB>
       void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const 
-      {};
+      {}
 
     };
 
