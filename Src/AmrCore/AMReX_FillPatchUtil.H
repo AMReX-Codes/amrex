@@ -463,8 +463,8 @@ namespace amrex
      * \param post_interp post-interpolation hook
      */
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    void
     requires IsFabArrayType<MF>
+    void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
