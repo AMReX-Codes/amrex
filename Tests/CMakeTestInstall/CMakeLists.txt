@@ -54,14 +54,17 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        ${_input_dir}/Prob.H
     )
 
-    file(TO_NATIVE_PATH "${_input_dir}/inputs" inputs_path)
+    set(inputs_path "${_input_dir}/inputs")
 
     add_custom_command(
        TARGET install_test_${D}d
        POST_BUILD
-       COMMAND ${CMAKE_COMMAND} -E echo "Running test project"
-       COMMAND ${CMAKE_COMMAND} -E echo "Command: $<TARGET_FILE:install_test_${D}d> ${inputs_path} max_step=1 > out_${D}d.txt"
-       COMMAND $<TARGET_FILE:install_test_${D}d> ${inputs_path} max_step=1 > out_${D}d.txt
-       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+       COMMAND ${CMAKE_COMMAND}
+          "-DAMREX_TEST_INSTALL_EXECUTABLE=$<TARGET_FILE:install_test_${D}d>"
+          "-DAMREX_TEST_INSTALL_INPUTS=${inputs_path}"
+          "-DAMREX_TEST_INSTALL_OUTPUT=${PROJECT_BINARY_DIR}/out_${D}d.txt"
+          "-DAMREX_TEST_INSTALL_WORKING_DIRECTORY=${PROJECT_BINARY_DIR}"
+          -P "${CMAKE_CURRENT_LIST_DIR}/RunInstallTest.cmake"
+       VERBATIM
     )
 endforeach()
