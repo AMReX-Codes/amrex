@@ -1311,7 +1311,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int ntiles = numTilesInBox(box, true, bin_size);
 
             m_bins.build(np, ptile.getParticleTileData(), ntiles,
-                         GetParticleBin{plo, dxi, domain, bin_size, box});
+                         GetParticleBin{.plo = plo, .dxi = dxi, .domain = domain,
+                                        .bin_size = bin_size, .box = box});
             ReorderParticles(lev, mfi, m_bins.permutationPtr());
         }
     }

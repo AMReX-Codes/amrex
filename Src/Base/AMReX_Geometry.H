@@ -123,9 +123,13 @@ public:
 
     //! Returns non-static copy of geometry's stored data.
     [[nodiscard]] GeometryData data() const noexcept {
-        return { prob_domain, domain, {AMREX_D_DECL(dx[0],dx[1],dx[2])},
-            {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
-                static_cast<int>(c_sys) };
+        return {
+            .prob_domain = prob_domain,
+            .domain = domain,
+            .dx = {AMREX_D_DECL(dx[0],dx[1],dx[2])},
+            .is_periodic = {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])},
+            .coord = static_cast<int>(c_sys)
+        };
     }
 
     //! Read static values from ParmParse database.

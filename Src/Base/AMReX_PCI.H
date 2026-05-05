@@ -128,9 +128,9 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
             if (maskfabs.size() > 0) {
                 if (!maskfabs[li].isAllocated()) {
                     maskfabs[li].resize(this->atLocalIdx(li).box());
-                    masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                    masks_unique.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
                 }
-                masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                masks.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
             }
         }
     }

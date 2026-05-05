@@ -2515,9 +2515,9 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(2, vbx.smallEnd(2)-nghost[2], nghost[2]);
                         b.grow(IntVect(nghost[0],nghost[1],0));
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(2, vbx.length(2)+nghost[2]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
 #endif
 #if (AMREX_SPACEDIM >= 2)
@@ -2525,17 +2525,17 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(1, vbx.smallEnd(1)-nghost[1], nghost[1]);
                         b.grow(0, nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(1, vbx.length(1)+nghost[1]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
 #endif
                     if (nghost[0] > 0) {
                         b = vbx;
                         b.setRange(0, vbx.smallEnd(0)-nghost[0], nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(0, vbx.length(0)+nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
                 }
 

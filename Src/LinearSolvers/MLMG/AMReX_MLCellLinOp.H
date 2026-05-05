@@ -990,7 +990,7 @@ MLCellLinOpT<MF>::interpolation (int amrlev, int fmglev, MF& fine, const MF& crs
 {
     const int ncomp = this->getNComp();
 
-    Dim3 ratio3 = {2,2,2};
+    Dim3 ratio3 = {.x = 2, .y = 2, .z = 2};
     IntVect ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
     AMREX_D_TERM(ratio3.x = ratio[0];,
                  ratio3.y = ratio[1];,

@@ -40,7 +40,7 @@ TagBox::coarsen (const IntVect& ratio, const Box& cbox) noexcept
     Array4<char> const& carr = cfab.array();
 
     Box fdomain = domain;
-    Dim3 r{1,1,1};
+    Dim3 r{.x = 1, .y = 1, .z = 1};
     AMREX_D_TERM(r.x = ratio[0];, r.y = ratio[1];, r.z = ratio[2]);
 
     AMREX_HOST_DEVICE_FOR_3D(cbox, i, j, k,
@@ -694,7 +694,7 @@ TagBoxArray::setVal (const BoxArray& ba, TagBox::TagVal val)
                 Box const& b = is.second;
 #ifdef AMREX_USE_GPU
                 if (run_on_gpu) {
-                    tags.push_back({arr,b});
+                    tags.push_back(Array4BoxTag<char>{.dfab = arr, .dbox = b});
                 } else
 #endif
                 {

@@ -264,11 +264,11 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 () const noexcept {
         if constexpr (dim == 1) {
-            return Dim3{vect[0],0,0};
+            return Dim3{.x = vect[0], .y = 0, .z = 0};
         } else if constexpr (dim == 2) {
-            return Dim3{vect[0],vect[1],0};
+            return Dim3{.x = vect[0], .y = vect[1], .z = 0};
         } else {
-            return Dim3{vect[0],vect[1],vect[2]};
+            return Dim3{.x = vect[0], .y = vect[1], .z = vect[2]};
         }
     }
 
@@ -276,11 +276,11 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
         if constexpr (dim == 1) {
-            return Dim3{vect[0],fill_extra,fill_extra};
+            return Dim3{.x = vect[0], .y = fill_extra, .z = fill_extra};
         } else if constexpr (dim == 2) {
-            return Dim3{vect[0],vect[1],fill_extra};
+            return Dim3{.x = vect[0], .y = vect[1], .z = fill_extra};
         } else {
-            return Dim3{vect[0],vect[1],vect[2]};
+            return Dim3{.x = vect[0], .y = vect[1], .z = vect[2]};
         }
     }
 
@@ -1169,11 +1169,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
 {
     if constexpr (dim == 1) {
-        return Dim3{coarse.x*ratio[0], coarse.y, coarse.z};
+        return Dim3{.x = coarse.x*ratio[0], .y = coarse.y, .z = coarse.z};
     } else if constexpr (dim == 2) {
-        return Dim3{coarse.x*ratio[0], coarse.y*ratio[1], coarse.z};
+        return Dim3{.x = coarse.x*ratio[0], .y = coarse.y*ratio[1], .z = coarse.z};
     } else {
-        return Dim3{coarse.x*ratio[0], coarse.y*ratio[1], coarse.z*ratio[2]};
+        return Dim3{.x = coarse.x*ratio[0], .y = coarse.y*ratio[1], .z = coarse.z*ratio[2]};
     }
 }
 
@@ -1182,17 +1182,17 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
 {
     if constexpr (dim == 1) {
-        return Dim3{amrex::coarsen(fine.x, ratio[0]),
-                    fine.y,
-                    fine.z};
+        return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
+                    .y = fine.y,
+                    .z = fine.z};
     } else if constexpr (dim == 2) {
-        return Dim3{amrex::coarsen(fine.x, ratio[0]),
-                    amrex::coarsen(fine.y, ratio[1]),
-                    fine.z};
+        return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
+                    .y = amrex::coarsen(fine.y, ratio[1]),
+                    .z = fine.z};
     } else {
-        return Dim3{amrex::coarsen(fine.x, ratio[0]),
-                    amrex::coarsen(fine.y, ratio[1]),
-                    amrex::coarsen(fine.z, ratio[2])};
+        return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
+                    .y = amrex::coarsen(fine.y, ratio[1]),
+                    .z = amrex::coarsen(fine.z, ratio[2])};
     }
 }
 

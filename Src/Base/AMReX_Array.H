@@ -1092,11 +1092,11 @@ namespace amrex
     inline XDim3 makeXDim3 (const Array<Real,AMREX_SPACEDIM>& a) noexcept
     {
 #if (AMREX_SPACEDIM == 1)
-        return XDim3{a[0], 0., 0.};
+        return XDim3{.x = a[0], .y = 0., .z = 0.};
 #elif (AMREX_SPACEDIM == 2)
-        return XDim3{a[0], a[1], 0.};
+        return XDim3{.x = a[0], .y = a[1], .z = 0.};
 #else
-        return XDim3{a[0], a[1], a[2]};
+        return XDim3{.x = a[0], .y = a[1], .z = a[2]};
 #endif
     }
 }

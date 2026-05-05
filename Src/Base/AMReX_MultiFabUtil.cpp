@@ -695,7 +695,7 @@ namespace amrex
                         Box const& b = is.second-iv;
 #ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
-                            tags.push_back({arr,b});
+                            tags.push_back(Array4BoxTag<value_type>{.dfab = arr, .dbox = b});
                         } else
 #endif
                         {

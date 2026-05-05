@@ -613,7 +613,9 @@ knapsack (const std::vector<Long>&         wgts,
     for (int i  = 0; i < nprocs; ++i)
     {
         raii_vwb[i] = std::make_unique<Vector<WeightedBox> >();
-        wblq.push(WeightedBoxList({raii_vwb[i].get(),Long(0),-1}));
+        wblq.push(WeightedBoxList{.m_lb = raii_vwb[i].get(),
+                                  .m_weight = Long(0),
+                                  .m_rank = -1});
     }
     Vector<WeightedBoxList> wblv;
     wblv.reserve(nprocs);
@@ -954,8 +956,9 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
             Vector<std::unique_ptr<Vector<WeightedBox>>> raii_vwb(nprocs);
             for (int iproc = 0; iproc < nprocs; ++iproc) {
                 raii_vwb[iproc] = std::make_unique<Vector<WeightedBox>>();
-                wblq.push(WeightedBoxList({raii_vwb[iproc].get(), base_weight[iproc],
-                                           iproc}));
+                wblq.push(WeightedBoxList{.m_lb = raii_vwb[iproc].get(),
+                                          .m_weight = base_weight[iproc],
+                                          .m_rank = iproc});
             }
             Vector<WeightedBoxList> wblv;
             wblv.reserve(nprocs);
