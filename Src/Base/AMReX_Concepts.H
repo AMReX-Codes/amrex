@@ -9,20 +9,21 @@ namespace amrex {
   
   /**
    * \brief Checks if a type is derived from amrex::BaseFab.
-   * Matches your requirement: requires IsBaseFabType<MFFAB>
    */
   template <typename T>
   concept IsBaseFabType = amrex::IsBaseFab<T>::value;
   
   /**
    * \brief Checks if a type is an amrex::FabArray (like MultiFab).
-   * Matches your requirement: requires IsFabArrayType<MFFAB>
    */
   template <typename T>
   concept IsFabArrayType = amrex::IsFabArray<T>::value;
 
-  template <typename T, typename Interp>
-  concept IsFabArrayTypeWithSpecificInterp = amrex::IsFabArray<T>::value && (!std::is_same_v<Interp, amrex::MFInterpolater>);
+  /**
+   * \brief Checks if a Interpolation is not generic MFInterpolater.
+   */
+  template <typename Interp>
+  concept IsSpecificInterp = !std::is_same_v<Interp, amrex::MFInterpolater>;
   
   
 } // namespace amrex
