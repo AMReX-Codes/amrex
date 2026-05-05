@@ -415,7 +415,7 @@
         } \
     } \
     else { \
-        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
+        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3: cannot call device function from host"); \
     }}}
 #else
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
@@ -449,7 +449,7 @@
         AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
-        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
+        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3: cannot call device function from host"); \
     }}}
 #endif
 
