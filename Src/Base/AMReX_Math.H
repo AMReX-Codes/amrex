@@ -10,6 +10,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <limits>
+#include <numbers>
 #include <type_traits>
 #include <utility>
 
@@ -67,7 +68,7 @@ using std::isinf;
 template <typename T>
 constexpr std::enable_if_t<std::is_floating_point_v<T>,T> pi ()
 {
-    return T(3.1415926535897932384626433832795029L);
+    return std::numbers::pi_v<T>;
 }
 
 //! Return cos(x*pi) given x

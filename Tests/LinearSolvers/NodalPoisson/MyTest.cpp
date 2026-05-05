@@ -6,6 +6,8 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <numbers>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -251,7 +253,7 @@ MyTest::initData ()
             Array4<Real> const rh  = rhs[ilev].array(mfi);
             amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
             {
-                constexpr Real pi = 3.1415926535897932;
+                constexpr Real pi = std::numbers::pi_v<Real>;
                 constexpr Real tpi = 2.*pi;
                 constexpr Real fpi = 4.*pi;
                 constexpr Real fac = tpi*tpi*AMREX_SPACEDIM;
