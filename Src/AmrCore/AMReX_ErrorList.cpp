@@ -242,6 +242,11 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
 {
     BL_PROFILE("AMRErrorTag::operator()");
 
+    auto const requires_mf = (m_test == USER || m_test == GRAD || m_test == RELGRAD ||
+                              m_test == LESS || m_test == GREATER || m_test == VORT);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!requires_mf || mf != nullptr,
+                                     "AMRErrorTag mode requires a non-null MultiFab");
+
     if (m_test == USER)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_userfunc!=nullptr,

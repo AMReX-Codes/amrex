@@ -488,7 +488,9 @@ std::ostream& operator << (std::ostream& os, const ErrorList& elst);
      * \brief Apply the tagging rule to a TagBoxArray/MultiFab pair.
      *
      * \param tb      Destination TagBoxArray to update.
-     * \param mf      Optional pointer to the MultiFab whose data drive the tagging (can be nullptr for USER mode).
+     * \param mf      MultiFab whose data drive data-dependent modes. Must be non-null for USER,
+     *                 GRAD, RELGRAD, LESS, GREATER, and VORT modes; may be nullptr for BOX
+     *                 and PARSER modes.
      * \param clearval Value indicating an untagged cell.
      * \param tagval   Value indicating a tagged cell.
      * \param time     Simulation time.
