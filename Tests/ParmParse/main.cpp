@@ -321,7 +321,7 @@ int main(int argc, char* argv[])
 
         std::vector<std::string> sv{"string a", " string b", " string c ", "string-d"};
         pp.addarr("string_vector", sv);
-        for (int i = 0; i < int(sv.size()); ++i) {
+        for (int i = 0; i < std::ssize(sv); ++i) {
             pp.get("string_vector", s, i);
             AMREX_ALWAYS_ASSERT(s == sv[i]);
         }

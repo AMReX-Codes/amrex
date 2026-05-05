@@ -1,4 +1,6 @@
 
+#include <iterator>
+
 namespace amrex {
 
 namespace detail {
@@ -362,7 +364,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
 
     for (int lev = 0; lev < this->numLevels(); ++lev) {
         // resize our temporaries in serial
-        for (int i = 0; i < static_cast<int>(local_neighbors.size()); ++i) {
+        for (int i = 0; i < std::ssize(local_neighbors); ++i) {
             const NeighborCommTag& comm_tag = local_neighbors[i];
             tmp_remote_map[comm_tag].resize(num_threads);
             remote_map[comm_tag];
@@ -397,7 +399,7 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
                     getNeighborTags(tags, ptd[i], m_num_neighbor_cells, src_tag, pti);
 
                     // Add neighbors to buffers
-                    for (int j = 0; j < static_cast<int>(tags.size()); ++j) {
+                    for (int j = 0; j < std::ssize(tags); ++j) {
                         NeighborCopyTag& tag = tags[j];
                         PairIndex dst_index(tag.grid, tag.tile);
                         if (tag.grid < 0) { continue; }
@@ -1145,7 +1147,7 @@ resizeContainers (int num_levels)
 {
     this->reserveData();
     this->resizeData();
-    if ( static_cast<int>(neighbors.size()) <= num_levels )
+    if ( std::ssize(neighbors) <= num_levels )
     {
         neighbors.resize(num_levels);
         m_neighbor_list.resize(num_levels);

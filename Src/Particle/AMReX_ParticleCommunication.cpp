@@ -2,6 +2,8 @@
 #include <AMReX_ParticleContainerBase.H>
 #include <AMReX_ParallelDescriptor.H>
 
+#include <iterator>
+
 namespace amrex {
 
 void ParticleCopyOp::clear ()
@@ -24,7 +26,7 @@ void ParticleCopyOp::setNumLevels (int num_levels)
 
 void ParticleCopyOp::resize (int gid, int tid, int lev, int size)
 {
-    if (lev >= m_boxes.size())
+    if (lev >= std::ssize(m_boxes))
     {
         setNumLevels(lev+1);
     }
@@ -406,8 +408,8 @@ void ParticleCopyPlan::doHandShakeOneSided (const ParticleContainerBase& pc,
     const int MyProc = ParallelContext::MyProcSub();
     const int NProcs = ParallelContext::NProcsSub();
 
-    AMREX_ALWAYS_ASSERT(static_cast<int>(Snds.size()) == NProcs);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(Rcvs.size()) == NProcs);
+    AMREX_ALWAYS_ASSERT(std::ssize(Snds) == NProcs);
+    AMREX_ALWAYS_ASSERT(std::ssize(Rcvs) == NProcs);
 
     pc.ensureParticleHandshakeWindow();
     auto* handshake_buffer = pc.particleHandshakeBuffer();
