@@ -20,6 +20,10 @@ namespace amrex {
    */
   template <typename T>
   concept IsFabArrayType = amrex::IsFabArray<T>::value;
+
+  template <typename T, typename Interp>
+  concept IsFabArrayTypeWithSpecificInterp = amrex::IsFabArray<T>::value && (!std::is_same_v<Interp, amrex::MFInterpolater>);
+  
   
 } // namespace amrex
 #endif
