@@ -50,7 +50,7 @@ namespace amrex::Extrapolater
                     ParallelFor(amrex::grow(gbx,1), ncomp,
                     [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept
                     {
-                       amrex_first_order_extrap_gpu(i, j, k, n, bx, mask_arr, data_arr);
+                       amrex_first_order_extrap_gpu(i, j, k, n, gbx, mask_arr, data_arr);
                     });
                 } else {
                     amrex_first_order_extrap_cpu(gbx, ncomp, mask_arr, data_arr);

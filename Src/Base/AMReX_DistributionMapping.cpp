@@ -898,8 +898,11 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
 
     if (static_cast<int>(wgts.size()) <= nprocs || nprocs < 2)
     {
-        RoundRobinProcessorMap(static_cast<int>(wgts.size()),nprocs, false);
-        new_efficiency = Real(1);
+        // Not enough boxes to reshuffle meaningfully; keep the existing
+        // mapping so keep_ratio is honored and the reported efficiency
+        // reflects reality.
+        *this = olddm;
+        new_efficiency = old_efficiency;
         return;
     }
     else

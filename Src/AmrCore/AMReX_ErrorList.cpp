@@ -265,7 +265,8 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
     }
     else
     {
-        if ((level <  m_info.m_max_level) &&
+        if ((level >= 0) &&
+            (level <  m_info.m_max_level) &&
             (time  >= m_info.m_min_time ) &&
             (time  <= m_info.m_max_time ) )
         {
@@ -313,7 +314,11 @@ AMRErrorTag::operator() (TagBoxArray&    tba,
             else
             {
                 auto const& datma   = mf->const_arrays();
-                auto threshold = m_value[level];
+                auto const nvalues = std::ssize(m_value);
+                AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nvalues > 0,
+                                                 "Threshold values not properly set in AMRErrorTag");
+                auto const threshold_level = (level < nvalues) ? level : nvalues-1;
+                auto threshold = m_value[threshold_level];
                 auto const volume_weighting = m_info.m_volume_weighting;
                 auto const& geomdata = geom.data();
                 auto tag_update = tagval;

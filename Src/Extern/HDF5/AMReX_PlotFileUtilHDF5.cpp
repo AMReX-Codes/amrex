@@ -726,7 +726,8 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             size_t cd_nelmts;
             unsigned int* cd_values = NULL;
             unsigned filter_config;
-            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
+            int const sz_type = (whichRDBytes == 4) ? SZ_FLOAT : SZ_DOUBLE;
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, sz_type, 0, 0, 0, 0, hs_allprocsize[0]);
             H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif
@@ -1171,7 +1172,8 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             size_t cd_nelmts;
             unsigned int* cd_values = NULL;
             unsigned filter_config;
-            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
+            int const sz_type = (whichRDBytes == 4) ? SZ_FLOAT : SZ_DOUBLE;
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, sz_type, 0, 0, 0, 0, hs_allprocsize[0]);
             H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif

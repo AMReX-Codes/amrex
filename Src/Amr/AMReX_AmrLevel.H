@@ -443,13 +443,13 @@ public:
                                               Real               time,
                                               int                ngrow);
     /**
-    * \brief This version of derive() fills the dcomp'th component of \p mf
-    * with the derived quantity.
+    * \brief This version of derive() fills the component range of \p mf
+    * starting at \p dcomp with the derived quantity.
     *
     * \param name Derived quantity identifier.
     * \param time Physical time at which to evaluate the quantity.
     * \param mf   Destination MultiFab.
-    * \param dcomp Destination component index.
+    * \param dcomp Starting destination component index.
     */
     virtual void derive (const std::string& name,
                          Real               time,

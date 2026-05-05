@@ -134,6 +134,7 @@ private:
     static std::vector<std::string> all_memnames;
 
     static std::vector<std::string> regionstack;
+    static std::vector<std::pair<std::string,bool> > regionstartstack;
     static std::deque<std::tuple<double,double,std::string*> > ttstack;
     static std::map<std::string,std::map<std::string, Stats> > statsmap;
     static double t_init;
