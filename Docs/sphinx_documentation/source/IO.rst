@@ -234,6 +234,15 @@ Using compression requires data to be stored in a chunked format. The size of th
 chunks can (and generally should) be configured by changing the ``HDF5_CHUNK_SIZE``
 environment variable, with a default value of 1024 elements provided.
 
+For MPI-enabled builds, two additional file access properties can be tuned via
+environment variables. ``HDF5_ALIGNMENT_SIZE`` (in bytes, default 16 MiB) sets
+both the threshold and alignment passed to ``H5Pset_alignment``: object
+allocations of at least this size are aligned to a multiple of it, while
+smaller allocations are left unpadded. ``HDF5_BLOCK_SIZE`` (in bytes, default
+4 MiB) sets the minimum metadata block allocation size via
+``H5Pset_meta_block_size``, which aggregates small metadata writes to reduce
+I/O overhead on parallel file systems.
+
 HDF5 Asynchronous Output
 ------------------------
 The HDF5 output also comes with its own asynchronous I/O support, which is different
