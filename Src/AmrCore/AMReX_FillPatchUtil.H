@@ -10,6 +10,7 @@
 #include <AMReX_MFInterpolater.H>
 #include <AMReX_Array.H>
 #include <AMReX_Utility.H>
+#include <AMReX_Concepts.H>
 
 /**
  * \file AMReX_FillPatchUtil.H
@@ -37,14 +38,18 @@ namespace amrex
     template <typename MFFAB>
     struct NullInterpHook
     {
-        template <class F=MFFAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-        void operator() (MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+      void operator() (MFFAB& fab, const amrex::Box& bx, int icomp, int ncomp) const 
+        requires IsBaseFabType<MFFAB> 
+      {}
+      
+      void operator() (amrex::Array<MFFAB*, AMREX_SPACEDIM> fab, const amrex::Box& bx, int icomp, int ncomp) const 
+        requires IsBaseFabType<MFFAB> 
+      {}
+      
+      void operator() (MFFAB& mf, int icomp, int ncomp) const 
+        requires IsFabArrayType<MFFAB> 
+      {}
 
-        template <class F=MFFAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-        void operator() (Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
-
-        template <class F=MFFAB, std::enable_if_t<IsFabArray<F>::value,int> = 0>
-        void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const {}
     };
 
     /**
@@ -87,14 +92,18 @@ namespace amrex
      * \param physbcf functor for physical boundaries
      * \param bcfcomp starting component for physbcf
      */
-    template <typename MF, typename BC>
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
-                          const Vector<MF*>& smf, const Vector<Real>& stime,
-                          int scomp, int dcomp, int ncomp,
-                          const Geometry& geom,
-                          BC& physbcf, int bcfcomp);
-
+  template <typename MF, typename BC>
+  void FillPatchSingleLevel (
+			     MF& mf, 
+			     amrex::IntVect const& nghost, 
+			     amrex::Real time,
+			     const amrex::Vector<MF*>& smf, 
+			     const amrex::Vector<amrex::Real>& stime,
+			     int scomp, int dcomp, int ncomp,
+			     const amrex::Geometry& geom,
+			     BC& physbcf, int bcfcomp
+			     ) requires IsFabArrayType<MF>;
+  
     /**
      * \brief FillPatch with data from the current level
      *
@@ -119,12 +128,11 @@ namespace amrex
      * \param bcfcomp starting component for physbcf
      */
     template <typename MF, typename BC>
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchSingleLevel (MF& mf, Real time,
+    void FillPatchSingleLevel (MF& mf, Real time,
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
                           const Geometry& geom,
-                          BC& physbcf, int bcfcomp);
+                          BC& physbcf, int bcfcomp) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch with data from the current level and the level below.
@@ -167,8 +175,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+    void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -179,7 +186,7 @@ namespace amrex
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp = {},
-                        const PostInterpHook& post_interp = {});
+                        const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch with data from the current level and the level below.
@@ -221,8 +228,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels (MF& mf, Real time,
+    void FillPatchTwoLevels (MF& mf, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -233,7 +239,7 @@ namespace amrex
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp = {},
-                        const PostInterpHook& post_interp = {});
+                        const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch for face variables with data from the current level
@@ -279,8 +285,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+    void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -291,7 +296,7 @@ namespace amrex
                         Interp* mapper,
                         const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
                         const PreInterpHook& pre_interp = {},
-                        const PostInterpHook& post_interp = {});
+                        const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch for face variables with data from the current level
@@ -337,8 +342,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
-    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+    void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -349,7 +353,7 @@ namespace amrex
                         Interp* mapper,
                         const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp = {},
-                        const PostInterpHook& post_interp = {});
+                        const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch for face variables with data from the current level
@@ -394,7 +398,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
@@ -406,7 +410,7 @@ namespace amrex
                         Interp* mapper,
                         const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp = {},
-                        const PostInterpHook& post_interp = {});
+                        const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
 #ifdef AMREX_USE_EB
     /**
@@ -449,7 +453,7 @@ namespace amrex
      * \param post_interp post-interpolation hook
      */
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
@@ -462,7 +466,7 @@ namespace amrex
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp,
-                        const PostInterpHook& post_interp);
+                        const PostInterpHook& post_interp) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch with data from the current level and the level below.
@@ -503,7 +507,7 @@ namespace amrex
      * \param post_interp post-interpolation hook
      */
     template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (MF& mf, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
@@ -516,7 +520,7 @@ namespace amrex
                         Interp* mapper,
                         const Vector<BCRec>& bcs, int bcscomp,
                         const PreInterpHook& pre_interp,
-                        const PostInterpHook& post_interp);
+                        const PostInterpHook& post_interp) requires IsFabArrayType<MF>;
 #endif
 
     /**
@@ -552,7 +556,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -562,7 +566,7 @@ namespace amrex
                            Interp* mapper,
                            const Vector<BCRec>& bcs, int bcscomp,
                            const PreInterpHook& pre_interp = {},
-                           const PostInterpHook& post_interp = {});
+                           const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief Fill with interpolation of coarse level data
@@ -596,7 +600,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -606,7 +610,7 @@ namespace amrex
                            Interp* mapper,
                            const Vector<BCRec>& bcs, int bcscomp,
                            const PreInterpHook& pre_interp = {},
-                           const PostInterpHook& post_interp = {});
+                           const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief Fill with interpolation of coarse level data
@@ -641,7 +645,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const EB2::IndexSpace* index_space,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
@@ -652,7 +656,7 @@ namespace amrex
                            Interp* mapper,
                            const Vector<BCRec>& bcs, int bcscomp,
                            const PreInterpHook& pre_interp = {},
-                           const PostInterpHook& post_interp = {});
+                           const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief Fill face variables with data from the coarse level.
@@ -687,7 +691,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                            const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -697,7 +701,7 @@ namespace amrex
                            Interp* mapper,
                            const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                            const PreInterpHook& pre_interp = {},
-                           const PostInterpHook& post_interp = {});
+                           const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief Fill face variables with data from the coarse level.
@@ -733,7 +737,7 @@ namespace amrex
     template <typename MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                            const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -743,7 +747,7 @@ namespace amrex
                            Interp* mapper,
                            const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
                            const PreInterpHook& pre_interp = {},
-                           const PostInterpHook& post_interp = {});
+                           const PostInterpHook& post_interp = {}) requires IsFabArrayType<MF>;
 
     /**
      * \brief Fill with interpolation of coarse level data
@@ -772,13 +776,13 @@ namespace amrex
      * \param bcscomp starting component for bcs
      */
     template <typename MF, typename Interp>
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                            IntVect const& nghost_outside_domain,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            const IntVect& ratio, Interp* mapper,
-                           const Vector<BCRec>& bcs, int bcscomp);
+                           const Vector<BCRec>& bcs, int bcscomp) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch with data from the current level
@@ -803,11 +807,11 @@ namespace amrex
      * \param geom Geometry for this level
      */
     template <typename MF>
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                           const Vector<MF*>& smf, IntVect const& snghost,
                           const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
-                          const Geometry& geom);
+                          const Geometry& geom) requires IsFabArrayType<MF>;
 
     /**
      * \brief FillPatch with data from the current level and the level below.
@@ -840,7 +844,7 @@ namespace amrex
      * \param bcscomp starting component for bcs
      */
     template <typename MF, typename Interp>
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                         IntVect const& nghost_outside_domain, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
@@ -848,7 +852,7 @@ namespace amrex
                         int scomp, int dcomp, int ncomp,
                         const Geometry& cgeom, const Geometry& fgeom,
                         const IntVect& ratio, Interp* mapper,
-                        const Vector<BCRec>& bcs, int bcscomp);
+                        const Vector<BCRec>& bcs, int bcscomp) requires IsFabArrayType<MF>;
 
 #ifndef BL_NO_FORT
     enum InterpEM_t { InterpE, InterpB};
@@ -905,7 +909,7 @@ namespace amrex
      * \param bcrcomp starting component for bcr
      */
     template <typename MF, typename BC, typename Interp>
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                       const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
                       int scomp, int dcomp, int ncomp,
@@ -913,7 +917,7 @@ namespace amrex
                       Vector<BC>& bc, int bccomp,
                       const Vector<IntVect>& ratio,
                       Interp* mapper,
-                      const Vector<BCRec>& bcr, int bcrcomp);
+                      const Vector<BCRec>& bcr, int bcrcomp) requires IsFabArrayType<MF>;
 
 }
 
