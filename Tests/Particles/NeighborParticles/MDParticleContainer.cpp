@@ -745,9 +745,14 @@ void MDParticleContainer::checkInverseSumNeighbors ()
         local_packed.reserve(local_data.size());
         for (auto const& [key, contribution] : local_data) {
             local_packed.push_back(PackedContributionData{
-                key.first, key.second, contribution.struct_real, contribution.struct_int,
-                contribution.array_real, contribution.runtime_real,
-                contribution.array_int, contribution.runtime_int
+                .id = key.first,
+                .cpu = key.second,
+                .struct_real = contribution.struct_real,
+                .struct_int = contribution.struct_int,
+                .array_real = contribution.array_real,
+                .runtime_real = contribution.runtime_real,
+                .array_int = contribution.array_int,
+                .runtime_int = contribution.runtime_int
             });
         }
 
@@ -806,9 +811,14 @@ void MDParticleContainer::checkInverseSumNeighbors ()
             global_packed.reserve(global_data.size());
             for (auto const& [key, contribution] : global_data) {
                 global_packed.push_back(PackedContributionData{
-                    key.first, key.second, contribution.struct_real, contribution.struct_int,
-                    contribution.array_real, contribution.runtime_real,
-                    contribution.array_int, contribution.runtime_int
+                    .id = key.first,
+                    .cpu = key.second,
+                    .struct_real = contribution.struct_real,
+                    .struct_int = contribution.struct_int,
+                    .array_real = contribution.array_real,
+                    .runtime_real = contribution.runtime_real,
+                    .array_int = contribution.array_int,
+                    .runtime_int = contribution.runtime_int
                 });
             }
         }
