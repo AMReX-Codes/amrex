@@ -38,18 +38,18 @@ namespace amrex
     template <typename MFFAB>
     struct NullInterpHook
     {
-      template <typename = void>
-      requires IsBaseFabType<MFFAB>
+      template <typename T = MFFAB>
+      requires IsBaseFabType<T>
       void operator() (MFFAB& /*fab*/, const amrex::Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
       {}
 
-      template <typename = void>
-      requires IsBaseFabType<MFFAB>
+      template <typename T = MFFAB>
+      requires IsBaseFabType<T>
       void operator() (amrex::Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const amrex::Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const 
       {}
 
-      template <typename = void>
-      requires IsFabArrayType<MFFAB>
+      template <typename T = MFFAB>
+      requires IsFabArrayType<T>
       void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const 
       {}
 
