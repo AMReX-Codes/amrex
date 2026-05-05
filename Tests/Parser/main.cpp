@@ -2,6 +2,7 @@
 #include <AMReX_Parser.H>
 #include <AMReX_IParser.H>
 #include <map>
+#include <numbers>
 #include <thread>
 #include <vector>
 
@@ -394,7 +395,7 @@ int main (int argc, char* argv[])
                         {"x","y","z"},
                         [=] (double x, double, double z) -> double {
                             double pi = 3.14;
-                            return 2.*std::sqrt(2.)+std::sqrt(-std::log(x))*std::cos(2*pi*z);
+                            return 2.*std::numbers::sqrt2+std::sqrt(-std::log(x))*std::cos(2*pi*z);
                         },
                         {0.5, 0.8, 0.3}, {16, 16, 16}, 100,
                         1.e-12, 1.e-15);

@@ -52,8 +52,15 @@ Variables`. The app ID isn't a secret. So you can store it as clear text. In
 fact, GitLab does not allow 7-digit masked variables anyway. The
 installation ID is also not sensitive, but nevertheless we stored it as
 protected and masked. The private key is a secret that must be protected and
-masked. We also disabled "Expand" for all of these variables because the CI
-script doesn't need variable expansion. GitLab seems to have a bug that
+masked. The `GITHUB_APP_PRIVATE_KEY` and `GITHUB_APP_INSTALLATION_ID`
+variables must have environment scope `github-status`, because only the
+`post_github_comment` job should receive them. This prevents the GPU build/test
+jobs, which check out and execute GitHub PR code, from receiving the GitHub App
+private key or installation token material. Normally this should not matter,
+but a maintainer-triggered PR could still modify CMake or test code that runs
+inside those build jobs, and that code must not be able to read the GitHub App
+credentials. We also disabled "Expand" for all of these variables because the
+CI script doesn't need variable expansion. GitLab seems to have a bug that
 prevents saving the private key as a multi-line value, and saving it as a
 file didn't work either. So we encoded it with `base64 -w0` to turn it into
 a single line. That's why in the GitLab CI script we have to decode it.

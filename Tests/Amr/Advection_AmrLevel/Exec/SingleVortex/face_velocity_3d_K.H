@@ -3,6 +3,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Array.H>
+#include <numbers>
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
@@ -17,7 +18,7 @@ void get_face_velocity_psi(int i, int j,
                            amrex::Real /*prob_lo_z*/)
 {
     using namespace amrex;
-    constexpr Real PI = 3.141592653589793238462643383279502884197;
+    constexpr Real PI = std::numbers::pi_v<Real>;
 
     // Compute streamfunction psi
     Real y = ( (Real)j + 0.5 )*dy + prob_lo_y;

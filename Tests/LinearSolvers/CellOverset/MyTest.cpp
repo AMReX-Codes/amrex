@@ -5,6 +5,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <numbers>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -173,7 +175,7 @@ MyTest::initData ()
             constexpr amrex::Real sigma = 10.;
             const amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
 
-            constexpr amrex::Real pi = 3.1415926535897932;
+            constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
             constexpr amrex::Real tpi =  2.*pi;
             constexpr amrex::Real fpi =  4.*pi;
             constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM)*4.*pi*pi;

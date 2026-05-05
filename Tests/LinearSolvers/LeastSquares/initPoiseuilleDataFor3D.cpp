@@ -3,6 +3,8 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <numbers>
+
 using namespace amrex;
 
 #if (AMREX_SPACEDIM == 3)
@@ -49,7 +51,7 @@ void MyTest::initializePoiseuilleDataFor3D(int ilev) {
                                                   int k) noexcept {
         Real H = poiseuille_height;
         int nfdir = poiseuille_no_flow_dir;
-        constexpr Real pi = 3.1415926535897932;
+        constexpr Real pi = std::numbers::pi_v<Real>;
         Real alpha = (poiseuille_askew_rotation[0] / 180.) * pi;
         Real gamma = (poiseuille_askew_rotation[1] / 180.) * pi;
 
