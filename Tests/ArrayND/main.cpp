@@ -24,12 +24,12 @@ void test_array4 (Array4<T> const& a, T tot)
             auto v1 = a(i,j,k,0);
             auto v2 = a(IntVectND<4>(i,j,k,0));
             auto v3 = a(IntVect(AMREX_D_DECL(i,j,k)));
-            auto v4 = a(Dim3{i,j,k});
+            auto v4 = a(Dim3{.x = i, .y = j, .z = k});
             auto* p0 = a.ptr(i,j,k);
             auto* p1 = a.ptr(i,j,k,0);
             auto* p2 = a.ptr(IntVectND<4>(i,j,k,0));
             auto* p3 = a.ptr(IntVect(AMREX_D_DECL(i,j,k)));
-            auto* p4 = a.ptr(Dim3{i,j,k});
+            auto* p4 = a.ptr(Dim3{.x = i, .y = j, .z = k});
             return (v0+v1+v2+v3+v4+*p0+*p1+*p2+*p3+*p4)/10;
         });
     } else {
@@ -38,10 +38,10 @@ void test_array4 (Array4<T> const& a, T tot)
         {
             auto v0 = a(i,j,k,n);
             auto v1 = a(IntVect(AMREX_D_DECL(i,j,k)),n);
-            auto v2 = a(Dim3{i,j,k},n);
+            auto v2 = a(Dim3{.x = i, .y = j, .z = k},n);
             auto* p0 = a.ptr(i,j,k,n);
             auto* p1 = a.ptr(IntVect(AMREX_D_DECL(i,j,k)),n);
-            auto* p2 = a.ptr(Dim3{i,j,k},n);
+            auto* p2 = a.ptr(Dim3{.x = i, .y = j, .z = k},n);
             return (v0+v1+v2+*p0+*p1+*p2)/6;
         });
     }

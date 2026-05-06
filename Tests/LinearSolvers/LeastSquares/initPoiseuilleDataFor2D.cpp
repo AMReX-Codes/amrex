@@ -3,6 +3,8 @@
 #include <AMReX_EBMultiFabUtil.H>
 #include <AMReX_MultiFabUtil.H>
 
+#include <numbers>
+
 using namespace amrex;
 
 #if (AMREX_SPACEDIM == 2)
@@ -40,7 +42,7 @@ void MyTest::initializePoiseuilleDataFor2D(int ilev) {
 
     amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
       Real H = poiseuille_height;
-      constexpr Real pi = 3.1415926535897932;
+      constexpr Real pi = std::numbers::pi_v<Real>;
       Real t = (poiseuille_rotation / 180.) * pi;
 
       Real a = std::tan(t);

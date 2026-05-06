@@ -21,19 +21,19 @@ Real dot_product (XDim3 const& a, XDim3 const& b)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 cross_product (XDim3 const& a, XDim3 const& b)
 {
-    return {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};
+    return XDim3{.x = a.y*b.z-a.z*b.y, .y = a.z*b.x-a.x*b.z, .z = a.x*b.y-a.y*b.x};
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 operator+ (XDim3 const& a, XDim3 const& b)
 {
-    return {a.x + b.x, a.y + b.y, a.z + b.z};
+    return XDim3{.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z};
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 operator- (XDim3 const& a, XDim3 const& b)
 {
-    return {a.x - b.x, a.y - b.y, a.z - b.z};
+    return XDim3{.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z};
 }
 
 template <typename T,

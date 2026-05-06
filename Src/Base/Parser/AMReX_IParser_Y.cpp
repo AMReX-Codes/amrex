@@ -20,25 +20,29 @@ amrex_iparsererror (char const *s, ...)
 namespace amrex {
 
 namespace {
-    struct iparser_node* iparser_root = nullptr;
-    std::vector<void*>   iparser_ptrs;
+    struct IParserWorkspace {
+        struct iparser_node* root = nullptr;
+        std::vector<void*> ptrs;
+    };
+
+    thread_local IParserWorkspace iparser_workspace;
 }
 
 // This is called by a bison rule to store the original AST in a static variable.
 void
 iparser_defexpr (struct iparser_node* body)
 {
-    iparser_root = body;
+    iparser_workspace.root = body;
 }
 
 struct iparser_symbol*
 iparser_makesymbol (char* name)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_symbol)));
-    auto *symbol = (struct iparser_symbol*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_symbol)));
+    auto *symbol = (struct iparser_symbol*) iparser_workspace.ptrs.back();
     symbol->type = IPARSER_SYMBOL;
     symbol->name = strdup(name);
-    iparser_ptrs.push_back((void*)symbol->name);
+    iparser_workspace.ptrs.push_back((void*)symbol->name);
     symbol->ip = -1;
     return symbol;
 }
@@ -46,8 +50,8 @@ iparser_makesymbol (char* name)
 struct iparser_node*
 iparser_newnode (enum iparser_node_t type, struct iparser_node* l, struct iparser_node* r)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_node)));
-    auto *tmp = (struct iparser_node*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_node)));
+    auto *tmp = (struct iparser_node*) iparser_workspace.ptrs.back();
     tmp->type = type;
     tmp->l = l;
     tmp->r = r;
@@ -57,8 +61,8 @@ iparser_newnode (enum iparser_node_t type, struct iparser_node* l, struct iparse
 struct iparser_node*
 iparser_newnumber (long long d)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_number)));
-    auto *r = (struct iparser_number*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_number)));
+    auto *r = (struct iparser_number*) iparser_workspace.ptrs.back();
     r->type = IPARSER_NUMBER;
     r->value = d;
     return (struct iparser_node*) r;
@@ -73,8 +77,8 @@ iparser_newsymbol (struct iparser_symbol* symbol)
 struct iparser_node*
 iparser_newf1 (enum iparser_f1_t ftype, struct iparser_node* l)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_f1)));
-    auto *tmp = (struct iparser_f1*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_f1)));
+    auto *tmp = (struct iparser_f1*) iparser_workspace.ptrs.back();
     tmp->type = IPARSER_F1;
     tmp->l = l;
     tmp->ftype = ftype;
@@ -84,8 +88,8 @@ iparser_newf1 (enum iparser_f1_t ftype, struct iparser_node* l)
 struct iparser_node*
 iparser_newf2 (enum iparser_f2_t ftype, struct iparser_node* l, struct iparser_node* r)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_f2)));
-    auto *tmp = (struct iparser_f2*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_f2)));
+    auto *tmp = (struct iparser_f2*) iparser_workspace.ptrs.back();
     tmp->type = IPARSER_F2;
     tmp->l = l;
     tmp->r = r;
@@ -97,8 +101,8 @@ struct iparser_node*
 iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node* n1, struct iparser_node* n2,
                struct iparser_node* n3)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_f3)));
-    auto *tmp = (struct iparser_f3*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_f3)));
+    auto *tmp = (struct iparser_f3*) iparser_workspace.ptrs.back();
     tmp->type = IPARSER_F3;
     tmp->n1 = n1;
     tmp->n2 = n2;
@@ -110,8 +114,8 @@ iparser_newf3 (enum iparser_f3_t ftype, struct iparser_node* n1, struct iparser_
 struct iparser_node*
 iparser_newassign (struct iparser_symbol* sym, struct iparser_node* v)
 {
-    iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_assign)));
-    auto *r = (struct iparser_assign*) iparser_ptrs.back();
+    iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_assign)));
+    auto *r = (struct iparser_assign*) iparser_workspace.ptrs.back();
     r->type = IPARSER_ASSIGN;
     r->s = sym;
     r->v = v;
@@ -124,8 +128,8 @@ iparser_newlist (struct iparser_node* nl, struct iparser_node* nr)
     if (nr == nullptr) {
         return nl;
     } else {
-        iparser_ptrs.push_back(std::malloc(sizeof(struct iparser_node)));
-        auto *r = (struct iparser_node*) iparser_ptrs.back();
+        iparser_workspace.ptrs.push_back(std::malloc(sizeof(struct iparser_node)));
+        auto *r = (struct iparser_node*) iparser_workspace.ptrs.back();
         r->type = IPARSER_LIST;
         r->l = nl;
         r->r = nr;
@@ -184,11 +188,11 @@ amrex_iparser_new ()
 {
     auto *my_iparser = (struct amrex_iparser*) std::malloc(sizeof(struct amrex_iparser));
 
-    my_iparser->sz_mempool = iparser_ast_size(iparser_root);
+    my_iparser->sz_mempool = iparser_ast_size(iparser_workspace.root);
     my_iparser->p_root = std::malloc(my_iparser->sz_mempool);
     my_iparser->p_free = my_iparser->p_root;
 
-    my_iparser->ast = iparser_ast_dup(my_iparser, iparser_root);
+    my_iparser->ast = iparser_ast_dup(my_iparser, iparser_workspace.root);
 
     amrex_iparser_delete_ptrs();
 
@@ -211,10 +215,11 @@ amrex_iparser_delete (struct amrex_iparser* iparser)
 void
 amrex_iparser_delete_ptrs ()
 {
-    for (auto* p : iparser_ptrs) {
+    for (auto* p : iparser_workspace.ptrs) {
         std::free(p);
     }
-    iparser_ptrs.clear();
+    iparser_workspace.ptrs.clear();
+    iparser_workspace.root = nullptr;
 }
 
 namespace {

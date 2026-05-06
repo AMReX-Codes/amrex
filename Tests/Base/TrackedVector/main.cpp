@@ -247,7 +247,7 @@ void test_aggregate ()
     std::vector<int> i = {1, 2, 3};
     std::vector<int> j = {4, 5, 6};
 
-    [[maybe_unused]] auto ptr1 = std::shared_ptr<S>(new S{42.0, i, j});  // NOLINT(modernize-make-shared)
+    [[maybe_unused]] auto ptr1 = std::shared_ptr<S>(new S{.x = 42.0, .a = i, .b = j});  // NOLINT(modernize-make-shared)
 }
 
 void test_copy_constructor ()

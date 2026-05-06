@@ -11,6 +11,7 @@
 #include <AMReX_RealVect.H>
 
 #include <array>
+#include <numeric>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -639,6 +640,7 @@ struct ParticleTileRT
         if (m_capacity < new_size) {
             size_type new_grown_capacity =
                 grow_podvector_capacity(strategy, new_size, m_capacity, sizeof(RType));
+            new_grown_capacity = align_capacity(new_grown_capacity);
             realloc_and_move(new_size, new_grown_capacity, m_n_real, m_n_int);
         } else {
             m_size = new_size;
@@ -652,6 +654,7 @@ struct ParticleTileRT
         if (m_capacity < new_capacity) {
             size_type new_grown_capacity =
                 grow_podvector_capacity(strategy, new_capacity, m_capacity, sizeof(RType));
+            new_grown_capacity = align_capacity(new_grown_capacity);
             realloc_and_move(m_size, new_grown_capacity, m_n_real, m_n_int);
         }
     }
@@ -737,8 +740,9 @@ struct ParticleTileRT
     {
         AMREX_ALWAYS_ASSERT(m_defined);
 
-        if (m_size != m_capacity) {
-            realloc_and_move(m_size, m_size, m_n_real, m_n_int);
+        size_type aligned_size = align_capacity(m_size);
+        if (aligned_size < m_capacity) {
+            realloc_and_move(m_size, aligned_size, m_n_real, m_n_int);
         }
     }
 
@@ -803,6 +807,15 @@ private:
         auto const pos = std::find(name_list->begin(), name_list->end(), name);
         AMREX_ALWAYS_ASSERT(pos != name_list->end());
         return static_cast<int>(std::distance(name_list->begin(), pos));
+    }
+
+    static size_type align_capacity (size_type capacity) {
+        constexpr auto aligment_in_bytes = Arena::align_size;
+        constexpr auto aligment_in_elements = aligment_in_bytes / std::gcd(
+            std::gcd(aligment_in_bytes, sizeof(uint64_t)),
+            std::gcd(sizeof(RType), sizeof(IType))
+        );
+        return amrex::aligned_size(aligment_in_elements, capacity);
     }
 
     bool m_defined = false;

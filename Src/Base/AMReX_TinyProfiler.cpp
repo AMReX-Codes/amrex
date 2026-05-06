@@ -32,8 +32,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
 #include <set>
 
 namespace amrex {
@@ -46,6 +47,7 @@ std::vector<std::map<std::string, MemStat>*> TinyProfiler::all_memstats;
 std::vector<std::string> TinyProfiler::all_memnames;
 
 std::vector<std::string>          TinyProfiler::regionstack;
+std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
@@ -174,7 +176,7 @@ TinyProfiler::stop ()
 
         const double t = amrex::second();
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(ttstack) == global_depth,
             "TinyProfiler sections must be nested with respect to each other");
 #ifdef AMREX_USE_OMP
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(in_parallel_region == omp_in_parallel(),
@@ -443,6 +445,7 @@ TinyProfiler::Finalize (bool bFlushing)
 
     if (!bFlushing) {
         regionstack.clear();
+        regionstartstack.clear();
         ttstack.clear();
         statsmap.clear();
     }
@@ -950,9 +953,12 @@ TinyProfiler::StartRegion (std::string regname) noexcept
 {
     if (!enabled) { return; }
 
+    bool pushed = false;
     if (std::find(regionstack.begin(), regionstack.end(), regname) == regionstack.end()) {
-        regionstack.emplace_back(std::move(regname));
+        regionstack.emplace_back(regname);
+        pushed = true;
     }
+    regionstartstack.emplace_back(std::move(regname), pushed);
 }
 
 void
@@ -960,8 +966,13 @@ TinyProfiler::StopRegion (const std::string& regname) noexcept
 {
     if (!enabled) { return; }
 
-    if (regname == regionstack.back()) {
-        regionstack.pop_back();
+    if (!regionstartstack.empty() && regname == regionstartstack.back().first) {
+        if (regionstartstack.back().second) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!regionstack.empty() && regname == regionstack.back(),
+                "TinyProfiler regions must be nested with respect to each other");
+            regionstack.pop_back();
+        }
+        regionstartstack.pop_back();
     }
 }
 

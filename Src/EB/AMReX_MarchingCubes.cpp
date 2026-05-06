@@ -974,14 +974,14 @@ void write_stl (std::string const& filename, std::map<int,std::unique_ptr<MCFab>
             auto iv1 = tri_v1[itri];
             auto iv2 = tri_v2[itri];
             auto iv3 = tri_v3[itri];
-            XDim3 v1 = { vert_x[iv1], vert_y[iv1], vert_z[iv1] };
-            XDim3 v2 = { vert_x[iv2], vert_y[iv2], vert_z[iv2] };
-            XDim3 v3 = { vert_x[iv3], vert_y[iv3], vert_z[iv3] };
-            XDim3 vec1{v2.x-v1.x, v2.y-v1.y, v2.z-v1.z};
-            XDim3 vec2{v3.x-v2.x, v3.y-v2.y, v3.z-v2.z};
-            XDim3 norm{vec1.y*vec2.z-vec1.z*vec2.y,
-                       vec1.z*vec2.x-vec1.x*vec2.z,
-                       vec1.x*vec2.y-vec1.y*vec2.x};
+            XDim3 v1{.x = vert_x[iv1], .y = vert_y[iv1], .z = vert_z[iv1]};
+            XDim3 v2{.x = vert_x[iv2], .y = vert_y[iv2], .z = vert_z[iv2]};
+            XDim3 v3{.x = vert_x[iv3], .y = vert_y[iv3], .z = vert_z[iv3]};
+            XDim3 vec1{.x = v2.x-v1.x, .y = v2.y-v1.y, .z = v2.z-v1.z};
+            XDim3 vec2{.x = v3.x-v2.x, .y = v3.y-v2.y, .z = v3.z-v2.z};
+            XDim3 norm{.x = vec1.y*vec2.z-vec1.z*vec2.y,
+                       .y = vec1.z*vec2.x-vec1.x*vec2.z,
+                       .z = vec1.x*vec2.y-vec1.y*vec2.x};
             auto tmp = std::sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
             if (tmp != 0) { tmp = Real(1) / tmp; }
             ofs << "facet normal " << norm.x*tmp << " " << norm.y*tmp << " " << norm.z*tmp << "\n"

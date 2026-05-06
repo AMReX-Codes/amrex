@@ -8,6 +8,7 @@
 
 #include <cerrno>
 #include <cstdio>
+#include <iterator>
 #include <limits>
 #include <vector>
 #include <utility>
@@ -1025,7 +1026,7 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
     for(int i : pmap) {
       procsWithData.insert(i);
     }
-    if(allowSparseWrites && (static_cast<int>(procsWithData.size()) < nOutFiles)) {
+    if(allowSparseWrites && (std::ssize(procsWithData) < nOutFiles)) {
       useSparseFPP = true;
 //      amrex::Print() << "SSSSSSSS:  in VisMF::Write:  useSparseFPP for:  " << mf_name << '\n';
       for (auto const& x : procsWithData) {
@@ -1087,8 +1088,8 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
                     hLength = static_cast<std::streamoff>(hss.tellp());
-                    auto tstr = hss.str();
-                    std::memcpy(afPtr, tstr.c_str(), hLength);  // ---- the fab header
+                    auto const tstr = hss.view();
+                    std::memcpy(afPtr, tstr.data(), hLength);  // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1118,16 +1119,14 @@ VisMF::Write (const FabArray<FArrayBox>&    mf,
 
         } else {    // ---- write fabs individually
             for(MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                std::streamoff hLength = 0;
                 const FArrayBox &fab = mf[mfi];
                 writeDataItems = fab.box().numPts() * mf.nComp();
                 writeDataSize = writeDataItems * whichRDBytes;
                 if(oldHeader) {
                     std::stringstream hss;
                     fio.write_header(hss, fab, fab.nComp());
-                    hLength = static_cast<std::streamoff>(hss.tellp());
-                    auto tstr = hss.str();
-                    nfi.Stream().write(tstr.c_str(), hLength);    // ---- the fab header
+                    auto const tstr = hss.view();
+                    nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));    // ---- the fab header
                 }
                 Real const* fabdata = fab.dataPtr();
 #ifdef AMREX_USE_GPU
@@ -1823,7 +1822,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
                                                             afPtr, hdr.m_writtenRD);
                     } else {
                       auto nbytes = fab.nBytes();
-                      AMREX_ASSERT(bytesToRead > currentOffset && nbytes <= std::size_t(bytesToRead - currentOffset));
+                      AMREX_ASSERT(bytesToRead > currentOffset && std::cmp_less_equal(nbytes, (bytesToRead - currentOffset)));
                       std::memcpy(fabdata, afPtr, nbytes);
                     }
                     currentOffset += readDataItems * hdr.m_writtenRD.numBytes();
@@ -2042,7 +2041,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       std::vector<int> recReads(nReqs, -1);
       while(nReqs > 0) {
         rmess = ParallelDescriptor::Recv(recReads, ioProcNum, readTag);
-        for(int ir(0); ir < static_cast<int>(rmess.count()); ++ir) {
+        for(std::size_t ir = 0; ir < rmess.count(); ++ir) {
           int mfIndex(recReads[ir]);
           VisMF::readFAB(mf,mfIndex, mf_name, hdr);
         }
@@ -2497,7 +2496,7 @@ VisMF::AsyncWriteDoit (const FabArray<FArrayBox>& mf, const std::string& mf_name
                 {
                     int k = -1;
                     do {
-                        if (lidx < gidx[rank].size()) {
+                        if (lidx < std::ssize(gidx[rank])) {
                             k = gidx[rank][lidx];
                             ++lidx;
                         } else {

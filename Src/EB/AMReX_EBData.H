@@ -234,7 +234,8 @@ struct EBDataArrays
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     EBData get (int box_no) const noexcept
     {
-        return EBData{m_cell_flag + box_no, m_real_data + (box_no * real_data_size)};
+        return EBData{.m_cell_flag = m_cell_flag + box_no,
+                      .m_real_data = m_real_data + (box_no * real_data_size)};
     }
 
     static constexpr int real_data_size = static_cast<int>(EBData_t::cellflag);

@@ -5,6 +5,8 @@
 #include <AMReX_WriteBinaryParticleData.H>
 #include <AMReX_VisMF.H>
 
+#include <iterator>
+
 namespace amrex {
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -456,7 +458,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Long nparticles = 0;
     Long  maxnextid  = ParticleType::NextID();
 
-    for (int lev = 0; lev < m_particles.size();  lev++) {
+    for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
@@ -534,7 +536,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                     cnt[whichPrePost[lev][i]] += countPrePost[lev][i];
                 }
 
-                for(int i(0), N = int(cnt.size()); i < N; ++i) {
+                for(int i = 0; i < std::ssize(cnt); ++i) {
                     if(cnt[i] == 0) {
                         std::string FullFileName = NFilesIter::FileName(i, filePrefixPrePost[lev]);
                         FileSystem::Remove(FullFileName);
@@ -957,7 +959,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     BL_PROFILE("ParticleContainer::ReadParticles()");
     AMREX_ASSERT(cnt > 0);
-    AMREX_ASSERT(lev < int(m_particles.size()));
+    AMREX_ASSERT(lev < std::ssize(m_particles));
 
     // First read in the integer data in binary.  We do not store
     // the m_lev and m_grid data on disk.  We can easily recreate
@@ -1080,7 +1082,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
-    for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+    for (int host_lev = 0; host_lev < std::ssize(host_particles); ++host_lev)
     {
         for (auto& kv : host_particles[host_lev]) {
             auto grid = kv.first.first;
@@ -1144,7 +1146,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     //
     Long nparticles = 0;
 
-    for (int lev = 0; lev < m_particles.size();  lev++) {
+    for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
         auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
@@ -1221,7 +1223,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 amrex::FileOpenFailed(filename);
             }
 
-            for (int lev = 0; lev < m_particles.size();  lev++) {
+            for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
                 auto& pmap = m_particles[lev];
                 for (const auto& kv : pmap) {
                     ParticleTile<ParticleType, NArrayReal, NArrayInt,

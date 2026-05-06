@@ -117,6 +117,10 @@ struct ParserExecutor
  * registered variables. After calling define(), registerVariables(), and
  * (optionally) registerUserFn*, the expression can be compiled into a
  * ParserExecutor that evaluates it efficiently on host or device.
+ *
+ * Different Parser objects may be constructed or defined concurrently from
+ * multiple host threads. For parallel evaluation, prefer sharing the compiled
+ * ParserExecutor across threads instead of constructing one Parser per thread.
  */
 class Parser
 {

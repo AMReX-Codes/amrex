@@ -17,13 +17,13 @@ namespace {
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     XDim3 triangle_norm (STLtools::Triangle const& tri)
     {
-        XDim3 vec1{tri.v2.x-tri.v1.x, tri.v2.y-tri.v1.y, tri.v2.z-tri.v1.z};
-        XDim3 vec2{tri.v3.x-tri.v2.x, tri.v3.y-tri.v2.y, tri.v3.z-tri.v2.z};
-        XDim3 norm{vec1.y*vec2.z-vec1.z*vec2.y,
-                   vec1.z*vec2.x-vec1.x*vec2.z,
-                   vec1.x*vec2.y-vec1.y*vec2.x};
+        XDim3 vec1{.x = tri.v2.x-tri.v1.x, .y = tri.v2.y-tri.v1.y, .z = tri.v2.z-tri.v1.z};
+        XDim3 vec2{.x = tri.v3.x-tri.v2.x, .y = tri.v3.y-tri.v2.y, .z = tri.v3.z-tri.v2.z};
+        XDim3 norm{.x = vec1.y*vec2.z-vec1.z*vec2.y,
+                   .y = vec1.z*vec2.x-vec1.x*vec2.z,
+                   .z = vec1.x*vec2.y-vec1.y*vec2.x};
         Real tmp = 1._rt / std::sqrt(norm.x*norm.x + norm.y*norm.y + norm.z*norm.z);
-        return {norm.x * tmp, norm.y * tmp, norm.z * tmp};
+        return XDim3{.x = norm.x * tmp, .y = norm.y * tmp, .z = norm.z * tmp};
     }
 
     // Does line ab intersect with the triangle?
@@ -639,7 +639,7 @@ STLtools::prepare (Gpu::PinnedVector<Triangle> a_tri_pts)
 
     // Choose a reference point by extending the normal vector of the first
     // triangle until it's slightly outside the bounding box.
-    XDim3 cent0{tri0.cent(0), tri0.cent(1), tri0.cent(2)};
+    XDim3 cent0{.x = tri0.cent(0), .y = tri0.cent(1), .z = tri0.cent(2)};
     int is_ref_positive;
     {
         // We are computing the normal ourselves in case the stl file does
@@ -918,21 +918,21 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
     const auto plo = geom.ProbLoArray();
     const auto dx  = geom.CellSizeArray();
 
-    XDim3 blo{plo[0] + static_cast<Real>(box.smallEnd(0))*dx[0],
-              plo[1] + static_cast<Real>(box.smallEnd(1))*dx[1],
+    XDim3 blo{.x = plo[0] + static_cast<Real>(box.smallEnd(0))*dx[0],
+              .y = plo[1] + static_cast<Real>(box.smallEnd(1))*dx[1],
 #if (AMREX_SPACEDIM == 2)
-              0._rt
+              .z = 0._rt
 #else
-              plo[2] + static_cast<Real>(box.smallEnd(2))*dx[2]
+              .z = plo[2] + static_cast<Real>(box.smallEnd(2))*dx[2]
 #endif
     };
 
-    XDim3 bhi{plo[0] + static_cast<Real>(box.bigEnd(0))*dx[0],
-              plo[1] + static_cast<Real>(box.bigEnd(1))*dx[1],
+    XDim3 bhi{.x = plo[0] + static_cast<Real>(box.bigEnd(0))*dx[0],
+              .y = plo[1] + static_cast<Real>(box.bigEnd(1))*dx[1],
 #if (AMREX_SPACEDIM == 2)
-              0._rt
+              .z = 0._rt
 #else
-              plo[2] + static_cast<Real>(box.bigEnd(2))*dx[2]
+              .z = plo[2] + static_cast<Real>(box.bigEnd(2))*dx[2]
 #endif
     };
 
@@ -1117,12 +1117,12 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
 #endif
             Real r = std::numeric_limits<Real>::quiet_NaN();
             if (type(i,j,k) == EB2::Type::irregular) {
-                XDim3 p1{plo[0]+static_cast<Real>(i)*dx[0],
-                         plo[1]+static_cast<Real>(j)*dx[1],
+                XDim3 p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                         .y = plo[1]+static_cast<Real>(j)*dx[1],
 #if (AMREX_SPACEDIM == 2)
-                         Real(0.)
+                         .z = Real(0.)
 #else
-                         plo[2]+static_cast<Real>(k)*dx[2]
+                         .z = plo[2]+static_cast<Real>(k)*dx[2]
 #endif
                 };
                 if (idim == 0) {
@@ -1174,10 +1174,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             auto const& tri = tri_pts[it];
                             auto const& norm = tri_norm[it];
                             auto tmp = edge_tri_intersects(p1.y, y2, p1.z, p1.x,
-                                                           {tri.v1.y, tri.v1.z, tri.v1.x},
-                                                           {tri.v2.y, tri.v2.z, tri.v2.x},
-                                                           {tri.v3.y, tri.v3.z, tri.v3.x},
-                                                           {  norm.y,   norm.z,   norm.x},
+                                                           XDim3{.x = tri.v1.y, .y = tri.v1.z, .z = tri.v1.x},
+                                                           XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
+                                                           XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
+                                                           XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
                                                            lst(i,j+1,k)-lst(i,j,k));
                             if (tmp.first) {
                                 r = tmp.second;
@@ -1196,10 +1196,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                 auto const& tri = ptri[it];
                                 auto const& norm = ptrinorm[it];
                                 auto tmp = edge_tri_intersects(p1.y, y2, p1.z, p1.x,
-                                                               {tri.v1.y, tri.v1.z, tri.v1.x},
-                                                               {tri.v2.y, tri.v2.z, tri.v2.x},
-                                                               {tri.v3.y, tri.v3.z, tri.v3.x},
-                                                               {  norm.y,   norm.z,   norm.x},
+                                                               XDim3{.x = tri.v1.y, .y = tri.v1.z, .z = tri.v1.x},
+                                                               XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
+                                                               XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
+                                                               XDim3{.x =   norm.y, .y =   norm.z, .z =   norm.x},
                                                                lst(i,j+1,k)-lst(i,j,k));
                                 if (tmp.first) {
                                     r = tmp.second;
@@ -1223,10 +1223,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                             auto const& tri = tri_pts[it];
                             auto const& norm = tri_norm[it];
                             auto tmp = edge_tri_intersects(p1.z, z2, p1.x, p1.y,
-                                                           {tri.v1.z, tri.v1.x, tri.v1.y},
-                                                           {tri.v2.z, tri.v2.x, tri.v2.y},
-                                                           {tri.v3.z, tri.v3.x, tri.v3.y},
-                                                           {  norm.z,   norm.x,   norm.y},
+                                                           XDim3{.x = tri.v1.z, .y = tri.v1.x, .z = tri.v1.y},
+                                                           XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
+                                                           XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
+                                                           XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
                                                            lst(i,j,k+1)-lst(i,j,k));
                             if (tmp.first) {
                                 r = tmp.second;
@@ -1245,10 +1245,10 @@ STLtools::getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                                 auto const& tri = ptri[it];
                                 auto const& norm = ptrinorm[it];
                                 auto tmp = edge_tri_intersects(p1.z, z2, p1.x, p1.y,
-                                                               {tri.v1.z, tri.v1.x, tri.v1.y},
-                                                               {tri.v2.z, tri.v2.x, tri.v2.y},
-                                                               {tri.v3.z, tri.v3.x, tri.v3.y},
-                                                               {  norm.z,   norm.x,   norm.y},
+                                                               XDim3{.x = tri.v1.z, .y = tri.v1.x, .z = tri.v1.y},
+                                                               XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
+                                                               XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
+                                                               XDim3{.x =   norm.z, .y =   norm.x, .z =   norm.y},
                                                                lst(i,j,k+1)-lst(i,j,k));
                                 if (tmp.first) {
                                     r = tmp.second;
@@ -1354,9 +1354,9 @@ STLtools::fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry cons
         auto const* bvh_root = m_bvh_nodes.data();
         ParallelFor(mf, nghost, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            XDim3 coords = {plo[0]+(static_cast<Real>(i)+offset[0])*dx[0],
-                            plo[1]+(static_cast<Real>(j)+offset[1])*dx[1],
-                            plo[2]+(static_cast<Real>(k)+offset[2])*dx[2]};
+            XDim3 coords{.x = plo[0]+(static_cast<Real>(i)+offset[0])*dx[0],
+                         .y = plo[1]+(static_cast<Real>(j)+offset[1])*dx[1],
+                         .z = plo[2]+(static_cast<Real>(k)+offset[2])*dx[2]};
             auto d2 = bvh_d2(coords, bvh_root);
             ma[b](i,j,k) *= std::sqrt(d2);
         });
@@ -1365,9 +1365,9 @@ STLtools::fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry cons
         int num_triangles = m_num_tri;
         ParallelFor(mf, nghost, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            XDim3 coords = {plo[0]+(static_cast<Real>(i)+offset[0])*dx[0],
-                            plo[1]+(static_cast<Real>(j)+offset[1])*dx[1],
-                            plo[2]+(static_cast<Real>(k)+offset[2])*dx[2]};
+            XDim3 coords{.x = plo[0]+(static_cast<Real>(i)+offset[0])*dx[0],
+                         .y = plo[1]+(static_cast<Real>(j)+offset[1])*dx[1],
+                         .z = plo[2]+(static_cast<Real>(k)+offset[2])*dx[2]};
             auto d2 = std::numeric_limits<Real>::max();
             for (int tr = 0; tr < num_triangles; ++tr) {
                 auto tmp = pt_tri_min_d2(coords, tri_pts[tr]);

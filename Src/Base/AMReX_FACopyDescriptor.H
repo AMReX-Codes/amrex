@@ -397,8 +397,7 @@ FabArrayCopyDescriptor<FAB>::AddBox (FabArrayId fabarrayid,
                   returnedUnfilledBoxes,
                   0,
                   0,
-                  fabArrays[fabarrayid.Id()]->nComp(),
-                  true);
+                  fabArrays[fabarrayid.Id()]->nComp());
 }
 
 template <class FAB>

@@ -13,6 +13,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
@@ -86,7 +87,7 @@ std::string pp_to_pretty_string (std::string const& name,
     }
     if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
         int min_col = 36;
-        int pad = min_col - static_cast<int>(ss.str().size());
+        int pad = min_col - static_cast<int>(ss.view().size());
         if (pad > 0) {
             ss << std::string(pad, ' ');
         }
@@ -549,7 +550,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
 
 std::string is_valid_table_key (std::string const& str)
 {
-    if (str.size() >= 8 && str.substr(0,6) == "$$ARR[" && str.back() == ']') {
+    if (str.size() >= 8 && str.starts_with("$$ARR[") && str.back() == ']') {
         auto key = str.substr(6, str.size()-7);
         bool r = std::isalpha(key[0]);
         for (std::size_t i = 1; i < key.size() && r; ++i) {
@@ -903,7 +904,7 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
 #pragma omp single nowait
 #endif
     {
-        if (ival >= int(entry.m_last_vals.size())) {
+        if (ival >= std::ssize(entry.m_last_vals)) {
             entry.m_last_vals.resize(ival+1);
         }
         entry.m_last_vals[ival] = ref;
@@ -1082,7 +1083,7 @@ squeryval (const ParmParse::Table& table,
     if (!(def->empty()) && is_toml_1d_array((*def)[0])) {
         std::vector<T> toml_vals;
         read_array_1d(toml_vals, (*def)[0]);
-        if (ival >= static_cast<int>(toml_vals.size())) {
+        if (ival >= std::ssize(toml_vals)) {
             amrex::ErrorStream() << "ParmParse::queryval no value number "
                                  << ival << " for ";
             if ( occurrence ==  ParmParse::LAST ) {
@@ -1100,7 +1101,7 @@ squeryval (const ParmParse::Table& table,
     //
     // Does it have ival values?
     //
-    if ( ival >= static_cast<int>(def->size()) )
+    if (ival >= std::ssize(*def))
     {
         amrex::ErrorStream() << "ParmParse::queryval no value number"
                              << ival << " for ";
@@ -1191,7 +1192,7 @@ sgetval (const ParmParse::Table& table,
 // Checks if token matches $$ARR[...]
 bool is_toml_array (std::string const& token)
 {
-    return token.size() >= 7 && token.compare(0,6,"$$ARR[") == 0 &&
+    return token.size() >= 7 && token.starts_with("$$ARR[") &&
         token.back() == ']';
 }
 
@@ -1199,8 +1200,8 @@ bool is_toml_array (std::string const& token)
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
-    return sz >= 9 && token.compare(0,7,"$$ARR[[") == 0 &&
-        token.compare(sz-2,2,"]]") == 0;
+    return sz >= 9 && token.starts_with("$$ARR[[") &&
+        token.ends_with("]]");
 }
 
 // Checks if token matches $$ARR[...] but not $$ARR[[...]]
@@ -1265,7 +1266,7 @@ squeryarr (const ParmParse::Table& table,
                                            std::is_same_v<T,double>);
 
     int stop_ix = start_ix + num_val - 1;
-    if ( static_cast<int>(ref.size()) <= stop_ix )
+    if ( std::ssize(ref) <= stop_ix )
     {
         ref.resize(stop_ix + 1);
     }
@@ -1477,7 +1478,7 @@ bool unused_table_entries_q (const ParmParse::Table& table,
         return std::any_of(table.begin(), table.end(),
                            [&] (auto const& x) -> bool {
                                return x.second.m_count == 0
-                                   && x.first.substr(0,s.size()) == s;
+                                   && x.first.starts_with(s);
                            });
     }
 }
@@ -1691,7 +1692,7 @@ ParmParse::getUnusedInputs (const std::string& prefix)
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
         if (entry.m_count == 0 &&
-            name.substr(0,prefixdot.size()) == prefixdot)
+            name.starts_with(prefixdot))
         {
             sorted_names.push_back(name);
         }
@@ -1720,7 +1721,7 @@ ParmParse::getEntries (const std::string& prefix)
     std::set<std::string> r;
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
-        if (name.substr(0,prefixdot.size()) == prefixdot) {
+        if (name.starts_with(prefixdot)) {
             r.insert(name);
         }
     }
@@ -2833,7 +2834,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
 
     auto const& entry = table.at(name);
 
-    AMREX_ALWAYS_ASSERT(int(vals.size()) == nvals);
+    AMREX_ALWAYS_ASSERT(std::ssize(vals) == nvals);
     for (int ival = 0; ival < nvals; ++ival) {
         bool r = pp_parser(table, parser_prefix, name, vals[ival], ptr[ival], true);
         if (r) {

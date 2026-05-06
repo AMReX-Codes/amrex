@@ -2,6 +2,7 @@
 #define INIT_PROB_K_H_
 
 #include <AMReX_FArrayBox.H>
+#include <numbers>
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void actual_init_poisson (int i, int j, int k,
@@ -10,8 +11,9 @@ void actual_init_poisson (int i, int j, int k,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& prob_lo,
                           amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> const& dx)
 {
-    constexpr amrex::Real tpi = 2.*3.1415926535897932;
-    constexpr amrex::Real fpi = 4.*3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
+    constexpr amrex::Real tpi = 2.*pi;
+    constexpr amrex::Real fpi = 4.*pi;
     constexpr amrex::Real fac = tpi*tpi*static_cast<amrex::Real>(AMREX_SPACEDIM);
     amrex::Real x = prob_lo[0] + dx[0] * (i + 0.5);
     amrex::Real y = prob_lo[1] + dx[1] * (j + 0.5);
@@ -50,7 +52,7 @@ void actual_init_bcoef (int i, int j, int k,
     constexpr amrex::Real sigma = 10.;
     const amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
 
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
 
@@ -99,7 +101,7 @@ void actual_init_abeclap (int i, int j, int k,
     constexpr amrex::Real sigma = 10.;
     const amrex::Real theta = 0.5*std::log(3.) / (w + 1.e-50);
 
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     constexpr amrex::Real tpi =  2.*pi;
     constexpr amrex::Real fpi =  4.*pi;
     constexpr amrex::Real fac = static_cast<amrex::Real>(AMREX_SPACEDIM*4)*pi*pi;
