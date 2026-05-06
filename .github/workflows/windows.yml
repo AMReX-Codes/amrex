@@ -55,12 +55,13 @@ jobs:
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --config Debug -j 4
+        cmake --build build --config RelWithDebInfo -j 4
 
-        cmake --build build --config Debug --target install
+        cmake --build build --config RelWithDebInfo --target install
 
         $Env:PATH += ";D:\\a\amrex\amrex\installdir\bin"
-        cmake --build build --config Debug --target test_install
+        cmake --build build --config RelWithDebInfo --target test_install
+        ctest --test-dir build -C RelWithDebInfo --output-on-failure
 
         #ccache -s
 
@@ -95,24 +96,20 @@ jobs:
         #$Env:CCACHE_MAXSIZE='135M'
         #ccache -z
 
-        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
-        # is a workaround github windows runner 20240603.1.0.
-        # https://github.com/actions/runner-images/issues/10004
-
         cmake -S . -B build   `
               -DCMAKE_CXX_STANDARD=20       `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
               -DAMReX_EB=ON                 `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 4
+        cmake --build build --config RelWithDebInfo -j 4
 
-        cmake --build build --target install
-        cmake --build build --target test_install
+        cmake --build build --config RelWithDebInfo --target install
+        cmake --build build --config RelWithDebInfo --target test_install
+        ctest --test-dir build -C RelWithDebInfo --output-on-failure
 
         #ccache -s
 
@@ -138,7 +135,6 @@ jobs:
               -DCMAKE_BUILD_TYPE=Release    ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
-              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" ^
               -DAMReX_EB=ON                 ^
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
@@ -150,6 +146,7 @@ jobs:
 
         set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
         cmake --build build --target test_install
+        ctest --test-dir build --output-on-failure
 
   tests_cuda:
     name: CUDA on Windows

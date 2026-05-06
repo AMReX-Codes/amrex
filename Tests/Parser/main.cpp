@@ -1,6 +1,7 @@
 #include <AMReX.H>
 #include <AMReX_Parser.H>
 #include <AMReX_IParser.H>
+#include <cmath>
 #include <map>
 #include <numbers>
 #include <thread>
@@ -471,6 +472,45 @@ int main (int argc, char* argv[])
                         {0.e-6, 0.0, -20.e-6}, {20.e-6, 1.e-10, 20.e-6}, 100,
                         1.e-12, 1.e-15);
         nerror += test_concurrent_parser_construction();
+
+#if !(defined(AMREX_USE_SYCL) && !(defined(__INTEL_LLVM_COMPILER) || defined(__INTEL_CLANG_COMPILER)))
+        for (int n : {-5, -2, -1, 0, 1, 2, 5}) {
+            nerror += test1("jn(" + std::to_string(n) + ",x)", {}, {"x"},
+                            [=] (double x) -> double {
+#if defined(_WIN32) && defined(__MINGW32__)
+                                int const m = n < 0 ? -n : n;
+                                double const xa = x < 0.0 ? -x : x;
+                                double r = std::cyl_bessel_j(double(m), xa);
+                                if ((m % 2 != 0) && ((n < 0) != (x < 0.0))) {
+                                    r = -r;
+                                }
+                                return r;
+#elif defined(_WIN32)
+                                return ::_jn(n, x);
+#else
+                                return ::jn(n, x);
+#endif
+                            },
+                            {-5.0}, {5.0}, 100, 1.e-12, 1.e-14);
+
+            nerror += test1("yn(" + std::to_string(n) + ",x)", {}, {"x"},
+                            [=] (double x) -> double {
+#if defined(_WIN32) && defined(__MINGW32__)
+                                int const m = n < 0 ? -n : n;
+                                double r = std::cyl_neumann(double(m), x);
+                                if ((m % 2 != 0) && (n < 0)) {
+                                    r = -r;
+                                }
+                                return r;
+#elif defined(_WIN32)
+                                return ::_yn(n, x);
+#else
+                                return ::yn(n, x);
+#endif
+                            },
+                            {0.5}, {5.0}, 100, 1.e-12, 1.e-14);
+        }
+#endif
 
         amrex::Print() << "\nMax stack size is " << max_stack_size << "\n";
         if (nerror > 0) {
