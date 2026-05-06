@@ -6,20 +6,20 @@ namespace amrex {
     /// \cond DOXYGEN_IGNORE
     namespace detail {
         template<typename F, typename MF>
-        auto call_interp_hook(F const &f, MF &mf, int icomp, int ncomp)
+        auto call_interp_hook(F const& f, MF& mf, int icomp, int ncomp)
             -> decltype(f(mf[0], Box(), icomp, ncomp)) {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
             for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-                auto &dfab = mf[mfi];
-                const Box &dbx = dfab.box();
+                auto& dfab = mf[mfi];
+                const Box& dbx = dfab.box();
                 f(dfab, dbx, icomp, ncomp);
             }
         }
 
         template<typename F, typename MF>
-        auto call_interp_hook(F const &f, MF &mf, int icomp, int ncomp)
+        auto call_interp_hook(F const& f, MF& mf, int icomp, int ncomp)
             -> decltype(f(mf, icomp, ncomp)) {
             f(mf, icomp, ncomp);
         }
@@ -28,8 +28,8 @@ namespace amrex {
     /// \endcond
 
     template<typename Interp>
-    bool ProperlyNested(const IntVect &ratio, const IntVect &blocking_factor, int ngrow,
-                        const IndexType &boxType, Interp *mapper) {
+    bool ProperlyNested(const IntVect& ratio, const IntVect& blocking_factor, int ngrow,
+                        const IndexType& boxType, Interp* mapper) {
         int ratio_max = ratio[0];
 #if (AMREX_SPACEDIM > 1)
         ratio_max = std::max(ratio_max, ratio[1]);
@@ -39,7 +39,7 @@ namespace amrex {
 #endif
         // There are at least this many coarse cells outside fine grids
         // (except at physical boundaries).
-        const IntVect &nbuf = blocking_factor / ratio_max;
+        const IntVect& nbuf = blocking_factor / ratio_max;
 
         Box crse_box(IntVect(AMREX_D_DECL(0, 0, 0)), IntVect(AMREX_D_DECL(4*nbuf[0]-1,
                                                                           4*nbuf[1]-1,
@@ -49,28 +49,28 @@ namespace amrex {
         fine_box.convert(boxType);
         fine_box.refine(ratio_max);
         fine_box.grow(ngrow);
-        const Box &fine_box_coarsened = mapper->CoarseBox(fine_box, ratio_max);
+        const Box& fine_box_coarsened = mapper->CoarseBox(fine_box, ratio_max);
         return crse_box.contains(fine_box_coarsened);
     }
 
     template<typename MF, typename BC>
         requires IsFabArrayType<MF>
-    void FillPatchSingleLevel(MF &mf, Real time,
-                              const Vector<MF *> &smf, const Vector<Real> &stime,
+    void FillPatchSingleLevel(MF& mf, Real time,
+                              const Vector<MF*>& smf, const Vector<Real>& stime,
                               int scomp, int dcomp, int ncomp,
-                              const Geometry &geom,
-                              BC &physbcf, int bcfcomp) {
+                              const Geometry& geom,
+                              BC& physbcf, int bcfcomp) {
         FillPatchSingleLevel(mf, mf.nGrowVect(), time, smf, stime, scomp, dcomp, ncomp,
                              geom, physbcf, bcfcomp);
     }
 
     template<typename MF, typename BC>
         requires IsFabArrayType<MF>
-    void FillPatchSingleLevel(MF &mf, IntVect const &nghost, Real time,
-                              const Vector<MF *> &smf, const Vector<Real> &stime,
+    void FillPatchSingleLevel(MF& mf, IntVect const& nghost, Real time,
+                              const Vector<MF*>& smf, const Vector<Real>& stime,
                               int scomp, int dcomp, int ncomp,
-                              const Geometry &geom,
-                              BC &physbcf, int bcfcomp) {
+                              const Geometry& geom,
+                              BC& physbcf, int bcfcomp) {
         BL_PROFILE("FillPatchSingleLevel");
 
         AMREX_ASSERT((!smf.empty()) &&
@@ -93,7 +93,7 @@ namespace amrex {
         } else if (smf.size() == 2) {
             BL_ASSERT(smf[0]->boxArray() == smf[1]->boxArray());
             MF raii;
-            MF *dmf;
+            MF* dmf;
             int destcomp;
             bool sameba;
             if (mf.boxArray() == smf[0]->boxArray() &&
@@ -122,7 +122,7 @@ namespace amrex {
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
                 for (MFIter mfi(*dmf, TilingIfNotGPU()); mfi.isValid(); ++mfi) {
-                    const Box &bx = mfi.growntilebox(interp_ghost);
+                    const Box& bx = mfi.growntilebox(interp_ghost);
                     const Real t0 = stime[0];
                     const Real t1 = stime[1];
                     auto const sfab0 = smf[0]->array(mfi);
@@ -187,20 +187,20 @@ namespace amrex {
      * \param bcs           Boundary-condition records per component.
      * \param bcscomp       Starting component within the BC array.
      */
-    void FillPatchInterp(MultiFab &mf_fine_patch, int fcomp, MultiFab const &mf_crse_patch, int ccomp,
-                         int ncomp, IntVect const &ng, const Geometry &cgeom, const Geometry &fgeom,
-                         Box const &dest_domain, const IntVect &ratio,
-                         MFInterpolater *mapper, const Vector<BCRec> &bcs, int bcscomp);
+    void FillPatchInterp(MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crse_patch, int ccomp,
+                         int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
+                         Box const& dest_domain, const IntVect& ratio,
+                         MFInterpolater* mapper, const Vector<BCRec>& bcs, int bcscomp);
 
     template<typename MF, typename Interp>
         requires IsFabArrayType<MF> && IsSpecificInterp<Interp>
-    void FillPatchInterp(MF &mf_fine_patch, int fcomp, MF const &mf_crse_patch, int ccomp,
-                         int ncomp, IntVect const &ng, const Geometry &cgeom, const Geometry &fgeom,
-                         Box const &dest_domain, const IntVect &ratio,
-                         Interp *mapper, const Vector<BCRec> &bcs, int bcscomp) {
+    void FillPatchInterp(MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
+                         int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
+                         Box const& dest_domain, const IntVect& ratio,
+                         Interp* mapper, const Vector<BCRec>& bcs, int bcscomp) {
         BL_PROFILE("FillPatchInterp(Fab)");
 
-        Box const &cdomain = amrex::convert(cgeom.Domain(), mf_fine_patch.ixType());
+        Box const& cdomain = amrex::convert(cgeom.Domain(), mf_fine_patch.ixType());
         int idummy = 0;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -208,11 +208,11 @@ namespace amrex {
         {
             Vector<BCRec> bcr(ncomp);
             for (MFIter mfi(mf_fine_patch); mfi.isValid(); ++mfi) {
-                auto &sfab = mf_crse_patch[mfi];
-                const Box &sbx = sfab.box();
+                auto& sfab = mf_crse_patch[mfi];
+                const Box& sbx = sfab.box();
 
-                auto &dfab = mf_fine_patch[mfi];
-                Box const &dbx = amrex::grow(mfi.validbox(), ng) & dest_domain;
+                auto& dfab = mf_fine_patch[mfi];
+                Box const& dbx = amrex::grow(mfi.validbox(), ng) & dest_domain;
 
                 amrex::setBC(sbx, cdomain, bcscomp, 0, ncomp, bcs, bcr);
                 mapper->interp(sfab, ccomp, dfab, fcomp, ncomp, dbx, ratio,
@@ -223,18 +223,18 @@ namespace amrex {
 
     template<typename MF>
         requires IsFabArrayType<MF>
-    void FillPatchInterp(MF &mf_fine_patch, int fcomp, MF const &mf_crse_patch, int ccomp,
-                         int ncomp, IntVect const &ng, const Geometry &cgeom, const Geometry &fgeom,
-                         Box const &dest_domain, const IntVect &ratio,
-                         InterpBase *mapper, const Vector<BCRec> &bcs, int bcscomp) {
-        if (dynamic_cast<MFInterpolater *>(mapper)) {
+    void FillPatchInterp(MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
+                         int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
+                         Box const& dest_domain, const IntVect& ratio,
+                         InterpBase* mapper, const Vector<BCRec>& bcs, int bcscomp) {
+        if (dynamic_cast<MFInterpolater*>(mapper)) {
             FillPatchInterp(mf_fine_patch, fcomp, mf_crse_patch, ccomp,
                             ncomp, ng, cgeom, fgeom, dest_domain, ratio,
-                            static_cast<MFInterpolater *>(mapper), bcs, bcscomp);
-        } else if (dynamic_cast<Interpolater *>(mapper)) {
+                            static_cast<MFInterpolater*>(mapper), bcs, bcscomp);
+        } else if (dynamic_cast<Interpolater*>(mapper)) {
             FillPatchInterp(mf_fine_patch, fcomp, mf_crse_patch, ccomp,
                             ncomp, ng, cgeom, fgeom, dest_domain, ratio,
-                            static_cast<Interpolater *>(mapper), bcs, bcscomp);
+                            static_cast<Interpolater*>(mapper), bcs, bcscomp);
         } else {
             amrex::Abort("FillPatchInterp: unknown InterpBase");
         }
@@ -242,21 +242,21 @@ namespace amrex {
 
     template<typename MF, typename iMF, typename Interp>
         requires IsFabArrayType<MF> && IsSpecificInterp<Interp>
-    void InterpFace(Interp *interp,
-                    MF const &mf_crse_patch, int crse_comp,
-                    MF &mf_refined_patch, int fine_comp,
-                    int ncomp, const IntVect &ratio,
-                    const iMF &solve_mask, const Geometry &crse_geom, const Geometry &fine_geom,
+    void InterpFace(Interp* interp,
+                    MF const& mf_crse_patch, int crse_comp,
+                    MF& mf_refined_patch, int fine_comp,
+                    int ncomp, const IntVect& ratio,
+                    const iMF& solve_mask, const Geometry& crse_geom, const Geometry& fine_geom,
                     int bcscomp, RunOn gpu_or_cpu,
-                    const Vector<BCRec> &bcs) {
+                    const Vector<BCRec>& bcs) {
         Vector<BCRec> bcr(ncomp);
-        Box const &cdomain = amrex::convert(crse_geom.Domain(), mf_crse_patch.ixType());
+        Box const& cdomain = amrex::convert(crse_geom.Domain(), mf_crse_patch.ixType());
         for (MFIter mfi(mf_refined_patch); mfi.isValid(); ++mfi) {
-            auto &sfab = mf_crse_patch[mfi];
-            const Box &sbx = sfab.box();
-            auto &dfab = mf_refined_patch[mfi];
-            Box const &dbx = dfab.box();
-            auto &ifab = solve_mask[mfi];
+            auto& sfab = mf_crse_patch[mfi];
+            const Box& sbx = sfab.box();
+            auto& dfab = mf_refined_patch[mfi];
+            Box const& dbx = dfab.box();
+            auto& ifab = solve_mask[mfi];
             amrex::setBC(sbx, cdomain, bcscomp, 0, ncomp, bcs, bcr);
             interp->interp_face(sfab, crse_comp, dfab, fine_comp, ncomp,
                                 dbx, ratio, ifab, crse_geom, fine_geom,
@@ -266,20 +266,20 @@ namespace amrex {
 
     template<typename MF, typename iMF>
         requires IsFabArrayType<MF>
-    void InterpFace(InterpBase *interp,
-                    MF const &mf_crse_patch, int crse_comp,
-                    MF &mf_refined_patch, int fine_comp,
-                    int ncomp, const IntVect &ratio,
-                    const iMF &solve_mask, const Geometry &crse_geom, const Geometry &fine_geom,
+    void InterpFace(InterpBase* interp,
+                    MF const& mf_crse_patch, int crse_comp,
+                    MF& mf_refined_patch, int fine_comp,
+                    int ncomp, const IntVect& ratio,
+                    const iMF& solve_mask, const Geometry& crse_geom, const Geometry& fine_geom,
                     int bccomp, RunOn gpu_or_cpu,
-                    const Vector<BCRec> &bcs) {
-        if (dynamic_cast<MFInterpolater *>(interp)) {
-            InterpFace(static_cast<MFInterpolater *>(interp),
+                    const Vector<BCRec>& bcs) {
+        if (dynamic_cast<MFInterpolater*>(interp)) {
+            InterpFace(static_cast<MFInterpolater*>(interp),
                        mf_crse_patch, crse_comp, mf_refined_patch, fine_comp,
                        ncomp, ratio, solve_mask, crse_geom, fine_geom, bccomp,
                        gpu_or_cpu, bcs);
-        } else if (dynamic_cast<Interpolater *>(interp)) {
-            InterpFace(static_cast<Interpolater *>(interp),
+        } else if (dynamic_cast<Interpolater*>(interp)) {
+            InterpFace(static_cast<Interpolater*>(interp),
                        mf_crse_patch, crse_comp, mf_refined_patch, fine_comp,
                        ncomp, ratio, solve_mask, crse_geom, fine_geom, bccomp,
                        gpu_or_cpu, bcs);
@@ -297,7 +297,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_crse_patch(FabArrayBase::FPinfo const &fpc, int ncomp) {
+        MF make_mf_crse_patch(FabArrayBase::FPinfo const& fpc, int ncomp) {
             MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
                              *fpc.fact_crse_patch);
             return mf_crse_patch;
@@ -307,7 +307,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_crse_patch(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type) {
+        MF make_mf_crse_patch(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type) {
             MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch,
                              ncomp, 0, MFInfo(), *fpc.fact_crse_patch);
             return mf_crse_patch;
@@ -317,7 +317,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_fine_patch(FabArrayBase::FPinfo const &fpc, int ncomp) {
+        MF make_mf_fine_patch(FabArrayBase::FPinfo const& fpc, int ncomp) {
             MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
                              *fpc.fact_fine_patch);
             return mf_fine_patch;
@@ -327,7 +327,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_fine_patch(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type) {
+        MF make_mf_fine_patch(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type) {
             MF mf_fine_patch(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch,
                              ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
             return mf_fine_patch;
@@ -337,7 +337,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_refined_patch(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type, IntVect ratio) {
+        MF make_mf_refined_patch(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio) {
             MF mf_refined_patch(
                 amrex::convert(amrex::refine(amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
                 fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
@@ -348,7 +348,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_crse_mask(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type, IntVect ratio) {
+        MF make_mf_crse_mask(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio) {
             MF mf_crse_mask(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type),
                             fpc.dm_patch, ncomp, 0, MFInfo(), *fpc.fact_fine_patch);
             return mf_crse_mask;
@@ -358,7 +358,7 @@ namespace amrex {
             std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        void mf_set_domain_bndry(MF &mf, Geometry const &geom) {
+        void mf_set_domain_bndry(MF& mf, Geometry const& geom) {
             mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
         }
 
@@ -369,7 +369,7 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_crse_patch(FabArrayBase::FPinfo const &fpc, int ncomp) {
+        MF make_mf_crse_patch(FabArrayBase::FPinfo const& fpc, int ncomp) {
             return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
         }
 
@@ -377,7 +377,7 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_crse_patch(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type) {
+        MF make_mf_crse_patch(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type) {
             return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0);
         }
 
@@ -385,7 +385,7 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_fine_patch(FabArrayBase::FPinfo const &fpc, int ncomp) {
+        MF make_mf_fine_patch(FabArrayBase::FPinfo const& fpc, int ncomp) {
             return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
         }
 
@@ -393,7 +393,7 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_fine_patch(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type) {
+        MF make_mf_fine_patch(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type) {
             return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0);
         }
 
@@ -401,7 +401,7 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_refined_patch(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type, IntVect ratio) {
+        MF make_mf_refined_patch(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio) {
             return MF(amrex::convert(amrex::refine(amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
                       fpc.dm_patch, ncomp, 0);
         }
@@ -410,7 +410,7 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        MF make_mf_crse_mask(FabArrayBase::FPinfo const &fpc, int ncomp, IndexType idx_type, IntVect ratio) {
+        MF make_mf_crse_mask(FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio) {
             return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
         }
 
@@ -418,26 +418,26 @@ namespace amrex {
             std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
                     FArrayBox>,
                 int> = 0>
-        void mf_set_domain_bndry(MF &/*mf*/, Geometry const & /*geom*/) {
+        void mf_set_domain_bndry(MF&/*mf*/, Geometry const& /*geom*/) {
             // nothing
         }
 
         template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
             requires IsFabArrayType<MF>
         int
-        FillPatchTwoLevels_doit(MF &mf, IntVect const &nghost, Real time,
-                                const Vector<MF *> &cmf, const Vector<Real> &ct,
-                                const Vector<MF *> &fmf, const Vector<Real> &ft,
+        FillPatchTwoLevels_doit(MF& mf, IntVect const& nghost, Real time,
+                                const Vector<MF*>& cmf, const Vector<Real>& ct,
+                                const Vector<MF*>& fmf, const Vector<Real>& ft,
                                 int scomp, int dcomp, int ncomp,
-                                const Geometry &cgeom, const Geometry &fgeom,
-                                BC &cbc, int cbccomp,
-                                BC &fbc, int fbccomp,
-                                const IntVect &ratio,
-                                Interp *mapper,
-                                const Vector<BCRec> &bcs, int bcscomp,
-                                const PreInterpHook &pre_interp,
-                                const PostInterpHook &post_interp,
-                                EB2::IndexSpace const *index_space,
+                                const Geometry& cgeom, const Geometry& fgeom,
+                                BC& cbc, int cbccomp,
+                                BC& fbc, int fbccomp,
+                                const IntVect& ratio,
+                                Interp* mapper,
+                                const Vector<BCRec>& bcs, int bcscomp,
+                                const PreInterpHook& pre_interp,
+                                const PostInterpHook& post_interp,
+                                EB2::IndexSpace const* index_space,
                                 bool return_error_code = false) {
             BL_PROFILE("FillPatchTwoLevels");
 
@@ -445,13 +445,13 @@ namespace amrex {
             int failure_code = 1;
 
             if (nghost.max() > 0 || mf.getBDKey() != fmf[0]->getBDKey()) {
-                const InterpolaterBoxCoarsener &coarsener = mapper->BoxCoarsener(ratio);
+                const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
                 // Test for Face-centered data
                 if (AMREX_D_TERM(mf.ixType().nodeCentered(0),
                                  + mf.ixType().nodeCentered(1),
                                  + mf.ixType().nodeCentered(2)) == 1) {
-                    if (!dynamic_cast<Interpolater *>(mapper)) {
+                    if (!dynamic_cast<Interpolater*>(mapper)) {
                         amrex::Abort("This interpolater has not yet implemented a version for face-based data");
                     }
 
@@ -461,7 +461,7 @@ namespace amrex {
                     MF fmf_cc_dummy(amrex::convert(fmf[0]->boxArray(), IntVect::TheZeroVector()),
                                     fmf[0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false));
 
-                    const FabArrayBase::FPinfo &fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
+                    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
                                                                               nghost,
                                                                               coarsener,
                                                                               fgeom,
@@ -470,7 +470,7 @@ namespace amrex {
 
                     if (!fpc.ba_crse_patch.empty()) {
                         if (return_error_code) {
-                            BoxArray const &cba = amrex::convert(cmf[0]->boxArray(), IntVect(0));
+                            BoxArray const& cba = amrex::convert(cmf[0]->boxArray(), IntVect(0));
                             if (!cba.contains(fpc.ba_crse_patch, cgeom.periodicity())) {
                                 return failure_code;
                             }
@@ -520,7 +520,7 @@ namespace amrex {
                         detail::call_interp_hook(post_interp, mf_refined_patch, 0, ncomp);
 
                         bool aliasing = false;
-                        for (auto const &fmf_a: fmf) {
+                        for (auto const& fmf_a: fmf) {
                             aliasing = aliasing || (&mf == fmf_a);
                         }
                         if (aliasing) {
@@ -532,7 +532,7 @@ namespace amrex {
                         }
                     }
                 } else {
-                    const FabArrayBase::FPinfo &fpc = FabArrayBase::TheFPinfo(*fmf[0], mf,
+                    const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(*fmf[0], mf,
                                                                               nghost,
                                                                               coarsener,
                                                                               fgeom,
@@ -541,7 +541,7 @@ namespace amrex {
 
                     if (!fpc.ba_crse_patch.empty()) {
                         if (return_error_code) {
-                            BoxArray const &cba = cmf[0]->boxArray();
+                            BoxArray const& cba = cmf[0]->boxArray();
                             if (!cba.contains(fpc.ba_crse_patch, cgeom.periodicity())) {
                                 return failure_code;
                             }
@@ -592,20 +592,20 @@ namespace amrex {
 
         template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
             requires IsFabArrayType<MF>
-        void FillPatchTwoLevels_doit(Array<MF *, AMREX_SPACEDIM> const &mf, IntVect const &nghost, Real time,
-                                     const Vector<Array<MF *, AMREX_SPACEDIM> > &cmf, const Vector<Real> &ct,
-                                     const Vector<Array<MF *, AMREX_SPACEDIM> > &fmf, const Vector<Real> &ft,
+        void FillPatchTwoLevels_doit(Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                                      int scomp, int dcomp, int ncomp,
-                                     const Geometry &cgeom, const Geometry &fgeom,
-                                     Array<BC, AMREX_SPACEDIM> &cbc, const Array<int, AMREX_SPACEDIM> &cbccomp,
-                                     Array<BC, AMREX_SPACEDIM> &fbc, const Array<int, AMREX_SPACEDIM> &fbccomp,
-                                     const IntVect &ratio,
-                                     Interp *mapper,
-                                     const Array<Vector<BCRec>, AMREX_SPACEDIM> &bcs,
-                                     const Array<int, AMREX_SPACEDIM> &bcscomp,
-                                     const PreInterpHook &pre_interp,
-                                     const PostInterpHook &post_interp,
-                                     EB2::IndexSpace const *index_space) {
+                                     const Geometry& cgeom, const Geometry& fgeom,
+                                     Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                                     Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
+                                     const IntVect& ratio,
+                                     Interp* mapper,
+                                     const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs,
+                                     const Array<int, AMREX_SPACEDIM>& bcscomp,
+                                     const PreInterpHook& pre_interp,
+                                     const PostInterpHook& post_interp,
+                                     EB2::IndexSpace const* index_space) {
             BL_PROFILE("FillPatchTwoLevels (Array<MF*>)");
 
             using FAB = typename MF::FABType::value_type;
@@ -629,7 +629,7 @@ namespace amrex {
 
             // Test all of them?
             if (nghost.max() > 0 || mf[0]->getBDKey() != fmf[0][0]->getBDKey()) {
-                const InterpolaterBoxCoarsener &coarsener = mapper->BoxCoarsener(ratio);
+                const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
                 // Convert to cell-centered MF meta-data for FPInfo.
                 MF mf_cc_dummy(amrex::convert(mf[0]->boxArray(), IntVect::TheZeroVector()),
@@ -637,7 +637,7 @@ namespace amrex {
                 MF fmf_cc_dummy(amrex::convert(fmf[0][0]->boxArray(), IntVect::TheZeroVector()),
                                 fmf[0][0]->DistributionMap(), ncomp, nghost, MFInfo().SetAlloc(false));
 
-                const FabArrayBase::FPinfo &fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
+                const FabArrayBase::FPinfo& fpc = FabArrayBase::TheFPinfo(fmf_cc_dummy, mf_cc_dummy,
                                                                           nghost,
                                                                           coarsener,
                                                                           fgeom,
@@ -655,8 +655,8 @@ namespace amrex {
                         solve_mask[d] = make_mf_crse_mask<iMultiFab>(fpc, ncomp, mf[d]->boxArray().ixType(), ratio);
 
                         mf_set_domain_bndry(mf_crse_patch[d], cgeom);
-                        Vector<MF *> cmf_time;
-                        for (const auto &mfab: cmf) {
+                        Vector<MF*> cmf_time;
+                        for (const auto& mfab: cmf) {
                             cmf_time.push_back(mfab[d]);
                         }
 
@@ -664,8 +664,8 @@ namespace amrex {
                                              cgeom, cbc[d], cbccomp[d]);
 
                         mf_set_domain_bndry(mf_refined_patch[d], fgeom);
-                        Vector<MF *> fmf_time;
-                        for (const auto &mfab: fmf) {
+                        Vector<MF*> fmf_time;
+                        for (const auto& mfab: fmf) {
                             fmf_time.push_back(mfab[d]);
                         }
 
@@ -697,24 +697,24 @@ namespace amrex {
                     {
                         Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
                         for (MFIter mfi(mf_refined_patch[0]); mfi.isValid(); ++mfi) {
-                            Array<FAB *, AMREX_SPACEDIM> sfab{
+                            Array<FAB*, AMREX_SPACEDIM> sfab{
                                 AMREX_D_DECL(&(mf_crse_patch[0][mfi]),
                                              &(mf_crse_patch[1][mfi]),
                                              &(mf_crse_patch[2][mfi]))
                             };
-                            Array<FAB *, AMREX_SPACEDIM> dfab{
+                            Array<FAB*, AMREX_SPACEDIM> dfab{
                                 AMREX_D_DECL(&(mf_refined_patch[0][mfi]),
                                              &(mf_refined_patch[1][mfi]),
                                              &(mf_refined_patch[2][mfi]))
                             };
-                            Array<iFAB *, AMREX_SPACEDIM> mfab{
+                            Array<iFAB*, AMREX_SPACEDIM> mfab{
                                 AMREX_D_DECL(&(solve_mask[0][mfi]),
                                              &(solve_mask[1][mfi]),
                                              &(solve_mask[2][mfi]))
                             };
 
-                            const Box &sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
-                            const Box &dbx_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
+                            const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
+                            const Box& dbx_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
 
                             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                                 Vector<BCRec> bcr_d(ncomp);
@@ -738,7 +738,7 @@ namespace amrex {
 
                     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                         bool aliasing = false;
-                        for (auto const &fmf_a: fmf) {
+                        for (auto const& fmf_a: fmf) {
                             aliasing = aliasing || (mf[d] == fmf_a[d]);
                         }
                         if (aliasing) {
@@ -753,8 +753,8 @@ namespace amrex {
             }
 
             for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-                Vector<MF *> fmf_time;
-                for (auto const &ffab: fmf) {
+                Vector<MF*> fmf_time;
+                for (auto const& ffab: fmf) {
                     fmf_time.push_back(ffab[d]);
                 }
 
@@ -767,22 +767,22 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(MF &mf, IntVect const &nghost, Real time,
-                            const Vector<MF *> &cmf, const Vector<Real> &ct,
-                            const Vector<MF *> &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(MF& mf, IntVect const& nghost, Real time,
+                            const Vector<MF*>& cmf, const Vector<Real>& ct,
+                            const Vector<MF*>& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            BC &cbc, int cbccomp,
-                            BC &fbc, int fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Vector<BCRec> &bcs, int bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            BC& cbc, int cbccomp,
+                            BC& fbc, int fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Vector<BCRec>& bcs, int bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
         detail::FillPatchTwoLevels_doit(mf, nghost, time, cmf, ct, fmf, ft,
                                         scomp, dcomp, ncomp, cgeom, fgeom,
@@ -792,22 +792,22 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(MF &mf, Real time,
-                            const Vector<MF *> &cmf, const Vector<Real> &ct,
-                            const Vector<MF *> &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(MF& mf, Real time,
+                            const Vector<MF*>& cmf, const Vector<Real>& ct,
+                            const Vector<MF*>& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            BC &cbc, int cbccomp,
-                            BC &fbc, int fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Vector<BCRec> &bcs, int bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            BC& cbc, int cbccomp,
+                            BC& fbc, int fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Vector<BCRec>& bcs, int bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         detail::FillPatchTwoLevels_doit(mf, mf.nGrowVect(), time, cmf, ct, fmf, ft,
@@ -818,22 +818,22 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(Array<MF *, AMREX_SPACEDIM> const &mf, IntVect const &nghost, Real time,
-                            const Vector<Array<MF *, AMREX_SPACEDIM> > &cmf, const Vector<Real> &ct,
-                            const Vector<Array<MF *, AMREX_SPACEDIM> > &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                            const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                            const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            Array<BC, AMREX_SPACEDIM> &cbc, const Array<int, AMREX_SPACEDIM> &cbccomp,
-                            Array<BC, AMREX_SPACEDIM> &fbc, const Array<int, AMREX_SPACEDIM> &fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Array<Vector<BCRec>, AMREX_SPACEDIM> &bcs, const Array<int, AMREX_SPACEDIM> &bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            Array<BC, AMREX_SPACEDIM>& cbc, const Array<int, AMREX_SPACEDIM>& cbccomp,
+                            Array<BC, AMREX_SPACEDIM>& fbc, const Array<int, AMREX_SPACEDIM>& fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, const Array<int, AMREX_SPACEDIM>& bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         detail::FillPatchTwoLevels_doit(mf, nghost, time, cmf, ct, fmf, ft,
@@ -844,22 +844,22 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(Array<MF *, AMREX_SPACEDIM> const &mf, IntVect const &nghost, Real time,
-                            const Vector<Array<MF *, AMREX_SPACEDIM> > &cmf, const Vector<Real> &ct,
-                            const Vector<Array<MF *, AMREX_SPACEDIM> > &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                            const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                            const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            Array<BC, AMREX_SPACEDIM> &cbc, int cbccomp,
-                            Array<BC, AMREX_SPACEDIM> &fbc, int fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Array<Vector<BCRec>, AMREX_SPACEDIM> &bcs, int bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                            Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         Array<int, AMREX_SPACEDIM> cbccomp_arr = {AMREX_D_DECL(cbccomp, cbccomp, cbccomp)};
@@ -874,22 +874,22 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(Array<MF *, AMREX_SPACEDIM> const &mf, Real time,
-                            const Vector<Array<MF *, AMREX_SPACEDIM> > &cmf, const Vector<Real> &ct,
-                            const Vector<Array<MF *, AMREX_SPACEDIM> > &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
+                            const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
+                            const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            Array<BC, AMREX_SPACEDIM> &cbc, int cbccomp,
-                            Array<BC, AMREX_SPACEDIM> &fbc, int fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Array<Vector<BCRec>, AMREX_SPACEDIM> &bcs, int bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                            Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         Array<int, AMREX_SPACEDIM> cbccomp_arr = {AMREX_D_DECL(cbccomp, cbccomp, cbccomp)};
@@ -905,19 +905,19 @@ namespace amrex {
 #ifdef AMREX_USE_EB
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(MF &mf, IntVect const &nghost, Real time,
-                            const EB2::IndexSpace &index_space,
-                            const Vector<MF *> &cmf, const Vector<Real> &ct,
-                            const Vector<MF *> &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(MF& mf, IntVect const& nghost, Real time,
+                            const EB2::IndexSpace& index_space,
+                            const Vector<MF*>& cmf, const Vector<Real>& ct,
+                            const Vector<MF*>& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            BC &cbc, int cbccomp,
-                            BC &fbc, int fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Vector<BCRec> &bcs, int bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            BC& cbc, int cbccomp,
+                            BC& fbc, int fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Vector<BCRec>& bcs, int bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
         detail::FillPatchTwoLevels_doit(mf, nghost, time, cmf, ct, fmf, ft,
                                         scomp, dcomp, ncomp, cgeom, fgeom,
                                         cbc, cbccomp, fbc, fbccomp, ratio, mapper, bcs, bcscomp,
@@ -926,19 +926,19 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(MF &mf, Real time,
-                            const EB2::IndexSpace &index_space,
-                            const Vector<MF *> &cmf, const Vector<Real> &ct,
-                            const Vector<MF *> &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(MF& mf, Real time,
+                            const EB2::IndexSpace& index_space,
+                            const Vector<MF*>& cmf, const Vector<Real>& ct,
+                            const Vector<MF*>& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            BC &cbc, int cbccomp,
-                            BC &fbc, int fbccomp,
-                            const IntVect &ratio,
-                            Interp *mapper,
-                            const Vector<BCRec> &bcs, int bcscomp,
-                            const PreInterpHook &pre_interp,
-                            const PostInterpHook &post_interp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            BC& cbc, int cbccomp,
+                            BC& fbc, int fbccomp,
+                            const IntVect& ratio,
+                            Interp* mapper,
+                            const Vector<BCRec>& bcs, int bcscomp,
+                            const PreInterpHook& pre_interp,
+                            const PostInterpHook& post_interp) {
         detail::FillPatchTwoLevels_doit(mf, mf.nGrowVect(), time, cmf, ct, fmf, ft,
                                         scomp, dcomp, ncomp, cgeom, fgeom,
                                         cbc, cbccomp, fbc, fbccomp, ratio, mapper, bcs, bcscomp,
@@ -948,20 +948,20 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void InterpFromCoarseLevel(MF &mf, Real time,
-                               const MF &cmf, int scomp, int dcomp, int ncomp,
-                               const Geometry &cgeom, const Geometry &fgeom,
-                               BC &cbc, int cbccomp,
-                               BC &fbc, int fbccomp,
-                               const IntVect &ratio,
-                               Interp *mapper,
-                               const Vector<BCRec> &bcs, int bcscomp,
-                               const PreInterpHook &pre_interp,
-                               const PostInterpHook &post_interp) {
+    void InterpFromCoarseLevel(MF& mf, Real time,
+                               const MF& cmf, int scomp, int dcomp, int ncomp,
+                               const Geometry& cgeom, const Geometry& fgeom,
+                               BC& cbc, int cbccomp,
+                               BC& fbc, int fbccomp,
+                               const IntVect& ratio,
+                               Interp* mapper,
+                               const Vector<BCRec>& bcs, int bcscomp,
+                               const PreInterpHook& pre_interp,
+                               const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         InterpFromCoarseLevel(mf, mf.nGrowVect(), time, index_space, cmf, scomp, dcomp, ncomp, cgeom, fgeom,
@@ -971,16 +971,16 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void InterpFromCoarseLevel(Array<MF *, AMREX_SPACEDIM> const &mf, Real time,
-                               const Array<MF *, AMREX_SPACEDIM> &cmf, int scomp, int dcomp, int ncomp,
-                               const Geometry &cgeom, const Geometry &fgeom,
-                               Array<BC, AMREX_SPACEDIM> &cbc, int cbccomp,
-                               Array<BC, AMREX_SPACEDIM> &fbc, int fbccomp,
-                               const IntVect &ratio,
-                               Interp *mapper,
-                               const Array<Vector<BCRec>, AMREX_SPACEDIM> &bcs, int bcscomp,
-                               const PreInterpHook &pre_interp,
-                               const PostInterpHook &post_interp) {
+    void InterpFromCoarseLevel(Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
+                               const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
+                               const Geometry& cgeom, const Geometry& fgeom,
+                               Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                               Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                               const IntVect& ratio,
+                               Interp* mapper,
+                               const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                               const PreInterpHook& pre_interp,
+                               const PostInterpHook& post_interp) {
         InterpFromCoarseLevel(mf, mf[0]->nGrowVect(), time, cmf, scomp, dcomp, ncomp, cgeom, fgeom,
                               cbc, cbccomp, fbc, fbccomp, ratio, mapper, bcs, bcscomp,
                               pre_interp, post_interp);
@@ -988,20 +988,20 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void InterpFromCoarseLevel(MF &mf, IntVect const &nghost, Real time,
-                               const MF &cmf, int scomp, int dcomp, int ncomp,
-                               const Geometry &cgeom, const Geometry &fgeom,
-                               BC &cbc, int cbccomp,
-                               BC &fbc, int fbccomp,
-                               const IntVect &ratio,
-                               Interp *mapper,
-                               const Vector<BCRec> &bcs, int bcscomp,
-                               const PreInterpHook &pre_interp,
-                               const PostInterpHook &post_interp) {
+    void InterpFromCoarseLevel(MF& mf, IntVect const& nghost, Real time,
+                               const MF& cmf, int scomp, int dcomp, int ncomp,
+                               const Geometry& cgeom, const Geometry& fgeom,
+                               BC& cbc, int cbccomp,
+                               BC& fbc, int fbccomp,
+                               const IntVect& ratio,
+                               Interp* mapper,
+                               const Vector<BCRec>& bcs, int bcscomp,
+                               const PreInterpHook& pre_interp,
+                               const PostInterpHook& post_interp) {
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         InterpFromCoarseLevel(mf, nghost, time, index_space, cmf, scomp, dcomp, ncomp, cgeom, fgeom,
@@ -1011,27 +1011,27 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void InterpFromCoarseLevel(MF &mf, IntVect const &nghost, Real time,
-                               const EB2::IndexSpace *index_space,
-                               const MF &cmf, int scomp, int dcomp, int ncomp,
-                               const Geometry &cgeom, const Geometry &fgeom,
-                               BC &cbc, int cbccomp,
-                               BC &fbc, int fbccomp,
-                               const IntVect &ratio,
-                               Interp *mapper,
-                               const Vector<BCRec> &bcs, int bcscomp,
-                               const PreInterpHook &pre_interp,
-                               const PostInterpHook &post_interp) {
+    void InterpFromCoarseLevel(MF& mf, IntVect const& nghost, Real time,
+                               const EB2::IndexSpace* index_space,
+                               const MF& cmf, int scomp, int dcomp, int ncomp,
+                               const Geometry& cgeom, const Geometry& fgeom,
+                               BC& cbc, int cbccomp,
+                               BC& fbc, int fbccomp,
+                               const IntVect& ratio,
+                               Interp* mapper,
+                               const Vector<BCRec>& bcs, int bcscomp,
+                               const PreInterpHook& pre_interp,
+                               const PostInterpHook& post_interp) {
         BL_PROFILE("InterpFromCoarseLevel");
 
         using FAB = typename MF::FABType::value_type;
 
-        const InterpolaterBoxCoarsener &coarsener = mapper->BoxCoarsener(ratio);
+        const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
 
-        const BoxArray &ba = mf.boxArray();
-        const DistributionMapping &dm = mf.DistributionMap();
+        const BoxArray& ba = mf.boxArray();
+        const DistributionMapping& dm = mf.DistributionMap();
 
-        const IndexType &typ = ba.ixType();
+        const IndexType& typ = ba.ixType();
 
         BL_ASSERT(typ == cmf.boxArray().ixType());
 
@@ -1092,10 +1092,10 @@ namespace amrex {
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-            FAB &dfab = mf[mfi];
+            FAB& dfab = mf[mfi];
             Box dfab_bx = dfab.box();
             dfab_bx.grow(nghost - mf.nGrowVect());
-            const Box &dbx = dfab_bx & fdomain_g;
+            const Box& dbx = dfab_bx & fdomain_g;
 
             post_interp(dfab, dbx, dcomp, ncomp);
         }
@@ -1105,24 +1105,24 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
         requires IsFabArrayType<MF>
-    void InterpFromCoarseLevel(Array<MF *, AMREX_SPACEDIM> const &mf, IntVect const &nghost, Real time,
-                               const Array<MF *, AMREX_SPACEDIM> &cmf, int scomp, int dcomp, int ncomp,
-                               const Geometry &cgeom, const Geometry &fgeom,
-                               Array<BC, AMREX_SPACEDIM> &cbc, int cbccomp,
-                               Array<BC, AMREX_SPACEDIM> &fbc, int fbccomp,
-                               const IntVect &ratio,
-                               Interp *mapper,
-                               const Array<Vector<BCRec>, AMREX_SPACEDIM> &bcs, int bcscomp,
-                               const PreInterpHook &pre_interp,
-                               const PostInterpHook &post_interp) {
+    void InterpFromCoarseLevel(Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+                               const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
+                               const Geometry& cgeom, const Geometry& fgeom,
+                               Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
+                               Array<BC, AMREX_SPACEDIM>& fbc, int fbccomp,
+                               const IntVect& ratio,
+                               Interp* mapper,
+                               const Array<Vector<BCRec>, AMREX_SPACEDIM>& bcs, int bcscomp,
+                               const PreInterpHook& pre_interp,
+                               const PostInterpHook& post_interp) {
         BL_PROFILE("InterpFromCoarseLevel(array)");
 
         using FAB = typename MF::FABType::value_type;
         using iFAB = typename iMultiFab::FABType::value_type;
 
-        const InterpolaterBoxCoarsener &coarsener = mapper->BoxCoarsener(ratio);
-        const BoxArray &ba = mf[0]->boxArray();
-        const DistributionMapping &dm = mf[0]->DistributionMap();
+        const InterpolaterBoxCoarsener& coarsener = mapper->BoxCoarsener(ratio);
+        const BoxArray& ba = mf[0]->boxArray();
+        const DistributionMapping& dm = mf[0]->DistributionMap();
 
         AMREX_ASSERT(AMREX_D_TERM(mf[0]->ixType().nodeCentered(0),
             && mf[1]->ixType().nodeCentered(1),
@@ -1147,7 +1147,7 @@ namespace amrex {
             }
         }
 
-        Array<MF *, AMREX_SPACEDIM> mf_local = mf;
+        Array<MF*, AMREX_SPACEDIM> mf_local = mf;
         int dcomp_adj = dcomp;
         Array<std::unique_ptr<MF>, AMREX_SPACEDIM> mf_temp;
         if (!nghost.allGE(nghost_adj)) {
@@ -1205,23 +1205,23 @@ namespace amrex {
             Vector<Array<BCRec, AMREX_SPACEDIM> > bcr(ncomp);
 
             // Empty containers describing that all points must be solved (no mask).
-            Array<iFAB *, AMREX_SPACEDIM> mfab{AMREX_D_DECL(nullptr, nullptr, nullptr)};
+            Array<iFAB*, AMREX_SPACEDIM> mfab{AMREX_D_DECL(nullptr, nullptr, nullptr)};
 
             for (MFIter mfi(mf_crse_patch[0]); mfi.isValid(); ++mfi) {
-                Array<FAB *, AMREX_SPACEDIM> sfab{
+                Array<FAB*, AMREX_SPACEDIM> sfab{
                     AMREX_D_DECL(&(mf_crse_patch[0][mfi]),
                                  &(mf_crse_patch[1][mfi]),
                                  &(mf_crse_patch[2][mfi]))
                 };
-                Array<FAB *, AMREX_SPACEDIM> dfab{
+                Array<FAB*, AMREX_SPACEDIM> dfab{
                     AMREX_D_DECL(&(*mf_local[0])[mfi],
                                  &(*mf_local[1])[mfi],
                                  &(*mf_local[2])[mfi])
                 };
 
-                const Box &sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
+                const Box& sbx_cc = amrex::convert(sfab[0]->box(), IntVect::TheZeroVector());
                 Box dfab_cc = amrex::convert(dfab[0]->box(), IntVect::TheZeroVector());
-                const Box &dbx_cc = dfab_cc & fdomain_g;
+                const Box& dbx_cc = dfab_cc & fdomain_g;
 
                 for (int d = 0; d < AMREX_SPACEDIM; ++d) {
                     Vector<BCRec> bcr_d(ncomp);
@@ -1255,12 +1255,12 @@ namespace amrex {
 
     template<typename MF, typename Interp>
         requires IsFabArrayType<MF>
-    void InterpFromCoarseLevel(MF &mf, IntVect const &nghost,
-                               IntVect const &nghost_outside_domain,
-                               const MF &cmf, int scomp, int dcomp, int ncomp,
-                               const Geometry &cgeom, const Geometry &fgeom,
-                               const IntVect &ratio, Interp *mapper,
-                               const Vector<BCRec> &bcs, int bcscomp) {
+    void InterpFromCoarseLevel(MF& mf, IntVect const& nghost,
+                               IntVect const& nghost_outside_domain,
+                               const MF& cmf, int scomp, int dcomp, int ncomp,
+                               const Geometry& cgeom, const Geometry& fgeom,
+                               const IntVect& ratio, Interp* mapper,
+                               const Vector<BCRec>& bcs, int bcscomp) {
         PhysBCFunctUseCoarseGhost erfbc(cmf, nghost, nghost_outside_domain, ratio, mapper);
         InterpFromCoarseLevel(mf, nghost, Real(0.0), cmf, scomp, dcomp, ncomp,
                               cgeom, fgeom, erfbc, 0, erfbc, 0, ratio, mapper,
@@ -1269,10 +1269,10 @@ namespace amrex {
 
     template<typename MF>
         requires IsFabArrayType<MF>
-    void FillPatchSingleLevel(MF &mf, IntVect const &nghost, Real time,
-                              const Vector<MF *> &smf, IntVect const &snghost,
-                              const Vector<Real> &stime, int scomp, int dcomp, int ncomp,
-                              const Geometry &geom) {
+    void FillPatchSingleLevel(MF& mf, IntVect const& nghost, Real time,
+                              const Vector<MF*>& smf, IntVect const& snghost,
+                              const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
+                              const Geometry& geom) {
         PhysBCFunctUseCoarseGhost erfbc(snghost);
         FillPatchSingleLevel(mf, nghost, time, smf, stime, scomp, dcomp, ncomp, geom,
                              erfbc, 0);
@@ -1280,14 +1280,14 @@ namespace amrex {
 
     template<typename MF, typename Interp>
         requires IsFabArrayType<MF>
-    void FillPatchTwoLevels(MF &mf, IntVect const &nghost,
-                            IntVect const &nghost_outside_domain, Real time,
-                            const Vector<MF *> &cmf, const Vector<Real> &ct,
-                            const Vector<MF *> &fmf, const Vector<Real> &ft,
+    void FillPatchTwoLevels(MF& mf, IntVect const& nghost,
+                            IntVect const& nghost_outside_domain, Real time,
+                            const Vector<MF*>& cmf, const Vector<Real>& ct,
+                            const Vector<MF*>& fmf, const Vector<Real>& ft,
                             int scomp, int dcomp, int ncomp,
-                            const Geometry &cgeom, const Geometry &fgeom,
-                            const IntVect &ratio, Interp *mapper,
-                            const Vector<BCRec> &bcs, int bcscomp) {
+                            const Geometry& cgeom, const Geometry& fgeom,
+                            const IntVect& ratio, Interp* mapper,
+                            const Vector<BCRec>& bcs, int bcscomp) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost_outside_domain == 0, "TODO");
         PhysBCFunctUseCoarseGhost erfbc(*cmf[0], nghost, nghost_outside_domain, ratio,
                                         mapper);
@@ -1298,14 +1298,14 @@ namespace amrex {
 
     template<typename MF, typename BC, typename Interp>
         requires IsFabArrayType<MF>
-    void FillPatchNLevels(MF &mf, int level, const IntVect &nghost, Real time,
-                          const Vector<Vector<MF *> > &smf, const Vector<Vector<Real> > &st,
+    void FillPatchNLevels(MF& mf, int level, const IntVect& nghost, Real time,
+                          const Vector<Vector<MF*> >& smf, const Vector<Vector<Real> >& st,
                           int scomp, int dcomp, int ncomp,
-                          const Vector<Geometry> &geom,
-                          Vector<BC> &bc, int bccomp,
-                          const Vector<IntVect> &ratio,
-                          Interp *mapper,
-                          const Vector<BCRec> &bcr, int bcrcomp) {
+                          const Vector<Geometry>& geom,
+                          Vector<BC>& bc, int bccomp,
+                          const Vector<IntVect>& ratio,
+                          Interp* mapper,
+                          const Vector<BCRec>& bcr, int bcrcomp) {
         BL_PROFILE("FillPatchNLevels");
 
         // FillPatchTwolevels relies on that mf's valid region is inside the
@@ -1318,21 +1318,21 @@ namespace amrex {
             if (level == 0) {
                 return std::make_tuple(BoxArray(), BoxArray(), DistributionMapping());
             } else {
-                BoxArray const &ba = mf.boxArray();
-                auto const &typ = ba.ixType();
+                BoxArray const& ba = mf.boxArray();
+                auto const& typ = ba.ixType();
                 std::map<int, Vector<Box> > extra_boxes_map;
                 BoxList cbl(typ);
                 cbl.reserve(ba.size());
                 for (int i = 0, N = int(ba.size()); i < N; ++i) {
-                    Box const &cbox = mapper->CoarseBox(amrex::grow(ba[i], nghost), ratio[level - 1]);
+                    Box const& cbox = mapper->CoarseBox(amrex::grow(ba[i], nghost), ratio[level - 1]);
                     cbl.push_back(cbox);
                     Box gdomain = geom[level - 1].growNonPeriodicDomain(cbox.length());
                     gdomain.convert(typ);
                     if (!gdomain.contains(cbox)) {
-                        auto &extra_boxes = extra_boxes_map[i];
-                        auto const &pshift = geom[level - 1].periodicity().shiftIntVect();
-                        for (auto const &piv: pshift) {
-                            auto const &ibox = amrex::shift(cbox, piv) & gdomain;
+                        auto& extra_boxes = extra_boxes_map[i];
+                        auto const& pshift = geom[level - 1].periodicity().shiftIntVect();
+                        for (auto const& piv: pshift) {
+                            auto const& ibox = amrex::shift(cbox, piv) & gdomain;
                             if (ibox.ok()) {
                                 extra_boxes.push_back(ibox);
                             }
@@ -1344,10 +1344,10 @@ namespace amrex {
                 DistributionMapping dm2;
                 if (!extra_boxes_map.empty()) {
                     BoxList cbl2 = cbl;
-                    auto &lbox = cbl2.data();
-                    DistributionMapping const &dm = mf.DistributionMap();
+                    auto& lbox = cbl2.data();
+                    DistributionMapping const& dm = mf.DistributionMap();
                     Vector<int> procmap2 = dm.ProcessorMap();
-                    for (auto const &[i, vb]: extra_boxes_map) {
+                    for (auto const& [i, vb]: extra_boxes_map) {
                         lbox[i] = vb[0];
                         for (int j = 1, nj = int(vb.size()); j < nj; ++j) {
                             lbox.push_back(vb[j]);
@@ -1363,9 +1363,9 @@ namespace amrex {
         };
 
 #ifdef AMREX_USE_EB
-        EB2::IndexSpace const *index_space = EB2::TopIndexSpaceIfPresent();
+        EB2::IndexSpace const* index_space = EB2::TopIndexSpaceIfPresent();
 #else
-        EB2::IndexSpace const *index_space = nullptr;
+        EB2::IndexSpace const* index_space = nullptr;
 #endif
 
         AMREX_ALWAYS_ASSERT(level < int(geom.size()) &&
@@ -1375,7 +1375,7 @@ namespace amrex {
             FillPatchSingleLevel(mf, nghost, time, smf[0], st[0], scomp, dcomp, ncomp, geom[0],
                                  bc[0], bccomp);
         } else if (level >= int(smf.size())) {
-            auto const &[ba1, ba2, dm2] = get_clayout();
+            auto const& [ba1, ba2, dm2] = get_clayout();
             MF cmf1, cmf2;
 #ifdef AMREX_USE_EB
             if (index_space) {
@@ -1398,7 +1398,7 @@ namespace amrex {
                 }
             }
 
-            MF *p_mf_inside = (ba2.empty()) ? &cmf1 : &cmf2;
+            MF* p_mf_inside = (ba2.empty()) ? &cmf1 : &cmf2;
             FillPatchNLevels(*p_mf_inside, level - 1, IntVect(0), time, smf, st, scomp, 0, ncomp,
                              geom, bc, bccomp, ratio, mapper, bcr, bcrcomp);
             if (&cmf1 != p_mf_inside) {
@@ -1421,7 +1421,7 @@ namespace amrex {
                                                              hook, hook, index_space, true);
             if (error_code == 0) { return; }
 
-            auto const &[ba1, ba2, dm2] = get_clayout();
+            auto const& [ba1, ba2, dm2] = get_clayout();
             MF cmf_tmp;
 #ifdef AMREX_USE_EB
             if (index_space) {
@@ -1449,15 +1449,15 @@ namespace amrex {
             FillPatchNLevels(cmf_tmp, level - 1, IntVect(0), time, smf, st, scomp, 0, ncomp,
                              geom, bc, bccomp, ratio, mapper, bcr, bcrcomp);
 
-            Vector<MF *> cmf{&cmf_tmp};
-            Vector<MF *> fmf = smf[level];
+            Vector<MF*> cmf{&cmf_tmp};
+            Vector<MF*> fmf = smf[level];
             Vector<MF> fmf_raii;
             if (scomp != 0) {
-                for (auto const *p: fmf) {
+                for (auto const* p: fmf) {
                     fmf_raii.emplace_back(*p, amrex::make_alias, scomp, ncomp);
                 }
                 fmf.clear();
-                for (auto &a: fmf_raii) {
+                for (auto& a: fmf_raii) {
                     fmf.push_back(&a);
                 }
             }
