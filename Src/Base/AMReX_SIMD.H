@@ -218,8 +218,15 @@ namespace amrex::simd
      * themselves, but we better help a little for robustness. Background:
      * https://github.com/AMReX-Codes/amrex/pull/4520#issuecomment-3064064215
      *
+     * The `ForceWriteback` flag forces the writeback regardless of the push
+     * method's argument constness. Use it for slots that may be modified by
+     * something other than the named push method itself (e.g., a pre/post
+     * step in the caller), where the push method's signature is not the
+     * authoritative source of truth for whether the value changed.
+     *
      * @tparam P_Method pointer to the method that used the data (for is_nth_arg_non_const)
      * @tparam N the argument index (for is_nth_arg_non_const)
+     * @tparam ForceWriteback if true, write back regardless of P_Method's argument constness
      * @tparam T data type
      * @tparam IndexType int or SIMD index
      * @tparam ValType the type of the value to store
@@ -227,7 +234,8 @@ namespace amrex::simd
      * @param ptr pointer to contiguous 1D array data
      * @param i index or SIMD index
      */
-    template <auto P_Method, int N, typename T, typename IndexType, typename ValType>
+    template <auto P_Method, int N, bool ForceWriteback = false,
+              typename T, typename IndexType, typename ValType>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void store_1d (
         ValType const & AMREX_RESTRICT val,
@@ -237,7 +245,7 @@ namespace amrex::simd
     {
         // SIMD uses special vector register types in ValType that need to be copied back to RAM array type T
         if constexpr (!std::is_same_v<ValType, T>) {
-            if constexpr (amrex::simd::is_nth_arg_non_const(P_Method, N)) {
+            if constexpr (ForceWriteback || amrex::simd::is_nth_arg_non_const(P_Method, N)) {
 #ifdef AMREX_USE_SIMD
                 // write back to memory
                 // TODO stdx::vector_aligned needs alignment guarantees
