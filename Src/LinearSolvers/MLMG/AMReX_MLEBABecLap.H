@@ -28,6 +28,14 @@ public:
                  const Vector<EBFArrayBoxFactory const*>& a_factory,
                  int a_ncomp = 1);
 
+    MLEBABecLap (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask, // 1: unknown, 0: known
+                 const LPInfo& a_info,
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 int a_ncomp = 1);
+
     ~MLEBABecLap () override;
 
     MLEBABecLap (const MLEBABecLap&) = delete;
@@ -38,6 +46,14 @@ public:
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
+                 const LPInfo& a_info,
+                 const Vector<EBFArrayBoxFactory const*>& a_factory,
+                 int a_ncomp = 1);
+
+    void define (const Vector<Geometry>& a_geom,
+                 const Vector<BoxArray>& a_grids,
+                 const Vector<DistributionMapping>& a_dmap,
+                 const Vector<iMultiFab const*>& a_overset_mask,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory,
                  int a_ncomp = 1);
@@ -171,6 +187,7 @@ private:
 
     bool m_needs_update = true;
 
+    void define_ab_coeffs ();
 };
 
 /// \cond DOXYGEN_IGNORE
