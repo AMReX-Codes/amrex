@@ -631,7 +631,9 @@ public:
             auto pdst = reduce_data.devicePtr(stream);
             int nblocks_ec = std::min(nblocks, reduce_data.maxBlocks());
             AMREX_ASSERT(Long(nblocks_ec)*2 <= Long(std::numeric_limits<int>::max()));
-            reduce_data.nBlocks(stream) = nblocks_ec;
+            int& nblocks_ref = reduce_data.nBlocks(stream);
+            auto old_nblocks = static_cast<unsigned int>(nblocks_ref);
+            nblocks_ref = amrex::max(nblocks_ref, nblocks_ec);
             reduce_data.updateMaxStreamIndex(stream);
 
 #ifdef AMREX_USE_SYCL
@@ -651,7 +653,7 @@ public:
                 ReduceTuple r;
                 Reduce::detail::for_each_init<0, ReduceTuple, Ps...>(r);
                 ReduceTuple& dst = pdst[blockIdx.x];
-                if (threadIdx.x == 0) {
+                if (threadIdx.x == 0 && blockIdx.x >= old_nblocks) {
                     dst = r;
                 }
                 for (int iblock = blockIdx.x; iblock < nblocks; iblock += nblocks_ec) {

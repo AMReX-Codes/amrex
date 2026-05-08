@@ -6,6 +6,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_FArrayBox.H>
 #include <cmath>
+#include <numbers>
 
 namespace amrex {
 
@@ -31,7 +32,7 @@ amrex_setvol (Box const& bx, Array4<Real> const& vol,
     }
     else if (coord == 1) // r-z
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
             for (int i = lo.x; i <= hi.x; ++i) {
@@ -44,7 +45,7 @@ amrex_setvol (Box const& bx, Array4<Real> const& vol,
     }
     else // r-theta
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         for     (int j = lo.y; j <= hi.y; ++j) {
             Real ti = offset[1] + dx[1]*(j);
             Real to = ti + dx[1];
@@ -82,7 +83,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
     }
     else if (coord == 1)
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         if (dir == 0)
         {
             for     (int j = lo.y; j <= hi.y; ++j) {
@@ -108,7 +109,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
     }
     else
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         if (dir == 0)
         {
             for     (int j = lo.y; j <= hi.y; ++j) {

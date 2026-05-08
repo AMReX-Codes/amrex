@@ -741,7 +741,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
                     {
 #ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
-                            tags.push_back({arr,obx});
+                            tags.push_back(Array4BoxTag<int>{.dfab = arr, .dbox = obx});
                         } else
 #endif
                         {

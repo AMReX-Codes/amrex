@@ -54,9 +54,9 @@ void Initialize_without_split (int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-    int* p;
+    int* p = nullptr;
     MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &p, &flag);
-    appnum = *p;
+    appnum = (flag && p) ? *p : -1;
 
     std::vector<int> all_appnum(nprocs);
     MPI_Allgather(&appnum, 1, MPI_INT, all_appnum.data(), 1, MPI_INT, MPI_COMM_WORLD);

@@ -273,7 +273,7 @@ void MLCurlCurl::setDirichletNodesToZero (int amrlev, int mglev, MF& a_mf) const
                     Box b = vbx;
                     b.setRange(idim, vbx[face], 1);
 #ifdef AMREX_USE_GPU
-                    tags.emplace_back(Array4BoxTag<RT>{a,b});
+                    tags.emplace_back(Array4BoxTag<RT>{.dfab = a, .dbox = b});
 #else
                     amrex::LoopOnCpu(b, [&] (int i, int j, int k)
                     {
@@ -1099,7 +1099,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
                     }
                 }
 #ifdef AMREX_USE_GPU
-                tags.emplace_back(Array4BoxOrientationTag<RT>{a,b,face});
+                tags.emplace_back(Array4BoxOrientationTag<RT>{.fab = a, .bx = b, .face = face});
 #else
                 amrex::LoopOnCpu(b, [&] (int i, int j, int k)
                 {
@@ -1160,7 +1160,7 @@ void MLCurlCurl::applyPhysBC (int amrlev, int mglev, MultiFab& mf, CurlCurlState
                                         b.setRange(jdim,vbx.bigEnd(jdim)+1);
                                     }
 #ifdef AMREX_USE_GPU
-                                    tags2.emplace_back(Array4BoxOffsetTag<RT>{a,b,offset});
+                                    tags2.emplace_back(Array4BoxOffsetTag<RT>{.fab = a, .bx = b, .offset = offset});
 #else
                                     amrex::LoopOnCpu(b, [&] (int i, int j, int k)
                                     {
@@ -1226,14 +1226,14 @@ CurlCurlDirichletInfo MLCurlCurl::getDirichletInfo (int amrlev, int mglev) const
         }
     };
 
-    return CurlCurlDirichletInfo{IntVect(AMREX_D_DECL(helper(0,0),
-                                                      helper(1,0),
-                                                      helper(2,0))),
-                                 IntVect(AMREX_D_DECL(helper(0,1),
-                                                      helper(1,1),
-                                                      helper(2,1)))
+    return CurlCurlDirichletInfo{.dirichlet_lo = IntVect(AMREX_D_DECL(helper(0,0),
+                                                                      helper(1,0),
+                                                                      helper(2,0))),
+                                 .dirichlet_hi = IntVect(AMREX_D_DECL(helper(0,1),
+                                                                      helper(1,1),
+                                                                      helper(2,1)))
 #if (AMREX_SPACEDIM < 3)
-                                 ,m_coord
+                                 ,.coord = m_coord
 #endif
                                 };
 }
@@ -1268,12 +1268,12 @@ CurlCurlSymmetryInfo MLCurlCurl::getSymmetryInfo (int amrlev, int mglev) const
         }
     };
 
-    return CurlCurlSymmetryInfo{IntVect(AMREX_D_DECL(helper(0,0),
-                                                     helper(1,0),
-                                                     helper(2,0))),
-                                IntVect(AMREX_D_DECL(helper(0,1),
-                                                     helper(1,1),
-                                                     helper(2,1)))};
+    return CurlCurlSymmetryInfo{.symmetry_lo = IntVect(AMREX_D_DECL(helper(0,0),
+                                                                    helper(1,0),
+                                                                    helper(2,0))),
+                                .symmetry_hi = IntVect(AMREX_D_DECL(helper(0,1),
+                                                                    helper(1,1),
+                                                                    helper(2,1)))};
 }
 
 void MLCurlCurl::update ()

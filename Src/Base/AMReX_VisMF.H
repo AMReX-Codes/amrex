@@ -13,6 +13,7 @@
 #include <AMReX_VisMFBuffer.H>
 
 #include <fstream>
+#include <iterator>
 #include <iostream>
 #include <sstream>
 #include <deque>
@@ -405,7 +406,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
         procsWithData.insert(i);
     }
     const int nOutFiles = VisMF::GetNOutFiles();
-    if (static_cast<int>(procsWithData.size()) < nOutFiles) {
+    if (std::ssize(procsWithData) < nOutFiles) {
         useSparseFPP = true;
         for (auto i : procsWithData) {
             procsWithDataVector.push_back(i);

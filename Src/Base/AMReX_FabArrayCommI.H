@@ -1247,10 +1247,11 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
         if (cmds[imf]) {
             auto const& tags = *(cmds[imf]->m_LocTags);
             for (auto const& tag : tags) {
-                local_tags.push_back({(*mf[imf])[tag.dstIndex].array      (scomp[imf],ncomp[imf]),
-                                      (*mf[imf])[tag.srcIndex].const_array(scomp[imf],ncomp[imf]),
-                                      tag.dbox,
-                                      (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+                local_tags.push_back(TagT{.dfab = (*mf[imf])[tag.dstIndex].array(scomp[imf],ncomp[imf]),
+                                          .dindex = tag.dstIndex,
+                                          .sfab = (*mf[imf])[tag.srcIndex].const_array(scomp[imf],ncomp[imf]),
+                                          .dbox = tag.dbox,
+                                          .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
             }
         }
     }
@@ -1310,9 +1311,13 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                         for (auto const& cct : it->second) {
                             auto& dfab = (*mf[imf])[cct.dstIndex];
                             recv_offset[i].push_back(nbytes);
-                            recv_tags.push_back({dfab.array(scomp[imf],ncomp[imf]),
-                                                 makeArray4<T const>(nullptr,cct.dbox,ncomp[imf]),
-                                                 cct.dbox, Dim3{0,0,0}});
+                            recv_tags.push_back(TagT{
+                                .dfab = dfab.array(scomp[imf],ncomp[imf]),
+                                .dindex = cct.dstIndex,
+                                .sfab = makeArray4<T const>(nullptr,cct.dbox,ncomp[imf]),
+                                .dbox = cct.dbox,
+                                .offset = Dim3{.x = 0, .y = 0, .z = 0}
+                            });
                             nbytes += dfab.nBytes(cct.dbox,ncomp[imf]);
                         }
                     }
@@ -1383,9 +1388,13 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                         for (auto const& cct : it->second) {
                             auto const& sfab = (*mf[imf])[cct.srcIndex];
                             send_offset[i].push_back(nbytes);
-                            send_tags.push_back({amrex::makeArray4<T>(nullptr,cct.sbox,ncomp[imf]),
-                                                 sfab.const_array(scomp[imf],ncomp[imf]),
-                                                 cct.sbox, Dim3{0,0,0}});
+                            send_tags.push_back(TagT{
+                                .dfab = amrex::makeArray4<T>(nullptr,cct.sbox,ncomp[imf]),
+                                .dindex = cct.dstIndex,
+                                .sfab = sfab.const_array(scomp[imf],ncomp[imf]),
+                                .dbox = cct.sbox,
+                                .offset = Dim3{.x = 0, .y = 0, .z = 0}
+                            });
                             nbytes += sfab.nBytes(cct.sbox,ncomp[imf]);
                         }
                     }

@@ -42,6 +42,7 @@
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
+#include <iterator>
 #include <limits>
 #include <list>
 #include <sstream>
@@ -231,13 +232,21 @@ Amr::derive (const std::string&       name,
              int                      dcomp)
 {
     BL_PROFILE("Amr::derive()");
-    AMREX_ASSERT(mf.size() == static_cast<amrex::Long>(finest_level + 1));
+    AMREX_ASSERT(std::ssize(mf) == (finest_level + 1));
+
+    int state_index, state_comp;
+    int ncomp = 1;
+    if (!AmrLevel::isStateVariable(name, state_index, state_comp)) {
+        if (const DeriveRec* rec = AmrLevel::get_derive_lst().get(name)) {
+            ncomp = rec->numDerive();
+        }
+    }
+    amrex::ignore_unused(ncomp);
 
     for (int i = 0; i <= finest_level; ++i)
     {
-        AMREX_ASSERT(mf[i] != nullptr);
-        AMREX_ASSERT(mf[i]->ok());
-        AMREX_ASSERT(mf[i]->nComp() > dcomp);
+        AMREX_ASSERT((mf[i] != nullptr) && mf[i]->ok() &&
+                     (dcomp >= 0) && (dcomp + ncomp <= mf[i]->nComp()));
     }
 
     for (int i = 0; i <= finestLevel(); ++i)

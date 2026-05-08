@@ -401,7 +401,11 @@ public:
                 for (auto const& shift : pshifts) {
                     if (!grown_tile_box.contains(src.cell + shift)) { continue; }
                     if (tile_box.contains(src.cell + shift)) { continue; }
-                    expected_records.insert(TileParticleRecord{key, src.grid_id, shift});
+                    expected_records.insert(TileParticleRecord{
+                        .key = key,
+                        .grid_id = src.grid_id,
+                        .shift = shift
+                    });
                 }
             }
 
@@ -425,7 +429,11 @@ public:
                     AMREX_D_DECL(host.real[0][i], host.real[1][i], host.real[2][i])
                 };
                 IntVect shift = match_shift(src, pos, grown_tile_box);
-                actual_records.insert(TileParticleRecord{key, src.grid_id, shift});
+                actual_records.insert(TileParticleRecord{
+                    .key = key,
+                    .grid_id = src.grid_id,
+                    .shift = shift
+                });
             }
 
             AMREX_ALWAYS_ASSERT(actual_records == expected_records);
@@ -683,9 +691,13 @@ private:
         local_packed.reserve(local_contributions.size());
         for (auto const& [key, contribution] : local_contributions) {
             local_packed.push_back(PackedContributionData{
-                key.first, key.second,
-                contribution.marker_real, contribution.payload_real, contribution.runtime_real,
-                contribution.marker_int, contribution.runtime_int
+                .id = key.first,
+                .cpu = key.second,
+                .marker_real = contribution.marker_real,
+                .payload_real = contribution.payload_real,
+                .runtime_real = contribution.runtime_real,
+                .marker_int = contribution.marker_int,
+                .runtime_int = contribution.runtime_int
             });
         }
 
@@ -741,9 +753,13 @@ private:
             global_packed.reserve(global_contributions.size());
             for (auto const& [key, contribution] : global_contributions) {
                 global_packed.push_back(PackedContributionData{
-                    key.first, key.second,
-                    contribution.marker_real, contribution.payload_real, contribution.runtime_real,
-                    contribution.marker_int, contribution.runtime_int
+                    .id = key.first,
+                    .cpu = key.second,
+                    .marker_real = contribution.marker_real,
+                    .payload_real = contribution.payload_real,
+                    .runtime_real = contribution.runtime_real,
+                    .marker_int = contribution.marker_int,
+                    .runtime_int = contribution.runtime_int
                 });
             }
         }

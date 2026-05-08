@@ -385,7 +385,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
                                 const Box& ibx = is.second - iv;
 #ifdef AMREX_USE_GPU
                                 if (run_on_gpu) {
-                                    tags.push_back({arr,ibx});
+                                    tags.push_back(Array4BoxTag<T>{.dfab = arr, .dbox = ibx});
                                 } else
 #endif
                                 {
