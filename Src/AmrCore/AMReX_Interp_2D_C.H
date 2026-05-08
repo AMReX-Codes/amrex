@@ -143,6 +143,51 @@ facediv_face_interp (int ci, int cj, int /*ck*/,
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
+facediv_face_interp_RZ (int ci, int cj, int /*ck*/,
+                     int n, int idir,
+                     Array4<T const> const& crse,
+                     Array4<T> const& fine,
+                     Array4<int const> const& mask,
+                     IntVect const& ratio, Real rcen, Real drf) noexcept
+{
+    if (mask) {
+        if (!mask(ci, cj, 0, n))
+            { return; }
+    }
+
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    switch (idir) {
+        case 0:
+        {
+            const Real slpy = Real(0.5)*(crse(ci, cj+1, 0, n) - crse(ci, cj-1, 0, n));
+            const Real dys = Real(1.)/Real(ratio[1]);
+
+            for (int j = 0; j < ratio[1]; ++j) {
+                Real ysloc = (Real(j)+Real(0.5))*dys - Real(0.5);
+                fine(fi, fj+j, 0, n) = crse(ci, cj, 0, n) + ysloc*slpy;
+            }
+
+            break;
+        }
+        case 1:
+        {
+            const Real rm = rcen - drf*ratio[0];
+            const Real rp = rcen + drf*ratio[0];
+
+            fine(fi,   fj, 0, n) = (rcen*crse(ci, cj, 0, n) + (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/8.)/(rcen-drf/2);
+            fine(fi+1, fj, 0, n) = (rcen*crse(ci, cj, 0, n) - (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/8.)/(rcen+drf/2);
+
+            break;
+        }
+        default : { break; }
+    }
+}
+
+
+template<typename T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_int (int ci, int cj, int /*ck*/, int n,
              GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
              IntVect const& ratio,
@@ -172,6 +217,140 @@ facediv_int (int ci, int cj, int /*ck*/, int n,
     fine[1](fi,  fj+1,0,n) = Real(0.5)*(vmm+vpm) + y_corr;
     fine[1](fi+1,fj+1,0,n) = Real(0.5)*(vmp+vpp) + y_corr;
 
+}
+
+template<typename T>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
+                    GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+                    IntVect const& ratio,
+                    GpuArray<Real, AMREX_SPACEDIM> const& cellSize,
+                    Real rcen) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+
+    const Real dr = cellSize[0];
+    const Real dz = cellSize[1];
+    const Real drinv = Real(1.)/dr;
+    const Real dzinv = Real(1.)/dz;
+
+    amrex::GpuArray<amrex::Real, 3> redge;
+    amrex::GpuArray<amrex::Real, 2> rfinecen;
+
+    redge(0) = rcen - dr;
+    redge(1) = rcen ;
+    redge(2) = rcen + dr;
+    rfinecen(0) = rcen - dr/2;
+    rfinecen(1) = rcen + dr/2;
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 1; i < ratio[0]; ++i) {
+        fine[0](fi+i, fj+j, 0, nf) =
+            ((ratio[0]-i)*redge(0)*fine[0](fi,           fj+j, 0, nf)
+           +          i *redge(2)* fine[0](fi+ratio[0], fj+j, 0, nf))/(rcen*ratio[0]);
+    }}
+
+    for (int j = 1; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        fine[1](fi+i, fj+j, 0, nf) =
+            ((ratio[1]-j)*fine[1](fi+i, fj,           0, nf)
+           +          j *fine[1](fi+i, fj+ratio[1], 0, nf))/ratio[1];
+    }}
+
+    Real uplus = Real(0.);
+    Real uminus = Real(0.);
+    for (int j = 0; j < ratio[1]; ++j) {
+        uplus  += fine[0](fi+ratio[0], fj+j, 0, nf);
+        uminus += fine[0](fi,          fj+j, 0, nf);
+    }
+
+    Real vplus = Real(0.);
+    Real vminus = Real(0.);
+    for (int i = 0; i < ratio[0]; ++i) {
+        vplus  += rfinecen[i]*(fine[1](fi+i, fj+ratio[1], 0, nf);
+        vminus += rfinecen[i]*(fine[1](fi+i, fj,          0, nf);
+    }
+
+    vplus  /= rcen;
+    vminus /= rcen;
+
+    Real target_div = 0.5*( (redge(2)*uplus- redge(0)*uminus)/(2.*dr*rcen) + (vplus-vminus)/(2.*dz) );
+
+    Array1D<Real,0,3> rhs;
+    Array1D<Real,0,3> phi;
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        int irow = i + j*ratio[0];
+        rhs(irow) =
+              (redge(i+1)*(fi+i+1, fj+j,   0, nf) - redge(i)* fine[0](fi+i,   fj+j,   0, nf))*drinv / rfinecen(i)
+             + (fine[1](fi+i,   fj+j+1, 0, nf) - fine[1](fi+i,   fj+j,   0, nf))*dzinv 
+          - target_div;
+    }}
+
+// build the matrix
+
+    Array2D<Real,0,3,0,3,Order::C> mat;
+
+    for (int irow = 0; irow < N; ++irow) {
+        for (int icol = 0; icol < N; ++icol) {
+            mat(irow,icol) = Real(0.0);
+        }
+    }
+
+    Real drinv = Real(1.)/cellSize[0];
+    Real dzinv = Real(1.)/cellSize[1];
+    Real ddr2 = drinv*drinv;
+    Real ddz2 = dzinv*dzinv;
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        int irow = i + j*ratio[0];
+
+        if (i > 0) {
+            mat(irow,irow) += ddr2 * redge(i)/rcenfine(i);
+            mat(irow,irow-1) += -ddr2 * redge(i)/rcenfine(i);
+        }
+
+        if (i < ratio[0]-1) {
+            mat(irow,irow) += ddr2 *redge(i+1)/rcenfine(i);
+            mat(irow,irow+1) += -ddr2 *redge(i+1)/rcenfine(i);
+        }
+
+        if (j > 0) {
+            mat(irow,irow) += ddz2;
+            mat(irow,irow-ratio[0]) += -ddz2;
+        }
+
+        if (j < ratio[1]-1) {
+            mat(irow,irow) += ddz2;
+            mat(irow,irow+ratio[0]) += -ddz2;
+        }
+    }}
+
+    // Hack matrix to be nonsingular. This just picks a particular gauge
+    // with the last row being zero, doesn’t change the gradients we will
+    // apply.
+    mat(3,3) += ddz2;
+
+    LUSolver lusolver<N,Real>{mat};
+
+    lusolver(phi.begin(), rhs.begin());
+
+    for (int j = 0; j < ratio[1]; ++j) {
+    for (int i = 1; i < ratio[0]; ++i) {
+        int plus  = i   + j*ratio[0];
+        int minus = i-1 + j*ratio[0];
+        fine[0](fi+i, fj+j, 0, nf) += (phi(plus) - phi(minus))*drinv;
+    }}
+
+    for (int j = 1; j < ratio[1]; ++j) {
+    for (int i = 0; i < ratio[0]; ++i) {
+        int plus  = i + j   *ratio[0];
+        int minus = i + (j-1)*ratio[0];
+        fine[1](fi+i, fj+j, 0, nf) += (phi(plus) - phi(minus))*dzinv;
+    }}
 }
 
 template <int i, std::enable_if_t<(i>=0 && i<4), int> = 0>
@@ -284,7 +463,9 @@ facediv_int_gen (int ci, int cj, int /*ck*/, int nf,
         vminus += fine[1](fi+i, fj,          0, nf);
     }
 
-    Real target_div = (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy);
+// jbb  i think this was wron ebfore for non zero divergence
+
+    Real target_div = 0.5*( (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) );
 
     Array1D<Real,0,N-1> rhs;
     Array1D<Real,0,N-1> phi;
