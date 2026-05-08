@@ -124,6 +124,10 @@ public:
         return std::unique_ptr<MLLinOp>{};
     }
 
+    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
+                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
+                                        const Vector<MultiFab*>& b_eb);
+
     void restriction (int, int, MultiFab& crse, MultiFab& fine) const final;
 
     void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
@@ -173,9 +177,6 @@ protected:
     //
     bool isEBDirichlet   () const noexcept { return m_eb_phi[0] != nullptr; }
 
-    void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MultiFab>& a,
-                                        Vector<Array<MultiFab,AMREX_SPACEDIM> >& b,
-                                        const Vector<MultiFab*>& b_eb);
     void averageDownCoeffs ();
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
