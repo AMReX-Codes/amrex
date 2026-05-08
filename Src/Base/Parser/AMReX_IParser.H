@@ -86,6 +86,10 @@ struct IParserExecutor
  * IParser parses expressions composed of integer literals, integer variables,
  * and integer-returning functions. It emits executors that evaluate to long long
  * on host or GPU.
+ *
+ * Different IParser objects may be constructed or defined concurrently from
+ * multiple host threads. For parallel evaluation, prefer sharing the compiled
+ * IParserExecutor across threads instead of constructing one IParser per thread.
  */
 class IParser
 {

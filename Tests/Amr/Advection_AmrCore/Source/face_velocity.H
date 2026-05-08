@@ -4,6 +4,7 @@
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
 #include <AMReX_REAL.H>
+#include <numbers>
 
 AMREX_GPU_DEVICE
 AMREX_FORCE_INLINE
@@ -13,7 +14,7 @@ void get_face_velocity_psi(int i, int j,
                            amrex::GeometryData const& geomdata)
 {
     using namespace amrex;
-    constexpr Real PI = 3.1415926535897932384626;
+    constexpr Real PI = std::numbers::pi_v<Real>;
 
     const Real* AMREX_RESTRICT prob_lo = geomdata.ProbLo();
     const Real* AMREX_RESTRICT dx      = geomdata.CellSize();

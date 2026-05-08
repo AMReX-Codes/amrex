@@ -1,6 +1,8 @@
 #ifndef AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H
 #define AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H
 
+#include <iterator>
+
 /**
  * \file AMReX_WriteBinaryParticleDataHDF5.H
  *
@@ -203,7 +205,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     {
         int nrc = PC::ParticleType::is_soa_particle ?
             pc.NumRealComps() + NStructReal - AMREX_SPACEDIM : pc.NumRealComps() + NStructReal;
-        AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == nrc);
+        AMREX_ALWAYS_ASSERT(std::ssize(real_comp_names) == nrc);
     }
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
@@ -262,7 +264,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     // evaluate f for every particle to determine which ones to output
     Vector<std::map<std::pair<int, int>, typename PC::IntVector > >
         particle_io_flags(pc.GetParticles().size());
-    for (int lev = 0; lev < pc.GetParticles().size();  lev++)
+    for (int lev = 0; lev < std::ssize(pc.GetParticles());  lev++)
     {
         const auto& pmap = pc.GetParticles(lev);
         for (const auto& kv : pmap)
@@ -339,7 +341,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         CreateWriteHDF5AttrString(fid, "version_name", versionName.c_str());
 
         int num_output_real = 0;
-        for (int i = 0; i < static_cast<int>(write_real_comp.size()); ++i) {
+        for (int i = 0; i < std::ssize(write_real_comp); ++i) {
             if (write_real_comp[i]) { ++num_output_real; }
         }
 
@@ -364,7 +366,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // Real component names
         int real_comp_count = AMREX_SPACEDIM; // position values
 
-        for (int i = 0; i < static_cast<int>(write_real_comp.size()); ++i ) {
+        for (int i = 0; i < std::ssize(write_real_comp); ++i ) {
             if (write_real_comp[i]) {
                 /* HdrFile << real_comp_names[i] << '\n'; */
                 snprintf(comp_name, sizeof comp_name, "real_component_%d", real_comp_count);

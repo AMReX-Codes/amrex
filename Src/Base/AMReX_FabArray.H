@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
@@ -1755,7 +1756,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != 0) {
         return true;
     }
     else {
@@ -1768,7 +1769,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 {
     int li = mfi.LocalIndex();
-    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         return true;
     }
     else {
@@ -1874,7 +1875,7 @@ FAB*
 FabArray<FAB>::release (int K)
 {
     const int li = localindex(K);
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -1894,7 +1895,7 @@ FAB*
 FabArray<FAB>::release (const MFIter& mfi)
 {
     const int li = mfi.LocalIndex();
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -2514,9 +2515,9 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(2, vbx.smallEnd(2)-nghost[2], nghost[2]);
                         b.grow(IntVect(nghost[0],nghost[1],0));
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(2, vbx.length(2)+nghost[2]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
 #endif
 #if (AMREX_SPACEDIM >= 2)
@@ -2524,17 +2525,17 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(1, vbx.smallEnd(1)-nghost[1], nghost[1]);
                         b.grow(0, nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(1, vbx.length(1)+nghost[1]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
 #endif
                     if (nghost[0] > 0) {
                         b = vbx;
                         b.setRange(0, vbx.smallEnd(0)-nghost[0], nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(0, vbx.length(0)+nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
                 }
 

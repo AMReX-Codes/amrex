@@ -81,8 +81,11 @@ struct CSR {
 
     //! Const view of the underlying buffers.
     [[nodiscard]] CsrView<T const> view () const {
-        return CsrView<T>{mat.data(), col_index.data(), row_offset.data(),
-                          nnz, Long(row_offset.size())-1};
+        return CsrView<T const>{.mat = mat.data(),
+                                .col_index = col_index.data(),
+                                .row_offset = row_offset.data(),
+                                .nnz = nnz,
+                                .nrows = Long(row_offset.size())-1};
     }
 
     //! Convenience alias for view() const.

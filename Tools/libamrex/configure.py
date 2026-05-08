@@ -132,6 +132,10 @@ def configure(argv):
                         help="Enable Bittree mode [default=no]",
                         choices=["yes","no"],
                         default="no")
+    parser.add_argument("--enable-hdf5",
+                        help="Enable HDF5 output mode [default=no]",
+                        choices=["yes","no"],
+                        default="no")
     args = parser.parse_args()
 
     if args.with_fortran == "no":
@@ -174,6 +178,7 @@ def configure(argv):
     f.write("CUDA_ARCH = " + args.cuda_arch.strip() + "\n")
     f.write("AMREX_NO_PROBINIT = {}\n".format("TRUE" if args.enable_probinit == "no" else "FALSE"))
     f.write("USE_BITTREE = {}\n".format("TRUE" if args.enable_bittree == "yes" else "FALSE"))
+    f.write("USE_HDF5 = {}\n".format("TRUE" if args.enable_hdf5 == "yes" else "FALSE"))
     f.write("\n")
 
     fin = open("GNUmakefile.in","r")

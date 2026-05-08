@@ -683,6 +683,8 @@ PETScABecLap::loadVectors (MultiFab& soln, const MultiFab& rhs)
             {
                 rhs_diag_ma[box_no](i,j,k) = rhs_ma[box_no](i,j,k) * diaginv_ma[box_no](i,j,k);
             });
+            // Sync required: rhs_diag is passed to PETSc host API (VecSetValues) below.
+            Gpu::streamSynchronize();
         } else
 #endif
         {

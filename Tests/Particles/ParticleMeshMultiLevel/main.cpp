@@ -128,7 +128,9 @@ void testParticleMesh (TestParams& parms)
     int        num_comp = 1;
 
     amrex::ParticleToMesh(myPC,GetVecOfPtrs(density2),0,parms.nlevs-1,
-                          TrilinearDeposition{start_part_comp,start_mesh_comp,num_comp});
+                          TrilinearDeposition{.start_part_comp = start_part_comp,
+                                              .start_mesh_comp = start_mesh_comp,
+                                              .num_comp = num_comp});
 
     //
     // Now write the output from each into separate plotfiles for comparison

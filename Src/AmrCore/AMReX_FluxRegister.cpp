@@ -239,7 +239,7 @@ FluxRegister::CrseInit (const MultiFab& mflx,
                 auto       dfab = bndry[face].array(mfi);
 #ifdef AMREX_USE_GPU
                 if (Gpu::inLaunchRegion()) {
-                    tags.push_back({dfab, sfab, bx});
+                    tags.push_back(Tag{.dfab = dfab, .sfab = sfab, .dbox = bx});
                 } else
 #endif
                 {
@@ -675,7 +675,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                 auto const& frarr = frlo[fsi].array();
                 for (auto const& is : isects) {
                     if (Gpu::inLaunchRegion()) {
-                        tags.emplace_back(Array4BoxTag<Real>{frarr, is.second});
+                        tags.emplace_back(Array4BoxTag<Real>{.dfab = frarr, .dbox = is.second});
                     } else {
                         frlo[fsi].setVal<RunOn::Host>(0.0, is.second, 0, nc);
                     }
@@ -687,7 +687,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                         for (auto const& is : isects2) {
                             const Box& bx2 = amrex::shift(is.second, dir, -domain.length(dir));
                             if (Gpu::inLaunchRegion()) {
-                                tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
+                                tags.emplace_back(Array4BoxTag<Real>{.dfab = frarr, .dbox = bx2});
                             } else {
                                 frlo[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
                             }
@@ -702,7 +702,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                 auto const& frarr = frhi[fsi].array();
                 for (auto const& is : isects) {
                     if (Gpu::inLaunchRegion()) {
-                        tags.emplace_back(Array4BoxTag<Real>{frarr, is.second});
+                        tags.emplace_back(Array4BoxTag<Real>{.dfab = frarr, .dbox = is.second});
                     } else {
                         frhi[fsi].setVal<RunOn::Host>(0.0, is.second, 0, nc);
                     }
@@ -714,7 +714,7 @@ FluxRegister::ClearInternalBorders (const Geometry& geom)
                         for (auto const& is : isects2) {
                             const Box& bx2 = amrex::shift(is.second, dir, domain.length(dir));
                             if (Gpu::inLaunchRegion()) {
-                                tags.emplace_back(Array4BoxTag<Real>{frarr, bx2});
+                                tags.emplace_back(Array4BoxTag<Real>{.dfab = frarr, .dbox = bx2});
                             } else {
                                 frhi[fsi].setVal<RunOn::Host>(0.0, bx2, 0, nc);
                             }
@@ -813,7 +813,7 @@ FluxRegister::OverwriteFlux (Array<MultiFab*,AMREX_SPACEDIM> const& crse_fluxes,
                         Box const& b = is.second-iv;
 #ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
-                            tags.push_back({fab,b});
+                            tags.push_back(Array4BoxTag<int>{.dfab = fab, .dbox = b});
                         } else
 #endif
                         {

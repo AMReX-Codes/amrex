@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
+#include <locale>
 #include <sstream>
 
 namespace amrex {
@@ -35,6 +36,7 @@ std::string Concatenate (const std::string& root, int num, int mindigits)
 {
     BL_ASSERT(mindigits >= 0);
     std::stringstream result;
+    result.imbue(std::locale::classic());
     result << root << std::setfill('0') << std::setw(mindigits) << num;
     return result.str();
 }

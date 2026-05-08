@@ -51,6 +51,9 @@ endif
 ifeq ($(USE_BITTREE),TRUE)
 	Pdirs += Extern/Bittree
 endif
+ifeq ($(USE_HDF5),TRUE)
+	Pdirs += Extern/HDF5
+endif
 Ppack := $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 

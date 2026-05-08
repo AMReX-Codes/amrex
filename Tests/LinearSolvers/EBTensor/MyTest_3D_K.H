@@ -2,6 +2,7 @@
 #define MY_TEST_K_H_
 
 #include <AMReX_FArrayBox.H>
+#include <numbers>
 
 AMREX_GPU_DEVICE
 inline void init (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real R2,
@@ -9,7 +10,7 @@ inline void init (amrex::Real x, amrex::Real y, amrex::Real z, amrex::Real R2,
                   amrex::Real& urhs, amrex::Real& vrhs, amrex::Real& wrhs,
                   amrex::Real& eta)
 {
-    constexpr amrex::Real pi = 3.1415926535897932;
+    constexpr amrex::Real pi = std::numbers::pi_v<amrex::Real>;
     amrex::Real x2 = x*x;
     amrex::Real y2 = y*y;
     amrex::Real r2 = x2+y2;

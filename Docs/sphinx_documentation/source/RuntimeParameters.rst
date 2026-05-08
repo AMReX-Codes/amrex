@@ -454,6 +454,9 @@ I/O
    ``ALL`` and ``NONE`` mean that all or none of the derive variables will
    be saved. If this parameter is not set, none of the derive variables will
    be saved.
+   For multi-component derived quantities, specify the registered derived
+   quantity name. Component names are output as plotfile field names, but they
+   do not independently select individual components.
 
 .. py:data:: amr.small_plot_file
    :type: string
@@ -507,6 +510,9 @@ I/O
    values ``ALL`` and ``NONE`` mean that all or none of the derive variables
    will be saved. If this parameter is not set, none of the derive variables
    will be saved.
+   For multi-component derived quantities, specify the registered derived
+   quantity name. Component names are output as small-plot field names, but
+   they do not independently select individual components.
 
 .. py:data:: amr.message_int
    :type: int

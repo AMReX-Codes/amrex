@@ -61,7 +61,7 @@ EBCellConservativeLinear::interp (const FArrayBox& crse,
             auto const& ca = crse.const_array();
             AMREX_HOST_DEVICE_FOR_4D_FLAG(runon, target_fine_region, ncomp, i, j, k, n,
             {
-                Dim3 cxyz = amrex::coarsen(Dim3{i,j,k}, ratio);
+                Dim3 cxyz = amrex::coarsen(Dim3{.x = i, .y = j, .z = k}, ratio);
                 if (cflag(cxyz.x,cxyz.y,cxyz.z).numNeighbors() < AMREX_D_TERM(3,*3,*3)) {
                     fa(i,j,k,n+fine_comp) = ca(cxyz.x,cxyz.y,cxyz.z,n+crse_comp);
                 }
