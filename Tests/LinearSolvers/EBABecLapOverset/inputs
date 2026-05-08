@@ -1,8 +1,8 @@
 amrex.fpe_trap_invalid = 1
 
 do_overset = 1
-overset_mask_lo = 0.25 0.25 0.25
-overset_mask_hi = 0.75 0.75 0.75
+overset_mask_lo = 0.5 0.5 0.5
+overset_mask_hi = 1.0 1.0 1.0
 
 #use_petsc = true
 eb2.geom_type = sphere
