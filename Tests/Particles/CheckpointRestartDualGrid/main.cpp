@@ -46,12 +46,12 @@ MeshData build_mesh (int ncells, int nlevs, int max_grid_size, int fine_cells = 
     MeshData m;
 
     // Level-0 domain
-    IntVect lo(AMREX_D_DECL(0, 0, 0));
-    IntVect hi(AMREX_D_DECL(ncells-1, ncells-1, ncells-1));
+    IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(ncells-1, ncells-1, ncells-1));
 
     m.domains.resize(nlevs);
-    m.domains[0].setSmall(lo);
-    m.domains[0].setBig(hi);
+    m.domains[0].setSmall(domain_lo);
+    m.domains[0].setBig(domain_hi);
 
     m.ref_ratio.resize(nlevs > 1 ? nlevs - 1 : 0);
     for (int lev = 1; lev < nlevs; ++lev) {
@@ -69,10 +69,10 @@ MeshData build_mesh (int ncells, int nlevs, int max_grid_size, int fine_cells = 
         AMREX_ALWAYS_ASSERT(patch_cells <= n_fine);
 
         // Refined region: a centered patch in the fine-level domain.
-        int const lo = (n_fine - patch_cells) / 2;
-        int const hi = lo + patch_cells - 1;
-        IntVect rlo(AMREX_D_DECL(lo, lo, lo));
-        IntVect rhi(AMREX_D_DECL(hi, hi, hi));
+        int const patch_lo = (n_fine - patch_cells) / 2;
+        int const patch_hi = patch_lo + patch_cells - 1;
+        IntVect rlo(AMREX_D_DECL(patch_lo, patch_lo, patch_lo));
+        IntVect rhi(AMREX_D_DECL(patch_hi, patch_hi, patch_hi));
         m.ba[1].define(Box(rlo, rhi));
         m.ba[1].maxSize(max_grid_size);
     }
