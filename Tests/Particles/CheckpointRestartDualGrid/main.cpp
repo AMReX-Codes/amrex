@@ -137,13 +137,13 @@ void add_finest_level_particles (MyPC& pc, MeshData const& mesh,
                 p.pos(d) = static_cast<ParticleReal>(problo[d] + (iv[d] + 0.5_rt) * dx[d]);
             }
             for (int i = 0; i < NStructReal; ++i) {
-                p.rdata(i) = pdata.real_struct_data[i];
+                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
             }
             for (int i = 0; i < NStructInt; ++i) {
                 p.idata(i) = pdata.int_struct_data[i];
             }
             for (int i = 0; i < NArrayReal; ++i) {
-                p.rdata(NStructReal + i) = pdata.real_array_data[i];
+                p.rdata(NStructReal + i) = static_cast<ParticleReal>(pdata.real_array_data[i]);
             }
             for (int i = 0; i < NArrayInt; ++i) {
                 p.idata(NStructInt + i) = pdata.int_array_data[i];
