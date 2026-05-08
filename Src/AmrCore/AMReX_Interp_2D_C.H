@@ -465,7 +465,7 @@ facediv_int_gen (int ci, int cj, int /*ck*/, int nf,
 
 // jbb  i think this was wron ebfore for non zero divergence
 
-    Real target_div = 0.5*( (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) );
+    Real target_div =  (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) ;
 
     Array1D<Real,0,N-1> rhs;
     Array1D<Real,0,N-1> phi;
