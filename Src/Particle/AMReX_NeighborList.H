@@ -453,9 +453,9 @@ public:
                           count += 1;
                       }
                     } // p
-                  } // kk
+                  } // ii
                 } // jj
-              } // ii
+              } // kk
             } // type
 
             pnbor_counts[i] = count;
@@ -510,9 +510,9 @@ public:
                         ++n;
                     }
                   }// p
-                }// kk
+                }// ii
               }// jj
-            }// ii
+            }// kk
           } // type
         });
         Gpu::Device::streamSynchronize();
