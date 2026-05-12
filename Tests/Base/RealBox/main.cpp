@@ -28,10 +28,10 @@ void test_contains_closed_interval ()
     AMREX_ALWAYS_ASSERT(box.contains(lo_outside, delta));
     AMREX_ALWAYS_ASSERT(box.contains(hi_outside, delta));
 
-    XDim3 lo_dim3{AMREX_D_DECL(lo_arr[0], lo_arr[1], lo_arr[2])};
-    XDim3 hi_dim3{AMREX_D_DECL(hi_arr[0], hi_arr[1], hi_arr[2])};
-    XDim3 lo_dim3_outside{AMREX_D_DECL(lo_arr[0] - delta, lo_arr[1], lo_arr[2])};
-    XDim3 hi_dim3_outside{AMREX_D_DECL(hi_arr[0] + delta, hi_arr[1], hi_arr[2])};
+    XDim3 lo_dim3{.x = lo_arr[0], .y = lo_arr[1], .z = lo_arr[2]};
+    XDim3 hi_dim3{.x = hi_arr[0], .y = hi_arr[1], .z = hi_arr[2]};
+    XDim3 lo_dim3_outside{.x = lo_arr[0] - delta, .y = lo_arr[1], .z = lo_arr[2]};
+    XDim3 hi_dim3_outside{.x = hi_arr[0] + delta, .y = hi_arr[1], .z = hi_arr[2]};
 
     AMREX_ALWAYS_ASSERT(box.contains(lo_dim3));
     AMREX_ALWAYS_ASSERT(box.contains(hi_dim3));
