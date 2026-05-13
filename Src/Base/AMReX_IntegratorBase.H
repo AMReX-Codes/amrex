@@ -82,6 +82,45 @@ struct IntegratorOps<T>
         }
     }
 
+    static amrex::Real ScaledMaxNorm (T& error, T& S_old, T& S_new,
+                                       amrex::Real abs_tol, amrex::Real rel_tol) {
+        // Compute max over all particles and real attributes of |error| / scale,
+        // where scale = abs_tol + rel_tol * max(|S_old|, |S_new|) per component.
+        // Using max(|S_old|, |S_new|) keeps the scale nonzero when a component crosses zero.
+        using TParIter = amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt>;
+        using ParticleType = amrex::Particle<T::NStructReal, T::NStructInt>;
+
+        amrex::ReduceOps<amrex::ReduceOpMax> reduce_op;
+        amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+
+        int lev = 0;
+        TParIter pt_err(error, lev);
+        TParIter pt_old(S_old, lev);
+        TParIter pt_new(S_new, lev);
+
+        for (; pt_err.isValid(); ++pt_err, ++pt_old, ++pt_new) {
+            const int np = pt_err.numParticles();
+            const ParticleType* p_err = &(pt_err.GetArrayOfStructs()[0]);
+            const ParticleType* p_old = &(pt_old.GetArrayOfStructs()[0]);
+            const ParticleType* p_new = &(pt_new.GetArrayOfStructs()[0]);
+            reduce_op.eval(np, reduce_data,
+                [=] AMREX_GPU_DEVICE (int i) -> amrex::GpuTuple<amrex::Real> {
+                    amrex::Real val = 0.0;
+                    for (int c = 0; c < T::NStructReal; ++c) {
+                        amrex::Real scale = abs_tol + rel_tol * amrex::max(std::abs(p_old[i].rdata(c)),
+                                                                            std::abs(p_new[i].rdata(c)));
+                        val = amrex::max(val, std::abs(p_err[i].rdata(c)) / scale);
+                    }
+                    return {val};
+                });
+        }
+
+        auto rv = reduce_data.value();
+        amrex::Real result = amrex::get<0>(rv);
+        amrex::ParallelDescriptor::ReduceRealMax(result);
+        return result;
+    }
+
 };
 #endif
 
@@ -130,6 +169,17 @@ struct IntegratorOps<T>
         }
     }
 
+    static amrex::Real ScaledMaxNorm (T& error, T& S_old, T& S_new,
+                                       amrex::Real abs_tol, amrex::Real rel_tol) {
+        amrex::Real result = 0.0;
+        for (int i = 0; i < static_cast<int>(error.size()); ++i)
+            for (int c = 0; c < error[i].nComp(); ++c) {
+                amrex::Real scale = abs_tol + rel_tol * amrex::max(S_old[i].norminf(c), S_new[i].norminf(c));
+                result = amrex::max(result, error[i].norminf(c) / scale);
+            }
+        return result;
+    }
+
 };
 
 template<class T>
@@ -158,6 +208,16 @@ struct IntegratorOps<T>
         IntVect nGrow = Grow ? X.nGrowVect() : IntVect(0);
         const int mf_ncomp = ncomp > 0 ? ncomp : X.nComp();
         amrex::MultiFab::Saxpy(Y, a, X, scomp, scomp, mf_ncomp, nGrow);
+    }
+
+    static amrex::Real ScaledMaxNorm (T& error, T& S_old, T& S_new,
+                                       amrex::Real abs_tol, amrex::Real rel_tol) {
+        amrex::Real result = 0.0;
+        for (int c = 0; c < error.nComp(); ++c) {
+            amrex::Real scale = abs_tol + rel_tol * amrex::max(S_old.norminf(c), S_new.norminf(c));
+            result = amrex::max(result, error.norminf(c) / scale);
+        }
+        return result;
     }
 
 };
@@ -338,6 +398,11 @@ public:
     amrex::Real get_time_step ()
     {
         return time_step;
+    }
+
+    amrex::Real get_previous_time_step ()
+    {
+        return previous_time_step;
     }
 
     void set_time_step (amrex::Real dt)
