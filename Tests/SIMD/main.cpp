@@ -11,6 +11,7 @@
 #include <AMReX_Vector.H>
 
 #include <cmath>
+#include <cstddef>
 #include <numeric>
 #include <type_traits>
 
@@ -455,7 +456,7 @@ int main (int argc, char* argv[])
                 if (std::abs(got - expected) > ParticleReal(1.e-10)) { ++err; }
             };
 #ifdef AMREX_USE_SIMD
-            for (int lane = 0; lane < static_cast<int>(PReal_t::size()); ++lane) {
+            for (std::size_t lane = 0; lane < PReal_t::size(); ++lane) {
                 check(recip[lane], ParticleReal(0.5));
                 check(acc[lane],   ParticleReal(0.5));
             }
