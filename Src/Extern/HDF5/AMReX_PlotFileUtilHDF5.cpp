@@ -388,6 +388,8 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             boxArrays[level] = mf[level]->boxArray();
         }
 
+        // 计算 varname
+        // proc0, all level
         WriteGenericPlotfileHeaderHDF5(fid, nlevels, mf, boxArrays, varnames, geom, time, level_steps, ref_ratio, versionName, levelPrefix, mfPrefix, extra_dirs);
         H5Fclose(fid);
         BL_PROFILE_VAR_STOP(h5dwm);

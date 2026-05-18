@@ -186,13 +186,13 @@ AmrLevel::writePlotFile (const std::string& dir,
         //
         // The first thing we write out is the plotfile type.
         //
-        os << thePlotFileType() << '\n';
+        os << thePlotFileType() << '\n'; // versionName
 
         if (n_data_items == 0) {
             amrex::Error("Must specify at least one valid data item to plot");
         }
 
-        os << n_data_items << '\n';
+        os << n_data_items << '\n'; // varnames.size()
 
         //
         // Names of variables
@@ -258,10 +258,12 @@ AmrLevel::writePlotFile (const std::string& dir,
     static const std::string BaseName = "/Cell";
     char buf[64];
     snprintf(buf, sizeof buf, "Level_%d", level);
+    // Level 目录名称
     std::string sLevel = buf;
     //
     // Now for the full pathname of that directory.
     //
+    // Level 目录路径
     std::string FullPath = dir;
     if ( ! FullPath.empty() && FullPath[FullPath.size()-1] != '/')
     {
@@ -320,7 +322,7 @@ AmrLevel::writePlotFile (const std::string& dir,
     // We combine all of the multifabs -- state, derived, etc -- into one
     // multifab -- plotMF.
     int       cnt   = 0;
-    const int nGrow = 0;
+    const int nGrow = 0; // 只包含 valid data
     MultiFab  plotMF(grids,dmap,n_data_items,nGrow,MFInfo(),Factory());
     MultiFab* this_dat = nullptr;
     //
@@ -356,11 +358,13 @@ AmrLevel::writePlotFile (const std::string& dir,
     //
     // Use the Full pathname when naming the MultiFab.
     //
+    // 实际文件路径前缀 plt*/Level*/Cell
     std::string TheFullPath = FullPath;
     TheFullPath += BaseName;
     if (AsyncOut::UseAsyncOut()) {
         VisMF::AsyncWrite(plotMF,TheFullPath);
     } else {
+        // 实际写入数据
         VisMF::Write(plotMF,TheFullPath,how,true);
     }
 

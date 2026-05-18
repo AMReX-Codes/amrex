@@ -68,3 +68,6 @@ BLProfParser.lex.yy.cpp
 BLProfParser.tab.H
 BLProfParser.tab.cpp
 BLProfParserNC.y
+
+installdir
+compile_commands.json

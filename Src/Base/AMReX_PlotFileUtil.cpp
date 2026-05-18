@@ -225,7 +225,7 @@ WriteMultiLevelPlotfile (const std::string& plotfilename, int nlevels,
         } else {
             const MultiFab* data;
             std::unique_ptr<MultiFab> mf_tmp;
-            if (mf[level]->nGrowVect() != 0) {
+            if (mf[level]->nGrowVect() != 0) { // 去除 ghost cells
                 mf_tmp = std::make_unique<MultiFab>(mf[level]->boxArray(),
                                                     mf[level]->DistributionMap(),
                                                     mf[level]->nComp(), 0, MFInfo(),

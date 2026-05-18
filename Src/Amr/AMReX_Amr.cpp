@@ -997,7 +997,7 @@ Amr::writePlotFileDoit (std::string const& pltfile, bool regular)
         VisMF::IO_Buffer io_buffer(VisMF::GetIOBufferSize());
 
         std::ofstream HeaderFile;
-
+        // 头文件名，缓冲区，流
         HeaderFile.rdbuf()->pubsetbuf(io_buffer.dataPtr(), io_buffer.size());
 
         int old_prec(0);

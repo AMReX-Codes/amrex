@@ -33,18 +33,22 @@ bool Nestsets(const int level,
     const Box &box = fab.box();
 
     bool valid = false;
+    // 本层作为 child, 记录在 parent 中的位置
     if(level > 0)
     {
+      // 与 parent 中的 box 相交部分 (parent 全局坐标)
       // check for parents
       std::vector<std::pair<int,Box> > isects
         = box_arrays[level-1]->intersections(amrex::coarsen(box, ref_ratio[level-1]));
 
-      for(int b = 0; b < isects.size(); ++b)
+      for(int b = 0; b < isects.size(); ++b) // 遍历 parent box
       {
         valid = true;
         // get parent box in terms of this level
+        // 换算为本层下标范围
         Box parent = amrex::refine(isects[b].second, ref_ratio[level-1]);
         Box overlap = box & parent;
+        // parent 全局 domain_id
         int parent_id = isects[b].first + domain_offsets[level-1];
 
         const std::string& w_name = amrex::Concatenate("window_",
@@ -76,9 +80,10 @@ bool Nestsets(const int level,
         }
       }
     }
-
+    // 本层作为 parent, 记录嵌套 child 位置
     if(level < n_levels - 1)
     {
+        // 与 child box 相交部分 (child 全局坐标)
       // check for children
       std::vector<std::pair<int,Box> > isects
         = box_arrays[level+1]->intersections(amrex::refine(box, ref_ratio[level]));
@@ -87,6 +92,7 @@ bool Nestsets(const int level,
       {
         valid = true;
         // get child box in terms of this level
+        // 当前层重叠范围
         Box child = amrex::coarsen(isects[b].second, ref_ratio[level]);
         int child_id = isects[b].first + domain_offsets[level+1];
         Box overlap = box & child;
@@ -159,6 +165,7 @@ void FabToBlueprintTopology(const Geometry& geom,
     float64 level_dz = dims > 2 ? geom.CellSize()[2] : 0.0;
 
     // now extract the FAB details
+    // 可能包含虚单元
     const amrex::Box &fab_box = fab.box();
 
 
@@ -361,13 +368,15 @@ MultiLevelToBlueprint (int n_levels,
 
     // get global domains already present in node
     long domain_offset = (long)res.number_of_children();
+    // 所有进程已经记录的 domain 数量
+    // MultiLevelToBlueprint 可多次调用, 将不同变量的 MultiFab 添加到同一个 Node 中
     ParallelDescriptor::ReduceLongSum(domain_offset);
 
-    Vector<const BoxArray*> box_arrays;
-    Vector<int> box_offsets;
+    Vector<const BoxArray*> box_arrays; // 从下到上 BA 连续排列
+    Vector<int> box_offsets; // 每一层 domain offset
 
     box_offsets.resize(n_levels);
-
+    // 记录 boxArray 指针和 offset
     for(int i = 0; i < n_levels; i++)
     {
       const BoxArray &boxs = mfs[i]->boxArray();
@@ -402,6 +411,9 @@ MultiLevelToBlueprint (int n_levels,
         for(MFIter mfi(mf); mfi.isValid(); ++mfi)
         {
             // domain_id is mfi.index + all patches on lower levels
+            // num_domains 是以下层的 domain 数量(所有进程)
+            // mfi.index() 是本层 domain 全局索引(所有进程)
+            // offset 所有进程已经记录的 domain 数量
             int domain_id = mfi.index() + num_domains + domain_offset;
             const std::string& patch_name = amrex::Concatenate("domain_",
                                                                domain_id,
@@ -417,12 +429,14 @@ MultiLevelToBlueprint (int n_levels,
             const FArrayBox &fab = mf[mfi];
 
             // create coordset and topo
+            // 采用全局下标构建 topo
             FabToBlueprintTopology(geom,fab,patch);
             // add the nesting relationship
             if(n_levels > 1)
             {
                 conduit::Node nestset;
-                bool valid = Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets, nestset);
+                // 层间嵌套信息
+                bool valid = Nestsets(i, n_levels, fab, box_arrays, ref_ratio, box_offsets,         );
                 if(valid)
                 {
                     patch["nestsets/nest"].set(nestset);
