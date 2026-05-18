@@ -372,9 +372,11 @@ void MLCurlCurl::interpolation (int amrlev, int fmglev, MF& fine,
 
 void
 MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
-                   StateMode /*s_mode*/, const MLMGBndryT<MF>* /*bndry*/) const
+                   StateMode s_mode, const MLMGBndryT<MF>* /*bndry*/) const
 {
     applyBC(amrlev, mglev, in, CurlCurlStateType::x);
+
+    bool is_correction = (StateMode::Correction == s_mode);
 
     auto dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
     auto adxinv = dxinv;
@@ -418,7 +420,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_x_edge(i,j,k)) {
-                    xout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        xout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     Real beta = bcx ? bcx(i,j,k) : b;
                     mlcurlcurl_adotx_x_alpha(i,j,k,xout,xin,yin,zin,
@@ -428,7 +432,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_y_edge(i,j,k)) {
-                    yout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        yout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     Real beta = bcy ? bcy(i,j,k) : b;
                     mlcurlcurl_adotx_y_alpha(i,j,k,yout,xin,yin,zin,
@@ -442,7 +448,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_z_edge(i,j,k)) {
-                    zout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        zout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     Real beta = bcz ? bcz(i,j,k) : b;
                     mlcurlcurl_adotx_z_alpha(i,j,k,zout,xin,yin,zin,
@@ -461,7 +469,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_x_edge(i,j,k)) {
-                    xout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        xout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,bcx(i,j,k),adxinv);
                 }
@@ -469,7 +479,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_y_edge(i,j,k)) {
-                    yout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        yout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,bcy(i,j,k),adxinv
 #if (AMREX_SPACEDIM < 3)
@@ -481,7 +493,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_z_edge(i,j,k)) {
-                    zout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        zout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,bcz(i,j,k),adxinv
 #if (AMREX_SPACEDIM < 3)
@@ -495,7 +509,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_x_edge(i,j,k)) {
-                    xout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        xout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     mlcurlcurl_adotx_x(i,j,k,xout,xin,yin,zin,b,adxinv);
                 }
@@ -503,7 +519,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_y_edge(i,j,k)) {
-                    yout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        yout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     mlcurlcurl_adotx_y(i,j,k,yout,xin,yin,zin,b,adxinv
 #if (AMREX_SPACEDIM < 3)
@@ -515,7 +533,9 @@ MLCurlCurl::apply (int amrlev, int mglev, MF& out, MF& in, BCMode /*bc_mode*/,
             [=] AMREX_GPU_DEVICE (int i, int j, int k)
             {
                 if (dinfo.is_dirichlet_z_edge(i,j,k)) {
-                    zout(i,j,k) = Real(0.0);
+                    if (is_correction) {
+                        zout(i,j,k) = Real(0.0);
+                    }
                 } else {
                     mlcurlcurl_adotx_z(i,j,k,zout,xin,yin,zin,b,adxinv
 #if (AMREX_SPACEDIM < 3)
