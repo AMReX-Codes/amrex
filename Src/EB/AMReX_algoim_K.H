@@ -275,7 +275,7 @@ struct ImplicitIntegral
     bool prune () noexcept
     {
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-        static constexpr Real almostone = 1.0-10.*eps;
+        static constexpr Real almostone = Real(1)-Real(10)*eps;
 
         for (int i = 0; i < psiCount; )
         {
@@ -288,7 +288,7 @@ struct ImplicitIntegral
                     mid[dim] = xrange(psi[i].side(dim),dim);
                 }
             }
-            dphi_max *= 0.5*almostone;
+            dphi_max *= 0.5_rt*almostone;
             const Real phi_0 = (*phi)(mid);
             bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
@@ -448,7 +448,7 @@ struct ImplicitIntegral
 
             // Evaluate sign of phi within segment and check for consistency with psi
             bool okay = true;
-            x[e0] = (roots[i] + roots[i+1])*0.5;
+            x[e0] = (roots[i] + roots[i+1])*0.5_rt;
             for (int j = 0; j < psiCount && okay; ++j)
             {
                 for (int dim = 0; dim < N; ++dim) {
