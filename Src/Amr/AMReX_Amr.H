@@ -741,6 +741,7 @@ protected:
     LevelBld*        levelbld;
     bool             abort_on_stream_retry_failure;
     int              stream_max_tries;
+    int              regrid_level0_int;
     int              loadbalance_with_workestimates;
     int              loadbalance_level0_int;
     Real             loadbalance_max_fac;
