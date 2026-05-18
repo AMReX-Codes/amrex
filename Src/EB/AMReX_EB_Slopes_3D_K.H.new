@@ -7,72 +7,6 @@
 #include <AMReX_EBFArrayBox.H>
 #include <AMReX_EBCellFlag.H>
 
-namespace amrex {
-
-template <int N, typename DU>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-GpuArray<Real,AMREX_SPACEDIM>
-calc_slopes_eb (Real A[N][AMREX_SPACEDIM], DU const& f, int nx, int ny, int nz)
-{
-    Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM] = {};
-    Real Atb[AMREX_SPACEDIM] = {};
-
-    int lc = 0;
-    for (int kk = -nz; kk <= nz; ++kk) {
-    for (int jj = -ny; jj <= ny; ++jj) {
-    for (int ii = -nx; ii <= nx; ++ii) {
-        AtA[0][0] += A[lc][0] * A[lc][0];
-        AtA[0][1] += A[lc][0] * A[lc][1];
-        AtA[0][2] += A[lc][0] * A[lc][2];
-        AtA[1][1] += A[lc][1] * A[lc][1];
-        AtA[1][2] += A[lc][1] * A[lc][2];
-        AtA[2][2] += A[lc][2] * A[lc][2];
-        auto du = f(ii,jj,kk);
-        Atb[0] += A[lc][0]*du;
-        Atb[1] += A[lc][1]*du;
-        Atb[2] += A[lc][2]*du;
-        ++lc;
-    }}}
-
-    // Fill in symmetric
-    AtA[1][0] = AtA[0][1];
-    AtA[2][0] = AtA[0][2];
-    AtA[2][1] = AtA[1][2];
-
-    Real detAtA =
-      AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
-      AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
-      AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-
-    Real detAtA_x =
-        Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
-        AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
-        AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
-
-    // Slope at centroid of (i,j,k)
-    Real xs = detAtA_x / detAtA;
-
-    Real detAtA_y =
-        AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
-        Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
-        AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
-
-    // Slope at centroid of (i,j,k)
-    Real ys = detAtA_y / detAtA;
-
-    Real detAtA_z =
-        AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
-        AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
-        Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
-
-    // Slope at centroid of (i,j,k)
-    Real zs = detAtA_z / detAtA;
-
-    return {xs,ys,zs};
-}
-
-}
-
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
 // least squares linear fit to the 26 nearest neighbors, with the function
 // going through the centroid of cell(i,j,k).  This does not assume that the cell centroids,
@@ -85,18 +19,96 @@ amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
                               amrex::Real A[27][AMREX_SPACEDIM],
                               amrex::Array4<amrex::Real const> const& state,
+                              amrex::Real const state_at_center,
                               amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
-    auto f = [&] (int ii, int jj, int kk) {
+    constexpr int dim_a = 27;
+    amrex::Real du[dim_a];
+
+    int ll=0;
+    for(int kk(-1); kk<=1; kk++) {
+    for(int jj(-1); jj<=1; jj++){
+    for(int ii(-1); ii<=1; ii++){
         if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0))
         {
-            return state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
+            du[ll] = state(i+ii,j+jj,k+kk,n) - state_at_center;
         } else {
-            return amrex::Real(0);
+            du[ll] = amrex::Real(0.0);
         }
-    };
-    return amrex::calc_slopes_eb<27>(A, f, 1, 1, 1);
+        ll++;
+    }}}
+
+    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
+    amrex::Real Atb[AMREX_SPACEDIM];
+
+    for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
+        for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+            AtA[jj][ii] = amrex::Real(0.0);
+        }
+        Atb[jj] = amrex::Real(0.0);
+    }
+
+    for(int lc(0); lc < 27; ++lc)
+    {
+        AtA[0][0] += A[lc][0]* A[lc][0];
+        AtA[0][1] += A[lc][0]* A[lc][1];
+        AtA[0][2] += A[lc][0]* A[lc][2];
+        AtA[1][1] += A[lc][1]* A[lc][1];
+        AtA[1][2] += A[lc][1]* A[lc][2];
+        AtA[2][2] += A[lc][2]* A[lc][2];
+
+        Atb[0] += A[lc][0]*du[lc];
+        Atb[1] += A[lc][1]*du[lc];
+        Atb[2] += A[lc][2]*du[lc];
+    }
+
+    // Fill in symmetric
+    AtA[1][0] = AtA[0][1];
+    AtA[2][0] = AtA[0][2];
+    AtA[2][1] = AtA[1][2];
+
+    amrex::Real detAtA =
+      AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
+      AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
+      AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
+
+    amrex::Real detAtA_x =
+        Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
+        AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
+        AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real xs = detAtA_x / detAtA;
+
+    amrex::Real detAtA_y =
+        AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
+        Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
+        AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real ys = detAtA_y / detAtA;
+
+    amrex::Real detAtA_z =
+        AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
+        AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
+        Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real zs = detAtA_z / detAtA;
+
+    return {xs,ys,zs};
 }
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_calc_slopes_eb_given_A (int i, int j, int k, int n,
+                              amrex::Real A[27][AMREX_SPACEDIM],
+                              amrex::Array4<amrex::Real const> const& state,
+                              amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
+{
+    return amrex_calc_slopes_eb_given_A(i,j,k,n,A,state,state(i,j,k,n),flag);
+}
+
 
 // amrex_calc_slopes_eb calculates the slope in each coordinate direction using a
 // least squares linear fit to the 124 nearest neighbors, with the function
@@ -110,24 +122,96 @@ amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
 amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, int nz,
                                     amrex::Real A[125][AMREX_SPACEDIM],
                                     amrex::Array4<amrex::Real const> const& state,
+                                    amrex::Real const state_at_center,
                                     amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
 {
     AMREX_ASSERT(nx == 1 || nx == 2);
     AMREX_ASSERT(ny == 1 || ny == 2);
     AMREX_ASSERT(nz == 1 || nz == 2);
 
-    auto f = [&] (int ii, int jj, int kk) {
-        if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0) &&
-            ii >= -nx && ii <= nx && jj >= -ny && jj <= ny &&
-            kk >= -nz && kk <= nz)
-        {
-            return state(i+ii,j+jj,k+kk,n) - state(i,j,k,n);
-        } else {
-            return amrex::Real(0);
+    amrex::Real AtA[AMREX_SPACEDIM][AMREX_SPACEDIM];
+    amrex::Real Atb[AMREX_SPACEDIM];
+
+    for(int jj(0); jj<AMREX_SPACEDIM; ++jj){
+      for(int ii(0); ii<AMREX_SPACEDIM; ++ii){ // NOLINT(modernize-loop-convert)
+        AtA[jj][ii] = amrex::Real(0.0);
+      }
+      Atb[jj] = amrex::Real(0.0);
+    }
+
+    // for(int lc(0); lc < dim_a; ++lc)
+    for (int kk=-nz; kk<=nz; ++kk) {
+      for (int jj=-ny; jj<=ny; ++jj) {
+        for (int ii=-nx; ii<=nx; ++ii) {
+          int lc     = (kk+nz)*(2*nx+1)*(2*ny+1) + (jj+ny)*(2*nx+1) + ii+nx;
+          AtA[0][0] += A[lc][0]* A[lc][0];
+          AtA[0][1] += A[lc][0]* A[lc][1];
+          AtA[0][2] += A[lc][0]* A[lc][2];
+          AtA[1][1] += A[lc][1]* A[lc][1];
+          AtA[1][2] += A[lc][1]* A[lc][2];
+          AtA[2][2] += A[lc][2]* A[lc][2];
+
+          auto du = amrex::Real(0.0);
+          if (!flag(i+ii,j+jj,k+kk).isCovered() && !(ii==0 && jj==0 && kk==0) &&
+              ii >= -nx && ii <= nx && jj >= -ny && jj <= ny &&
+              kk >= -nz && kk <= nz) {
+            du = state(i+ii,j+jj,k+kk,n) - state_at_center;
+          }
+
+          Atb[0] += A[lc][0]*du;
+          Atb[1] += A[lc][1]*du;
+          Atb[2] += A[lc][2]*du;
         }
-    };
-    return amrex::calc_slopes_eb<125>(A, f, nx, ny, nz);
+      }
+    }
+
+    // Fill in symmetric
+    AtA[1][0] = AtA[0][1];
+    AtA[2][0] = AtA[0][2];
+    AtA[2][1] = AtA[1][2];
+
+    amrex::Real detAtA =
+      AtA[0][0]*(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[2][1]) -
+      AtA[0][1]*(AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
+      AtA[0][2]*(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
+
+    amrex::Real detAtA_x =
+        Atb[0]   *(AtA[1][1]*AtA[2][2] - AtA[1][2]*AtA[1][2]) -
+        AtA[0][1]*(Atb[1] *  AtA[2][2] - AtA[1][2]*Atb[2]   ) +
+        AtA[0][2]*(Atb[1] *  AtA[2][1] - AtA[1][1]*Atb[2]   );
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real xs = detAtA_x / detAtA;
+
+    amrex::Real detAtA_y =
+        AtA[0][0]*(Atb[1]  * AtA[2][2] - AtA[1][2]*Atb[2]   ) -
+        Atb[0] *  (AtA[1][0]*AtA[2][2] - AtA[1][2]*AtA[2][0]) +
+        AtA[0][2]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]);
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real ys = detAtA_y / detAtA;
+
+    amrex::Real detAtA_z =
+        AtA[0][0]*(AtA[1][1]*Atb[2]    - Atb[1]   *AtA[1][2]) -
+        AtA[0][1]*(AtA[1][0]*Atb[2]    - Atb[1]   *AtA[2][0]) +
+        Atb[0]   *(AtA[1][0]*AtA[2][1] - AtA[1][1]*AtA[2][0]);
+
+    // Slope at centroid of (i,j,k)
+    amrex::Real zs = detAtA_z / detAtA;
+
+    return {xs,ys,zs};
 }
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+amrex::GpuArray<amrex::Real,AMREX_SPACEDIM>
+amrex_calc_slopes_eb_given_A_grown (int i, int j, int k, int n, int nx, int ny, int nz,
+                                    amrex::Real A[125][AMREX_SPACEDIM],
+                                    amrex::Array4<amrex::Real const> const& state,
+                                    amrex::Array4<amrex::EBCellFlag const> const& flag) noexcept
+{
+    return amrex_calc_slopes_eb_given_A_grown(i,j,k,n,nx,ny,nz,A,state,state(i,j,k,n),flag);
+}
+
 
 //
 // amrex_overwrite_with_regular_slopes calculates the slope in each coordinate direction
@@ -140,7 +224,7 @@ amrex_overwrite_with_regular_slopes(int i, int j, int k, int n,
                                     amrex::Real& zslope,
                                     amrex::Array4<amrex::Real const> const& state,
                                     amrex::Array4<amrex::Real const> const& vfrac,
-                                    int max_order)
+                                    int max_order) noexcept
 {
     //
     // Here we over-write -- if possible -- with a stencil not using the EB stencil
@@ -251,6 +335,7 @@ amrex_calc_slopes_eb (int i, int j, int k, int n,
     // These slopes use the EB stencil without testing whether it is actually needed
     //
     const auto& slopes = amrex_calc_slopes_eb_given_A (i,j,k,n,A,state,flag);
+
     amrex::Real xslope = slopes[0];
     amrex::Real yslope = slopes[1];
     amrex::Real zslope = slopes[2];
@@ -815,8 +900,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
             for(int jj(0); jj<=1; jj++){
                 for(int ii(-1); ii<=1; ii++){
                     if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                        q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
-                        q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
                     }
                 }
             }
@@ -843,8 +928,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
             for(int jj(-1); jj<=0; jj++){
                 for(int ii(-1); ii<=1; ii++){
                     if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                        q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
-                        q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
                     }
                 }
             }
@@ -871,8 +956,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
             for(int jj(-1); jj<=1; jj++){
                 for(int ii(0); ii<=1; ii++){
                     if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                        q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
-                        q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
                     }
                 }
             }
@@ -899,8 +984,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
             for(int jj(-1); jj<=1; jj++){
                 for(int ii(-1); ii<=0; ii++){
                     if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                        q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
-                        q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
                     }
                 }
             }
@@ -926,8 +1011,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
             for(int jj(-1); jj<=1; jj++){
                 for(int ii(-1); ii<=1; ii++){
                     if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                        q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
-                        q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
                     }
                 }
             }
@@ -953,8 +1038,8 @@ amrex_calc_alpha_limiter(int i, int j, int k, int n,
             for(int jj(-1); jj<=1; jj++){
                 for(int ii(-1); ii<=1; ii++){
                     if (flag(i,j,k).isConnected(ii,jj,kk) && !(ii==0 && jj==0 && kk==0)) {
-                        q_max = std::max(state(i+ii,j+jj,k+kk,n), q_max);
-                        q_min = std::min(state(i+ii,j+jj,k+kk,n), q_min);
+                        if (state(i+ii,j+jj,k+kk,n) > q_max) { q_max = state(i+ii,j+jj,k+kk,n); }
+                        if (state(i+ii,j+jj,k+kk,n) < q_min) { q_min = state(i+ii,j+jj,k+kk,n); }
                     }
                 }
             }
@@ -988,7 +1073,6 @@ amrex_lim_slopes_eb (int i, int j, int k, int n,
                      amrex::Array4<amrex::EBCellFlag const> const& flag,
                      int max_order) noexcept
 {
-    using namespace amrex::literals;
 
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
@@ -999,16 +1083,16 @@ amrex_lim_slopes_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i-1,j,k) == 1.0_rt && vfrac(i+1,j,k) == 1.0_rt) {
-        alpha_lim[0] = 1.0_rt;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.) {
+        alpha_lim[0] = 1.0;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j-1,k) == 1.0_rt && vfrac(i,j+1,k) == 1.0_rt) {
-        alpha_lim[1] = 1.0_rt;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.) {
+        alpha_lim[1] = 1.0;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j,k-1) == 1.0_rt && vfrac(i,j,k+1) == 1.0_rt) {
-        alpha_lim[2] = 1.0_rt;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.) {
+        alpha_lim[2] = 1.0;
     }
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};
@@ -1032,7 +1116,6 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
                             int domhi_x, int domhi_y, int domhi_z,
                             int max_order) noexcept
 {
-    using namespace amrex::literals;
 
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
@@ -1044,16 +1127,16 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_extdir_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i-1,j,k) == 1.0_rt && vfrac(i+1,j,k) == 1.0_rt) {
-        alpha_lim[0] = 1.0_rt;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.) {
+        alpha_lim[0] = 1.0;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j-1,k) == 1.0_rt && vfrac(i,j+1,k) == 1.0_rt) {
-        alpha_lim[1] = 1.0_rt;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.) {
+        alpha_lim[1] = 1.0;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j,k-1) == 1.0_rt && vfrac(i,j,k+1) == 1.0_rt) {
-        alpha_lim[2] = 1.0_rt;
+    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.) {
+        alpha_lim[2] = 1.0;
     }
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};
