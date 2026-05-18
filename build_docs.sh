@@ -12,6 +12,11 @@ if grep -q "warning:" doxygen.out; then
 fi
 cd ../..
 
+# remove LaTeX temp files left by doxygen formula rendering
+cd Docs/Doxygen/html
+rm -f *.repository *.aux *.dvi *.log *.tex *.ps *.epsi
+cd ../../..
+
 # copy doxygen to target location
 mkdir build
 cd build
