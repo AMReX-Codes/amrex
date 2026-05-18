@@ -541,7 +541,7 @@ Amr::InitAmr ()
 #undef STRIP
     }
 
-    regrid_level0_int = 1;
+    regrid_level0_int = -1;
     pp.query("regrid_level0_int", regrid_level0_int);
 
     loadbalance_with_workestimates = 0;
@@ -1986,16 +1986,13 @@ Amr::timeStep (int  level,
     // Update so that by default, we don't force a post-step regrid.
     amr_level[level]->setPostStepRegrid(0);
 
-    if(max_level==0 && force_regrid_level_zero){
-        regrid_level_0_on_restart();
-    }
-
     //
     // Allow regridding of level 0 calculation on restart.
     //
-    if (max_level == 0 && regrid_on_restart)
+    if (max_level == 0 && (regrid_on_restart || force_regrid_level_zero))
     {
         regrid_level_0_on_restart();
+        level_count[0] = 0;
     }
     else
     {
@@ -2045,7 +2042,7 @@ Amr::timeStep (int  level,
             }
         }
 
-        if (max_level == 0 && regrid_level0_int > 0 && !force_regrid_level_zero)
+        if (max_level == 0 && regrid_level0_int > 0)
         {
             if (level_count[0] >= regrid_level0_int)
             {
