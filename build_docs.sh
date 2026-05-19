@@ -27,6 +27,9 @@ cd ..
 # Build sphinx
 cd Docs/sphinx_documentation
 echo "Build the Sphinx documentation for Amrex."
+# Stabilize PDF metadata (CreationDate, ModDate, /ID) so identical
+# content produces byte-identical output across repeated builds.
+export SOURCE_DATE_EPOCH=441763200 # 1984-01-01 UTC
 make PYTHON="python3" latexpdf
 mv build/latex/amrex.pdf source/
 make clean
