@@ -25,8 +25,7 @@ inline namespace disabled {
     // amrex::disabled, unqualified abs functions are disabled with a compile time error such as,
     // call of overload abs(int&) is ambiguous, or a link time error such as, undefined reference to
     // `amrex::disabled::abs(double)'.  To fix it, one can use `std::abs` or `amrex::Math::abs`.
-    // The latter works in both host and device functions, whereas `std::abs` does not currently
-    // work on device with HIP and SYCL.
+    // We have amrex::Math::abs, because std::abs did not work with HIP and SYCL in the past.
     AMREX_GPU_HOST_DEVICE double abs (double);
     AMREX_GPU_HOST_DEVICE float abs (float);
     AMREX_GPU_HOST_DEVICE long double abs (long double);
