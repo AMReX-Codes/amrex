@@ -27,7 +27,37 @@ jobs:
 
       - name: Install and Build
         run: |
-          ./build_docs.sh
+          cd Docs && ./build_docs.sh
+
+      - name: Prepare deployment
+        run: |
+          mkdir -p build/docs_html/doxygen
+          mkdir -p build/docs_xml/doxygen
+
+          # Doxygen HTML
+          cp -rp Docs/Doxygen/html/* build/docs_html/doxygen/
+
+          # Remove LaTeX temp files left by doxygen formula rendering
+          rm -f build/docs_html/doxygen/*.repository build/docs_html/doxygen/*.aux \
+                build/docs_html/doxygen/*.dvi build/docs_html/doxygen/*.log \
+                build/docs_html/doxygen/*.tex build/docs_html/doxygen/*.ps \
+                build/docs_html/doxygen/*.epsi
+
+          # Doxygen tag file for interlinking
+          cp Docs/Doxygen/amrex-doxygen-web.tag.xml build/docs_xml/doxygen/
+
+          # Sphinx HTML (includes amrex.pdf in _downloads/)
+          cp -rp Docs/sphinx_documentation/build/html/* build/docs_html/
+
+          # On push, only deploy a new PDF if sphinx sources changed.
+          # github.event.before covers all commits in the push.
+          # On PR builds deploy doesn't run, so we skip the check.
+          if [ "${{ github.event_name }}" = "push" ] \
+             && ! git diff --name-only ${{ github.event.before }}..HEAD 2>/dev/null \
+                   | grep -q "^Docs/sphinx_documentation/"; then
+            echo "No sphinx doc changes — removing PDF to keep published version"
+            rm -f build/docs_html/_downloads/*/amrex.pdf
+          fi
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
