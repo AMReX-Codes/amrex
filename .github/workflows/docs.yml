@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: ${{ github.event_name != 'push' && 1 || 0 }}
 
       - name: Dependencies
         run: |
@@ -54,20 +55,14 @@ jobs:
           # On PR builds deploy doesn't run, so we skip the check.
           if [ "${{ github.event_name }}" = "push" ]; then
             LAST_DEPLOYED=$(curl -sSf "https://raw.githubusercontent.com/AMReX-Codes/AMReX-Codes.github.io/main/amrex/.deploy-sha" 2>/dev/null || echo "")
-            if [ -n "$LAST_DEPLOYED" ]; then
-              git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null ||
-                git fetch --depth=1 origin "${LAST_DEPLOYED}" 2>/dev/null || true
-              if git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null; then
-                if ! git diff --name-only ${LAST_DEPLOYED}..HEAD \
-                       | grep -q "^Docs/sphinx_documentation/"; then
-                  echo "No sphinx doc changes since ${LAST_DEPLOYED} — removing PDF to keep published version"
-                  rm -f build/docs_html/_downloads/*/amrex.pdf
-                fi
-              else
-                echo "Commit ${LAST_DEPLOYED} not reachable — keeping PDF"
+            if [ -n "$LAST_DEPLOYED" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null; then
+              if ! git diff --name-only ${LAST_DEPLOYED}..HEAD \
+                     | grep -q "^Docs/sphinx_documentation/"; then
+                echo "No sphinx doc changes since ${LAST_DEPLOYED} — removing PDF to keep published version"
+                rm -f build/docs_html/_downloads/*/amrex.pdf
               fi
             else
-              echo "No previous deploy SHA on website — keeping PDF"
+              echo "No previous deploy SHA reachable — keeping PDF"
             fi
           fi
 
