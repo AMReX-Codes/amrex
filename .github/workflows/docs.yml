@@ -49,15 +49,30 @@ jobs:
           # Sphinx HTML (includes amrex.pdf in _downloads/)
           cp -rp Docs/sphinx_documentation/build/html/* build/docs_html/
 
-          # On push, only deploy a new PDF if sphinx sources changed.
-          # github.event.before covers all commits in the push.
+          # On push, only deploy a new PDF if sphinx sources changed
+          # since the last successful deployment.
           # On PR builds deploy doesn't run, so we skip the check.
-          if [ "${{ github.event_name }}" = "push" ] \
-             && ! git diff --name-only ${{ github.event.before }}..HEAD 2>/dev/null \
-                   | grep -q "^Docs/sphinx_documentation/"; then
-            echo "No sphinx doc changes — removing PDF to keep published version"
-            rm -f build/docs_html/_downloads/*/amrex.pdf
+          if [ "${{ github.event_name }}" = "push" ]; then
+            LAST_DEPLOYED=$(curl -sSf "https://raw.githubusercontent.com/AMReX-Codes/AMReX-Codes.github.io/main/amrex/.deploy-sha" 2>/dev/null || echo "")
+            if [ -n "$LAST_DEPLOYED" ]; then
+              git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null ||
+                git fetch --depth=1 origin "${LAST_DEPLOYED}" 2>/dev/null || true
+              if git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null; then
+                if ! git diff --name-only ${LAST_DEPLOYED}..HEAD \
+                       | grep -q "^Docs/sphinx_documentation/"; then
+                  echo "No sphinx doc changes since ${LAST_DEPLOYED} — removing PDF to keep published version"
+                  rm -f build/docs_html/_downloads/*/amrex.pdf
+                fi
+              else
+                echo "Commit ${LAST_DEPLOYED} not reachable — keeping PDF"
+              fi
+            else
+              echo "No previous deploy SHA on website — keeping PDF"
+            fi
           fi
+
+          # Record the deployed SHA so the next build can diff correctly
+          echo "$(git rev-parse --short HEAD)" > build/.deploy-sha
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
