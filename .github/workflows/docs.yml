@@ -18,6 +18,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          fetch-depth: ${{ github.event_name != 'push' && 1 || 0 }}
 
       - name: Dependencies
         run: |
@@ -27,7 +28,46 @@ jobs:
 
       - name: Install and Build
         run: |
-          ./build_docs.sh
+          cd Docs && ./build_docs.sh
+
+      - name: Prepare deployment
+        run: |
+          mkdir -p build/docs_html/doxygen
+          mkdir -p build/docs_xml/doxygen
+
+          # Doxygen HTML
+          cp -rp Docs/Doxygen/html/* build/docs_html/doxygen/
+
+          # Remove LaTeX temp files left by doxygen formula rendering
+          rm -f build/docs_html/doxygen/*.repository build/docs_html/doxygen/*.aux \
+                build/docs_html/doxygen/*.dvi build/docs_html/doxygen/*.log \
+                build/docs_html/doxygen/*.tex build/docs_html/doxygen/*.ps \
+                build/docs_html/doxygen/*.epsi
+
+          # Doxygen tag file for interlinking
+          cp Docs/Doxygen/amrex-doxygen-web.tag.xml build/docs_xml/doxygen/
+
+          # Sphinx HTML (includes amrex.pdf in _downloads/)
+          cp -rp Docs/sphinx_documentation/build/html/* build/docs_html/
+
+          # On push, only deploy a new PDF if sphinx sources changed
+          # since the last successful deployment.
+          # On PR builds deploy doesn't run, so we skip the check.
+          if [ "${{ github.event_name }}" = "push" ]; then
+            LAST_DEPLOYED=$(curl -sSf "https://raw.githubusercontent.com/AMReX-Codes/AMReX-Codes.github.io/main/amrex/.deploy-sha" 2>/dev/null || echo "")
+            if [ -n "$LAST_DEPLOYED" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null; then
+              if ! git diff --name-only ${LAST_DEPLOYED}..HEAD \
+                     | grep -q "^Docs/sphinx_documentation/"; then
+                echo "No sphinx doc changes since ${LAST_DEPLOYED} — removing PDF to keep published version"
+                rm -f build/docs_html/_downloads/*/amrex.pdf
+              fi
+            else
+              echo "No previous deploy SHA reachable — keeping PDF"
+            fi
+          fi
+
+          # Record the deployed SHA so the next build can diff correctly
+          echo "$(git rev-parse --short HEAD)" > build/.deploy-sha
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'

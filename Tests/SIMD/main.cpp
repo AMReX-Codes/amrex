@@ -11,6 +11,7 @@
 #include <AMReX_Vector.H>
 
 #include <cmath>
+#include <cstddef>
 #include <numeric>
 #include <type_traits>
 
@@ -422,6 +423,50 @@ int main (int argc, char* argv[])
             }
             nerrors += err;
             Print() << "Position-dependent load_1d+store_1d: "
+                    << (err == 0 ? "PASSED" : "FAILED") << "\n";
+        }
+
+        // ================================================================
+        // Test 14: any_of, where, select — portable single-source
+        //   Uses SIMDParticleReal<>, which is a SIMD vector when AMREX_USE_SIMD=ON
+        //   and a plain scalar when OFF.  The same code path exercises
+        //   both the real SIMD and the scalar fallback implementations.
+        // ================================================================
+        {
+            using PReal_t = simd::SIMDParticleReal<>;
+
+            // safe reciprocal: 1/b where b != 0, else 0
+            auto b = PReal_t(2);
+            auto mask = b != PReal_t(0);
+            auto safe_b = simd::stdx::select(mask, b, PReal_t(1));
+            auto recip  = simd::stdx::select(mask,
+                              PReal_t(1) / safe_b,
+                              PReal_t(0));
+
+            // any_of: at least one lane should be nonzero
+            AMREX_ALWAYS_ASSERT(simd::stdx::any_of(mask));
+
+            // where: masked assignment
+            auto acc = PReal_t(0);
+            simd::stdx::where(mask, acc) = recip;
+
+            // verify: b=2 everywhere → recip=0.5, acc=0.5
+            int err = 0;
+            auto check = [&] (ParticleReal got, ParticleReal expected) {
+                if (std::abs(got - expected) > ParticleReal(1.e-10)) { ++err; }
+            };
+#ifdef AMREX_USE_SIMD
+            for (std::size_t lane = 0; lane < PReal_t::size(); ++lane) {
+                check(recip[lane], ParticleReal(0.5));
+                check(acc[lane],   ParticleReal(0.5));
+            }
+#else
+            check(recip, ParticleReal(0.5));
+            check(acc,   ParticleReal(0.5));
+#endif
+
+            nerrors += err;
+            Print() << "any_of + where + select (portable): "
                     << (err == 0 ? "PASSED" : "FAILED") << "\n";
         }
 

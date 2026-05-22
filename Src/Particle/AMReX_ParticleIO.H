@@ -794,7 +794,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             phdr_name = amrex::Concatenate(phdr_name, lev, 1);
             phdr_name += "/Particle_H";
 
-            if (! amrex::FileExists(phdr_name)) { continue; }
+            if (! amrex::FileExists(phdr_name)) {
+                // No particles were checkpointed at this level. Dual-grid
+                // restart will use a single-box domain BoxArray as the
+                // temporary layout for this level, so detect that mismatch
+                // here as well.
+                particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
+                if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) {
+                    dual_grid = true;
+                }
+                continue;
+            }
 
             Vector<char> phdr_chars;
             ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
