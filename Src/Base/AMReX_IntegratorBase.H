@@ -90,8 +90,7 @@ struct IntegratorOps<T>
         using TParIter = amrex::ParIter<T::NStructReal, T::NStructInt, T::NArrayReal, T::NArrayInt>;
         using ParticleType = amrex::Particle<T::NStructReal, T::NStructInt>;
 
-        amrex::ReduceOps<amrex::ReduceOpMax> reduce_op;
-        amrex::ReduceData<amrex::Real> reduce_data(reduce_op);
+        amrex::Real result = amrex::Real(0.0);
 
         int lev = 0;
         TParIter pt_err(error, lev);
@@ -100,23 +99,23 @@ struct IntegratorOps<T>
 
         for (; pt_err.isValid(); ++pt_err, ++pt_old, ++pt_new) {
             const int np = pt_err.numParticles();
+            if (np == 0) continue;
             const ParticleType* p_err = &(pt_err.GetArrayOfStructs()[0]);
             const ParticleType* p_old = &(pt_old.GetArrayOfStructs()[0]);
             const ParticleType* p_new = &(pt_new.GetArrayOfStructs()[0]);
-            reduce_op.eval(np, reduce_data,
-                [=] AMREX_GPU_DEVICE (int i) -> amrex::GpuTuple<amrex::Real> {
+            amrex::Real tile_max = amrex::Reduce::Max<amrex::Real>(np,
+                [=] AMREX_GPU_DEVICE (int i) -> amrex::Real {
                     amrex::Real val = 0.0;
                     for (int c = 0; c < T::NStructReal; ++c) {
                         amrex::Real scale = abs_tol + rel_tol * amrex::max(std::abs(p_old[i].rdata(c)),
                                                                             std::abs(p_new[i].rdata(c)));
                         val = amrex::max(val, std::abs(p_err[i].rdata(c)) / scale);
                     }
-                    return {val};
-                });
+                    return val;
+                },
+                amrex::Real(0.0));
+            result = amrex::max(result, tile_max);
         }
-
-        auto rv = reduce_data.value();
-        amrex::Real result = amrex::get<0>(rv);
         amrex::ParallelDescriptor::ReduceRealMax(result);
         return result;
     }
@@ -287,6 +286,14 @@ protected:
     std::function<void (T&, amrex::Real)> post_fast_step_action;
 
     /**
+     * \brief Optional user-supplied error norm. If set, the adaptive
+     * step-size controller calls this instead of IntegratorOps<T>::ScaledMaxNorm.
+     * Arguments are (error_state, S_old, S_new, abs_tol, rel_tol) and the
+     * return value is the scaled error used to decide step acceptance.
+     */
+    std::function<amrex::Real (T&, T&, T&, amrex::Real, amrex::Real)> custom_error_norm;
+
+    /**
      * \brief Flag to enable/disable adaptive time stepping in single rate
      * methods or at the slow time scale in multirate methods (bool)
      */
@@ -346,6 +353,12 @@ protected:
      */
     amrex::Real fast_abs_tol = 1.0e-9;
 
+    /**
+     * \brief Most recent scaled error computed by the adaptive controller.
+     * Updated each time advance() runs the error norm; otherwise zero.
+     */
+    amrex::Real last_scaled_error = 0.0;
+
 
 public:
     IntegratorBase () {
@@ -395,6 +408,11 @@ public:
         post_fast_step_action = A;
     }
 
+    void set_error_norm (std::function<amrex::Real (T&, T&, T&, amrex::Real, amrex::Real)> F)
+    {
+        custom_error_norm = F;
+    }
+
     amrex::Real get_time_step ()
     {
         return time_step;
@@ -403,6 +421,11 @@ public:
     amrex::Real get_previous_time_step ()
     {
         return previous_time_step;
+    }
+
+    amrex::Real get_scaled_error ()
+    {
+        return last_scaled_error;
     }
 
     void set_time_step (amrex::Real dt)

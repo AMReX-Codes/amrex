@@ -298,11 +298,15 @@ public:
             // S_error = S_low - S_high (pointwise error estimate)
             IntegratorOps<T>::Saxpy(*S_error_vec[0], -1.0, S_new);
 
-            const amrex::Real scaled_err = IntegratorOps<T>::ScaledMaxNorm(*S_error_vec[0], S_old, S_new,
-                                                                            BaseT::abs_tol, BaseT::rel_tol);
+            const amrex::Real scaled_err = BaseT::custom_error_norm
+                ? BaseT::custom_error_norm(*S_error_vec[0], S_old, S_new,
+                                           BaseT::abs_tol, BaseT::rel_tol)
+                : IntegratorOps<T>::ScaledMaxNorm(*S_error_vec[0], S_old, S_new,
+                                                  BaseT::abs_tol, BaseT::rel_tol);
+            BaseT::last_scaled_error = scaled_err;
 
             // Step-size controller: exponent is 1/(error_order+1) per standard embedded RK theory
-            amrex::Real factor = (scaled_err > 0.0) ? safety_factor * std::pow(1.0 / scaled_err, 1.0 / (error_order + 1)) : max_factor;
+            amrex::Real factor = safety_factor * std::pow(1.0 / scaled_err, 1.0 / (error_order + 1));
             factor = amrex::min(amrex::max(factor, min_factor), max_factor);
             dt_next = dt * factor;
 
