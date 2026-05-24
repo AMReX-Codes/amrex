@@ -18,6 +18,8 @@
   massively parallel, block-structured adaptive mesh refinement (AMR) 
   applications. AMReX is freely available on Github at 
   <a href="https://github.com/AMReX-Codes/amrex">AMReX-Codes/amrex</a>.
+  The <a href="https://amrex-codes.github.io/">AMReX project website</a>
+  provides additional project information.
 
   AMReX is a project of the <a href="https://hpsf.io/">High Performance
   Software Foundation (HPSF)</a>, which is part of the nonprofit <a
@@ -157,4 +159,3 @@
   \par
 
 */
-
