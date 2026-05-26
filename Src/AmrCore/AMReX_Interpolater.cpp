@@ -1389,17 +1389,14 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }
 
-// JBB metric for RZ
+    Real drf = cell_size[1];
+    bool is_rz = fine_geom.IsRZ();
+    Real rlo = fine_geom.ProbLo[0];
 
-    amrex::Real drf = cell_size[1];
-    amrex::Real rcen;
-
-
-
-
-
-//  JBB 1.  don't know what mark does here
-//  JBB 2.  build and factor matrix here or build and factor it earlier somehow
+#if (AMREX_SPACEDIM == 2)
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio == 2 || !is_rz,
+                                     "FaceDivFree in 2d rz only supports refinement ratio of 2");
+#endif
 
     // Fuse the launches, 1 for each dimension, into a single launch.
     AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
@@ -1416,8 +1413,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
               },
               amrex::convert(c_fine_region,types[1]), bx1,
               {
-// JBB need special interpolation for z velocity in RZ coordinates
-                  if(IS_RZ != 0){
+                  if(!is_rz) {
                      AMREX_LOOP_3D(bx1, i, j, k,
                      {
                          for (int n=0; n<ncomp; ++n)
@@ -1429,8 +1425,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
                   } else {
                      AMREX_LOOP_3D(bx1, i, j, k,
                      {
-//  JBB   rcen is cetner of coarse cell
-                         rcen = geom.ProbLo[0] + (i*ratio+1)*drf;
+                         Real rcen = rlo + Real(i*ratio+1)*drf; // center of coarse cell
                          for (int n=0; n<ncomp; ++n)
                          {
                              amrex::facediv_face_interp_RZ<Real> (i,j,k,n, 1,
@@ -1452,7 +1447,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
               });
 
     if (ratio == 2) {
-        if(IS_RZ != 0){
+        if(!is_rz) {
           AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
           {
               amrex::facediv_int<Real>(i, j, k, n, finearr, ratio, cell_size);
@@ -1460,7 +1455,7 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
         } else {
           AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
           {
-              rcen = geom.ProbLo[0] + (i*ratio+1)*drf;
+              rcen = rlo + (i*ratio+1)*drf;
               amrex::facediv_int_RZ<Real>(i, j, k, n, finearr, ratio, cell_size, rcen);
           });
         }

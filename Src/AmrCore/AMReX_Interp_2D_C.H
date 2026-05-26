@@ -285,7 +285,7 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
         int irow = i + j*ratio[0];
         rhs(irow) =
               (redge(i+1)*(fi+i+1, fj+j,   0, nf) - redge(i)* fine[0](fi+i,   fj+j,   0, nf))*drinv / rfinecen(i)
-             + (fine[1](fi+i,   fj+j+1, 0, nf) - fine[1](fi+i,   fj+j,   0, nf))*dzinv 
+             + (fine[1](fi+i,   fj+j+1, 0, nf) - fine[1](fi+i,   fj+j,   0, nf))*dzinv
           - target_div;
     }}
 
@@ -463,9 +463,7 @@ facediv_int_gen (int ci, int cj, int /*ck*/, int nf,
         vminus += fine[1](fi+i, fj,          0, nf);
     }
 
-// jbb  i think this was wron ebfore for non zero divergence
-
-    Real target_div =  (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) ;
+    Real target_div = (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy);
 
     Array1D<Real,0,N-1> rhs;
     Array1D<Real,0,N-1> phi;
