@@ -1389,6 +1389,13 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }
 
+// JBB metric for RZ
+
+    amrex::Real drf = cell_size[1];
+    amrex::Real rcen;
+
+
+
 
 
 //  JBB 1.  don't know what mark does here
@@ -1409,14 +1416,28 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
               },
               amrex::convert(c_fine_region,types[1]), bx1,
               {
-                  AMREX_LOOP_3D(bx1, i, j, k,
-                  {
-                      for (int n=0; n<ncomp; ++n)
-                      {
-                          amrex::facediv_face_interp<Real> (i,j,k,n,1,
-                                                            crsearr[1], finearr[1], maskarr[1], ratio);
-                      }
-                  });
+// JBB need special interpolation for z velocity in RZ coordinates
+                  if(IS_RZ != 0){
+                     AMREX_LOOP_3D(bx1, i, j, k,
+                     {
+                         for (int n=0; n<ncomp; ++n)
+                         {
+                             amrex::facediv_face_interp<Real> (i,j,k,n, 1,
+                                                               crsearr[1], finearr[1], maskarr[1], ratio);
+                         }
+                     });
+                  } else {
+                     AMREX_LOOP_3D(bx1, i, j, k,
+                     {
+//  JBB   rcen is cetner of coarse cell
+                         rcen = geom.ProbLo[0] + (i*ratio+1)*drf;
+                         for (int n=0; n<ncomp; ++n)
+                         {
+                             amrex::facediv_face_interp_RZ<Real> (i,j,k,n, 1,
+                                                      crsearr[1], finearr[1], maskarr[1], ratio, rcen, drf);
+                         }
+                     });
+                  }
               },
               amrex::convert(c_fine_region,types[2]), bx2,
               {
@@ -1431,10 +1452,18 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
               });
 
     if (ratio == 2) {
-        AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
-        {
-            amrex::facediv_int<Real>(i, j, k, n, finearr, ratio, cell_size);
-        });
+        if(IS_RZ != 0){
+          AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+          {
+              amrex::facediv_int<Real>(i, j, k, n, finearr, ratio, cell_size);
+          });
+        } else {
+          AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
+          {
+              rcen = geom.ProbLo[0] + (i*ratio+1)*drf;
+              amrex::facediv_int_RZ<Real>(i, j, k, n, finearr, ratio, cell_size, rcen);
+          });
+        }
     } else {
         auto& lusolver = m_lusolver[OpenMP::get_thread_num()][fine_geom.Domain()];
         void* psolver_h = nullptr;
