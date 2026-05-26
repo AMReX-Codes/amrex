@@ -176,8 +176,8 @@ facediv_face_interp_RZ (int ci, int cj, int /*ck*/,
             const Real rm = rcen - drf*ratio[0];
             const Real rp = rcen + drf*ratio[0];
 
-            fine(fi,   fj, 0, n) = (rcen*crse(ci, cj, 0, n) + (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/8.)/(rcen-drf/2);
-            fine(fi+1, fj, 0, n) = (rcen*crse(ci, cj, 0, n) - (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/8.)/(rcen+drf/2);
+            fine(fi,   fj, 0, n) = (rcen*crse(ci, cj, 0, n) + (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/Real(8.))/(rcen-drf*Real(0.5));
+            fine(fi+1, fj, 0, n) = (rcen*crse(ci, cj, 0, n) - (rm*crse(ci-1, cj, 0, n) - rp *crse(ci+1, cj, 0, n))/Real(8.))/(rcen+drf*Real(0.5));
 
             break;
         }
@@ -276,7 +276,7 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     vplus  /= rcen;
     vminus /= rcen;
 
-    Real target_div = 0.5*( (redge[2]*uplus- redge[0]*uminus)/(2.*dr*rcen) + (vplus-vminus)/(2.*dz) );
+    Real target_div = Real(0.5)*( (redge[2]*uplus- redge[0]*uminus)/(Real(2.)*dr*rcen) + (vplus-vminus)/(Real(2.)*dz) );
 
     Array1D<Real,0,3> rhs;
     Array1D<Real,0,3> phi;

@@ -34,9 +34,9 @@ void setupMF(MultiFab& mf, const int type = 0, const BoxArray& exclude = BoxArra
                 if (type == 0)
                     { arr(i,j,k) = amrex::Random(eng)*10; }
                 else if (type == 1)
-                    { arr(i,j,k) = double(i)+double(j)+double(k); }
+                    { arr(i,j,k) = Real(i)+Real(j)+Real(k); }
                 else if (type == 2)
-                    { arr(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k); }
+                    { arr(i,j,k) = Real(i)*Real(i)+Real(j)*Real(j)+Real(k)*Real(k); }
             });
         }
     }
@@ -244,24 +244,24 @@ void main_main ()
 
         RealBox realbox_c    ({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
         RealBox realbox_f_all({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
-        RealBox realbox_f({AMREX_D_DECL( double(fine_lo[0])   / double(crse_hi[0]+1),
-                                         double(fine_lo[1])   / double(crse_hi[1]+1),
-                                         double(fine_lo[2])   / double(crse_hi[2]+1) )},
-                          {AMREX_D_DECL( double(fine_hi[0]+1) / double(crse_hi[0]+1),
-                                         double(fine_hi[1]+1) / double(crse_hi[1]+1),
-                                         double(fine_hi[2]+1) / double(crse_hi[2]+1) )} );
-        RealBox realbox_fg({AMREX_D_DECL( double(fine_lo[0]-ghost_f[0])   / double(crse_hi[0]+1),
-                                          double(fine_lo[1]-ghost_f[1])   / double(crse_hi[1]+1),
-                                          double(fine_lo[2]-ghost_f[2])   / double(crse_hi[2]+1) )},
-                           {AMREX_D_DECL( double(fine_hi[0]+ghost_f[0]+1) / double(crse_hi[0]+1),
-                                          double(fine_hi[1]+ghost_f[1]+1) / double(crse_hi[1]+1),
-                                          double(fine_hi[2]+ghost_f[1]+1) / double(crse_hi[2]+1) )} );
-        RealBox realbox_fp({AMREX_D_DECL( double(fine_lo_partial[0])   / double (crse_hi[0]+1),
-                                          double(fine_lo_partial[1])   / double (crse_hi[1]+1),
-                                          double(fine_lo_partial[2])   / double (crse_hi[2]+1) )},
-                           {AMREX_D_DECL( double(fine_hi_partial[0]+1) / double (crse_hi[0]+1),
-                                          double(fine_hi_partial[1]+1) / double (crse_hi[1]+1),
-                                          double(fine_hi_partial[2]+1) / double (crse_hi[2]+1) )} );
+        RealBox realbox_f({AMREX_D_DECL( Real(fine_lo[0])   / Real(crse_hi[0]+1),
+                                         Real(fine_lo[1])   / Real(crse_hi[1]+1),
+                                         Real(fine_lo[2])   / Real(crse_hi[2]+1) )},
+                          {AMREX_D_DECL( Real(fine_hi[0]+1) / Real(crse_hi[0]+1),
+                                         Real(fine_hi[1]+1) / Real(crse_hi[1]+1),
+                                         Real(fine_hi[2]+1) / Real(crse_hi[2]+1) )} );
+        RealBox realbox_fg({AMREX_D_DECL( Real(fine_lo[0]-ghost_f[0])   / Real(crse_hi[0]+1),
+                                          Real(fine_lo[1]-ghost_f[1])   / Real(crse_hi[1]+1),
+                                          Real(fine_lo[2]-ghost_f[2])   / Real(crse_hi[2]+1) )},
+                           {AMREX_D_DECL( Real(fine_hi[0]+ghost_f[0]+1) / Real(crse_hi[0]+1),
+                                          Real(fine_hi[1]+ghost_f[1]+1) / Real(crse_hi[1]+1),
+                                          Real(fine_hi[2]+ghost_f[1]+1) / Real(crse_hi[2]+1) )} );
+        RealBox realbox_fp({AMREX_D_DECL( Real(fine_lo_partial[0])   / Real (crse_hi[0]+1),
+                                          Real(fine_lo_partial[1])   / Real (crse_hi[1]+1),
+                                          Real(fine_lo_partial[2])   / Real (crse_hi[2]+1) )},
+                           {AMREX_D_DECL( Real(fine_hi_partial[0]+1) / Real (crse_hi[0]+1),
+                                          Real(fine_hi_partial[1]+1) / Real (crse_hi[1]+1),
+                                          Real(fine_hi_partial[2]+1) / Real (crse_hi[2]+1) )} );
 
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
 
@@ -365,7 +365,7 @@ void main_main ()
 
     amrex::Print() << " Starting InterpFromCoarse. " << '\n';
     {
-        double time = 1;
+        Real time = 1;
         Vector<Real> time_v;
         time_v.push_back(time);
 
