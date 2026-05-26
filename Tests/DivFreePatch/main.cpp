@@ -135,7 +135,11 @@ void main_main ()
     int f_offset = 4;
     int nghost_c = 1;
     int nghost_f = 2;
+#ifdef AMREX_USE_FLOAT
+    Real div_tol = 1.e-2f;
+#else
     Real div_tol = 1.0e-9;
+#endif
     bool test_pass = true;
 
     amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
