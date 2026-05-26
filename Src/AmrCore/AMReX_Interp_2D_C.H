@@ -234,21 +234,22 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     const Real dz = cellSize[1];
     const Real drinv = Real(1.)/dr;
     const Real dzinv = Real(1.)/dz;
+    constexpr int N = 4;
 
     amrex::GpuArray<amrex::Real, 3> redge;
     amrex::GpuArray<amrex::Real, 2> rfinecen;
 
-    redge(0) = rcen - dr;
-    redge(1) = rcen ;
-    redge(2) = rcen + dr;
-    rfinecen(0) = rcen - dr/2;
-    rfinecen(1) = rcen + dr/2;
+    redge[0] = rcen - dr;
+    redge[1] = rcen ;
+    redge[2] = rcen + dr;
+    rfinecen[0] = rcen - dr/2;
+    rfinecen[1] = rcen + dr/2;
 
     for (int j = 0; j < ratio[1]; ++j) {
     for (int i = 1; i < ratio[0]; ++i) {
         fine[0](fi+i, fj+j, 0, nf) =
-            ((ratio[0]-i)*redge(0)*fine[0](fi,           fj+j, 0, nf)
-           +          i *redge(2)* fine[0](fi+ratio[0], fj+j, 0, nf))/(rcen*ratio[0]);
+            ((ratio[0]-i)*redge[0]*fine[0](fi,           fj+j, 0, nf)
+           +          i *redge[2]* fine[0](fi+ratio[0], fj+j, 0, nf))/(rcen*ratio[0]);
     }}
 
     for (int j = 1; j < ratio[1]; ++j) {
@@ -268,14 +269,14 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     Real vplus = Real(0.);
     Real vminus = Real(0.);
     for (int i = 0; i < ratio[0]; ++i) {
-        vplus  += rfinecen[i]*(fine[1](fi+i, fj+ratio[1], 0, nf);
-        vminus += rfinecen[i]*(fine[1](fi+i, fj,          0, nf);
+        vplus  += rfinecen[i]*fine[1](fi+i, fj+ratio[1], 0, nf);
+        vminus += rfinecen[i]*fine[1](fi+i, fj,          0, nf);
     }
 
     vplus  /= rcen;
     vminus /= rcen;
 
-    Real target_div = 0.5*( (redge(2)*uplus- redge(0)*uminus)/(2.*dr*rcen) + (vplus-vminus)/(2.*dz) );
+    Real target_div = 0.5*( (redge[2]*uplus- redge[0]*uminus)/(2.*dr*rcen) + (vplus-vminus)/(2.*dz) );
 
     Array1D<Real,0,3> rhs;
     Array1D<Real,0,3> phi;
@@ -284,7 +285,7 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     for (int i = 0; i < ratio[0]; ++i) {
         int irow = i + j*ratio[0];
         rhs(irow) =
-              (redge(i+1)*(fi+i+1, fj+j,   0, nf) - redge(i)* fine[0](fi+i,   fj+j,   0, nf))*drinv / rfinecen(i)
+              (redge[i+1]*fine[0](fi+i+1, fj+j,   0, nf) - redge[i]*fine[0](fi+i,   fj+j,   0, nf))*drinv / rfinecen[i]
              + (fine[1](fi+i,   fj+j+1, 0, nf) - fine[1](fi+i,   fj+j,   0, nf))*dzinv
           - target_div;
     }}
@@ -299,8 +300,6 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
         }
     }
 
-    Real drinv = Real(1.)/cellSize[0];
-    Real dzinv = Real(1.)/cellSize[1];
     Real ddr2 = drinv*drinv;
     Real ddz2 = dzinv*dzinv;
 
@@ -309,13 +308,13 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
         int irow = i + j*ratio[0];
 
         if (i > 0) {
-            mat(irow,irow) += ddr2 * redge(i)/rcenfine(i);
-            mat(irow,irow-1) += -ddr2 * redge(i)/rcenfine(i);
+            mat(irow,irow) += ddr2 * redge[i]/rfinecen[i];
+            mat(irow,irow-1) += -ddr2 * redge[i]/rfinecen[i];
         }
 
         if (i < ratio[0]-1) {
-            mat(irow,irow) += ddr2 *redge(i+1)/rcenfine(i);
-            mat(irow,irow+1) += -ddr2 *redge(i+1)/rcenfine(i);
+            mat(irow,irow) += ddr2 *redge[i+1]/rfinecen[i];
+            mat(irow,irow+1) += -ddr2 *redge[i+1]/rfinecen[i];
         }
 
         if (j > 0) {
@@ -334,7 +333,7 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     // apply.
     mat(3,3) += ddz2;
 
-    LUSolver lusolver<N,Real>{mat};
+    LUSolver<N,Real> lusolver{mat};
 
     lusolver(phi.begin(), rhs.begin());
 

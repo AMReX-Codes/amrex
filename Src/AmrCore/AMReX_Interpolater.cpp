@@ -1389,76 +1389,109 @@ FaceDivFree::interp_arr (Array<FArrayBox*, AMREX_SPACEDIM> const& crse,
             { maskarr[d] = solve_mask[d]->const_array(0); }
     }
 
-    Real drf = cell_size[1];
-    bool is_rz = fine_geom.IsRZ();
-    Real rlo = fine_geom.ProbLo[0];
-
 #if (AMREX_SPACEDIM == 2)
+    bool is_rz = fine_geom.IsRZ();
+    Real drf = cell_size[0];
+    Real rlo = fine_geom.ProbLo(0);
+
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio == 2 || !is_rz,
                                      "FaceDivFree in 2d rz only supports refinement ratio of 2");
 #endif
 
     // Fuse the launches, 1 for each dimension, into a single launch.
-    AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
-              amrex::convert(c_fine_region,types[0]), bx0,
-              {
-                  AMREX_LOOP_3D(bx0, i, j, k,
+#if (AMREX_SPACEDIM == 2)
+    if (is_rz) {
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+                  amrex::convert(c_fine_region,types[0]), bx0,
                   {
-                      for (int n=0; n<ncomp; ++n)
+                      AMREX_LOOP_3D(bx0, i, j, k,
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,n,0,
-                                                            crsearr[0], finearr[0], maskarr[0], ratio);
-                      }
-                  });
-              },
-              amrex::convert(c_fine_region,types[1]), bx1,
-              {
-                  if(!is_rz) {
-                     AMREX_LOOP_3D(bx1, i, j, k,
-                     {
-                         for (int n=0; n<ncomp; ++n)
-                         {
-                             amrex::facediv_face_interp<Real> (i,j,k,n, 1,
-                                                               crsearr[1], finearr[1], maskarr[1], ratio);
-                         }
-                     });
-                  } else {
-                     AMREX_LOOP_3D(bx1, i, j, k,
-                     {
-                         Real rcen = rlo + Real(i*ratio+1)*drf; // center of coarse cell
-                         for (int n=0; n<ncomp; ++n)
-                         {
-                             amrex::facediv_face_interp_RZ<Real> (i,j,k,n, 1,
-                                                      crsearr[1], finearr[1], maskarr[1], ratio, rcen, drf);
-                         }
-                     });
-                  }
-              },
-              amrex::convert(c_fine_region,types[2]), bx2,
-              {
-                  AMREX_LOOP_3D(bx2, i, j, k,
+                          for (int n=0; n<ncomp; ++n)
+                          {
+                              amrex::facediv_face_interp<Real> (i,j,k,n,0,
+                                                                crsearr[0], finearr[0], maskarr[0], ratio);
+                          }
+                      });
+                  },
+                  amrex::convert(c_fine_region,types[1]), bx1,
                   {
-                      for (int n=0; n<ncomp; ++n)
+                      AMREX_LOOP_3D(bx1, i, j, k,
                       {
-                          amrex::facediv_face_interp<Real> (i,j,k,n,2,
-                                                            crsearr[2], finearr[2], maskarr[2], ratio);
-                      }
+                          Real rcen = rlo + Real(i*ratio[0]+1)*drf; // center of coarse cell
+                          for (int n=0; n<ncomp; ++n)
+                          {
+                              amrex::facediv_face_interp_RZ<Real> (i,j,k,n, 1,
+                                                       crsearr[1], finearr[1], maskarr[1], ratio, rcen, drf);
+                          }
+                      });
+                  },
+                  amrex::convert(c_fine_region,types[2]), bx2,
+                  {
+                      AMREX_LOOP_3D(bx2, i, j, k,
+                      {
+                          for (int n=0; n<ncomp; ++n)
+                          {
+                              amrex::facediv_face_interp<Real> (i,j,k,n,2,
+                                                                crsearr[2], finearr[2], maskarr[2], ratio);
+                          }
+                      });
                   });
-              });
+    } else
+#endif
+    {
+        AMREX_LAUNCH_HOST_DEVICE_LAMBDA_DIM_FLAG(runon,
+                  amrex::convert(c_fine_region,types[0]), bx0,
+                  {
+                      AMREX_LOOP_3D(bx0, i, j, k,
+                      {
+                          for (int n=0; n<ncomp; ++n)
+                          {
+                              amrex::facediv_face_interp<Real> (i,j,k,n,0,
+                                                                crsearr[0], finearr[0], maskarr[0], ratio);
+                          }
+                      });
+                  },
+                  amrex::convert(c_fine_region,types[1]), bx1,
+                  {
+                      AMREX_LOOP_3D(bx1, i, j, k,
+                      {
+                          for (int n=0; n<ncomp; ++n)
+                          {
+                              amrex::facediv_face_interp<Real> (i,j,k,n, 1,
+                                                                crsearr[1], finearr[1], maskarr[1], ratio);
+                          }
+                      });
+                  },
+                  amrex::convert(c_fine_region,types[2]), bx2,
+                  {
+                      AMREX_LOOP_3D(bx2, i, j, k,
+                      {
+                          for (int n=0; n<ncomp; ++n)
+                          {
+                              amrex::facediv_face_interp<Real> (i,j,k,n,2,
+                                                                crsearr[2], finearr[2], maskarr[2], ratio);
+                          }
+                      });
+                  });
+    }
 
     if (ratio == 2) {
+#if (AMREX_SPACEDIM == 2)
         if(!is_rz) {
+#endif
           AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
           {
               amrex::facediv_int<Real>(i, j, k, n, finearr, ratio, cell_size);
           });
+#if (AMREX_SPACEDIM == 2)
         } else {
           AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(runon,c_fine_region,ncomp,i,j,k,n,
           {
-              rcen = rlo + (i*ratio+1)*drf;
-              amrex::facediv_int_RZ<Real>(i, j, k, n, finearr, ratio, cell_size, rcen);
+              Real rcen = rlo + Real(i*ratio[0]+1)*drf;
+              amrex::facediv_int_gen_RZ<Real>(i, j, k, n, finearr, ratio, cell_size, rcen);
           });
         }
+#endif
     } else {
         auto& lusolver = m_lusolver[OpenMP::get_thread_num()][fine_geom.Domain()];
         void* psolver_h = nullptr;
