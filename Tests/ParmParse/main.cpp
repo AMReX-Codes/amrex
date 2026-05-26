@@ -1,8 +1,10 @@
 #include <AMReX.H>
+#include <numbers>
 #include <AMReX_Box.H>
 #include <AMReX_Utility.H>
 #include <AMReX_Print.H>
 #include <AMReX_ParmParse.H>
+#include <AMReX_RealVect.H>
 
 using namespace amrex;
 
@@ -20,7 +22,7 @@ int main(int argc, char* argv[])
         ParmParse::SetParserPrefix("physical_constants");
         ParmParse pp("physical_constants");
         pp.add("c", 299792458.);
-        pp.add("pi", 3.14159265358979323846);
+        pp.add("pi", std::numbers::pi_v<double>);
     }
     {
         ParmParse pp;
@@ -40,8 +42,16 @@ int main(int argc, char* argv[])
         std::vector<std::string> sa;
         std::vector<std::string> sb;
         pp.getarr("sa", sa);
-        pp.getarr("sa", sb);
+        pp.getarr("sb", sb);
         AMREX_ALWAYS_ASSERT(sa == sb && (sa == std::vector<std::string>{"abc","xyz","123"}));
+
+        IntVect iv;
+        pp.query("iv3", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(100,200,300)));
+        pp.query("iv2", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(10,20,0)));
+        pp.query("iv1", iv);
+        AMREX_ALWAYS_ASSERT(iv == IntVect(AMREX_D_DECL(5,0,0)));
 
         Box box;
         pp.query("b", box);
@@ -97,9 +107,9 @@ int main(int argc, char* argv[])
         ParmParse pp;
         auto parser = pp.makeParser("pi*x+c*y", {"x","y"});
         auto exe = parser.compile<2>();
-        AMREX_ALWAYS_ASSERT(amrex::almostEqual(3.14159265358979323846+299792458.,
+        AMREX_ALWAYS_ASSERT(amrex::almostEqual(std::numbers::pi_v<double>+299792458.,
                                                exe(1.0,1.0)) &&
-                            amrex::almostEqual(3.14159265358979323846, exe(1.0,0.0)) &&
+                            amrex::almostEqual(std::numbers::pi_v<double>, exe(1.0,0.0)) &&
                             amrex::almostEqual(299792458., exe(0.0, 1.0)));
     }
     {
@@ -311,29 +321,47 @@ int main(int argc, char* argv[])
 
         std::vector<std::string> sv{"string a", " string b", " string c ", "string-d"};
         pp.addarr("string_vector", sv);
-        for (int i = 0; i < int(sv.size()); ++i) {
+        for (int i = 0; i < std::ssize(sv); ++i) {
             pp.get("string_vector", s, i);
             AMREX_ALWAYS_ASSERT(s == sv[i]);
         }
     }
-    if (ParallelDescriptor::IOProcessor()) // print & addfile
+
+    // print & addfile
     {
-        {
-            ParmParse pp;
-            pp.add("string-for-testing-addfile", "string for testing addfile");
-            pp.add("string-for-testing-addfile", "string for testing addfile");
-            int n = pp.countname("string-for-testing-addfile");
-            AMREX_ALWAYS_ASSERT(n==2);
-        }
+        ParmParse pp;
+        pp.add("string-for-testing-addfile", "string for testing addfile");
+        pp.add("string-for-testing-addfile", "string for testing addfile");
+        int n = pp.countname("string-for-testing-addfile");
+        AMREX_ALWAYS_ASSERT(n==2);
+    }
+    if (ParallelDescriptor::IOProcessor()) {
         std::ofstream ofs("my-inputs");
         ParmParse::prettyPrintTable(ofs);
-        ofs.close();
+    }
+    {
         ParmParse::addfile("my-inputs");
         std::string s;
         ParmParse pp;
         pp.get("string-for-testing-addfile", s);
         int n = pp.countname("string-for-testing-addfile");
         AMREX_ALWAYS_ASSERT(n==3 && s == "string for testing addfile");
+    }
+
+    { // UNSET directive
+        ParmParse pp;
+        // "unset_me" is defined then immediately unset in the inputs file
+        int v = -1;
+        int found = pp.query("unset_me", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_multi_a" and "unset_multi_b" are unset together in inputs
+        found = pp.query("unset_multi_a", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        found = pp.query("unset_multi_b", v);
+        AMREX_ALWAYS_ASSERT(found == 0);
+        // "unset_kept" is NOT unset, so it should still be present
+        pp.get("unset_kept", v);
+        AMREX_ALWAYS_ASSERT(v == 77);
     }
     {
         amrex::Print() << "SUCCESS\n";

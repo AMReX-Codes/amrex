@@ -102,7 +102,7 @@ namespace amrex {
         template <class U=T,
                   std::enable_if_t<!std::is_void_v<U>,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        U& operator[] (int n) const noexcept {
+        U& operator[] (int n) const {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             if (n < 0 || n >= ncomp) {
                 AMREX_IF_ON_DEVICE((
@@ -1316,7 +1316,7 @@ namespace amrex {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 lbound (Array4<T> const& a) noexcept
     {
-        return Dim3{a.begin.vect[0],a.begin.vect[1],a.begin.vect[2]};
+        return Dim3{.x = a.begin.vect[0], .y = a.begin.vect[1], .z = a.begin.vect[2]};
     }
 
     /**
@@ -1330,7 +1330,7 @@ namespace amrex {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 ubound (Array4<T> const& a) noexcept
     {
-        return Dim3{a.end.vect[0]-1,a.end.vect[1]-1,a.end.vect[2]-1};
+        return Dim3{.x = a.end.vect[0]-1, .y = a.end.vect[1]-1, .z = a.end.vect[2]-1};
     }
 
     /**
@@ -1344,7 +1344,9 @@ namespace amrex {
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 length (Array4<T> const& a) noexcept
     {
-        return Dim3{a.end.vect[0]-a.begin.vect[0],a.end.vect[1]-a.begin.vect[1],a.end.vect[2]-a.begin.vect[2]};
+        return Dim3{.x = a.end.vect[0]-a.begin.vect[0],
+                    .y = a.end.vect[1]-a.begin.vect[1],
+                    .z = a.end.vect[2]-a.begin.vect[2]};
     }
 
     /**

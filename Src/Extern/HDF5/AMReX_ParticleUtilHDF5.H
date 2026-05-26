@@ -3,8 +3,18 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_ParticleUtilHDF5.H
+ *
+ * Async-HDF5 helpers shared by the particle checkpoint/write routines.
+ */
+
+//! Global async VOL event-set used to synchronize particle HDF5 I/O.
 hid_t es_par_g = 0;
 
+/**
+ * \brief Block until all pending particle async VOL operations complete.
+ */
 void async_vol_es_wait_particle()
 {
     size_t num_in_progress;
@@ -17,6 +27,9 @@ void async_vol_es_wait_particle()
     return;
 }
 
+/**
+ * \brief Wait for pending async VOL work and destroy the shared event-set.
+ */
 void async_vol_es_wait_close_particle()
 {
     size_t num_in_progress;

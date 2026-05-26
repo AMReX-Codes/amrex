@@ -13,7 +13,7 @@ namespace amrex
  * Can be used to replace std::cout.  In serial this just
  * returns std::cout.  In parallel, this creates a separate file for each
  * proc called \<basename\>.n where n is the procID and \<basename\> defaults to
- * "pout" but can be set by calling setPoutBaseName().  Output is then
+ * "amrex_pout" but can be set by calling setPoutBaseName().  Output is then
  * directed to these files.  This keeps the output from different processors
  * from getting all jumbled up.
  If    you want fewer files, you can use ParmParse parameter amrex.pout_int=nproc
@@ -36,7 +36,7 @@ namespace amrex
  * \brief Accesses the filename for the local pout() file.
  *
  * Returns the name used for the local pout() file.  In parallel this is
- * "\<pout_basename\>.\<procID\>", where \<pout_basename\> defaults to "pout" and
+ * "\<pout_basename\>.\<procID\>", where \<pout_basename\> defaults to "amrex_pout" and
  * can be modified by calling setPoutBaseName(), and \<procID\> is the local
  * proc number.  In serial, this always returns the string "cout".  It is an
  * error (exit code 111) to call this in parallel before MPI_Initialize().

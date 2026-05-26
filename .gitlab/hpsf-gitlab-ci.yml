@@ -25,6 +25,7 @@ Nvidia-H100-single-precision:
     - |
       cmake -S . -B build                              \
           -DCMAKE_CXX_STANDARD=20                      \
+          -DCMAKE_CUDA_STANDARD=20                     \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_PRECISION=SINGLE                     \
           -DAMReX_PARTICLES_PRECISION=SINGLE           \
@@ -49,9 +50,9 @@ Nvidia-H100-single-precision:
 AMD-MI300A:
   extends: .dependency-n-fetch-pr
   tags: [amd-mi300]
-  image: rocm/dev-ubuntu-24.04:6.4.3-complete
+  image: rocm/dev-ubuntu-24.04:7.2-complete
   script:
-    - export ROCM_PATH=/opt/rocm-6.4.3
+    - export ROCM_PATH=/opt/rocm
     - export PATH=$ROCM_PATH/bin:$ROCM_PATH/llvm/bin:$PATH
     - export LD_LIBRARY_PATH=$ROCM_PATH/lib:$ROCM_PATH/lib64:$LD_LIBRARY_PATH
     - export HIP_PATH=$ROCM_PATH
@@ -68,9 +69,8 @@ AMD-MI300A:
           -DAMReX_FORTRAN=OFF                          \
           -DAMReX_GPU_BACKEND=HIP                      \
           -DAMReX_AMD_ARCH=gfx942                      \
-          -DCMAKE_C_COMPILER=$(which clang)            \
-          -DCMAKE_CXX_COMPILER=$(which clang++)        \
-          -DCMAKE_CXX_STANDARD=17
+          -DCMAKE_C_COMPILER=$(which amdclang)         \
+          -DCMAKE_CXX_COMPILER=$(which amdclang++)
     - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
@@ -106,6 +106,9 @@ Intel-PVC:
 post_github_comment:
   stage: .post
   image: python:3.11-slim
+  environment:
+    name: github-status
+    action: verify
   script:
     - pip install PyJWT requests cryptography
     - |

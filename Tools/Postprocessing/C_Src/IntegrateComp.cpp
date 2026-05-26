@@ -87,7 +87,7 @@ public:
   }
 
   MultiFab &GetGrids(int level, const std::string& name) {
-    if (varMap.find(name) == varMap.end()) {
+    if (!varMap.contains(name)) {
       Abort("Unknown component requested");
     }
     return *(varMap[name].second[level]);
@@ -202,4 +202,3 @@ main (int   argc,
   amrex::Finalize();
   return 0;
 }
-

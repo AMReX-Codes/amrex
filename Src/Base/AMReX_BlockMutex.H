@@ -21,7 +21,7 @@ struct BlockMutex
         return state_t{{-1,0}};
     }
 
-    static void init_states (state_t* state, int N) noexcept;
+    static void init_states (state_t* state, int N);
 
     explicit BlockMutex (int N) noexcept;
 

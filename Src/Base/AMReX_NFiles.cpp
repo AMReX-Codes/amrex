@@ -1,6 +1,7 @@
 
 #include <AMReX_NFiles.H>
 #include <deque>
+#include <iterator>
 #include <set>
 #include <utility>
 
@@ -504,7 +505,7 @@ bool NFilesIter::CheckNFiles(int nProcs, int nOutFiles, bool groupSets)
     }
 //    amrex::Print() << "nOutFiles fileNumbers.size() = " << nOutFiles
 //              << "  " << fileNumbers.size() << '\n';
-    if(nOutFiles != static_cast<int>(fileNumbers.size())) {
+    if(nOutFiles != std::ssize(fileNumbers)) {
 //      amrex::Print() << "**** Different number of files." << '\n';
       return false;
     }
@@ -529,7 +530,7 @@ Vector<int> NFilesIter::FileNumbersWritten()
         procSet.insert(fileNumbersWriteOrder[f][r]);
       }
     }
-    if(total != nProcs || static_cast<int>(procSet.size()) != nProcs) {
+    if(total != nProcs || std::ssize(procSet) != nProcs) {
       amrex::AllPrint() << "**** Error in NFilesIter::FileNumbersWritten():  "
                 << " coordinatorProc nProcs total procSet.size() = "
                 << coordinatorProc << "  " << nProcs << "  "

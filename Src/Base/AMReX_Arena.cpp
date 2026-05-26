@@ -177,17 +177,27 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
     if (arena_info.use_cpu_memory)
     {
 #endif
-        p = std::malloc(nbytes);
+
+#ifndef _WIN32
+        p = std::aligned_alloc(align_size, nbytes);
+#else
+        p = _aligned_malloc(nbytes, align_size);
+#endif
+
         if (!p) {
             freeUnused_protected();
-            p = std::malloc(nbytes);
+#ifndef _WIN32
+            p = std::aligned_alloc(align_size, nbytes);
+#else
+            p = _aligned_malloc(nbytes, align_size);
+#endif
         }
         if (!p) {
             // out_of_memory_abort uses heap allocations,
             // so we print an error before in case it doesn't work.
             amrex::ErrorStream() <<
-                "Out of CPU memory: got nullptr from std::malloc, aborting...\n";
-            out_of_memory_abort("CPU memory", nbytes, "std::malloc returned nullptr");
+                "Out of CPU memory: got nullptr from std::aligned_alloc, aborting...\n";
+            out_of_memory_abort("CPU memory", nbytes, "std::aligned_alloc returned nullptr");
         }
 
 #ifndef _WIN32
@@ -210,7 +220,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
             if (ret != hipSuccess) { p = nullptr; },
             auto ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
             if (ret != cudaSuccess) { p = nullptr; },
-            p = sycl::malloc_host(nbytes, Gpu::Device::syclContext())
+            p = sycl::aligned_alloc_host(align_size, nbytes, Gpu::Device::syclContext())
         );
 
         if (!p) {
@@ -220,7 +230,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                 if (ret != hipSuccess) { p = nullptr; },
                 ret = cudaHostAlloc(&p, nbytes, cudaHostAllocMapped);
                 if (ret != cudaSuccess) { p = nullptr; },
-                p = sycl::malloc_host(nbytes, Gpu::Device::syclContext())
+                p = sycl::aligned_alloc_host(align_size, nbytes, Gpu::Device::syclContext())
             );
         }
 
@@ -235,7 +245,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                       ": " + hipGetErrorString(ret),
                 msg = "cudaHostAlloc returned " + std::to_string(ret) +
                       ": " + cudaGetErrorString(ret),
-                msg = "sycl::malloc_host returned nullptr"
+                msg = "sycl::aligned_alloc_host returned nullptr"
             );
             out_of_memory_abort("CPU pinned memory", nbytes, msg);
         }
@@ -262,8 +272,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                 if (ret != hipSuccess) { p = nullptr; },
                 auto ret = cudaMallocManaged(&p, nbytes);
                 if (ret != cudaSuccess) { p = nullptr; },
-                p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(),
-                                        Gpu::Device::syclContext())
+                p = sycl::aligned_alloc_shared(align_size, nbytes, Gpu::Device::syclDevice(),
+                                               Gpu::Device::syclContext())
             );
 
             if (!p) {
@@ -273,8 +283,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                     if (ret != hipSuccess) { p = nullptr; },
                     ret = cudaMallocManaged(&p, nbytes);
                     if (ret != cudaSuccess) { p = nullptr; },
-                    p = sycl::malloc_shared(nbytes, Gpu::Device::syclDevice(),
-                                            Gpu::Device::syclContext())
+                    p = sycl::aligned_alloc_shared(align_size, nbytes, Gpu::Device::syclDevice(),
+                                                   Gpu::Device::syclContext())
                 );
             }
 
@@ -285,7 +295,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                           ": " + hipGetErrorString(ret),
                     msg = "cudaMallocManaged returned " + std::to_string(ret) +
                           ": " + cudaGetErrorString(ret),
-                    msg = "sycl::malloc_shared returned nullptr"
+                    msg = "sycl::aligned_alloc_shared returned nullptr"
                 );
                 out_of_memory_abort("GPU managed memory", nbytes, msg);
             }
@@ -312,8 +322,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                 if (ret != hipSuccess) { p = nullptr; },
                 auto ret = cudaMalloc(&p, nbytes);
                 if (ret != cudaSuccess) { p = nullptr; },
-                p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(),
-                                        Gpu::Device::syclContext())
+                p = sycl::aligned_alloc_device(align_size, nbytes, Gpu::Device::syclDevice(),
+                                               Gpu::Device::syclContext())
             );
 
             if (!p) {
@@ -323,8 +333,8 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                     if (ret != hipSuccess) { p = nullptr; },
                     ret = cudaMalloc(&p, nbytes);
                     if (ret != cudaSuccess) { p = nullptr; },
-                    p = sycl::malloc_device(nbytes, Gpu::Device::syclDevice(),
-                                            Gpu::Device::syclContext())
+                    p = sycl::aligned_alloc_device(align_size, nbytes, Gpu::Device::syclDevice(),
+                                                   Gpu::Device::syclContext())
                 );
             }
 
@@ -335,7 +345,7 @@ Arena::allocate_system (std::size_t nbytes) // NOLINT(readability-make-member-fu
                           ": " + hipGetErrorString(ret),
                     msg = "cudaMalloc returned " + std::to_string(ret) +
                           ": " + cudaGetErrorString(ret),
-                    msg = "sycl::malloc_device returned nullptr"
+                    msg = "sycl::aligned_alloc_device returned nullptr"
                 );
                 out_of_memory_abort("GPU device memory", nbytes, msg);
             }
@@ -354,7 +364,12 @@ Arena::deallocate_system (void* p, std::size_t nbytes) // NOLINT(readability-mak
     {
 #endif
         if (p && arena_info.device_use_hostalloc) { AMREX_MUNLOCK(p, nbytes); }
+#ifndef _WIN32
         std::free(p);
+#else
+        _aligned_free(p);
+#endif
+
 #ifdef AMREX_USE_GPU
     }
     else if (arena_info.device_use_hostalloc)
@@ -382,12 +397,6 @@ namespace {
         void* alloc (std::size_t) override { return nullptr; }
         void free (void*) override {}
     };
-
-    Arena* The_Null_Arena ()
-    {
-        static NullArena the_null_arena;
-        return &the_null_arena;
-    }
 
     Arena* The_BArena ()
     {
@@ -801,6 +810,12 @@ Arena::Finalize ()
     The_BArena()->deregisterFromProfiling();
 }
 
+bool
+Arena::IsInitialized ()
+{
+    return initialized;
+}
+
 Arena*
 The_Arena ()
 {
@@ -869,6 +884,13 @@ The_Comms_Arena ()
     } else {
         return The_Null_Arena();
     }
+}
+
+Arena*
+The_Null_Arena ()
+{
+    static NullArena the_null_arena;
+    return &the_null_arena;
 }
 
 #ifdef AMREX_TINY_PROFILING

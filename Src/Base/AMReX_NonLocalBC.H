@@ -54,7 +54,7 @@ struct MultiBlockIndexMapping {
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
             iv_new[d] = sign[d] * (iv[permutation[d]] - offset[d]);
         }
-        return {iv_new[0], iv_new[1], iv_new[2]};
+        return Dim3{.x = iv_new[0], .y = iv_new[1], .z = iv_new[2]};
     }
 
     //! \brief The inverse function is given by rearringing all above terms.
@@ -70,7 +70,7 @@ struct MultiBlockIndexMapping {
             AMREX_ASSERT(sign[d] == 1 || sign[d] == -1);
             iv[permutation[d]] = iv_new[d] * sign[d] + offset[d];
         }
-        return {iv[0], iv[1], iv[2]};
+        return Dim3{.x = iv[0], .y = iv[1], .z = iv[2]};
     }
 
     [[nodiscard]] IndexType operator()(IndexType it) const noexcept {

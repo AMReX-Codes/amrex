@@ -77,7 +77,7 @@ facediv_face_interp (int /*ci*/, int /*cj*/, int /*ck*/,
                      Array4<T const> const& /*crse*/,
                      Array4<T> const& /*fine*/,
                      Array4<const int> const& /*mask*/,
-                     IntVect const& /*ratio*/) noexcept
+                     IntVect const& /*ratio*/)
 {
     amrex::Abort("No 1D version of FaceDiv exists.\n");
 }
@@ -87,7 +87,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_int (int /*ci*/, int /*cj*/, int /*ck*/, int /*nf*/,
              GpuArray<Array4<T>, AMREX_SPACEDIM> const& /*fine*/,
              IntVect const& /*ratio*/,
-             GpuArray<Real, AMREX_SPACEDIM> const& /*cellSize*/) noexcept
+             GpuArray<Real, AMREX_SPACEDIM> const& /*cellSize*/)
 {
     amrex::Abort("No 1D version of FaceDiv exists.\n");
 }

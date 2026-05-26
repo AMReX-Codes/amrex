@@ -64,7 +64,7 @@ iMultiFab::Copy (iMultiFab& dst, const iMultiFab& src,
 {
 // don't have to BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost));
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("iMultiFab::Copy()");
     amrex::Copy(dst,src,srccomp,dstcomp,numcomp,nghost);
@@ -741,7 +741,7 @@ OwnerMask (FabArrayBase const& mf, const Periodicity& period, const IntVect& ngr
                     {
 #ifdef AMREX_USE_GPU
                         if (run_on_gpu) {
-                            tags.push_back({arr,obx});
+                            tags.push_back(Array4BoxTag<int>{.dfab = arr, .dbox = obx});
                         } else
 #endif
                         {

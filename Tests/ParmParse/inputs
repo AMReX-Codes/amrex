@@ -11,6 +11,12 @@ name = "I am w" \
 sa = abc xyz 123
 sb = "abc" "xyz" "123"
 
+# IntVect
+iv1 = (5)
+iv2 = (10,20)
+iv3 = (100,200,300)
+
+# Box
 b = ((1, 2, 3) (7, 8,9) (1,0,   1))
 b2 = "((1, 2, 3)(7,8,9)(1,0,1))"
 
@@ -156,3 +162,13 @@ macro.use_gpu.spacedim = 3
 #  endif
 
 #endif
+
+# UNSET directive tests
+unset_me = 123
+UNSET = unset_me
+
+unset_multi_a = 1
+unset_multi_b = 2
+UNSET = unset_multi_a unset_multi_b
+
+unset_kept = 77

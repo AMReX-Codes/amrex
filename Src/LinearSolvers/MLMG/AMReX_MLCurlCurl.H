@@ -10,8 +10,10 @@ namespace amrex {
 /**
  * \brief curl (alpha curl E) + beta E = rhs
  *
- * Here E is an Array of 3 MultiFabs on staggered grid, alpha is a positive
- * scalar, and beta is either a non-negative scalar or a MultiFab.
+ * Here E is an Array of 3 MultiFabs on the staggered grid.  The coefficient
+ * \f$\alpha\f$ can be supplied either as a positive scalar (via setScalars)
+ * or as a nodal MultiFab (via setAlpha), and \f$\beta\f$ can be either a
+ * non-negative scalar or an edge-centered MultiFab (via setBeta).
  *
  * It's the caller's responsibility to make sure rhs has consistent nodal
  * data. If needed, one could call prepareRHS for this.
@@ -45,10 +47,20 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  int a_coord = 0);
 
+    //! Set scalar coefficients.  This clears any previously supplied nodal alpha
+    //! or edge-centered beta MultiFabs, so call setAlpha/setBeta afterwards if
+    //! you still need spatially varying coefficients.
     void setScalars (RT a_alpha, RT a_beta) noexcept;
 
-    //! This is needed only if there is variable beta coefficient.
+    //! This is needed only if there is variable beta coefficient.  Call this
+    //! after setScalars if both APIs are used, because setScalars clears the
+    //! cached beta MultiFabs.
     void setBeta (const Vector<Array<MultiFab const*,3>>& a_bcoefs);
+
+    //! Set variable alpha defined on nodal MultiFab.  Call this after
+    //! setScalars if both APIs are used, because setScalars clears the cached
+    //! nodal alpha fields.
+    void setAlpha (const Vector<MultiFab const*>& a_acoeffs);
 
     //! Synchronize RHS on nodal points. If the user can guarantee it, this
     //! function does not need to be called.
@@ -140,6 +152,8 @@ private:
     void update_lusolver ();
 
     void set_curvilinear_domain_bc ();
+    void clearAlphaMultiFab ();
+    void clearBetaMultiFab ();
 
     int m_coord = 0;
 
@@ -160,6 +174,7 @@ private:
     Vector<Vector<std::unique_ptr<Gpu::DeviceScalar
                                   <LUSolver<AMREX_SPACEDIM*2,RT>>>>> m_lusolver;
     Vector<Vector<Array<std::unique_ptr<MultiFab>,3>>> m_bcoefs;
+    Vector<Vector<Array<std::unique_ptr<MultiFab>,3>>> m_acoefs;
     bool m_use_pcg = false;
     bool m_needs_update = true;
 };

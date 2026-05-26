@@ -115,21 +115,21 @@ void verify_same (MyPC& pc_orig, MyPC& pc_new)
         ParallelDescriptor::ReduceRealSum(sm_orig);
         ParallelDescriptor::ReduceRealSum(sm_new);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            sm_orig == sm_new,
+            amrex::almostEqual(sm_orig, sm_new),
             "Real component sum mismatch after restart (comp " + std::to_string(icomp) + ")");
     }
 
     for (int icomp = 0; icomp < NInt; ++icomp) {
         auto sm_orig = amrex::ReduceSum(pc_orig,
-            [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real {
-                return static_cast<Real>(ptd.idata(icomp)[i]);
+            [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Long {
+                return static_cast<Long>(ptd.idata(icomp)[i]);
             });
         auto sm_new = amrex::ReduceSum(pc_new,
-            [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Real {
-                return static_cast<Real>(ptd.idata(icomp)[i]);
+            [=] AMREX_GPU_HOST_DEVICE (const ConstPTDType& ptd, const int i) -> Long {
+                return static_cast<Long>(ptd.idata(icomp)[i]);
             });
-        ParallelDescriptor::ReduceRealSum(sm_orig);
-        ParallelDescriptor::ReduceRealSum(sm_new);
+        ParallelDescriptor::ReduceLongSum(sm_orig);
+        ParallelDescriptor::ReduceLongSum(sm_new);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             sm_orig == sm_new,
             "Int component sum mismatch after restart (comp " + std::to_string(icomp) + ")");

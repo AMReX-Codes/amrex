@@ -899,7 +899,7 @@ void fill_physbc (MF& mf, Geometry const& geom,
             }
             b &= box;
             if (b.ok() && fbc != Boundary::periodic) {
-                tags.push_back({arr, b, fbc, face});
+                tags.push_back(Tag{.dfab = arr, .dbox = b, .bc = fbc, .face = face});
             }
         }
     }

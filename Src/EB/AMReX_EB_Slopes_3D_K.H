@@ -140,7 +140,7 @@ amrex_overwrite_with_regular_slopes(int i, int j, int k, int n,
                                     amrex::Real& zslope,
                                     amrex::Array4<amrex::Real const> const& state,
                                     amrex::Array4<amrex::Real const> const& vfrac,
-                                    int max_order) noexcept
+                                    int max_order)
 {
     //
     // Here we over-write -- if possible -- with a stencil not using the EB stencil
@@ -988,6 +988,7 @@ amrex_lim_slopes_eb (int i, int j, int k, int n,
                      amrex::Array4<amrex::EBCellFlag const> const& flag,
                      int max_order) noexcept
 {
+    using namespace amrex::literals;
 
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
@@ -998,16 +999,16 @@ amrex_lim_slopes_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.) {
-        alpha_lim[0] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i-1,j,k) == 1.0_rt && vfrac(i+1,j,k) == 1.0_rt) {
+        alpha_lim[0] = 1.0_rt;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.) {
-        alpha_lim[1] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j-1,k) == 1.0_rt && vfrac(i,j+1,k) == 1.0_rt) {
+        alpha_lim[1] = 1.0_rt;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.) {
-        alpha_lim[2] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j,k-1) == 1.0_rt && vfrac(i,j,k+1) == 1.0_rt) {
+        alpha_lim[2] = 1.0_rt;
     }
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};
@@ -1031,6 +1032,7 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
                             int domhi_x, int domhi_y, int domhi_z,
                             int max_order) noexcept
 {
+    using namespace amrex::literals;
 
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> slopes;
     amrex::GpuArray<amrex::Real,AMREX_SPACEDIM> alpha_lim;
@@ -1042,16 +1044,16 @@ amrex_lim_slopes_extdir_eb (int i, int j, int k, int n,
 
     // Setting limiter to 1 for stencils that just consists of non-EB cells because
     // amrex_calc_slopes_extdir_eb routine will call the slope routine for non-EB stencils that has already a limiter
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i-1,j,k) == 1. && vfrac(i+1,j,k) == 1.) {
-        alpha_lim[0] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i-1,j,k) == 1.0_rt && vfrac(i+1,j,k) == 1.0_rt) {
+        alpha_lim[0] = 1.0_rt;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j-1,k) == 1. && vfrac(i,j+1,k) == 1.) {
-        alpha_lim[1] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j-1,k) == 1.0_rt && vfrac(i,j+1,k) == 1.0_rt) {
+        alpha_lim[1] = 1.0_rt;
     }
 
-    if ( max_order > 0 && vfrac(i,j,k) == 1. && vfrac(i,j,k-1) == 1. && vfrac(i,j,k+1) == 1.) {
-        alpha_lim[2] = 1.0;
+    if ( max_order > 0 && vfrac(i,j,k) == 1.0_rt && vfrac(i,j,k-1) == 1.0_rt && vfrac(i,j,k+1) == 1.0_rt) {
+        alpha_lim[2] = 1.0_rt;
     }
 
     return {alpha_lim[0]*slopes[0],alpha_lim[1]*slopes[1],alpha_lim[2]*slopes[2]};

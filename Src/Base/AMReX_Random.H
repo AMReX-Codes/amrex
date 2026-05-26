@@ -282,12 +282,21 @@ namespace amrex
 
     /**
     * \ingroup amrex_utilities
-    * \brief Save and restore random state.
+    * \brief Save host random state.
     *
+    * This function only serializes the host-side random number generators used
+    * by the host random-number APIs. It does not save GPU random state used by
+    * ParallelForRNG or GPU FillRandom/FillRandomNormal calls.
     */
     void SaveRandomState (std::ostream& os);
 
-    /// \ingroup amrex_utilities
+    /**
+    * \ingroup amrex_utilities
+    * \brief Restore host random state saved by SaveRandomState.
+    *
+    * This does not restore GPU random state used by ParallelForRNG or GPU
+    * FillRandom/FillRandomNormal calls.
+    */
     void RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old);
 
     /**

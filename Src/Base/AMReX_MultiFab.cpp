@@ -202,7 +202,7 @@ MultiFab::Copy (MultiFab& dst, const MultiFab& src,
 {
 // don't have to BL_ASSERT(dst.boxArray() == src.boxArray());
     BL_ASSERT(dst.distributionMap == src.distributionMap);
-    BL_ASSERT(dst.nGrowVect().allGE(nghost));
+    BL_ASSERT(dst.nGrowVect().allGE(nghost) && src.nGrowVect().allGE(nghost));
 
     BL_PROFILE("MultiFab::Copy()");
 
@@ -1511,7 +1511,7 @@ MultiFab::OverlapMask (const Periodicity& period) const
                     Box const& b = is.second-iv;
 #ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
-                        tags.push_back({arr,b});
+                        tags.push_back(Array4BoxTag<Real>{.dfab = arr, .dbox = b});
                     } else
 #endif
                     {

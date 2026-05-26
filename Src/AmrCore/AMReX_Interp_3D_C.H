@@ -149,23 +149,6 @@ facediv_face_interp (int ci, int cj, int ck,
     switch (idir) {
         case 0:
         {
-//            const Real ll = crse(ci, cj-1, ck-1, nc);
-//            const Real cl = crse(ci, cj-1, ck,   nc);
-//            const Real rl = crse(ci, cj-1, ck+1, nc);
-//
-//            const Real lc = crse(ci, cj  , ck-1, nc);
-//            const Real cc = crse(ci, cj  , ck,   nc);
-//            const Real rc = crse(ci, cj  , ck+1, nc);
-
-//            const Real lu = crse(ci, cj+1, ck-1, nc);
-//            const Real cu = crse(ci, cj+1, ck,   nc);
-//            const Real ru = crse(ci, cj+1, ck+1, nc);
-
-//            fine(fi,fj  ,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-//            fine(fi,fj  ,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-//            fine(fi,fj+1,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-//            fine(fi,fj+1,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
-
             const Real slpy  = Real(0.5)* (crse(ci,cj+1,ck  ,n) - crse(ci,cj-1,ck  ,n));
             const Real slpz  = Real(0.5)* (crse(ci,cj,  ck+1,n) - crse(ci,cj,  ck-1,n));
             const Real slpyz = Real(0.25)*(crse(ci,cj+1,ck+1,n) - crse(ci,cj+1,ck-1,n) - crse(ci,cj-1,ck+1,n) + crse(ci,cj-1,ck-1,n));
@@ -187,23 +170,6 @@ facediv_face_interp (int ci, int cj, int ck,
         }
         case 1:
         {
-//            const Real ll = crse(ci-1, cj, ck-1, nc);
-//            const Real cl = crse(ci  , cj, ck-1, nc);
-//            const Real rl = crse(ci+1, cj, ck-1, nc);
-
-//            const Real lc = crse(ci-1, cj, ck  , nc);
-//            const Real cc = crse(ci  , cj, ck  , nc);
-//            const Real rc = crse(ci+1, cj, ck  , nc);
-
-//            const Real lu = crse(ci-1, cj, ck+1, nc);
-//            const Real cu = crse(ci  , cj, ck+1, nc);
-//            const Real ru = crse(ci+1, cj, ck+1, nc);
-
-//            fine(fi  ,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-//            fine(fi+1,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-//            fine(fi  ,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-//            fine(fi+1,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
-
             const Real slpx  = Real(0.5)* (crse(ci+1,cj,ck  ,n) - crse(ci-1,cj,ck  ,n));
             const Real slpz  = Real(0.5)* (crse(ci  ,cj,ck+1,n) - crse(ci  ,cj,ck-1,n));
             const Real slpxz = Real(0.25)*(crse(ci+1,cj,ck+1,n) - crse(ci+1,cj,ck-1,n) - crse(ci-1,cj,ck+1,n) + crse(ci-1,cj,ck-1,n));
@@ -221,28 +187,10 @@ facediv_face_interp (int ci, int cj, int ck,
             }
             }
 
-
             break;
         }
         case 2:
         {
-//            const Real ll = crse(ci-1, cj-1, ck, nc);
-//            const Real cl = crse(ci  , cj-1, ck, nc);
-//            const Real rl = crse(ci+1, cj-1, ck, nc);
-
-//            const Real lc = crse(ci-1, cj  , ck, nc);
-//            const Real cc = crse(ci  , cj  , ck, nc);
-//            const Real rc = crse(ci+1, cj  , ck, nc);
-
-//            const Real lu = crse(ci-1, cj+1, ck, nc);
-//            const Real cu = crse(ci  , cj+1, ck, nc);
-//            const Real ru = crse(ci+1, cj+1, ck, nc);
-
-//            fine(fi  ,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-//            fine(fi+1,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-//            fine(fi  ,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-//            fine(fi+1,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
-
             const Real slpx  = Real(0.5)* (crse(ci+1,cj,  ck,n) - crse(ci-1,cj,  ck  ,n));
             const Real slpy  = Real(0.5)* (crse(ci  ,cj+1,ck,n) - crse(ci,  cj-1,ck  ,n));
             const Real slpxy = Real(0.25)*(crse(ci+1,cj+1,ck,n) - crse(ci+1,cj-1,ck,n) - crse(ci-1,cj+1,ck,n) + crse(ci-1,cj-1,ck,n));
@@ -259,7 +207,6 @@ facediv_face_interp (int ci, int cj, int ck,
 
             }
             }
-
 
             break;
         }

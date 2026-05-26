@@ -820,7 +820,8 @@ FABio_8bit::read (std::istream& is,
     auto *c = new unsigned char[siz];
 
     Real mn, mx;
-    for(int nbytes, k = 0; k < f.nComp(); ++k) {
+    Long nbytes;
+    for(int k = 0; k < f.nComp(); ++k) {
         is >> mn >> mx >> nbytes;
         BL_ASSERT(nbytes == siz);
         while (is.get() != '\n') {
@@ -850,7 +851,8 @@ FABio_8bit::skip (std::istream& is,
     const Box& bx = f.box();
     Long siz      = bx.numPts();
     Real mn, mx;
-    for(int nbytes, k = 0; k < f.nComp(); ++k) {
+    Long nbytes;
+    for(int k = 0; k < f.nComp(); ++k) {
         is >> mn >> mx >> nbytes;
         BL_ASSERT(nbytes == siz);
         while(is.get() != '\n') {
@@ -872,7 +874,8 @@ FABio_8bit::skip (std::istream& is,
     const Box& bx = f.box();
     Long siz      = bx.numPts();
     Real mn, mx;
-    for(int nbytes, k = 0; k < nCompToSkip; ++k) {
+    Long nbytes;
+    for(int k = 0; k < nCompToSkip; ++k) {
         is >> mn >> mx >> nbytes;
         BL_ASSERT(nbytes == siz);
         while(is.get() != '\n') {

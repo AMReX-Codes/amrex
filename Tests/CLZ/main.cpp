@@ -1,4 +1,5 @@
 #include <AMReX.H>
+#include <AMReX_INT.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Algorithm.H>
 
@@ -21,10 +22,10 @@ void testCLZ ()
     AMREX_ALWAYS_ASSERT(amrex::clz(std::uint32_t(10)) == 28);
     AMREX_ALWAYS_ASSERT(amrex::clz(std::uint64_t(10)) == 60);
 
-    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint8_t (1 << 7  )) == 0);
-    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint16_t(1 << 15 )) == 0);
-    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint32_t(1 << 31 )) == 0);
-    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint64_t(1L << 63)) == 0);
+    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint8_t (1U << 7  )) == 0);
+    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint16_t(1U << 15 )) == 0);
+    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint32_t(1U << 31 )) == 0);
+    AMREX_ALWAYS_ASSERT(amrex::clz(std::uint64_t(amrex::ULong(1U) << 63)) == 0);
 
     amrex::ParallelFor(1, [=] AMREX_GPU_DEVICE (int /*i*/) noexcept {
             AMREX_ALWAYS_ASSERT(amrex::clz(std::uint8_t(10) ) == 4 );
@@ -32,9 +33,9 @@ void testCLZ ()
             AMREX_ALWAYS_ASSERT(amrex::clz(std::uint32_t(10)) == 28);
             AMREX_ALWAYS_ASSERT(amrex::clz(std::uint64_t(10)) == 60);
 
-            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint8_t (1 << 7  )) == 0);
-            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint16_t(1 << 15 )) == 0);
-            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint32_t(1 << 31 )) == 0);
-            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint64_t(1L << 63)) == 0);
+            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint8_t (1U << 7  )) == 0);
+            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint16_t(1U << 15 )) == 0);
+            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint32_t(1U << 31 )) == 0);
+            AMREX_ALWAYS_ASSERT(amrex::clz(std::uint64_t(amrex::ULong(1U) << 63)) == 0);
         });
 }

@@ -11,6 +11,7 @@
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_Vector.H>
 
+#include <iterator>
 #include <limits>
 #include <type_traits>
 
@@ -33,6 +34,15 @@ auto call_f (F const& f,
     } else {
         return f(p, i);
     }
+}
+
+template <typename F, template<class, class> class PTDType, class RType, class IType>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const PTDType<RType, IType>& p,
+             const int i) noexcept
+{
+    return f(p, i);
 }
 }
 /// \endcond
@@ -225,7 +235,7 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(+:sm)
 #endif
-            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            for (int pmap_it = 0; pmap_it < std::ssize(ptile_ptrs); ++pmap_it)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
@@ -429,7 +439,7 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(max:r)
 #endif
-            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            for (int pmap_it = 0; pmap_it < std::ssize(ptile_ptrs); ++pmap_it)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
@@ -632,7 +642,7 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(min:r)
 #endif
-            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            for (int pmap_it = 0; pmap_it < std::ssize(ptile_ptrs); ++pmap_it)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
@@ -830,7 +840,7 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(&&:r)
 #endif
-            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            for (int pmap_it = 0; pmap_it < std::ssize(ptile_ptrs); ++pmap_it)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
@@ -1029,7 +1039,7 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel for if (!system::regtest_reduction) reduction(||:r)
 #endif
-            for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+            for (int pmap_it = 0; pmap_it < std::ssize(ptile_ptrs); ++pmap_it)
             {
                 const auto& tile = plev.at(grid_tile_ids[pmap_it]);
                 const auto np = tile.numParticles();
@@ -1269,7 +1279,7 @@ ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& r
 #if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
 #pragma omp parallel for
 #endif
-        for (int pmap_it = 0; pmap_it < static_cast<int>(ptile_ptrs.size()); ++pmap_it)
+        for (int pmap_it = 0; pmap_it < std::ssize(ptile_ptrs); ++pmap_it)
         {
             const auto& tile = plev.at(grid_tile_ids[pmap_it]);
             const auto np = tile.numParticles();

@@ -89,7 +89,7 @@ WriteInfo GetWriteInfo (int rank)
         nspots = nmaxspots - 1;
     }
 
-    return WriteInfo{ifile, ispot, nspots};
+    return WriteInfo{.ifile = ifile, .ispot = ispot, .nspots = nspots};
 }
 
 void Submit (std::function<void()>&& a_f)

@@ -22,7 +22,7 @@ template<class T>
 struct IntegratorOps<T, std::enable_if_t<std::is_base_of_v<amrex::ParticleContainerBase, T> > >
 {
 
-    static void CreateLike (amrex::Vector<std::unique_ptr<T> >& V, const T& Other)
+    static void CreateLike (amrex::Vector<std::unique_ptr<T> >& V, const T& Other, bool /* Grow */ = false)
     {
         // Emplace a new T in V with the same size as Other and get a reference
         V.emplace_back(std::make_unique<T>(Other.Geom(0), Other.ParticleDistributionMap(0), Other.ParticleBoxArray(0)));

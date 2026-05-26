@@ -578,6 +578,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         pcd->src = &src;
         pcd->op = op;
         pcd->tag = tag;
+        // Deterministic GPU unpacking is currently implemented only for ADD.
+        pcd->deterministic = deterministic && (op == FabArrayBase::ADD);
 
         NC = std::min(NCompLeft,FabArrayBase::MaxComp);
         const bool last_iter = (NCompLeft == NC);
@@ -708,7 +710,8 @@ FabArray<FAB>::ParallelCopy_finish ()
         if (Gpu::inLaunchRegion())
         {
             unpack_recv_buffer_gpu(*this, pcd->DC, pcd->NC, pcd->recv_data, pcd->recv_size,
-                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id, false);
+                                   recv_cctc, pcd->op, is_thread_safe, thecpc->m_id,
+                                   pcd->deterministic);
         }
         else
 #endif
@@ -765,7 +768,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         T* const p0 = dest.dataPtr(dcomp);
         T* pb = p0;
 #ifdef AMREX_USE_GPU
-        if (dest.arena()->isDevice()) {
+        if (dest.arena()->isDevice() && !ParallelDescriptor::UseGpuAwareMpi()) {
             pb = (T*)The_Pinned_Arena()->alloc(sizeof(T)*count);
             Gpu::dtoh_memcpy_async(pb, p0, sizeof(T)*count);
             Gpu::streamSynchronize();
@@ -777,6 +780,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
         if (pb != p0) {
             Gpu::htod_memcpy_async(p0, pb, sizeof(T)*count);
             Gpu::streamSynchronize();
+            The_Pinned_Arena()->free(pb);
         }
 #endif
     }
@@ -1243,10 +1247,11 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
         if (cmds[imf]) {
             auto const& tags = *(cmds[imf]->m_LocTags);
             for (auto const& tag : tags) {
-                local_tags.push_back({(*mf[imf])[tag.dstIndex].array      (scomp[imf],ncomp[imf]),
-                                      (*mf[imf])[tag.srcIndex].const_array(scomp[imf],ncomp[imf]),
-                                      tag.dbox,
-                                      (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+                local_tags.push_back(TagT{.dfab = (*mf[imf])[tag.dstIndex].array(scomp[imf],ncomp[imf]),
+                                          .dindex = tag.dstIndex,
+                                          .sfab = (*mf[imf])[tag.srcIndex].const_array(scomp[imf],ncomp[imf]),
+                                          .dbox = tag.dbox,
+                                          .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
             }
         }
     }
@@ -1306,9 +1311,13 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                         for (auto const& cct : it->second) {
                             auto& dfab = (*mf[imf])[cct.dstIndex];
                             recv_offset[i].push_back(nbytes);
-                            recv_tags.push_back({dfab.array(scomp[imf],ncomp[imf]),
-                                                 makeArray4<T const>(nullptr,cct.dbox,ncomp[imf]),
-                                                 cct.dbox, Dim3{0,0,0}});
+                            recv_tags.push_back(TagT{
+                                .dfab = dfab.array(scomp[imf],ncomp[imf]),
+                                .dindex = cct.dstIndex,
+                                .sfab = makeArray4<T const>(nullptr,cct.dbox,ncomp[imf]),
+                                .dbox = cct.dbox,
+                                .offset = Dim3{.x = 0, .y = 0, .z = 0}
+                            });
                             nbytes += dfab.nBytes(cct.dbox,ncomp[imf]);
                         }
                     }
@@ -1379,9 +1388,13 @@ FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
                         for (auto const& cct : it->second) {
                             auto const& sfab = (*mf[imf])[cct.srcIndex];
                             send_offset[i].push_back(nbytes);
-                            send_tags.push_back({amrex::makeArray4<T>(nullptr,cct.sbox,ncomp[imf]),
-                                                 sfab.const_array(scomp[imf],ncomp[imf]),
-                                                 cct.sbox, Dim3{0,0,0}});
+                            send_tags.push_back(TagT{
+                                .dfab = amrex::makeArray4<T>(nullptr,cct.sbox,ncomp[imf]),
+                                .dindex = cct.dstIndex,
+                                .sfab = sfab.const_array(scomp[imf],ncomp[imf]),
+                                .dbox = cct.sbox,
+                                .offset = Dim3{.x = 0, .y = 0, .z = 0}
+                            });
                             nbytes += sfab.nBytes(cct.sbox,ncomp[imf]);
                         }
                     }

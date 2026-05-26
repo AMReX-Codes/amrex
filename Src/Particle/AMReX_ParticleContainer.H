@@ -23,6 +23,7 @@
 #include <AMReX_ArrayOfStructs.H>
 #include <AMReX_Particle.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTileRT.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_GpuContainers.H>
 #include <AMReX_ParticleUtil.H>
@@ -180,8 +181,14 @@ public:
     RealDescriptor ParticleRealDescriptor = FPC::Native64RealDescriptor();
 #endif
 
+    static constexpr bool is_rtsoa_pc = ParticleType::is_rtsoa_particle;
+
     using ParticleContainerType = ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>;
-    using ParticleTileType = ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>;
+    using ParticleTileType = std::conditional_t<
+        is_rtsoa_pc,
+        ParticleTileRT<typename ParticleType::RealType, typename ParticleType::IntType>,
+        ParticleTile<ParticleType, NArrayReal, NArrayInt, Allocator>
+    >;
     using ParticleInitData = ParticleInitType<NStructReal, NStructInt, NArrayReal, NArrayInt>;
 
     //! A single level worth of particles is indexed (grid id, tile id)
@@ -202,7 +209,7 @@ public:
     static constexpr bool has_polymorphic_allocator =
         IsPolymorphicArenaAllocator<Allocator<RealType>>::value;
 
-    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM,
+    static_assert(!ParticleType::is_soa_particle || T_NArrayReal >= AMREX_SPACEDIM || is_rtsoa_pc,
                   "Pure SoA particle containers require at least AMREX_SPACEDIM real components for positions");
 
     //! \brief Default constructor - construct an empty particle container that has no concept
@@ -814,7 +821,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-                                  F&& f, bool is_checkpoint=false) const;
+                                  F const& f, bool is_checkpoint=false) const;
 
     void CheckpointPre ();
 
@@ -856,8 +863,8 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
-    void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
+    template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
@@ -887,7 +894,7 @@ public:
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names,
-                        const Vector<std::string>&  int_comp_names, F&& f) const;
+                        const Vector<std::string>&  int_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify
@@ -913,9 +920,9 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
+    template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
-                        const Vector<std::string>& real_comp_names, F&& f) const;
+                        const Vector<std::string>& real_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
@@ -949,7 +956,7 @@ public:
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
                         const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp, F&& f) const;
+                        const Vector<int>& write_int_comp, F const& f) const;
 
     /**
      * \brief This is the most general version of WritePlotFile, which takes component
@@ -996,7 +1003,7 @@ public:
                         const Vector<int>& write_int_comp,
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names,
-                        F&& f) const;
+                        F const& f) const;
 
     void WritePlotFilePre ();
 
@@ -1276,8 +1283,8 @@ public:
     void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                           bool remove_negative=true);
 
-    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+                            bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
 
@@ -1467,12 +1474,13 @@ protected:
                                int lev_min = 0, int lev_max = -1, int local_grid=-1) const;
 
 public:
+    using FlagsVector = PODVector<int, Allocator<int>>;
+
     void
     WriteParticles (int level, std::ofstream& ofs, int fnum,
                     Vector<int>& which, Vector<int>& count, Vector<Long>& where,
                     const Vector<int>& write_real_comp, const Vector<int>& write_int_comp,
-                    const Vector<std::map<std::pair<int, int>,IntVector>>& particle_io_flags, bool is_checkpoint) const;
-
+                    const Vector<std::map<std::pair<int, int>,FlagsVector>>& particle_io_flags, bool is_checkpoint) const;
 #ifdef AMREX_USE_HDF5
 #include "AMReX_ParticlesHDF5.H"
 #endif
@@ -1538,6 +1546,17 @@ private:
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, int nGrow, int local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift);
+
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,
                          int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
@@ -1563,6 +1582,9 @@ using ParticleContainer = ParticleContainer_impl<Particle<T_NStructReal, T_NStru
 
 template <int T_NArrayReal, int T_NArrayInt, template<class> class Allocator=DefaultAllocator, class CellAssignor=DefaultAssignor>
 using ParticleContainerPureSoA = ParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
+
+template <class RType=ParticleReal, class IType=int, class CellAssignor=DefaultAssignor>
+using ParticleContainerRTSoA = ParticleContainer_impl<RTSoAParticle<RType, IType>, 0, 0, PolymorphicArenaAllocator, CellAssignor>;
 
 }
 

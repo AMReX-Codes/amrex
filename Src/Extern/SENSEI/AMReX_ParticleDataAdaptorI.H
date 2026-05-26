@@ -331,22 +331,22 @@ int ParticleDataAdaptor<ParticleType, NArrayReal, NArrayInt, Allocator>::AddArra
     return -1;
   }
 
-  if(m_realStructs.find(arrayName) != m_realStructs.end())
+  if(m_realStructs.contains(arrayName))
   {
     return this->AddParticlesAOSRealArray(arrayName, mesh);
   }
 
-  if(m_intStructs.find(arrayName) != m_intStructs.end())
+  if(m_intStructs.contains(arrayName))
   {
     return this->AddParticlesAOSIntArray(arrayName, mesh);
   }
 
-  if(m_realArrays.find(arrayName) != m_realArrays.end())
+  if(m_realArrays.contains(arrayName))
   {
     return this->AddParticlesSOARealArray(arrayName, mesh);
   }
 
-  if(m_intArrays.find(arrayName) != m_intArrays.end())
+  if(m_intArrays.contains(arrayName))
   {
     return this->AddParticlesSOAIntArray(arrayName, mesh);
   }

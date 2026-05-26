@@ -6,6 +6,7 @@
 #include "AMReX_MultiFab.H"
 
 #include "AMReX_PlotFileUtil.H"
+#include "AMReX_REAL.H"
 
 using namespace amrex;
 
@@ -52,13 +53,13 @@ class AdvectionAmrCore : public AmrCore {
             Array4<Real> vx = mass.array(mfi, 1);
             Array4<Real> vy = mass.array(mfi, 2);
             amrex::ParallelFor(mfi.tilebox(), [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-                Real x[] = {problo[0] + (0.5+i)*dx[0],
-                            problo[1] + (0.5+j)*dx[1]};
-                const double r2 = x[0] * x[0] + x[1] * x[1];
-                constexpr double R = 0.1 * 0.1;
-                m(i, j, k) = r2 < R ? 1.0 : 0.0;
-                vx(i, j, k) = r2 < R ? 1.0 : 0.0;
-                vy(i, j, k) = 0.0;
+                Real x[] = {problo[0] + (0.5_rt+i)*dx[0],
+                            problo[1] + (0.5_rt+j)*dx[1]};
+                const Real r2 = x[0] * x[0] + x[1] * x[1];
+                constexpr Real R = 0.1_rt * 0.1_rt;
+                m(i, j, k) = r2 < R ? 1_rt : 0_rt;
+                vx(i, j, k) = r2 < R ? 1_rt : 0_rt;
+                vy(i, j, k) = 0_rt;
             });
         }
     }
@@ -154,7 +155,9 @@ struct OnesidedMultiBlockBoundaryFn {
   FabArrayBase::BDKey cached_src_bd_key{};
   ApplyDtosAndProjectionOnReciever<MultiBlockIndexMapping,
                                    MapComponents<Identity, SwapComponents<1, 2>>>
-      packing{PackComponents{0, 0, three_components}, dtos};
+      packing{PackComponents{.dest_component = 0,
+                             .src_component = 0,
+                             .n_components = three_components}, dtos};
 
   AMREX_NODISCARD CommHandler FillBoundary_nowait() {
     if (!cmd || cached_dest_bd_key != dest->mass.getBDKey() || cached_src_bd_key != src->mass.getBDKey()) {
@@ -230,8 +233,8 @@ void WritePlotfiles(const AdvectionAmrCore& core_x, const AdvectionAmrCore& core
 
 void MyMain() {
     Box domain(IntVect{}, IntVect{AMREX_D_DECL(63, 63, 0)});
-    RealBox real_box1{{AMREX_D_DECL(-0.5, -0.3, 0.0)}, {AMREX_D_DECL(0.5, 0.7, 1.0)}};
-    RealBox real_box2{{AMREX_D_DECL(+0.55, -0.3, 0.0)}, {AMREX_D_DECL(1.55, 0.7, 1.0)}};
+    RealBox real_box1{{AMREX_D_DECL(-0.5_rt, -0.3_rt, 0_rt)}, {AMREX_D_DECL(0.5_rt, 0.7_rt, 1_rt)}};
+    RealBox real_box2{{AMREX_D_DECL(+0.55_rt, -0.3_rt, 0_rt)}, {AMREX_D_DECL(1.55_rt, 0.7_rt, 1_rt)}};
 
     Array<int, AMREX_SPACEDIM> is_periodic1{AMREX_D_DECL(0, 1, 0)};
     Geometry geom1{domain, real_box1, CoordSys::cartesian, is_periodic1};
@@ -280,10 +283,10 @@ void MyMain() {
 
     int step = 0;
     const Real min_dx1_dy2 = std::min(geom1.CellSize(0), geom2.CellSize(1));
-    const Real cfl = 1.0;
+    const Real cfl = 1_rt;
     const Real dt = cfl * min_dx1_dy2;
-    const Real final_time = 4.0;
-    Real time_point = 0.0;
+    const Real final_time = 4_rt;
+    Real time_point = 0_rt;
 
     WritePlotfiles(core_x, core_y, time_point, step);
     while (time_point < final_time) {

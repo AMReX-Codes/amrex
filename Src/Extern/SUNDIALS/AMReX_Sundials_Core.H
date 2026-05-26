@@ -11,6 +11,12 @@
 #  include <sundials/sundials_context.hpp>
 #endif
 
+/**
+ * \file AMReX_Sundials_Core.H
+ *
+ * Initialization helpers that manage SUNDIALS contexts shared across AMReX.
+ */
+
 namespace amrex::sundials {
 
 /**

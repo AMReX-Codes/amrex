@@ -8,15 +8,23 @@
 #include <type_traits>
 #include <cmath>
 
+/**
+ * \file AMReX_EB2_IF_Lathe.H
+ *
+ * Helper that revolves a 2-D implicit function around the z-axis.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Lathe an implicit curve around the z axis to build a surface of revolution.
 class LatheIF
 {
 public:
 
+    //! Store the curve implicit function prior to rotation.
     LatheIF (F a_f) : m_f(std::move(a_f)) {}
 
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept

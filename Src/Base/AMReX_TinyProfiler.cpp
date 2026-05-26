@@ -32,8 +32,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
 #include <set>
 
 namespace amrex {
@@ -46,6 +47,7 @@ std::vector<std::map<std::string, MemStat>*> TinyProfiler::all_memstats;
 std::vector<std::string> TinyProfiler::all_memnames;
 
 std::vector<std::string>          TinyProfiler::regionstack;
+std::vector<std::pair<std::string,bool> > TinyProfiler::regionstartstack;
 std::deque<std::tuple<double,double,std::string*> > TinyProfiler::ttstack;
 std::map<std::string,std::map<std::string, TinyProfiler::Stats> > TinyProfiler::statsmap;
 double TinyProfiler::t_init = std::numeric_limits<double>::max();
@@ -94,7 +96,7 @@ TinyProfiler::~TinyProfiler ()
 }
 
 void
-TinyProfiler::start () noexcept
+TinyProfiler::start ()
 {
     if (!enabled) { return; }
 
@@ -155,7 +157,7 @@ TinyProfiler::start () noexcept
 }
 
 void
-TinyProfiler::stop () noexcept
+TinyProfiler::stop ()
 {
     if (!enabled) { return; }
 
@@ -174,7 +176,7 @@ TinyProfiler::stop () noexcept
 
         const double t = amrex::second();
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<int>(ttstack.size()) == global_depth,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(ttstack) == global_depth,
             "TinyProfiler sections must be nested with respect to each other");
 #ifdef AMREX_USE_OMP
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(in_parallel_region == omp_in_parallel(),
@@ -356,7 +358,7 @@ TinyProfiler::MemoryInitialize ()
 }
 
 void
-TinyProfiler::Finalize (bool bFlushing) noexcept
+TinyProfiler::Finalize (bool bFlushing)
 {
     if (!enabled) { return; }
 
@@ -421,7 +423,7 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 
         if (!alreadySynced) {
             for (auto const& s : syncedRegions) {
-                if (lstatsmap.find(s) == lstatsmap.end()) {
+                if (!lstatsmap.contains(s)) {
                     lstatsmap.insert(std::make_pair(s,std::map<std::string,Stats>()));
                 }
             }
@@ -443,13 +445,14 @@ TinyProfiler::Finalize (bool bFlushing) noexcept
 
     if (!bFlushing) {
         regionstack.clear();
+        regionstartstack.clear();
         ttstack.clear();
         statsmap.clear();
     }
 }
 
 void
-TinyProfiler::MemoryFinalize (bool bFlushing) noexcept
+TinyProfiler::MemoryFinalize (bool bFlushing)
 {
     if (!memprof_enabled) { return; }
 
@@ -529,7 +532,7 @@ TinyProfiler::PrintStats (std::map<std::string,Stats>& regstats, double dt_max,
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (regstats.find(s) == regstats.end()) {
+                if (!regstats.contains(s)) {
                     regstats.insert(std::make_pair(s, Stats()));
                 }
             }
@@ -744,7 +747,7 @@ TinyProfiler::PrintMemStats (std::map<std::string, MemStat>& memstats,
 
         if (! alreadySynced) {  // add the new name
             for (auto const& s : syncedStrings) {
-                if (memstats.find(s) == memstats.end()) {
+                if (!memstats.contains(s)) {
                     memstats[s]; // insert
                 }
             }
@@ -950,9 +953,12 @@ TinyProfiler::StartRegion (std::string regname) noexcept
 {
     if (!enabled) { return; }
 
+    bool pushed = false;
     if (std::find(regionstack.begin(), regionstack.end(), regname) == regionstack.end()) {
-        regionstack.emplace_back(std::move(regname));
+        regionstack.emplace_back(regname);
+        pushed = true;
     }
+    regionstartstack.emplace_back(std::move(regname), pushed);
 }
 
 void
@@ -960,8 +966,13 @@ TinyProfiler::StopRegion (const std::string& regname) noexcept
 {
     if (!enabled) { return; }
 
-    if (regname == regionstack.back()) {
-        regionstack.pop_back();
+    if (!regionstartstack.empty() && regname == regionstartstack.back().first) {
+        if (regionstartstack.back().second) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!regionstack.empty() && regname == regionstack.back(),
+                "TinyProfiler regions must be nested with respect to each other");
+            regionstack.pop_back();
+        }
+        regionstartstack.pop_back();
     }
 }
 

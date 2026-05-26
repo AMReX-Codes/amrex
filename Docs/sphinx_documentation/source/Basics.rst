@@ -201,6 +201,54 @@ prints on the I/O process.  A common mistake in using it for debug
 printing is that one forgets that for non-I/O processes to print we should
 use :cpp:`AllPrint()` or :cpp:`Print(rank)`.
 
+.. _sec:basics:enum:
+
+Enum Class
+==========
+
+.. versionadded:: 24.09
+   Enum class support.
+
+AMReX provides :cpp:`AMREX_ENUM` in ``AMReX_Enum.H`` for defining a
+reflected :cpp:`enum class`. Use :cpp:`AMREX_ENUM` at namespace scope.
+
+.. highlight:: c++
+
+::
+
+   AMREX_ENUM(MyColor, red, green, blue);
+
+   void f ()
+   {
+       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
+       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
+       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
+       // names = {"red", "green", "blue"};
+       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
+   }
+
+Use :cpp:`AMREX_ENUM_IN_CLASS` for an enum class declared inside a class or
+class template.
+
+.. versionadded:: 26.05
+   :cpp:`AMREX_ENUM_IN_CLASS`.
+
+.. highlight:: c++
+
+::
+
+   struct Options {
+       AMREX_ENUM_IN_CLASS(Solver, cg, bicgstab, gmres);
+   };
+
+   template <typename T>
+   struct State {
+       AMREX_ENUM_IN_CLASS(Mode, init, run, stop);
+   };
+
+:cpp:`AMREX_ENUM_IN_CLASS` must be used inside a class definition. Use
+:cpp:`AMREX_ENUM` at namespace scope.
+
 .. _sec:basics:parmparse:
 
 ParmParse
@@ -450,25 +498,8 @@ Enum Class
 .. versionadded:: 24.09
    Enum class support in :cpp:`ParmParse`.
 
-AMReX provides a macro :cpp:`AMREX_ENUM` for defining :cpp:`enum class` that
-supports reflection. For example,
-
-.. highlight:: c++
-
-::
-
-   AMREX_ENUM(MyColor, red, green, blue);
-
-   void f ()
-   {
-       MyColor color = amrex::getEnum<MyColor>("red"); // MyColor::red
-       std::string name = amrex::getEnumNameString(MyColor::blue); // "blue"
-       std::vector<std::string> names = amrex::getEnumNameStrings<MyColor>();
-       // names = {"red", "green", "blue"};
-       std::string class_name = amrex::getEnumClassName<MyColor>(); // "MyColor"
-   }
-
-This allows us to read :cpp:`ParmParse` parameters into enum class objects.
+:cpp:`ParmParse` can read enum types declared with :cpp:`AMREX_ENUM` or
+:cpp:`AMREX_ENUM_IN_CLASS` (see :ref:`sec:basics:enum`).
 
 .. highlight:: python
 
@@ -477,22 +508,18 @@ This allows us to read :cpp:`ParmParse` parameters into enum class objects.
    color1 = red
    color2 = BLue
 
-The following code shows how to query the enumerators.
-
 .. highlight:: c++
 
 ::
 
    AMREX_ENUM(MyColor, none, red, green, blue);
 
-   void f (MyColor& c1, MyColor& c2)
-   {
-       ParmParse pp;
-       pp.query("color1", c1); // c1 becomes MyColor::red
-       pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
-       MyColor default_color; // MyColor::none
-       pp.query("color3", default_color); // Still MyColor::none
-   }
+   ParmParse pp;
+   MyColor c1 = MyColor::none;
+   MyColor c2 = MyColor::none;
+
+   pp.query("color1", c1); // c1 becomes MyColor::red
+   pp.query_enum_case_insensitive("color2", c2); // c2 becomes MyColor::blue
 
 Other Useful Functions
 ----------------------
@@ -668,6 +695,21 @@ entries in an inputs file:
    hydro.cfl = 0.9
    my_string = "A String"
 
+You can also remove the effect of having defined an input parameter at all using the
+``UNSET`` directive (parameters that are merely overridden will still be caught by
+:cpp:`pp.contains()` checks in code). Specifying ``keyword = 5`` in an input file and
+then ``UNSET = keyword`` subsequently in the input file or from the command line
+completely removes ``keyword`` from the ParmParse table. Multiple keywords can
+be removed simultaneously (``UNSET = key1 key2 key3``). if using the ``UNSET``
+directive with TOML-like input files, note that full parameter names must be used
+even if the UNSET falls within a TOML table:
+
+.. code-block:: none
+
+   [x]
+   a = 1  # Same as x.a = 1 at the root level
+
+   UNSET = x.a # full name required to remove x.a entry
 
 Setting Defaults via an Environment Variable
 --------------------------------------------
@@ -982,12 +1024,14 @@ integer if it is reasonable to do so. For example, it's okay to have
 Thread Safety
 -------------
 
-Constructing a :cpp:`Parser` (or :cpp:`IParser`) object is **not** thread-safe
-because the underlying lex/yacc parser uses global state. If multiple threads
-need to construct parsers concurrently, external synchronization is required.
-Once compiled, the :cpp:`ParserExecutor` returned by :cpp:`compile` or
-:cpp:`compileHost` is thread-safe and can be called concurrently from multiple
-threads or GPU kernels.
+Different :cpp:`Parser` (or :cpp:`IParser`) objects may be constructed
+concurrently from multiple host threads. Once compiled, the
+:cpp:`ParserExecutor` or :cpp:`IParserExecutor` returned by :cpp:`compile` or
+:cpp:`compileHost` may be called concurrently from multiple threads or GPU
+kernels. However, it is usually unnecessary and less efficient to construct one
+parser per thread merely to evaluate an expression in parallel. Construct,
+configure, and compile the parser once, then share the compiled executor while
+keeping the owning parser object alive.
 
 .. _sec:basics:initialize:
 

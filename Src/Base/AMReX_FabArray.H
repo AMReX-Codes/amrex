@@ -43,6 +43,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <memory>
@@ -145,6 +146,7 @@ struct PCData {
     Vector<std::size_t> recv_size;
     Vector<MPI_Request> recv_reqs;
     Vector<MPI_Request> send_reqs;
+    bool                deterministic = false;
 
 };
 
@@ -495,6 +497,8 @@ public:
     * FABs are allocated for each Box in the BoxArray and the
     * sizes of the FABs and the number of components are consistent
     * with the definition of the FabArray.
+    * \warning This routine performs an MPI collective, so every rank in the
+    * current active MPI communicator must participate.
     */
     bool ok () const;
 
@@ -832,6 +836,8 @@ public:
     * \param comp   component
     * \param nghost number of ghost cells
     * \param local  If true, MPI communication is skipped.
+    * \warning Unless \p local is true, this routine performs an MPI collective
+    * and every rank in the current active MPI communicator must participate.
     */
     template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
@@ -1445,6 +1451,8 @@ public:
      * \param nghost         number of ghost cells
      * \param local          If true, MPI communication is skipped.
      * \param ignore_covered ignore covered cells. Only relevant for cell-centered EB data.
+     * \warning Unless \p local is true, this routine performs an MPI collective
+     * and every rank in the current active MPI communicator must participate.
      */
     template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
@@ -1460,6 +1468,8 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      * \param local  If true, MPI communication is skipped.
+     * \warning Unless \p local is true, this routine performs an MPI collective
+     * and every rank in the current active MPI communicator must participate.
      */
     template <typename IFAB, typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
     typename F::value_type
@@ -1746,7 +1756,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != 0) {
         return true;
     }
     else {
@@ -1759,7 +1769,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 {
     int li = mfi.LocalIndex();
-    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         return true;
     }
     else {
@@ -1865,7 +1875,7 @@ FAB*
 FabArray<FAB>::release (int K)
 {
     const int li = localindex(K);
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -1885,7 +1895,7 @@ FAB*
 FabArray<FAB>::release (const MFIter& mfi)
 {
     const int li = mfi.LocalIndex();
-    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -2505,9 +2515,9 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(2, vbx.smallEnd(2)-nghost[2], nghost[2]);
                         b.grow(IntVect(nghost[0],nghost[1],0));
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(2, vbx.length(2)+nghost[2]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
 #endif
 #if (AMREX_SPACEDIM >= 2)
@@ -2515,17 +2525,17 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(1, vbx.smallEnd(1)-nghost[1], nghost[1]);
                         b.grow(0, nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(1, vbx.length(1)+nghost[1]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
 #endif
                     if (nghost[0] > 0) {
                         b = vbx;
                         b.setRange(0, vbx.smallEnd(0)-nghost[0], nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                         b.shift(0, vbx.length(0)+nghost[0]);
-                        tags.emplace_back(Tag{a, b});
+                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
                     }
                 }
 
@@ -3642,7 +3652,7 @@ FabArray<FAB>::SumBoundary_nowait (int scomp, int ncomp, IntVect const& src_ngho
 
     if ( n_grow == IntVect::TheZeroVector() && boxArray().ixType().cellCentered()) { return; }
 
-    AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow));
+    AMREX_ALWAYS_ASSERT(src_nghost.allLE(n_grow) && dst_nghost.allLE(n_grow));
 
     FBEP_nowait(scomp, ncomp, dst_nghost, period, false, false, false, src_nghost, deterministic);
 }

@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <numbers>
 
 #include "MyTest.H"
 #include "MyEB.H"
@@ -15,7 +16,7 @@ using namespace amrex;
 void
 MyTest::initializeEB ()
 {
-    constexpr Real pi = 3.1415926535897932;
+    constexpr Real pi = std::numbers::pi_v<Real>;
 
     ParmParse pp("eb2");
     std::string geom_type;

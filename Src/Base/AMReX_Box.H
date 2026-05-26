@@ -225,7 +225,7 @@ public:
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (int i, int j, int k) const noexcept {
-        Dim3 p3d{i, j, k};
+        Dim3 p3d{.x = i, .y = j, .z = k};
         return contains(p3d);
     }
 
@@ -268,7 +268,7 @@ public:
     template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool strictly_contains (int i, int j, int k) const noexcept {
-        Dim3 p3d{i, j, k};
+        Dim3 p3d{.x = i, .y = j, .z = k};
         return strictly_contains(p3d);
     }
 
@@ -328,7 +328,7 @@ public:
 
     /// \cond DOXYGEN_IGNORE
     //! Assert that there are no int/Long overflows when calling length or numPts.
-    void checkOverflow () const noexcept {
+    void checkOverflow () const {
         if (ok()) {
             for (int i = 0; i < dim; ++i) {
                 auto lo = static_cast<Long>(smallend[i]);
@@ -2133,7 +2133,7 @@ AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 BoxND<dim> makeSingleCellBox (int i, int j, int k, IndexTypeND<dim> typ = IndexTypeND<dim>::TheCellType())
 {
-    Dim3 p3d{i, j, k};
+    Dim3 p3d{.x = i, .y = j, .z = k};
     IntVectND<dim> vect{p3d};
     return BoxND<dim>{vect, vect, typ};
 }
@@ -2214,7 +2214,7 @@ struct BoxIndexerND<1>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 operator() (std::uint64_t icell) const
     {
-        return {int(icell)+lo, 0, 0};
+        return Dim3{.x = int(icell)+lo, .y = 0, .z = 0};
     }
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

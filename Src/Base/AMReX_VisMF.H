@@ -13,6 +13,7 @@
 #include <AMReX_VisMFBuffer.H>
 
 #include <fstream>
+#include <iterator>
 #include <iostream>
 #include <sstream>
 #include <deque>
@@ -405,7 +406,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
         procsWithData.insert(i);
     }
     const int nOutFiles = VisMF::GetNOutFiles();
-    if (static_cast<int>(procsWithData.size()) < nOutFiles) {
+    if (std::ssize(procsWithData) < nOutFiles) {
         useSparseFPP = true;
         for (auto i : procsWithData) {
             procsWithDataVector.push_back(i);
@@ -430,9 +431,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
             {
                 std::stringstream hss;
                 fio.write_header(hss, fab, fab.nComp());
-                auto hLength = static_cast<std::streamoff>(hss.tellp());
-                auto tstr = hss.str();
-                nfi.Stream().write(tstr.c_str(), hLength);
+                auto const tstr = hss.view();
+                nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));
                 nfi.Stream().flush();
             }
             auto const* fabdata = fab.dataPtr();
@@ -668,7 +668,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
                 auto whichread = allreads[fi].begin();
                 for ( ; whichread != allreads[fi].end(); ++whichread) {
                     const int tryproc = whichread->first;
-                    if (busyprocs.find(tryproc) == busyprocs.end()) { // not busy
+                    if (!busyprocs.contains(tryproc)) { // not busy
                         busyprocs.insert(tryproc);
                         Vector<int> vreads;
                         vreads.reserve(whichread->second.size());

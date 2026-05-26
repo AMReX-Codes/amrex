@@ -2,6 +2,7 @@
 #define AMREX_INTVECT_H_
 #include <AMReX_Config.H>
 
+#include <AMReX.H>
 #include <AMReX_INT.H>
 #include <AMReX_SPACE.H>
 #include <AMReX_Array.H>
@@ -40,6 +41,97 @@ int coarsen (int i) noexcept
 {
     return (i<0) ? -std::abs(i+1)/ratio-1 : i/ratio;
 }
+
+/// \cond DOXYGEN_IGNORE
+namespace detail
+{
+    template <typename T>
+    std::ostream& T_vector_write (std::ostream& os, const T* data, int dim)
+    {
+        os << '(' << data[0];
+        for (int i = 1; i < dim; ++i) {
+            os << ',' << data[i];
+        }
+        os << ')';
+        if (os.fail()) {
+            amrex::Error("operator<<(ostream&,[Int|Real]Vect&) failed");
+        }
+        return os;
+    }
+
+    template <typename T>
+    std::istream& T_vector_read (std::istream& is, T* data, int dim)
+    {
+        is >> std::ws;
+        char c;
+        is >> c;
+
+        for (int i = 0; i < dim; ++i) {
+            data[i] = T(0);
+        }
+
+        if (c == '(')
+        {
+            int component = 0;
+            bool need_comma = false;
+
+            while (true) {
+                is >> std::ws;
+                int ic = is.peek();
+
+                if (ic == std::char_traits<char>::eof()) {
+                    if (component == 0) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): missing first component");
+                    } else {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): premature EOF");
+                    }
+                }
+
+                if (ic == static_cast<int>(')')) {
+                    is.get();
+                    if (component == 0) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): missing first component");
+                    }
+                    break;
+                }
+
+                if (need_comma) {
+                    if (ic != static_cast<int>(',')) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): expected ',' or ')'");
+                    }
+                    is.get();
+                    is >> std::ws;
+                }
+
+                T value{};
+                if (!(is >> value)) {
+                    if (component == 0) {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): missing first component");
+                    } else {
+                        amrex::Error("operator>>(ostream&,[Int|Real]Vect&): premature EOF");
+                    }
+                }
+
+                if (component < dim) {
+                    data[component] = value;
+                }
+                ++component;
+                need_comma = true;
+            }
+        }
+        else
+        {
+            amrex::Error("operator>>(ostream&,[Int|Real]Vect&): expected '('");
+        }
+
+        if (is.fail()) {
+            amrex::Error("operator>>(ostream&,[Int|Real]Vect&) failed");
+        }
+
+        return is;
+    }
+}
+/// \endcond
 
 /**
 * \class amrex::IntVectND
@@ -172,11 +264,11 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 () const noexcept {
         if constexpr (dim == 1) {
-            return Dim3{vect[0],0,0};
+            return Dim3{.x = vect[0], .y = 0, .z = 0};
         } else if constexpr (dim == 2) {
-            return Dim3{vect[0],vect[1],0};
+            return Dim3{.x = vect[0], .y = vect[1], .z = 0};
         } else {
-            return Dim3{vect[0],vect[1],vect[2]};
+            return Dim3{.x = vect[0], .y = vect[1], .z = vect[2]};
         }
     }
 
@@ -184,11 +276,11 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
         if constexpr (dim == 1) {
-            return Dim3{vect[0],fill_extra,fill_extra};
+            return Dim3{.x = vect[0], .y = fill_extra, .z = fill_extra};
         } else if constexpr (dim == 2) {
-            return Dim3{vect[0],vect[1],fill_extra};
+            return Dim3{.x = vect[0], .y = vect[1], .z = fill_extra};
         } else {
-            return Dim3{vect[0],vect[1],vect[2]};
+            return Dim3{.x = vect[0], .y = vect[1], .z = vect[2]};
         }
     }
 
@@ -910,7 +1002,6 @@ constexpr IntVectND<dim> operator+ (int s, const IntVectND<dim>& p) noexcept
 template<int dim>
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
-AMREX_GPU_HOST_DEVICE
 constexpr IntVectND<dim> operator- (int s, const IntVectND<dim>& p) noexcept
 {
     IntVectND<dim> retval = p;
@@ -1078,11 +1169,11 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
 {
     if constexpr (dim == 1) {
-        return Dim3{coarse.x*ratio[0], coarse.y, coarse.z};
+        return Dim3{.x = coarse.x*ratio[0], .y = coarse.y, .z = coarse.z};
     } else if constexpr (dim == 2) {
-        return Dim3{coarse.x*ratio[0], coarse.y*ratio[1], coarse.z};
+        return Dim3{.x = coarse.x*ratio[0], .y = coarse.y*ratio[1], .z = coarse.z};
     } else {
-        return Dim3{coarse.x*ratio[0], coarse.y*ratio[1], coarse.z*ratio[2]};
+        return Dim3{.x = coarse.x*ratio[0], .y = coarse.y*ratio[1], .z = coarse.z*ratio[2]};
     }
 }
 
@@ -1091,24 +1182,22 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
 {
     if constexpr (dim == 1) {
-        return Dim3{amrex::coarsen(fine.x, ratio[0]),
-                    fine.y,
-                    fine.z};
+        return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
+                    .y = fine.y,
+                    .z = fine.z};
     } else if constexpr (dim == 2) {
-        return Dim3{amrex::coarsen(fine.x, ratio[0]),
-                    amrex::coarsen(fine.y, ratio[1]),
-                    fine.z};
+        return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
+                    .y = amrex::coarsen(fine.y, ratio[1]),
+                    .z = fine.z};
     } else {
-        return Dim3{amrex::coarsen(fine.x, ratio[0]),
-                    amrex::coarsen(fine.y, ratio[1]),
-                    amrex::coarsen(fine.z, ratio[2])};
+        return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
+                    .y = amrex::coarsen(fine.y, ratio[1]),
+                    .z = amrex::coarsen(fine.z, ratio[2])};
     }
 }
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
-    std::ostream& int_vector_write (std::ostream& os, const int* iv, int dim);
-    std::istream& int_vector_read (std::istream& is, int* iv, int dim);
 
     template<int dim>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
@@ -1143,18 +1232,33 @@ namespace detail {
 }
 /// \endcond
 
+/**
+ * \brief Streams an IntVectND as a parenthesized, comma-separated tuple.
+ *
+ * The output format is `(v0,v1,...,v{dim-1})`.
+ */
 template<int dim>
 std::ostream&
 operator<< (std::ostream& os, const IntVectND<dim>& iv)
 {
-    return detail::int_vector_write(os, iv.begin(), dim);
+    return detail::T_vector_write(os, iv.begin(), dim);
 }
 
+/**
+ * \brief Extracts an IntVectND from the canonical parenthesized tuple syntax.
+ *
+ * Accepts `(v0,v1,...,v{dim-1})` surrounded by optional whitespace.
+ * Missing trailing components are filled with zero, and any additional
+ * comma-separated values beyond `dim` are syntactically validated and then
+ * ignored so that higher-dimensional files are compatible with
+ * lower-dimensional readers.  Any structural or numeric errors will result
+ * in `amrex::Error`.
+ */
 template<int dim>
 std::istream&
 operator>> (std::istream& is, IntVectND<dim>& iv)
 {
-    return detail::int_vector_read(is, iv.begin(), dim);
+    return detail::T_vector_read(is, iv.begin(), dim);
 }
 
 /**
