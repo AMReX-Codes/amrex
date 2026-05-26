@@ -220,7 +220,7 @@ facediv_int (int ci, int cj, int /*ck*/, int n,
 }
 
 template<typename T>
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
                     GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
                     IntVect const& ratio,
