@@ -219,7 +219,7 @@ public:
                       int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 
 #if (AMREX_SPACEDIM == 3)
-    template <typename GS = G> requires(std::is_same_v<GS,STLtools>)
+    template <typename GS = G> requires(std::same_as<GS,STLtools>)
     /**
      * \brief Define a fine level for multi-valued multi-cut STL geometries (3-D only).
      */
