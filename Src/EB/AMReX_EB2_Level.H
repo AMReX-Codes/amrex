@@ -664,7 +664,7 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 
 #if (AMREX_SPACEDIM == 3)
 template <typename G>
-template <typename GS, std::enable_if_t<std::is_same_v<GS,STLtools>,int> FOO>
+template <typename GS> requires(std::same_as<GS,STLtools>)
 void
 GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
                                  int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)

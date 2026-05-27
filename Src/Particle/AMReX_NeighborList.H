@@ -288,17 +288,15 @@ struct NeighborData
     ConstPTDType m_const_ptile_data;
 };
 
-template<typename A, typename B,
-         std::enable_if_t<std::is_same_v<std::remove_cv_t<A>,
-                                         std::remove_cv_t<B> >, int> = 0>
+template<typename A, typename B>
+    requires(std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
 bool isSame (A const* pa, B const* pb)
 {
     return pa == pb;
 }
 
-template<typename A, typename B,
-         std::enable_if_t<!std::is_same_v<std::remove_cv_t<A>,
-                                          std::remove_cv_t<B> >, int> = 0>
+template<typename A, typename B>
+    requires(!std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
 bool isSame (A const* /*pa*/, B const* /*pb*/)
 {
     return false;

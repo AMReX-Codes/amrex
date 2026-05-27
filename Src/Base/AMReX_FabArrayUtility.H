@@ -43,11 +43,10 @@ ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 #ifdef AMREX_USE_GPU
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class OP, class FAB, class F>
-std::enable_if_t<IsBaseFab<FAB>::value,
-                 std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
-                                    std::is_same_v<OP,ReduceOpLogicalOr>,
-                                    int, typename FAB::value_type> >
+template <class OP, class FAB, class F> requires(IsBaseFab<FAB>::value)
+std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
+                   std::is_same_v<OP,ReduceOpLogicalOr>,
+                   int, typename FAB::value_type>
 ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
@@ -63,10 +62,10 @@ ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 }
 
 template <class OP, class FAB1, class FAB2, class F>
-std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value,
-                 std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
-                                    std::is_same_v<OP,ReduceOpLogicalOr>,
-                                    int, typename FAB1::value_type> >
+    requires(IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value)
+std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
+                   std::is_same_v<OP,ReduceOpLogicalOr>,
+                   int, typename FAB1::value_type>
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
@@ -84,10 +83,10 @@ ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& n
 }
 
 template <class OP, class FAB1, class FAB2, class FAB3, class F>
-std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<FAB3>::value,
-                 std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
-                                    std::is_same_v<OP,ReduceOpLogicalOr>,
-                                    int, typename FAB1::value_type> >
+    requires(IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<FAB3>::value)
+std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
+                   std::is_same_v<OP,ReduceOpLogicalOr>,
+                   int, typename FAB1::value_type>
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
           FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
 {
