@@ -976,7 +976,7 @@ void launch (BoxND<dim> const& box, L const& f)
  * \ingroup amrex_execution
  * \brief Performance-portable kernel launch function
  */
-template <int MT, std::integral T, typename L > requires(MaybeDeviceRunnable<L>::value>
+template <int MT, std::integral T, typename L > requires(MaybeDeviceRunnable<L>::value)
 ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
 {
     static_assert(sizeof(T) >= 2);
@@ -1004,7 +1004,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L, int dim>
-    requires(MaybeDeviceRunnable<L>::value>
+    requires(MaybeDeviceRunnable<L>::value)
 ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
@@ -1872,7 +1872,7 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, typename L1, typename L2, typename L3, int dim>
-    requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
+    requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
                        L1&& f1, L2&& f2, L3&& f3)
@@ -1926,7 +1926,7 @@ requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::valu
 }
 
 template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
+requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
