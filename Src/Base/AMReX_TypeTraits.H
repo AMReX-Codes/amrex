@@ -44,6 +44,9 @@ namespace amrex
     inline constexpr bool IsMultiFabLike_v = IsMultiFabLike<M>::value;
 
 
+    template <bool B, class T = void>
+    using EnableIf_t = std::enable_if_t<B,T>;
+
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
     template <> struct HasAtomicAdd<int> : std::true_type {};

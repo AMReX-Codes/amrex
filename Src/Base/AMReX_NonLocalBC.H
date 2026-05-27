@@ -99,10 +99,10 @@ struct MultiBlockIndexMapping {
 //!
 //! \return Returns IntVect{dtos(Dim3{iv})}
 template <typename DTOS>
-    requires (IsCallableR<Dim3, DTOS, Dim3>::value)
 IntVect
 Apply(DTOS const& dtos, const IntVect& iv)
- {
+    requires (IsCallableR<Dim3, DTOS, Dim3>::value)
+{
     Dim3 i = dtos(iv.dim3());
     return IntVect{AMREX_D_DECL(i.x, i.y, i.z)};
 }
@@ -117,10 +117,10 @@ Apply(DTOS const& dtos, const IntVect& iv)
 //! \return Returns the smallest Box in the source index space that contains images of
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
-    requires (IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value)
 Box
 Image (DTOS const& dtos, const Box& box)
- {
+    requires (IsCallableR<Dim3, DTOS, Dim3>::value && !IsCallableR<IndexType, DTOS, IndexType>::value)
+{
     IntVect mapped_smallEnd = Apply(dtos, box.smallEnd());
     IntVect mapped_bigEnd = Apply(dtos, box.bigEnd());
     IntVect smallEnd;
@@ -142,10 +142,10 @@ Image (DTOS const& dtos, const Box& box)
 //! \return Returns the smallest Box in the source index space that contains images of
 //! Apply(dtos, box.smallEnd()) and Apply(dtos, box.bigEnd()).
 template <typename DTOS>
-    requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value)
 Box
 Image (DTOS const& dtos, const Box& box)
- {
+    requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsCallableR<IndexType, DTOS, IndexType>::value)
+{
     // "Forget" the index type mapping and invoke Image without changing the index type.
     Box srcbox = Image([&dtos](Dim3 d) { return dtos(d); }, box);
     // Fix the index type of the resulting box
@@ -166,10 +166,10 @@ Image (DTOS const& dtos, const Box& box)
 //!
 //! \return Returns IntVect{dtos.Inverse(Dim3{iv})}
 template <typename DTOS>
-    requires (HasInverseMemFn<DTOS>::value)
 IntVect
 ApplyInverse(DTOS const& dtos, const IntVect& iv)
- {
+    requires (HasInverseMemFn<DTOS>::value)
+{
     return Apply([&dtos](Dim3 i) { return dtos.Inverse(i); }, iv);
 }
 
@@ -183,10 +183,10 @@ ApplyInverse(DTOS const& dtos, const IntVect& iv)
 //! \return Returns the smallest Box in the destination index space that contains images of
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
-    requires (HasInverseMemFn<DTOS>::value && !IsCallableR<IndexType, DTOS, IndexType>::value)
 Box
 InverseImage (DTOS const& dtos, const Box& box)
- {
+    requires (HasInverseMemFn<DTOS>::value && !IsCallableR<IndexType, DTOS, IndexType>::value)
+{
     return Image([&dtos](Dim3 i) { return dtos.Inverse(i); }, box);
 }
 
@@ -200,10 +200,10 @@ InverseImage (DTOS const& dtos, const Box& box)
 //! \return Returns the smallest Box in the destination index space that contains images of
 //! ApplyInverse(box.smallEnd()) and ApplyInverse(box.bigEnd()).
 template <typename DTOS>
-    requires (HasInverseMemFn<DTOS>::value && IsCallableR<IndexType, DTOS, IndexType>::value)
 Box
 InverseImage (DTOS const& dtos, const Box& box)
- {
+    requires (HasInverseMemFn<DTOS>::value && IsCallableR<IndexType, DTOS, IndexType>::value)
+{
     return Image([&dtos](auto&& i) { return dtos.Inverse(i); }, box);
 }
 
