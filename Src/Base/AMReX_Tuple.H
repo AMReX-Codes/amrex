@@ -117,16 +117,16 @@ public:
         {}
 
     template <typename... Us>
-        requires (sizeof...(Us) == sizeof...(Ts))
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
-    operator= (GpuTuple<Us...> const& rhs);
+    operator= (GpuTuple<Us...> const& rhs)
+        requires (sizeof...(Us) == sizeof...(Ts));
 
     template <typename... Us>
-        requires (sizeof...(Us) == sizeof...(Ts))
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
-    operator= (GpuTuple<Us...> && rhs);
+    operator= (GpuTuple<Us...> && rhs)
+        requires (sizeof...(Us) == sizeof...(Ts));
 };
 
 // GpuTupleSize
@@ -222,7 +222,7 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE
     void
     tuple_copy (TP1 & a, TP2 && b)
- {
+    {
         (amrex::get<I>(a) = amrex::get<I>(std::forward<TP2>(b)),
          tuple_copy<I+1,N>(a,std::forward<TP2>(b)));
     }
@@ -232,25 +232,27 @@ namespace detail {
     AMREX_GPU_HOST_DEVICE
     void
     tuple_copy (TP1 & a, TP2 && b)
- {
+    {
         amrex::get<I>(a) = amrex::get<I>(std::forward<TP2>(b));
     }
 }
 /// \endcond
 
 template <typename... Ts>
-template <typename... Us> requires (sizeof...(Us) == sizeof...(Ts))
+template <typename... Us>
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
+    requires (sizeof...(Us) == sizeof...(Ts))
 {
     detail::tuple_copy<0,sizeof...(Ts)>(*this, rhs);
     return *this;
 }
 
 template <typename... Ts>
-template <typename... Us> requires (sizeof...(Us) == sizeof...(Ts))
+template <typename... Us>
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> && rhs)
+    requires (sizeof...(Us) == sizeof...(Ts))
 {
     detail::tuple_copy<0,sizeof...(Ts)>(*this, std::move(rhs));
     return *this;
