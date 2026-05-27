@@ -266,11 +266,12 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F> requires(!std::same_as<F, Vector<std::string>>)
+template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const std::string& compression, F&& f) const
+    requires (!std::same_as<F, Vector<std::string>>)
 {
     Vector<int> write_real_comp;
     Vector<std::string> real_comp_names;
@@ -324,12 +325,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F> requires(!std::same_as<F, Vector<std::string>>)
+template <class F>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                      const Vector<std::string>& real_comp_names,
                      const std::string& compression, F&& f) const
+    requires (!std::same_as<F, Vector<std::string>>)
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;

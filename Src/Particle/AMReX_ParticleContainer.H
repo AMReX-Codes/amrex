@@ -593,8 +593,8 @@ public:
      * \brief Return capacity of memory for particles at specific grid
      */
     template <typename I>
+    void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
     requires std::is_integral_v<I> && (sizeof(I) >= sizeof(Long))
-    void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
     /**
     * \brief Returns # of particles at all levels
@@ -690,8 +690,9 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType>
+    void copyParticles (const PCType& other, bool local=false)
     requires IsParticleContainer<PCType>::value
-    void copyParticles (const PCType& other, bool local=false);
+;
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls
@@ -701,8 +702,9 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType>
+    void addParticles (const PCType& other, bool local=false)
     requires IsParticleContainer<PCType>::value
-    void addParticles (const PCType& other, bool local=false);
+;
 
     /**
     * \brief Copy particles from other to this ParticleContainer. Will clear all the
@@ -719,8 +721,9 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType>
+    void copyParticles (const PCType& other, F&&f, bool local=false)
     requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
-    void copyParticles (const PCType& other, F&&f, bool local=false);
+;
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls
@@ -736,8 +739,9 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType>
+    void addParticles (const PCType& other, F const& f, bool local=false)
     requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
-    void addParticles (const PCType& other, F const& f, bool local=false);
+;
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.

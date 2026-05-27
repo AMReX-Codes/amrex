@@ -40,9 +40,10 @@ public:
         return m_f({x, y});
     }
 
-    template <class U=F> requires(IsGPUable<U>::value)
+    template <class U=F>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real operator() (Real x, Real y) const noexcept
+    Real operator()(Real x, Real y) const noexcept
+    requires (IsGPUable<U>::value)
     {
         return m_f( x*m_cos_angle + y*m_sin_angle,
                    -x*m_sin_angle + y*m_cos_angle);
@@ -74,9 +75,10 @@ public:
         }
     }
 
-    template <class U=F> requires(IsGPUable<U>::value)
+    template <class U=F>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real operator() (Real x, Real y, Real z) const noexcept
+    Real operator()(Real x, Real y, Real z) const noexcept
+    requires (IsGPUable<U>::value)
     {
         switch(m_dir) {
         case(0):

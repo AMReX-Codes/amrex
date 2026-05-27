@@ -198,11 +198,11 @@ public:
     * where N is equal to the number of dimensions of the IntVectND.
     */
     template <class...Args>
-        requires ((sizeof...(Args)+2 == dim) &&
-            IsConvertible_v<int, Args...>)
     AMREX_GPU_HOST_DEVICE
     constexpr IntVectND (int i, int j, Args...ks) noexcept
-: vect{i, j, static_cast<int>(ks)...} {}
+        requires ((sizeof...(Args)+2 == dim) &&
+            IsConvertible_v<int, Args...>)
+        : vect{i, j, static_cast<int>(ks)...} {}
 
     /**
     * \brief Construct an IntVectND whose components are all the same.
@@ -247,8 +247,9 @@ public:
     }
 
     template <int N=dim>
+    explicit constexpr IntVectND (Dim3 const& a) noexcept
         requires ( 1<=N && N<=3 )
-    explicit constexpr IntVectND (Dim3 const& a) noexcept {
+        {
         vect[0] = a.x;
         if constexpr (dim >= 2) {
             vect[1] = a.y;
@@ -261,9 +262,10 @@ public:
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
     template <int N=dim>
-        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    constexpr Dim3 dim3 () const noexcept {
+    constexpr Dim3 dim3 () const noexcept
+        requires ( 1<=N && N<=3 )
+        {
         if constexpr (dim == 1) {
             return Dim3{.x = vect[0], .y = 0, .z = 0};
         } else if constexpr (dim == 2) {
@@ -274,9 +276,10 @@ public:
     }
 
     template <int N=dim>
-        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
+    constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept
+        requires ( 1<=N && N<=3 )
+        {
         if constexpr (dim == 1) {
             return Dim3{.x = vect[0], .y = fill_extra, .z = fill_extra};
         } else if constexpr (dim == 2) {
@@ -900,9 +903,10 @@ IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 
 // Template deduction guide for IntVectND
 template <class...Args>
-    requires (IsConvertible_v<int, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
-IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
+IntVectND(int, int, Args...)
+    requires (IsConvertible_v<int, Args...>)
+-> IntVectND<sizeof...(Args)+2>;
 
 //! \brief IntVect is an alias for \ref amrex::IntVectND instantiated with
 //! <tt>AMREX_SPACEDIM</tt>.
@@ -1165,9 +1169,9 @@ coarsen (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
 }
 
 template<int dim>
-    requires ( 1<=dim && dim<=3 )
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
+    requires ( 1<=dim && dim<=3 )
  {
     if constexpr (dim == 1) {
         return Dim3{.x = coarse.x*ratio[0], .y = coarse.y, .z = coarse.z};
@@ -1179,9 +1183,9 @@ constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
 }
 
 template<int dim>
-    requires ( 1<=dim && dim<=3 )
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
+    requires ( 1<=dim && dim<=3 )
  {
     if constexpr (dim == 1) {
         return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),

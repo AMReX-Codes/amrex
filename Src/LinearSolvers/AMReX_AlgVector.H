@@ -204,14 +204,16 @@ public:
     [[nodiscard]] std::pair<T,T> norm1and2 (bool local = false) const;
 
     template <typename FAB>
-        requires(amrex::IsBaseFab<FAB>::value &&
+    void copyFrom (FabArray<FAB> const& fa)
+        requires (amrex::IsBaseFab<FAB>::value &&
                  std::same_as<T,typename FAB::value_type>)
-    void copyFrom (FabArray<FAB> const& fa);
+;
 
     template <typename FAB>
-        requires(amrex::IsBaseFab<FAB>::value &&
+    void copyTo (FabArray<FAB> & fa)
+        requires (amrex::IsBaseFab<FAB>::value &&
                  std::same_as<T,typename FAB::value_type>)
-    void copyTo (FabArray<FAB> & fa) const;
+    const;
 
     /*
      * \brief Print the vector to files.
@@ -423,9 +425,10 @@ std::pair<T,T> AlgVector<T,Allocator>::norm1and2 (bool local) const
  * \param fa Source data; each valid box is copied in IndexType order.
  */
 template <typename T, typename Allocator>
-template <typename FAB> requires(amrex::IsBaseFab<FAB>::value &&
-                               std::same_as<T,typename FAB::value_type>)
+template <typename FAB>
 void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
+    requires (amrex::IsBaseFab<FAB>::value &&
+              std::same_as<T,typename FAB::value_type>)
 {
     AMREX_ASSERT(fa.is_cell_centered());
 
@@ -450,9 +453,10 @@ void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
  * \param fa Destination data that receives entries owned by this rank.
  */
 template <typename T, typename Allocator>
-template <typename FAB> requires(amrex::IsBaseFab<FAB>::value &&
-                               std::same_as<T,typename FAB::value_type>)
+template <typename FAB>
 void AlgVector<T,Allocator>::copyTo (FabArray<FAB> & fa) const
+    requires (amrex::IsBaseFab<FAB>::value &&
+              std::same_as<T,typename FAB::value_type>)
 {
     AMREX_ASSERT(fa.is_cell_centered());
 

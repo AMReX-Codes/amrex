@@ -54,10 +54,11 @@ public:
     * where N is equal to the number of dimensions of the IndexTypeND.
     */
     template <class...Args>
+    AMREX_GPU_HOST_DEVICE
+    constexpr IndexTypeND (CellIndex i, Args...js)
         requires ((sizeof...(Args)+1 == dim) &&
             IsConvertible_v<CellIndex, Args...>)
-    AMREX_GPU_HOST_DEVICE
-    constexpr IndexTypeND (CellIndex i, Args...js) noexcept
+    noexcept
 {
         CellIndex locarr[dim] = {i, static_cast<CellIndex>(js)...};
         for (int s=0; s<dim; ++s) {
@@ -248,9 +249,10 @@ IndexTypeND(const IntVectND<dim>&) -> IndexTypeND<dim>;
 
 // Template deduction guide for IndexTypeND
 template <class...Args>
-    requires (IsConvertible_v<IndexType::CellIndex, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
-IndexTypeND(IndexType::CellIndex, Args...) -> IndexTypeND<sizeof...(Args)+1>;
+IndexTypeND(IndexType::CellIndex, Args...)
+    requires (IsConvertible_v<IndexType::CellIndex, Args...>)
+-> IndexTypeND<sizeof...(Args)+1>;
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {

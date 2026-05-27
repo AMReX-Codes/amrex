@@ -328,9 +328,9 @@ class RealVectND {
         Returns the result of the cross product with another RealVectND
     */
     template <int N=dim>
-        requires (N == 3)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline RealVectND crossProduct (
-        const RealVectND& a_rhs) const noexcept;
+        const RealVectND& a_rhs) const noexcept
+        requires (N == 3)
 
     ///
     /**
@@ -593,9 +593,10 @@ protected:
 
 // Template deduction guide for RealVectND
 template <class...Args>
-    requires (IsConvertible_v<Real, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
-RealVectND(Real, Real, Args...) -> RealVectND<sizeof...(Args)+2>;
+RealVectND(Real, Real, Args...)
+    requires (IsConvertible_v<Real, Args...>)
+-> RealVectND<sizeof...(Args)+2>;
 
 // Template deduction guide for RealVectND
 template<int dim>
@@ -847,10 +848,11 @@ RealVectND<dim>::dotProduct (const RealVectND<dim>& a_rhs) const noexcept {
 
 template <int dim>
 template <int N>
-    requires (N == 3)
 AMREX_GPU_HOST_DEVICE inline
 RealVectND<dim>
-RealVectND<dim>::crossProduct (const RealVectND<dim>& a_rhs) const noexcept {
+RealVectND<dim>::crossProduct (const RealVectND<dim>& a_rhs) const noexcept
+    requires (N == 3)
+    {
     RealVectND<dim> tmp(vect[1] * a_rhs[2] - vect[2] * a_rhs[1],
                         vect[2] * a_rhs[0] - vect[0] * a_rhs[2],
                         vect[0] * a_rhs[1] - vect[1] * a_rhs[0]);

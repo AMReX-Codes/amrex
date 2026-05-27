@@ -54,8 +54,9 @@ T Sum (N n, T const* v, T init_val = 0);
  * \return the sum.
  */
 template <typename T, std::integral N, typename F>
+T Sum (N n, F const& f, T init_val = 0)
     requires (!std::is_same_v<T*,std::decay_t<F>>)
-T Sum (N n, F const& f, T init_val = 0);
+;
 
 /**
  * \ingroup amrex_collectives
@@ -91,8 +92,9 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max());
  * \return the minimum.
  */
 template <typename T, std::integral N, typename F>
+T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
     requires (!std::is_same_v<T*,std::decay_t<F>>)
-T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max());
+;
 
 /**
  * \ingroup amrex_collectives
@@ -128,8 +130,9 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest());
  * \return the maximum.
  */
 template <typename T, std::integral N, typename F>
+T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
     requires (!std::is_same_v<T*,std::decay_t<F>>)
-T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest());
+;
 
 /**
  * \ingroup amrex_collectives
@@ -163,8 +166,9 @@ std::pair<T,T> MinMax (N n, T const* v);
  * \return the pair of minimum and maximum.
  */
 template <typename T, std::integral N, typename F>
+std::pair<T,T> MinMax (N n, F const& f)
     requires (!std::is_same_v<T*,std::decay_t<F>>)
-std::pair<T,T> MinMax (N n, F const& f);
+;
 
 /**
  * \ingroup amrex_collectives
@@ -327,14 +331,16 @@ struct ReduceOpMin
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
-        requires (std::numeric_limits<T>::is_specialized)
     constexpr void
-    init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
+    init (T& t) const noexcept
+        requires (std::numeric_limits<T>::is_specialized)
+        { t = std::numeric_limits<T>::max(); }
 
     template <typename T>
-        requires (!std::numeric_limits<T>::is_specialized)
     constexpr void
-    init (T& t) const noexcept { t = T::max(); }
+    init (T& t) const noexcept
+        requires (!std::numeric_limits<T>::is_specialized)
+        { t = T::max(); }
 };
 
 /// \ingroup amrex_collectives
@@ -363,14 +369,16 @@ struct ReduceOpMax
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
-        requires (std::numeric_limits<T>::is_specialized)
     constexpr void
-    init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
+    init (T& t) const noexcept
+        requires (std::numeric_limits<T>::is_specialized)
+        { t = std::numeric_limits<T>::lowest(); }
 
     template <typename T>
-        requires (!std::numeric_limits<T>::is_specialized)
     constexpr void
-    init (T& t) const noexcept { t = T::lowest(); }
+    init (T& t) const noexcept
+        requires (!std::numeric_limits<T>::is_specialized)
+        { t = T::lowest(); }
 };
 
 /// \ingroup amrex_collectives
@@ -576,18 +584,18 @@ namespace Reduce::detail {
     struct iterate_box_comp {};
 
     template <typename I, typename F, typename T, typename... Ps>
-    requires (std::same_as<iterate_box,I>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int, T& r) noexcept
+    requires (std::same_as<iterate_box,I>)
     {
         auto const& pr = f(ibox,i,j,k);
         Reduce::detail::for_each_local<0, T, Ps...>(r, pr);
     }
 
     template <typename I, typename F, typename T, typename... Ps>
-    requires (std::same_as<iterate_box_comp,I>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int ncomp, T& r) noexcept
+    requires (std::same_as<iterate_box_comp,I>)
     {
         for (int n = 0; n < ncomp; ++n) {
             auto const& pr = f(ibox,i,j,k,n);
@@ -731,12 +739,12 @@ public:
 /// \endcond
 
     template <typename MF, typename D, typename F>
+    void eval (MF const& mf, IntVect const& nghost, D& reduce_data, F&& f)
         requires (IsFabArray<MF>::value
 #ifndef AMREX_USE_CUDA
                      && IsCallable<F, int, int, int, int>::value
 #endif
                     )
-    void eval (MF const& mf, IntVect const& nghost, D& reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
         const int nboxes = mf.local_size();
@@ -759,12 +767,12 @@ public:
     }
 
     template <typename MF, typename D, typename F>
+    void eval (MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F&& f)
         requires (IsFabArray<MF>::value
 #ifndef AMREX_USE_CUDA
                      && IsCallable<F, int, int, int, int, int>::value
 #endif
                      )
-    void eval (MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
 
@@ -957,8 +965,8 @@ T Sum (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     ReduceOps<ReduceOpSum> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -980,8 +988,8 @@ T Min (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     ReduceOps<ReduceOpMin> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -1003,8 +1011,8 @@ T Max (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     ReduceOps<ReduceOpMax> reduce_op;
     ReduceData<T> reduce_data(reduce_op);
@@ -1028,8 +1036,8 @@ std::pair<T,T> MinMax (N n, T const* v)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
     ReduceData<T,T> reduce_data(reduce_op);
@@ -1244,11 +1252,11 @@ private:
     // call_f_box
 
     template <typename D, typename F, int dim>
+    AMREX_FORCE_INLINE
+    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
         requires (std::is_same_v<std::decay_t<decltype(
             Reduce::detail::call_f_intvect(std::declval<F const&>(), IntVectND<dim>())
         )>, typename D::Type>)
-    AMREX_FORCE_INLINE
-    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
         noexcept -> void
 
 {
@@ -1261,11 +1269,11 @@ private:
     }
 
     template <typename D, typename F, int dim>
+    AMREX_FORCE_INLINE
+    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
         requires (std::is_same_v<std::decay_t<decltype(
             std::declval<F const&>()(std::declval<BoxND<dim> const&>()))>,
                                                   typename D::Type>)
-    AMREX_FORCE_INLINE
-    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
         noexcept -> void
 
 {
@@ -1276,9 +1284,9 @@ private:
 public:
 
     template <typename MF, typename D, typename F>
-        requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
+        requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value)
  {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1304,9 +1312,9 @@ public:
     }
 
     template <typename MF, typename D, typename F>
-        requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
+        requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value)
  {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1396,8 +1404,8 @@ private:
 namespace Reduce {
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1416,8 +1424,8 @@ T Sum (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1436,8 +1444,8 @@ T Min (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     T r = init_val;
 #ifdef AMREX_USE_OMP
@@ -1456,8 +1464,8 @@ T Max (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
+    requires (!std::is_same_v<T*,std::decay_t<F>>)
 {
     T r_min = std::numeric_limits<T>::max();
     T r_max = std::numeric_limits<T>::lowest();
@@ -1646,10 +1654,10 @@ public:
      *          either \c Result_t(int,int,int) or \c Result_t(IntVectND<dim>).
      */
     template <typename F, int dim>
-        requires (IsCallable<F, int, int, int>::value ||
-                     IsCallable<F, IntVectND<dim>>::value)
     void
     eval (BoxND<dim> const& box, F&& f)
+        requires (IsCallable<F, int, int, int>::value ||
+                     IsCallable<F, IntVectND<dim>>::value)
 
 {
         this->m_reduce_op.eval(box, this->m_reduce_data, std::forward<F>(f));
@@ -1671,10 +1679,10 @@ public:
      *          with the last argument the component index in both versions.
      */
     template <typename F, int dim>
-        requires (IsCallable<F, int, int, int, int>::value ||
-                     IsCallable<F, IntVectND<dim>, int>::value)
     void
     eval (BoxND<dim> const& box, int ncomp, F&& f)
+        requires (IsCallable<F, int, int, int, int>::value ||
+                     IsCallable<F, IntVectND<dim>, int>::value)
 
 {
         this->m_reduce_op.eval(box, ncomp, this->m_reduce_data, std::forward<F>(f));
@@ -1700,10 +1708,10 @@ public:
      *          local box index in \c mf and the \f$(i,j,k)\f$ cell indices.
      */
     template <typename MF, typename F>
-        requires (IsFabArray<MF>::value &&
-                     IsCallable<F, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, F && f)
+        requires (IsFabArray<MF>::value &&
+                     IsCallable<F, int, int, int, int>::value)
 
 {
         this->m_reduce_op.eval(mf, nghost, this->m_reduce_data, std::forward<F>(f));
@@ -1732,10 +1740,10 @@ public:
      *          component index.
      */
     template <typename MF, typename F>
-        requires (IsFabArray<MF>::value &&
-                     IsCallable<F, int, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, int ncomp, F && f)
+        requires (IsFabArray<MF>::value &&
+                     IsCallable<F, int, int, int, int, int>::value)
 
 {
         this->m_reduce_op.eval(mf, nghost, ncomp, this->m_reduce_data, std::forward<F>(f));
@@ -1754,9 +1762,9 @@ public:
      *          invocable as \c Result_t(N).
      */
     template <typename N, typename F>
-        requires (IsCallable<F, N>::value)
     void
     eval (N n, F && f)
+        requires (IsCallable<F, N>::value)
  {
         this->m_reduce_op.eval(n, this->m_reduce_data, std::forward<F>(f));
     }

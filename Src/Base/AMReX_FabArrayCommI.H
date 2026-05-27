@@ -6,14 +6,15 @@ namespace amrex {
 
 template <class FAB>
 template <typename BUF, class F>
-    requires (IsBaseFab<F>::value)
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
                             bool enforce_periodicity_only,
                             bool override_sync,
                             IntVect const& sumboundary_src_nghost,
-                            bool deterministic) // so far the deterministic is for sumboundary only
+                            bool deterministic)
+    requires (IsBaseFab<F>::value)
+// so far the deterministic is for sumboundary only
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
@@ -216,9 +217,9 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
 
 template <class FAB>
 template <typename BUF, class F>
-    requires (IsBaseFab<F>::value)
 void
 FabArray<FAB>::FillBoundary_finish ()
+    requires (IsBaseFab<F>::value)
 {
 #ifdef AMREX_USE_MPI
 

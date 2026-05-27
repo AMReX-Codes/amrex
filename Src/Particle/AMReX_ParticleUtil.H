@@ -31,9 +31,9 @@ namespace amrex {
  *
  */
 template <class Iterator>
-requires IsParticleIterator<Iterator>::value
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
+    requires IsParticleIterator<Iterator>::value
 {
     return numParticlesOutOfRange(pti,
                                   IntVect(AMREX_D_DECL(nGrow, nGrow, nGrow)));
@@ -50,9 +50,9 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  *
  */
 template <class Iterator>
-requires IsParticleIterator<Iterator>::value
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
+    requires IsParticleIterator<Iterator>::value
 {
     const auto& tile = pti.GetParticleTile();
     const auto np = tile.numParticles();
@@ -97,9 +97,9 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
  *
  */
 template <class PC>
-requires IsParticleContainer<PC>::value
 Long
 numParticlesOutOfRange (PC const& pc, int nGrow)
+    requires IsParticleContainer<PC>::value
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
 }
@@ -117,9 +117,9 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  *
  */
 template <class PC>
-requires IsParticleContainer<PC>::value
 Long
 numParticlesOutOfRange (PC const& pc, IntVect nGrow)
+    requires IsParticleContainer<PC>::value
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
 }
@@ -139,9 +139,9 @@ numParticlesOutOfRange (PC const& pc, IntVect nGrow)
  *
  */
 template <class PC>
-requires IsParticleContainer<PC>::value
 Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
+    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("numParticlesOutOfRange()");
 
@@ -164,9 +164,9 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
  *
  */
 template <class PC>
-requires IsParticleContainer<PC>::value
 Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
+    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("numParticlesOutOfRange()");
 
@@ -948,9 +948,9 @@ std::string getDefaultCompNameInt (const int i) {
  * \param permutations
  */
 template <class PTile, class index_type>
-requires (!PTile::ParticleType::is_rtsoa_particle)
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
+    requires (!PTile::ParticleType::is_rtsoa_particle)
 {
     const size_t np       = ptile.numParticles();
     const size_t np_total = np + ptile.numNeighborParticles();
@@ -1052,9 +1052,9 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
  * \param permutations
  */
 template <class PTile, class index_type>
-requires PTile::ParticleType::is_rtsoa_particle
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
+    requires PTile::ParticleType::is_rtsoa_particle
 {
     const size_t np = ptile.numParticles();
     {

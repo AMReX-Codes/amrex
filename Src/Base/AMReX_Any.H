@@ -29,15 +29,16 @@ public:
 
     //! Constructs by moving the given object.
     template <typename MF>
-    requires (!std::same_as<Any,std::decay_t<MF>>)
     Any (MF && mf) // NOLINT(bugprone-forwarding-reference-overload)
+    requires (!std::same_as<Any,std::decay_t<MF>>)
         : m_ptr(std::make_unique<innards<MF> >(std::forward<MF>(mf)))
         {}
 
     //! Assigns by moving the given object.
     template <typename MF>
+    Any& operator= (MF && mf)
     requires (!std::same_as<Any,std::decay_t<MF>>)
-    Any& operator= (MF && mf) {
+{
         m_ptr = std::make_unique<innards<MF> >(std::forward<MF>(mf));
         return *this;
     }

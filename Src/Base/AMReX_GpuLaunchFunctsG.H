@@ -976,8 +976,9 @@ void launch (BoxND<dim> const& box, L const& f)
  * \ingroup amrex_execution
  * \brief Performance-portable kernel launch function
  */
-template <int MT, std::integral T, typename L > requires(MaybeDeviceRunnable<L>::value)
+template <int MT, std::integral T, typename L >
 void ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
+    requires (MaybeDeviceRunnable<L>::value)
 {
     static_assert(sizeof(T) >= 2);
     if (amrex::isEmpty(n)) { return; }
@@ -1004,8 +1005,8 @@ void ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L, int dim>
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
+    requires (MaybeDeviceRunnable<L>::value)
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
@@ -1031,8 +1032,8 @@ void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T, typename L, int dim >
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
+    requires (MaybeDeviceRunnable<L>::value)
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
@@ -1059,8 +1060,8 @@ void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L cons
  * generation support.
  */
 template <std::integral T, typename L >
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelForRNG (T n, L const& f)
+    requires (MaybeDeviceRunnable<L>::value)
 {
     if (amrex::isEmpty(n)) { return; }
     randState_t* rand_state = getRandState();
@@ -1085,8 +1086,8 @@ void ParallelForRNG (T n, L const& f)
  * generation support.
  */
 template <typename L, int dim>
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelForRNG (BoxND<dim> const& box, L const& f)
+    requires (MaybeDeviceRunnable<L>::value)
 {
     if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
@@ -1113,8 +1114,8 @@ void ParallelForRNG (BoxND<dim> const& box, L const& f)
  * generation support.
  */
 template <std::integral T, typename L, int dim >
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
+    requires (MaybeDeviceRunnable<L>::value)
 {
     if (amrex::isEmpty(box)) { return; }
     randState_t* rand_state = getRandState();
@@ -1140,9 +1141,9 @@ void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L1, typename L2, int dim>
-    requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
 void ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2)
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
     const BoxIndexerND<dim> indexer1(box1);
@@ -1171,10 +1172,10 @@ void ParallelFor (Gpu::KernelInfo const&,
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L1, typename L2, typename L3, int dim>
-    requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value)
 void ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
              L1&& f1, L2&& f2, L3&& f3)
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value)
 {
     if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
     const BoxIndexerND<dim> indexer1(box1);
@@ -1208,11 +1209,12 @@ void ParallelFor (Gpu::KernelInfo const&,
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value) void ParallelFor (Gpu::KernelInfo const&,
+{
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2))
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value) void ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
              BoxND<dim> const& box2, T2 ncomp2, L2&& f2)
-{
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2)) { return; }
+{ return; }
     const BoxIndexerND<dim> indexer1(box1);
     const BoxIndexerND<dim> indexer2(box2);
     const auto ec = Gpu::makeExecutionConfig<MT>(std::max(box1.numPts(),box2.numPts()));
@@ -1239,12 +1241,13 @@ requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value) void 
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value) void ParallelFor (Gpu::KernelInfo const&,
+{
+    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3))
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value) void ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
              BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
              BoxND<dim> const& box3, T3 ncomp3, L3&& f3)
-{
-    if (amrex::isEmpty(box1) && amrex::isEmpty(box2) && amrex::isEmpty(box3)) { return; }
+{ return; }
     const BoxIndexerND<dim> indexer1(box1);
     const BoxIndexerND<dim> indexer2(box2);
     const BoxIndexerND<dim> indexer3(box3);
@@ -1290,8 +1293,8 @@ void launch (T const& n, L&& f) noexcept
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T, typename L >
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
+    requires (MaybeDeviceRunnable<L>::value)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, n, std::forward<L>(f));
 }
@@ -1301,8 +1304,8 @@ void ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
  * \brief Performance-portable kernel launch function
  */
 template <typename L, int dim>
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f) noexcept
+    requires (MaybeDeviceRunnable<L>::value)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, std::forward<L>(f));
 }
@@ -1312,8 +1315,8 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f) noe
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T, typename L, int dim >
-    requires(MaybeDeviceRunnable<L>::value)
 void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f) noexcept
+    requires (MaybeDeviceRunnable<L>::value)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, ncomp, std::forward<L>(f));
 }
@@ -1323,9 +1326,9 @@ void ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L
  * \brief Performance-portable kernel launch function
  */
 template <typename L1, typename L2, int dim>
-    requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
 void ParallelFor (Gpu::KernelInfo const& info,
              BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2) noexcept
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, box2, std::forward<L1>(f1),
                                        std::forward<L2>(f2));
@@ -1336,10 +1339,10 @@ void ParallelFor (Gpu::KernelInfo const& info,
  * \brief Performance-portable kernel launch function
  */
 template <typename L1, typename L2, typename L3, int dim>
-    requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value)
 void ParallelFor (Gpu::KernelInfo const& info,
              BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
              L1&& f1, L2&& f2, L3&& f3) noexcept
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value)
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, box2, box3, std::forward<L1>(f1),
                                        std::forward<L2>(f2), std::forward<L3>(f3));
@@ -1350,12 +1353,13 @@ void ParallelFor (Gpu::KernelInfo const& info,
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value) void ParallelFor (Gpu::KernelInfo const& info,
-             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
-             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, ncomp1, std::forward<L1>(f1),
-                                             box2, ncomp2, std::forward<L2>(f2));
+                                             box2, ncomp2, std::forward<L2>(f2))
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value) void ParallelFor (Gpu::KernelInfo const& info,
+             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
+             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
+;
 }
 
 /**
@@ -1363,14 +1367,15 @@ requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value) void 
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-requires(MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value) void ParallelFor (Gpu::KernelInfo const& info,
-             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
-             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
-             BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box1, ncomp1, std::forward<L1>(f1),
                                              box2, ncomp2, std::forward<L2>(f2),
-                                             box3, ncomp3, std::forward<L3>(f3));
+                                             box3, ncomp3, std::forward<L3>(f3))
+    requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value) void ParallelFor (Gpu::KernelInfo const& info,
+             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
+             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
+             BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
+;
 }
 
 template <std::integral T, typename L >
@@ -1732,8 +1737,8 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
 }
 
 template <std::integral T, typename L >
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,n,std::forward<L>(f));
@@ -1748,8 +1753,8 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
 }
 
 template <int MT, std::integral T, typename L >
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,n,std::forward<L>(f));
@@ -1764,22 +1769,22 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
 }
 
 template <std::integral T, typename L >
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (T n, L&& f) noexcept
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
 template <int MT, std::integral T, typename L >
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (T n, L&& f) noexcept
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     HostDeviceParallelFor<MT>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
 template <typename L, int dim>
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f)
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,std::forward<L>(f));
@@ -1793,8 +1798,8 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, 
 }
 
 template <int MT, typename L, int dim>
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f)
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info, box,std::forward<L>(f));
@@ -1808,8 +1813,8 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, 
 }
 
 template <std::integral T, typename L, int dim >
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f)
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info, box,ncomp,std::forward<L>(f));
@@ -1823,8 +1828,8 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, 
 }
 
 template <int MT, std::integral T, typename L, int dim >
-    requires(MaybeHostDeviceRunnable<L>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f)
+    requires (MaybeHostDeviceRunnable<L>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info, box,ncomp,std::forward<L>(f));
@@ -1838,9 +1843,9 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, 
 }
 
 template <typename L1, typename L2, int dim>
-    requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2)
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
@@ -1855,9 +1860,9 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, typename L1, typename L2, int dim>
-    requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2)
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,box1,box2,std::forward<L1>(f1),std::forward<L2>(f2));
@@ -1872,10 +1877,10 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, typename L1, typename L2, typename L3, int dim>
-    requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
                        L1&& f1, L2&& f2, L3&& f3)
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,box1,box2,box3,
@@ -1892,11 +1897,12 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value) void HostDeviceParallelFor (Gpu::KernelInfo const& info,
+{
+    if (Gpu::inLaunchRegion())
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value) void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2)
 {
-    if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
     } else {
 #ifdef AMREX_USE_SYCL
@@ -1909,11 +1915,12 @@ requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::valu
 }
 
 template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value) void HostDeviceParallelFor (Gpu::KernelInfo const& info,
+{
+    if (Gpu::inLaunchRegion())
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value) void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2)
 {
-    if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
     } else {
 #ifdef AMREX_USE_SYCL
@@ -1926,11 +1933,11 @@ requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::valu
 }
 
 template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                        BoxND<dim> const& box3, T3 ncomp3, L3&& f3)
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 {
     if (Gpu::inLaunchRegion()) {
         ParallelFor<AMREX_GPU_MAX_THREADS>(info,
@@ -1949,11 +1956,12 @@ void HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-    requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
 void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
-                       BoxND<dim> const& box3, T3 ncomp3, L3&& f3){
+                       BoxND<dim> const& box3, T3 ncomp3, L3&& f3)
+    requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
+{
     if (Gpu::inLaunchRegion()) {
         ParallelFor<MT>(info,
                     box1,ncomp1,std::forward<L1>(f1),

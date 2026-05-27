@@ -88,9 +88,9 @@ auto call_f (F const& f,
  *
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceSum (PC const& pc, F&& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceSum(pc, 0, pc.finestLevel(), std::forward<F>(f));
@@ -137,9 +137,9 @@ ReduceSum (PC const& pc, F&& f)
  *    \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceSum (PC const& pc, int lev, F&& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceSum(pc, lev, lev, std::forward<F>(f));
@@ -187,9 +187,9 @@ ReduceSum (PC const& pc, int lev, F&& f)
  *    \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()));
@@ -293,9 +293,9 @@ ReduceSum (PC const& pc, int lev_min, int lev_max, F const& f)
  *    \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceMax (PC const& pc, F&& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMax(pc, 0, pc.finestLevel(), std::forward<F>(f));
@@ -343,9 +343,9 @@ ReduceMax (PC const& pc, F&& f)
  *
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceMax (PC const& pc, int lev, F&& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMax(pc, lev, lev, std::forward<F>(f));
@@ -393,9 +393,9 @@ ReduceMax (PC const& pc, int lev, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()));
@@ -500,9 +500,9 @@ ReduceMax (PC const& pc, int lev_min, int lev_max, F const& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceMin (PC const& pc, F&& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMin(pc, 0, pc.finestLevel(), std::forward<F>(f));
@@ -549,9 +549,9 @@ ReduceMin (PC const& pc, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceMin (PC const& pc, int lev, F&& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     return ReduceMin(pc, lev, lev, std::forward<F>(f));
@@ -599,9 +599,9 @@ ReduceMin (PC const& pc, int lev, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 auto
 ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
+    requires IsParticleContainer<PC>::value
     -> decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()))
 {
     using value_type = decltype(particle_detail::call_f(f, typename PC::ConstPTDType(), int()));
@@ -706,9 +706,9 @@ ReduceMin (PC const& pc, int lev_min, int lev_max, F const& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalAnd (PC const& pc, F&& f)
+    requires IsParticleContainer<PC>::value
 {
     return ReduceLogicalAnd(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -754,9 +754,9 @@ ReduceLogicalAnd (PC const& pc, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalAnd (PC const& pc, int lev, F&& f)
+    requires IsParticleContainer<PC>::value
 {
     return ReduceLogicalAnd(pc, lev, lev, std::forward<F>(f));
 }
@@ -803,9 +803,9 @@ ReduceLogicalAnd (PC const& pc, int lev, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
+    requires IsParticleContainer<PC>::value
 {
     int r = true;
 
@@ -907,9 +907,9 @@ ReduceLogicalAnd (PC const& pc, int lev_min, int lev_max, F const& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalOr (PC const& pc, F&& f)
+    requires IsParticleContainer<PC>::value
 {
     return ReduceLogicalOr(pc, 0, pc.finestLevel(), std::forward<F>(f));
 }
@@ -955,9 +955,9 @@ ReduceLogicalOr (PC const& pc, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalOr (PC const& pc, int lev, F&& f)
+    requires IsParticleContainer<PC>::value
 {
     return ReduceLogicalOr(pc, lev, lev, std::forward<F>(f));
 }
@@ -1004,9 +1004,9 @@ ReduceLogicalOr (PC const& pc, int lev, F&& f)
  *     \endcode
  */
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 bool
 ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
+    requires IsParticleContainer<PC>::value
 {
     int r = false;
 
@@ -1132,9 +1132,9 @@ ReduceLogicalOr (PC const& pc, int lev_min, int lev_max, F const& f)
  * \endcode
  */
 template <class RD, class PC, class F, class ReduceOps>
-requires IsParticleContainer<PC>::value
 typename RD::Type
 ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
+    requires IsParticleContainer<PC>::value
 {
     return ParticleReduce<RD>(pc, 0, pc.finestLevel(), std::forward<F>(f), reduce_ops);
 }
@@ -1203,9 +1203,9 @@ ParticleReduce (PC const& pc, F&& f, ReduceOps& reduce_ops)
  * \endcode
  */
 template <class RD, class PC, class F, class ReduceOps>
-requires IsParticleContainer<PC>::value
 typename RD::Type
 ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
+    requires IsParticleContainer<PC>::value
 {
     return ParticleReduce<RD>(pc, lev, lev, std::forward<F>(f), reduce_ops);
 }
@@ -1275,9 +1275,9 @@ ParticleReduce (PC const& pc, int lev, F&& f, ReduceOps& reduce_ops)
  * \endcode
  */
 template <class RD, class PC, class F, class ReduceOps>
-requires IsParticleContainer<PC>::value
 typename RD::Type
 ParticleReduce (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps& reduce_ops)
+    requires IsParticleContainer<PC>::value
 {
     RD reduce_data(reduce_ops);
     for (int lev = lev_min; lev <= lev_max; ++lev) {

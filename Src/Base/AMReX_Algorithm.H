@@ -317,9 +317,9 @@ namespace amrex
      * \param stop stop value.
      */
     template<typename ItType, std::floating_point ValType>
-        requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     AMREX_GPU_HOST_DEVICE
     void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
+        requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     {
         const std::ptrdiff_t count = last-first;
         if (count >= 2){
@@ -350,10 +350,10 @@ namespace amrex
      * \param base base of the exponential.
      */
     template<typename ItType, std::floating_point ValType>
-        requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     AMREX_GPU_HOST_DEVICE
     void logspace (ItType first, const ItType& last,
         const ValType& start, const ValType& stop, const ValType& base)
+        requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     {
         const std::ptrdiff_t count = last-first;
         if (count >= 2){
@@ -377,25 +377,25 @@ struct clz_tag : clzl_tag {};
 // vary on different platforms, we work with fixed-width integer types.
 // these tags and overloads select the smallest version of __builtin_clz that will hold the input type
 template <typename T>
-    requires (sizeof(T) <= sizeof(unsigned int))
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clz_tag, T x) noexcept
+    requires (sizeof(T) <= sizeof(unsigned int))
 {
     return static_cast<int>(__builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 template <typename T>
-    requires (sizeof(T) <= sizeof(unsigned long))
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clzl_tag, T x) noexcept
+    requires (sizeof(T) <= sizeof(unsigned long))
 {
     return static_cast<int>(__builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
 
 template <typename T>
-    requires (sizeof(T) <= sizeof(unsigned long long))
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clzll_tag, T x) noexcept
+    requires (sizeof(T) <= sizeof(unsigned long long))
 {
     return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
@@ -405,12 +405,12 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
 
 //! Return the number of leading zeros of the given integer.
 template <class T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (T x) noexcept
     requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
               std::is_same_v<std::decay_t<T>,std::uint16_t> ||
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-              std::is_same_v<std::decay_t<T>,std::uint64_t>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (T x) noexcept;
+              std::is_same_v<std::decay_t<T>,std::uint64_t>);
 
 /// \cond DOXYGEN_IGNORE
 
@@ -459,17 +459,17 @@ int clz_generic (std::uint64_t x) noexcept
 namespace detail {
     // likewise with CUDA, there are __clz functions that take (signed) int and long long int
     template <typename T>
-        requires (sizeof(T) <= sizeof(int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     int clz_wrapper (clz_tag, T x) noexcept
+        requires (sizeof(T) <= sizeof(int))
     {
         return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
     }
 
     template <typename T>
-        requires (sizeof(T) <= sizeof(long long int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     int clz_wrapper (clzll_tag, T x) noexcept
+        requires (sizeof(T) <= sizeof(long long int))
     {
         return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
     }
@@ -477,12 +477,12 @@ namespace detail {
 /// \endcond
 
 template <class T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (T x) noexcept
     requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
               std::is_same_v<std::decay_t<T>,std::uint16_t> ||
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
               std::is_same_v<std::decay_t<T>,std::uint64_t>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (T x) noexcept
 {
     AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
 #if AMREX_HAS_BUILTIN_CLZ
@@ -495,12 +495,12 @@ int clz (T x) noexcept
 #else // !defined AMREX_USE_CUDA
 
 template <class T>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+int clz (T x) noexcept
     requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
               std::is_same_v<std::decay_t<T>,std::uint16_t> ||
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
               std::is_same_v<std::decay_t<T>,std::uint64_t>)
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (T x) noexcept
 {
 #if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
     return detail::builtin_clz_wrapper(detail::clz_tag{}, x);

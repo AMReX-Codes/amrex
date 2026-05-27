@@ -27,17 +27,19 @@ template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
     template <typename U=T>
-        requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_element () {} // NOLINT
+    constexpr gpu_tuple_element ()
+        requires (std::is_default_constructible_v<U>)
+{} // NOLINT
 
     explicit constexpr gpu_tuple_element (T const& a_value)
         : m_value(a_value)
         {}
 
     template <typename U>
+    explicit constexpr gpu_tuple_element (U && a_value)
         requires (std::is_convertible_v<U&&,T>)
-    explicit constexpr gpu_tuple_element (U && a_value) // NOLINT(bugprone-forwarding-reference-overload)
+// NOLINT(bugprone-forwarding-reference-overload)
  : m_value(std::forward<U>(a_value))
         {}
 
@@ -52,9 +54,10 @@ struct gpu_tuple_impl<I, Head, Tail...>
       public gpu_tuple_element<I, Head>
 {
     template<typename U=Head>
-        requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl () {} // NOLINT
+    constexpr gpu_tuple_impl ()
+        requires (std::is_default_constructible_v<U>)
+{} // NOLINT
 
     constexpr gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(a_tail...),
@@ -62,8 +65,8 @@ struct gpu_tuple_impl<I, Head, Tail...>
         {}
 
     template <typename UH, typename... UT>
-        requires (std::is_convertible_v<UH&&,Head>)
     constexpr gpu_tuple_impl (UH&& a_head, UT &&... a_tail)
+        requires (std::is_convertible_v<UH&&,Head>)
  : gpu_tuple_impl<I+1, Tail...>(std::forward<UT>(a_tail)...),
           gpu_tuple_element<I, Head>(std::forward<UH>(a_head))
         {}
@@ -75,17 +78,19 @@ struct gpu_tuple_impl<I, Head>
 {
 
     template<typename U=Head>
-        requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl () {} // NOLINT
+    constexpr gpu_tuple_impl ()
+        requires (std::is_default_constructible_v<U>)
+{} // NOLINT
 
     explicit constexpr gpu_tuple_impl (Head const& a_head)
         : gpu_tuple_element<I, Head>(a_head)
         {}
 
     template <typename U>
+    explicit constexpr gpu_tuple_impl (U&& a_head)
         requires (std::is_convertible_v<U&&,Head>)
-    explicit constexpr gpu_tuple_impl (U&& a_head) // NOLINT(bugprone-forwarding-reference-overload)
+// NOLINT(bugprone-forwarding-reference-overload)
  : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
 };
@@ -111,8 +116,8 @@ public:
         {}
 
     template <typename... Us>
-        requires (sizeof...(Us) == sizeof...(Ts))
     constexpr GpuTuple (Us&&... args)
+        requires (sizeof...(Us) == sizeof...(Ts))
  : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
         {}
 
@@ -218,20 +223,20 @@ get (GpuTuple<Ts...> && tup) noexcept
 /// \cond DOXYGEN_IGNORE
 namespace detail {
     template <std::size_t I, std::size_t N, typename TP1, typename TP2>
-        requires (I<N-1)
     AMREX_GPU_HOST_DEVICE
     void
     tuple_copy (TP1 & a, TP2 && b)
+        requires (I<N-1)
     {
         (amrex::get<I>(a) = amrex::get<I>(std::forward<TP2>(b)),
          tuple_copy<I+1,N>(a,std::forward<TP2>(b)));
     }
 
     template <std::size_t I, std::size_t N, typename TP1, typename TP2>
-        requires (I==N-1)
     AMREX_GPU_HOST_DEVICE
     void
     tuple_copy (TP1 & a, TP2 && b)
+        requires (I==N-1)
     {
         amrex::get<I>(a) = amrex::get<I>(std::forward<TP2>(b));
     }

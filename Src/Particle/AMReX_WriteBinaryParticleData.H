@@ -482,7 +482,6 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 /// \endcond
 
 template <class PC, class F>
-requires IsParticleContainer<PC>::value
 void WriteBinaryParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -490,6 +489,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>& int_comp_names,
                                   F const& f, bool is_checkpoint)
+    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("WriteBinaryParticleData()");
     AMREX_ASSERT(pc.OK());
@@ -782,13 +782,13 @@ void WriteBinaryParticleDataSync (PC const& pc,
 }
 
 template <class PC>
-requires IsParticleContainer<PC>::value
 void WriteBinaryParticleDataAsync (PC const& pc,
                                    const std::string& dir, const std::string& name,
                                    const Vector<int>& write_real_comp,
                                    const Vector<int>& write_int_comp,
                                    const Vector<std::string>& real_comp_names,
                                    const Vector<std::string>& int_comp_names, bool is_checkpoint)
+    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("WriteBinaryParticleDataAsync");
     AMREX_ASSERT(pc.OK());

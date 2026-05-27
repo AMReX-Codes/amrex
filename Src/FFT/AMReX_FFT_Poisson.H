@@ -74,9 +74,9 @@ public:
      * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
      */
     template <typename FA=MF>
-    requires IsFabArray_v<FA>
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+    requires IsFabArray_v<FA>
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc(bc)
@@ -100,8 +100,8 @@ public:
      * \param geom Periodic geometry (all directions must be periodic).
      */
     template <typename FA=MF>
-    requires IsFabArray_v<FA>
     explicit Poisson (Geometry const& geom)
+    requires IsFabArray_v<FA>
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
@@ -153,10 +153,11 @@ public:
      * \param ngrow   Number of grow cells applied prior to solving.
      */
     template <typename FA=MF>
-    requires IsFabArray_v<FA>
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
-                            IntVect const& ngrow = IntVect(0));
+                            IntVect const& ngrow = IntVect(0))
+    requires IsFabArray_v<FA>
+;
 
     /**
      * \brief Solve the open-boundary Poisson problem.
@@ -198,9 +199,9 @@ public:
      * \param bc   Boundary descriptors for each direction.
      */
     template <typename FA=MF>
-    requires IsFabArray_v<FA>
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+    requires IsFabArray_v<FA>
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc(bc)
@@ -399,9 +400,9 @@ void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
 
 template <typename MF>
 template <typename FA>
-requires IsFabArray_v<FA>
 PoissonOpenBC<MF>::PoissonOpenBC (Geometry const& geom, IndexType ixtype,
                                   IntVect const& ngrow)
+    requires IsFabArray_v<FA>
     : m_geom(geom),
       m_grown_domain(amrex::grow(amrex::convert(geom.Domain(),ixtype),ngrow)),
       m_ngrow(ngrow),

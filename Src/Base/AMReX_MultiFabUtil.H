@@ -50,16 +50,18 @@ namespace amrex
 
     //! Average face-based FabArray onto cell-centered FabArray.
     template <typename CMF, typename FMF>
-    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
-                                     int ngrow = 0);
+                                     int ngrow = 0)
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
+;
 
     template <typename CMF, typename FMF>
-    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
-                                     IntVect const& ng_vect);
+                                     IntVect const& ng_vect)
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
+;
 
     //! Average face-based MultiFab onto cell-centered MultiFab with geometric weighting.
     void average_face_to_cellcenter (MultiFab& cc,
@@ -100,32 +102,36 @@ namespace amrex
 
     //! Average fine face-based FabArray onto crse face-based FabArray.
     template <typename MF>
-    requires (IsFabArray<MF>::value)
     void average_down_faces (const Vector<const MF*>& fine,
                              const Vector<MF*>& crse,
                              const IntVect& ratio,
-                             int ngcrse = 0);
+                             int ngcrse = 0)
+    requires (IsFabArray<MF>::value)
+;
     //! Average fine face-based FabArray onto crse face-based FabArray.
     template <typename MF>
-    requires (IsFabArray<MF>::value)
     void average_down_faces (const Vector<const MF*>& fine,
                              const Vector<MF*>& crse,
                              int ratio,
-                             int ngcrse = 0);
+                             int ngcrse = 0)
+    requires (IsFabArray<MF>::value)
+;
     //! Average fine face-based FabArray onto crse face-based FabArray.
     template <typename MF>
-    requires (IsFabArray<MF>::value)
     void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
                              const Array<MF*,AMREX_SPACEDIM>& crse,
                              const IntVect& ratio,
-                             int ngcrse = 0);
+                             int ngcrse = 0)
+    requires (IsFabArray<MF>::value)
+;
     //! Average fine face-based FabArray onto crse face-based FabArray.
     template <typename MF>
-    requires (IsFabArray<MF>::value)
     void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
                              const Array<MF*,AMREX_SPACEDIM>& crse,
                              int ratio,
-                             int ngcrse = 0);
+                             int ngcrse = 0)
+    requires (IsFabArray<MF>::value)
+;
     /**
      * \brief This version does average down for one face direction.
      *
@@ -138,10 +144,11 @@ namespace amrex
 
     //  This version takes periodicity into account.
     template <typename MF>
-    requires (IsFabArray<MF>::value)
     void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
                              const Array<MF*,AMREX_SPACEDIM>& crse,
-                             const IntVect& ratio, const Geometry& crse_geom);
+                             const IntVect& ratio, const Geometry& crse_geom)
+    requires (IsFabArray<MF>::value)
+;
     //  This version takes periodicity into account.
     template <typename FAB>
     void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
@@ -224,8 +231,9 @@ namespace amrex
      * does not have the given cell.
      */
     template <typename MF>
+    Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell)
     requires (IsFabArray<MF>::value)
-    Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell);
+;
 
     /**
      * \brief Get data in a line of MultiFab/FabArray
@@ -234,8 +242,9 @@ namespace amrex
      * specified by a direction and a cell.
      */
     template <typename MF>
+    MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx = Box())
     requires (IsFabArray<MF>::value)
-    MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx = Box());
+;
 
     //! Return an iMultiFab that has the same BoxArray and DistributionMapping
     //! as the coarse MultiFab cmf. Cells covered by the coarsened fine grids
@@ -373,13 +382,14 @@ namespace amrex
      * \return reduction result (BaseFab<T>)
      */
     template <typename Op, typename T, typename FAB, typename F>
+    BaseFab<T>
+    ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F const& f)
         requires (IsBaseFab<FAB>::value
 #ifndef AMREX_USE_CUDA
                                && IsCallableR<T,F,int,int,int,int>::value
 #endif
                                )
-    BaseFab<T>
-    ReduceToPlane (int direction, Box const& domain, FabArray<FAB> const& mf, F const& f);
+;
 
     /**
      * \brief Reduce FabArray/MultiFab data to plane FabArray
@@ -426,13 +436,14 @@ namespace amrex
      * \return reduction result (FA)
      */
     template <typename Op, typename FA, typename F>
+    FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f)
         requires (IsMultiFabLike_v<FA>
 #ifndef AMREX_USE_CUDA
                                && IsCallableR<typename FA::value_type,
                                               F,int,int,int,int>::value
 #endif
                                )
-    FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f);
+;
 
     /**
      * \brief Reduce FabArray/MultiFab data to plane FabArray
@@ -477,14 +488,15 @@ namespace amrex
      * \return reduction result (std::pair<FA,FA>)
      */
     template <typename Op, typename FA, typename F>
+    std::pair<FA,FA>
+    ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
         requires (IsMultiFabLike_v<FA>
 #ifndef AMREX_USE_CUDA
                                && IsCallableR<typename FA::value_type,
                                               F,int,int,int,int>::value
 #endif
                                )
-    std::pair<FA,FA>
-    ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f);
+;
 
     /**
      * \brief Reduce FabArray/MultiFab data to plane FabArray for patchy BoxArrays
@@ -514,15 +526,16 @@ namespace amrex
      * \return reduction result (std::pair<FA,FA>)
      */
     template <typename Op, typename FA, typename F>
+    std::pair<FA,FA>
+    ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
+                            IntVect const& plane_max_grid_size, F const& f)
         requires (IsMultiFabLike_v<FA>
 #ifndef AMREX_USE_CUDA
                                && IsCallableR<typename FA::value_type,
                                               F,int,int,int,int>::value
 #endif
                                )
-    std::pair<FA,FA>
-    ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
-                            IntVect const& plane_max_grid_size, F const& f);
+;
 
     /**
      * \brief Sum MultiFab data to line
@@ -982,20 +995,20 @@ NormHelper (const MMF& mask,
 }
 
 template <typename CMF, typename FMF>
-    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
 void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  int ngrow)
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
 {
    IntVect ng_vect(ngrow);
    average_face_to_cellcenter(cc, dcomp, fc, ng_vect);
 }
 
 template <typename CMF, typename FMF>
-    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
 void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  IntVect const& ng_vect)
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
 {
     AMREX_ASSERT(cc.nComp() >= dcomp + AMREX_SPACEDIM);
     AMREX_ASSERT(fc[0]->nComp() == 1);
@@ -1057,10 +1070,10 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 void average_down_faces (const Vector<const MF*>& fine,
                          const Vector<MF*>& crse,
                          const IntVect& ratio, int ngcrse)
+    requires (IsFabArray<MF>::value)
 {
     AMREX_ASSERT(fine.size() == AMREX_SPACEDIM && crse.size() == AMREX_SPACEDIM);
     average_down_faces(Array<const MF*,AMREX_SPACEDIM>
@@ -1071,27 +1084,27 @@ void average_down_faces (const Vector<const MF*>& fine,
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 void average_down_faces (const Vector<const MF*>& fine,
                          const Vector<MF*>& crse, int ratio, int ngcrse)
+    requires (IsFabArray<MF>::value)
 {
     average_down_faces(fine,crse,IntVect{ratio},ngcrse);
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
                          const Array<MF*,AMREX_SPACEDIM>& crse,
                          int ratio, int ngcrse)
+    requires (IsFabArray<MF>::value)
 {
     average_down_faces(fine,crse,IntVect{ratio},ngcrse);
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
                          const Array<MF*,AMREX_SPACEDIM>& crse,
                          const IntVect& ratio, int ngcrse)
+    requires (IsFabArray<MF>::value)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         average_down_faces(*fine[idim], *crse[idim], ratio, ngcrse);
@@ -1159,10 +1172,10 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
                          const Array<MF*,AMREX_SPACEDIM>& crse,
                          const IntVect& ratio, const Geometry& crse_geom)
+    requires (IsFabArray<MF>::value)
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         average_down_faces(*fine[idim], *crse[idim], ratio, crse_geom);
@@ -1180,8 +1193,8 @@ void average_down_faces (const FabArray<FAB>& fine, FabArray<FAB>& crse,
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell)
+    requires (IsFabArray<MF>::value)
 {
     using T = typename MF::value_type;
     const int ncomp = mf.nComp();
@@ -1212,8 +1225,8 @@ Vector<typename MF::value_type> get_cell_data (MF const& mf, IntVect const& cell
 }
 
 template <typename MF>
-    requires (IsFabArray<MF>::value)
 MF get_line_data (MF const& mf, int dir, IntVect const& cell, Box const& bnd_bx)
+    requires (IsFabArray<MF>::value)
 {
     bool do_bnd = (!bnd_bx.isEmpty());
 
@@ -1362,13 +1375,13 @@ void reduce_to_plane (Array4<T> const& ar, int direction, Box const& bx, int box
 /// \endcond
 
 template <typename Op, typename T, typename FAB, typename F>
+BaseFab<T>
+ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F const& f)
     requires (IsBaseFab<FAB>::value
 #ifndef AMREX_USE_CUDA
                            && IsCallableR<T,F,int,int,int,int>::value
 #endif
                            )
-BaseFab<T>
-ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F const& f)
 {
     Box const domain = amrex::convert(a_domain, mf.ixType());
 
@@ -1439,13 +1452,13 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
 /// \endcond
 
 template <typename Op, typename FA, typename F>
+FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f)
     requires (IsMultiFabLike_v<FA>
 #ifndef AMREX_USE_CUDA
                            && IsCallableR<typename FA::value_type,
                                           F,int,int,int,int>::value
 #endif
                            )
-FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f)
 {
     auto [fa3, fa2] = ReduceToPlaneMF2<Op>(direction, domain, mf, f);
     fa3.ParallelCopy(fa2);
@@ -1453,14 +1466,14 @@ FA ReduceToPlaneMF (int direction, Box const& domain, FA const& mf, F const& f)
 }
 
 template <typename Op, typename FA, typename F>
+std::pair<FA,FA>
+ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
     requires (IsMultiFabLike_v<FA>
 #ifndef AMREX_USE_CUDA
                            && IsCallableR<typename FA::value_type,
                                           F,int,int,int,int>::value
 #endif
                            )
-std::pair<FA,FA>
-ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
 {
     using T = typename FA::value_type;
 
@@ -1496,15 +1509,15 @@ ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
 }
 
 template <typename Op, typename FA, typename F>
+std::pair<FA,FA>
+ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
+                        IntVect const& plane_max_grid_size, F const& f)
     requires (IsMultiFabLike_v<FA>
 #ifndef AMREX_USE_CUDA
                            && IsCallableR<typename FA::value_type,
                                           F,int,int,int,int>::value
 #endif
                            )
-std::pair<FA,FA>
-ReduceToPlaneMF2Patchy (int direction, Box const& domain, FA const& mf,
-                        IntVect const& plane_max_grid_size, F const& f)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(mf.is_cell_centered(),
         "ReduceToPlaneMF2Patchy: only cell-centered data is supported.");

@@ -394,9 +394,9 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 #endif
 
 template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
-    requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
+    requires (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 8;
@@ -636,9 +636,9 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 #elif defined(AMREX_USE_HIP)
 
 template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
-    requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
+    requires (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 4;
@@ -804,9 +804,9 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 #elif defined(AMREX_USE_CUDA)
 
 template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
-    requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
+    requires (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 {
     if (n <= 0) { return 0; }
     constexpr int nwarps_per_block = 8;
@@ -1111,9 +1111,9 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 #else
 //  !defined(AMREX_USE_GPU)
 template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
-    requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
+    requires (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
+             std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 {
     if (n <= 0) { return 0; }
     T totalsum = 0;

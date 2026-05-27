@@ -132,8 +132,9 @@ public:
      * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F> requires(!std::same_as<F, Vector<std::string>>)
-    void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const;
+    template <class F>
+    void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const
+    requires (!std::same_as<F, Vector<std::string>>)
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
@@ -196,10 +197,11 @@ public:
      * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F> requires(!std::same_as<F, Vector<std::string>>)
+    template <class F>
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
-                            const std::string& compression, F&& f) const;
+                            const std::string& compression, F&& f) const
+    requires (!std::same_as<F, Vector<std::string>>)
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass

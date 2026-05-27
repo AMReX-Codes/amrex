@@ -50,8 +50,9 @@ namespace amrex::RungeKutta {
 
 struct PostStageNoOp {
     template <typename MF>
+    void operator()(int, MF&) const
         requires (IsFabArray<MF>::value)
-    void operator() (int, MF&) const {}
+    {}
 };
 
 /// \cond DOXYGEN_IGNORE
