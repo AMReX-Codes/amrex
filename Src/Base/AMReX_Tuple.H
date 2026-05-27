@@ -239,8 +239,7 @@ namespace detail {
 /// \endcond
 
 template <typename... Ts>
-template <typename... Us>
-    requires (sizeof...(Us) == sizeof...(Ts))
+template <typename... Us> requires (sizeof...(Us) == sizeof...(Ts))
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
 {
@@ -249,8 +248,7 @@ GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
 }
 
 template <typename... Ts>
-template <typename... Us>
-    requires (sizeof...(Us) == sizeof...(Ts))
+template <typename... Us> requires (sizeof...(Us) == sizeof...(Ts))
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> && rhs)
 {
