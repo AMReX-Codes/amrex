@@ -23,15 +23,15 @@
 // Public interface
 //
 namespace amrex::Gpu {
-    template <std::integral T>
+    template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept;
 
-    template <std::integral T>
+    template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept;
 
-    template <std::integral T>
+    template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void deviceReduceMax (T * dest, T source, Gpu::Handler const& h) noexcept;
 
@@ -50,7 +50,7 @@ namespace amrex::Gpu {
 
 #ifdef AMREX_USE_SYCL
 
-template <int warpSize, std::integral T, typename F>
+template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -64,7 +64,7 @@ struct warpReduce
     }
 };
 
-template <int warpSize, std::integral T, typename WARPREDUCE>
+template <int warpSize, typename T, typename WARPREDUCE>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
 {
@@ -88,7 +88,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0, Gpu::Handler const& h)
     return x;
 }
 
-template <int warpSize, std::integral T, typename WARPREDUCE, typename ATOMICOP>
+template <int warpSize, typename T, typename WARPREDUCE, typename ATOMICOP>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && atomic_op,
                           Gpu::Handler const& handler)
@@ -104,7 +104,7 @@ void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && a
 }
 
 // block-wide reduction for thread0
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceSum (T source, Gpu::Handler const& h) noexcept
 {
@@ -112,7 +112,7 @@ T blockReduceSum (T source, Gpu::Handler const& h) noexcept
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0, h);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source, Gpu::Handler const& h) noexcept
 {
@@ -121,7 +121,7 @@ void deviceReduceSum_full (T * dest, T source, Gpu::Handler const& h) noexcept
 }
 
 // block-wide reduction for thread0
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source, Gpu::Handler const& h) noexcept
 {
@@ -129,7 +129,7 @@ T blockReduceMin (T source, Gpu::Handler const& h) noexcept
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Minimum<T> >(), source, h);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin_full (T * dest, T source, Gpu::Handler const& h) noexcept
 {
@@ -138,7 +138,7 @@ void deviceReduceMin_full (T * dest, T source, Gpu::Handler const& h) noexcept
 }
 
 // block-wide reduction for thread0
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source, Gpu::Handler const& h) noexcept
 {
@@ -146,7 +146,7 @@ T blockReduceMax (T source, Gpu::Handler const& h) noexcept
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Maximum<T> >(), source, h);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax_full (T * dest, T source, Gpu::Handler const& h) noexcept
 {
@@ -184,7 +184,7 @@ void deviceReduceLogicalOr_full (int * dest, int source, Gpu::Handler const& h) 
     if (h.item->get_local_id(0) == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept
 {
@@ -197,7 +197,7 @@ void deviceReduceSum (T * dest, T source, Gpu::Handler const& h) noexcept
     }
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept
 {
@@ -210,7 +210,7 @@ void deviceReduceMin (T * dest, T source, Gpu::Handler const& h) noexcept
     }
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source, Gpu::Handler const& h) noexcept
 {
@@ -252,7 +252,7 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& h) noexc
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T shuffle_down (T x, int offset) noexcept
 {
@@ -261,7 +261,7 @@ T shuffle_down (T x, int offset) noexcept
 }
 
 // If other sizeof is needed, we can implement it later.
-template <class T> requires(sizeof(T)%sizeof(unsigned int) == 0)
+template <class T, std::enable_if_t<sizeof(T)%sizeof(unsigned int) == 0, int> = 0>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T multi_shuffle_down (T x, int offset) noexcept
 {
@@ -278,11 +278,12 @@ T multi_shuffle_down (T x, int offset) noexcept
 }
 /// \endcond
 
-template <int warpSize, std::integral T, typename F>
+template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     // Not all arithmetic types can be taken by shuffle_down, but it's good enough.
-    template <class U=T> requires(std::is_arithmetic<U>::value)
+    template <class U=T>
+        requires(std::is_arithmetic_v<U>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x) const noexcept
     {
@@ -293,7 +294,8 @@ struct warpReduce
         return x;
     }
 
-    template <class U=T> requires(!std::is_arithmetic<U>::value)
+    template <class U=T>
+        requires(!std::is_arithmetic_v<U>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator() (T x) const noexcept
     {
@@ -305,7 +307,7 @@ struct warpReduce
     }
 };
 
-template <int warpSize, std::integral T, typename WARPREDUCE>
+template <int warpSize, typename T, typename WARPREDUCE>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
 {
@@ -326,7 +328,7 @@ T blockReduce (T x, WARPREDUCE && warp_reduce, T x0)
     return x;
 }
 
-template <int warpSize, std::integral T, typename WARPREDUCE, typename ATOMICOP>
+template <int warpSize, typename T, typename WARPREDUCE, typename ATOMICOP>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && atomic_op,
                           Gpu::Handler const& handler)
@@ -341,7 +343,7 @@ void blockReduce_partial (T* dest, T x, WARPREDUCE && warp_reduce, ATOMICOP && a
 }
 
 // Compute the block-wide reduction for thread0
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceSum (T source) noexcept
 {
@@ -349,7 +351,7 @@ T blockReduceSum (T source) noexcept
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Plus<T> >(), (T)0);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source) noexcept
 {
@@ -358,7 +360,7 @@ void deviceReduceSum_full (T * dest, T source) noexcept
 }
 
 // Compute the block-wide reduction for thread0
-template <int BLOCKDIMX, std::integral T>
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceSum (T source) noexcept
 {
@@ -382,7 +384,7 @@ T blockReduceSum (T source) noexcept
 #endif
 }
 
-template <int BLOCKDIMX, std::integral T>
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source) noexcept
 {
@@ -391,7 +393,7 @@ void deviceReduceSum_full (T * dest, T source) noexcept
 }
 
 // Compute the block-wide reduction for thread0
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source) noexcept
 {
@@ -399,7 +401,7 @@ T blockReduceMin (T source) noexcept
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Minimum<T> >(), source);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin_full (T * dest, T source) noexcept
 {
@@ -408,7 +410,7 @@ void deviceReduceMin_full (T * dest, T source) noexcept
 }
 
 // Compute the block-wide reduction for thread0
-template <int BLOCKDIMX, std::integral T>
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source) noexcept
 {
@@ -437,7 +439,7 @@ T blockReduceMin (T source) noexcept
 #endif
 }
 
-template <int BLOCKDIMX, std::integral T>
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin_full (T * dest, T source) noexcept
 {
@@ -446,7 +448,7 @@ void deviceReduceMin_full (T * dest, T source) noexcept
 }
 
 // Compute the block-wide reduction for thread0
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source) noexcept
 {
@@ -454,7 +456,7 @@ T blockReduceMax (T source) noexcept
         (source, Gpu::warpReduce<Gpu::Device::warp_size,T,amrex::Maximum<T> >(), source);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax_full (T * dest, T source) noexcept
 {
@@ -463,7 +465,7 @@ void deviceReduceMax_full (T * dest, T source) noexcept
 }
 
 // Compute the block-wide reduction for thread0
-template <int BLOCKDIMX, std::integral T>
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source) noexcept
 {
@@ -491,7 +493,7 @@ T blockReduceMax (T source) noexcept
 #endif
 }
 
-template <int BLOCKDIMX, std::integral T>
+template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax_full (T * dest, T source) noexcept
 {
@@ -595,7 +597,7 @@ void deviceReduceLogicalOr_full (int * dest, int source) noexcept
     if (threadIdx.x == 0) { Gpu::Atomic::LogicalOr(dest, aggregate); }
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source, Gpu::Handler const& handler) noexcept
 {
@@ -614,7 +616,7 @@ void deviceReduceSum (T * dest, T source, Gpu::Handler const& handler) noexcept
     }
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source, Gpu::Handler const& handler) noexcept
 {
@@ -633,7 +635,7 @@ void deviceReduceMin (T * dest, T source, Gpu::Handler const& handler) noexcept
     }
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source, Gpu::Handler const& handler) noexcept
 {
@@ -690,7 +692,7 @@ void deviceReduceLogicalOr (int * dest, int source, Gpu::Handler const& handler)
 
 #else
 
-template <std::integral T>
+template <typename T>
 AMREX_FORCE_INLINE
 void deviceReduceSum_full (T * dest, T source) noexcept
 {
@@ -700,14 +702,14 @@ void deviceReduceSum_full (T * dest, T source) noexcept
     *dest += source;
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_FORCE_INLINE
 void deviceReduceSum (T * dest, T source, Gpu::Handler const&) noexcept
 {
     deviceReduceSum_full(dest, source);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_FORCE_INLINE
 void deviceReduceMin_full (T * dest, T source) noexcept
 {
@@ -717,14 +719,14 @@ void deviceReduceMin_full (T * dest, T source) noexcept
     *dest = std::min(*dest, source);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_FORCE_INLINE
 void deviceReduceMin (T * dest, T source, Gpu::Handler const&) noexcept
 {
     deviceReduceMin_full(dest, source);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_FORCE_INLINE
 void deviceReduceMax_full (T * dest, T source) noexcept
 {
@@ -734,7 +736,7 @@ void deviceReduceMax_full (T * dest, T source) noexcept
     *dest = std::max(*dest, source);
 }
 
-template <std::integral T>
+template <typename T>
 AMREX_FORCE_INLINE
 void deviceReduceMax (T * dest, T source, Gpu::Handler const&) noexcept
 {
