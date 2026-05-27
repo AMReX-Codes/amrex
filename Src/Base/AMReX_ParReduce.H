@@ -42,8 +42,7 @@ namespace amrex {
  *
  * \return reduction result (GpuTuple<Ts...>)
  */
-template <typename... Ops, typename... Ts, typename FAB, typename F,
-          typename foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <typename... Ops, typename... Ts, typename FAB, typename F> requires(IsBaseFab<FAB>::value)
 typename ReduceData<Ts...>::Type
 ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
@@ -93,8 +92,7 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *
  * \return reduction result (T)
  */
-template <typename Op, typename T, typename FAB, typename F,
-          typename foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <typename Op, std::integral T, typename FAB, typename F> requires(IsBaseFab<FAB>::value)
 T
 ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
@@ -145,8 +143,7 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  *
  * \return reduction result (GpuTuple<Ts...>)
  */
-template <typename... Ops, typename... Ts, typename FAB, typename F,
-          typename foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <typename... Ops, typename... Ts, typename FAB, typename F> requires(IsBaseFab<FAB>::value)
 typename ReduceData<Ts...>::Type
 ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, int ncomp, F&& f)
@@ -193,8 +190,7 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *
  * \return reduction result (T)
  */
-template <typename Op, typename T, typename FAB, typename F,
-          typename foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <typename Op, std::integral T, typename FAB, typename F> requires(IsBaseFab<FAB>::value)
 T
 ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, int ncomp, F&& f)
@@ -241,8 +237,7 @@ ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
  *
  * \return reduction result (GpuTuple<Ts...>)
  */
-template <typename... Ops, typename... Ts, typename FAB, typename F,
-          typename foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <typename... Ops, typename... Ts, typename FAB, typename F> requires(IsBaseFab<FAB>::value)
 typename ReduceData<Ts...>::Type
 ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
            FabArray<FAB> const& fa, F&& f)
@@ -286,8 +281,7 @@ ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
  *
  * \return reduction result (T)
  */
-template <typename Op, typename T, typename FAB, typename F,
-          typename foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <typename Op, std::integral T, typename FAB, typename F> requires(IsBaseFab<FAB>::value)
 T
 ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
            FabArray<FAB> const& fa, F&& f)

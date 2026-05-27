@@ -39,8 +39,7 @@ namespace detail
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2,
-              std::enable_if_t<!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle, int> = 0>
+              typename N1, typename N2> requires(!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle)
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
@@ -89,8 +88,7 @@ namespace detail
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2, typename N3, typename N4, typename N5,
-              std::enable_if_t<!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle, int> = 0>
+              typename N1, typename N2, typename N3, typename N4, typename N5> requires(!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle)
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,

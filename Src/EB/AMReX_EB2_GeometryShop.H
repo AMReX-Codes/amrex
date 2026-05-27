@@ -15,7 +15,7 @@
 
 namespace amrex::EB2 {
 
-template <class F, std::enable_if_t<IsGPUable<F>::value>* FOO = nullptr>
+template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
@@ -23,7 +23,7 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
     return f(AMREX_D_DECL(p[0],p[1],p[2]));
 }
 
-template <class F, std::enable_if_t<!IsGPUable<F>::value>* BAR = nullptr>
+template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p)
@@ -259,7 +259,7 @@ public:
      * \param geom Geometry providing physical coordinates.
      * \param run_on Whether to run on CPU or GPU.
      */
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
+    template <class U=F>
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
@@ -307,16 +307,16 @@ public:
     }
 
     //! CPU-only fallback for getBoxType().
-    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
+    template <class U=F>
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
     }
 
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
+    template <class U=F>
     static constexpr bool isGPUable () noexcept { return true; }
 
-    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
+    template <class U=F>
     static constexpr bool isGPUable () noexcept { return false; }
 
     /**
@@ -327,7 +327,7 @@ public:
      * \param run_on   Execution target.
      * \param bounding_box Bounding box limiting the sampling region.
      */
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
+    template <class U=F>
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
                   Box const& bounding_box) const noexcept
     {
@@ -347,7 +347,7 @@ public:
     }
 
     //! CPU-only overload of fillFab().
-    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
+    template <class U=F>
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const noexcept
     {
@@ -395,7 +395,7 @@ public:
      * \param run_on    Execution target.
      * \param bounding_box Bounding box limiting evaluation.
      */
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value>* FOO = nullptr >
+    template <class U=F>
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn run_on,
@@ -432,7 +432,7 @@ public:
     }
 
     //! CPU-only overload of getIntercept().
-    template <class U=F, std::enable_if_t<!IsGPUable<U>::value>* BAR = nullptr >
+    template <class U=F>
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn,

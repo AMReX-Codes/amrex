@@ -38,7 +38,7 @@ public:
     }
 
     //! GPU-friendly overload for AMREX_D_DECL coordinates.
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
+    template <class U=F> requires(IsGPUable<U>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -54,8 +54,8 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<TranslationIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+    requires(IsGPUable<F>::value)
+struct IsGPUable<TranslationIF<F>> : std::true_type {};
 
 template <class F>
 constexpr TranslationIF<std::decay_t<F>>

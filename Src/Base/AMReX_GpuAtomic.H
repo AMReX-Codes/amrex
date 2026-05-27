@@ -216,8 +216,7 @@ namespace detail {
 ////////////////////////////////////////////////////////////////////////
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
-    template <typename T, typename Op, typename Cond,
-              std::enable_if_t<sizeof(T) == sizeof(unsigned int), int> foo = 0>
+    template <typename T, typename Op, typename Cond> requires(sizeof(T) == sizeof(unsigned int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
     {
@@ -225,8 +224,7 @@ namespace detail {
                    std::forward<Op>(op), std::forward<Cond>(cond));
     }
 
-    template <typename T, typename Op, typename Cond,
-              std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> foo = 0>
+    template <typename T, typename Op, typename Cond> requires(sizeof(T) == sizeof(unsigned long long))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
     {
@@ -537,14 +535,14 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
+    template <typename T> requires(sizeof(T) == sizeof(int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Multiply_device (T* const prod, T const value) noexcept
     {
         return detail::atomic_op<T, int>(prod,value,amrex::Multiplies<T>());
     }
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    template <typename T> requires(sizeof(T) == sizeof(unsigned long long))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Multiply_device (T* const prod, T const value) noexcept
     {
@@ -573,14 +571,14 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
+    template <typename T> requires(sizeof(T) == sizeof(int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Divide_device (T* const quot, T const value) noexcept
     {
         return detail::atomic_op<T, int>(quot,value,amrex::Divides<T>());
     }
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    template <typename T> requires(sizeof(T) == sizeof(unsigned long long))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Divide_device (T* const quot, T const value) noexcept
     {

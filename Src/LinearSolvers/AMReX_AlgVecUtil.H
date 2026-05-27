@@ -13,13 +13,13 @@ namespace amrex {
  * specializations (ForEach, BLAS-like routines, etc.).
  */
 
-template <class V, class Enable = void> struct IsAlgVector : std::false_type {};
+template <class V> struct IsAlgVector : std::false_type {};
 //
 template <class V>
-struct IsAlgVector<V, std::enable_if_t<std::is_same_v<AlgVector<typename V::value_type,
-                                                                typename V::allocator_type>,
-                                                      V> > >
-    : std::true_type {};
+    requires(std::is_same_v<AlgVector<typename V::value_type,
+                                      typename V::allocator_type>,
+                            V>)
+struct IsAlgVector<V> : std::true_type {};
 
 /**
  * \brief Apply \p f to every element of \p x.

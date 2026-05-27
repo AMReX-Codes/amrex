@@ -15,11 +15,12 @@
 
 namespace amrex {
 
-template<class T, typename Tv = void> struct IntegratorOps;
+template<class T> struct IntegratorOps;
 
 #if defined(AMREX_PARTICLES)
 template<class T>
-struct IntegratorOps<T, std::enable_if_t<std::is_base_of_v<amrex::ParticleContainerBase, T> > >
+    requires(std::is_base_of_v<amrex::ParticleContainerBase, T>)
+struct IntegratorOps<T>
 {
 
     static void CreateLike (amrex::Vector<std::unique_ptr<T> >& V, const T& Other, bool /* Grow */ = false)
@@ -85,7 +86,8 @@ struct IntegratorOps<T, std::enable_if_t<std::is_base_of_v<amrex::ParticleContai
 #endif
 
 template<class T>
-struct IntegratorOps<T, std::enable_if_t<std::is_same_v<amrex::Vector<amrex::MultiFab>, T> > >
+    requires(std::is_same_v<amrex::Vector<amrex::MultiFab>, T>)
+struct IntegratorOps<T>
 {
 
     static void CreateLike (amrex::Vector<std::unique_ptr<T> >& V, const T& Other, bool Grow = false)
@@ -131,7 +133,8 @@ struct IntegratorOps<T, std::enable_if_t<std::is_same_v<amrex::Vector<amrex::Mul
 };
 
 template<class T>
-struct IntegratorOps<T, std::enable_if_t<std::is_same_v<amrex::MultiFab, T> > >
+    requires(std::is_same_v<amrex::MultiFab, T>)
+struct IntegratorOps<T>
 {
 
     static void CreateLike (amrex::Vector<std::unique_ptr<T> >& V, const T& Other, bool Grow = false)

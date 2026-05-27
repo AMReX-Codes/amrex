@@ -21,11 +21,9 @@ cast (BaseFab<Tto>& tofab, BaseFab<Tfrom> const& fromfab,
     });
 }
 
-template <typename STRUCT, typename F,
-          std::enable_if_t<(sizeof(STRUCT)<=36*8) &&
+template <typename STRUCT, typename F> requires((sizeof(STRUCT)<=36*8) &&
                                   AMREX_IS_TRIVIALLY_COPYABLE(STRUCT) &&
-                                  std::is_trivially_destructible_v<STRUCT>,
-                                  int>FOO = 0>
+                                  std::is_trivially_destructible_v<STRUCT>)
 void fill (BaseFab<STRUCT>& aos_fab, F const& f)
 {
     Box const& box = aos_fab.box();

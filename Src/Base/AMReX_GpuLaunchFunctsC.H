@@ -89,7 +89,7 @@ namespace detail {
 
     // call_f_intvect_ncomp_engine
 
-    template <typename F, typename T, int dim>
+    template <typename F, std::integral T, int dim>
     AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_engine (F const& f, IntVectND<dim> iv, T n, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, engine))
@@ -99,7 +99,7 @@ namespace detail {
 
     // call_f_intvect_ncomp_handler
 
-    template <typename F, typename T, int dim>
+    template <typename F, std::integral T, int dim>
     AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n))
@@ -107,7 +107,7 @@ namespace detail {
         return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n);
     }
 
-    template <typename F, typename T, int dim>
+    template <typename F, std::integral T, int dim>
     AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, Gpu::Handler{}))
@@ -118,20 +118,20 @@ namespace detail {
 }
 /// \endcond
 
-template<typename T, typename L>
+template<std::integral T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     std::forward<L>(f)(n);
 }
 
-template<int MT, typename T, typename L>
+template<int MT, std::integral T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     std::forward<L>(f)(n);
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (T n, L const& f) noexcept
 {
@@ -140,27 +140,27 @@ void For (T n, L const& f) noexcept
     }
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void For (T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     For(n, std::forward<L>(f));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void For (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     For(n, std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void For (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     For(n, std::forward<L>(f));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelFor (T n, L const& f) noexcept
 {
@@ -170,20 +170,20 @@ void ParallelFor (T n, L const& f) noexcept
     }
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void ParallelFor (T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     ParallelFor(n, std::forward<L>(f));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     ParallelFor(n, std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void ParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -320,7 +320,7 @@ void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L&& f) noexcept
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-template <int idim, typename L, typename T, int dim>
+template <int idim, typename L, std::integral T, int dim>
 AMREX_FORCE_INLINE
 void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, IntVectND<dim> iv, T n) noexcept
 {
@@ -349,7 +349,7 @@ void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, In
 }
 /// \endcond
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void For (BoxND<dim> const& box, T ncomp, L const& f) noexcept
 {
@@ -361,20 +361,20 @@ void For (BoxND<dim> const& box, T ncomp, L const& f) noexcept
     }
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void For (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     For(box, ncomp, std::forward<L>(f));
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 void For (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     For(box, ncomp, std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void For (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -384,7 +384,7 @@ void For (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcep
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-template <int idim, typename L, typename T, int dim>
+template <int idim, typename L, std::integral T, int dim>
 AMREX_FORCE_INLINE
 void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, IntVectND<dim> iv, T n) noexcept
 {
@@ -416,7 +416,7 @@ void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> cons
 }
 /// \endcond
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelFor (BoxND<dim> const& box, T ncomp, L const& f) noexcept
 {
@@ -428,20 +428,20 @@ void ParallelFor (BoxND<dim> const& box, T ncomp, L const& f) noexcept
     }
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void ParallelFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
     ParallelFor(box, ncomp, std::forward<L>(f));
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     ParallelFor(box, ncomp, std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -506,9 +506,7 @@ void For (Gpu::KernelInfo const&, BoxND<dim> const& box1, BoxND<dim> const& box2
     For(box1, box2, box3, std::forward<L1>(f1), std::forward<L2>(f2), std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -516,9 +514,7 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     For(box2, ncomp2, std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -527,9 +523,7 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     For(box2, ncomp2, std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (Gpu::KernelInfo const&,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -537,9 +531,7 @@ void For (Gpu::KernelInfo const&,
     For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (Gpu::KernelInfo const&,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -548,10 +540,7 @@ void For (Gpu::KernelInfo const&,
     For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
           BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -561,10 +550,7 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     For(box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
           BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -575,10 +561,7 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     For(box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (Gpu::KernelInfo const&,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -589,10 +572,7 @@ void For (Gpu::KernelInfo const&,
         box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (Gpu::KernelInfo const&,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -662,9 +642,7 @@ void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box1, BoxND<dim> con
     ParallelFor(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -672,9 +650,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor(box2, ncomp2, std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -683,9 +659,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor(box2, ncomp2, std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (Gpu::KernelInfo const&,
                   BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -694,9 +668,7 @@ void ParallelFor (Gpu::KernelInfo const&,
                 box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (Gpu::KernelInfo const&,
                   BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -706,10 +678,7 @@ void ParallelFor (Gpu::KernelInfo const&,
                 box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                   BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -719,10 +688,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor(box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                   BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -733,10 +699,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor(box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (Gpu::KernelInfo const&,
                   BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -747,10 +710,7 @@ void ParallelFor (Gpu::KernelInfo const&,
                 box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (Gpu::KernelInfo const&,
                   BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -762,13 +722,13 @@ void ParallelFor (Gpu::KernelInfo const&,
                 box3, ncomp3, std::forward<L3>(f3));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void HostDeviceParallelFor (T n, L&& f) noexcept
 {
     ParallelFor(n,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void HostDeviceParallelFor (T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -788,13 +748,13 @@ void HostDeviceParallelFor (BoxND<dim> const& box, L&& f) noexcept
     ParallelFor(box,std::forward<L>(f));
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 void HostDeviceParallelFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     ParallelFor(box,ncomp,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void HostDeviceParallelFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -829,18 +789,14 @@ void HostDeviceParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxN
     ParallelFor(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     ParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -848,10 +804,7 @@ void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     ParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                             BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -861,10 +814,7 @@ void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                             BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -875,13 +825,13 @@ void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void HostDeviceFor (T n, L&& f) noexcept
 {
     For(n,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void HostDeviceFor (T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -901,13 +851,13 @@ void HostDeviceFor (BoxND<dim> const& box, L&& f) noexcept
     For(box,std::forward<L>(f));
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 void HostDeviceFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     For(box,ncomp,std::forward<L>(f));
 }
 
-template <int MT, typename T, int dim, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, int dim, typename L >
 void HostDeviceFor (BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -942,18 +892,14 @@ void HostDeviceFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> c
     For(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -961,10 +907,7 @@ void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
     For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                     BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -974,10 +917,7 @@ void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
         box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                     BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -988,13 +928,13 @@ void HostDeviceFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
         box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void HostDeviceParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     ParallelFor(n,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void HostDeviceParallelFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -1014,13 +954,13 @@ void HostDeviceParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L&& f
     ParallelFor(box,std::forward<L>(f));
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 void HostDeviceParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     ParallelFor(box,ncomp,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void HostDeviceParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -1057,9 +997,7 @@ void HostDeviceParallelFor (Gpu::KernelInfo const&,
     ParallelFor(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceParallelFor (Gpu::KernelInfo const&,
                             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1067,9 +1005,7 @@ void HostDeviceParallelFor (Gpu::KernelInfo const&,
     ParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceParallelFor (Gpu::KernelInfo const&,
                             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1078,10 +1014,7 @@ void HostDeviceParallelFor (Gpu::KernelInfo const&,
     ParallelFor(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceParallelFor (Gpu::KernelInfo const&,
                             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1092,10 +1025,7 @@ void HostDeviceParallelFor (Gpu::KernelInfo const&,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceParallelFor (Gpu::KernelInfo const&,
                             BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1107,13 +1037,13 @@ void HostDeviceParallelFor (Gpu::KernelInfo const&,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void HostDeviceFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     For(n,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L >
 void HostDeviceFor (Gpu::KernelInfo const&, T n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -1133,13 +1063,13 @@ void HostDeviceFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L&& f) noexce
     For(box,std::forward<L>(f));
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 void HostDeviceFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     For(box,ncomp,std::forward<L>(f));
 }
 
-template <int MT, typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <int MT, std::integral T, typename L, int dim >
 void HostDeviceFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -1176,9 +1106,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
     For(box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceFor (Gpu::KernelInfo const&,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1186,9 +1114,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
     For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, typename T1, typename T2, typename L1, typename L2, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>> >
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceFor (Gpu::KernelInfo const&,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1197,10 +1123,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
     For(box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceFor (Gpu::KernelInfo const&,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1211,10 +1134,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
         box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, typename T1, typename T2, typename T3, typename L1, typename L2, typename L3, int dim,
-          typename M1=std::enable_if_t<std::is_integral_v<T1>>,
-          typename M2=std::enable_if_t<std::is_integral_v<T2>>,
-          typename M3=std::enable_if_t<std::is_integral_v<T3>> >
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceFor (Gpu::KernelInfo const&,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1226,7 +1146,7 @@ void HostDeviceFor (Gpu::KernelInfo const&,
         box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForRNG (T n, L const& f) noexcept
 {
@@ -1264,7 +1184,7 @@ void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
     }
 }
 
-template <int idim, typename L, typename T, int dim>
+template <int idim, typename L, std::integral T, int dim>
 AMREX_FORCE_INLINE
 void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, IntVectND<dim> iv, T n) noexcept
 {
@@ -1303,7 +1223,7 @@ void ParallelForRNG (BoxND<dim> const& box, L const& f) noexcept
     detail::ParallelForRNG_impND<dim>(f, lo, hi, iv);
 }
 
-template <typename T, typename L, int dim, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L, int dim >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f) noexcept
 {

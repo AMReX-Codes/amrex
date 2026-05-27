@@ -43,7 +43,7 @@ struct CellAdd
 template <class T0, class T1>
 struct CellAtomicAdd
 {
-    template<class U0=T0, std::enable_if_t<amrex::HasAtomicAdd<U0>::value,int> = 0>
+    template<class U0=T0> requires(amrex::HasAtomicAdd<U0>::value)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U0* d, T1 s) const noexcept
     {
@@ -180,8 +180,7 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
     // Note that Tag ParalleFor has a stream sync call in the end.
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<amrex::IsStoreAtomic<T0>::value,int> = 0>
+template <typename T0, typename T1> requires(amrex::IsStoreAtomic<T0>::value)
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const&)
@@ -189,8 +188,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab<T0, T1>(copy_tags, scomp, dcomp, ncomp, CellStore<T0, T1>());
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<!amrex::IsStoreAtomic<T0>::value,int> = 0>
+template <typename T0, typename T1> requires(!amrex::IsStoreAtomic<T0>::value)
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const& masks)
@@ -198,8 +196,7 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellStore<T0, T1>(), masks);
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<amrex::HasAtomicAdd<T0>::value,int> = 0>
+template <typename T0, typename T1> requires(amrex::HasAtomicAdd<T0>::value)
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const&)
@@ -207,8 +204,7 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellAtomicAdd<T0, T1>());
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<!amrex::HasAtomicAdd<T0>::value,int> = 0>
+template <typename T0, typename T1> requires(!amrex::HasAtomicAdd<T0>::value)
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const& masks)
@@ -344,8 +340,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
     Gpu::streamSynchronize();
 }
 
-template <typename B, typename V, typename TT,
-          std::enable_if_t<amrex::HasAtomicAdd<V>::value,int> FOO = 0>
+template <typename B, typename V, typename TT> requires(amrex::HasAtomicAdd<V>::value)
 void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
                                         int dcomp, int ncomp)
 {
@@ -364,8 +359,7 @@ void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
         });
 }
 
-template <typename B, typename V, typename TT,
-          std::enable_if_t<!amrex::HasAtomicAdd<V>::value,int> FOO = 0>
+template <typename B, typename V, typename TT> requires(!amrex::HasAtomicAdd<V>::value)
 void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
                                         int dcomp, int ncomp)
 {

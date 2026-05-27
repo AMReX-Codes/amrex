@@ -40,9 +40,8 @@ public:
     }
 
     //! Evaluate the set difference at given physical coordinates.
-    template <class U=F, class V=G,
-              std::enable_if_t<IsGPUable<U>::value &&
-                                      IsGPUable<V>::value, int> = 0>
+    template <class U=F, class V=G>
+        requires(IsGPUable<U>::value && IsGPUable<V>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -58,9 +57,8 @@ protected:
 };
 
 template <class F, class G>
-struct IsGPUable<DifferenceIF<F,G>, std::enable_if_t<IsGPUable<F>::value &&
-                                                            IsGPUable<G>::value>>
-    : std::true_type {};
+    requires(IsGPUable<F>::value && IsGPUable<G>::value)
+struct IsGPUable<DifferenceIF<F,G>> : std::true_type {};
 
 template <class F, class G>
 //! Helper that constructs a difference operator.

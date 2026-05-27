@@ -64,7 +64,7 @@ public:
         return op_impl(p, std::make_index_sequence<sizeof...(Fs)>());
     }
 
-    template <class U=IntersectionIF<Fs...>, std::enable_if_t<IsGPUable<U>::value,int> = 0>
+    template <class U=IntersectionIF<Fs...>> requires(IsGPUable<U>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
@@ -88,12 +88,13 @@ protected:
 };
 
 template <class Head, class... Tail>
-struct IsGPUable<IntersectionIF<Head, Tail...>, std::enable_if_t<IsGPUable<Head>::value>>
-    : IsGPUable<IntersectionIF<Tail...> > {};
+    requires(IsGPUable<Head>::value)
+struct IsGPUable<IntersectionIF<Head, Tail...>>
+    : IsGPUable<IntersectionIF<Tail...>> {};
 
 template <class F>
-struct IsGPUable<IntersectionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+    requires(IsGPUable<F>::value)
+struct IsGPUable<IntersectionIF<F>> : std::true_type {};
 
 template <class... Fs>
 constexpr IntersectionIF<std::decay_t<Fs> ...>

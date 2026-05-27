@@ -6,17 +6,19 @@
 
 namespace amrex {
 
-template <typename T, class Enable = void> struct FabDataType {};
+template <typename T> struct FabDataType {};
 //
 template <typename T>
-struct FabDataType <T, std::enable_if_t<IsMultiFabLike_v<T> > >
+    requires(IsMultiFabLike_v<T>)
+struct FabDataType<T>
 {
     using   fab_type = typename T::fab_type;
     using value_type = typename T::value_type;
 };
 
 template <typename T>
-struct FabDataType <T, std::enable_if_t<IsMultiFabLike_v<typename T::value_type> > >
+    requires(IsMultiFabLike_v<typename T::value_type>)
+struct FabDataType<T>
 {
     using   fab_type = typename T::value_type::fab_type;
     using value_type = typename T::value_type::value_type;

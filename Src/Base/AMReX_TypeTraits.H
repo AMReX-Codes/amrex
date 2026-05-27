@@ -15,42 +15,34 @@ namespace amrex
     template <class T> class BaseFab;
     template <class FAB> class FabArray;
 
-    template <class A, class Enable = void> struct IsBaseFab : std::false_type {};
+    template <class A> struct IsBaseFab : std::false_type {};
     //
     template <class D>
-    struct IsBaseFab<D, std::enable_if_t<
-                            std::is_base_of_v<BaseFab<typename D::value_type>,
-                                            D>>>
-        : std::true_type {};
+        requires(std::is_base_of_v<BaseFab<typename D::value_type>, D>)
+    struct IsBaseFab<D> : std::true_type {};
     //
     template <class A>
     inline constexpr bool IsBaseFab_v = IsBaseFab<A>::value;
 
-    template <class A, class Enable = void> struct IsFabArray : std::false_type {};
+    template <class A> struct IsFabArray : std::false_type {};
     //
     template <class D>
-    struct IsFabArray<D, std::enable_if_t<
-                             std::is_base_of_v<FabArray<typename D::FABType::value_type>,
-                                             D>>>
-        : std::true_type {};
+        requires(std::is_base_of_v<FabArray<typename D::FABType::value_type>, D>)
+    struct IsFabArray<D> : std::true_type {};
     //
     template <class A>
     inline constexpr bool IsFabArray_v = IsFabArray<A>::value;
 
-    template <class M, class Enable = void>
+    template <class M>
     struct IsMultiFabLike : std::false_type {};
     //
     template <class M>
-    struct IsMultiFabLike<M, std::enable_if_t<IsFabArray_v<M> &&
-                                              IsBaseFab_v<typename M::fab_type> > >
-        : std::true_type {};
+        requires(IsFabArray_v<M> && IsBaseFab_v<typename M::fab_type>)
+    struct IsMultiFabLike<M> : std::true_type {};
     //
     template <class M>
     inline constexpr bool IsMultiFabLike_v = IsMultiFabLike<M>::value;
 
-
-    template <bool B, class T = void>
-    using EnableIf_t = std::enable_if_t<B,T>;
 
     template <class T, class Enable = void>
     struct HasAtomicAdd : std::false_type {};
@@ -95,26 +87,26 @@ namespace amrex
     struct IsParticleContainer : public std::is_base_of<ParticleContainerBase, T>::type {};
 #endif
 
-    template <class T, class Enable = void>
+    template <class T>
     struct DefinitelyNotHostRunnable : std::false_type {};
 
 #ifdef AMREX_USE_GPU
 
-    template <class T, class Enable = void>
+    template <class T>
     struct MaybeDeviceRunnable : std::true_type {};
 
-    template <class T, class Enable = void>
+    template <class T>
     struct MaybeHostDeviceRunnable : std::true_type {};
 
 #if defined(AMREX_USE_CUDA) && defined(__NVCC__)
 
     template <class T>
-    struct MaybeHostDeviceRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >
-        : std::false_type {};
+        requires(__nv_is_extended_device_lambda_closure_type(T))
+    struct MaybeHostDeviceRunnable<T> : std::false_type {};
 
     template <class T>
-    struct DefinitelyNotHostRunnable<T, std::enable_if_t<__nv_is_extended_device_lambda_closure_type(T)> >
-        : std::true_type {};
+        requires(__nv_is_extended_device_lambda_closure_type(T))
+    struct DefinitelyNotHostRunnable<T> : std::true_type {};
 
 #elif defined(AMREX_USE_HIP)
 
@@ -278,14 +270,12 @@ namespace amrex
     inline constexpr bool IsNonNarrowingConversion_v = !IsNarrowingConversion<From, To>::value;
 
     // Move this down, because doxygen can not parse anything below IsStoreAtomic
-    template <class T, class Enable = void>
+    template <class T>
     struct IsStoreAtomic : std::false_type {};
     //
     template <class T>
-    struct IsStoreAtomic<T, std::enable_if_t <
-                                std::is_arithmetic_v<T>
-                                && sizeof(T) <= 8 > >
-        : std::true_type {};
+        requires(std::is_arithmetic_v<T> && sizeof(T) <= 8)
+    struct IsStoreAtomic<T> : std::true_type {};
 }
 
 #endif

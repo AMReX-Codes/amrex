@@ -322,7 +322,7 @@ namespace amrex {
  * same as ParalleFor. For CPU builds with OpenMP enabled, this function
  * uses OpenMP threading.
  */
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void ParallelForOMP (T n, L const& f) noexcept
 {
     ParallelFor(n, f);
@@ -350,7 +350,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
  * same as ParalleFor. For CPU builds with OpenMP enabled, this function
  * uses OpenMP threading.
  */
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {
     ParallelFor(box, ncomp, f);
@@ -358,7 +358,7 @@ void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 
 #else /* !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) */
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForOMP (T n, L const& f) noexcept
 {
@@ -400,7 +400,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
 #endif
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {
