@@ -774,7 +774,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     }
 }
 
-template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   BoxND<dim> const& box1, T1 ncomp1, L1 const& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2 const& f2)
@@ -827,7 +827,7 @@ void ParallelFor (Gpu::KernelInfo const& /*info*/,
     }
 }
 
-template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (Gpu::KernelInfo const& /*info*/,
                   BoxND<dim> const& box1, T1 ncomp1, L1 const& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2 const& f2,
@@ -977,7 +977,7 @@ void launch (BoxND<dim> const& box, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T, typename L > requires(MaybeDeviceRunnable<L>::value)
-ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
+void ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
 {
     static_assert(sizeof(T) >= 2);
     if (amrex::isEmpty(n)) { return; }
@@ -1005,7 +1005,7 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
  */
 template <int MT, typename L, int dim>
     requires(MaybeDeviceRunnable<L>::value)
-ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
+void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
     const BoxIndexerND<dim> indexer(box);
@@ -1439,7 +1439,7 @@ void For (Gpu::KernelInfo const& info,
     ParallelFor<MT>(info,box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (Gpu::KernelInfo const& info,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1447,7 +1447,7 @@ void For (Gpu::KernelInfo const& info,
     ParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (Gpu::KernelInfo const& info,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1455,7 +1455,7 @@ void For (Gpu::KernelInfo const& info,
     ParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (Gpu::KernelInfo const& info,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1467,7 +1467,7 @@ void For (Gpu::KernelInfo const& info,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (Gpu::KernelInfo const& info,
           BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1585,7 +1585,7 @@ void ParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> con
  * \ingroup amrex_execution
  * \brief Performance-portable kernel launch function
  */
-template <std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -1596,7 +1596,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
  * \ingroup amrex_execution
  * \brief Performance-portable kernel launch function
  */
-template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
@@ -1607,7 +1607,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
  * \ingroup amrex_execution
  * \brief Performance-portable kernel launch function
  */
-template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                   BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -1622,7 +1622,7 @@ void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
  * \ingroup amrex_execution
  * \brief Performance-portable kernel launch function
  */
-template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void ParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                   BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                   BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -1695,21 +1695,21 @@ void For (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3
     ParallelFor<MT>(Gpu::KernelInfo{},box1,box2,box3,std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     ParallelFor<MT>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
           BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -1720,7 +1720,7 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                 box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
           BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
           BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -1927,7 +1927,7 @@ requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::valu
 
 template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 requires(MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value)
-HostDeviceParallelFor (Gpu::KernelInfo const& info,
+void HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                        BoxND<dim> const& box3, T3 ncomp3, L3&& f3)
@@ -2038,7 +2038,7 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
                           std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceFor (Gpu::KernelInfo const& info,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -2046,7 +2046,7 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
     HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceFor (Gpu::KernelInfo const& info,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -2054,7 +2054,7 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
     HostDeviceParallelFor<MT>(info,box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceFor (Gpu::KernelInfo const& info,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -2066,7 +2066,7 @@ void HostDeviceFor (Gpu::KernelInfo const& info,
                           box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceFor (Gpu::KernelInfo const& info,
                     BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                     BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -2142,21 +2142,21 @@ void HostDeviceParallelFor (BoxND<dim> const& box1, BoxND<dim> const& box2, BoxN
                           std::forward<L1>(f1),std::forward<L2>(f2),std::forward<L3>(f3));
 }
 
-template <std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim,
+template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
 {
     HostDeviceParallelFor<MT>(Gpu::KernelInfo{},box1,ncomp1,std::forward<L1>(f1),box2,ncomp2,std::forward<L2>(f2));
 }
 
-template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                             BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
@@ -2167,7 +2167,7 @@ void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                           box3,ncomp3,std::forward<L3>(f3));
 }
 
-template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim,
+template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
 void HostDeviceParallelFor (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                             BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
                             BoxND<dim> const& box3, T3 ncomp3, L3&& f3) noexcept
