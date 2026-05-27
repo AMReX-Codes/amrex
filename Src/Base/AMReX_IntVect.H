@@ -197,13 +197,12 @@ public:
     * coordinates. The inputs for this constructor are N integers,
     * where N is equal to the number of dimensions of the IntVectND.
     */
-    template <class...Args,
-        std::enable_if_t<
-            (sizeof...(Args)+2 == dim) &&
-            IsConvertible_v<int, Args...>,
-        int> = 0>
+    template <class...Args>
+        requires ((sizeof...(Args)+2 == dim) &&
+            IsConvertible_v<int, Args...>)
     AMREX_GPU_HOST_DEVICE
-    constexpr IntVectND (int i, int j, Args...ks) noexcept : vect{i, j, static_cast<int>(ks)...} {}
+    constexpr IntVectND (int i, int j, Args...ks) noexcept
+: vect{i, j, static_cast<int>(ks)...} {}
 
     /**
     * \brief Construct an IntVectND whose components are all the same.
@@ -247,7 +246,8 @@ public:
         }
     }
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     explicit constexpr IntVectND (Dim3 const& a) noexcept {
         vect[0] = a.x;
         if constexpr (dim >= 2) {
@@ -260,7 +260,8 @@ public:
 
     // dtor, copy-ctor, copy-op=, move-ctor, and move-op= are compiler generated.
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 () const noexcept {
         if constexpr (dim == 1) {
@@ -272,7 +273,8 @@ public:
         }
     }
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept {
         if constexpr (dim == 1) {
@@ -897,10 +899,8 @@ AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 
 // Template deduction guide for IntVectND
-template <class...Args,
-    std::enable_if_t<
-        IsConvertible_v<int, Args...>,
-    int> = 0>
+template <class...Args>
+    requires (IsConvertible_v<int, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
@@ -1164,10 +1164,11 @@ coarsen (const IntVectND<dim>& p1, const IntVectND<dim>& p2) noexcept
     return v;
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
-{
+ {
     if constexpr (dim == 1) {
         return Dim3{.x = coarse.x*ratio[0], .y = coarse.y, .z = coarse.z};
     } else if constexpr (dim == 2) {
@@ -1177,10 +1178,11 @@ constexpr Dim3 refine (Dim3 const& coarse, IntVectND<dim> const& ratio) noexcept
     }
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 Dim3 coarsen (Dim3 const& fine, IntVectND<dim> const& ratio) noexcept
-{
+ {
     if constexpr (dim == 1) {
         return Dim3{.x = amrex::coarsen(fine.x, ratio[0]),
                     .y = fine.y,

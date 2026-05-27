@@ -49,14 +49,14 @@ namespace amrex
                                      IntVect const& ng_vect);
 
     //! Average face-based FabArray onto cell-centered FabArray.
-    template <typename CMF, typename FMF,
-              std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> = 0>
+    template <typename CMF, typename FMF>
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                      int ngrow = 0);
 
-    template <typename CMF, typename FMF,
-              std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> = 0>
+    template <typename CMF, typename FMF>
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
     void average_face_to_cellcenter (CMF& cc, int dcomp,
                                      const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                      IntVect const& ng_vect);
@@ -974,8 +974,8 @@ NormHelper (const MMF& mask,
     return sm;
 }
 
-template <typename CMF, typename FMF,
-          std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> FOO>
+template <typename CMF, typename FMF>
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
 void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  int ngrow)
@@ -984,8 +984,8 @@ void average_face_to_cellcenter (CMF& cc, int dcomp,
    average_face_to_cellcenter(cc, dcomp, fc, ng_vect);
 }
 
-template <typename CMF, typename FMF,
-          std::enable_if_t<IsFabArray_v<CMF> && IsFabArray_v<FMF>, int> FOO>
+template <typename CMF, typename FMF>
+    requires (IsFabArray_v<CMF> && IsFabArray_v<FMF>)
 void average_face_to_cellcenter (CMF& cc, int dcomp,
                                  const Array<const FMF*,AMREX_SPACEDIM>& fc,
                                  IntVect const& ng_vect)

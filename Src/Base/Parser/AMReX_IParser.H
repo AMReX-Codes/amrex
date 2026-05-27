@@ -31,10 +31,10 @@ struct IParserExecutor
     /**
      * \brief Evaluate constant expressions (\p N == 0) and return the integer result.
      */
-    template <int M=N, std::enable_if_t<M==0,int> = 0>
+    template <int M=N>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     long long operator() () const noexcept
-    {
+    requires (M==0) {
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, nullptr);))
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, nullptr);))
     }
@@ -46,10 +46,9 @@ struct IParserExecutor
      */
     template <typename... Ts>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N && std::conjunction_v<std::is_integral<Ts>...>,
-                     long long>
+    long long
     operator() (Ts... var) const noexcept
-    {
+    requires (sizeof...(Ts) == N && std::conjunction_v<std::is_integral<Ts>...>) {
         amrex::GpuArray<long long,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, l_var.data());))
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, l_var.data());))

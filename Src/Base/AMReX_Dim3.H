@@ -36,11 +36,10 @@ XDim3 operator- (XDim3 const& a, XDim3 const& b)
     return XDim3{.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z};
 }
 
-template <typename T,
-          std::enable_if_t <std::is_same_v<T,  Dim3> ||
-                                   std::is_same_v<T, XDim3>>* = nullptr>
+template <typename T>
 std::ostream& operator<< (std::ostream& os, const T& d)
-{
+requires (std::is_same_v<T,  Dim3> ||
+                                   std::is_same_v<T, XDim3>) {
     os << '(' << d.x << ',' << d.y << ',' << d.z << ')';
     return os;
 }

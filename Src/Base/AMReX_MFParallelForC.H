@@ -10,8 +10,8 @@
 namespace amrex::detail {
 
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F const& f)
+    requires (IsFabArray<MF>::value)
+void ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F const& f)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -33,8 +33,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool d
 }
 
 template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
-ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F const& f)
+    requires (IsFabArray<MF>::value)
+void ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F const& f)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel

@@ -50,7 +50,8 @@ namespace amrex::RungeKutta {
 
 struct PostStageNoOp {
     template <typename MF>
-    std::enable_if_t<IsFabArray<MF>::value> operator() (int, MF&) const {}
+        requires (IsFabArray<MF>::value)
+    void operator() (int, MF&) const {}
 };
 
 /// \cond DOXYGEN_IGNORE

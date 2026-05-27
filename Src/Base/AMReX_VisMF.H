@@ -389,9 +389,9 @@ std::istream& operator>> (std::istream& is, VisMF::Header& hd);
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
+void
 Write (const FabArray<FAB>& fa, const std::string& name)
-{
+requires (std::is_same_v<FAB,IArrayBox>) {
     BL_PROFILE("Write(FabArray)");
     AMREX_ASSERT(!name.empty() && name.back() != '/');
 
@@ -567,9 +567,9 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  */
 template <typename FAB>
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
+void
 Read (FabArray<FAB>& fa, const std::string& name)
-{
+requires (std::is_same_v<FAB,IArrayBox>) {
     BL_PROFILE("Read(FabArray)");
     AMREX_ASSERT(!name.empty() && name.back() != '/');
 

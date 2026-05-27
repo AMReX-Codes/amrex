@@ -189,11 +189,11 @@ void AnyCTO ([[maybe_unused]] TypeList<CTOs...> list_of_compile_time_options,
 }
 
 template <int MT, typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
+void
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              T N, F&& f)
-{
+requires (std::is_integral_v<T>) {
     AnyCTO(ctos, runtime_options,
         [&](auto cto_func){
             ParallelFor<MT>(N, cto_func);
@@ -216,11 +216,11 @@ void ParallelFor (TypeList<CTOs...> ctos,
 }
 
 template <int MT, typename T, class F, int dim, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
+void
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              BoxND<dim> const& box, T ncomp, F&& f)
-{
+requires (std::is_integral_v<T>) {
     AnyCTO(ctos, runtime_options,
         [&](auto cto_func){
             ParallelFor<MT>(box, ncomp, cto_func);
@@ -274,11 +274,11 @@ ParallelFor (TypeList<CTOs...> ctos,
  * \param f      a callable object taking an integer and working on that iteration.
  */
 template <typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
+void
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              T N, F&& f)
-{
+requires (std::is_integral_v<T>) {
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, N, std::forward<F>(f));
 }
 
@@ -382,11 +382,11 @@ void ParallelFor (TypeList<CTOs...> ctos,
  * \param f      a callable object taking three integers and working on the given cell.
  */
 template <typename T, class F, int dim, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
+void
 ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              BoxND<dim> const& box, T ncomp, F&& f)
-{
+requires (std::is_integral_v<T>) {
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, box, ncomp, std::forward<F>(f));
 }
 

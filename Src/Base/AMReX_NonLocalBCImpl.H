@@ -337,13 +337,15 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 }
 #endif
 
-template <typename DTOS, typename>
+template <typename DTOS>
+    requires (IsIndexMapping<DTOS>::value)
 MultiBlockCommMetaData::MultiBlockCommMetaData (const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                                                 const IntVect& ngrow, DTOS const& dtos)
     : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
                                 src.DistributionMap(), ngrow, dtos) {}
 
-template <typename DTOS, typename>
+template <typename DTOS>
+    requires (IsIndexMapping<DTOS>::value)
 MultiBlockCommMetaData::MultiBlockCommMetaData (const BoxArray& dstba, const DistributionMapping& dstdm,
                                                 const Box& dstbox, const BoxArray& srcba,
                                                 const DistributionMapping& srcdm, const IntVect& ngrow, DTOS const& dtos) {

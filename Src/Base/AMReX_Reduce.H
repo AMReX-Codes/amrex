@@ -335,11 +335,13 @@ struct ReduceOpMin
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
-    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+        requires (std::numeric_limits<T>::is_specialized)
+    constexpr void
     init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
 
     template <typename T>
-    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+        requires (!std::numeric_limits<T>::is_specialized)
+    constexpr void
     init (T& t) const noexcept { t = T::max(); }
 };
 
@@ -369,11 +371,13 @@ struct ReduceOpMax
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
-    constexpr std::enable_if_t<std::numeric_limits<T>::is_specialized>
+        requires (std::numeric_limits<T>::is_specialized)
+    constexpr void
     init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
 
     template <typename T>
-    constexpr std::enable_if_t<!std::numeric_limits<T>::is_specialized>
+        requires (!std::numeric_limits<T>::is_specialized)
+    constexpr void
     init (T& t) const noexcept { t = T::lowest(); }
 };
 
@@ -401,12 +405,14 @@ struct ReduceOpLogicalAnd
 #endif
 
     template <typename T>
+        requires (std::is_integral_v<T>)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_integral_v<T>>
+    void
     local_update (T& d, T s) const noexcept { d = d && s; }
 
     template <typename T>
-    constexpr std::enable_if_t<std::is_integral_v<T>>
+        requires (std::is_integral_v<T>)
+    constexpr void
     init (T& t) const noexcept { t = true; }
 };
 
@@ -434,12 +440,14 @@ struct ReduceOpLogicalOr
 #endif
 
     template <typename T>
+        requires (std::is_integral_v<T>)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_integral_v<T>>
+    void
     local_update (T& d, T s) const noexcept { d = d || s; }
 
     template <typename T>
-    constexpr std::enable_if_t<std::is_integral_v<T>>
+        requires (std::is_integral_v<T>)
+    constexpr void
     init (T& t) const noexcept { t = false; }
 };
 
@@ -1264,12 +1272,14 @@ private:
     // call_f_box
 
     template <typename D, typename F, int dim>
+        requires (std::is_same_v<std::decay_t<decltype(
+            Reduce::detail::call_f_intvect(std::declval<F const&>(), IntVectND<dim>())
+        )>, typename D::Type>)
     AMREX_FORCE_INLINE
     static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(
-            Reduce::detail::call_f_intvect(f, IntVectND<dim>(0))
-        )>, typename D::Type>>
-    {
+        noexcept -> void
+
+{
         using ReduceTuple = typename D::Type;
         For(box,
             [&] (IntVectND<dim> iv) {
@@ -1279,11 +1289,14 @@ private:
     }
 
     template <typename D, typename F, int dim>
+        requires (std::is_same_v<std::decay_t<decltype(
+            std::declval<F const&>()(std::declval<BoxND<dim> const&>()))>,
+                                                  typename D::Type>)
     AMREX_FORCE_INLINE
     static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
-        noexcept -> std::enable_if_t<std::is_same_v<std::decay_t<decltype(f(box))>,
-                                                  typename D::Type>>
-    {
+        noexcept -> void
+
+{
         using ReduceTuple = typename D::Type;
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
     }
@@ -1291,9 +1304,10 @@ private:
 public:
 
     template <typename MF, typename D, typename F>
-    std::enable_if_t<IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value>
+        requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value)
+    void
     eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
-    {
+ {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -1318,9 +1332,10 @@ public:
     }
 
     template <typename MF, typename D, typename F>
-    std::enable_if_t<IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value>
+        requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value)
+    void
     eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
-    {
+ {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -1669,10 +1684,12 @@ public:
      *          either \c Result_t(int,int,int) or \c Result_t(IntVectND<dim>).
      */
     template <typename F, int dim>
-    std::enable_if_t<IsCallable<F, int, int, int>::value ||
-                     IsCallable<F, IntVectND<dim>>::value>
+        requires (IsCallable<F, int, int, int>::value ||
+                     IsCallable<F, IntVectND<dim>>::value)
+    void
     eval (BoxND<dim> const& box, F&& f)
-    {
+
+{
         this->m_reduce_op.eval(box, this->m_reduce_data, std::forward<F>(f));
     }
 
@@ -1692,10 +1709,12 @@ public:
      *          with the last argument the component index in both versions.
      */
     template <typename F, int dim>
-    std::enable_if_t<IsCallable<F, int, int, int, int>::value ||
-                     IsCallable<F, IntVectND<dim>, int>::value>
+        requires (IsCallable<F, int, int, int, int>::value ||
+                     IsCallable<F, IntVectND<dim>, int>::value)
+    void
     eval (BoxND<dim> const& box, int ncomp, F&& f)
-    {
+
+{
         this->m_reduce_op.eval(box, ncomp, this->m_reduce_data, std::forward<F>(f));
     }
 
@@ -1719,10 +1738,12 @@ public:
      *          local box index in \c mf and the \f$(i,j,k)\f$ cell indices.
      */
     template <typename MF, typename F>
-    std::enable_if_t<IsFabArray<MF>::value &&
-                     IsCallable<F, int, int, int, int>::value>
+        requires (IsFabArray<MF>::value &&
+                     IsCallable<F, int, int, int, int>::value)
+    void
     eval (MF const& mf, IntVect const& nghost, F && f)
-    {
+
+{
         this->m_reduce_op.eval(mf, nghost, this->m_reduce_data, std::forward<F>(f));
     }
 
@@ -1749,10 +1770,12 @@ public:
      *          component index.
      */
     template <typename MF, typename F>
-    std::enable_if_t<IsFabArray<MF>::value &&
-                     IsCallable<F, int, int, int, int, int>::value>
+        requires (IsFabArray<MF>::value &&
+                     IsCallable<F, int, int, int, int, int>::value)
+    void
     eval (MF const& mf, IntVect const& nghost, int ncomp, F && f)
-    {
+
+{
         this->m_reduce_op.eval(mf, nghost, ncomp, this->m_reduce_data, std::forward<F>(f));
     }
 
@@ -1769,9 +1792,10 @@ public:
      *          invocable as \c Result_t(N).
      */
     template <typename N, typename F>
-    std::enable_if_t<IsCallable<F, N>::value>
+        requires (IsCallable<F, N>::value)
+    void
     eval (N n, F && f)
-    {
+ {
         this->m_reduce_op.eval(n, this->m_reduce_data, std::forward<F>(f));
     }
 

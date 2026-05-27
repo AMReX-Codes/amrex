@@ -97,10 +97,11 @@ public:
           btype(t)
         {}
 
-    template <typename T, int Tdim=dim, std::enable_if_t<( 1<=Tdim && Tdim<=3 ), int> = 0>
+    template <typename T, int Tdim=dim>
+        requires ( 1<=Tdim && Tdim<=3 )
     AMREX_GPU_HOST_DEVICE
     explicit BoxND (Array4<T> const& a) noexcept
-        : smallend(IntVectShrink<dim>(a.begin)),
+ : smallend(IntVectShrink<dim>(a.begin)),
           bigend(IntVectShrink<dim>(a.end) - 1)
         {}
 
@@ -160,21 +161,24 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int length (int dir) const noexcept { return bigend[dir] - smallend[dir] + 1; }
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> length3d () const noexcept {
         Dim3 len3d = length().dim3(1);
         return {{len3d.x, len3d.y, len3d.z}};
     }
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> loVect3d () const noexcept {
         Dim3 lo3d = smallend.dim3(0);
         return {{lo3d.x, lo3d.y, lo3d.z}};
     }
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> hiVect3d () const noexcept {
         Dim3 hi3d = bigend.dim3(0);
@@ -214,7 +218,8 @@ public:
     }
 
     //! Return true if argument is contained within BoxND.
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const Dim3& p) const noexcept {
         IntVectND<dim> piv{p};
@@ -222,7 +227,8 @@ public:
     }
 
     //! Return true if argument is contained within BoxND.
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (int i, int j, int k) const noexcept {
         Dim3 p3d{.x = i, .y = j, .z = k};
@@ -257,7 +263,8 @@ public:
     }
 
     //! Return true if argument is strictly contained within BoxND.
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool strictly_contains (const Dim3& p) const noexcept {
         IntVectND<dim> piv{p};
@@ -265,7 +272,8 @@ public:
     }
 
     //! Return true if argument is strictly contained within BoxND.
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool strictly_contains (int i, int j, int k) const noexcept {
         Dim3 p3d{.x = i, .y = j, .z = k};
@@ -470,7 +478,8 @@ public:
     //! Given the offset, return its corresponding index vector in
     //! GpuArray<int,3>. This function is available for 1D, 2D and 3D Boxes
     //! only,
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires (1 <= N && N <= 3)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> atOffset3d (Long offset) const noexcept;
 
@@ -1091,7 +1100,8 @@ BoxND<dim>::atOffset (Long offset) const noexcept
 }
 
 template<int dim>
-template <int N, std::enable_if_t<( 1<=N && N<=3 ), int>>
+template <int N>
+    requires (1 <= N && N <= 3)
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 GpuArray<int,3>
@@ -1981,86 +1991,95 @@ IntVectND<dim> min_ubound_iv (BoxND<dim> const& b1, IntVectND<dim> const& hi) no
     return min(b1.bigEnd(), hi);
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 lbound (BoxND<dim> const& box) noexcept
-{
+ {
     return box.smallEnd().dim3();
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 ubound (BoxND<dim> const& box) noexcept
-{
+ {
     return box.bigEnd().dim3();
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 begin (BoxND<dim> const& box) noexcept
-{
+ {
     return box.smallEnd().dim3();
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 end (BoxND<dim> const& box) noexcept
-{
+ {
     return (box.bigEnd() + 1).dim3(1);
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 length (BoxND<dim> const& box) noexcept
-{
+ {
     return (box.bigEnd() - box.smallEnd() + 1).dim3(1);
 }
 
 // Max of lower bound
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 max_lbound (BoxND<dim> const& b1, BoxND<dim> const& b2) noexcept
-{
+ {
     return max(b1.smallEnd(), b2.smallEnd()).dim3();
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 max_lbound (BoxND<dim> const& b1, Dim3 const& lo) noexcept
-{
+ {
     return max(b1.smallEnd(), IntVectND<dim>(lo)).dim3();
 }
 
 // Min of upper bound
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 min_ubound (BoxND<dim> const& b1, BoxND<dim> const& b2) noexcept
-{
+ {
     return min(b1.bigEnd(), b2.bigEnd()).dim3();
 }
 
-template<int dim, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 Dim3 min_ubound (BoxND<dim> const& b1, Dim3 const& hi) noexcept
-{
+ {
     return min(b1.bigEnd(), IntVectND<dim>(hi)).dim3();
 }
 
@@ -2095,7 +2114,6 @@ auto getIndexBounds (T const& b1, T const& b2, Ts const& ... b3) noexcept
     return getIndexBounds(getIndexBounds(b1,b2),b3...);
 }
 
-
 template<int dim>
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
@@ -2127,12 +2145,13 @@ BoxND<dim> makeSlab (BoxND<dim> const& b, int direction, int slab_index) noexcep
     return r;
 }
 
-template<int dim=AMREX_SPACEDIM, std::enable_if_t<( 1<=dim && dim<=3 ), int> = 0>
+template<int dim=AMREX_SPACEDIM>
+    requires ( 1<=dim && dim<=3 )
 [[nodiscard]]
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 BoxND<dim> makeSingleCellBox (int i, int j, int k, IndexTypeND<dim> typ = IndexTypeND<dim>::TheCellType())
-{
+ {
     Dim3 p3d{.x = i, .y = j, .z = k};
     IntVectND<dim> vect{p3d};
     return BoxND<dim>{vect, vect, typ};
@@ -2182,10 +2201,11 @@ struct BoxIndexerND
         return retval;
     }
 
-    template <int N=dim, std::enable_if_t<( 1<=N && N<=3 ), int> = 0>
+    template <int N=dim>
+        requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 operator() (std::uint64_t icell) const
-    {
+ {
         return intVect(icell).dim3();
     }
 

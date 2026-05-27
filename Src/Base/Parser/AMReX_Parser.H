@@ -41,10 +41,10 @@ struct ParserExecutor
      *
      * \return Expression value as double precision.
      */
-    template <int M=N, std::enable_if_t<M==0,int> = 0>
+    template <int M=N>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() () const noexcept
-    {
+    requires (M==0) {
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, nullptr);))
         AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, nullptr);))
     }
@@ -57,9 +57,9 @@ struct ParserExecutor
      */
     template <typename... Ts>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
+    double
     operator() (Ts... var) const noexcept
-    {
+    requires (sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value) {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var.data());))
         AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, l_var.data());))
@@ -74,9 +74,9 @@ struct ParserExecutor
      */
     template <typename... Ts>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
+    float
     operator() (Ts... var) const noexcept
-    {
+    requires (sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value) {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));))
         AMREX_IF_ON_HOST((return static_cast<float>(parser_exe_eval(m_host_executor, l_var.data()));))
