@@ -191,7 +191,7 @@ struct BlockStatus<T, false>
 #if defined(AMREX_USE_SYCL)
 
 #ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
-template <std::integral T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
 T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 {
     if (n <= 0) { return 0; }
@@ -393,7 +393,7 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 }
 #endif
 
-template <std::integral T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
     requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
              std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
@@ -635,7 +635,7 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
 #elif defined(AMREX_USE_HIP)
 
-template <std::integral T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
     requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
              std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
@@ -803,7 +803,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 #elif defined(AMREX_USE_CUDA)
 
-template <std::integral T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
     requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
              std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
@@ -963,7 +963,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
  * \param a_ret_sum control the return value
  * \return return the total sum if `a_ret_sum` is true
  */
-template <std::integral N, std::integral T >
+template <std::integral N, typename T >
 T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1035,7 +1035,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
  * \param a_ret_sum control the return value
  * \return return the total sum if `a_ret_sum` is true
  */
-template <std::integral N, std::integral T >
+template <std::integral N, typename T >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1110,7 +1110,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 
 #else
 //  !defined(AMREX_USE_GPU)
-template <std::integral T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
     requires(std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
              std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
@@ -1130,7 +1130,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
 }
 
 // The return value is the total sum.
-template <std::integral N, std::integral T >
+template <std::integral N, typename T >
 T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
 #if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
@@ -1143,7 +1143,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 }
 
 // The return value is the total sum.
-template <std::integral N, std::integral T >
+template <std::integral N, typename T >
 T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
     if (n <= 0) { return 0; }

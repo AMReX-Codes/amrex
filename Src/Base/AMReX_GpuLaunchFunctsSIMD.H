@@ -62,7 +62,7 @@ void ParallelForSIMD (N n, L const& f) noexcept
  * @tparam N index type (integer)
  * @tparam L function/functor to call per SIMD set of elements
  */
-template <std::integral T, std::integral N, typename L >
+template <typename T, std::integral N, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForSIMD (N n, L && f) noexcept
 {

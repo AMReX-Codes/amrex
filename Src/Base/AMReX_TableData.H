@@ -15,7 +15,7 @@
 
 namespace amrex {
 
-template <std::integral T, typename IDX = int>
+template <typename T, typename IDX = int>
 struct Table1D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -88,7 +88,7 @@ struct Table1D
 #endif
 };
 
-template <std::integral T, Order ORDER = Order::F>
+template <typename T, Order ORDER = Order::F>
 struct Table2D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -168,7 +168,7 @@ private:
     }
 };
 
-template <std::integral T, Order ORDER = Order::F>
+template <typename T, Order ORDER = Order::F>
 struct Table3D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -260,7 +260,7 @@ private:
     }
 };
 
-template <std::integral T, Order ORDER = Order::F>
+template <typename T, Order ORDER = Order::F>
 struct Table4D
 {
     T* AMREX_RESTRICT p = nullptr;
@@ -409,7 +409,7 @@ private:
  *      // We can now use table in device lambda.
  * \endcode
  */
-template <std::integral T, int N, Order ORDER = Order::F>
+template <typename T, int N, Order ORDER = Order::F>
 class TableData
     : public DataAllocator
 {
@@ -469,7 +469,7 @@ private:
     bool m_ptr_owner = false;
 };
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::TableData (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
     : DataAllocator{ar}, m_lo(lo), m_hi(hi)
 {
@@ -477,7 +477,7 @@ TableData<T,N,ORDER>::TableData (Array<int,N> const& lo, Array<int,N> const& hi,
 }
 
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::TableData (TableData<T,N,ORDER>&& rhs) noexcept
     : DataAllocator{rhs.arena()},
       m_dptr(rhs.m_dptr),
@@ -490,7 +490,7 @@ TableData<T,N,ORDER>::TableData (TableData<T,N,ORDER>&& rhs) noexcept
     rhs.m_ptr_owner = false;
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>&
 TableData<T,N,ORDER>::operator= (TableData<T,N,ORDER> && rhs) noexcept
 {
@@ -508,7 +508,7 @@ TableData<T,N,ORDER>::operator= (TableData<T,N,ORDER> && rhs) noexcept
     return *this;
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 TableData<T,N,ORDER>::~TableData () noexcept
 {
     static_assert(std::is_trivially_copyable<T>() &&
@@ -518,7 +518,7 @@ TableData<T,N,ORDER>::~TableData () noexcept
     clear();
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::resize (Array<int,N> const& lo, Array<int,N> const& hi, Arena* ar)
 {
@@ -542,7 +542,7 @@ TableData<T,N,ORDER>::resize (Array<int,N> const& lo, Array<int,N> const& hi, Ar
     }
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 Long
 TableData<T,N,ORDER>::size () const noexcept
 {
@@ -553,7 +553,7 @@ TableData<T,N,ORDER>::size () const noexcept
     return r;
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::clear () noexcept
 {
@@ -566,7 +566,7 @@ TableData<T,N,ORDER>::clear () noexcept
     }
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::define ()
 {
@@ -582,47 +582,47 @@ TableData<T,N,ORDER>::define ()
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
-    template <std::integral T, Order>
+    template <typename T, Order>
     Table1D<T> make_table (T* p, Array<int,1> const& lo, Array<int,1> const& hi) {
         return Table1D<T>(p, lo[0], hi[0]+1);
     }
-    template <std::integral T, Order ORDER>
+    template <typename T, Order ORDER>
     Table2D<T,ORDER> make_table (T* p, Array<int,2> const& lo, Array<int,2> const& hi) {
         return Table2D<T,ORDER>(p, {lo[0],lo[1]}, {hi[0]+1,hi[1]+1});
     }
-    template <std::integral T, Order ORDER>
+    template <typename T, Order ORDER>
     Table3D<T,ORDER> make_table (T* p, Array<int,3> const& lo, Array<int,3> const& hi) {
         return Table3D<T,ORDER>(p, {lo[0],lo[1],lo[2]}, {hi[0]+1,hi[1]+1,hi[2]+1});
     }
-    template <std::integral T, Order ORDER>
+    template <typename T, Order ORDER>
     Table4D<T,ORDER> make_table (T* p, Array<int,4> const& lo, Array<int,4> const& hi) {
         return Table4D<T,ORDER>(p, {lo[0],lo[1],lo[2],lo[3]}, {hi[0]+1,hi[1]+1,hi[2]+1,hi[3]+1});
     }
 }
 /// \endcond
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::table_type
 TableData<T,N,ORDER>::table () noexcept
 {
     return detail::make_table<T,ORDER>(m_dptr, m_lo, m_hi);
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::const_table_type
 TableData<T,N,ORDER>::table () const noexcept
 {
     return detail::make_table<T const, ORDER>(m_dptr, m_lo, m_hi);
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 typename TableData<T,N,ORDER>::const_table_type
 TableData<T,N,ORDER>::const_table () const noexcept
 {
     return detail::make_table<T const, ORDER>(m_dptr, m_lo, m_hi);
 }
 
-template <std::integral T, int N, Order ORDER>
+template <typename T, int N, Order ORDER>
 void
 TableData<T,N,ORDER>::copy (TableData<T,N,ORDER> const& rhs) noexcept
 {
