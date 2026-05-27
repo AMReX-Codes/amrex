@@ -116,12 +116,14 @@ public:
  : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
         {}
 
-    template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
+    template <typename... Us>
+        requires (sizeof...(Us) == sizeof...(Ts))
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> const& rhs);
 
-    template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> = 0>
+    template <typename... Us>
+        requires (sizeof...(Us) == sizeof...(Ts))
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> && rhs);
@@ -237,7 +239,8 @@ namespace detail {
 /// \endcond
 
 template <typename... Ts>
-template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> >
+template <typename... Us>
+    requires (sizeof...(Us) == sizeof...(Ts))
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
 {
@@ -246,7 +249,8 @@ GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
 }
 
 template <typename... Ts>
-template <typename... Us, std::enable_if_t<sizeof...(Us) == sizeof...(Ts),int> >
+template <typename... Us>
+    requires (sizeof...(Us) == sizeof...(Ts))
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> && rhs)
 {

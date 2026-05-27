@@ -1049,8 +1049,8 @@ struct ParticleTile
     ///
     /// Add one particle to this tile.
     ///
-    template < int NR = NArrayReal, int NI = NArrayInt,
-               std::enable_if_t<NR != 0 || NI != 0, int> foo = 0>
+    template <int NR = NArrayReal, int NI = NArrayInt>
+        requires (NR != 0 || NI != 0)
     void push_back (const SuperParticleType& sp)
     {
         invalidateRuntimePtrCaches();

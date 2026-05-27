@@ -266,10 +266,10 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     //!
     //! \return Nothing.
     template <typename DTOS>
-    std::enable_if_t<IsIndexMapping<DTOS>::value>
-    define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
-           const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
-           DTOS const& dtos);
+        requires (IsIndexMapping<DTOS>::value)
+    void define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
+                const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
+                DTOS const& dtos);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -506,13 +506,15 @@ struct IsDataPacking :
 #endif
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept;
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
@@ -520,13 +522,15 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
 
 #ifdef AMREX_USE_GPU
 template <class FAB, class DTOS = Identity, class Proj = Identity>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept;
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
@@ -642,7 +646,7 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
     DTOS dtos;
     FabProj proj;
 
-    static_assert(IsCallableR<Dim3, DTOS, Dim3>(), "DTOS needs to be a callable: Dim3 -> Dim3");
+    static_assert(IsCallableR<Dim3, DTOS, Dim3>::value, "DTOS needs to be a callable: Dim3 -> Dim3");
     static_assert(IsFabProjection<FabProj, FArrayBox>(), "FabProj needs to be at least a projection on FArrayBox.");
 };
 
@@ -1049,22 +1053,26 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 // degrees.
 
 template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+    requires (IsBaseFab<FAB>::value)
+void
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
 
 template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+    requires (IsBaseFab<FAB>::value)
+void
 Rotate90 (FabArray<FAB>& mf, Box const& domain);
 
 // Rotate180 fills the lo-x boundary by rotating the data around
 // (x=0,y=L_y/2) by 180 degrees.
 
 template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+    requires (IsBaseFab<FAB>::value)
+void
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
 
 template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+    requires (IsBaseFab<FAB>::value)
+void
 Rotate180 (FabArray<FAB>& mf, Box const& domain);
 
 // Fill the polar boundaries of the spherical coordinates (theta, phi, r).
@@ -1072,11 +1080,13 @@ Rotate180 (FabArray<FAB>& mf, Box const& domain);
 // the hi-x boundary is filled with f(pi+x,y) = f(pi-x,mod(y+pi,2*pi)).
 
 template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+    requires (IsBaseFab<FAB>::value)
+void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
 
 template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+    requires (IsBaseFab<FAB>::value)
+void
 FillPolar (FabArray<FAB>& mf, Box const& domain);
 
 /**
@@ -1116,11 +1126,11 @@ FillPolar (FabArray<FAB>& mf, Box const& domain);
  * \return      a CommHandler object needed for calling FillBoundary_finish.
  */
 template <typename FAB, typename DTOS, typename Proj = Identity>
+    requires (IsBaseFab<FAB>::value &&
+                 IsCallableR<Dim3,DTOS,Dim3>::value &&
+                 IsFabProjection<Proj,FAB>::value)
 [[nodiscard]]
-std::enable_if_t<IsBaseFab<FAB>() &&
-                 IsCallableR<Dim3,DTOS,Dim3>() &&
-                 IsFabProjection<Proj,FAB>(),
-                 CommHandler>
+CommHandler
 FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos,
                      Proj const& proj = Proj{});
@@ -1161,9 +1171,10 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
  * \param proj    component mapping
  */
 template <typename FAB, typename DTOS, typename Proj = Identity>
-std::enable_if_t<IsBaseFab<FAB>() &&
-                 IsCallableR<Dim3,DTOS,Dim3>() &&
-                 IsFabProjection<Proj,FAB>()>
+    requires (IsBaseFab<FAB>::value &&
+                 IsCallableR<Dim3,DTOS,Dim3>::value &&
+                 IsFabProjection<Proj,FAB>::value)
+void
 FillBoundary_finish (CommHandler handler,
                      FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos,
@@ -1229,9 +1240,9 @@ FillBoundary (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
  * \return      communication metadata
  */
 template <typename FAB, typename DTOS>
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
 [[nodiscard]]
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3,DTOS,Dim3>(),
-                 FabArrayBase::CommMetaData>
+FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
                           Geometry const& geom, DTOS const& dtos);
 

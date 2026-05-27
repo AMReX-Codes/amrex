@@ -41,15 +41,16 @@ namespace ppdetail {
     struct ArithmeticOptional_TT : std::false_type {};
 
     template <class T>
-    struct ArithmeticOptional_TT<T, std::enable_if_t<std::is_arithmetic_v<T>>>
+        requires (std::is_arithmetic_v<T>)
+    struct ArithmeticOptional_TT<T>
         : std::true_type
     {
         using value_type = T;
     };
 
     template <class T>
-    struct ArithmeticOptional_TT<std::optional<T>,
-                                 std::enable_if_t<std::is_arithmetic_v<T>>>
+        requires (std::is_arithmetic_v<T>)
+    struct ArithmeticOptional_TT<std::optional<T>>
         : std::true_type
     {
         using value_type = T;

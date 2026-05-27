@@ -6,6 +6,7 @@
 #include <AMReX_TypeList.H>
 
 #include <array>
+#include <concepts>
 #include <type_traits>
 
 /* This header is not for the users to include directly.  It's meant to be
@@ -188,12 +189,11 @@ void AnyCTO ([[maybe_unused]] TypeList<CTOs...> list_of_compile_time_options,
                            std::forward<Fs>(cto_functs)...);
 }
 
-template <int MT, typename T, class F, typename... CTOs>
-void
-ParallelFor (TypeList<CTOs...> ctos,
+template <int MT, std::integral T, class F, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              T N, F&& f)
-requires (std::is_integral_v<T>) {
+{
     AnyCTO(ctos, runtime_options,
         [&](auto cto_func){
             ParallelFor<MT>(N, cto_func);
@@ -215,12 +215,11 @@ void ParallelFor (TypeList<CTOs...> ctos,
     );
 }
 
-template <int MT, typename T, class F, int dim, typename... CTOs>
-void
-ParallelFor (TypeList<CTOs...> ctos,
+template <int MT, std::integral T, class F, int dim, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              BoxND<dim> const& box, T ncomp, F&& f)
-requires (std::is_integral_v<T>) {
+{
     AnyCTO(ctos, runtime_options,
         [&](auto cto_func){
             ParallelFor<MT>(box, ncomp, cto_func);
@@ -273,12 +272,11 @@ requires (std::is_integral_v<T>) {
  * \param N      an integer specifying the 1D for loop's range.
  * \param f      a callable object taking an integer and working on that iteration.
  */
-template <typename T, class F, typename... CTOs>
-void
-ParallelFor (TypeList<CTOs...> ctos,
+template <std::integral T, class F, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              T N, F&& f)
-requires (std::is_integral_v<T>) {
+{
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, N, std::forward<F>(f));
 }
 
@@ -381,12 +379,11 @@ void ParallelFor (TypeList<CTOs...> ctos,
  * \param ncomp  an integer specifying the range for iteration over components.
  * \param f      a callable object taking three integers and working on the given cell.
  */
-template <typename T, class F, int dim, typename... CTOs>
-void
-ParallelFor (TypeList<CTOs...> ctos,
+template <std::integral T, class F, int dim, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              BoxND<dim> const& box, T ncomp, F&& f)
-requires (std::is_integral_v<T>) {
+{
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, box, ncomp, std::forward<F>(f));
 }
 

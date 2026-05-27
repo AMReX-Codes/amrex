@@ -173,11 +173,11 @@ namespace amrex {
     struct IsArenaAllocator : std::false_type {};
     //
     template <class T>
-    struct IsArenaAllocator
-                <T,std::enable_if_t<std::is_base_of_v
-                                    <ArenaAllocatorBase<typename T::value_type,
-                                                        typename T::arena_wrapper_type>,
-                                     T>>>
+        requires (std::is_base_of_v
+                  <ArenaAllocatorBase<typename T::value_type,
+                                      typename T::arena_wrapper_type>,
+                   T>)
+    struct IsArenaAllocator<T>
         : std::true_type {};
 
     template <typename T>
