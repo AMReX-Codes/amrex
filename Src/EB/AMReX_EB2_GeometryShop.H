@@ -313,10 +313,10 @@ public:
         return getBoxType_Cpu(bx, geom);
     }
 
-    template <class U=F>
+    template <class U=F> requires(IsGPUable<U>::value)
     static constexpr bool isGPUable () noexcept { return true; }
 
-    template <class U=F>
+    template <class U=F> requires(!IsGPUable<U>::value)
     static constexpr bool isGPUable () noexcept { return false; }
 
     /**
@@ -327,7 +327,7 @@ public:
      * \param run_on   Execution target.
      * \param bounding_box Bounding box limiting the sampling region.
      */
-    template <class U=F>
+    template <class U=F> requires(IsGPUable<U>::value)
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
                   Box const& bounding_box) const noexcept
     {
@@ -347,7 +347,7 @@ public:
     }
 
     //! CPU-only overload of fillFab().
-    template <class U=F>
+    template <class U=F> requires(!IsGPUable<U>::value)
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const noexcept
     {
@@ -395,7 +395,7 @@ public:
      * \param run_on    Execution target.
      * \param bounding_box Bounding box limiting evaluation.
      */
-    template <class U=F>
+    template <class U=F> requires(IsGPUable<U>::value)
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn run_on,
@@ -432,7 +432,7 @@ public:
     }
 
     //! CPU-only overload of getIntercept().
-    template <class U=F>
+    template <class U=F> requires(!IsGPUable<U>::value)
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn,
