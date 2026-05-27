@@ -15,7 +15,7 @@
 
 namespace amrex::EB2 {
 
-template <class F>
+template <class F> requires(IsGPUable<F>::value)
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
@@ -23,7 +23,7 @@ IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
     return f(AMREX_D_DECL(p[0],p[1],p[2]));
 }
 
-template <class F>
+template <class F> requires(!IsGPUable<F>::value)
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p)
@@ -259,7 +259,7 @@ public:
      * \param geom Geometry providing physical coordinates.
      * \param run_on Whether to run on CPU or GPU.
      */
-    template <class U=F>
+    template <class U=F> requires(IsGPUable<U>::value)
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
@@ -307,7 +307,7 @@ public:
     }
 
     //! CPU-only fallback for getBoxType().
-    template <class U=F>
+    template <class U=F> requires(!IsGPUable<U>::value)
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
