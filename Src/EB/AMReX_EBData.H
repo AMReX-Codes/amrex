@@ -56,12 +56,13 @@ struct EBData
         }
     }
 
-    template <EBData_t T, std::enable_if_t<   T == EBData_t::centroid
-                                           || T == EBData_t::bndrycent
-                                           || T == EBData_t::bndrynorm
-                                           AMREX_D_TERM(|| T==EBData_t::fcx,
-                                                        || T==EBData_t::fcy,
-                                                        || T==EBData_t::fcz), int> = 0>
+    template <EBData_t T>
+        requires (   T == EBData_t::centroid
+                  || T == EBData_t::bndrycent
+                  || T == EBData_t::bndrynorm
+                  AMREX_D_TERM(|| T==EBData_t::fcx,
+                               || T==EBData_t::fcy,
+                               || T==EBData_t::fcz) )
     //! Access data at (i,j,k), component \p n.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto get (int i, int j, int k, int n) const noexcept
