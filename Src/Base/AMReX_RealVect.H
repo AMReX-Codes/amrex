@@ -60,8 +60,8 @@ class RealVectND {
     AMREX_GPU_HOST_DEVICE
     constexpr RealVectND (Real i, Real j, Args... ks) noexcept
         requires ((sizeof...(Args) + 2 == dim) &&
-            IsConvertible_v<Real, Args...>) : vect{i, j, static_cast<Real>(ks)...} {};
-
+                  IsConvertible_v<Real, Args...>)
+        : vect{i, j, static_cast<Real>(ks)...} {}
 
     AMREX_GPU_HOST_DEVICE
     explicit constexpr RealVectND (Real s) noexcept {
