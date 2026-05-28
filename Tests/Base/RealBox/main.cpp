@@ -10,7 +10,11 @@ namespace
 
 void test_contains_closed_interval ()
 {
+#ifdef BL_USE_FLOAT
+    constexpr Real delta = Real(1.e-6);
+#else
     constexpr Real delta = Real(1.e-12);
+#endif
 
     Real lo_arr[AMREX_SPACEDIM] = {AMREX_D_DECL(Real(-2.0), Real(-1.0), Real(-0.5))};
     Real hi_arr[AMREX_SPACEDIM] = {AMREX_D_DECL(Real( 3.0), Real( 4.0), Real( 5.5))};
