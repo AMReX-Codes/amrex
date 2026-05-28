@@ -215,7 +215,7 @@ void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crs
                       MFInterpolater* mapper, const Vector<BCRec>& bcs, int bcscomp);
 
 template <FabArrayType MF, typename Interp>
-requires (!std::is_same_v<Interp, amrex::MFInterpolater>)
+requires (!std::is_same_v<Interp, MFInterpolater>)
 void FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
                  int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
                  Box const& dest_domain, const IntVect& ratio,
@@ -265,7 +265,7 @@ void FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int
 }
 
 template <FabArrayType MF, typename iMF, typename Interp>
-requires (!std::is_same_v<Interp, amrex::MFInterpolater>)
+requires (!std::is_same_v<Interp, MFInterpolater>)
 void InterpFace (Interp *interp,
             MF const& mf_crse_patch,    int crse_comp,
             MF&       mf_refined_patch, int fine_comp,
