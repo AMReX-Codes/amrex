@@ -54,10 +54,10 @@ public:
     * where N is equal to the number of dimensions of the IndexTypeND.
     */
     template <class...Args>
+    requires ((sizeof...(Args)+1 == dim) &&
+              IsConvertible_v<CellIndex, Args...>)
     AMREX_GPU_HOST_DEVICE
     constexpr IndexTypeND (CellIndex i, Args...js) noexcept
-        requires ((sizeof...(Args)+1 == dim) &&
-            IsConvertible_v<CellIndex, Args...>)
     {
         CellIndex locarr[dim] = {i, static_cast<CellIndex>(js)...};
         for (int s=0; s<dim; ++s) {
@@ -247,10 +247,8 @@ AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IndexTypeND(const IntVectND<dim>&) -> IndexTypeND<dim>;
 
 // Template deduction guide for IndexTypeND
-template <class...Args,
-    std::enable_if_t<
-        IsConvertible_v<IndexType::CellIndex, Args...>,
-    int> = 0>
+template <class...Args>
+requires(IsConvertible_v<IndexType::CellIndex, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IndexTypeND(IndexType::CellIndex, Args...) -> IndexTypeND<sizeof...(Args)+1>;
 
