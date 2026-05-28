@@ -27,7 +27,7 @@ struct make_particle
 };
 
 template <typename T_ParticleType>
-    requires(is_soa_particle<T_ParticleType>::value)
+    requires (is_soa_particle<T_ParticleType>::value)
 struct make_particle<T_ParticleType>
 {
     template <typename PTD>

@@ -64,7 +64,8 @@ namespace detail
 
     template <typename T, typename ET = amrex_enum_traits<T>>
     std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
-    requires ET::value {
+    requires ET::value
+    {
         // cache enum value strings for the whole type T
         static auto r = detail::getNewEnumNameValuePairs<T>();
         return r;

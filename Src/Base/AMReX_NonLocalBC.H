@@ -228,8 +228,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     template <typename DTOS>
     MultiBlockCommMetaData(const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                            const IntVect& ngrow, DTOS const& dtos)
-    requires (IsIndexMapping<DTOS>::value)
-;
+    requires (IsIndexMapping<DTOS>::value);
 
     //! \brief Build global meta data by calling the define() member function.
     //!
@@ -238,8 +237,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     MultiBlockCommMetaData(const BoxArray& dstba, const DistributionMapping& dstdm,
                            const Box& dstbox, const BoxArray& srcba,
                            const DistributionMapping& srcdm, const IntVect& ngrow, DTOS const& dtos)
-    requires (IsIndexMapping<DTOS>::value)
-;
+    requires (IsIndexMapping<DTOS>::value);
 
     //! \name Manipulators
 
@@ -271,8 +269,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
     void define(const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
                 const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
                 DTOS const& dtos)
-        requires (IsIndexMapping<DTOS>::value)
-;
+        requires (IsIndexMapping<DTOS>::value);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -337,10 +334,9 @@ template <typename Base, typename Map = Identity> struct MapComponents {
     Map map;
 
     template <typename T>
-    constexpr decltype(auto)
         requires (IsCallable<Base, Array4<const T>, Dim3, int>::value &&
                   IsCallableR<int, Map, int>::value)
-operator()(Array4<const T> array, Dim3 i, int comp) const
+    constexpr decltype(auto) operator()(Array4<const T> array, Dim3 i, int comp) const
         noexcept(noexcept(base(array, i, map(comp))))
     {
         return base(array, i, map(comp));
@@ -514,7 +510,8 @@ void
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value);
+
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 void
@@ -522,7 +519,8 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
                         DTOS const& dtos = DTOS{}, Proj const& proj = Proj{}) noexcept
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value);
+
 
 #ifdef AMREX_USE_GPU
 template <class FAB, class DTOS = Identity, class Proj = Identity>
@@ -530,7 +528,8 @@ void
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value);
+
 
 template <class FAB, class DTOS = Identity, class Proj = Identity>
 void
@@ -539,8 +538,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
                         DTOS const& dtos = DTOS{}, Proj const& proj = Proj{})
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value);
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////
@@ -1067,14 +1065,12 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 template <class FAB>
 void
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value);
 
 template <class FAB>
 void
 Rotate90 (FabArray<FAB>& mf, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value);
 
 // Rotate180 fills the lo-x boundary by rotating the data around
 // (x=0,y=L_y/2) by 180 degrees.
@@ -1082,14 +1078,12 @@ Rotate90 (FabArray<FAB>& mf, Box const& domain)
 template <class FAB>
 void
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value);
 
 template <class FAB>
 void
 Rotate180 (FabArray<FAB>& mf, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value);
 
 // Fill the polar boundaries of the spherical coordinates (theta, phi, r).
 // The lo-x boundary is filled with f(-x,y) = f(x,mod(y+pi,2*pi)), and
@@ -1098,14 +1092,12 @@ Rotate180 (FabArray<FAB>& mf, Box const& domain)
 template <class FAB>
 void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value);
 
 template <class FAB>
 void
 FillPolar (FabArray<FAB>& mf, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
-;
+    requires (IsBaseFab<FAB>::value);
 
 /**
  * \brief Start communication to fill boundary
@@ -1151,8 +1143,7 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      Proj const& proj = Proj{})
     requires (IsBaseFab<FAB>::value &&
                  IsCallableR<Dim3,DTOS,Dim3>::value &&
-                 IsFabProjection<Proj,FAB>::value)
-;
+                 IsFabProjection<Proj,FAB>::value);
 
 /**
  * \brief Finish communication started by FillBoundary_nowait
@@ -1197,8 +1188,7 @@ FillBoundary_finish (CommHandler handler,
                      Proj const& proj = Proj{})
     requires (IsBaseFab<FAB>::value &&
                  IsCallableR<Dim3,DTOS,Dim3>::value &&
-                 IsFabProjection<Proj,FAB>::value)
-;
+                 IsFabProjection<Proj,FAB>::value);
 
 /**
  * \brief Fill ghost cells for FabArray/MultiFab
@@ -1239,6 +1229,7 @@ FillBoundary (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                  IsCallableR<Dim3,DTOS,Dim3>::value &&
                  IsFabProjection<Proj,FAB>::value)
 
+
 {
     BL_PROFILE("FillBoundary(cmd)");
     auto handler = FillBoundary_nowait(mf, cmd, scomp, ncomp, dtos, proj);
@@ -1264,8 +1255,7 @@ template <typename FAB, typename DTOS>
 FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
                           Geometry const& geom, DTOS const& dtos)
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
-;
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value);
 
 }
 

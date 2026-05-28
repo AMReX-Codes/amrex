@@ -55,8 +55,7 @@ T Sum (N n, T const* v, T init_val = 0);
  */
 template <typename T, std::integral N, typename F>
 T Sum (N n, F const& f, T init_val = 0)
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
-;
+    requires (!std::is_same_v<T*,std::decay_t<F>>);
 
 /**
  * \ingroup amrex_collectives
@@ -93,8 +92,7 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max());
  */
 template <typename T, std::integral N, typename F>
 T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max())
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
-;
+    requires (!std::is_same_v<T*,std::decay_t<F>>);
 
 /**
  * \ingroup amrex_collectives
@@ -131,8 +129,7 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest());
  */
 template <typename T, std::integral N, typename F>
 T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest())
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
-;
+    requires (!std::is_same_v<T*,std::decay_t<F>>);
 
 /**
  * \ingroup amrex_collectives
@@ -167,8 +164,7 @@ std::pair<T,T> MinMax (N n, T const* v);
  */
 template <typename T, std::integral N, typename F>
 std::pair<T,T> MinMax (N n, F const& f)
-    requires (!std::is_same_v<T*,std::decay_t<F>>)
-;
+    requires (!std::is_same_v<T*,std::decay_t<F>>);
 
 /**
  * \ingroup amrex_collectives
@@ -1659,6 +1655,7 @@ public:
         requires (IsCallable<F, int, int, int>::value ||
                      IsCallable<F, IntVectND<dim>>::value)
 
+
 {
         this->m_reduce_op.eval(box, this->m_reduce_data, std::forward<F>(f));
     }
@@ -1683,6 +1680,7 @@ public:
     eval (BoxND<dim> const& box, int ncomp, F&& f)
         requires (IsCallable<F, int, int, int, int>::value ||
                      IsCallable<F, IntVectND<dim>, int>::value)
+
 
 {
         this->m_reduce_op.eval(box, ncomp, this->m_reduce_data, std::forward<F>(f));
@@ -1712,6 +1710,7 @@ public:
     eval (MF const& mf, IntVect const& nghost, F && f)
         requires (IsFabArray<MF>::value &&
                      IsCallable<F, int, int, int, int>::value)
+
 
 {
         this->m_reduce_op.eval(mf, nghost, this->m_reduce_data, std::forward<F>(f));
@@ -1744,6 +1743,7 @@ public:
     eval (MF const& mf, IntVect const& nghost, int ncomp, F && f)
         requires (IsFabArray<MF>::value &&
                      IsCallable<F, int, int, int, int, int>::value)
+
 
 {
         this->m_reduce_op.eval(mf, nghost, ncomp, this->m_reduce_data, std::forward<F>(f));

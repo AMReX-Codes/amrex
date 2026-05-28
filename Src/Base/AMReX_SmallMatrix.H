@@ -130,8 +130,9 @@ namespace amrex {
         //! Returns a const reference to element i of a vector
         template <int MM=NRows, int NN=NCols>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator()(int i) const noexcept {
-        requires ((MM==1 || NN==1))
+        const T& operator()(int i) const noexcept
+            requires ((MM==1 || NN==1))
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             if constexpr (StartIndex == 1) {
                 --i;
@@ -144,8 +145,9 @@ namespace amrex {
         //! Returns a reference to element i of a vector
         template <int MM=NRows, int NN=NCols>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator()(int i) noexcept {
-        requires ((MM==1 || NN==1))
+        T& operator()(int i) noexcept
+            requires ((MM==1 || NN==1))
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             if constexpr (StartIndex == 1) {
                 --i;

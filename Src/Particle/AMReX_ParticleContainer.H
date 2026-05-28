@@ -594,7 +594,8 @@ public:
      */
     template <typename I>
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
-    requires std::is_integral_v<I> && (sizeof(I) >= sizeof(Long))
+    requires std::is_integral_v<I> && (sizeof(I) >= sizeof(Long));
+
 
     /**
     * \brief Returns # of particles at all levels
@@ -691,8 +692,7 @@ public:
     */
     template <class PCType>
     void copyParticles (const PCType& other, bool local=false)
-    requires IsParticleContainer<PCType>::value
-;
+    requires IsParticleContainer<PCType>::value;
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls
@@ -703,8 +703,7 @@ public:
     */
     template <class PCType>
     void addParticles (const PCType& other, bool local=false)
-    requires IsParticleContainer<PCType>::value
-;
+    requires IsParticleContainer<PCType>::value;
 
     /**
     * \brief Copy particles from other to this ParticleContainer. Will clear all the
@@ -722,8 +721,7 @@ public:
     */
     template <class F, class PCType>
     void copyParticles (const PCType& other, F&&f, bool local=false)
-    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
-;
+    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>);
 
     /**
     * \brief Add particles from other to this ParticleContainer. local controls
@@ -740,8 +738,7 @@ public:
     */
     template <class F, class PCType>
     void addParticles (const PCType& other, F const& f, bool local=false)
-    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
-;
+    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>);
 
     /**
     * \brief Write a contiguous chunk of real particle data to an ostream.

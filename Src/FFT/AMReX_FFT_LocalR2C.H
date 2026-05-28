@@ -94,8 +94,7 @@ public:
      */
     template <Direction DIR=D>
     void forward (T const* indata, GpuComplex<T>* outdata)
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
-;
+    requires (DIR == Direction::forward) || (DIR == Direction::both);
 
     /**
      * \brief Destroy any cached FFT plans; leaves the object in an uninitialized state.
@@ -114,8 +113,7 @@ public:
      */
     template <Direction DIR=D>
     void backward (GpuComplex<T> const* indata, T* outdata)
-    requires (DIR == Direction::backward) || (DIR == Direction::both)
-;
+    requires (DIR == Direction::backward) || (DIR == Direction::both);
 
     /**
      * \brief Scaling factor for normalization.

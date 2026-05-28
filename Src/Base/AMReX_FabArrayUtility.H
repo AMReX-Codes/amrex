@@ -2047,7 +2047,8 @@ requires (IsMultiFabLike_v<MF>) {
 //! dst = val
 template <class MF, std::size_t N>
 void setVal (Array<MF,N>& dst, typename MF::value_type val)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (auto& mf: dst) {
         mf.setVal(val);
     }
@@ -2056,7 +2057,8 @@ requires (IsMultiFabLike_v<MF>) {
 //! dst = val in ghost cells.
 template <class MF, std::size_t N>
 void setBndry (Array<MF,N>& dst, typename MF::value_type val, int scomp, int ncomp)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (auto& mf : dst) {
         mf.setBndry(val, scomp, ncomp);
     }
@@ -2066,7 +2068,8 @@ requires (IsMultiFabLike_v<MF>) {
 template <class MF, std::size_t N>
 void Scale (Array<MF,N>& dst, typename MF::value_type val, int scomp, int ncomp,
             int nghost)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (auto& mf : dst) {
         mf.mult(val, scomp, ncomp, nghost);
     }
@@ -2087,7 +2090,8 @@ requires (IsMultiFabLike_v<DMF> &&
 template <class MF, std::size_t N>
 void LocalAdd (Array<MF,N>& dst, Array<MF,N> const& src, int scomp, int dcomp,
                int ncomp, IntVect const& nghost)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (std::size_t i = 0; i < N; ++i) {
         amrex::Add(dst[i], src[i], scomp, dcomp, ncomp, nghost);
     }
@@ -2098,7 +2102,8 @@ template <class MF, std::size_t N>
 void Saxpy (Array<MF,N>& dst, typename MF::value_type a,
             Array<MF,N> const& src, int scomp, int dcomp, int ncomp,
             IntVect const& nghost)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (std::size_t i = 0; i < N; ++i) {
         MF::Saxpy(dst[i], a, src[i], scomp, dcomp, ncomp, nghost);
     }
@@ -2109,7 +2114,8 @@ template <class MF, std::size_t N>
 void Xpay (Array<MF,N>& dst, typename MF::value_type a,
            Array<MF,N> const& src, int scomp, int dcomp, int ncomp,
            IntVect const& nghost)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (std::size_t i = 0; i < N; ++i) {
         MF::Xpay(dst[i], a, src[i], scomp, dcomp, ncomp, nghost);
     }
@@ -2121,7 +2127,8 @@ void LinComb (Array<MF,N>& dst,
               typename MF::value_type a, Array<MF,N> const& src_a, int acomp,
               typename MF::value_type b, Array<MF,N> const& src_b, int bcomp,
               int dcomp, int ncomp, IntVect const& nghost)
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (std::size_t i = 0; i < N; ++i) {
         MF::LinComb(dst[i], a, src_a[i], acomp, b, src_b[i], bcomp, dcomp, ncomp, nghost);
     }
@@ -2134,7 +2141,8 @@ void ParallelCopy (Array<MF,N>& dst, Array<MF,N> const& src,
                    IntVect const& ng_src = IntVect(0),
                    IntVect const& ng_dst = IntVect(0),
                    Periodicity const& period = Periodicity::NonPeriodic())
-requires (IsMultiFabLike_v<MF>) {
+requires (IsMultiFabLike_v<MF>)
+    {
     for (std::size_t i = 0; i < N; ++i) {
         dst[i].ParallelCopy(src[i], scomp, dcomp, ncomp, ng_src, ng_dst, period);
     }

@@ -259,7 +259,8 @@ public:
 
     template <class U=T>
     [[nodiscard]] Elixir elixir () noexcept
-    requires std::is_trivially_destructible_v<U>
+    requires std::is_trivially_destructible_v<U>;
+
 
     /**
      * \brief The function returns the BaseFab to the invalid state.
@@ -470,6 +471,7 @@ public:
               class U=T>
     void fill_snan () noexcept
         requires (std::is_same_v<U,float> || std::is_same_v<U,double>);
+
 
     /**
     * \brief The setVal functions set sub-regions in the BaseFab to a

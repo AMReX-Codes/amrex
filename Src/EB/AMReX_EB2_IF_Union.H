@@ -89,7 +89,7 @@ protected:
 };
 
 template <class Head, class... Tail>
-    requires(IsGPUable<Head>::value)
+    requires (IsGPUable<Head>::value)
 struct IsGPUable<UnionIF<Head, Tail...>>
     : IsGPUable<UnionIF<Tail...>> {};
 

@@ -580,7 +580,7 @@ template <class PC, class Buffer>
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
     requires IsParticleContainer<PC>::value &&
-std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>, Buffer>
+             std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>, Buffer>
 {
     BL_PROFILE("amrex::packBuffer");
 

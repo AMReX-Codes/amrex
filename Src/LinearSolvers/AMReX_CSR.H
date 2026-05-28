@@ -110,7 +110,7 @@ template <typename C, typename T, template<typename> class AD, template<typename
  * \brief Copy CSR buffers between memory spaces asynchronously.
  *
  * \param c   Copy policy describing the direction (HostToDevice, etc.)
-    requires (std::is_same_v<C,Gpu::HostToDevice>) ||
+    requires (std::is_same_v<C,Gpu::HostToDevice>) ||;
          (std::is_same_v<C,Gpu::DeviceToHost>) ||
          (std::is_same_v<C,Gpu::DeviceToDevice>)
 .

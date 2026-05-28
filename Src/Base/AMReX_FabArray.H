@@ -546,7 +546,8 @@ public:
 
     template <class F=FAB>
     void prefetchToHost (const MFIter& mfi) const noexcept
-    requires IsBaseFab<F>::value {
+    requires IsBaseFab<F>::value
+    {
 #ifdef AMREX_USE_CUDA
         this->fabPtr(mfi)->prefetchToHost();
 #else
@@ -556,7 +557,8 @@ public:
 
     template <class F=FAB>
     void prefetchToDevice (const MFIter& mfi) const noexcept
-    requires IsBaseFab<F>::value {
+    requires IsBaseFab<F>::value
+    {
 #ifdef AMREX_USE_CUDA
         this->fabPtr(mfi)->prefetchToDevice();
 #else
@@ -663,8 +665,7 @@ public:
     //! Explicitly set the Kth FAB in the FabArray to point to elem.
     template <class F=FAB>
     void setFab (int boxno, FAB&& elem)
-    requires (std::is_move_constructible_v<F>)
-;
+    requires (std::is_move_constructible_v<F>);
 
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
     void setFab (const MFIter&mfi, std::unique_ptr<FAB> elem);
@@ -672,8 +673,7 @@ public:
     //! Explicitly set the FAB associated with mfi in the FabArray to point to elem.
     template <class F=FAB>
     void setFab (const MFIter&mfi, FAB&& elem)
-    requires (std::is_move_constructible_v<F>)
-;
+    requires (std::is_move_constructible_v<F>);
 
     //! Release ownership of the FAB. This function is not thread safe.
     AMREX_NODISCARD
@@ -706,8 +706,7 @@ public:
         requires (std::conjunction_v<
                   IsBaseFab<DFAB>, IsBaseFab<SFAB>,
                   std::is_convertible<typename SFAB::value_type,
-                                      typename DFAB::value_type>>)
-;
+                                      typename DFAB::value_type>>);
 
     /**
      * \brief Perform local addition of FabArray data.
@@ -724,20 +723,17 @@ public:
     template <class F=FAB>
     void LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
                    IntVect const& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     //! Set all components in the entire region of each FAB to val.
     template <class F=FAB>
     void setVal (value_type val)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     //! Set all components in the entire region of each FAB to val.
     template <class F=FAB>
     FabArray<FAB>& operator= (value_type val)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
     * \brief Set the value of num_comp components in the valid region of
@@ -749,16 +745,14 @@ public:
                  int        comp,
                  int        ncomp,
                  int        nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void setVal (value_type val,
                  int        comp,
                  int        ncomp,
                  const IntVect& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
     * \brief Set the value of num_comp components in the valid region of
@@ -772,8 +766,7 @@ public:
                  int        comp,
                  int        ncomp,
                  int        nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void setVal (value_type val,
@@ -781,21 +774,18 @@ public:
                  int        comp,
                  int        ncomp,
                  const IntVect& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
     /**
     * \brief Set all components in the valid region of each FAB in the
     * FabArray to val, including nghost boundary cells.
     */
     template <class F=FAB>
     void setVal (value_type val, int nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void setVal (value_type val, const IntVect& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
     * \brief Set all components in the valid region of each FAB in the
@@ -804,82 +794,69 @@ public:
     */
     template <class F=FAB>
     void setVal (value_type val, const Box& region, int nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void setVal (value_type val, const Box& region, const IntVect& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void abs (int comp, int ncomp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void abs (int comp, int ncomp, const IntVect& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void plus (value_type val, int comp, int num_comp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void plus (value_type val, const Box& region, int comp, int num_comp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void mult (value_type val, int comp, int num_comp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void mult (value_type val, const Box& region, int comp, int num_comp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void invert (value_type numerator, int comp, int num_comp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     void invert (value_type numerator, const Box& region, int comp, int num_comp, int nghost = 0)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     //! Set all values in the boundary region to val.
     template <class F=FAB>
     void setBndry (value_type val)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     //! Set ncomp values in the boundary region, starting at start_comp to val.
     template <class F=FAB>
     void setBndry (value_type val, int strt_comp, int ncomp)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
    //! Set all values outside the Geometry domain to val.
     template <class F=FAB>
     void setDomainBndry (value_type val, const Geometry& geom)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
     template <class F=FAB>
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     //! Get capacity of the FabArray
     template <typename I, class F=FAB>
     void capacityOfFabs (LayoutData<I>& mem) const
-    requires (IsBaseFab<F>::value && std::integral<I> && (sizeof(I) >= sizeof(Long)))
+    requires (IsBaseFab<F>::value && std::integral<I> && (sizeof(I) >= sizeof(Long)));
+
 
     /**
     * \brief Returns the sum of component "comp"
@@ -893,7 +870,8 @@ public:
     template <typename F=FAB>
     typename F::value_type
     sum (int comp, IntVect const& nghost, bool local = false) const
-    requires (IsBaseFab<F>::value)
+    requires (IsBaseFab<F>::value);
+
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -1223,6 +1201,7 @@ public:
     void FillBoundary_finish ()
         requires (IsBaseFab<F>::value);
 
+
     void FillBoundary_test ();
 
     /**
@@ -1386,8 +1365,7 @@ public:
     void BuildMask (const Box& phys_domain, const Periodicity& period,
                     value_type covered, value_type notcovered,
                     value_type physbnd, value_type interior)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     // The following are private functions.  But we have to make them public for cuda.
 
@@ -1401,6 +1379,7 @@ public:
                       bool deterministic = false)
         requires (IsBaseFab<F>::value);
 
+
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
     void FB_local_add_cpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
@@ -1408,13 +1387,11 @@ public:
 
     template <class F=FAB>
     void setVal (value_type val, const CommMetaData& thecmd, int scomp, int ncomp)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     template <class F=FAB>
     LayoutData<int> RecvLayoutMask (const CommMetaData& thecmd)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
 #ifdef AMREX_USE_GPU
 
@@ -1517,7 +1494,8 @@ public:
     typename F::value_type
     norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
              [[maybe_unused]] bool ignore_covered = false) const
-    requires (IsBaseFab<F>::value)
+    requires (IsBaseFab<F>::value);
+
 
     /**
      * \ingroup amrex_fabarray_communication
@@ -1535,7 +1513,8 @@ public:
     typename F::value_type
     norminf (FabArray<IFAB> const& mask, int comp, int ncomp, IntVect const& nghost,
              bool local = false) const
-    requires (IsBaseFab<F>::value)
+    requires (IsBaseFab<F>::value);
+
 
 protected:
 
@@ -1623,7 +1602,7 @@ private:
 
     template <class F=FAB>
     void build_arrays () const
-    requires (IsBaseFab<F>::value)
+        requires (IsBaseFab<F>::value);
 
     void clear_arrays ();
 
@@ -1713,8 +1692,7 @@ public:
     template <class F=FAB>
     static void Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                        int xcomp, int ycomp, int ncomp, IntVect const& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
      * \brief y = x + a*y
@@ -1730,8 +1708,7 @@ public:
     template <class F=FAB>
     static void Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                       int xcomp, int ycomp, int ncomp, IntVect const& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
      * \brief dst = a*x + b*y
@@ -1752,8 +1729,7 @@ public:
                          value_type a, const FabArray<FAB>& x, int xcomp,
                          value_type b, const FabArray<FAB>& y, int ycomp,
                          int dstcomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
      * \brief y = x2+a2*(y+a1*x1)
@@ -1772,8 +1748,7 @@ public:
     static void Saxpy_Xpay (FabArray<FAB>& y, value_type a1, FabArray<FAB> const& x1,
                             value_type a2, FabArray<FAB> const& x2,
                             int xcomp, int ycomp, int ncomp, IntVect const& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
      * \brief y1 += a1*x1; y2 += a2*x2;
@@ -1793,8 +1768,7 @@ public:
     static void Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB> const& x1,
                              FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x2,
                              int xcomp, int ycomp, int ncomp, IntVect const& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 
     /**
      * \brief y1 += a1*y2; y2 += a2*x;
@@ -1813,8 +1787,7 @@ public:
     static void Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
                              FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x,
                              int xcomp, int ycomp, int ncomp, IntVect const& nghost)
-    requires (IsBaseFab<F>::value)
-;
+    requires (IsBaseFab<F>::value);
 };
 
 }

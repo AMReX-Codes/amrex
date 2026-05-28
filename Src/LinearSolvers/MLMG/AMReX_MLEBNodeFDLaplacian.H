@@ -67,8 +67,7 @@ public:
     //
     template <typename F>
     void setEBDirichlet (F const& f)
-    requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
-;
+        requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value);
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,

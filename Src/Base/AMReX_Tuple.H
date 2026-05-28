@@ -39,8 +39,8 @@ struct gpu_tuple_element
     template <typename U>
     explicit constexpr gpu_tuple_element (U && a_value)
         requires (std::is_convertible_v<U&&,T>)
-// NOLINT(bugprone-forwarding-reference-overload)
- : m_value(std::forward<U>(a_value))
+        // NOLINT(bugprone-forwarding-reference-overload)
+        : m_value(std::forward<U>(a_value))
         {}
 
     T m_value{};
@@ -90,8 +90,8 @@ struct gpu_tuple_impl<I, Head>
     template <typename U>
     explicit constexpr gpu_tuple_impl (U&& a_head)
         requires (std::is_convertible_v<U&&,Head>)
-// NOLINT(bugprone-forwarding-reference-overload)
- : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
+        // NOLINT(bugprone-forwarding-reference-overload)
+        : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
 };
 
@@ -118,7 +118,7 @@ public:
     template <typename... Us>
     constexpr GpuTuple (Us&&... args)
         requires (sizeof...(Us) == sizeof...(Ts))
- : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
+        : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
         {}
 
     template <typename... Us>
@@ -126,6 +126,7 @@ public:
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> const& rhs)
         requires (sizeof...(Us) == sizeof...(Ts));
+
 
     template <typename... Us>
     AMREX_GPU_HOST_DEVICE

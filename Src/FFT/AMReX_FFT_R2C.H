@@ -223,8 +223,7 @@ public:
      */
     template <Direction DIR=D>
     void forward (MF const& inmf, int incomp = 0)
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
-;
+    requires (DIR == Direction::forward) || (DIR == Direction::both);
 
     /**
      * \brief Forward transform
@@ -239,8 +238,7 @@ public:
      */
     template <Direction DIR=D>
     void forward (MF const& inmf, cMF& outmf, int incomp = 0, int outcomp = 0)
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
-;
+    requires (DIR == Direction::forward) || (DIR == Direction::both);
 
     /**
      * \brief Forward transform
@@ -260,10 +258,9 @@ public:
      */
     template <typename RT, typename CT, Direction DIR=D, bool CP=C>
     void forward (RT const* in, CT* out)
-    requires ((DIR == Direction::forward) || (DIR == Direction::both)) &&
-             (((sizeof(RT)*2 == sizeof(CT)) && (!CP)) ||
-              ((sizeof(RT) == sizeof(CT)) && CP))
-;
+        requires ((DIR == Direction::forward) || (DIR == Direction::both))
+              && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+                  || ((sizeof(RT) == sizeof(CT)) && CP));
 
     /**
      * \brief Backward transform
@@ -276,8 +273,7 @@ public:
      */
     template <Direction DIR=D>
     void backward (MF& outmf, int outcomp = 0)
-    requires (DIR == Direction::both)
-;
+    requires (DIR == Direction::both);
 
     /**
      * \brief Backward transform
@@ -292,8 +288,7 @@ public:
      */
     template <Direction DIR=D>
     void backward (cMF const& inmf, MF& outmf, int incomp = 0, int outcomp = 0)
-    requires (DIR == Direction::backward) || (DIR == Direction::both)
-;
+    requires (DIR == Direction::backward) || (DIR == Direction::both);
 
     /**
      * \brief Backward transform
@@ -313,10 +308,9 @@ public:
      */
     template <typename CT, typename RT, Direction DIR=D, bool CP=C>
     void backward (CT const* in, RT* out)
-    requires ((DIR == Direction::backward) || (DIR == Direction::both)) &&
-             (((sizeof(RT)*2 == sizeof(CT)) && (!CP)) ||
-              ((sizeof(RT) == sizeof(CT)) && CP))
-;
+        requires ((DIR == Direction::backward) || (DIR == Direction::both))
+              && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+                  || ((sizeof(RT) == sizeof(CT)) && CP));
 
     /**
      * \brief Scaling factor. If the data goes through forward and then backward,
@@ -340,7 +334,8 @@ public:
      */
     template <Direction DIR=D>
     std::pair<cMF*,IntVect> getSpectralData () const
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
+    requires (DIR == Direction::forward) || (DIR == Direction::both);
+
 
     /**
      * \brief Get BoxArray and DistributionMapping for spectral data
@@ -1011,9 +1006,9 @@ R2C<T,D,C>::install_raw_ptr (FA& fa, RT const* p)
 template <typename T, Direction D, bool C>
 template <typename RT, typename CT, Direction DIR, bool CP>
 void R2C<T,D,C>::forward (RT const* in, CT* out)
-    requires ((DIR == Direction::forward) || (DIR == Direction::both)) &&
-         (((sizeof(RT)*2 == sizeof(CT)) && (!CP)) ||
-          ((sizeof(RT) == sizeof(CT)) && CP))
+    requires ((DIR == Direction::forward) || (DIR == Direction::both))
+          && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+              || ((sizeof(RT) == sizeof(CT)) && CP))
 {
     auto [rdata, rsz] = install_raw_ptr(m_raw_mf, in);
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, out);
@@ -1102,9 +1097,9 @@ void R2C<T,D,C>::backward_doit (MF& outmf, IntVect const& ngout,
 template <typename T, Direction D, bool C>
 template <typename CT, typename RT, Direction DIR, bool CP>
 void R2C<T,D,C>::backward (CT const* in, RT* out)
-    requires ((DIR == Direction::backward) || (DIR == Direction::both)) &&
-         (((sizeof(RT)*2 == sizeof(CT)) && (!CP)) ||
-          ((sizeof(RT) == sizeof(CT)) && CP))
+    requires ((DIR == Direction::backward) || (DIR == Direction::both))
+          && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+              || ((sizeof(RT) == sizeof(CT)) && CP))
 {
     auto [rdata, rsz] = install_raw_ptr(m_raw_mf, out);
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, in);

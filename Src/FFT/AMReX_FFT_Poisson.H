@@ -156,8 +156,7 @@ public:
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
                             IntVect const& ngrow = IntVect(0))
-    requires IsFabArray_v<FA>
-;
+    requires IsFabArray_v<FA>;
 
     /**
      * \brief Solve the open-boundary Poisson problem.

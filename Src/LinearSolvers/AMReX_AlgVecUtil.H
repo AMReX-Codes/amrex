@@ -52,7 +52,7 @@ template <typename V1, typename V2, typename F>
 void
 ForEach (V1 & x, V2 & y, F const& f)
     requires IsAlgVector<std::decay_t<V1> >::value &&
-IsAlgVector<std::decay_t<V2> >::value
+             IsAlgVector<std::decay_t<V2> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     Long n = x.numLocalRows();
@@ -76,8 +76,8 @@ template <typename V1, typename V2, typename V3, typename F>
 void
 ForEach (V1 & x, V2 & y, V3 & z, F const& f)
     requires IsAlgVector<std::decay_t<V1> >::value &&
-IsAlgVector<std::decay_t<V2> >::value &&
-IsAlgVector<std::decay_t<V3> >::value
+             IsAlgVector<std::decay_t<V2> >::value &&
+             IsAlgVector<std::decay_t<V3> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
@@ -104,9 +104,9 @@ template <typename V1, typename V2, typename V3, typename V4, typename F>
 void
 ForEach (V1 & x, V2 & y, V3 & z, V4 & a, F const& f)
     requires IsAlgVector<std::decay_t<V1> >::value &&
-IsAlgVector<std::decay_t<V2> >::value &&
-IsAlgVector<std::decay_t<V3> >::value &&
-IsAlgVector<std::decay_t<V4> >::value
+             IsAlgVector<std::decay_t<V2> >::value &&
+             IsAlgVector<std::decay_t<V3> >::value &&
+             IsAlgVector<std::decay_t<V4> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
@@ -136,10 +136,10 @@ template <typename V1, typename V2, typename V3, typename V4, typename V5, typen
 void
 ForEach (V1 & x, V2 & y, V3 & z, V4 & a, V5 & b, F const& f)
     requires IsAlgVector<std::decay_t<V1> >::value &&
-IsAlgVector<std::decay_t<V2> >::value &&
-IsAlgVector<std::decay_t<V3> >::value &&
-IsAlgVector<std::decay_t<V4> >::value &&
-IsAlgVector<std::decay_t<V5> >::value
+             IsAlgVector<std::decay_t<V2> >::value &&
+             IsAlgVector<std::decay_t<V3> >::value &&
+             IsAlgVector<std::decay_t<V4> >::value &&
+             IsAlgVector<std::decay_t<V5> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());

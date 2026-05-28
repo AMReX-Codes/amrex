@@ -59,7 +59,7 @@ protected:
 };
 
 template <class F>
-    requires(IsGPUable<F>::value)
+    requires (IsGPUable<F>::value)
 struct IsGPUable<ExtrusionIF<F>>
     : std::true_type {};
 

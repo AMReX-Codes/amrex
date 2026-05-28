@@ -902,11 +902,12 @@ AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IntVectND(const Array<int, dim>&) -> IntVectND<dim>;
 
 // Template deduction guide for IntVectND
-template <class...Args>
+template <class...Args,
+    std::enable_if_t<
+        IsConvertible_v<int, Args...>,
+    int> = 0>
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
-IntVectND(int, int, Args...)
-    requires (IsConvertible_v<int, Args...>)
--> IntVectND<sizeof...(Args)+2>;
+IntVectND(int, int, Args...) -> IntVectND<sizeof...(Args)+2>;
 
 //! \brief IntVect is an alias for \ref amrex::IntVectND instantiated with
 //! <tt>AMREX_SPACEDIM</tt>.

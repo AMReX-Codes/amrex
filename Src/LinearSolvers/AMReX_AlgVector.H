@@ -206,8 +206,7 @@ public:
     template <typename FAB>
     void copyFrom (FabArray<FAB> const& fa)
         requires (amrex::IsBaseFab<FAB>::value &&
-                 std::same_as<T,typename FAB::value_type>)
-;
+                 std::same_as<T,typename FAB::value_type>);
 
     template <typename FAB>
     void copyTo (FabArray<FAB> & fa)

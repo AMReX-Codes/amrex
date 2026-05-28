@@ -211,12 +211,14 @@ public:
     template <typename AMF>
     void setCoarseFineBC (const AMF* crse, int crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept
-    requires (!std::is_same_v<MF,AMF>)
+    requires (!std::is_same_v<MF,AMF>);
+
 
     template <typename AMF>
     void setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept
-    requires (!std::is_same_v<MF,AMF>)
+    requires (!std::is_same_v<MF,AMF>);
+
 
     /**
     * \brief Set boundary conditions for given level. For cell-centered
@@ -246,8 +248,7 @@ public:
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,
                      const AMF* robinbc_f = nullptr)
-    requires (!std::is_same_v<MF,AMF>) && (IsMultiFabLike_v<AMF>)
-;
+    requires (!std::is_same_v<MF,AMF>) && (IsMultiFabLike_v<AMF>);
 
     //! Set verbosity
     void setVerbose (int v) noexcept { verbose = v; }

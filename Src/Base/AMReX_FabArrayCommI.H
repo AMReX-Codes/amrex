@@ -12,9 +12,8 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool enforce_periodicity_only,
                             bool override_sync,
                             IntVect const& sumboundary_src_nghost,
-                            bool deterministic)
+                            bool deterministic) // so far the deterministic is for sumboundary only
     requires (IsBaseFab<F>::value)
-// so far the deterministic is for sumboundary only
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");

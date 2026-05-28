@@ -230,15 +230,13 @@ public:
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     template <class TMF=MF>
     void bottomSolveWithHypre (MF& x, const MF& b)
-    requires std::is_same_v<TMF,MultiFab>
-;
+    requires std::is_same_v<TMF,MultiFab>;
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     template <class TMF=MF>
     void bottomSolveWithPETSc (MF& x, const MF& b)
-    requires std::is_same_v<TMF,MultiFab>
-;
+    requires std::is_same_v<TMF,MultiFab>;
 #endif
 
     int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);

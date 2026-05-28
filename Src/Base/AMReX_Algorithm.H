@@ -412,6 +412,7 @@ int clz (T x) noexcept
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
               std::is_same_v<std::decay_t<T>,std::uint64_t>);
 
+
 /// \cond DOXYGEN_IGNORE
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
