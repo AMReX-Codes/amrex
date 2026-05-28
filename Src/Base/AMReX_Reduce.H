@@ -1248,14 +1248,12 @@ private:
     // call_f_box
 
     template <typename D, typename F, int dim>
-    AMREX_FORCE_INLINE
-    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
         requires (std::is_same_v<std::decay_t<decltype(
             Reduce::detail::call_f_intvect(std::declval<F const&>(), IntVectND<dim>())
         )>, typename D::Type>)
-        noexcept -> void
-
-{
+    AMREX_FORCE_INLINE
+    static void call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f) noexcept
+    {
         using ReduceTuple = typename D::Type;
         For(box,
             [&] (IntVectND<dim> iv) {
@@ -1265,14 +1263,12 @@ private:
     }
 
     template <typename D, typename F, int dim>
-    AMREX_FORCE_INLINE
-    static auto call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f)
         requires (std::is_same_v<std::decay_t<decltype(
             std::declval<F const&>()(std::declval<BoxND<dim> const&>()))>,
-                                                  typename D::Type>)
-        noexcept -> void
-
-{
+                      typename D::Type>)
+    AMREX_FORCE_INLINE
+    static void call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f) noexcept
+    {
         using ReduceTuple = typename D::Type;
         Reduce::detail::for_each_local<0, ReduceTuple, Ps...>(r, f(box));
     }

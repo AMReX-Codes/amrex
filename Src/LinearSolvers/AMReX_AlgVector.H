@@ -206,13 +206,12 @@ public:
     template <typename FAB>
     void copyFrom (FabArray<FAB> const& fa)
         requires (amrex::IsBaseFab<FAB>::value &&
-                 std::same_as<T,typename FAB::value_type>);
+                  std::is_same_v<T,typename FAB::value_type>);
 
     template <typename FAB>
-    void copyTo (FabArray<FAB> & fa)
+    void copyTo (FabArray<FAB> & fa) const
         requires (amrex::IsBaseFab<FAB>::value &&
-                 std::same_as<T,typename FAB::value_type>)
-    const;
+                  std::is_same_v<T,typename FAB::value_type>);
 
     /*
      * \brief Print the vector to files.
@@ -427,7 +426,7 @@ template <typename T, typename Allocator>
 template <typename FAB>
 void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
     requires (amrex::IsBaseFab<FAB>::value &&
-              std::same_as<T,typename FAB::value_type>)
+              std::is_same_v<T,typename FAB::value_type>)
 {
     AMREX_ASSERT(fa.is_cell_centered());
 
@@ -455,7 +454,7 @@ template <typename T, typename Allocator>
 template <typename FAB>
 void AlgVector<T,Allocator>::copyTo (FabArray<FAB> & fa) const
     requires (amrex::IsBaseFab<FAB>::value &&
-              std::same_as<T,typename FAB::value_type>)
+              std::is_same_v<T,typename FAB::value_type>)
 {
     AMREX_ASSERT(fa.is_cell_centered());
 

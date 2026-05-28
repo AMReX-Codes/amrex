@@ -379,7 +379,7 @@ namespace amrex {
         template <bool B = IsArray4_v>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, Dim3 const& a_begin, Dim3 const& a_end, int a_ncomp) noexcept
-            requires B
+            requires (B)
             : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
         {
             set_stride();
