@@ -590,9 +590,9 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <typename I>
+    requires (std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
-    requires std::is_integral_v<I> && (sizeof(I) >= sizeof(Long))
 {
     AMREX_ASSERT(lev >= 0 && lev < std::ssize(m_particles));
 
@@ -1141,10 +1141,10 @@ clearParticles ()
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class PCType>
+    requires (IsParticleContainer<PCType>::value)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, bool local)
-    requires IsParticleContainer<PCType>::value
 {
     using PData = typename ParticleTileType::ConstParticleTileDataType;
     copyParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
@@ -1153,10 +1153,10 @@ copyParticles (const PCType& other, bool local)
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class PCType>
+    requires (IsParticleContainer<PCType>::value)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, bool local)
-    requires IsParticleContainer<PCType>::value
 {
     using PData = typename ParticleTileType::ConstParticleTileDataType;
     addParticles(other, [] AMREX_GPU_HOST_DEVICE (const PData& /*data*/, int /*i*/) { return 1; }, local);
@@ -1165,10 +1165,10 @@ addParticles (const PCType& other, bool local)
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, class PCType>
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, F&& f, bool local)
-    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
 {
     BL_PROFILE("ParticleContainer::copyParticles");
     clearParticles();
@@ -1178,10 +1178,10 @@ copyParticles (const PCType& other, F&& f, bool local)
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 template <class F, class PCType>
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, F const& f, bool local)
-    requires (IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>)
 {
     BL_PROFILE("ParticleContainer::addParticles");
 
