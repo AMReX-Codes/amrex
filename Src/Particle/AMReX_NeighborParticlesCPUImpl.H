@@ -319,11 +319,11 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             {
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
-                const int global_rank = this->ParticleDistributionMap(lev)[dst_grid];
+                const int dst_level = tag.src_level;
+                const int global_rank = this->ParticleDistributionMap(dst_level)[dst_grid];
                 const int dst_proc = ParallelContext::global_to_local_rank(global_rank);
                 const int dst_tile = tag.src_tile;
                 const int dst_index = tag.src_index;
-                const int dst_level = tag.src_level;
 
                 if (dst_proc == MyProc)
                 {
