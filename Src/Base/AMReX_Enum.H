@@ -21,8 +21,9 @@ namespace amrex
 namespace detail
 {
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::pair<std::string,T>> getNewEnumNameValuePairs ()
-    requires ET::value {
+    {
         auto tmp = amrex::split(std::string(ET::enum_names), ",");
         std::vector<std::pair<std::string,T>> r;
         r.reserve(tmp.size());
@@ -63,8 +64,8 @@ namespace detail
 /// \endcond
 
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
-    requires ET::value
     {
         // cache enum value strings for the whole type T
         static auto r = detail::getNewEnumNameValuePairs<T>();
@@ -85,8 +86,9 @@ namespace detail
      * \endcode
      */
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     T getEnum (std::string_view const& s)
-    requires ET::value {
+    {
         auto const& kv = getEnumNameValuePairs<T>();
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
@@ -118,8 +120,9 @@ namespace detail
      * \endcode
      */
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     T getEnumCaseInsensitive (std::string_view const& s)
-    requires ET::value {
+    {
         auto const& kv = getEnumNameValuePairs<T>();
         std::string ls = amrex::toLower(std::string(s));
         auto it = std::find_if(kv.begin(), kv.end(),
@@ -150,8 +153,9 @@ namespace detail
      * \endcode
      */
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::string getEnumNameString (T const& v)
-    requires ET::value {
+    {
         auto const& kv = getEnumNameValuePairs<T>();
         auto it = std::find_if(kv.begin(), kv.end(),
                                [&] (auto const& x) -> bool
@@ -169,8 +173,9 @@ namespace detail
     }
 
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::string> getEnumNameStrings ()
-    requires ET::value {
+    {
         auto r = amrex::split(std::string(ET::enum_names), ",");
         for (auto& s : r) {
             auto found = s.find('=');
@@ -183,8 +188,9 @@ namespace detail
     }
 
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::string getEnumClassName ()
-    requires ET::value {
+    {
         return std::string(ET::class_name);
     }
 
@@ -193,8 +199,9 @@ namespace detail
      * Useful when building bitmasks.
      */
     template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     constexpr auto toUnderlying (T v) noexcept
-    requires ET::value {
+    {
         return static_cast<std::underlying_type_t<T>>(v);
     }
 }

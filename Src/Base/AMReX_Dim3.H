@@ -5,6 +5,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_GpuQualifiers.H>
 
+#include <concepts>
 #include <iostream>
 
 namespace amrex {
@@ -37,9 +38,9 @@ XDim3 operator- (XDim3 const& a, XDim3 const& b)
 }
 
 template <typename T>
+requires (std::same_as<T, Dim3> || std::same_as<T, XDim3>)
 std::ostream& operator<< (std::ostream& os, const T& d)
-requires (std::is_same_v<T,  Dim3> ||
-                                   std::is_same_v<T, XDim3>) {
+{
     os << '(' << d.x << ',' << d.y << ',' << d.z << ')';
     return os;
 }
