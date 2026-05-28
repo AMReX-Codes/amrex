@@ -847,7 +847,6 @@ public:
     requires (BaseFabType<FAB> && (sizeof(I) >= sizeof(Long)))
     void capacityOfFabs (LayoutData<I>& mem) const;
 
-
     /**
     * \brief Returns the sum of component "comp"
     *
@@ -861,7 +860,6 @@ public:
     requires (BaseFabType<F>)
     typename F::value_type
     sum (int comp, IntVect const& nghost, bool local = false) const;
-
 
     /**
     * \brief This function copies data from src to this FabArray.  Each FAB
@@ -1190,7 +1188,6 @@ public:
     requires (BaseFabType<F>)
     void FillBoundary_finish ();
 
-
     void FillBoundary_test ();
 
     /**
@@ -1484,7 +1481,6 @@ public:
     norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
              [[maybe_unused]] bool ignore_covered = false) const;
 
-
     /**
      * \ingroup amrex_fabarray_communication
      * \brief Return infinity norm in masked region
@@ -1502,7 +1498,6 @@ public:
     typename F::value_type
     norminf (FabArray<IFAB> const& mask, int comp, int ncomp, IntVect const& nghost,
              bool local = false) const;
-
 
 protected:
 

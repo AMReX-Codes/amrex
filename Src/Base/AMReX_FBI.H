@@ -46,7 +46,7 @@ struct CellAtomicAdd
     template<class U0=T0>
     requires (amrex::HasAtomicAdd<U0>::value)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
-    operator()(U0* d, T1 s) const noexcept
+    operator() (U0* d, T1 s) const noexcept
     {
         Gpu::Atomic::AddNoRet(d, static_cast<U0>(s));
     }

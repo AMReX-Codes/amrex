@@ -1076,7 +1076,7 @@ FillBoundary_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
     for (int i = 0; i < N; ++i) {
         mf[i]->FillBoundary_nowait(scomp[i], ncomp[i], nghost[i], period[i],
                                    cross.empty() ? 0 : cross[i]);
-}
+    }
 }
 
 /** \brief Launch FillBoundary_nowait across a vector of FabArrays.

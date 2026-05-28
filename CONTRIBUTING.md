@@ -282,8 +282,9 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
     * **Place `requires` immediately after `template <...>`:** put the `requires`
       clause on the line(s) directly after the template parameter list and before the
       return type, attributes, and function name. Do **not** use a trailing `requires`
-      clause after the parameter list (before `{` or `;`). Trailing constraints break
-      CUDA-on-Windows builds for some templates.
+      clause after the parameter list (before `{` or `;`). This is especially important
+      for **member function template definitions outside the class body**: trailing
+      constraints on those out-of-line definitions break CUDA-on-Windows builds.
       ```cpp
       // Good
       template <typename T>
