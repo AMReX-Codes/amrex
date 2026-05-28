@@ -451,7 +451,7 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const EB2::IndexSpace& index_space,
@@ -505,7 +505,7 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
     void
     FillPatchTwoLevels (MF& mf, Real time,
                         const EB2::IndexSpace& index_space,
@@ -774,7 +774,7 @@ namespace amrex
      * \param bcs boundar types for each component
      * \param bcscomp starting component for bcs
      */
-    template <typename MF, typename Interp>
+    template <FabArrayType MF, typename Interp>
     void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                            IntVect const& nghost_outside_domain,
@@ -842,7 +842,7 @@ namespace amrex
      * \param bcs boundary types for each component.
      * \param bcscomp starting component for bcs
      */
-    template <typename MF, typename Interp>
+    template <FabArrayType MF, typename Interp>
     void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                         IntVect const& nghost_outside_domain, Real time,
@@ -907,7 +907,7 @@ namespace amrex
      * \param bcr boundary types for each component. We need this because some interpolaters need it.
      * \param bcrcomp starting component for bcr
      */
-    template <typename MF, typename BC, typename Interp>
+    template <FabArrayType MF, typename BC, typename Interp>
     void
     FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                       const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
