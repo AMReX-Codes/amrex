@@ -16,6 +16,6 @@ concept BaseFabType = amrex::IsBaseFab<T>::value;
  * \brief Checks if a type is an amrex::FabArray (like MultiFab).
  */
 template <typename T>
-concept FabArrayType = amrex::IsFabArray<T>::value;  
+concept FabArrayType = amrex::IsFabArray<T>::value;
 } // namespace amrex
 #endif

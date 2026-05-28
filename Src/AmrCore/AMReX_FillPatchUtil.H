@@ -38,10 +38,10 @@ namespace amrex
     struct NullInterpHook
     {
         template <BaseFabType T = MFFAB>
-        void operator() (MFFAB& /*fab*/, const amrex::Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator() (MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
 
         template <BaseFabType T = MFFAB>
-        void operator() (amrex::Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const amrex::Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator() (Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
 
         template <FabArrayType T = MFFAB>
         void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const {}
