@@ -44,9 +44,9 @@ struct IParserExecutor
      * \return Result promoted to \c long long.
      */
     template <std::integral... Ts>
+    requires (N > 0 && sizeof...(Ts) == N)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     long long operator() (Ts... var) const noexcept
-    requires (N > 0 && sizeof...(Ts) == N)
     {
         amrex::GpuArray<long long,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, l_var.data());))

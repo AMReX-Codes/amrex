@@ -13,6 +13,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
+#include <concepts>
 #include <map>
 #include <memory>
 #include <string>
@@ -55,9 +56,9 @@ struct ParserExecutor
      * \return Expression value promoted to double precision.
      */
     template <typename... Ts>
+    requires (N > 0 && sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() (Ts... var) const noexcept
-    requires (N > 0 && sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value)
     {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var.data());))
@@ -71,10 +72,10 @@ struct ParserExecutor
      *
      * \param var Scalar arguments supplied in parser variable order.
      */
-    template <typename... Ts>
+    template <std::same_as<float>... Ts>
+    requires (N > 0 && sizeof...(Ts) == N)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     float operator() (Ts... var) const noexcept
-    requires (sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value)
     {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));))
