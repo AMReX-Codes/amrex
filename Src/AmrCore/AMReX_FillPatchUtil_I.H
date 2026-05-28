@@ -58,7 +58,6 @@ bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int n
     return crse_box.contains(fine_box_coarsened);
 }
 
-/// \cond DOXYGEN_IGNORE
 template <FabArrayType MF, typename BC>
 void
 FillPatchSingleLevel (MF& mf, Real time,
@@ -194,7 +193,6 @@ FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 
     physbcf(mf, dcomp, ncomp, nghost, time, bcfcomp);
 }
-/// \endcond
 
 /**
  * \brief Helper that applies a MFInterpolater to fill a fine patch from a coarse patch.
@@ -330,8 +328,8 @@ namespace detail {
 
 // ======== FArrayBox
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
@@ -339,8 +337,8 @@ namespace detail {
         return mf_crse_patch;
     }
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch,
@@ -348,8 +346,8 @@ namespace detail {
         return mf_crse_patch;
     }
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
@@ -357,8 +355,8 @@ namespace detail {
         return mf_fine_patch;
     }
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         MF mf_fine_patch(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch,
@@ -366,8 +364,8 @@ namespace detail {
         return mf_fine_patch;
     }
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_refined_patch(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
@@ -375,8 +373,8 @@ namespace detail {
         return mf_refined_patch;
     }
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_crse_mask(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type),
@@ -384,8 +382,8 @@ namespace detail {
         return mf_crse_mask;
     }
 
-    template <typename MF>
-    requires (std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     void mf_set_domain_bndry (MF &mf, Geometry const & geom)
     {
         mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
@@ -394,50 +392,50 @@ namespace detail {
 
 // ======== Not FArrayBox
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF>
-    requires (!std::is_same_v<typename MF::FABType::value_type, FArrayBox>)
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     void mf_set_domain_bndry (MF &/*mf*/, Geometry const & /*geom*/)
     {
         // nothing
@@ -788,7 +786,6 @@ namespace detail {
 } // namespace detail
 /// \endcond
 
-/// \cond DOXYGEN_IGNORE
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
 void
 FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
@@ -1515,7 +1512,6 @@ FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                                         hook, hook, index_space);
     }
 }
-/// \endcond
 
 }
 
