@@ -467,10 +467,9 @@ public:
     //! Same as above, except that starts at component 0 and copies all comps.
     void getVal (T* data, const IntVect& pos) const noexcept;
 
-    template <RunOn run_on AMREX_DEFAULT_RUNON,
-              class U=T>
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
     void fill_snan () noexcept
-        requires (std::is_same_v<U,float> || std::is_same_v<U,double>);
+        requires (std::is_same_v<T,float> || std::is_same_v<T,double>);
 
 
     /**
@@ -1377,10 +1376,10 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
-template <RunOn run_on, class U>
+template <RunOn run_on>
 void
 BaseFab<T>::fill_snan () noexcept
-    requires (std::is_same_v<U,float>) || (std::is_same_v<U,double>)
+    requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
 {
     amrex::fill_snan<run_on>(this->dptr, this->truesize);
 }
