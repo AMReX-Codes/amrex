@@ -100,7 +100,7 @@ namespace amrex
                           int scomp, int dcomp, int ncomp,
                           const Geometry& geom,
                           BC& physbcf, int bcfcomp)
-        requires IsFabArray<MF>::value;
+        requires (IsFabArray<MF>::value);
 
     /**
      * \brief FillPatch with data from the current level

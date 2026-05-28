@@ -66,7 +66,7 @@ FillPatchSingleLevel (MF& mf, Real time,
                       int scomp, int dcomp, int ncomp,
                       const Geometry& geom,
                       BC& physbcf, int bcfcomp)
-    requires IsFabArray<MF>::value
+    requires (IsFabArray<MF>::value)
 {
     FillPatchSingleLevel(mf, mf.nGrowVect(), time, smf, stime, scomp, dcomp, ncomp,
                          geom, physbcf, bcfcomp);
