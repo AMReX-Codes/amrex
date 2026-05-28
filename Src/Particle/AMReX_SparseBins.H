@@ -141,7 +141,7 @@ public:
             index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
             index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
             index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-            host_cells[i] = (uix * ny + uiy) * nz + uiz;
+            host_cells[i] = (uiz * ny + uiy) * nx + uix;
             bins_map[host_cells[i]] += 1;
         }
 

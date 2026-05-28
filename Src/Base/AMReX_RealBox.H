@@ -104,29 +104,29 @@ public:
         return 0.0;
     }
 
-    //! Is the specified point contained in the RealBox?
+    //! Is the specified point contained in the RealBox, including points on the boundary?
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const Real* point,
                    Real eps = 0.0) const noexcept {
-        return  AMREX_D_TERM((xlo[0]-eps < point[0]) && (point[0] < xhi[0]+eps),
-                          && (xlo[1]-eps < point[1]) && (point[1] < xhi[1]+eps),
-                          && (xlo[2]-eps < point[2]) && (point[2] < xhi[2]+eps));
+        return  AMREX_D_TERM((xlo[0]-eps <= point[0]) && (point[0] <= xhi[0]+eps),
+                          && (xlo[1]-eps <= point[1]) && (point[1] <= xhi[1]+eps),
+                          && (xlo[2]-eps <= point[2]) && (point[2] <= xhi[2]+eps));
     }
 
-    //! Is the specified point contained in the RealBox?
+    //! Is the specified point contained in the RealBox, including points on the boundary?
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (XDim3 point, Real eps = 0.0) const noexcept {
-        return  AMREX_D_TERM((xlo[0]-eps < point.x) && (point.x < xhi[0]+eps),
-                          && (xlo[1]-eps < point.y) && (point.y < xhi[1]+eps),
-                          && (xlo[2]-eps < point.z) && (point.z < xhi[2]+eps));
+        return  AMREX_D_TERM((xlo[0]-eps <= point.x) && (point.x <= xhi[0]+eps),
+                          && (xlo[1]-eps <= point.y) && (point.y <= xhi[1]+eps),
+                          && (xlo[2]-eps <= point.z) && (point.z <= xhi[2]+eps));
     }
 
-    //! Is the specified RealVect contained in this RealBox?
+    //! Is the specified RealVect contained in this RealBox, including points on the boundary?
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const RealVect& rv,
                    Real eps=0.0) const noexcept { return contains(rv.dataPtr(), eps); }
 
-    //! Is the specified RealBox contained in this RealBox?
+    //! Is the specified RealBox contained in this RealBox, including points on the boundary?
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const RealBox& rb,
                    Real eps = 0.0) const noexcept {
