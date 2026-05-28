@@ -8,8 +8,8 @@ using namespace amrex;
 
 // v3 should contain the integers from -5 to 5, inclusive
 template <template <typename> class Container>
-typename std::enable_if<RunOnGpu<typename Container<int>::allocator_type>::value>::type
-checkV3 (const Container<int>& c)
+requires(RunOnGpu<typename Container<int>::allocator_type>::value)
+void checkV3 (const Container<int>& c)
 {
     const auto c_ptr = c.dataPtr();
     amrex::ParallelFor(11, [=] AMREX_GPU_DEVICE (const int index) noexcept {
@@ -20,8 +20,8 @@ checkV3 (const Container<int>& c)
 
 // v3 should contain the integers from -5 to 5, inclusive
 template <template <typename> class Container>
-typename std::enable_if<!RunOnGpu<typename Container<int>::allocator_type>::value>::type
-checkV3 (const Container<int>& c)
+requires(!RunOnGpu<typename Container<int>::allocator_type>::value)
+void checkV3 (const Container<int>& c)
 {
     for (int i=-5, index=0; i <= 5; ++i, ++index)
     {
