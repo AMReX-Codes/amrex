@@ -110,7 +110,7 @@ public:
 #else
     requires(IsCallableR<bool,Marker,int,int,int,int,int>::value)
 #endif
-    fill_local_id (Marker const& marker);
+    void fill_local_id (Marker const& marker);
 
     //! Convert the local ids to globally unique ids visible to HYPRE.
     template <typename AI>
@@ -309,7 +309,7 @@ requires(IsCallable<Marker,int,int,int,int,int>::value)
 #else
 requires(IsCallableR<bool,Marker,int,int,int,int,int>::value)
 #endif
-HypreSolver<MSS>::fill_local_id (Marker const& marker)
+void HypreSolver<MSS>::fill_local_id (Marker const& marker)
 {
     BL_PROFILE("HypreSolver::fill_local_id()");
 
