@@ -412,7 +412,6 @@ requires (std::same_as<std::remove_cvref_t<T>,std::uint8_t>  ||
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept;
 
-
 /// \cond DOXYGEN_IGNORE
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
