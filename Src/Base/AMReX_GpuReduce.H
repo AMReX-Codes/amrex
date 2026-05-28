@@ -285,7 +285,7 @@ struct warpReduce
     // Not all arithmetic types can be taken by shuffle_down, but it's good enough.
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator()(T x) const noexcept
-        requires (std::is_arithmetic_v<T>)
+    requires (std::is_arithmetic_v<T>)
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = detail::shuffle_down(x, offset);
@@ -296,7 +296,7 @@ struct warpReduce
 
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T operator()(T x) const noexcept
-        requires (!std::is_arithmetic_v<T>)
+    requires (!std::is_arithmetic_v<T>)
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = detail::multi_shuffle_down(x, offset);

@@ -258,9 +258,9 @@ public:
      */
     template <typename RT, typename CT, Direction DIR=D, bool CP=C>
     void forward (RT const* in, CT* out)
-        requires ((DIR == Direction::forward) || (DIR == Direction::both))
-              && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
-                  || ((sizeof(RT) == sizeof(CT)) && CP));
+    requires ((DIR == Direction::forward) || (DIR == Direction::both))
+          && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+              || ((sizeof(RT) == sizeof(CT)) && CP));
 
     /**
      * \brief Backward transform
@@ -308,9 +308,9 @@ public:
      */
     template <typename CT, typename RT, Direction DIR=D, bool CP=C>
     void backward (CT const* in, RT* out)
-        requires ((DIR == Direction::backward) || (DIR == Direction::both))
-              && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
-                  || ((sizeof(RT) == sizeof(CT)) && CP));
+    requires ((DIR == Direction::backward) || (DIR == Direction::both))
+          && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+              || ((sizeof(RT) == sizeof(CT)) && CP));
 
     /**
      * \brief Scaling factor. If the data goes through forward and then backward,
@@ -896,7 +896,7 @@ void R2C<T,D,C>::prepare_openbc ()
 template <typename T, Direction D, bool C>
 template <Direction DIR>
 void R2C<T,D,C>::forward (MF const& inmf, int incomp)
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
+requires (DIR == Direction::forward) || (DIR == Direction::both)
 {
     BL_PROFILE("FFT::R2C::forward(in)");
 
@@ -1006,9 +1006,9 @@ R2C<T,D,C>::install_raw_ptr (FA& fa, RT const* p)
 template <typename T, Direction D, bool C>
 template <typename RT, typename CT, Direction DIR, bool CP>
 void R2C<T,D,C>::forward (RT const* in, CT* out)
-    requires ((DIR == Direction::forward) || (DIR == Direction::both))
-          && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
-              || ((sizeof(RT) == sizeof(CT)) && CP))
+requires ((DIR == Direction::forward) || (DIR == Direction::both))
+      && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+          || ((sizeof(RT) == sizeof(CT)) && CP))
 {
     auto [rdata, rsz] = install_raw_ptr(m_raw_mf, in);
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, out);
@@ -1029,7 +1029,7 @@ void R2C<T,D,C>::forward (RT const* in, CT* out)
 template <typename T, Direction D, bool C>
 template <Direction DIR>
 void R2C<T,D,C>::backward (MF& outmf, int outcomp)
-    requires (DIR == Direction::both)
+requires (DIR == Direction::both)
 {
     backward_doit(outmf, IntVect(0), Periodicity::NonPeriodic(), outcomp);
 }
@@ -1097,9 +1097,9 @@ void R2C<T,D,C>::backward_doit (MF& outmf, IntVect const& ngout,
 template <typename T, Direction D, bool C>
 template <typename CT, typename RT, Direction DIR, bool CP>
 void R2C<T,D,C>::backward (CT const* in, RT* out)
-    requires ((DIR == Direction::backward) || (DIR == Direction::both))
-          && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
-              || ((sizeof(RT) == sizeof(CT)) && CP))
+requires ((DIR == Direction::backward) || (DIR == Direction::both))
+      && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
+          || ((sizeof(RT) == sizeof(CT)) && CP))
 {
     auto [rdata, rsz] = install_raw_ptr(m_raw_mf, out);
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, in);
@@ -1269,7 +1269,7 @@ template <typename T, Direction D, bool C>
 template <Direction DIR>
 std::pair<typename R2C<T,D,C>::cMF *, IntVect>
 R2C<T,D,C>::getSpectralData () const
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
+requires (DIR == Direction::forward) || (DIR == Direction::both)
 {
 #if (AMREX_SPACEDIM > 1)
     if (m_r2c_sub) {
@@ -1289,7 +1289,7 @@ R2C<T,D,C>::getSpectralData () const
 template <typename T, Direction D, bool C>
 template <Direction DIR>
 void R2C<T,D,C>::forward (MF const& inmf, cMF& outmf, int incomp, int outcomp)
-    requires (DIR == Direction::forward) || (DIR == Direction::both)
+requires (DIR == Direction::forward) || (DIR == Direction::both)
 {
     BL_PROFILE("FFT::R2C::forward(inout)");
 
@@ -1349,7 +1349,7 @@ void R2C<T,D,C>::forward (MF const& inmf, cMF& outmf, int incomp, int outcomp)
 template <typename T, Direction D, bool C>
 template <Direction DIR>
 void R2C<T,D,C>::backward (cMF const& inmf, MF& outmf, int incomp, int outcomp)
-    requires (DIR == Direction::backward) || (DIR == Direction::both)
+requires (DIR == Direction::backward) || (DIR == Direction::both)
 {
     backward_doit(inmf, outmf, IntVect(0), Periodicity::NonPeriodic(), incomp, outcomp);
 }

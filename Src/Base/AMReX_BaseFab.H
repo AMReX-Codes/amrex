@@ -97,13 +97,13 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
 template <typename T>
 void
 placementNew (T* const /*ptr*/, Long /*n*/)
-    requires std::is_arithmetic_v<T>
+requires std::is_arithmetic_v<T>
 {}
 
 template <typename T>
 void
 placementNew (T* const ptr, Long n)
-    requires (std::is_trivially_default_constructible_v<T>) && (!std::is_arithmetic_v<T>)
+requires (std::is_trivially_default_constructible_v<T>) && (!std::is_arithmetic_v<T>)
 {
     for (Long i = 0; i < n; ++i) {
         new (ptr+i) T;
@@ -113,7 +113,7 @@ placementNew (T* const ptr, Long n)
 template <typename T>
 void
 placementNew (T* const ptr, Long n)
-    requires (!std::is_trivially_default_constructible_v<T>)
+requires (!std::is_trivially_default_constructible_v<T>)
 {
     AMREX_HOST_DEVICE_FOR_1D ( n, i,
     {
@@ -124,13 +124,13 @@ placementNew (T* const ptr, Long n)
 template <typename T>
 void
 placementDelete (T* const /*ptr*/, Long /*n*/)
-    requires std::is_trivially_destructible_v<T>
+requires std::is_trivially_destructible_v<T>
 {}
 
 template <typename T>
 void
 placementDelete (T* const ptr, Long n)
-    requires (!std::is_trivially_destructible_v<T>)
+requires (!std::is_trivially_destructible_v<T>)
 {
     AMREX_HOST_DEVICE_FOR_1D (n, i,
     {
@@ -469,7 +469,7 @@ public:
 
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void fill_snan () noexcept
-        requires (std::is_same_v<T,float> || std::is_same_v<T,double>);
+    requires (std::is_same_v<T,float> || std::is_same_v<T,double>);
 
 
     /**
@@ -1379,7 +1379,7 @@ template <class T>
 template <RunOn run_on>
 void
 BaseFab<T>::fill_snan () noexcept
-    requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
+requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
 {
     amrex::fill_snan<run_on>(this->dptr, this->truesize);
 }
@@ -1675,7 +1675,7 @@ template <class T>
 template <class U>
 Elixir
 BaseFab<T>::elixir () noexcept
-    requires std::is_trivially_destructible_v<U>
+requires std::is_trivially_destructible_v<U>
 {
     bool o;
     if (Gpu::inLaunchRegion()) {
@@ -2859,7 +2859,7 @@ template <RunOn run_on, typename T>
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
                          int srccomp, int destcomp, int numcomp) noexcept
-    requires HasAtomicAdd<T>::value
+requires HasAtomicAdd<T>::value
 {
     Array4<T> const& d = dfab.array();
     Array4<T const> const& s = sfab.const_array();
@@ -2877,7 +2877,7 @@ template <RunOn run_on, typename T>
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
                          int srccomp, int destcomp, int numcomp)
-    requires (!HasAtomicAdd<T>::value)
+requires (!HasAtomicAdd<T>::value)
 {
     amrex::ignore_unused(dfab, sfab, srcbox, destbox, srccomp, destcomp, numcomp);
     amrex::Abort("BaseFab: atomicAdd not supported");

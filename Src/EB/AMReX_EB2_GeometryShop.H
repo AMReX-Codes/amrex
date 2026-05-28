@@ -19,7 +19,7 @@ template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p) noexcept
-    requires (IsGPUable<F>::value)
+requires (IsGPUable<F>::value)
 {
     return f(AMREX_D_DECL(p[0],p[1],p[2]));
 }
@@ -28,7 +28,7 @@ template <class F>
 AMREX_GPU_HOST_DEVICE
 Real
 IF_f (F const& f, GpuArray<Real,AMREX_SPACEDIM> const& p)
-    requires (!IsGPUable<F>::value)
+requires (!IsGPUable<F>::value)
 {
     AMREX_IF_ON_DEVICE((
         amrex::ignore_unused(f,p);

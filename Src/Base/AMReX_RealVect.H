@@ -57,8 +57,8 @@ class RealVectND {
         coordinates.
     */
     template <class... Args>
-        requires ((sizeof...(Args) + 2 == dim) &&
-                  IsConvertible_v<Real, Args...>)
+    requires ((sizeof...(Args) + 2 == dim) &&
+              IsConvertible_v<Real, Args...>)
     AMREX_GPU_HOST_DEVICE
     constexpr RealVectND (Real i, Real j, Args... ks) noexcept
         : vect{i, j, static_cast<Real>(ks)...} {}
@@ -593,7 +593,7 @@ protected:
 
 // Template deduction guide for RealVectND
 template <class... Args>
-    requires (IsConvertible_v<Real, Args...>)
+requires (IsConvertible_v<Real, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 RealVectND(Real, Real, Args...) -> RealVectND<sizeof...(Args)+2>;
 
@@ -849,7 +849,7 @@ template <int dim>
 AMREX_GPU_HOST_DEVICE inline
 RealVectND<dim>
 RealVectND<dim>::crossProduct (const RealVectND<dim>& a_rhs) const noexcept
-    requires (dim == 3)
+requires (dim == 3)
 {
     RealVectND<dim> tmp(vect[1] * a_rhs[2] - vect[2] * a_rhs[1],
                         vect[2] * a_rhs[0] - vect[0] * a_rhs[2],

@@ -189,7 +189,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
                                   const Vector<std::string>& int_comp_names,
                                   const std::string& compression,
                                   F&& f, bool is_checkpoint)
-    requires (IsParticleContainer<PC>::value)
+requires (IsParticleContainer<PC>::value)
 {
     BL_PROFILE("WriteHDF5ParticleDataSync()");
     AMREX_ASSERT(pc.OK());

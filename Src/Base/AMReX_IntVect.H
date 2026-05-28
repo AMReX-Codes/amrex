@@ -246,7 +246,7 @@ public:
     }
 
     explicit constexpr IntVectND (Dim3 const& a) noexcept
-        requires ( 1<=dim && dim<=3 )
+    requires ( 1<=dim && dim<=3 )
     {
         vect[0] = a.x;
         if constexpr (dim >= 2) {
@@ -261,7 +261,7 @@ public:
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 () const noexcept
-        requires ( 1<=dim && dim<=3 )
+    requires ( 1<=dim && dim<=3 )
     {
         if constexpr (dim == 1) {
             return Dim3{.x = vect[0], .y = 0, .z = 0};
@@ -274,7 +274,7 @@ public:
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     constexpr Dim3 dim3 ([[maybe_unused]] int fill_extra) const noexcept
-        requires ( 1<=dim && dim<=3 )
+    requires ( 1<=dim && dim<=3 )
     {
         if constexpr (dim == 1) {
             return Dim3{.x = vect[0], .y = fill_extra, .z = fill_extra};

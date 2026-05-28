@@ -185,7 +185,7 @@ template <typename T0, typename T1>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const&)
-    requires (amrex::IsStoreAtomic<T0>::value)
+requires (amrex::IsStoreAtomic<T0>::value)
 {
     fab_to_fab<T0, T1>(copy_tags, scomp, dcomp, ncomp, CellStore<T0, T1>());
 }
@@ -194,7 +194,7 @@ template <typename T0, typename T1>
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const& masks)
-    requires (!amrex::IsStoreAtomic<T0>::value)
+requires (!amrex::IsStoreAtomic<T0>::value)
 {
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellStore<T0, T1>(), masks);
 }
@@ -203,7 +203,7 @@ template <typename T0, typename T1>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const&)
-    requires (amrex::HasAtomicAdd<T0>::value)
+requires (amrex::HasAtomicAdd<T0>::value)
 {
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellAtomicAdd<T0, T1>());
 }
@@ -212,7 +212,7 @@ template <typename T0, typename T1>
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const& masks)
-    requires (!amrex::HasAtomicAdd<T0>::value)
+requires (!amrex::HasAtomicAdd<T0>::value)
 {
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellAdd<T0, T1>(), masks);
 }
@@ -348,7 +348,7 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
 template <typename B, typename V, typename TT>
 void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
                                         int dcomp, int ncomp)
-    requires (amrex::HasAtomicAdd<V>::value)
+requires (amrex::HasAtomicAdd<V>::value)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
@@ -368,7 +368,7 @@ void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
 template <typename B, typename V, typename TT>
 void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
                                         int dcomp, int ncomp)
-    requires (!amrex::HasAtomicAdd<V>::value)
+requires (!amrex::HasAtomicAdd<V>::value)
 {
     amrex::ignore_unused(pbuffer, tv, dcomp, ncomp);
     amrex::Abort("unpack_recv_buffer_gpu: should NOT get here");

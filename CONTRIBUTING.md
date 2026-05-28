@@ -247,6 +247,58 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
     ```cpp
     amrex::Real m_variable;
     ```
+  * Use C++20 constraints instead of `std::enable_if_t` on dummy template parameters
+    when a template argument must be constrained.
+    * **Prefer concept type constraints when possible:** for AMReX fab types, use the
+      concepts in `AMReX_Concepts.H` as abbreviated template parameters instead of
+      `requires (IsFabArray<T>::value)` or `requires (IsBaseFab<T>::value)`.
+      ```cpp
+      // Good
+      template <FabArrayType MF, typename BC>
+      void FillPatchSingleLevel (...);
+
+      template <BaseFabType FAB>
+      void f (FAB& fab);
+
+      // Avoid — use FabArrayType MF instead of requires (IsFabArray<MF>::value)
+      template <typename MF, typename BC>
+      requires (IsFabArray<MF>::value)
+      void FillPatchSingleLevel (...);
+      ```
+      Use a separate `requires (...)` clause when a concept cannot be written as a
+      type constraint (for example, multiple template parameters, negation, or
+      relations between types).
+    Follow these placement and formatting rules for `requires` clauses:
+    * **Parentheses are required:** write `requires (...)` with parentheses around the
+      constraint expression. This keeps Doxygen and other tools from misparsing the
+      constraint.
+      ```cpp
+      // Good
+      requires (std::is_arithmetic_v<T>)
+
+      // Avoid
+      requires std::is_arithmetic_v<T>
+      ```
+    * **Place `requires` immediately after `template <...>`:** put the `requires`
+      clause on the line(s) directly after the template parameter list and before the
+      return type, attributes, and function name. Do **not** use a trailing `requires`
+      clause after the parameter list (before `{` or `;`). Trailing constraints break
+      CUDA-on-Windows builds for some templates.
+      ```cpp
+      // Good
+      template <typename T>
+      requires (std::is_arithmetic_v<T>)
+      void f (...);
+
+      // Avoid
+      template <typename T>
+      void f (...) requires (std::is_arithmetic_v<T>);
+      ```
+      **Order:** `template <...>` → `requires (...)` → attributes (e.g.
+      `AMREX_GPU_HOST_DEVICE`) → return type → signature → `{` or `;`. Use the same
+      placement in declarations and definitions. For deduction guides, put
+      `requires (...)` immediately after `template <...>` and before the guide
+      signature.
 These guidelines should be adhered to in new contributions to AMReX, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.
 

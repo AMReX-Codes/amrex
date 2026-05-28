@@ -319,7 +319,7 @@ namespace amrex
     template<typename ItType, std::floating_point ValType>
     AMREX_GPU_HOST_DEVICE
     void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
-        requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
+    requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     {
         const std::ptrdiff_t count = last-first;
         if (count >= 2){
@@ -353,7 +353,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE
     void logspace (ItType first, const ItType& last,
         const ValType& start, const ValType& stop, const ValType& base)
-        requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
+    requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     {
         const std::ptrdiff_t count = last-first;
         if (count >= 2){
@@ -379,7 +379,7 @@ struct clz_tag : clzl_tag {};
 template <typename T>
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clz_tag, T x) noexcept
-    requires (sizeof(T) <= sizeof(unsigned int))
+requires (sizeof(T) <= sizeof(unsigned int))
 {
     return static_cast<int>(__builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
@@ -387,7 +387,7 @@ int builtin_clz_wrapper (clz_tag, T x) noexcept
 template <typename T>
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clzl_tag, T x) noexcept
-    requires (sizeof(T) <= sizeof(unsigned long))
+requires (sizeof(T) <= sizeof(unsigned long))
 {
     return static_cast<int>(__builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
@@ -395,7 +395,7 @@ int builtin_clz_wrapper (clzl_tag, T x) noexcept
 template <typename T>
 AMREX_FORCE_INLINE
 int builtin_clz_wrapper (clzll_tag, T x) noexcept
-    requires (sizeof(T) <= sizeof(unsigned long long))
+requires (sizeof(T) <= sizeof(unsigned long long))
 {
     return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
 }
@@ -407,7 +407,7 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
 template <class T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
-    requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
               std::is_same_v<std::decay_t<T>,std::uint16_t> ||
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
               std::is_same_v<std::decay_t<T>,std::uint64_t>);
@@ -462,7 +462,7 @@ namespace detail {
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     int clz_wrapper (clz_tag, T x) noexcept
-        requires (sizeof(T) <= sizeof(int))
+    requires (sizeof(T) <= sizeof(int))
     {
         return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
     }
@@ -470,7 +470,7 @@ namespace detail {
     template <typename T>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     int clz_wrapper (clzll_tag, T x) noexcept
-        requires (sizeof(T) <= sizeof(long long int))
+    requires (sizeof(T) <= sizeof(long long int))
     {
         return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
     }
@@ -480,7 +480,7 @@ namespace detail {
 template <class T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
-    requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
               std::is_same_v<std::decay_t<T>,std::uint16_t> ||
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
               std::is_same_v<std::decay_t<T>,std::uint64_t>)
@@ -498,7 +498,7 @@ int clz (T x) noexcept
 template <class T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 int clz (T x) noexcept
-    requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
+requires (std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
               std::is_same_v<std::decay_t<T>,std::uint16_t> ||
               std::is_same_v<std::decay_t<T>,std::uint32_t> ||
               std::is_same_v<std::decay_t<T>,std::uint64_t>)

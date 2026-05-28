@@ -244,7 +244,7 @@ void copyParticles (DstTile& dst, const SrcTile& src) noexcept
 template <typename DstTile, typename SrcTile, typename Index, typename N>
 void copyParticles (DstTile& dst, const SrcTile& src,
                     Index src_start, Index dst_start, N n) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -300,7 +300,7 @@ void transformParticles (DstTile& dst, const SrcTile& src, F&& f) noexcept
 template <typename DstTile, typename SrcTile, typename Index, typename N, typename F>
 void transformParticles (DstTile& dst, const SrcTile& src,
                          Index src_start, Index dst_start, N n, F const& f) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -362,7 +362,7 @@ template <typename DstTile1, typename DstTile2, typename SrcTile,
           typename Index, typename N, typename F>
 void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                          Index src_start, Index dst1_start, Index dst2_start, N n, F const& f) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     const auto src_data  = src.getConstParticleTileData();
           auto dst1_data = dst1.getParticleTileData();
@@ -390,7 +390,7 @@ void transformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
  */
 template <typename DstTile, typename SrcTile, typename Index, typename N>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     return filterParticles(dst, src, mask, Index{0}, Index{0}, src.numParticles());
 }
@@ -415,7 +415,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask) noex
 template <typename DstTile, typename SrcTile, typename Index, typename N>
 Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
                        Index src_start, Index dst_start, N n) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     Gpu::DeviceVector<Index> offsets(n);
     Gpu::exclusive_scan(mask, mask+n, offsets.begin());
@@ -452,7 +452,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, const Index* mask,
  */
 template <typename DstTile, typename SrcTile, typename Pred>
 int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
-    requires (!std::is_pointer_v<std::decay_t<Pred>>)
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 {
     return filterParticles(dst, src, std::forward<Pred>(p), 0, 0, src.numParticles());
 }
@@ -477,7 +477,7 @@ int filterParticles (DstTile& dst, const SrcTile& src, Pred&& p) noexcept
 template <typename DstTile, typename SrcTile, typename Pred, typename Index, typename N>
 Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
                        Index src_start, Index dst_start, N n) noexcept
-    requires (!std::is_pointer_v<std::decay_t<Pred>>)
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 {
     Gpu::DeviceVector<Index> mask(n);
 
@@ -517,7 +517,7 @@ Index filterParticles (DstTile& dst, const SrcTile& src, Pred const& p,
 template <typename DstTile, typename SrcTile, typename Index, typename F>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F const& f,
                                    Index src_start, Index dst_start) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -561,7 +561,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  */
 template <typename DstTile, typename SrcTile, typename Index, typename F>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask, F&& f) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     return filterAndTransformParticles(dst, src, mask, std::forward<F>(f), Index{0}, Index{0});
 }
@@ -583,7 +583,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Index* mask
  */
 template <typename DstTile, typename SrcTile, typename Pred, typename F>
 int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&& f) noexcept
-    requires (!std::is_pointer_v<std::decay_t<Pred>>)
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 {
     using Index = decltype(src.numParticles());
     return filterAndTransformParticles(dst, src, std::forward<Pred>(p), std::forward<F>(f),
@@ -610,7 +610,7 @@ int filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred&& p, F&&
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Index, typename F>
 Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
                                    const SrcTile& src, Index* mask, F const& f) noexcept
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> offsets(np);
@@ -655,7 +655,7 @@ Index filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2,
 template <typename DstTile1, typename DstTile2, typename SrcTile, typename Pred, typename F>
 int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& src,
                                  Pred const& p, F&& f) noexcept
-    requires (!std::is_pointer_v<std::decay_t<Pred>>)
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<int> mask(np);
@@ -697,7 +697,7 @@ int filterAndTransformParticles (DstTile1& dst1, DstTile2& dst2, const SrcTile& 
 template <typename DstTile, typename SrcTile, typename Pred, typename F, typename Index>
 Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const& p, F&& f,
                                    Index src_start, Index dst_start) noexcept
-    requires (!std::is_pointer_v<std::decay_t<Pred>>)
+requires (!std::is_pointer_v<std::decay_t<Pred>>)
 {
     auto np = src.numParticles();
     Gpu::DeviceVector<Index> mask(np);
@@ -736,7 +736,7 @@ Index filterAndTransformParticles (DstTile& dst, const SrcTile& src, Pred const&
  */
 template <typename PTile, typename N, typename Index>
 void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();
@@ -766,7 +766,7 @@ void gatherParticles (PTile& dst, const PTile& src, N np, const Index* inds)
  */
 template <typename PTile, typename N, typename Index>
 void scatterParticles (PTile& dst, const PTile& src, N np, const Index* inds)
-    requires std::is_integral_v<Index>
+requires std::is_integral_v<Index>
 {
     const auto src_data = src.getConstParticleTileData();
           auto dst_data = dst.getParticleTileData();

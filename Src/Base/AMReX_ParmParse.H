@@ -41,7 +41,7 @@ namespace ppdetail {
     struct ArithmeticOptional_TT : std::false_type {};
 
     template <class T>
-        requires (std::is_arithmetic_v<T>)
+    requires (std::is_arithmetic_v<T>)
     struct ArithmeticOptional_TT<T>
         : std::true_type
     {
@@ -49,7 +49,7 @@ namespace ppdetail {
     };
 
     template <class T>
-        requires (std::is_arithmetic_v<T>)
+    requires (std::is_arithmetic_v<T>)
     struct ArithmeticOptional_TT<std::optional<T>>
         : std::true_type
     {
@@ -1513,8 +1513,8 @@ public:
     void get_enum_sloppy (std::string_view name, T& ref, std::string_view const& ignores,
                           int ival = FIRST) const
     requires ET::value {
-        int exist = this->query_enum_sloppy(name, ref, ignores, ival);
-        if (!exist) {
+int exist = this->query_enum_sloppy(name, ref, ignores, ival);
+if (!exist) {
             std::string msg("get_enum_sloppy(\"");
             msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
                 .append("&) failed.");

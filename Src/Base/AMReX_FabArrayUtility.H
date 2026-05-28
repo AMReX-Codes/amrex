@@ -13,7 +13,7 @@ namespace amrex {
 template <class FAB, class F>
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return ReduceSum(fa, IntVect(nghost), std::forward<F>(f));
 }
@@ -23,7 +23,7 @@ namespace fudetail {
 template <class FAB, class F>
 typename FAB::value_type
 ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     using value_type = typename FAB::value_type;
     value_type sm = 0;
@@ -51,7 +51,7 @@ std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
                    std::is_same_v<OP,ReduceOpLogicalOr>,
                    int, typename FAB::value_type>
 ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
                                  std::is_same_v<OP,ReduceOpLogicalOr>,
@@ -70,7 +70,7 @@ std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
                    std::is_same_v<OP,ReduceOpLogicalOr>,
                    int, typename FAB1::value_type>
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value)
+requires (IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
                                  std::is_same_v<OP,ReduceOpLogicalOr>,
@@ -92,7 +92,7 @@ std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
                    int, typename FAB1::value_type>
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
           FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<FAB3>::value)
+requires (IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<FAB3>::value)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
                                  std::is_same_v<OP,ReduceOpLogicalOr>,
@@ -111,14 +111,14 @@ ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 template <class FAB, class F>
 typename FAB::value_type ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceSum_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
 typename FAB::value_type ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
@@ -130,7 +130,7 @@ typename FAB::value_type ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVec
 template <class FAB, class F>
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpSum>(fa, nghost, std::forward<F>(f));
@@ -142,7 +142,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB, class F>
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return fudetail::ReduceSum_host(fa, nghost, std::forward<F>(f));
 }
@@ -152,7 +152,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceSum(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
@@ -163,7 +163,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
@@ -190,7 +190,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceSum_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -198,7 +198,7 @@ typename FAB1::value_type ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, Fab
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
@@ -211,7 +211,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpSum>(fa1,fa2,nghost,std::forward<F>(f));
@@ -224,7 +224,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceSum_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -234,7 +234,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
   return ReduceSum(fa1, fa2, fa3, IntVect(nghost), std::forward<F>(f));
 }
@@ -245,7 +245,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     using value_type = typename FAB1::value_type;
     value_type sm = 0;
@@ -273,7 +273,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return fudetail::ReduceSum_host(fa1,fa2,fa3,nghost,std::forward<F>(f));
 }
@@ -281,7 +281,7 @@ typename FAB1::value_type ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, Fab
 template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,fa3,nghost,f);
     amrex::Abort("ReduceSum: Launch Region is off. Device lambda cannot be called by host.");
@@ -294,7 +294,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpSum>(fa1,fa2,fa3,nghost,std::forward<F>(f));
@@ -307,7 +307,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceSum_host(fa1,fa2,fa3,nghost,std::forward<F>(f));
 }
@@ -316,7 +316,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return ReduceMin(fa, IntVect(nghost), std::forward<F>(f));
 }
@@ -326,7 +326,7 @@ namespace fudetail {
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     using value_type = typename FAB::value_type;
     value_type r = std::numeric_limits<value_type>::max();
@@ -350,14 +350,14 @@ ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 namespace fudetail {
 template <class FAB, class F>
 typename FAB::value_type ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceMin_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
 typename FAB::value_type ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceMin: Launch Region is off. Device lambda cannot be called by host.");
@@ -369,7 +369,7 @@ typename FAB::value_type ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVec
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpMin>(fa, nghost, std::forward<F>(f));
@@ -381,7 +381,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return fudetail::ReduceMin_host(fa, nghost, std::forward<F>(f));
 }
@@ -390,7 +390,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceMin(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
@@ -401,7 +401,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::max();
@@ -428,7 +428,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return fudetail::ReduceMin_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -436,7 +436,7 @@ typename FAB1::value_type ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, Fab
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceMin: Launch Region is off. Device lambda cannot be called by host.");
@@ -449,7 +449,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpMin>(fa1,fa2,nghost,std::forward<F>(f));
@@ -462,7 +462,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceMin_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -472,7 +472,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceMin(fa1, fa2, fa3, IntVect(nghost), std::forward<F>(f));
 }
@@ -483,7 +483,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::max();
@@ -511,7 +511,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return fudetail::ReduceMin_host(fa1,fa2,fa3,nghost,std::forward<F>(f));
 }
@@ -519,7 +519,7 @@ typename FAB1::value_type ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, Fab
 template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,fa3,nghost,f);
     amrex::Abort("ReduceMin: Launch Region is off. Device lambda lambda cannot be called by host.");
@@ -532,7 +532,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpMin>(fa1,fa2,fa3,nghost,std::forward<F>(f));
@@ -545,7 +545,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceMin_host(fa1,fa2,fa3,nghost,std::forward<F>(f));
 }
@@ -554,7 +554,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return ReduceMax(fa, IntVect(nghost), std::forward<F>(f));
 }
@@ -564,7 +564,7 @@ namespace fudetail {
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     using value_type = typename FAB::value_type;
     value_type r = std::numeric_limits<value_type>::lowest();
@@ -589,14 +589,14 @@ ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 namespace fudetail {
 template <class FAB, class F>
 typename FAB::value_type ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceMax_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
 typename FAB::value_type ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceMax: Launch Region is off. Device lambda cannot be called by host.");
@@ -608,7 +608,7 @@ typename FAB::value_type ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVec
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpMax>(fa,nghost,std::forward<F>(f));
@@ -620,7 +620,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB, class F>
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return fudetail::ReduceMax_host(fa,nghost,std::forward<F>(f));
 }
@@ -629,7 +629,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceMax(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
@@ -640,7 +640,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::lowest();
@@ -667,7 +667,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceMax_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -675,7 +675,7 @@ typename FAB1::value_type ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, Fab
 template <class FAB1, class FAB2, class F>
 typename FAB1::value_type ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceMax: Launch Region is off. Device lambda cannot be called by host.");
@@ -688,7 +688,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpMax>(fa1,fa2,nghost,std::forward<F>(f));
@@ -701,7 +701,7 @@ template <class FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceMax_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -711,7 +711,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceMax(fa1, fa2, fa3, IntVect(nghost), std::forward<F>(f));
 }
@@ -722,7 +722,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     using value_type = typename FAB1::value_type;
     value_type r = std::numeric_limits<value_type>::lowest();
@@ -750,7 +750,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return fudetail::ReduceMax_host(fa1,fa2,fa3,nghost,std::forward<F>(f));
 }
@@ -758,7 +758,7 @@ typename FAB1::value_type ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, Fab
 template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                         FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,fa3,nghost,f);
     amrex::Abort("ReduceMax: Launch Region is off. Device lambda lambda cannot be called by host.");
@@ -771,7 +771,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpMax>(fa1,fa2,fa3,nghost,std::forward<F>(f));
@@ -784,7 +784,7 @@ template <class FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceMax_host(fa1,fa2,fa3,nghost,std::forward<F>(f));
 }
@@ -793,7 +793,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 template <class FAB, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return ReduceLogicalAnd(fa, IntVect(nghost), std::forward<F>(f));
 }
@@ -803,7 +803,7 @@ namespace fudetail {
 template <class FAB, class F>
 bool
 ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     int r = true;
 
@@ -827,14 +827,14 @@ ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& 
 namespace fudetail {
 template <class FAB, class F>
 bool ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceLogicalAnd_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
 bool ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa,nghost,f);
     amrex::Abort("ReduceLogicalAnd: Launch Region is off. Device lambda cannot be called by host.");
@@ -846,7 +846,7 @@ bool ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& ngho
 template <class FAB, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpLogicalAnd>(fa,nghost,std::forward<F>(f));
@@ -858,7 +858,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return fudetail::ReduceLogicalAnd_host(fa,nghost,std::forward<F>(f));
 }
@@ -868,7 +868,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceLogicalAnd(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
@@ -879,7 +879,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                        IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     int r = true;
 
@@ -905,7 +905,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class F>
 bool ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceLogicalAnd_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -913,7 +913,7 @@ bool ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> co
 template <class FAB1, class FAB2, class F>
 bool ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                                IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReduceLogicalAnd: Luanch Region is off. Device lambda cannot be called by host.");
@@ -926,7 +926,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpLogicalAnd>(fa1,fa2,nghost,std::forward<F>(f));
@@ -939,7 +939,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceLogicalAnd_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -948,7 +948,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 template <class FAB, class F>
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return ReduceLogicalOr(fa, IntVect(nghost), std::forward<F>(f));
 }
@@ -958,7 +958,7 @@ namespace fudetail {
 template <class FAB, class F>
 bool
 ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     int r = false;
 
@@ -982,14 +982,14 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f
 namespace fudetail {
 template <class FAB, class F>
 bool ReduceLogicalOr_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return ReduceLogicalOr_host(fa,nghost,std::forward<F>(f));
 }
 
 template <class FAB, class F>
 bool ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa,nghost);
     amrex::Abort("ReduceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
@@ -1001,7 +1001,7 @@ bool ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /
 template <class FAB, class F>
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpLogicalOr>(fa,nghost,std::forward<F>(f));
@@ -1013,7 +1013,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 template <class FAB, class F>
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     return fudetail::ReduceLogicalOr_host(fa,nghost,std::forward<F>(f));
 }
@@ -1023,7 +1023,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  int nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return ReduceLogicalOr(fa1, fa2, IntVect(nghost), std::forward<F>(f));
 }
@@ -1034,7 +1034,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                       IntVect const& nghost, F const& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     int r = false;
 
@@ -1060,7 +1060,7 @@ namespace fudetail {
 template <class FAB1, class FAB2, class F>
 bool ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
-    requires (!amrex::DefinitelyNotHostRunnable<F>::value)
+requires (!amrex::DefinitelyNotHostRunnable<F>::value)
 {
     return fudetail::ReduceLogicalOr_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -1068,7 +1068,7 @@ bool ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> con
 template <class FAB1, class FAB2, class F>
 bool ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                               IntVect const& nghost, F&& f)
-    requires (amrex::DefinitelyNotHostRunnable<F>::value)
+requires (amrex::DefinitelyNotHostRunnable<F>::value)
 {
     amrex::ignore_unused(fa1,fa2,nghost,f);
     amrex::Abort("ReeuceLogicalOr: Launch Region is off. Device lambda cannot be called by host.");
@@ -1081,7 +1081,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     if (Gpu::inLaunchRegion()) {
         return fudetail::ReduceMF<ReduceOpLogicalOr>(fa1,fa2,nghost,std::forward<F>(f));
@@ -1094,7 +1094,7 @@ template <class FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
-    requires (IsBaseFab<FAB1>::value)
+requires (IsBaseFab<FAB1>::value)
 {
     return fudetail::ReduceLogicalOr_host(fa1,fa2,nghost,std::forward<F>(f));
 }
@@ -1104,7 +1104,7 @@ template <class FAB>
 void
 printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
            const IntVect& ng = IntVect::TheZeroVector())
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
@@ -1156,7 +1156,7 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
 template <class FAB>
 void
 Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, int nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
@@ -1164,7 +1164,7 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
 template <class FAB>
 void
 Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     // We can take a shortcut and do a std::swap if we're swapping all of the data
     // and they are allocated in the same Arena.
@@ -1223,7 +1223,7 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
 template <class FAB>
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
@@ -1231,7 +1231,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 template <class FAB>
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
@@ -1271,7 +1271,7 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 template <class FAB>
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
@@ -1279,7 +1279,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 template <class FAB>
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
@@ -1319,7 +1319,7 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 template <class FAB>
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
@@ -1327,7 +1327,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 template <class FAB>
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && dst.isFusingCandidate()) {
@@ -1366,7 +1366,7 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
 template <class FAB>
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     Abs(fa,icomp,numcomp,IntVect(nghost));
 }
@@ -1374,7 +1374,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 template <class FAB>
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
 #ifdef AMREX_USE_GPU
     if (Gpu::inLaunchRegion() && fa.isFusingCandidate()) {
@@ -1411,7 +1411,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 template <class FAB>
 void
 prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
 #ifdef AMREX_USE_GPU
     if (fa.arena()->isManaged()) {
@@ -1427,7 +1427,7 @@ prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 template <class FAB>
 void
 prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
 #ifdef AMREX_USE_GPU
     if (fa.arena()->isManaged()) {
@@ -1444,7 +1444,7 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 template <class FAB, class IFAB>
 void
 OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
-    requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
+requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
 {
     BL_PROFILE("OverrideSync()");
 
@@ -1456,7 +1456,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
 template <class FAB, class IFAB>
 void
 OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
-    requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
+requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
 {
     BL_PROFILE("OverrideSync_nowait()");
     AMREX_ASSERT_WITH_MESSAGE(!fa.os_temp, "OverrideSync_nowait() called when already in progress.");
@@ -1504,7 +1504,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
 template <class FAB>
 void
 OverrideSync_finish (FabArray<FAB> & fa)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     BL_PROFILE("OverrideSync_finish()");
 
@@ -1520,7 +1520,7 @@ template <class FAB>
 void
 dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
              int scomp, int dcomp, int ncomp)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     AMREX_ASSERT(isMFIterSafe(dst, src));
     AMREX_ASSERT(dst.nGrowVect() == src.nGrowVect());
@@ -1538,7 +1538,7 @@ dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
 template <class FAB>
 void
 dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     dtoh_memcpy(dst, src, 0, 0, dst.nComp());
 }
@@ -1547,7 +1547,7 @@ template <class FAB>
 void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
              int scomp, int dcomp, int ncomp)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     AMREX_ASSERT(isMFIterSafe(dst, src));
     AMREX_ASSERT(dst.nGrowVect() == src.nGrowVect());
@@ -1565,7 +1565,7 @@ htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
 template <class FAB>
 void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     htod_memcpy(dst, src, 0, 0, dst.nComp());
 }
@@ -1574,7 +1574,7 @@ template <class FAB>
 IntVect
 indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 typename FAB::value_type value)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     IntVect loc;
 
@@ -1683,7 +1683,7 @@ template <typename FAB>
 typename FAB::value_type
 Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int ncomp,
      IntVect const& nghost, bool local = false)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     BL_ASSERT(x.boxArray() == y.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap());
@@ -1745,7 +1745,7 @@ Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int n
 template <typename FAB>
 typename FAB::value_type
 Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool local = false)
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 {
     BL_ASSERT(x.nGrowVect().allGE(nghost));
 
@@ -1809,7 +1809,7 @@ typename FAB::value_type
 Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp,
      FabArray<FAB> const& y, int ycomp, int ncomp, IntVect const& nghost,
      bool local = false)
-    requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
+requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
 {
     BL_ASSERT(x.boxArray() == y.boxArray() && x.boxArray() == mask.boxArray());
     BL_ASSERT(x.DistributionMap() == y.DistributionMap() && x.DistributionMap() == mask.DistributionMap());
@@ -1880,7 +1880,7 @@ template <typename IFAB, typename FAB>
 typename FAB::value_type
 Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
      IntVect const& nghost, bool local = false)
-    requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
+requires (IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value)
 {
     BL_ASSERT(x.boxArray() == mask.boxArray());
     BL_ASSERT(x.DistributionMap() == mask.DistributionMap());
@@ -1962,7 +1962,7 @@ void LocalCopy (DMF& dst, SMF const& src, int scomp, int dcomp,
                 int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<DMF> &&
                            IsMultiFabLike_v<SMF>) {
-    amrex::Copy(dst, src, scomp, dcomp, ncomp, nghost);
+amrex::Copy(dst, src, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst += src
@@ -1970,7 +1970,7 @@ template <class MF>
 void LocalAdd (MF& dst, MF const& src, int scomp, int dcomp,
                 int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<MF>) {
-    amrex::Add(dst, src, scomp, dcomp, ncomp, nghost);
+amrex::Add(dst, src, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst += a * src
@@ -1986,7 +1986,7 @@ template <class MF>
 void Xpay (MF& dst, typename MF::value_type a, MF const& src, int scomp, int dcomp,
            int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<MF>) {
-    MF::Xpay(dst, a, src, scomp, dcomp, ncomp, nghost);
+MF::Xpay(dst, a, src, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst += a_saxpy * src_saxpy followed by dst = src_xpay + a_xpay * dst
@@ -1995,7 +1995,7 @@ void Saxpy_Xpay (MF& dst, typename MF::value_type a_saxpy, MF const& src_saxpy,
                  typename MF::value_type a_xpay, MF const& src_xpay, int scomp, int dcomp,
                  int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<MF>) {
-    MF::Saxpy_Xpay(dst, a_saxpy, src_saxpy, a_xpay, src_xpay, scomp, dcomp, ncomp, nghost);
+MF::Saxpy_Xpay(dst, a_saxpy, src_saxpy, a_xpay, src_xpay, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst1 += a1 * src1 followed by dst2 += a2 * src2
@@ -2004,7 +2004,7 @@ void Saxpy_Saxpy (MF& dst1, typename MF::value_type a1, MF const& src1,
                   MF& dst2, typename MF::value_type a2, MF const& src2, int scomp, int dcomp,
                   int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<MF>) {
-    MF::Saxpy_Saxpy(dst1, a1, src1, dst2, a2, src2, scomp, dcomp, ncomp, nghost);
+MF::Saxpy_Saxpy(dst1, a1, src1, dst2, a2, src2, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst1 += a1 * dst2 followed by dst2 += a2 * src
@@ -2013,7 +2013,7 @@ void Saypy_Saxpy (MF& dst1, typename MF::value_type a1,
                   MF& dst2, typename MF::value_type a2, MF const& src, int scomp, int dcomp,
                   int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<MF>) {
-    MF::Saypy_Saxpy(dst1, a1, dst2, a2, src, scomp, dcomp, ncomp, nghost);
+MF::Saypy_Saxpy(dst1, a1, dst2, a2, src, scomp, dcomp, ncomp, nghost);
 }
 
 //! dst = a*src_a + b*src_b
@@ -2023,7 +2023,7 @@ void LinComb (MF& dst,
               typename MF::value_type b, MF const& src_b, int bcomp,
               int dcomp, int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<MF>) {
-    MF::LinComb(dst, a, src_a, acomp, b, src_b, bcomp, dcomp, ncomp, nghost);
+MF::LinComb(dst, a, src_a, acomp, b, src_b, bcomp, dcomp, ncomp, nghost);
 }
 
 //! dst = src w/ MPI communication
@@ -2033,7 +2033,7 @@ void ParallelCopy (MF& dst, MF const& src, int scomp, int dcomp, int ncomp,
                    IntVect const& ng_dst = IntVect(0),
                    Periodicity const& period = Periodicity::NonPeriodic())
 requires (IsMultiFabLike_v<MF>) {
-    dst.ParallelCopy(src, scomp, dcomp, ncomp, ng_src, ng_dst, period);
+dst.ParallelCopy(src, scomp, dcomp, ncomp, ng_src, ng_dst, period);
 }
 
 template <class MF>
@@ -2041,7 +2041,7 @@ template <class MF>
 norminf (MF const& mf, int scomp, int ncomp, IntVect const& nghost,
          bool local = false)
 requires (IsMultiFabLike_v<MF>) {
-    return mf.norminf(scomp, ncomp, nghost, local);
+return mf.norminf(scomp, ncomp, nghost, local);
 }
 
 //! dst = val
@@ -2080,7 +2080,7 @@ template <class DMF, class SMF, std::size_t N>
 void LocalCopy (Array<DMF,N>& dst, Array<SMF,N> const& src, int scomp, int dcomp,
                 int ncomp, IntVect const& nghost)
 requires (IsMultiFabLike_v<DMF> &&
-                           IsMultiFabLike_v<SMF>) {
+          IsMultiFabLike_v<SMF>) {
     for (std::size_t i = 0; i < N; ++i) {
         amrex::Copy(dst[i], src[i], scomp, dcomp, ncomp, nghost);
     }

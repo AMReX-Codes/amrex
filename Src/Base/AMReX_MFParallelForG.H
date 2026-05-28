@@ -58,7 +58,7 @@ namespace parfor_mf_detail {
 template <int MT, typename MF, typename F>
 void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F const& f)
-    requires IsFabArray<MF>::value
+requires IsFabArray<MF>::value
 {
     const auto& index_array = mf.IndexArray();
     const int nboxes = index_array.size();
@@ -110,7 +110,7 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
 template <typename MF, typename F>
 void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
-    requires IsFabArray<MF>::value
+requires IsFabArray<MF>::value
 {
 #ifdef AMREX_USE_CUDA
     constexpr int MT = 128;
@@ -123,7 +123,7 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
 template <typename MF, typename F>
 void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
-    requires IsFabArray<MF>::value
+requires IsFabArray<MF>::value
 {
 #ifdef AMREX_USE_CUDA
     constexpr int MT = 128;

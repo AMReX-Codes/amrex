@@ -58,7 +58,7 @@ auto call_f (F const& f,
 template <class PC, class MF, class F>
 void
 ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=true)
-    requires IsParticleContainer<PC>::value
+requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("amrex::ParticleToMesh");
 
@@ -144,7 +144,7 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=t
 template <class PC, class MF, class F>
 void
 MeshToParticle (PC& pc, MF const& mf, int lev, F const& f)
-    requires IsParticleContainer<PC>::value
+requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("amrex::MeshToParticle");
 

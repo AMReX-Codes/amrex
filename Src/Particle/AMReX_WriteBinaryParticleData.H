@@ -489,7 +489,7 @@ void WriteBinaryParticleDataSync (PC const& pc,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>& int_comp_names,
                                   F const& f, bool is_checkpoint)
-    requires IsParticleContainer<PC>::value
+requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("WriteBinaryParticleData()");
     AMREX_ASSERT(pc.OK());
@@ -788,7 +788,7 @@ void WriteBinaryParticleDataAsync (PC const& pc,
                                    const Vector<int>& write_int_comp,
                                    const Vector<std::string>& real_comp_names,
                                    const Vector<std::string>& int_comp_names, bool is_checkpoint)
-    requires IsParticleContainer<PC>::value
+requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("WriteBinaryParticleDataAsync");
     AMREX_ASSERT(pc.OK());

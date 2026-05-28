@@ -1924,7 +1924,7 @@ template <typename MF>
 template <class TMF>
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
-    requires std::is_same_v<TMF,MultiFab>
+requires std::is_same_v<TMF,MultiFab>
 {
     const int amrlev = 0;
     const int mglev  = linop.NMGLevels(amrlev) - 1;
@@ -1995,7 +1995,7 @@ template <typename MF>
 template <class TMF>
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
-    requires std::is_same_v<TMF,MultiFab>
+requires std::is_same_v<TMF,MultiFab>
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithPETSc doesn't work with ncomp > 1");
 

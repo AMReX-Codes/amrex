@@ -77,9 +77,9 @@ public:
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
     requires IsFabArray_v<FA>
-        : m_domain_lo(geom.Domain().smallEnd()),
-          m_geom(detail::shift_geom(geom)),
-          m_bc(bc)
+: m_domain_lo(geom.Domain().smallEnd()),
+ m_geom(detail::shift_geom(geom)),
+ m_bc(bc)
     {
         bool all_periodic = true;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
@@ -201,9 +201,9 @@ public:
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
     requires IsFabArray_v<FA>
-        : m_domain_lo(geom.Domain().smallEnd()),
-          m_geom(detail::shift_geom(geom)),
-          m_bc(bc)
+: m_domain_lo(geom.Domain().smallEnd()),
+m_geom(detail::shift_geom(geom)),
+m_bc(bc)
     {
 #if (AMREX_SPACEDIM < 3)
         amrex::Abort("FFT::PoissonHybrid: 1D & 2D todo");
@@ -401,11 +401,11 @@ template <typename MF>
 template <typename FA>
 PoissonOpenBC<MF>::PoissonOpenBC (Geometry const& geom, IndexType ixtype,
                                   IntVect const& ngrow)
-    requires IsFabArray_v<FA>
-    : m_geom(geom),
-      m_grown_domain(amrex::grow(amrex::convert(geom.Domain(),ixtype),ngrow)),
-      m_ngrow(ngrow),
-      m_solver(m_grown_domain)
+requires IsFabArray_v<FA>
+: m_geom(geom),
+m_grown_domain(amrex::grow(amrex::convert(geom.Domain(),ixtype),ngrow)),
+m_ngrow(ngrow),
+m_solver(m_grown_domain)
 {
     define_doit();
 }

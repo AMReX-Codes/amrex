@@ -11,7 +11,7 @@ namespace amrex::detail {
 
 template <typename MF, typename F>
 void ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F const& f)
-    requires (IsFabArray<MF>::value)
+requires (IsFabArray<MF>::value)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
@@ -34,7 +34,7 @@ void ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, b
 
 template <typename MF, typename F>
 void ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F const& f)
-    requires (IsFabArray<MF>::value)
+requires (IsFabArray<MF>::value)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel

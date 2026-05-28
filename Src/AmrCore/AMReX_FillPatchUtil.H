@@ -38,15 +38,15 @@ namespace amrex
     struct NullInterpHook
     {
         void operator()(MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
-            requires (BaseFabType<MFFAB>)
+        requires (BaseFabType<MFFAB>)
         {}
 
         void operator()(Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
-            requires (BaseFabType<MFFAB>)
+        requires (BaseFabType<MFFAB>)
         {}
 
         void operator()(MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const
-            requires (FabArrayType<MFFAB>)
+        requires (FabArrayType<MFFAB>)
         {}
     };
 

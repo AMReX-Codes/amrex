@@ -51,7 +51,7 @@ namespace amrex::RungeKutta {
 struct PostStageNoOp {
     template <typename MF>
     void operator()(int, MF&) const
-        requires (IsFabArray<MF>::value)
+    requires (IsFabArray<MF>::value)
     {}
 };
 

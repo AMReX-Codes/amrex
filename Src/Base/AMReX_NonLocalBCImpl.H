@@ -625,7 +625,7 @@ Rotate180 (FabArray<FAB>& mf, Box const& domain)
 }
 
 template <class FAB>
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
@@ -655,7 +655,7 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 }
 
 template <class FAB>
-    requires (IsBaseFab<FAB>::value)
+requires (IsBaseFab<FAB>::value)
 void
 FillPolar (FabArray<FAB>& mf, Box const& domain)
 {
@@ -663,9 +663,9 @@ FillPolar (FabArray<FAB>& mf, Box const& domain)
 }
 
 template <typename FAB, typename DTOS, typename Proj>
-    requires (IsBaseFab<FAB>::value &&
-              IsCallableR<Dim3,DTOS,Dim3>::value &&
-              IsFabProjection<Proj,FAB>::value)
+requires (IsBaseFab<FAB>::value &&
+          IsCallableR<Dim3,DTOS,Dim3>::value &&
+          IsFabProjection<Proj,FAB>::value)
 CommHandler
 FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos, Proj const& proj)
@@ -676,9 +676,9 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
 }
 
 template <typename FAB, typename DTOS, typename Proj>
-    requires (IsBaseFab<FAB>::value &&
-              IsCallableR<Dim3,DTOS,Dim3>::value &&
-              IsFabProjection<Proj,FAB>::value)
+requires (IsBaseFab<FAB>::value &&
+          IsCallableR<Dim3,DTOS,Dim3>::value &&
+          IsFabProjection<Proj,FAB>::value)
 void
 FillBoundary_finish (CommHandler handler,
                      FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
@@ -808,7 +808,7 @@ namespace detail {
 /// \endcond
 
 template <typename FAB, typename DTOS>
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
+requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
 FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
                           Geometry const& geom, DTOS const& dtos)

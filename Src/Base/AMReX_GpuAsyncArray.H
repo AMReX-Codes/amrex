@@ -30,7 +30,7 @@ namespace Gpu {
  * destruction prevents the matching free and will leak memory.
  */
 template <typename T>
-    requires (std::is_trivially_copyable_v<T>)
+requires (std::is_trivially_copyable_v<T>)
 class AsyncArray
 {
 public:

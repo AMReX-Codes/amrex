@@ -57,12 +57,12 @@ struct EBData
     }
 
     template <EBData_t T>
-        requires (   T == EBData_t::centroid
-                  || T == EBData_t::bndrycent
-                  || T == EBData_t::bndrynorm
-                  AMREX_D_TERM(|| T==EBData_t::fcx,
-                               || T==EBData_t::fcy,
-                               || T==EBData_t::fcz) )
+    requires (   T == EBData_t::centroid
+              || T == EBData_t::bndrycent
+              || T == EBData_t::bndrynorm
+              AMREX_D_TERM(|| T==EBData_t::fcx,
+                           || T==EBData_t::fcy,
+                           || T==EBData_t::fcz) )
     //! Access data at (i,j,k), component \p n.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto get (int i, int j, int k, int n) const noexcept
@@ -222,12 +222,12 @@ struct EBDataArrays
     //! Access data for box \p box_no and at (i,j,k), component \p n.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     auto get (int box_no, int i, int j, int k, int n) const noexcept
-        requires (   T == EBData_t::centroid
-                  || T == EBData_t::bndrycent
-                  || T == EBData_t::bndrynorm
-                  AMREX_D_TERM(|| T==EBData_t::fcx,
-                               || T==EBData_t::fcy,
-                               || T==EBData_t::fcz))
+    requires (   T == EBData_t::centroid
+              || T == EBData_t::bndrycent
+              || T == EBData_t::bndrynorm
+              AMREX_D_TERM(|| T==EBData_t::fcx,
+                           || T==EBData_t::fcy,
+                           || T==EBData_t::fcz))
     {
         return m_real_data[(box_no*real_data_size) + static_cast<int>(T)](i,j,k,n);
     }

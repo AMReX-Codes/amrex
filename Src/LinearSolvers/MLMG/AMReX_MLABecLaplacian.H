@@ -65,8 +65,8 @@ public:
      * for the Multi-Level AB Laplacian Solver.
      */
     template <typename T1, typename T2>
-        requires (std::is_convertible_v<T1,typename MF::value_type> &&
-                  std::is_convertible_v<T2,typename MF::value_type>)
+    requires (std::is_convertible_v<T1,typename MF::value_type> &&
+              std::is_convertible_v<T2,typename MF::value_type>)
     void setScalars (T1 a, T2 b) noexcept;
 
     /**
@@ -133,7 +133,7 @@ public:
      * \param [in] beta   Vector of scalar constant values.
      */
     template <typename T>
-        requires (std::is_convertible_v<T,typename MF::value_type>)
+    requires (std::is_convertible_v<T,typename MF::value_type>)
     void setBCoeffs (int amrlev, Vector<T> const& beta);
 
     [[nodiscard]] int getNComp () const override { return m_ncomp; }
@@ -292,8 +292,8 @@ MLABecLaplacianT<MF>::define_ab_coeffs ()
 
 template <typename MF>
 template <typename T1, typename T2>
-    requires (std::is_convertible_v<T1,typename MF::value_type> &&
-              std::is_convertible_v<T2,typename MF::value_type>)
+requires (std::is_convertible_v<T1,typename MF::value_type> &&
+          std::is_convertible_v<T2,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
 {
@@ -310,8 +310,8 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
 
 template <typename MF>
 template <typename AMF>
-    requires (IsFabArray<AMF>::value &&
-              std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+requires (IsFabArray<AMF>::value &&
+          std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
 {
@@ -324,7 +324,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
 
 template <typename MF>
 template <typename T>
-    requires (std::is_convertible_v<T,typename MF::value_type>)
+requires (std::is_convertible_v<T,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 {
@@ -336,8 +336,8 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 
 template <typename MF>
 template <typename AMF>
-    requires (IsFabArray<AMF>::value &&
-              std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+requires (IsFabArray<AMF>::value &&
+          std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
                                   const Array<AMF const*,AMREX_SPACEDIM>& beta)
@@ -362,7 +362,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
 
 template <typename MF>
 template <typename T>
-    requires (std::is_convertible_v<T,typename MF::value_type>)
+requires (std::is_convertible_v<T,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
 {
@@ -374,7 +374,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
 
 template <typename MF>
 template <typename T>
-    requires (std::is_convertible_v<T,typename MF::value_type>)
+requires (std::is_convertible_v<T,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
 {

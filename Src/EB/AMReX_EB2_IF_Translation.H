@@ -55,7 +55,7 @@ protected:
 };
 
 template <class F>
-    requires(IsGPUable<F>::value)
+requires(IsGPUable<F>::value)
 struct IsGPUable<TranslationIF<F>> : std::true_type {};
 
 template <class F>

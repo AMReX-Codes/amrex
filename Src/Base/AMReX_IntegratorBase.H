@@ -86,7 +86,7 @@ struct IntegratorOps<T>
 #endif
 
 template<class T>
-    requires (std::is_same_v<amrex::Vector<amrex::MultiFab>, T>)
+requires (std::is_same_v<amrex::Vector<amrex::MultiFab>, T>)
 struct IntegratorOps<T>
 {
 
@@ -133,7 +133,7 @@ struct IntegratorOps<T>
 };
 
 template<class T>
-    requires (std::is_same_v<amrex::MultiFab, T>)
+requires (std::is_same_v<amrex::MultiFab, T>)
 struct IntegratorOps<T>
 {
 

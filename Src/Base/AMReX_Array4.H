@@ -71,9 +71,9 @@ namespace amrex {
         template <class U=T>
         AMREX_GPU_HOST_DEVICE
         constexpr CellData (CellData<std::remove_const_t<T>> const& rhs) noexcept
-            requires std::is_const_v<U>
-            : p(rhs.p), stride(rhs.stride), ncomp(rhs.ncomp)
-            {}
+        requires std::is_const_v<U>
+        : p(rhs.p), stride(rhs.stride), ncomp(rhs.ncomp)
+        {}
 
         /**
          * \brief Check whether the accessor refers to valid data.
@@ -102,7 +102,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator[] (int n) const
-            requires (!std::is_void_v<U>)
+        requires (!std::is_void_v<U>)
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             if (n < 0 || n >= ncomp) {
@@ -245,7 +245,7 @@ namespace amrex {
         void device_printf_impl (const IntVectND<N>& iv,
                                 const IntVectND<N>& begin,
                                 const IntVectND<N>& end)
-            requires (N >= 1)
+        requires (N >= 1)
         {
             device_print_impl2(
                 std::make_index_sequence<N>{},
@@ -317,8 +317,8 @@ namespace amrex {
         template <class U=T>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<std::remove_const_t<T>, N, last_dim_component> const& rhs) noexcept
-            requires std::is_const_v<U>
-            : p(rhs.p), stride(rhs.stride), begin(rhs.begin), end(rhs.end) {}
+        requires std::is_const_v<U>
+        : p(rhs.p), stride(rhs.stride), begin(rhs.begin), end(rhs.end) {}
 
         /**
          * \brief Constructor using a BoxND.
@@ -329,8 +329,8 @@ namespace amrex {
         // TODO: Make BoxND functions constexpr to allow this constructor to be constexpr.
         AMREX_GPU_HOST_DEVICE
         ArrayND (T* a_p, BoxND<N> const& box) noexcept
-            requires (!C)
-            : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1)
+        requires (!C)
+        : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1)
         {}
 
         /**
@@ -343,9 +343,9 @@ namespace amrex {
         // TODO: Make BoxND functions constexpr to allow this constructor to be constexpr.
         AMREX_GPU_HOST_DEVICE
         ArrayND (T* a_p, BoxND<M> const& box, int ncomp) noexcept
-            requires (((M+1==N) || (N == 4 && M == AMREX_SPACEDIM))
-                      && last_dim_component)
-            : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1, ncomp)
+        requires (((M+1==N) || (N == 4 && M == AMREX_SPACEDIM))
+                  && last_dim_component)
+        : ArrayND(a_p, box.smallEnd(), box.bigEnd() + 1, ncomp)
         {}
 
         /**
@@ -360,8 +360,8 @@ namespace amrex {
         template <bool C = last_dim_component>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, IntVectND<N> const& a_begin, IntVectND<N> const& a_end) noexcept
-            requires (!C)
-            : p(a_p), begin(a_begin), end(a_end)
+        requires (!C)
+        : p(a_p), begin(a_begin), end(a_end)
         {
             set_stride();
         }
@@ -379,8 +379,8 @@ namespace amrex {
         template <bool B = IsArray4_v>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, Dim3 const& a_begin, Dim3 const& a_end, int a_ncomp) noexcept
-            requires (B)
-            : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
+        requires (B)
+        : p(a_p), begin(a_begin.x, a_begin.y, a_begin.z, 0), end(a_end.x, a_end.y, a_end.z, a_ncomp)
         {
             set_stride();
         }
@@ -398,8 +398,8 @@ namespace amrex {
         template <int M>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (T* a_p, IntVectND<M> const& a_begin, IntVectND<M> const& a_end, int ncomp) noexcept
-            requires (((M+1 == N) || (N == 4 && M == AMREX_SPACEDIM)) && last_dim_component)
-            : p(a_p)
+        requires (((M+1 == N) || (N == 4 && M == AMREX_SPACEDIM)) && last_dim_component)
+        : p(a_p)
         {
             constexpr_for<0, M>([&](int d) {
                 begin.vect[d] = a_begin.vect[d];
@@ -425,12 +425,12 @@ namespace amrex {
         template <class U>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, N, last_dim_component> const& rhs, int start_comp) noexcept
-            requires (std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>
-                      && (N >= 2) && last_dim_component)
-            : p((T*)(rhs.p + start_comp*rhs.stride.a[N-2])),
-              stride(rhs.stride),
-              begin(rhs.begin),
-              end(rhs.end)
+        requires (std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>
+                  && (N >= 2) && last_dim_component)
+        : p((T*)(rhs.p + start_comp*rhs.stride.a[N-2])),
+          stride(rhs.stride),
+          begin(rhs.begin),
+          end(rhs.end)
         {
             begin.vect[N-1] = 0;
             end.vect[N-1] = rhs.end.vect[N-1] - start_comp;
@@ -448,12 +448,12 @@ namespace amrex {
         template <class U>
         AMREX_GPU_HOST_DEVICE
         constexpr ArrayND (ArrayND<U, N, last_dim_component> const& rhs, int start_comp, int num_comp) noexcept
-            requires (std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>
-                      && (N >= 2) && last_dim_component)
-            : p((T*)(rhs.p + start_comp*rhs.stride.a[N-2])),
-              stride(rhs.stride),
-              begin(rhs.begin),
-              end(rhs.end)
+        requires (std::is_same_v<std::remove_const_t<T>, std::remove_const_t<U>>
+                  && (N >= 2) && last_dim_component)
+        : p((T*)(rhs.p + start_comp*rhs.stride.a[N-2])),
+          stride(rhs.stride),
+          begin(rhs.begin),
+          end(rhs.end)
         {
             begin.vect[N-1] = 0;
             end.vect[N-1] = num_comp;
@@ -493,8 +493,8 @@ namespace amrex {
         template <typename... idx, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (idx... i) const noexcept
-            requires (!std::is_void_v<U> && !IsArray4_v
-                      && detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>)
+        requires (!std::is_void_v<U> && !IsArray4_v
+                  && detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>)
         {
             constexpr auto nidx = sizeof...(i);
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -518,8 +518,8 @@ namespace amrex {
         template <int M, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVectND<M> const& iv) const noexcept
-            requires (!std::is_void_v<U> &&
-                      ((M == N) || (!IsArray4_v && last_dim_component && (M + 1 == N))))
+        requires (!std::is_void_v<U> &&
+                  ((M == N) || (!IsArray4_v && last_dim_component && (M + 1 == N))))
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv);
@@ -541,8 +541,8 @@ namespace amrex {
         template <int M, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVectND<M> const& iv, int n) const noexcept
-            requires (!std::is_void_v<U> && last_dim_component && !IsArray4_v
-                      && (M + 1 == N))
+        requires (!std::is_void_v<U> && last_dim_component && !IsArray4_v
+                  && (M + 1 == N))
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv, n);
@@ -559,8 +559,8 @@ namespace amrex {
         template <typename... idx, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (idx... i) const noexcept
-            requires (!std::is_void_v<U> && !IsArray4_v
-                      && detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>)
+        requires (!std::is_void_v<U> && !IsArray4_v
+                  && detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>)
         {
             constexpr auto nidx = sizeof...(i);
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -584,7 +584,7 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVectND<M> const& iv) const noexcept
-            requires ((M == N) || (!IsArray4_v && last_dim_component && (M + 1 == N)))
+        requires ((M == N) || (!IsArray4_v && last_dim_component && (M + 1 == N)))
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv);
@@ -606,7 +606,7 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (IntVectND<M> const& iv, int n) const noexcept
-            requires (last_dim_component && !IsArray4_v && (M + 1 == N))
+        requires (last_dim_component && !IsArray4_v && (M + 1 == N))
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             index_assert(iv, n);
@@ -670,7 +670,7 @@ namespace amrex {
         template <int d>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_stride () const noexcept
-            requires ((d < N) && (d >= 0))
+        requires ((d < N) && (d >= 0))
         {
             if constexpr (N > 1 && d > 0) {
                 return stride.a[d-1];
@@ -693,8 +693,8 @@ namespace amrex {
         template <typename... idx>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (idx... i) const noexcept
-            requires (!IsArray4_v &&
-                      detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>)
+        requires (!IsArray4_v &&
+                  detail::ArrayNDIndexCheck_impl_v<N, last_dim_component, idx...>)
         {
             constexpr auto nidx = sizeof...(i);
             return this->contains(IntVectND<nidx>{i...});
@@ -719,7 +719,7 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (IntVectND<M> const& iv) const noexcept
-            requires ((M == N) || (!IsArray4_v && last_dim_component && (M + 1 == N)))
+        requires ((M == N) || (!IsArray4_v && last_dim_component && (M + 1 == N)))
         {
             bool inside = true;
             constexpr_for<0, M>([&](int d) {
@@ -747,7 +747,7 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr bool contains (IntVectND<M> const& iv, int n) const noexcept
-            requires (last_dim_component && !IsArray4_v && (M + 1 == N))
+        requires (last_dim_component && !IsArray4_v && (M + 1 == N))
         {
             bool inside = true;
             constexpr_for<0, M>([&](int d) {
@@ -776,7 +776,7 @@ namespace amrex {
         template <int M=N, bool B = IsArray4_v>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         CellData<T> cellData (int i, int j, int k) const noexcept
-            requires B
+        requires B
         {
             int ncomp = end.vect[M-1];
             return CellData<T>(this->ptr(i,j,k), stride.a[M-2], ncomp);
@@ -792,7 +792,7 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_offset (IntVectND<M> const& iv) const noexcept
-            requires ((M == N) || (last_dim_component && (M + 1 == N || M == AMREX_SPACEDIM)))
+        requires ((M == N) || (last_dim_component && (M + 1 == N || M == AMREX_SPACEDIM)))
         {
             Long offset = iv.vect[0] - begin.vect[0];
             // If M == N and we have a component at the end, we only loop up to N-1 for spatial.
@@ -824,8 +824,8 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr Long get_offset (IntVectND<M> const& iv, int n) const noexcept
-            requires (last_dim_component
-                      && ((M + 1 == N) || (N == 4 && M == AMREX_SPACEDIM)))
+        requires (last_dim_component
+                  && ((M + 1 == N) || (N == 4 && M == AMREX_SPACEDIM)))
         {
             Long offset = iv.vect[0] - begin.vect[0];
             constexpr_for<1, M>([&](int d) {
@@ -881,7 +881,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert (IntVectND<M> const& iv) const
-            requires (((M+1 == N) || (M == AMREX_SPACEDIM)) && last_dim_component)
+        requires (((M+1 == N) || (M == AMREX_SPACEDIM)) && last_dim_component)
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
             for (int d = M; d < N; ++d) {
@@ -899,7 +899,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert (IntVectND<M> const& iv, int n) const
-            requires (((M+1 == N) || (M == AMREX_SPACEDIM)) && last_dim_component)
+        requires (((M+1 == N) || (M == AMREX_SPACEDIM)) && last_dim_component)
         {
             IntVectND<N> iv_full = iv.template expand<N>(0);
             for (int d = M; d < N-1; ++d) {
@@ -934,7 +934,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
@@ -970,7 +970,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k, int n) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
@@ -1001,7 +1001,7 @@ namespace amrex {
         template <int M, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVectND<M> const& iv) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
+        requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
         {
 #if (AMREX_SPACEDIM == 1)
             if constexpr (M == 1) {
@@ -1030,7 +1030,7 @@ namespace amrex {
         template <int M, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (IntVectND<M> const& iv, int n) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
+        requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
         {
 #if (AMREX_SPACEDIM == 1)
             if constexpr (M == 1) {
@@ -1056,7 +1056,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (Dim3 const& cell) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
             return this->operator()(cell.x,cell.y,cell.z);
         }
@@ -1071,7 +1071,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (Dim3 const& cell, int n) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
             return this->operator()(cell.x,cell.y,cell.z,n);
         }
@@ -1087,7 +1087,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (int i, int j, int k) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
@@ -1117,7 +1117,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (int i, int j, int k, int n) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
@@ -1145,7 +1145,7 @@ namespace amrex {
         template <int M, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (IntVectND<M> const& iv) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
+        requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
         {
 #if (AMREX_SPACEDIM == 1)
             if constexpr (M == 1) {
@@ -1171,7 +1171,7 @@ namespace amrex {
         template <int M, class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (IntVectND<M> const& iv, int n) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
+        requires (!std::is_void_v<U> && IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
         {
 #if (AMREX_SPACEDIM == 1)
             if constexpr (M == 1) {
@@ -1196,7 +1196,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (Dim3 const& cell) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
             return this->ptr(cell.x,cell.y,cell.z);
         }
@@ -1211,7 +1211,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U* ptr (Dim3 const& cell, int n) const noexcept
-            requires (!std::is_void_v<U> && IsArray4_v)
+        requires (!std::is_void_v<U> && IsArray4_v)
         {
             return this->ptr(cell.x,cell.y,cell.z,n);
         }
@@ -1227,7 +1227,7 @@ namespace amrex {
         template <bool B = IsArray4_v>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (int i, int j, int k) const noexcept
-            requires B
+        requires B
         {
             return (i>=begin.vect[0] && i<end.vect[0] &&
                     j>=begin.vect[1] && j<end.vect[1] &&
@@ -1243,7 +1243,7 @@ namespace amrex {
         template <int M>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (IntVectND<M> const& iv) const noexcept
-            requires (IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
+        requires (IsArray4_v && (M == 3 || M == AMREX_SPACEDIM))
         {
 #if (AMREX_SPACEDIM < 3)
             if constexpr (M == AMREX_SPACEDIM) {
@@ -1268,7 +1268,7 @@ namespace amrex {
         template <bool B = IsArray4_v>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (Dim3 const& cell) const noexcept
-            requires B
+        requires B
         {
             return (cell.x>=begin.vect[0] && cell.x<end.vect[0] &&
                     cell.y>=begin.vect[1] && cell.y<end.vect[1] &&
@@ -1283,7 +1283,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert_print_error_message (int i, int j, int k, int n) const
-            requires B
+        requires B
         {
             AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
@@ -1418,7 +1418,7 @@ namespace amrex {
     template <class A> struct HasMultiComp : std::false_type {};
     //
     template <class B>
-        requires (B().size() >= 1)
+    requires (B().size() >= 1)
     struct HasMultiComp<B> : std::true_type {};
 
     //
@@ -1443,7 +1443,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         typename U::reference_type
         operator() (int i, int j, int k, int n) const noexcept
-            requires amrex::HasMultiComp<U>::value
+        requires amrex::HasMultiComp<U>::value
         {
             return this->Array4<T>::operator()(i,j,k,0)[n];
         }
@@ -1451,7 +1451,7 @@ namespace amrex {
         template <class U=T>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         U& operator() (int i, int j, int k, int n) const noexcept
-            requires (!amrex::HasMultiComp<U>::value)
+        requires (!amrex::HasMultiComp<U>::value)
         {
             return this->Array4<T>::operator()(i,j,k,n);
         }

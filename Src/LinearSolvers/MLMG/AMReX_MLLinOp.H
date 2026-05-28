@@ -1478,7 +1478,7 @@ template <typename AMF>
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
                                LinOpBCType bc_type) noexcept
-    requires (!std::is_same_v<MF,AMF>)
+requires (!std::is_same_v<MF,AMF>)
 {
     setCoarseFineBC(crse, IntVect(crse_ratio), bc_type);
 }
@@ -1488,7 +1488,7 @@ template <typename AMF>
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                                LinOpBCType bc_type) noexcept
-    requires (!std::is_same_v<MF,AMF>)
+requires (!std::is_same_v<MF,AMF>)
 {
     m_coarse_data_for_bc_raii = MF(crse->boxArray(), crse->DistributionMap(),
                                    crse->nComp(), crse->nGrowVect());
@@ -1632,7 +1632,7 @@ void
 MLLinOpT<MF>::setLevelBC (int amrlev, const AMF* levelbcdata,
                           const AMF* robinbc_a, const AMF* robinbc_b,
                           const AMF* robinbc_f)
-    requires (!std::is_same_v<MF,AMF>) && (IsMultiFabLike_v<AMF>)
+requires (!std::is_same_v<MF,AMF>) && (IsMultiFabLike_v<AMF>)
 {
     const int ncomp = this->getNComp();
     if (levelbcdata) {

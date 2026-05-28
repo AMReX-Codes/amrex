@@ -57,7 +57,7 @@ struct ParserExecutor
     template <typename... Ts>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     double operator() (Ts... var) const noexcept
-        requires (N > 0 && sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value)
+    requires (N > 0 && sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value)
     {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var.data());))

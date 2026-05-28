@@ -290,14 +290,14 @@ struct NeighborData
 
 template<typename A, typename B>
 bool isSame (A const* pa, B const* pb)
-    requires (std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
+requires (std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
 {
     return pa == pb;
 }
 
 template<typename A, typename B>
 bool isSame (A const* /*pa*/, B const* /*pb*/)
-    requires (!std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
+requires (!std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
 {
     return false;
 }

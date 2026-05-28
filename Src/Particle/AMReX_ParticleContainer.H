@@ -593,7 +593,7 @@ public:
      * \brief Return capacity of memory for particles at specific grid
      */
     template <typename I>
-        requires (std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)))
+    requires (std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)))
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
 
@@ -691,7 +691,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType>
-        requires (IsParticleContainer<PCType>::value)
+    requires (IsParticleContainer<PCType>::value)
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -702,7 +702,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class PCType>
-        requires (IsParticleContainer<PCType>::value)
+    requires (IsParticleContainer<PCType>::value)
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -720,7 +720,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType>
-        requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -737,7 +737,7 @@ public:
     * \param local whether to call redistribute after
     */
     template <class F, class PCType>
-        requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
     void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
