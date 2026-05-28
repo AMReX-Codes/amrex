@@ -977,7 +977,8 @@ void launch (BoxND<dim> const& box, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T, typename L>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
 {
     static_assert(sizeof(T) >= 2);
@@ -1005,7 +1006,8 @@ ParallelFor (Gpu::KernelInfo const&, T n, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
@@ -1032,7 +1034,8 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T, typename L, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
@@ -1060,7 +1063,8 @@ ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L const& f)
  * generation support.
  */
 template <std::integral T, typename L>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelForRNG (T n, L const& f)
 {
     if (amrex::isEmpty(n)) { return; }
@@ -1086,7 +1090,8 @@ ParallelForRNG (T n, L const& f)
  * generation support.
  */
 template <typename L, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelForRNG (BoxND<dim> const& box, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
@@ -1114,7 +1119,8 @@ ParallelForRNG (BoxND<dim> const& box, L const& f)
  * generation support.
  */
 template <std::integral T, typename L, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
 {
     if (amrex::isEmpty(box)) { return; }
@@ -1141,7 +1147,8 @@ ParallelForRNG (BoxND<dim> const& box, T ncomp, L const& f)
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L1, typename L2, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
+void
 ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2)
 {
@@ -1172,7 +1179,9 @@ ParallelFor (Gpu::KernelInfo const&,
  * \brief Performance-portable kernel launch function
  */
 template <int MT, typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value &&
+          MaybeDeviceRunnable<L3>::value)
+void
 ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
              L1&& f1, L2&& f2, L3&& f3)
@@ -1209,7 +1218,8 @@ ParallelFor (Gpu::KernelInfo const&,
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
+void
 ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
              BoxND<dim> const& box2, T2 ncomp2, L2&& f2)
@@ -1241,7 +1251,9 @@ ParallelFor (Gpu::KernelInfo const&,
  * \brief Performance-portable kernel launch function
  */
 template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value &&
+          MaybeDeviceRunnable<L3>::value)
+void
 ParallelFor (Gpu::KernelInfo const&,
              BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
              BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1293,7 +1305,8 @@ void launch (T const& n, L&& f) noexcept
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T, typename L>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, n, std::forward<L>(f));
@@ -1304,7 +1317,8 @@ ParallelFor (Gpu::KernelInfo const& info, T n, L&& f) noexcept
  * \brief Performance-portable kernel launch function
  */
 template <typename L, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, std::forward<L>(f));
@@ -1315,7 +1329,8 @@ ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f) noexcept
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T, typename L, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L>::value>
+requires (MaybeDeviceRunnable<L>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f) noexcept
 {
     ParallelFor<AMREX_GPU_MAX_THREADS>(info, box, ncomp, std::forward<L>(f));
@@ -1326,7 +1341,8 @@ ParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f)
  * \brief Performance-portable kernel launch function
  */
 template <typename L1, typename L2, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info,
              BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2) noexcept
 {
@@ -1339,7 +1355,9 @@ ParallelFor (Gpu::KernelInfo const& info,
  * \brief Performance-portable kernel launch function
  */
 template <typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value &&
+          MaybeDeviceRunnable<L3>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info,
              BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
              L1&& f1, L2&& f2, L3&& f3) noexcept
@@ -1353,7 +1371,8 @@ ParallelFor (Gpu::KernelInfo const& info,
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info,
              BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
              BoxND<dim> const& box2, T2 ncomp2, L2&& f2) noexcept
@@ -1367,7 +1386,9 @@ ParallelFor (Gpu::KernelInfo const& info,
  * \brief Performance-portable kernel launch function
  */
 template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value && MaybeDeviceRunnable<L3>::value>
+requires (MaybeDeviceRunnable<L1>::value && MaybeDeviceRunnable<L2>::value &&
+          MaybeDeviceRunnable<L3>::value)
+void
 ParallelFor (Gpu::KernelInfo const& info,
              BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
              BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1737,7 +1758,8 @@ void For (BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
 }
 
 template <std::integral T, typename L>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
 {
     if (Gpu::inLaunchRegion()) {
@@ -1753,7 +1775,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
 }
 
 template <int MT, std::integral T, typename L>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
 {
     if (Gpu::inLaunchRegion()) {
@@ -1769,21 +1792,24 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, T n, L&& f)
 }
 
 template <std::integral T, typename L>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (T n, L&& f) noexcept
 {
     HostDeviceParallelFor<AMREX_GPU_MAX_THREADS>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
 template <int MT, std::integral T, typename L>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (T n, L&& f) noexcept
 {
     HostDeviceParallelFor<MT>(Gpu::KernelInfo{}, n, std::forward<L>(f));
 }
 
 template <typename L, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f)
 {
     if (Gpu::inLaunchRegion()) {
@@ -1798,7 +1824,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f
 }
 
 template <int MT, typename L, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f)
 {
     if (Gpu::inLaunchRegion()) {
@@ -1813,7 +1840,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, L&& f
 }
 
 template <std::integral T, typename L, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f)
 {
     if (Gpu::inLaunchRegion()) {
@@ -1828,7 +1856,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T nco
 }
 
 template <int MT, std::integral T, typename L, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L>::value>
+requires (MaybeHostDeviceRunnable<L>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T ncomp, L&& f)
 {
     if (Gpu::inLaunchRegion()) {
@@ -1843,7 +1872,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info, BoxND<dim> const& box, T nco
 }
 
 template <typename L1, typename L2, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2)
 {
@@ -1860,7 +1890,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, typename L1, typename L2, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, L1&& f1, L2&& f2)
 {
@@ -1877,7 +1908,9 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value &&
+          MaybeHostDeviceRunnable<L3>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, BoxND<dim> const& box2, BoxND<dim> const& box3,
                        L1&& f1, L2&& f2, L3&& f3)
@@ -1897,7 +1930,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2)
@@ -1915,7 +1949,8 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, std::integral T1, std::integral T2, typename L1, typename L2, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2)
@@ -1933,7 +1968,9 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value &&
+          MaybeHostDeviceRunnable<L3>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
@@ -1956,7 +1993,9 @@ HostDeviceParallelFor (Gpu::KernelInfo const& info,
 }
 
 template <int MT, std::integral T1, std::integral T2, std::integral T3, typename L1, typename L2, typename L3, int dim>
-std::enable_if_t<MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value && MaybeHostDeviceRunnable<L3>::value>
+requires (MaybeHostDeviceRunnable<L1>::value && MaybeHostDeviceRunnable<L2>::value &&
+          MaybeHostDeviceRunnable<L3>::value)
+void
 HostDeviceParallelFor (Gpu::KernelInfo const& info,
                        BoxND<dim> const& box1, T1 ncomp1, L1&& f1,
                        BoxND<dim> const& box2, T2 ncomp2, L2&& f2,
