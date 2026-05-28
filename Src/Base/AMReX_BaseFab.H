@@ -101,7 +101,7 @@ placementNew (T* const /*ptr*/, Long /*n*/)
 {}
 
 template <typename T>
-requires (std::is_trivially_default_constructible_v<T>) && (!std::is_arithmetic_v<T>)
+requires (std::is_trivially_default_constructible_v<T> && !std::is_arithmetic_v<T>)
 void
 placementNew (T* const ptr, Long n)
 {
