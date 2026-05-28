@@ -405,12 +405,12 @@ public:
     Long superParticleSize() const { return m_superparticle_size; }
 
     template <class PC>
+        requires (IsParticleContainer<PC>::value)
     void build (const PC& pc,
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
                 const Vector<int>& real_comp_mask,
                 int local)
-    requires IsParticleContainer<PC>::value
     {
         BL_PROFILE("ParticleCopyPlan::build");
 
@@ -577,10 +577,10 @@ struct GetSendBufferOffset
 };
 
 template <class PC, class Buffer>
+    requires (IsParticleContainer<PC>::value &&
+              std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>, Buffer>)
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
-    requires IsParticleContainer<PC>::value &&
-             std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>, Buffer>
 {
     BL_PROFILE("amrex::packBuffer");
 
@@ -778,8 +778,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 }
 
 template <class PC, class Buffer, class UnpackPolicy>
+    requires (IsParticleContainer<PC>::value)
 void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, UnpackPolicy const& policy)
-    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("amrex::unpackBuffer");
 
@@ -905,8 +905,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 }
 
 template <class PC, class SndBuffer, class RcvBuffer>
+    requires (IsParticleContainer<PC>::value)
 void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndBuffer& snd_buffer, RcvBuffer& rcv_buffer)
-    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("amrex::communicateParticlesStart");
 
@@ -1005,8 +1005,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
 void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
 template <class PC, class Buffer, class UnpackPolicy>
+    requires (IsParticleContainer<PC>::value)
 void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy const& policy)
-    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("amrex::unpackRemotes");
 

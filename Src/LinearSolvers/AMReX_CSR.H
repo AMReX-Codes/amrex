@@ -106,14 +106,13 @@ struct CSR {
 };
 
 template <typename C, typename T, template<typename> class AD, template<typename> class AS>
+    requires ((std::is_same_v<C,Gpu::HostToDevice>) ||
+              (std::is_same_v<C,Gpu::DeviceToHost>) ||
+              (std::is_same_v<C,Gpu::DeviceToDevice>))
 /**
  * \brief Copy CSR buffers between memory spaces asynchronously.
  *
- * \param c   Copy policy describing the direction (HostToDevice, etc.)
-    requires (std::is_same_v<C,Gpu::HostToDevice>) ||;
-         (std::is_same_v<C,Gpu::DeviceToHost>) ||
-         (std::is_same_v<C,Gpu::DeviceToDevice>)
-.
+ * \param c   Copy policy describing the direction (HostToDevice, etc.).
  * \param dst Destination CSR that will be resized and filled.
  * \param src Source CSR whose buffers are copied verbatim.
  */

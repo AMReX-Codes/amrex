@@ -65,9 +65,9 @@ public:
      * for the Multi-Level AB Laplacian Solver.
      */
     template <typename T1, typename T2>
-    void setScalars (T1 a, T2 b) noexcept
         requires (std::is_convertible_v<T1,typename MF::value_type> &&
-                  std::is_convertible_v<T2,typename MF::value_type>);
+                  std::is_convertible_v<T2,typename MF::value_type>)
+    void setScalars (T1 a, T2 b) noexcept;
 
     /**
      * Sets alpha as a scalar field to values from a single component
@@ -79,10 +79,9 @@ public:
      * \param [in] alpha  Multifab of alpha values.
      */
     template <typename AMF>
-    void setACoeffs (int amrlev, const AMF& alpha)
-    requires IsFabArray<AMF>::value &&
-             std::is_convertible_v<typename AMF::value_type, typename MF::value_type>
-;
+    requires (IsFabArray<AMF>::value &&
+              std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+    void setACoeffs (int amrlev, const AMF& alpha);
 
     /**
      * Sets alpha as a single scalar constant value across
@@ -94,8 +93,8 @@ public:
      * \param [in] alpha  Single scalar value to populate across multifab.
      */
     template <typename T>
-    void setACoeffs (int amrlev, T alpha)
-    requires std::is_convertible_v<T,typename MF::value_type>;
+    requires (std::is_convertible_v<T,typename MF::value_type>)
+    void setACoeffs (int amrlev, T alpha);
 
     /**
      * Sets beta as a scalar field to be the values defined
@@ -107,10 +106,9 @@ public:
      * \param [in] beta   Array of Multifabs of beta values.
      */
     template <typename AMF>
-    void setBCoeffs (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& beta)
-    requires IsFabArray<AMF>::value &&
-             std::is_convertible_v<typename AMF::value_type, typename MF::value_type>
-;
+    requires (IsFabArray<AMF>::value &&
+              std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
+    void setBCoeffs (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& beta);
 
     /**
      * Sets beta as a single scalar constant value across
@@ -122,8 +120,8 @@ public:
      * \param [in] beta   Single scalar value to populate across multifabs.
      */
     template <typename T>
-    void setBCoeffs (int amrlev, T beta)
-    requires std::is_convertible_v<T,typename MF::value_type>;
+    requires (std::is_convertible_v<T,typename MF::value_type>)
+    void setBCoeffs (int amrlev, T beta);
 
     /**
      * Set each beta component to a single scalar constant value corresponding to the
@@ -135,8 +133,8 @@ public:
      * \param [in] beta   Vector of scalar constant values.
      */
     template <typename T>
-    void setBCoeffs (int amrlev, Vector<T> const& beta)
-    requires std::is_convertible_v<T,typename MF::value_type>;
+        requires (std::is_convertible_v<T,typename MF::value_type>)
+    void setBCoeffs (int amrlev, Vector<T> const& beta);
 
     [[nodiscard]] int getNComp () const override { return m_ncomp; }
 
@@ -294,10 +292,10 @@ MLABecLaplacianT<MF>::define_ab_coeffs ()
 
 template <typename MF>
 template <typename T1, typename T2>
-void
-MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
     requires (std::is_convertible_v<T1,typename MF::value_type> &&
               std::is_convertible_v<T2,typename MF::value_type>)
+void
+MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
 {
     m_a_scalar = RT(a);
     m_b_scalar = RT(b);
@@ -312,10 +310,10 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
 
 template <typename MF>
 template <typename AMF>
+    requires (IsFabArray<AMF>::value &&
+              std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
-    requires IsFabArray<AMF>::value &&
-             std::is_convertible_v<typename AMF::value_type, typename MF::value_type>
 {
     AMREX_ASSERT_WITH_MESSAGE(alpha.nComp() == 1,
                               "MLABecLaplacian::setACoeffs: alpha is supposed to be single component.");
@@ -326,9 +324,9 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
 
 template <typename MF>
 template <typename T>
+    requires (std::is_convertible_v<T,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
-    requires std::is_convertible_v<T,typename MF::value_type>
 {
     m_a_coeffs[amrlev][0].setVal(RT(alpha));
     m_needs_update = true;
@@ -338,11 +336,11 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 
 template <typename MF>
 template <typename AMF>
+    requires (IsFabArray<AMF>::value &&
+              std::is_convertible_v<typename AMF::value_type, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
                                   const Array<AMF const*,AMREX_SPACEDIM>& beta)
-    requires IsFabArray<AMF>::value &&
-             std::is_convertible_v<typename AMF::value_type, typename MF::value_type>
 {
     const int ncomp = this->getNComp();
     AMREX_ASSERT(beta[0]->nComp() == 1 || beta[0]->nComp() == ncomp);
@@ -364,9 +362,9 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
 
 template <typename MF>
 template <typename T>
+    requires (std::is_convertible_v<T,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
-    requires std::is_convertible_v<T,typename MF::value_type>
 {
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         m_b_coeffs[amrlev][0][idim].setVal(RT(beta));
@@ -376,9 +374,9 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
 
 template <typename MF>
 template <typename T>
+    requires (std::is_convertible_v<T,typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
-    requires std::is_convertible_v<T,typename MF::value_type>
 {
     const int ncomp = this->getNComp();
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {

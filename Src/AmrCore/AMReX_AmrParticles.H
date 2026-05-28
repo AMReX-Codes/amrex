@@ -184,11 +184,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
  * \param vol_weight    Whether to divide by cell volume after deposition.
  */
 template <class PC, class F>
+requires (IsParticleContainer<PC>::value)
 void
 ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
                 int lev_min, int lev_max, F&& f,
                 bool zero_out_input=true, bool vol_weight=true)
-    requires IsParticleContainer<PC>::value
 {
     BL_PROFILE("amrex::ParticleToMesh");
 

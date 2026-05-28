@@ -182,13 +182,12 @@ struct PolarFn2 { // for the x-y corners
 //!
 //! \param[in]  proj  A FAB projection that might transform the data.
 //!
-//! \return Nothing.
 template <class FAB, class DTOS, class Proj>
+requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
-    {
+{
     const auto N_locs = static_cast<int>(local_tags.size());
     if (N_locs == 0) { return; }
 #ifdef AMREX_USE_OMP
@@ -212,13 +211,13 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
 //! assertion.
 template <class FAB, class DTOS, class Proj>
+requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
                         DTOS const& dtos, Proj const& proj) noexcept
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
-    {
+{
     amrex::ignore_unused(recv_size);
 
     const auto N_rcvs = static_cast<int>(recv_cctc.size());
@@ -256,11 +255,11 @@ struct Array4Array4Box {
 };
 
 template <class FAB, class DTOS, class Proj>
+requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
-    {
+{
     int N_locs = local_tags.size();
     if (N_locs == 0) { return; }
 
@@ -282,13 +281,13 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 }
 
 template <class FAB, class DTOS, class Proj>
+requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
                         DTOS const& dtos, Proj const& proj)
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 {
     amrex::ignore_unused(recv_size);
 
@@ -345,27 +344,27 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 #endif
 
 template <typename DTOS>
+requires (IsIndexMapping<DTOS>::value)
 MultiBlockCommMetaData::MultiBlockCommMetaData (const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                                                 const IntVect& ngrow, DTOS const& dtos)
-    requires (IsIndexMapping<DTOS>::value)
     : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
                                 src.DistributionMap(), ngrow, dtos) {}
 
 template <typename DTOS>
+requires (IsIndexMapping<DTOS>::value)
 MultiBlockCommMetaData::MultiBlockCommMetaData (const BoxArray& dstba, const DistributionMapping& dstdm,
                                                 const Box& dstbox, const BoxArray& srcba,
                                                 const DistributionMapping& srcdm, const IntVect& ngrow, DTOS const& dtos)
-    requires (IsIndexMapping<DTOS>::value)
 {
     define(dstba, dstdm, dstbox, srcba, srcdm, ngrow, dtos);
 }
 
 template <typename DTOS>
+requires (IsIndexMapping<DTOS>::value)
 void
 MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
                                 const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
                                 DTOS const& dtos)
-    requires (IsIndexMapping<DTOS>::value)
 {
     m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
@@ -537,9 +536,9 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 #endif
 
 template <class FAB>
+requires (IsBaseFab<FAB>::value)
 void
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
 {
     BL_PROFILE("Rotate90");
 
@@ -581,17 +580,17 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
 }
 
 template <class FAB>
+requires (IsBaseFab<FAB>::value)
 void
 Rotate90 (FabArray<FAB>& mf, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
 {
     Rotate90(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
 template <class FAB>
+requires (IsBaseFab<FAB>::value)
 void
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
 {
     BL_PROFILE("Rotate180");
 
@@ -618,17 +617,17 @@ Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 }
 
 template <class FAB>
+requires (IsBaseFab<FAB>::value)
 void
 Rotate180 (FabArray<FAB>& mf, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
 {
     Rotate180(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
 template <class FAB>
+    requires (IsBaseFab<FAB>::value)
 void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
 {
     BL_PROFILE("FillPolar");
 
@@ -656,20 +655,20 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 }
 
 template <class FAB>
+    requires (IsBaseFab<FAB>::value)
 void
 FillPolar (FabArray<FAB>& mf, Box const& domain)
-    requires (IsBaseFab<FAB>::value)
 {
     FillPolar(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
 template <typename FAB, typename DTOS, typename Proj>
+    requires (IsBaseFab<FAB>::value &&
+              IsCallableR<Dim3,DTOS,Dim3>::value &&
+              IsFabProjection<Proj,FAB>::value)
 CommHandler
 FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos, Proj const& proj)
-    requires (IsBaseFab<FAB>::value &&
-                 IsCallableR<Dim3,DTOS,Dim3>::value &&
-                 IsFabProjection<Proj,FAB>::value)
 {
     BL_PROFILE("FillBoundary_nowait(cmd)");
     AMREX_ASSERT(scomp < mf.nComp() && scomp+ncomp <= mf.nComp());
@@ -677,13 +676,13 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
 }
 
 template <typename FAB, typename DTOS, typename Proj>
+    requires (IsBaseFab<FAB>::value &&
+              IsCallableR<Dim3,DTOS,Dim3>::value &&
+              IsFabProjection<Proj,FAB>::value)
 void
 FillBoundary_finish (CommHandler handler,
                      FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos, Proj const& proj)
-    requires (IsBaseFab<FAB>::value &&
-                 IsCallableR<Dim3,DTOS,Dim3>::value &&
-                 IsFabProjection<Proj,FAB>::value)
 {
 #ifdef AMREX_USE_MPI
     BL_PROFILE("FillBoundary_finish(cmd)");
@@ -809,10 +808,10 @@ namespace detail {
 /// \endcond
 
 template <typename FAB, typename DTOS>
+    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
 FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
                           Geometry const& geom, DTOS const& dtos)
-    requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
 {
     FabArrayBase::CommMetaData cmd;
     cmd.m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();

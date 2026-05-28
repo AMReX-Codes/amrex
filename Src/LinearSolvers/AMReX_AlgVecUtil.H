@@ -16,7 +16,7 @@ namespace amrex {
 template <class V> struct IsAlgVector : std::false_type {};
 //
 template <class V>
-    requires(std::is_same_v<AlgVector<typename V::value_type,
+    requires (std::is_same_v<AlgVector<typename V::value_type,
                                       typename V::allocator_type>,
                             V>)
 struct IsAlgVector<V> : std::true_type {};
@@ -29,9 +29,9 @@ struct IsAlgVector<V> : std::true_type {};
  *          device/host for each local row.
  */
 template <typename V1, typename F>
+requires (IsAlgVector<std::decay_t<V1> >::value)
 void
 ForEach (V1 & x, F const& f)
-    requires IsAlgVector<std::decay_t<V1> >::value
 {
     Long n = x.numLocalRows();
     auto* px = x.data();
@@ -49,10 +49,9 @@ ForEach (V1 & x, F const& f)
  * \param f Callable with signature `void(X&, Y&)`.
  */
 template <typename V1, typename V2, typename F>
+requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value)
 void
 ForEach (V1 & x, V2 & y, F const& f)
-    requires IsAlgVector<std::decay_t<V1> >::value &&
-             IsAlgVector<std::decay_t<V2> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     Long n = x.numLocalRows();
@@ -73,11 +72,9 @@ ForEach (V1 & x, V2 & y, F const& f)
  * \param f Callable with signature `void(X&, Y&, Z&)`.
  */
 template <typename V1, typename V2, typename V3, typename F>
+requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value && IsAlgVector<std::decay_t<V3> >::value)
 void
 ForEach (V1 & x, V2 & y, V3 & z, F const& f)
-    requires IsAlgVector<std::decay_t<V1> >::value &&
-             IsAlgVector<std::decay_t<V2> >::value &&
-             IsAlgVector<std::decay_t<V3> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
@@ -101,12 +98,9 @@ ForEach (V1 & x, V2 & y, V3 & z, F const& f)
  * \param f Callable with signature `void(X&, Y&, Z&, A&)`.
  */
 template <typename V1, typename V2, typename V3, typename V4, typename F>
+requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value && IsAlgVector<std::decay_t<V3> >::value && IsAlgVector<std::decay_t<V4> >::value)
 void
 ForEach (V1 & x, V2 & y, V3 & z, V4 & a, F const& f)
-    requires IsAlgVector<std::decay_t<V1> >::value &&
-             IsAlgVector<std::decay_t<V2> >::value &&
-             IsAlgVector<std::decay_t<V3> >::value &&
-             IsAlgVector<std::decay_t<V4> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());
@@ -133,13 +127,9 @@ ForEach (V1 & x, V2 & y, V3 & z, V4 & a, F const& f)
  * \param f Callable with signature `void(X&, Y&, Z&, A&, B&)`.
  */
 template <typename V1, typename V2, typename V3, typename V4, typename V5, typename F>
+requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value && IsAlgVector<std::decay_t<V3> >::value && IsAlgVector<std::decay_t<V4> >::value && IsAlgVector<std::decay_t<V5> >::value)
 void
 ForEach (V1 & x, V2 & y, V3 & z, V4 & a, V5 & b, F const& f)
-    requires IsAlgVector<std::decay_t<V1> >::value &&
-             IsAlgVector<std::decay_t<V2> >::value &&
-             IsAlgVector<std::decay_t<V3> >::value &&
-             IsAlgVector<std::decay_t<V4> >::value &&
-             IsAlgVector<std::decay_t<V5> >::value
 {
     AMREX_ASSERT(x.numLocalRows() == y.numLocalRows());
     AMREX_ASSERT(x.numLocalRows() == z.numLocalRows());

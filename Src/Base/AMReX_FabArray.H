@@ -55,9 +55,8 @@
 namespace amrex {
 
 template <typename T>
-Long nBytesOwned (T const&) noexcept
-    requires (!IsBaseFab<T>::value)
-    { return 0; }
+requires (!IsBaseFab<T>::value)
+Long nBytesOwned (T const&) noexcept { return 0; }
 
 template <typename T>
 Long nBytesOwned (BaseFab<T> const& fab) noexcept { return fab.nBytesOwned(); }
@@ -175,21 +174,21 @@ struct MultiArray4
 template <class FAB> class FabArray;
 
 template <class DFAB, class SFAB>
+requires (std::conjunction_v<
+          IsBaseFab<DFAB>, IsBaseFab<SFAB>,
+          std::is_convertible<typename SFAB::value_type,
+                              typename DFAB::value_type>>)
 void Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-    requires (std::conjunction_v<
-              IsBaseFab<DFAB>, IsBaseFab<SFAB>,
-              std::is_convertible<typename SFAB::value_type,
-                                  typename DFAB::value_type>>)
 {
     Copy(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 template <class DFAB, class SFAB>
-void Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
     requires (std::conjunction_v<
               IsBaseFab<DFAB>, IsBaseFab<SFAB>,
               std::is_convertible<typename SFAB::value_type,
                                   typename DFAB::value_type>>)
+void Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
     BL_PROFILE("amrex::Copy()");
 
@@ -239,17 +238,17 @@ void Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstc
 }
 
 template <class FAB>
+requires (IsBaseFab<FAB>::value)
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
-    requires (IsBaseFab<FAB>::value)
 {
     Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
 template <class FAB>
+requires (IsBaseFab<FAB>::value)
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
-    requires (IsBaseFab<FAB>::value)
 {
     BL_PROFILE("amrex::Add()");
 
@@ -544,9 +543,8 @@ public:
     FAB      * fabPtr (int K) noexcept;  // Here K is global index
     FAB const* fabPtr (int K) const noexcept;
 
-    template <class F=FAB>
     void prefetchToHost (const MFIter& mfi) const noexcept
-    requires IsBaseFab<F>::value
+        requires (IsBaseFab<FAB>::value)
     {
 #ifdef AMREX_USE_CUDA
         this->fabPtr(mfi)->prefetchToHost();
@@ -555,9 +553,8 @@ public:
 #endif
     }
 
-    template <class F=FAB>
     void prefetchToDevice (const MFIter& mfi) const noexcept
-    requires IsBaseFab<F>::value
+        requires (IsBaseFab<FAB>::value)
     {
 #ifdef AMREX_USE_CUDA
         this->fabPtr(mfi)->prefetchToDevice();
@@ -566,95 +563,95 @@ public:
 #endif
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(mfi)->const_array();
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi) noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(mfi)->array();
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (int K) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(K)->const_array();
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (int K) noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(K)->array();
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(mfi)->const_array();
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(K)->const_array();
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi, int start_comp) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(mfi)->const_array(start_comp);
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi, int start_comp) noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(mfi)->array(start_comp);
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (int K, int start_comp) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(K)->const_array(start_comp);
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (int K, int start_comp) noexcept
-    requires IsBaseFab<F>::value {
+        requires IsBaseFab<FAB>::value
+    {
         return fabPtr(K)->array(start_comp);
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi, int start_comp) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(mfi)->const_array(start_comp);
     }
 
-    template <class F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         return fabPtr(K)->const_array(start_comp);
     }
 
-    template <class F=FAB>
     MultiArray4<typename FabArray<FAB>::value_type> arrays () noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         build_arrays();
         return m_arrays;
     }
 
-    template <class F=FAB>
     MultiArray4<typename FabArray<FAB>::value_type const> arrays () const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         build_arrays();
         return m_const_arrays;
     }
 
-    template <class F=FAB>
     MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept
-    requires IsBaseFab<F>::value {
+        requires (IsBaseFab<FAB>::value)
+    {
         build_arrays();
         return m_const_arrays;
     }

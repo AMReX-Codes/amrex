@@ -219,13 +219,13 @@ public:
                       int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 
 #if (AMREX_SPACEDIM == 3)
-    template <typename GS = G>
     /**
      * \brief Define a fine level for multi-valued multi-cut STL geometries (3-D only)
      */
+    template <typename GS = G>
+    requires (std::same_as<GS,STLtools>)
     void define_fine_mvmc (GS const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
-        requires std::same_as<GS,STLtools>;
+                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 #endif
 
     /**
@@ -666,10 +666,10 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 #if (AMREX_SPACEDIM == 3)
 template <typename G>
 template <typename GS>
+requires (std::same_as<GS,STLtools>)
 void
 GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
                                  int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
-    requires std::same_as<GS,STLtools>
 {
     BL_PROFILE("EB2::GShopLevel()-fine-mvmc");
 
