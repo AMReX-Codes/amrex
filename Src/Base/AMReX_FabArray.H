@@ -1364,7 +1364,6 @@ public:
                       IntVect const& sumboundary_src_nghost = IntVect(-1),
                       bool deterministic = false);
 
-
     void FB_local_copy_cpu (const FB& TheFB, int scomp, int ncomp);
     void FB_local_add_cpu (const FB& TheFB, int scomp, int ncomp);
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,

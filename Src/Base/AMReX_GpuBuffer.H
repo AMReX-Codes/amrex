@@ -18,7 +18,8 @@ namespace amrex::Gpu {
  * lifetime. Flipping the launch-region flag between construction and
  * destruction may break Gpu::Buffer's member functions.
  */
-template <typename T> requires(std::is_trivially_copyable_v<T>)
+template <typename T>
+requires(std::is_trivially_copyable_v<T>)
 class Buffer
 {
 public:
