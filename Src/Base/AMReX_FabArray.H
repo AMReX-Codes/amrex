@@ -853,9 +853,9 @@ public:
     requires (IsBaseFab<F>::value);
 
     //! Get capacity of the FabArray
-    template <typename I>
+    template <std::integral I>
     void capacityOfFabs (LayoutData<I>& mem) const
-    requires (IsBaseFab<FAB>::value && std::integral<I> && (sizeof(I) >= sizeof(Long)));
+    requires (IsBaseFab<FAB>::value && (sizeof(I) >= sizeof(Long)));
 
 
     /**
@@ -2656,10 +2656,10 @@ FabArray<FAB>::setDomainBndry (value_type val,
 }
 
 template <class FAB>
-template <typename I>
+template <std::integral I>
 void
 FabArray<FAB>::capacityOfFabs (LayoutData<I>& mem) const
-    requires (IsBaseFab<FAB>::value && std::integral<I> && (sizeof(I) >= sizeof(Long)))
+    requires (IsBaseFab<FAB>::value && (sizeof(I) >= sizeof(Long)))
 {
     AMREX_ASSERT(amrex::isMFIterSafe(*this, mem));
     for (MFIter mfi(*this, MFItInfo{}.DisableDeviceSync()); mfi.isValid(); ++mfi) {
