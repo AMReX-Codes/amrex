@@ -209,16 +209,18 @@ namespace amrex {
 #endif // AMREX_USE_GPU
 
     template <typename A1, typename A2>
-    bool operator== (A1 const& a1, A2 const& a2)
     requires (IsArenaAllocator<A1>::value &&
-                               IsArenaAllocator<A2>::value) {
+              IsArenaAllocator<A2>::value)
+    bool operator== (A1 const& a1, A2 const& a2)
+    {
         return a1.arena() == a2.arena();
     }
 
     template <typename A1, typename A2>
-    bool operator!= (A1 const& a1, A2 const& a2)
     requires (IsArenaAllocator<A1>::value &&
-                               IsArenaAllocator<A2>::value) {
+              IsArenaAllocator<A2>::value)
+    bool operator!= (A1 const& a1, A2 const& a2)
+    {
         return a1.arena() != a2.arena();
     }
 
