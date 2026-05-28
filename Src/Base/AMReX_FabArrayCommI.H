@@ -6,6 +6,7 @@ namespace amrex {
 
 template <class FAB>
 template <typename BUF, class F>
+requires (BaseFabType<F>)
 void
 FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             const Periodicity& period, bool cross,
@@ -13,7 +14,6 @@ FabArray<FAB>::FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                             bool override_sync,
                             IntVect const& sumboundary_src_nghost,
                             bool deterministic) // so far the deterministic is for sumboundary only
-requires (IsBaseFab<F>::value)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: FB");
     BL_PROFILE("FillBoundary_nowait()");
@@ -216,9 +216,9 @@ requires (IsBaseFab<F>::value)
 
 template <class FAB>
 template <typename BUF, class F>
+requires (BaseFabType<F>)
 void
 FabArray<FAB>::FillBoundary_finish ()
-requires (IsBaseFab<F>::value)
 {
 #ifdef AMREX_USE_MPI
 
@@ -1064,18 +1064,18 @@ void fbv_copy (Vector<TagT> const& tags)
  *  \param cross  Optional cross-stencil flags; non-zero entries skip
  *                corner ghost cells for the corresponding FabArray.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundary_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
                      Vector<int> const& ncomp, Vector<IntVect> const& nghost,
                      Vector<Periodicity> const& period,
                      Vector<int> const& cross = {})
-requires IsFabArray<MF>::value {
-BL_PROFILE("FillBoundary_nowait(Vector)");
-const int N = mf.size();
-for (int i = 0; i < N; ++i) {
-mf[i]->FillBoundary_nowait(scomp[i], ncomp[i], nghost[i], period[i],
-              cross.empty() ? 0 : cross[i]);
+{
+    BL_PROFILE("FillBoundary_nowait(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundary_nowait(scomp[i], ncomp[i], nghost[i], period[i],
+                                   cross.empty() ? 0 : cross[i]);
 }
 }
 
@@ -1087,22 +1087,22 @@ mf[i]->FillBoundary_nowait(scomp[i], ncomp[i], nghost[i], period[i],
  *  \param mf       FabArray pointers that should be updated.
  *  \param a_period Periodicity applied to every FabArray.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundary_nowait (Vector<MF*> const& mf,
                      const Periodicity& a_period = Periodicity::NonPeriodic())
-requires IsFabArray<MF>::value {
-Vector<int> scomp(mf.size(), 0);
-Vector<int> ncomp;
-Vector<IntVect> nghost;
-Vector<Periodicity> period(mf.size(), a_period);
-ncomp.reserve(mf.size());
-nghost.reserve(mf.size());
-for (auto const& x : mf) {
-ncomp.push_back(x->nComp());
-nghost.push_back(x->nGrowVect());
-}
-FillBoundary_nowait(mf, scomp, ncomp, nghost, period);
+{
+    Vector<int> scomp(mf.size(), 0);
+    Vector<int> ncomp;
+    Vector<IntVect> nghost;
+    Vector<Periodicity> period(mf.size(), a_period);
+    ncomp.reserve(mf.size());
+    nghost.reserve(mf.size());
+    for (auto const& x : mf) {
+        ncomp.push_back(x->nComp());
+        nghost.push_back(x->nGrowVect());
+    }
+    FillBoundary_nowait(mf, scomp, ncomp, nghost, period);
 }
 
 /** \brief Wait for outstanding FillBoundary_nowait operations launched with
@@ -1110,10 +1110,10 @@ FillBoundary_nowait(mf, scomp, ncomp, nghost, period);
  *
  *  \param mf FabArray pointers whose FillBoundary_nowait calls should finish.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundary_finish (Vector<MF*> const& mf)
-requires IsFabArray<MF>::value {
+{
     BL_PROFILE("FillBoundary_finish(Vector)");
     const int N = mf.size();
     for (int i = 0; i < N; ++i) {
@@ -1133,17 +1133,17 @@ requires IsFabArray<MF>::value {
  *  \param nghost Number of ghost cells to populate per FabArray.
  *  \param period Periodicity description per FabArray.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundaryAndSync_nowait (Vector<MF*> const& mf, Vector<int> const& scomp,
                             Vector<int> const& ncomp, Vector<IntVect> const& nghost,
                             Vector<Periodicity> const& period)
-requires IsFabArray<MF>::value {
-BL_PROFILE("FillBoundaryAndSync_nowait(Vector)");
-const int N = mf.size();
-for (int i = 0; i < N; ++i) {
-mf[i]->FillBoundaryAndSync_nowait(scomp[i], ncomp[i], nghost[i], period[i]);
-}
+{
+    BL_PROFILE("FillBoundaryAndSync_nowait(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundaryAndSync_nowait(scomp[i], ncomp[i], nghost[i], period[i]);
+    }
 }
 
 /** \brief Convenience overload that launches FillBoundaryAndSync_nowait for
@@ -1152,22 +1152,22 @@ mf[i]->FillBoundaryAndSync_nowait(scomp[i], ncomp[i], nghost[i], period[i]);
  *  \param mf       FabArray pointers that should be updated.
  *  \param a_period Periodicity applied to every FabArray.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundaryAndSync_nowait (Vector<MF*> const& mf,
                             const Periodicity& a_period = Periodicity::NonPeriodic())
-requires IsFabArray<MF>::value {
-Vector<int> scomp(mf.size(), 0);
-Vector<int> ncomp;
-Vector<IntVect> nghost;
-Vector<Periodicity> period(mf.size(), a_period);
-ncomp.reserve(mf.size());
-nghost.reserve(mf.size());
-for (auto const& x : mf) {
-ncomp.push_back(x->nComp());
-nghost.push_back(x->nGrowVect());
-}
-FillBoundaryAndSync_nowait(mf, scomp, ncomp, nghost, period);
+{
+    Vector<int> scomp(mf.size(), 0);
+    Vector<int> ncomp;
+    Vector<IntVect> nghost;
+    Vector<Periodicity> period(mf.size(), a_period);
+    ncomp.reserve(mf.size());
+    nghost.reserve(mf.size());
+    for (auto const& x : mf) {
+        ncomp.push_back(x->nComp());
+        nghost.push_back(x->nGrowVect());
+    }
+    FillBoundaryAndSync_nowait(mf, scomp, ncomp, nghost, period);
 }
 
 /** \brief Wait for outstanding FillBoundaryAndSync_nowait operations launched
@@ -1175,10 +1175,10 @@ FillBoundaryAndSync_nowait(mf, scomp, ncomp, nghost, period);
  *
  *  \param mf FabArray pointers whose FillBoundaryAndSync_nowait calls should finish.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundaryAndSync_finish (Vector<MF*> const& mf)
-requires IsFabArray<MF>::value {
+{
     BL_PROFILE("FillBoundaryAndSync_finish(Vector)");
     const int N = mf.size();
     for (int i = 0; i < N; ++i) {
@@ -1201,13 +1201,13 @@ requires IsFabArray<MF>::value {
  *  \param cross  Optional flags; non-zero entries skip corner ghost cells
  *                (cross stencil) for the corresponding FabArray.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundary (Vector<MF*> const& mf, Vector<int> const& scomp,
               Vector<int> const& ncomp, Vector<IntVect> const& nghost,
               Vector<Periodicity> const& period, Vector<int> const& cross = {})
-requires IsFabArray<MF>::value {
-BL_PROFILE("FillBoundary(Vector)");
+{
+    BL_PROFILE("FillBoundary(Vector)");
 #if 1
     const int N = mf.size();
     for (int i = 0; i < N; ++i) {
@@ -1476,36 +1476,36 @@ BL_PROFILE("FillBoundary(Vector)");
  *  \param nghost Number of ghost cells to fill for each FabArray.
  *  \param period Periodicity to use for each FabArray.
  */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundaryAndSync (Vector<MF*> const& mf, Vector<int> const& scomp,
                      Vector<int> const& ncomp, Vector<IntVect> const& nghost,
                      Vector<Periodicity> const& period)
-requires IsFabArray<MF>::value {
-BL_PROFILE("FillBoundaryAndSync(Vector)");
-const int N = mf.size();
-for (int i = 0; i < N; ++i) {
-mf[i]->FillBoundaryAndSync_nowait(scomp[i], ncomp[i], nghost[i], period[i]);
-}
-for (int i = 0; i < N; ++i) {
-mf[i]->FillBoundaryAndSync_finish();
-}
+{
+    BL_PROFILE("FillBoundaryAndSync(Vector)");
+    const int N = mf.size();
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundaryAndSync_nowait(scomp[i], ncomp[i], nghost[i], period[i]);
+    }
+    for (int i = 0; i < N; ++i) {
+        mf[i]->FillBoundaryAndSync_finish();
+    }
 }
 
 /** \brief Convenience overload that fills every component/ghost cell on each FabArray. */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundary (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::NonPeriodic())
-requires IsFabArray<MF>::value {
+{
     FillBoundary_nowait(mf, a_period);
     FillBoundary_finish(mf);
 }
 
 /** \brief Convenience overload that fills/syncs every component/ghost cell on each FabArray. */
-template <class MF>
+template <FabArrayType MF>
 void
 FillBoundaryAndSync (Vector<MF*> const& mf, const Periodicity& a_period = Periodicity::NonPeriodic())
-requires IsFabArray<MF>::value {
+{
     FillBoundaryAndSync_nowait(mf, a_period);
     FillBoundaryAndSync_finish(mf);
 }
