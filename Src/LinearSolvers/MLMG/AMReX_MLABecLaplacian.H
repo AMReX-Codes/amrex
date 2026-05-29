@@ -287,9 +287,8 @@ MLABecLaplacianT<MF>::define_ab_coeffs ()
 }
 
 template <typename MF>
-template <typename T1, typename T2>
-requires (std::convertible_to<T1,typename MF::value_type> &&
-          std::convertible_to<T2,typename MF::value_type>)
+template <std::convertible_to<typename MF::value_type> T1,
+          std::convertible_to<typename MF::value_type> T2>
 void
 MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
 {
@@ -319,8 +318,7 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
 }
 
 template <typename MF>
-template <typename T>
-requires (std::convertible_to<T,typename MF::value_type>)
+template <std::convertible_to<typename MF::value_type> T>
 void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 {
@@ -357,8 +355,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
 }
 
 template <typename MF>
-template <typename T>
-requires (std::convertible_to<T,typename MF::value_type>)
+template <std::convertible_to<typename MF::value_type> T>
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
 {
@@ -369,8 +366,7 @@ MLABecLaplacianT<MF>::setBCoeffs (int amrlev, T beta)
 }
 
 template <typename MF>
-template <typename T>
-requires (std::convertible_to<T,typename MF::value_type>)
+template <std::convertible_to<typename MF::value_type> T>
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev, Vector<T> const& beta)
 {
