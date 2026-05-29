@@ -23,8 +23,7 @@ namespace EB2 {
 //! Type trait that reports whether a functor derives from GPUable.
 template <class D> struct IsGPUable : std::false_type {};
 
-template <class D>
-requires(std::is_base_of_v<GPUable,D>)
+template <std::derived_from<GPUable> D>
 struct IsGPUable<D> : std::true_type {};
 
 }
