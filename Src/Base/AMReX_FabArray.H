@@ -1166,8 +1166,7 @@ public:
     template <typename BUF=value_type>
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
 
-    template <typename BUF=value_type,
-              BaseFabType F=FAB>
+    template <typename BUF=value_type, BaseFabType F=FAB>
     void FillBoundary_finish ();
 
     void FillBoundary_test ();
@@ -1337,8 +1336,7 @@ public:
 
     // The following are private functions.  But we have to make them public for cuda.
 
-    template <typename BUF=value_type,
-              BaseFabType F=FAB>
+    template <typename BUF=value_type, BaseFabType F=FAB>
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false,
