@@ -20,8 +20,8 @@ extern "C" {
 
 namespace amrex {
     template <RunOn run_on, typename T>
-    void fill_snan (T* p, std::size_t nelems)
     requires (std::is_same_v<T,double> || std::is_same_v<T,float>)
+    void fill_snan (T* p, std::size_t nelems)
     {
         if (p == nullptr || nelems == 0) { return; }
 #ifdef AMREX_USE_GPU
