@@ -10,6 +10,7 @@
 #include <AMReX_TypeTraits.H>
 
 #include <array>
+#include <concepts>
 #include <functional>
 #include <tuple>
 
@@ -27,7 +28,7 @@ template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
     template <typename U=T>
-    requires (std::is_default_constructible_v<U>)
+    requires (std::default_initializable<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_element () {} // NOLINT
 
@@ -36,7 +37,7 @@ struct gpu_tuple_element
         {}
 
     template <typename U>
-    requires (std::is_convertible_v<U&&,T>)
+    requires (std::convertible_to<U,T>)
     explicit constexpr gpu_tuple_element (U && a_value) // NOLINT(bugprone-forwarding-reference-overload)
         : m_value(std::forward<U>(a_value))
         {}
@@ -52,7 +53,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
       public gpu_tuple_element<I, Head>
 {
     template<typename U=Head>
-    requires (std::is_default_constructible_v<U>)
+    requires (std::default_initializable<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {} // NOLINT
 
@@ -62,7 +63,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
         {}
 
     template <typename UH, typename... UT>
-    requires (std::is_convertible_v<UH&&,Head>)
+    requires (std::convertible_to<UH,Head>)
     constexpr gpu_tuple_impl (UH&& a_head, UT &&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(std::forward<UT>(a_tail)...),
           gpu_tuple_element<I, Head>(std::forward<UH>(a_head))
@@ -75,7 +76,7 @@ struct gpu_tuple_impl<I, Head>
 {
 
     template<typename U=Head>
-    requires (std::is_default_constructible_v<U>)
+    requires (std::default_initializable<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {} // NOLINT
 
@@ -84,7 +85,7 @@ struct gpu_tuple_impl<I, Head>
         {}
 
     template <typename U>
-    requires (std::is_convertible_v<U&&,Head>)
+    requires (std::convertible_to<U,Head>)
     explicit constexpr gpu_tuple_impl (U&& a_head) // NOLINT(bugprone-forwarding-reference-overload)
         : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
