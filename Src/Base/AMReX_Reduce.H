@@ -328,16 +328,12 @@ struct ReduceOpMin
     void local_update (T& d, T const& s) const noexcept { d = amrex::min(d,s); }
 
     template <typename T>
-    constexpr void
-    init (T& t) const noexcept
     requires (std::numeric_limits<T>::is_specialized)
-    { t = std::numeric_limits<T>::max(); }
+    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::max(); }
 
     template <typename T>
-    constexpr void
-    init (T& t) const noexcept
     requires (!std::numeric_limits<T>::is_specialized)
-    { t = T::max(); }
+    constexpr void init (T& t) const noexcept { t = T::max(); }
 };
 
 /// \ingroup amrex_collectives
@@ -366,16 +362,12 @@ struct ReduceOpMax
     void local_update (T& d, T const& s) const noexcept { d = amrex::max(d,s); }
 
     template <typename T>
-    constexpr void
-    init (T& t) const noexcept
     requires (std::numeric_limits<T>::is_specialized)
-    { t = std::numeric_limits<T>::lowest(); }
+    constexpr void init (T& t) const noexcept { t = std::numeric_limits<T>::lowest(); }
 
     template <typename T>
-    constexpr void
-    init (T& t) const noexcept
     requires (!std::numeric_limits<T>::is_specialized)
-    { t = T::lowest(); }
+    constexpr void init (T& t) const noexcept { t = T::lowest(); }
 };
 
 /// \ingroup amrex_collectives
@@ -404,8 +396,7 @@ struct ReduceOpLogicalAnd
     void local_update (T& d, T s) const noexcept { d = d && s; }
 
     template <std::integral T>
-    constexpr void
-    init (T& t) const noexcept { t = true; }
+    constexpr void init (T& t) const noexcept { t = true; }
 };
 
 /// \ingroup amrex_collectives
@@ -581,18 +572,18 @@ namespace Reduce::detail {
     struct iterate_box_comp {};
 
     template <typename I, typename F, typename T, typename... Ps>
+    requires (std::same_as<iterate_box,I>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int, T& r) noexcept
-    requires (std::same_as<iterate_box,I>)
     {
         auto const& pr = f(ibox,i,j,k);
         Reduce::detail::for_each_local<0, T, Ps...>(r, pr);
     }
 
     template <typename I, typename F, typename T, typename... Ps>
+    requires (std::same_as<iterate_box_comp,I>)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     void mf_call_f (F const& f, int ibox, int i, int j, int k, int ncomp, T& r) noexcept
-    requires (std::same_as<iterate_box_comp,I>)
     {
         for (int n = 0; n < ncomp; ++n) {
             auto const& pr = f(ibox,i,j,k,n);
