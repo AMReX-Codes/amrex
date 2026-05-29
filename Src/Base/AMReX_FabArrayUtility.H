@@ -10,8 +10,7 @@
 
 namespace amrex {
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f) {
     return ReduceSum(fa, IntVect(nghost), std::forward<F>(f));
@@ -19,8 +18,7 @@ ReduceSum (FabArray<FAB> const& fa, int nghost, F&& f) {
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
@@ -45,11 +43,10 @@ ReduceSum_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 #ifdef AMREX_USE_GPU
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class OP, class FAB, class F>
-std::enable_if_t<IsBaseFab<FAB>::value,
-                 std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
-                                    std::is_same_v<OP,ReduceOpLogicalOr>,
-                                    int, typename FAB::value_type> >
+template <class OP, BaseFabType FAB, class F>
+std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
+                   std::is_same_v<OP,ReduceOpLogicalOr>,
+                   int, typename FAB::value_type>
 ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
@@ -64,11 +61,10 @@ ReduceMF (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
            });
 }
 
-template <class OP, class FAB1, class FAB2, class F>
-std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value,
-                 std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
-                                    std::is_same_v<OP,ReduceOpLogicalOr>,
-                                    int, typename FAB1::value_type> >
+template <class OP, BaseFabType FAB1, BaseFabType FAB2, class F>
+std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
+                   std::is_same_v<OP,ReduceOpLogicalOr>,
+                   int, typename FAB1::value_type>
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& nghost, F const& f)
 {
     using T = std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
@@ -85,11 +81,10 @@ ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, IntVect const& n
            });
 }
 
-template <class OP, class FAB1, class FAB2, class FAB3, class F>
-std::enable_if_t<IsBaseFab<FAB1>::value && IsBaseFab<FAB2>::value && IsBaseFab<FAB3>::value,
-                 std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
-                                    std::is_same_v<OP,ReduceOpLogicalOr>,
-                                    int, typename FAB1::value_type> >
+template <class OP, BaseFabType FAB1, BaseFabType FAB2, BaseFabType FAB3, class F>
+std::conditional_t<std::is_same_v<OP,ReduceOpLogicalAnd> ||
+                   std::is_same_v<OP,ReduceOpLogicalOr>,
+                   int, typename FAB1::value_type>
 ReduceMF (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
           FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
 {
@@ -126,8 +121,7 @@ ReduceSum_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 /// \endcond
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -138,8 +132,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     }
 }
 #else
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -147,8 +140,7 @@ ReduceSum (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #endif
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            int nghost, F&& f) {
@@ -157,8 +149,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F const& f)
@@ -205,8 +196,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -218,8 +208,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -228,8 +217,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
@@ -239,8 +227,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
@@ -288,8 +275,7 @@ ReduceSum_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -301,8 +287,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -311,8 +296,7 @@ ReduceSum (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -321,8 +305,7 @@ ReduceMin (FabArray<FAB> const& fa, int nghost, F&& f)
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMin_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
@@ -364,8 +347,7 @@ ReduceMin_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 /// \endcond
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -376,8 +358,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     }
 }
 #else
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -385,8 +366,7 @@ ReduceMin (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #endif
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
 {
@@ -395,8 +375,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&&
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F const& f)
@@ -443,8 +422,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -456,8 +434,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -466,8 +443,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
@@ -477,8 +453,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
@@ -526,8 +501,7 @@ ReduceMin_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -539,8 +513,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -549,8 +522,7 @@ ReduceMin (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -559,8 +531,7 @@ ReduceMax (FabArray<FAB> const& fa, int nghost, F&& f)
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMax_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
@@ -603,8 +574,7 @@ ReduceMax_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 /// \endcond
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -615,8 +585,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     }
 }
 #else
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 typename FAB::value_type
 ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -624,8 +593,7 @@ ReduceMax (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #endif
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&& f)
 {
@@ -634,8 +602,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, int nghost, F&&
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 IntVect const& nghost, F const& f)
@@ -682,8 +649,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -695,8 +661,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            IntVect const& nghost, F&& f)
@@ -705,8 +670,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> const& fa3,
            int nghost, F&& f)
@@ -716,8 +680,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2, FabArray<FAB3> 
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                 FabArray<FAB3> const& fa3, IntVect const& nghost, F const& f)
@@ -765,8 +728,7 @@ ReduceMax_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -778,8 +740,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class FAB3, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class FAB3, class F>
 typename FAB1::value_type
 ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
            FabArray<FAB3> const& fa3, IntVect const& nghost, F&& f)
@@ -788,8 +749,7 @@ ReduceMax (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -798,8 +758,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, int nghost, F&& f)
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalAnd_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
@@ -841,8 +800,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB> const& fa, IntVect const& nghost, F
 }
 /// \endcond
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -853,8 +811,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     }
 }
 #else
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -862,8 +819,7 @@ ReduceLogicalAnd (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #endif
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   int nghost, F&& f)
@@ -873,8 +829,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                        IntVect const& nghost, F const& f)
@@ -920,8 +875,7 @@ ReduceLogicalAnd_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& 
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -933,8 +887,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                   IntVect const& nghost, F&& f)
@@ -943,8 +896,7 @@ ReduceLogicalAnd (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
 {
@@ -953,8 +905,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, int nghost, F&& f)
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F const& f)
 {
@@ -996,8 +947,7 @@ ReduceLogicalOr_host (FabArray<FAB> const& fa, IntVect const& nghost, F&& /*f*/)
 }
 /// \endcond
 
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1008,8 +958,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
     }
 }
 #else
-template <class FAB, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB, class F>
 bool
 ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 {
@@ -1017,8 +966,7 @@ ReduceLogicalOr (FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
 }
 #endif
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  int nghost, F&& f)
@@ -1028,8 +976,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 
 /// \cond DOXYGEN_IGNORE
 namespace fudetail {
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr_host (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                       IntVect const& nghost, F const& f)
@@ -1075,8 +1022,7 @@ ReduceLogicalOr_host_wrapper (FabArray<FAB1> const& fa1, FabArray<FAB2> const& f
 }
 /// \endcond
 
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
@@ -1088,8 +1034,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
     }
 }
 #else
-template <class FAB1, class FAB2, class F,
-          class bar = std::enable_if_t<IsBaseFab<FAB1>::value> >
+template <BaseFabType FAB1, class FAB2, class F>
 bool
 ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
                  IntVect const& nghost, F&& f)
@@ -1098,7 +1043,7 @@ ReduceLogicalOr (FabArray<FAB1> const& fa1, FabArray<FAB2> const& fa2,
 }
 #endif
 
-template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
            const IntVect& ng = IntVect::TheZeroVector())
@@ -1150,16 +1095,14 @@ printCell (FabArray<FAB> const& mf, const IntVect& cell, int comp = -1,
     }
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Swap(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1217,16 +1160,14 @@ Swap (FabArray<FAB>& dst, FabArray<FAB>& src, int srccomp, int dstcomp, int numc
     }
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Subtract(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1265,16 +1206,14 @@ Subtract (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 }
 
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Multiply(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1313,16 +1252,14 @@ Multiply (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp
 }
 
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Divide(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -1360,16 +1297,14 @@ Divide (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, 
     }
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, int nghost)
 {
     Abs(fa,icomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
 {
@@ -1405,7 +1340,7 @@ Abs (FabArray<FAB>& fa, int icomp, int numcomp, const IntVect& nghost)
     }
 }
 
-template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 {
@@ -1420,7 +1355,7 @@ prefetchToHost (FabArray<FAB> const& fa, const bool synchronous = true)
 #endif
 }
 
-template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 {
@@ -1436,8 +1371,7 @@ prefetchToDevice (FabArray<FAB> const& fa, const bool synchronous = true)
 }
 
 
-template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
-                                                               && IsBaseFab<IFAB>::value> >
+template <BaseFabType FAB, BaseFabType IFAB>
 void
 OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
 {
@@ -1448,8 +1382,7 @@ OverrideSync (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& 
 }
 
 
-template <class FAB, class IFAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value
-                                                               && IsBaseFab<IFAB>::value> >
+template <BaseFabType FAB, BaseFabType IFAB>
 void
 OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Periodicity& period)
 {
@@ -1496,7 +1429,7 @@ OverrideSync_nowait (FabArray<FAB> & fa, FabArray<IFAB> const& msk, const Period
     fa.os_temp->ParallelCopy_nowait(fa, period, FabArrayBase::ADD);
 }
 
-template <class FAB, class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 OverrideSync_finish (FabArray<FAB> & fa)
 {
@@ -1510,7 +1443,7 @@ OverrideSync_finish (FabArray<FAB> & fa)
     fa.os_temp.reset();
 }
 
-template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
              int scomp, int dcomp, int ncomp)
@@ -1528,14 +1461,14 @@ dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
 #endif
 }
 
-template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 dtoh_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
 {
     dtoh_memcpy(dst, src, 0, 0, dst.nComp());
 }
 
-template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
              int scomp, int dcomp, int ncomp)
@@ -1553,14 +1486,14 @@ htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src,
 #endif
 }
 
-template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 htod_memcpy (FabArray<FAB>& dst, FabArray<FAB> const& src)
 {
     htod_memcpy(dst, src, 0, 0, dst.nComp());
 }
 
-template <class FAB, class foo = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 IntVect
 indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
                 typename FAB::value_type value)
@@ -1668,7 +1601,7 @@ indexFromValue (FabArray<FAB> const& mf, int comp, IntVect const& nghost,
  * \param nghost number of ghost cells
  * \param local  If true, MPI communication is skipped.
  */
-template <typename FAB, std::enable_if_t<IsBaseFab<FAB>::value,int> FOO = 0>
+template <BaseFabType FAB>
 typename FAB::value_type
 Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int ncomp,
      IntVect const& nghost, bool local = false)
@@ -1730,7 +1663,7 @@ Dot (FabArray<FAB> const& x, int xcomp, FabArray<FAB> const& y, int ycomp, int n
  * \param nghost number of ghost cells
  * \param local  If true, MPI communication is skipped.
  */
-template <typename FAB, std::enable_if_t<IsBaseFab<FAB>::value,int> FOO = 0>
+template <BaseFabType FAB>
 typename FAB::value_type
 Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool local = false)
 {
@@ -1791,8 +1724,7 @@ Dot (FabArray<FAB> const& x, int xcomp, int ncomp, IntVect const& nghost, bool l
  * \param nghost number of ghost cells
  * \param local  If true, MPI communication is skipped.
  */
-template <typename IFAB, typename FAB,
-          std::enable_if_t<IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value,int> FOO = 0>
+template <BaseFabType IFAB, BaseFabType FAB>
 typename FAB::value_type
 Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp,
      FabArray<FAB> const& y, int ycomp, int ncomp, IntVect const& nghost,
@@ -1863,8 +1795,7 @@ Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp,
  * \param nghost number of ghost cells
  * \param local  If true, MPI communication is skipped.
  */
-template <typename IFAB, typename FAB,
-          std::enable_if_t<IsBaseFab<FAB>::value && IsBaseFab<IFAB>::value,int> FOO = 0>
+template <BaseFabType IFAB, BaseFabType FAB>
 typename FAB::value_type
 Dot (FabArray<IFAB> const& mask, FabArray<FAB> const& x, int xcomp, int ncomp,
      IntVect const& nghost, bool local = false)
@@ -2220,7 +2151,7 @@ OverlapMask (FabArray<FAB> const& fa, IntVect const& nghost, Periodicity const& 
                     if (iv == 0 && b == bx) { continue; }
 #ifdef AMREX_USE_GPU
                     if (run_on_gpu) {
-                        tags.push_back(Array4BoxTag<int>{.dfab = arr, .dbox = b});
+                        tags.push_back({arr,b});
                     } else
 #endif
                     {

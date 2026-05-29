@@ -30,6 +30,7 @@
 #include <AMReX_MFParallelFor.H>
 #include <AMReX_TagParallelFor.H>
 #include <AMReX_ParReduce.H>
+#include <AMReX_Concepts.H>
 
 #include <AMReX_Gpu.H>
 
@@ -55,7 +56,8 @@
 
 namespace amrex {
 
-template <typename T, std::enable_if_t<!IsBaseFab<T>::value,int> = 0>
+template <typename T>
+requires (!BaseFabType<T>)
 Long nBytesOwned (T const&) noexcept { return 0; }
 
 template <typename T>
@@ -239,16 +241,14 @@ Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, 
     }
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
     Add(dst,src,srccomp,dstcomp,numcomp,IntVect(nghost));
 }
 
-template <class FAB,
-          class bar = std::enable_if_t<IsBaseFab<FAB>::value> >
+template <BaseFabType FAB>
 void
 Add (FabArray<FAB>& dst, FabArray<FAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -545,7 +545,7 @@ public:
     FAB      * fabPtr (int K) noexcept;  // Here K is global index
     FAB const* fabPtr (int K) const noexcept;
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void prefetchToHost (const MFIter& mfi) const noexcept
     {
 #ifdef AMREX_USE_CUDA
@@ -555,7 +555,7 @@ public:
 #endif
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void prefetchToDevice (const MFIter& mfi) const noexcept
     {
 #ifdef AMREX_USE_CUDA
@@ -565,93 +565,93 @@ public:
 #endif
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi) const noexcept
     {
         return fabPtr(mfi)->const_array();
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi) noexcept
     {
         return fabPtr(mfi)->array();
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (int K) const noexcept
     {
         return fabPtr(K)->const_array();
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (int K) noexcept
     {
         return fabPtr(K)->array();
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi) const noexcept
     {
         return fabPtr(mfi)->const_array();
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (int K) const noexcept
     {
         return fabPtr(K)->const_array();
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (const MFIter& mfi, int start_comp) const noexcept
     {
         return fabPtr(mfi)->const_array(start_comp);
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (const MFIter& mfi, int start_comp) noexcept
     {
         return fabPtr(mfi)->array(start_comp);
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> array (int K, int start_comp) const noexcept
     {
         return fabPtr(K)->const_array(start_comp);
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type> array (int K, int start_comp) noexcept
     {
         return fabPtr(K)->array(start_comp);
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (const MFIter& mfi, int start_comp) const noexcept
     {
         return fabPtr(mfi)->const_array(start_comp);
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     Array4<typename FabArray<FAB>::value_type const> const_array (int K, int start_comp) const noexcept
     {
         return fabPtr(K)->const_array(start_comp);
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     MultiArray4<typename FabArray<FAB>::value_type> arrays () noexcept
     {
         build_arrays();
         return m_arrays;
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     MultiArray4<typename FabArray<FAB>::value_type const> arrays () const noexcept
     {
         build_arrays();
         return m_const_arrays;
     }
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     MultiArray4<typename FabArray<FAB>::value_type const> const_arrays () const noexcept
     {
         build_arrays();
@@ -717,16 +717,16 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
                    IntVect const& nghost);
 
     //! Set all components in the entire region of each FAB to val.
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val);
 
     //! Set all components in the entire region of each FAB to val.
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     FabArray<FAB>& operator= (value_type val);
 
     /**
@@ -734,13 +734,13 @@ public:
     * each FAB in the FabArray, starting at component comp to val.
     * Also set the value of nghost boundary cells.
     */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val,
                  int        comp,
                  int        ncomp,
                  int        nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val,
                  int        comp,
                  int        ncomp,
@@ -752,14 +752,14 @@ public:
     * as nghost boundary cells, to val, provided they also intersect
     * with the Box region.
     */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
                  int        ncomp,
                  int        nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val,
                  const Box& region,
                  int        comp,
@@ -769,10 +769,10 @@ public:
     * \brief Set all components in the valid region of each FAB in the
     * FabArray to val, including nghost boundary cells.
     */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val, int nghost);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val, const IntVect& nghost);
 
     /**
@@ -780,54 +780,54 @@ public:
     * FabArray to val, including nghost boundary cells, that also
     * intersect the Box region.
     */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val, const Box& region, int nghost);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val, const Box& region, const IntVect& nghost);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void abs (int comp, int ncomp, int nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void abs (int comp, int ncomp, const IntVect& nghost);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void plus (value_type val, int comp, int num_comp, int nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void plus (value_type val, const Box& region, int comp, int num_comp, int nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void mult (value_type val, int comp, int num_comp, int nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void mult (value_type val, const Box& region, int comp, int num_comp, int nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void invert (value_type numerator, int comp, int num_comp, int nghost = 0);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void invert (value_type numerator, const Box& region, int comp, int num_comp, int nghost = 0);
 
     //! Set all values in the boundary region to val.
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setBndry (value_type val);
 
     //! Set ncomp values in the boundary region, starting at start_comp to val.
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setBndry (value_type val, int strt_comp, int ncomp);
 
    //! Set all values outside the Geometry domain to val.
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setDomainBndry (value_type val, const Geometry& geom);
 
     //! Set ncomp values outside the Geometry domain to val, starting at start_comp.
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setDomainBndry (value_type val, int strt_comp, int ncomp, const Geometry& geom);
 
     //! Get capacity of the FabArray
-    template <typename I, class F=FAB, std::enable_if_t<IsBaseFab<F>::value && std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
+    template <typename I, BaseFabType F=FAB, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
     void capacityOfFabs (LayoutData<I>& mem) const;
 
     /**
@@ -839,7 +839,7 @@ public:
     * \warning Unless \p local is true, this routine performs an MPI collective
     * and every rank in the current active MPI communicator must participate.
     */
-    template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     typename F::value_type
     sum (int comp, IntVect const& nghost, bool local = false) const;
 
@@ -1167,7 +1167,7 @@ public:
     void FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost, const Periodicity& period, bool cross = false);
 
     template <typename BUF=value_type,
-              class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+              BaseFabType F=FAB>
     void FillBoundary_finish ();
 
     void FillBoundary_test ();
@@ -1330,7 +1330,7 @@ public:
     //             (including ghost cells outside periodic boundaries)
     // physbnd   : boundary cells outside the domain (excluding periodic boundaries)
     // interior  : interior cells (i.e., valid cells)
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void BuildMask (const Box& phys_domain, const Periodicity& period,
                     value_type covered, value_type notcovered,
                     value_type physbnd, value_type interior);
@@ -1338,7 +1338,7 @@ public:
     // The following are private functions.  But we have to make them public for cuda.
 
     template <typename BUF=value_type,
-              class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+              BaseFabType F=FAB>
     void FBEP_nowait (int scomp, int ncomp, const IntVect& nghost,
                       const Periodicity& period, bool cross,
                       bool enforce_periodicity_only = false,
@@ -1351,10 +1351,10 @@ public:
     void PC_local_cpu (const CPC& thecpc, FabArray<FAB> const& src,
                        int scomp, int dcomp, int ncomp, CpOp op);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void setVal (value_type val, const CommMetaData& thecmd, int scomp, int ncomp);
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     LayoutData<int> RecvLayoutMask (const CommMetaData& thecmd);
 
 #ifdef AMREX_USE_GPU
@@ -1454,7 +1454,7 @@ public:
      * \warning Unless \p local is true, this routine performs an MPI collective
      * and every rank in the current active MPI communicator must participate.
      */
-    template <typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     typename F::value_type
     norminf (int comp, int ncomp, IntVect const& nghost, bool local = false,
              [[maybe_unused]] bool ignore_covered = false) const;
@@ -1471,7 +1471,7 @@ public:
      * \warning Unless \p local is true, this routine performs an MPI collective
      * and every rank in the current active MPI communicator must participate.
      */
-    template <typename IFAB, typename F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <typename IFAB, BaseFabType F=FAB>
     typename F::value_type
     norminf (FabArray<IFAB> const& mask, int comp, int ncomp, IntVect const& nghost,
              bool local = false) const;
@@ -1560,7 +1560,7 @@ private:
 
     void setFab_assert (int K, FAB const& fab) const;
 
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     void build_arrays () const;
 
     void clear_arrays ();
@@ -1650,7 +1650,7 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     static void Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                        int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 
@@ -1665,7 +1665,7 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     static void Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                       int xcomp, int ycomp, int ncomp, IntVect const& nghost);
 
@@ -1683,7 +1683,7 @@ public:
      * \param numcomp number of components
      * \param nghost  number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     static void LinComb (FabArray<FAB>& dst,
                          value_type a, const FabArray<FAB>& x, int xcomp,
                          value_type b, const FabArray<FAB>& y, int ycomp,
@@ -1702,7 +1702,7 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     static void Saxpy_Xpay (FabArray<FAB>& y, value_type a1, FabArray<FAB> const& x1,
                             value_type a2, FabArray<FAB> const& x2,
                             int xcomp, int ycomp, int ncomp, IntVect const& nghost);
@@ -1721,7 +1721,7 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     static void Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB> const& x1,
                              FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x2,
                              int xcomp, int ycomp, int ncomp, IntVect const& nghost);
@@ -1739,7 +1739,7 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <class F=FAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
+    template <BaseFabType F=FAB>
     static void Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
                              FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x,
                              int xcomp, int ycomp, int ncomp, IntVect const& nghost);
@@ -1756,7 +1756,7 @@ bool
 FabArray<FAB>::defined (int K) const noexcept
 {
     int li = localindex(K);
-    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != 0) {
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != 0) {
         return true;
     }
     else {
@@ -1769,7 +1769,7 @@ bool
 FabArray<FAB>::defined (const MFIter& mfi) const noexcept
 {
     int li = mfi.LocalIndex();
-    if (li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
+    if (li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
         return true;
     }
     else {
@@ -1816,7 +1816,7 @@ FabArray<FAB>::fabPtr (int K) const noexcept
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::build_arrays () const
 {
@@ -1875,7 +1875,7 @@ FAB*
 FabArray<FAB>::release (int K)
 {
     const int li = localindex(K);
-    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -1895,7 +1895,7 @@ FAB*
 FabArray<FAB>::release (const MFIter& mfi)
 {
     const int li = mfi.LocalIndex();
-    if (li >= 0 && li < std::ssize(m_fabs_v) && m_fabs_v[li] != nullptr) {
+    if (li >= 0 && li < static_cast<int>(m_fabs_v.size()) && m_fabs_v[li] != nullptr) {
         AMREX_ASSERT(m_single_chunk_arena == nullptr);
         Long nbytes = amrex::nBytesOwned(*m_fabs_v[li]);
         if (nbytes > 0) {
@@ -1968,7 +1968,7 @@ FabArray<FAB>::LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int n
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int ncomp,
                          IntVect const& nghost)
@@ -1977,7 +1977,7 @@ FabArray<FAB>::LocalAdd (FabArray<FAB> const& src, int scomp, int dcomp, int nco
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val, int nghost)
 {
@@ -1985,7 +1985,7 @@ FabArray<FAB>::setVal (value_type val, int nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val, const IntVect& nghost)
 {
@@ -1993,7 +1993,7 @@ FabArray<FAB>::setVal (value_type val, const IntVect& nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val, const Box& region, int nghost)
 {
@@ -2001,7 +2001,7 @@ FabArray<FAB>::setVal (value_type val, const Box& region, int nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val, const Box& region, const IntVect& nghost)
 {
@@ -2449,7 +2449,7 @@ FabArray<FAB>::setFab (const MFIter& mfi, FAB&& elem)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setBndry (value_type val)
 {
@@ -2457,7 +2457,7 @@ FabArray<FAB>::setBndry (value_type val)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::setBndry (value_type val,
                          int        strt_comp,
@@ -2515,9 +2515,9 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(2, vbx.smallEnd(2)-nghost[2], nghost[2]);
                         b.grow(IntVect(nghost[0],nghost[1],0));
-                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
+                        tags.emplace_back(Tag{a, b});
                         b.shift(2, vbx.length(2)+nghost[2]);
-                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
+                        tags.emplace_back(Tag{a, b});
                     }
 #endif
 #if (AMREX_SPACEDIM >= 2)
@@ -2525,17 +2525,17 @@ FabArray<FAB>::setBndry (value_type val,
                         b = vbx;
                         b.setRange(1, vbx.smallEnd(1)-nghost[1], nghost[1]);
                         b.grow(0, nghost[0]);
-                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
+                        tags.emplace_back(Tag{a, b});
                         b.shift(1, vbx.length(1)+nghost[1]);
-                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
+                        tags.emplace_back(Tag{a, b});
                     }
 #endif
                     if (nghost[0] > 0) {
                         b = vbx;
                         b.setRange(0, vbx.smallEnd(0)-nghost[0], nghost[0]);
-                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
+                        tags.emplace_back(Tag{a, b});
                         b.shift(0, vbx.length(0)+nghost[0]);
-                        tags.emplace_back(Tag{.dfab = a, .dbox = b});
+                        tags.emplace_back(Tag{a, b});
                     }
                 }
 
@@ -2560,7 +2560,7 @@ FabArray<FAB>::setBndry (value_type val,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
 {
@@ -2568,7 +2568,7 @@ FabArray<FAB>::setDomainBndry (value_type val, const Geometry& geom)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setDomainBndry (value_type val,
                                int        strt_comp,
@@ -2600,7 +2600,7 @@ FabArray<FAB>::setDomainBndry (value_type val,
 
 
 template <class FAB>
-template <typename I, class F, std::enable_if_t<IsBaseFab<F>::value && std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
+template <typename I, BaseFabType F, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
 void
 FabArray<FAB>::capacityOfFabs (LayoutData<I>& mem) const {
     AMREX_ASSERT(amrex::isMFIterSafe(*this, mem));
@@ -2610,7 +2610,7 @@ FabArray<FAB>::capacityOfFabs (LayoutData<I>& mem) const {
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 typename F::value_type
 FabArray<FAB>::sum (int comp, IntVect const& nghost, bool local) const
 {
@@ -2661,7 +2661,7 @@ FabArray<FAB>::copyTo (FAB& dest, int  nghost) const
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val)
 {
@@ -2669,7 +2669,7 @@ FabArray<FAB>::setVal (value_type val)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 FabArray<FAB>&
 FabArray<FAB>::operator= (value_type val)
 {
@@ -2678,7 +2678,7 @@ FabArray<FAB>::operator= (value_type val)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -2689,7 +2689,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val,
                        int        comp,
@@ -2731,7 +2731,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val,
                        const Box& region,
@@ -2743,7 +2743,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val,
                        const Box& region,
@@ -2792,7 +2792,7 @@ FabArray<FAB>::setVal (value_type val,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::abs (int comp, int ncomp, int nghost)
 {
@@ -2800,7 +2800,7 @@ FabArray<FAB>::abs (int comp, int ncomp, int nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
 {
@@ -2838,7 +2838,7 @@ FabArray<FAB>::abs (int comp, int ncomp, const IntVect& nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
 {
@@ -2874,7 +2874,7 @@ FabArray<FAB>::plus (value_type val, int comp, int num_comp, int nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, int nghost)
 {
@@ -2914,7 +2914,7 @@ FabArray<FAB>::plus (value_type val, const Box& region, int comp, int num_comp, 
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
 {
@@ -2950,7 +2950,7 @@ FabArray<FAB>::mult (value_type val, int comp, int num_comp, int nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, int nghost)
 {
@@ -2990,7 +2990,7 @@ FabArray<FAB>::mult (value_type val, const Box& region, int comp, int num_comp, 
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
 {
@@ -3026,7 +3026,7 @@ FabArray<FAB>::invert (value_type numerator, int comp, int num_comp, int nghost)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::invert (value_type numerator, const Box& region, int comp, int num_comp, int nghost)
 {
@@ -3083,7 +3083,7 @@ FabArray<FAB>::shift (const IntVect& v)
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                            int xcomp, int ycomp, int ncomp, IntVect const& nghost)
 {
@@ -3128,7 +3128,7 @@ void FabArray<FAB>::Saxpy (FabArray<FAB>& y, value_type a, FabArray<FAB> const& 
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 void
 FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
                      int xcomp, int ycomp, int ncomp, IntVect const& nghost)
@@ -3173,7 +3173,7 @@ FabArray<FAB>::Xpay (FabArray<FAB>& y, value_type a, FabArray<FAB> const& x,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 void FabArray<FAB>::Saxpy_Xpay (FabArray<FAB>& y, value_type a1, FabArray<FAB> const& x1,
                                 value_type a2, FabArray<FAB> const& x2,
                                 int xcomp, int ycomp, int ncomp, IntVect const& nghost)
@@ -3229,7 +3229,7 @@ void FabArray<FAB>::Saxpy_Xpay (FabArray<FAB>& y, value_type a1, FabArray<FAB> c
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 void FabArray<FAB>::Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB> const& x1,
                                  FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x2,
                                  int xcomp, int ycomp, int ncomp, IntVect const& nghost)
@@ -3288,7 +3288,7 @@ void FabArray<FAB>::Saxpy_Saxpy (FabArray<FAB>& y1, value_type a1, FabArray<FAB>
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 void FabArray<FAB>::Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
                                  FabArray<FAB>& y2, value_type a2, FabArray<FAB> const& x,
                                  int xcomp, int ycomp, int ncomp, IntVect const& nghost)
@@ -3342,7 +3342,7 @@ void FabArray<FAB>::Saypy_Saxpy (FabArray<FAB>& y1, value_type a1,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 void
 FabArray<FAB>::LinComb (FabArray<FAB>& dst,
                         value_type a, const FabArray<FAB>& x, int xcomp,
@@ -3717,7 +3717,7 @@ FabArray<FAB>::FillBoundary_nowait (int scomp, int ncomp, const IntVect& nghost,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>Z>
+template <BaseFabType F>
 void
 FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
                           value_type covered, value_type notcovered,
@@ -3785,7 +3785,7 @@ FabArray<FAB>::BuildMask (const Box& phys_domain, const Periodicity& period,
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 void
 FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, int ncomp)
 {
@@ -3826,7 +3826,7 @@ FabArray<FAB>::setVal (value_type val, const CommMetaData& thecmd, int scomp, in
 }
 
 template <class FAB>
-template <class F, std::enable_if_t<IsBaseFab<F>::value,int>>
+template <BaseFabType F>
 LayoutData<int>
 FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
 {
@@ -3860,7 +3860,7 @@ FabArray<FAB>::RecvLayoutMask (const CommMetaData& thecmd)
 }
 
 template <class FAB>
-template <typename F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <BaseFabType F>
 typename F::value_type
 FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
                         [[maybe_unused]] bool ignore_covered) const
@@ -3951,7 +3951,7 @@ FabArray<FAB>::norminf (int comp, int ncomp, IntVect const& nghost, bool local,
 }
 
 template <class FAB>
-template <typename IFAB, typename F, std::enable_if_t<IsBaseFab<F>::value,int> FOO>
+template <typename IFAB, BaseFabType F>
 typename F::value_type
 FabArray<FAB>::norminf (FabArray<IFAB> const& mask, int comp, int ncomp,
                         IntVect const& nghost, bool local) const
