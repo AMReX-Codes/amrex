@@ -61,7 +61,7 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr explicit SmallMatrix (Ts... vs)
         requires (MM==1 || NN==1)
-  : m_mat{vs...}
+            : m_mat{vs...}
         {
             static_assert(sizeof...(vs) <= std::max(NRows,NCols));
         }
@@ -130,7 +130,7 @@ namespace amrex {
         //! Returns a const reference to element i of a vector
         template <int MM=NRows, int NN=NCols>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator()(int i) const noexcept
+        const T& operator() (int i) const noexcept
         requires ((MM==1 || NN==1))
         {
             static_assert(StartIndex == 0 || StartIndex == 1);
@@ -145,7 +145,7 @@ namespace amrex {
         //! Returns a reference to element i of a vector
         template <int MM=NRows, int NN=NCols>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator()(int i) noexcept
+        T& operator() (int i) noexcept
         requires ((MM==1 || NN==1))
         {
             static_assert(StartIndex == 0 || StartIndex == 1);
@@ -253,7 +253,7 @@ namespace amrex {
         SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
         Omega () noexcept
         requires (MM==NN && MM%2==0 && std::is_floating_point_v<T>)
-                  {
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             SmallMatrix<T,NRows,NCols,ORDER,StartIndex> omega{};
             constexpr_for<0,NRows/2>(
@@ -443,7 +443,7 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T& get ()
         requires ((N<NRows*NCols))
-{ return m_mat[N]; }
+        { return m_mat[N]; }
 
     private:
         T m_mat[NRows*NCols];

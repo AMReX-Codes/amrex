@@ -67,7 +67,7 @@ public:
     template <class U=UnionIF<Fs...>>
     requires (IsGPUable<U>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real operator()(AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+    Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
         return op_impl(AMREX_D_DECL(x,y,z), std::make_index_sequence<sizeof...(Fs)>());
     }

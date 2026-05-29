@@ -136,7 +136,6 @@ public:
     requires (!std::same_as<F, Vector<std::string>>)
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const;
 
-
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
      *
@@ -203,7 +202,6 @@ public:
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
                             const std::string& compression, F&& f) const;
-
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass

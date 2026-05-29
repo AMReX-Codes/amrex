@@ -213,7 +213,6 @@ public:
     void setCoarseFineBC (const AMF* crse, int crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
-
     template <typename AMF>
     requires (!std::is_same_v<MF,AMF>)
     void setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,

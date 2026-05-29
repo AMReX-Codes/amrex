@@ -37,8 +37,7 @@ struct gpu_tuple_element
 
     template <typename U>
     requires (std::is_convertible_v<U&&,T>)
-    explicit constexpr gpu_tuple_element (U && a_value)
-        // NOLINT(bugprone-forwarding-reference-overload)
+    explicit constexpr gpu_tuple_element (U && a_value) // NOLINT(bugprone-forwarding-reference-overload)
         : m_value(std::forward<U>(a_value))
         {}
 
@@ -86,8 +85,7 @@ struct gpu_tuple_impl<I, Head>
 
     template <typename U>
     requires (std::is_convertible_v<U&&,Head>)
-    explicit constexpr gpu_tuple_impl (U&& a_head)
-        // NOLINT(bugprone-forwarding-reference-overload)
+    explicit constexpr gpu_tuple_impl (U&& a_head) // NOLINT(bugprone-forwarding-reference-overload)
         : gpu_tuple_element<I, Head>(std::forward<U>(a_head))
         {}
 };
@@ -115,7 +113,7 @@ public:
     template <typename... Us>
     requires (sizeof...(Us) == sizeof...(Ts))
     constexpr GpuTuple (Us&&... args)
-    : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
+        : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
     {}
 
     template <typename... Us>

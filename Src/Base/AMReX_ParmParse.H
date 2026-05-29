@@ -1528,8 +1528,8 @@ public:
     void get_enum_sloppy (std::string_view name, T& ref, std::string_view const& ignores,
                           int ival = FIRST) const
     {
-int exist = this->query_enum_sloppy(name, ref, ignores, ival);
-if (!exist) {
+        int exist = this->query_enum_sloppy(name, ref, ignores, ival);
+        if (!exist) {
             std::string msg("get_enum_sloppy(\"");
             msg.append(name).append("\",").append(amrex::getEnumClassName<T>())
                 .append("&) failed.");

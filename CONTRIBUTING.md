@@ -279,21 +279,31 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
       // Avoid
       requires std::is_arithmetic_v<T>
       ```
-    * **Place `requires` immediately after `template <...>`:** put the `requires`
-      clause on the line(s) directly after the template parameter list and before the
-      return type, attributes, and function name. Do **not** use a trailing `requires`
-      clause after the parameter list (before `{` or `;`). This is especially important
-      for **member function template definitions outside the class body**: trailing
-      constraints on those out-of-line definitions break CUDA-on-Windows builds.
+    * **Place `requires` immediately after `template <...>`:** for function
+      templates (both free functions and member function templates of classes), put
+      the `requires` clause on the line(s) directly after the template parameter list
+      and before the return type, attributes, and function name. Do **not** use a
+      trailing `requires` clause after the parameter list (before `{` or `;`) for
+      function templates. This is especially important for **member function template
+      definitions outside the class body**: trailing constraints on those out-of-line
+      definitions break CUDA-on-Windows builds. Trailing `requires` is acceptable for
+      non-template member functions of class templates, where the constraint depends
+      on class template parameters and there is no function template parameter list.
       ```cpp
-      // Good
+      // Good — requires after template <...> for a function template
       template <typename T>
       requires (std::is_arithmetic_v<T>)
       void f (...);
 
-      // Avoid
+      // Avoid — trailing requires on a function template
       template <typename T>
       void f (...) requires (std::is_arithmetic_v<T>);
+
+      // OK — trailing requires on a non-template member of a class template
+      template <int dim>
+      struct Vec {
+          auto cross (Vec const& rhs) const noexcept requires (dim == 3);
+      };
       ```
       **Order:** `template <...>` → `requires (...)` → attributes (e.g.
       `AMREX_GPU_HOST_DEVICE`) → return type → signature → `{` or `;`. Use the same

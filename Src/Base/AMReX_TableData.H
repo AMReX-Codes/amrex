@@ -45,7 +45,7 @@ struct Table1D
 
     template <class U=T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    U& operator()(IDX i) const noexcept
+    U& operator() (IDX i) const noexcept
     requires (!std::is_void_v<U>)
     {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -126,7 +126,7 @@ struct Table2D
 
     template <class U=T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    U& operator()(int i, int j) const noexcept
+    U& operator() (int i, int j) const noexcept
     requires (!std::is_void_v<U>)
     {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -212,7 +212,7 @@ struct Table3D
 
     template <class U=T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    U& operator()(int i, int j, int k) const noexcept
+    U& operator() (int i, int j, int k) const noexcept
     requires (!std::is_void_v<U>)
     {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -310,7 +310,7 @@ struct Table4D
 
     template <class U=T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    U& operator()(int i, int j, int k, int n) const noexcept
+    U& operator() (int i, int j, int k, int n) const noexcept
     requires (!std::is_void_v<U>)
     {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
