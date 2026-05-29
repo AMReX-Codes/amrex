@@ -1,6 +1,7 @@
 #ifndef AMREX_NONLOCAL_BC_H_
 #define AMREX_NONLOCAL_BC_H_
 #include <AMReX_Config.H>
+#include <AMReX_Concepts.H>
 #include <AMReX_TypeTraits.H>
 #include <AMReX_FabArray.H>
 #include <AMReX_FArrayBox.H>
@@ -275,7 +276,7 @@ struct MultiBlockCommMetaData : FabArrayBase::CommMetaData {
 //
 
 //! \brief This type trait tests if a type P is a projection for FAB.
-template <typename P, typename FAB>
+template <typename P, BaseFabType FAB>
 struct IsFabProjection
     : IsCallableR<typename FAB::value_type, P, Array4<const typename FAB::value_type>, Dim3, int>
 {};
@@ -487,9 +488,9 @@ using LocalCopy_t = decltype(LocalCopy(std::declval<Args>()...));
 
 //! \brief This type trait tests if a given type DP satisfies the DataPacking concept for type FAB.
 #if defined(AMREX_USE_CUDA) && defined(_WIN32)
-template <typename DP, typename FAB> struct IsDataPacking : std::true_type {};
+template <typename DP, BaseFabType FAB> struct IsDataPacking : std::true_type {};
 #else
-template <typename DP, typename FAB>
+template <typename DP, BaseFabType FAB>
 struct IsDataPacking :
     Conjunction<
         IsDetected<LocalCopy_t, DP&, FabArray<FAB>&, const FabArray<FAB>&, const FabArrayBase::CopyComTagsContainer&>
@@ -502,16 +503,16 @@ struct IsDataPacking :
     > {};
 #endif
 
-template <class FAB, class DTOS = Identity, class Proj = Identity>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS = Identity, class Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept;
 
 
-template <class FAB, class DTOS = Identity, class Proj = Identity>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS = Identity, class Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
@@ -520,16 +521,16 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
 
 
 #ifdef AMREX_USE_GPU
-template <class FAB, class DTOS = Identity, class Proj = Identity>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS = Identity, class Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos = DTOS{},
                 Proj const& proj = Proj{}) noexcept;
 
 
-template <class FAB, class DTOS = Identity, class Proj = Identity>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS = Identity, class Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
@@ -553,8 +554,7 @@ struct PackComponents {
 };
 
 //! \brief Dispatch local copies to the default behaviour that knows no DTOS nor projection.
-template <typename FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 LocalCopy (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
            const FabArrayBase::CopyComTagsContainer& local_tags)
@@ -573,8 +573,7 @@ LocalCopy (const PackComponents& components, FabArray<FAB>& dest, const FabArray
 
 #ifdef AMREX_USE_MPI
 //! \brief Calls PrepareComBuffers.
-template <typename FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 PrepareSendBuffers (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
                     CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc)
@@ -585,8 +584,7 @@ PrepareSendBuffers (const PackComponents& components, FabArray<FAB>& dest, const
 }
 
 //! \brief Calls PrepareComBuffers.
-template <typename FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const FabArray<FAB>& src,
                     CommData& comm, const FabArrayBase::MapOfCopyComTagContainers& cctc)
@@ -597,8 +595,7 @@ PrepareRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const
 }
 
 //! \brief Serializes FAB data without any knowledge of a DTOS nor a projection.
-template <typename FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, CommData& send)
 {
@@ -615,8 +612,7 @@ PackSendBuffers (const PackComponents& components, const FabArray<FAB>& src, Com
 }
 
 //! \brief De-serializes FAB data without any knowledge of a DTOS nor a projection.
-template <typename FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 UnpackRecvBuffers (const PackComponents& components, FabArray<FAB>& dest, const CommData& recv)
 {
@@ -656,8 +652,7 @@ struct ApplyDtosAndProjectionOnReciever : PackComponents {
 };
 
 //! \brief Do local copies of FABs using DTOS and projection.
-template <typename FAB, typename DTOS, typename FabProj>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename FabProj>
 void
 LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabArray<FAB>& dest,
            const FabArray<FAB>& src, const FabArrayBase::CopyComTagsContainer& local_tags)
@@ -677,8 +672,7 @@ LocalCopy (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing, FabAr
 
 #ifdef AMREX_USE_MPI
 //! \brief Copy from received data in the buffer to destination FABs using DTOS and projection.
-template <typename FAB, typename DTOS, typename FabProj>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename FabProj>
 void
 UnpackRecvBuffers (const ApplyDtosAndProjectionOnReciever<DTOS, FabProj>& packing,
                    FabArray<FAB>& dest, const CommData& recv)
@@ -728,8 +722,8 @@ static constexpr struct DoLocalCopy {} do_local_copy{};
 //!
 //! \return Returns a CommHandler object that owns context and memory buffers for the whole life
 //!         time of the MPI transaction.
-template <typename FAB, typename DataPacking>
-requires (IsBaseFab_v<FAB> && IsDataPacking<DataPacking, FAB>::value)
+template <BaseFabType FAB, typename DataPacking>
+requires (IsDataPacking<DataPacking, FAB>::value)
 #ifdef AMREX_USE_MPI
 AMREX_NODISCARD CommHandler
 ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
@@ -785,8 +779,8 @@ CommHandler ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB
 //!
 //! \return Returns a CommHandler object that owns context and memory buffers for the whole life
 //!         time of the MPI transaction.
-template <typename FAB, typename DataPacking>
-requires (IsBaseFab_v<FAB> && IsDataPacking<DataPacking, FAB>::value)
+template <BaseFabType FAB, typename DataPacking>
+requires (IsDataPacking<DataPacking, FAB>::value)
 #ifdef AMREX_USE_MPI
 AMREX_NODISCARD
 #endif
@@ -820,8 +814,8 @@ ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,
 //!
 //! \param[in]  data_packing A CPO that controls behaviour of unpacking the received buffer to the
 //!                          destination FabArray.
-template <typename FAB, typename DataPacking>
-requires (IsBaseFab_v<FAB> && IsDataPacking<DataPacking, FAB>::value)
+template <BaseFabType FAB, typename DataPacking>
+requires (IsDataPacking<DataPacking, FAB>::value)
 void
 #ifdef AMREX_USE_MPI
 ParallelCopy_finish (FabArray<FAB>& dest, CommHandler handler,
@@ -872,8 +866,8 @@ ParallelCopy_finish (FabArray<FAB>&, CommHandler, const FabArrayBase::CommMetaDa
 //!                      boxes that need to be filled.
 //!
 //! \param[in]  data_packing A CPO that controls behaviour of unpacking the received data.
-template <typename FAB, typename DataPacking>
-requires (IsBaseFab_v<FAB> && IsDataPacking<DataPacking, FAB>::value)
+template <BaseFabType FAB, typename DataPacking>
+requires (IsDataPacking<DataPacking, FAB>::value)
 void
 ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src, CommHandler handler,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing)
@@ -907,8 +901,8 @@ ParallelCopy_finish (DoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
 //!                  and from source space to destination space.
 //!
 //! \param[in]  proj A transformation function that might change the data when it is being copied.
-template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-requires (IsBaseFab_v<FAB> && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, typename DTOS = Identity, typename Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
               SrcComp srccomp, DestComp destcomp, NumComps numcomp, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{})
@@ -951,8 +945,8 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 //!                  and from source space to destination space.
 //!
 //! \param[in]  proj A transformation function that might change the data when it is being copied.
-template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-requires (IsBaseFab_v<FAB> && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, typename DTOS = Identity, typename Proj = Identity>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase::CommMetaData& cmd,
               int srccomp, int destcomp, int numcomp, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{})
@@ -989,8 +983,8 @@ ParallelCopy (FabArray<FAB>& dest, const FabArray<FAB>& src, const FabArrayBase:
 //! \param[in]  proj A transformation function that might change the data when it is being copied.
 //!
 //! \return Returns the CommMetaData object that can be cached for future calls to ParallelCopy.
-template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-requires (IsBaseFab_v<FAB> && IsIndexMapping<DTOS>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, typename DTOS = Identity, typename Proj = Identity>
+requires (IsIndexMapping<DTOS>::value && IsFabProjection<Proj, FAB>::value)
 MultiBlockCommMetaData
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, SrcComp srccomp,
               DestComp destcomp, NumComps numcomp, const IntVect& ngrow, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{})
@@ -1029,8 +1023,8 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 //! \param[in]  proj A transformation function that might change the data when it is being copied.
 //!
 //! \return Returns the CommMetaData object that can be cached for future calls to ParallelCopy.
-template <typename FAB, typename DTOS = Identity, typename Proj = Identity>
-requires (IsBaseFab_v<FAB> && IsIndexMapping<DTOS>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, typename DTOS = Identity, typename Proj = Identity>
+requires (IsIndexMapping<DTOS>::value && IsFabProjection<Proj, FAB>::value)
 MultiBlockCommMetaData
 ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src, int srccomp,
               int destcomp, int numcomp, const IntVect& ngrow, DTOS const& dtos = DTOS{}, Proj const& proj = Proj{})
@@ -1043,26 +1037,22 @@ ParallelCopy (FabArray<FAB>& dest, const Box& destbox, const FabArray<FAB>& src,
 // corner of lo-x and lo-y boundary region by rotating the data by 180
 // degrees.
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate90 (FabArray<FAB>& mf, Box const& domain);
 
 // Rotate180 fills the lo-x boundary by rotating the data around
 // (x=0,y=L_y/2) by 180 degrees.
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate180 (FabArray<FAB>& mf, Box const& domain);
 
@@ -1070,13 +1060,11 @@ Rotate180 (FabArray<FAB>& mf, Box const& domain);
 // The lo-x boundary is filled with f(-x,y) = f(x,mod(y+pi,2*pi)), and
 // the hi-x boundary is filled with f(pi+x,y) = f(pi-x,mod(y+pi,2*pi)).
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain);
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 FillPolar (FabArray<FAB>& mf, Box const& domain);
 
@@ -1116,8 +1104,8 @@ FillPolar (FabArray<FAB>& mf, Box const& domain);
  *
  * \return      a CommHandler object needed for calling FillBoundary_finish.
  */
-template <typename FAB, typename DTOS, typename Proj = Identity>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename Proj = Identity>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
 [[nodiscard]]
 CommHandler
 FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
@@ -1159,8 +1147,8 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
  * \param dtos    index mapping
  * \param proj    component mapping
  */
-template <typename FAB, typename DTOS, typename Proj = Identity>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename Proj = Identity>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
 void
 FillBoundary_finish (CommHandler handler,
                      FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
@@ -1198,8 +1186,8 @@ FillBoundary_finish (CommHandler handler,
  * \param dtos  index mapping.
  * \param proj  component mapping.
  */
-template <typename FAB, typename DTOS, typename Proj = Identity>
-requires (IsBaseFab_v<FAB> && IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename Proj = Identity>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
 void
 FillBoundary (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
               int scomp, int ncomp, DTOS const& dtos, Proj const& proj = Proj{})
@@ -1223,8 +1211,8 @@ FillBoundary (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
  *
  * \return      communication metadata
  */
-template <typename FAB, typename DTOS>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
+template <BaseFabType FAB, typename DTOS>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value)
 [[nodiscard]]
 FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,

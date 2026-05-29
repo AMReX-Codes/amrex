@@ -182,8 +182,8 @@ struct PolarFn2 { // for the x-y corners
 //!
 //! \param[in]  proj  A FAB projection that might transform the data.
 //!
-template <class FAB, class DTOS, class Proj>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept
@@ -210,8 +210,8 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 //! This function assumes that all destination and source boxes stored in the local copy comm tags
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
 //! assertion.
-template <class FAB, class DTOS, class Proj>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
@@ -254,8 +254,8 @@ struct Array4Array4Box {
     Box const& box () const noexcept { return dbox; }
 };
 
-template <class FAB, class DTOS, class Proj>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
                 FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept
@@ -280,8 +280,8 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
     });
 }
 
-template <class FAB, class DTOS, class Proj>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
 void
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
@@ -408,7 +408,7 @@ MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping
     }
 }
 
-template <class FAB, class DTOS, class Proj>
+template <BaseFabType FAB, class DTOS, class Proj>
 #ifdef AMREX_USE_MPI
 AMREX_NODISCARD
 #endif
@@ -492,7 +492,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 }
 
 #ifdef AMREX_USE_MPI
-template <class FAB, class DTOS, class Proj>
+template <BaseFabType FAB, class DTOS, class Proj>
 void
 Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
              CommHandler handler, DTOS const& dtos, Proj const& proj)
@@ -535,8 +535,7 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 }
 #endif
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
@@ -579,16 +578,14 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
 #endif
 }
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate90 (FabArray<FAB>& mf, Box const& domain)
 {
     Rotate90(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
@@ -616,16 +613,14 @@ Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 #endif
 }
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 Rotate180 (FabArray<FAB>& mf, Box const& domain)
 {
     Rotate180(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
@@ -654,18 +649,15 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 #endif
 }
 
-template <class FAB>
-requires (IsBaseFab<FAB>::value)
+template <BaseFabType FAB>
 void
 FillPolar (FabArray<FAB>& mf, Box const& domain)
 {
     FillPolar(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
-template <typename FAB, typename DTOS, typename Proj>
-requires (IsBaseFab<FAB>::value &&
-          IsCallableR<Dim3,DTOS,Dim3>::value &&
-          IsFabProjection<Proj,FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename Proj>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
 CommHandler
 FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos, Proj const& proj)
@@ -675,10 +667,8 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
     return Comm_nowait(mf, scomp, ncomp, cmd, dtos, proj);
 }
 
-template <typename FAB, typename DTOS, typename Proj>
-requires (IsBaseFab<FAB>::value &&
-          IsCallableR<Dim3,DTOS,Dim3>::value &&
-          IsFabProjection<Proj,FAB>::value)
+template <BaseFabType FAB, typename DTOS, typename Proj>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
 void
 FillBoundary_finish (CommHandler handler,
                      FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
@@ -807,8 +797,8 @@ namespace detail {
 }
 /// \endcond
 
-template <typename FAB, typename DTOS>
-requires (IsBaseFab<FAB>::value && IsCallableR<Dim3,DTOS,Dim3>::value)
+template <BaseFabType FAB, typename DTOS>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value)
 FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
                           Geometry const& geom, DTOS const& dtos)
