@@ -54,7 +54,7 @@ T Sum (N n, T const* v, T init_val = 0);
  * \return the sum.
  */
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val = 0);
 
 /**
@@ -91,7 +91,7 @@ T Min (N n, T const* v, T init_val = std::numeric_limits<T>::max());
  * \return the minimum.
  */
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val = std::numeric_limits<T>::max());
 
 /**
@@ -128,7 +128,7 @@ T Max (N n, T const* v, T init_val = std::numeric_limits<T>::lowest());
  * \return the maximum.
  */
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val = std::numeric_limits<T>::lowest());
 
 /**
@@ -163,7 +163,7 @@ std::pair<T,T> MinMax (N n, T const* v);
  * \return the pair of minimum and maximum.
  */
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f);
 
 /**
@@ -961,7 +961,7 @@ T Sum (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpSum> reduce_op;
@@ -984,7 +984,7 @@ T Min (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpMin> reduce_op;
@@ -1007,7 +1007,7 @@ T Max (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
 {
     ReduceOps<ReduceOpMax> reduce_op;
@@ -1032,7 +1032,7 @@ std::pair<T,T> MinMax (N n, T const* v)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
 {
     ReduceOps<ReduceOpMin,ReduceOpMax> reduce_op;
@@ -1248,7 +1248,7 @@ private:
     // call_f_box
 
     template <typename D, typename F, int dim>
-    requires (std::is_same_v<std::decay_t<decltype(
+    requires (std::same_as<std::decay_t<decltype(
         Reduce::detail::call_f_intvect(std::declval<F const&>(), IntVectND<dim>())
     )>, typename D::Type>)
     AMREX_FORCE_INLINE
@@ -1263,7 +1263,7 @@ private:
     }
 
     template <typename D, typename F, int dim>
-    requires (std::is_same_v<std::decay_t<decltype(
+    requires (std::same_as<std::decay_t<decltype(
         std::declval<F const&>()(std::declval<BoxND<dim> const&>()))>,
                   typename D::Type>)
     AMREX_FORCE_INLINE
@@ -1396,7 +1396,7 @@ private:
 namespace Reduce {
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Sum (N n, F const& f, T init_val)
 {
     T r = init_val;
@@ -1416,7 +1416,7 @@ T Sum (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Min (N n, F const& f, T init_val)
 {
     T r = init_val;
@@ -1436,7 +1436,7 @@ T Min (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 T Max (N n, F const& f, T init_val)
 {
     T r = init_val;
@@ -1456,7 +1456,7 @@ T Max (N n, T const* v, T init_val)
 }
 
 template <typename T, std::integral N, typename F>
-requires (!std::is_same_v<T*,std::decay_t<F>>)
+requires (!std::same_as<T*,std::decay_t<F>>)
 std::pair<T,T> MinMax (N n, F const& f)
 {
     T r_min = std::numeric_limits<T>::max();

@@ -16,7 +16,7 @@ namespace amrex {
 template <class V> struct IsAlgVector : std::false_type {};
 //
 template <class V>
-requires (std::is_same_v<AlgVector<typename V::value_type,
+requires (std::same_as<AlgVector<typename V::value_type,
                                   typename V::allocator_type>,
                         V>)
 struct IsAlgVector<V> : std::true_type {};

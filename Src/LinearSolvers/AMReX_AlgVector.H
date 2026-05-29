@@ -205,12 +205,12 @@ public:
 
     template <typename FAB>
     requires (amrex::IsBaseFab<FAB>::value &&
-              std::is_same_v<T,typename FAB::value_type>)
+              std::same_as<T,typename FAB::value_type>)
     void copyFrom (FabArray<FAB> const& fa);
 
     template <typename FAB>
     requires (amrex::IsBaseFab<FAB>::value &&
-              std::is_same_v<T,typename FAB::value_type>)
+              std::same_as<T,typename FAB::value_type>)
     void copyTo (FabArray<FAB> & fa) const;
 
     /*
@@ -425,7 +425,7 @@ std::pair<T,T> AlgVector<T,Allocator>::norm1and2 (bool local) const
 template <typename T, typename Allocator>
 template <typename FAB>
 requires (amrex::IsBaseFab<FAB>::value &&
-          std::is_same_v<T,typename FAB::value_type>)
+          std::same_as<T,typename FAB::value_type>)
 void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
 {
     AMREX_ASSERT(fa.is_cell_centered());
@@ -453,7 +453,7 @@ void AlgVector<T,Allocator>::copyFrom (FabArray<FAB> const& fa)
 template <typename T, typename Allocator>
 template <typename FAB>
 requires (amrex::IsBaseFab<FAB>::value &&
-          std::is_same_v<T,typename FAB::value_type>)
+          std::same_as<T,typename FAB::value_type>)
 void AlgVector<T,Allocator>::copyTo (FabArray<FAB> & fa) const
 {
     AMREX_ASSERT(fa.is_cell_centered());

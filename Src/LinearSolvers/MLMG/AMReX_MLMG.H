@@ -229,13 +229,13 @@ public:
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     template <class TMF=MF>
-    requires (std::is_same_v<TMF,MultiFab>)
+    requires (std::same_as<TMF,MultiFab>)
     void bottomSolveWithHypre (MF& x, const MF& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     template <class TMF=MF>
-    requires (std::is_same_v<TMF,MultiFab>)
+    requires (std::same_as<TMF,MultiFab>)
     void bottomSolveWithPETSc (MF& x, const MF& b);
 #endif
 
@@ -1922,7 +1922,7 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
 template <class TMF>
-requires (std::is_same_v<TMF,MultiFab>)
+requires (std::same_as<TMF,MultiFab>)
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 {
@@ -1993,7 +1993,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
 template <class TMF>
-requires (std::is_same_v<TMF,MultiFab>)
+requires (std::same_as<TMF,MultiFab>)
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
 {
