@@ -144,9 +144,9 @@ namespace detail {
 #ifdef AMREX_USE_SIMD
 //! Return sine and cosine of given number
 template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincos (T_Real x)
-requires (amrex::simd::stdx::is_simd_v<T_Real>)
 {
     using namespace amrex::simd::stdx;
     std::pair<T_Real,T_Real> r;
@@ -187,9 +187,9 @@ std::pair<float,float> sincos (float x)
 #ifdef AMREX_USE_SIMD
 //! Return sin(pi*x) and cos(pi*x) given x
 template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincospi (T_Real x)
-requires (amrex::simd::stdx::is_simd_v<T_Real>)
 {
     using namespace amrex::simd::stdx;
     T_Real const px = pi<typename T_Real::value_type>() * x;
@@ -230,9 +230,9 @@ std::pair<float,float> sincospi (float x)
 
 //! Return pow(x, Power), where Power is an integer known at compile time
 template <int Power, typename T>
+requires (!std::integral<T> || Power >= 0)
 AMREX_FORCE_INLINE
 constexpr T powi (T x) noexcept
-requires (!std::integral<T> || Power >= 0)
 {
     if constexpr (Power < 0) {
         return T(1)/powi<-Power>(x);
