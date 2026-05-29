@@ -57,8 +57,7 @@ public:
     requires ((sizeof...(Args)+1 == dim) &&
               IsConvertible_v<CellIndex, Args...>)
     AMREX_GPU_HOST_DEVICE
-    constexpr IndexTypeND (CellIndex i, Args...js) noexcept
-    {
+    constexpr IndexTypeND (CellIndex i, Args...js) noexcept {
         CellIndex locarr[dim] = {i, static_cast<CellIndex>(js)...};
         for (int s=0; s<dim; ++s) {
             itype |= ((locarr[s] == CellIndex::NODE) ? 1U : 0U) << s;
