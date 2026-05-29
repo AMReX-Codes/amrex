@@ -422,12 +422,10 @@ struct ReduceOpLogicalOr
 
     template <std::integral T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void
-    local_update (T& d, T s) const noexcept { d = d || s; }
+    void local_update (T& d, T s) const noexcept { d = d || s; }
 
     template <std::integral T>
-    constexpr void
-    init (T& t) const noexcept { t = false; }
+    constexpr void init (T& t) const noexcept { t = false; }
 };
 
 template <typename... Ps> class ReduceOps;
@@ -1237,8 +1235,8 @@ private:
 
     template <typename D, typename F, int dim>
     requires (std::same_as<std::decay_t<decltype(
-        Reduce::detail::call_f_intvect(std::declval<F const&>(), IntVectND<dim>())
-    )>, typename D::Type>)
+                  Reduce::detail::call_f_intvect(std::declval<F const&>(), IntVectND<dim>()))>,
+              typename D::Type>)
     AMREX_FORCE_INLINE
     static void call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f) noexcept
     {
@@ -1252,8 +1250,8 @@ private:
 
     template <typename D, typename F, int dim>
     requires (std::same_as<std::decay_t<decltype(
-        std::declval<F const&>()(std::declval<BoxND<dim> const&>()))>,
-                  typename D::Type>)
+                  std::declval<F const&>()(std::declval<BoxND<dim> const&>()))>,
+              typename D::Type>)
     AMREX_FORCE_INLINE
     static void call_f_box (BoxND<dim> const& box, typename D::Type & r, F const& f) noexcept
     {
@@ -1265,8 +1263,7 @@ public:
 
     template <FabArrayType MF, typename D, typename F>
     requires (IsCallable<F, int, int, int, int>::value)
-    void
-    eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
+    void eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1293,8 +1290,7 @@ public:
 
     template <FabArrayType MF, typename D, typename F>
     requires (IsCallable<F, int, int, int, int, int>::value)
-    void
-    eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
+    void eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
     {
         using ReduceTuple = typename D::Type;
 #ifdef AMREX_USE_OMP
@@ -1634,13 +1630,10 @@ public:
      *          either \c Result_t(int,int,int) or \c Result_t(IntVectND<dim>).
      */
     template <typename F, int dim>
-    void
-    eval (BoxND<dim> const& box, F&& f)
     requires (IsCallable<F, int, int, int>::value ||
-                 IsCallable<F, IntVectND<dim>>::value)
-
-
-{
+              IsCallable<F, IntVectND<dim>>::value)
+    void eval (BoxND<dim> const& box, F&& f)
+    {
         this->m_reduce_op.eval(box, this->m_reduce_data, std::forward<F>(f));
     }
 
@@ -1660,13 +1653,10 @@ public:
      *          with the last argument the component index in both versions.
      */
     template <typename F, int dim>
-    void
-    eval (BoxND<dim> const& box, int ncomp, F&& f)
     requires (IsCallable<F, int, int, int, int>::value ||
-                 IsCallable<F, IntVectND<dim>, int>::value)
-
-
-{
+              IsCallable<F, IntVectND<dim>, int>::value)
+    void eval (BoxND<dim> const& box, int ncomp, F&& f)
+    {
         this->m_reduce_op.eval(box, ncomp, this->m_reduce_data, std::forward<F>(f));
     }
 
@@ -1691,8 +1681,7 @@ public:
      */
     template <FabArrayType MF, typename F>
     requires (IsCallable<F, int, int, int, int>::value)
-    void
-    eval (MF const& mf, IntVect const& nghost, F && f)
+    void eval (MF const& mf, IntVect const& nghost, F && f)
     {
         this->m_reduce_op.eval(mf, nghost, this->m_reduce_data, std::forward<F>(f));
     }
@@ -1721,8 +1710,7 @@ public:
      */
     template <FabArrayType MF, typename F>
     requires (IsCallable<F, int, int, int, int, int>::value)
-    void
-    eval (MF const& mf, IntVect const& nghost, int ncomp, F && f)
+    void eval (MF const& mf, IntVect const& nghost, int ncomp, F && f)
     {
         this->m_reduce_op.eval(mf, nghost, ncomp, this->m_reduce_data, std::forward<F>(f));
     }
@@ -1741,8 +1729,7 @@ public:
      */
     template <typename N, typename F>
     requires (IsCallable<F, N>::value)
-    void
-    eval (N n, F && f)
+    void eval (N n, F && f)
     {
         this->m_reduce_op.eval(n, this->m_reduce_data, std::forward<F>(f));
     }
