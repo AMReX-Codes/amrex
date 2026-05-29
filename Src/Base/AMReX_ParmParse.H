@@ -13,6 +13,7 @@
 #include <AMReX_Vector.H>
 
 #include <array>
+#include <concepts>
 #include <iosfwd>
 #include <optional>
 #include <set>
@@ -1152,12 +1153,12 @@ public:
     int queryarrWithParser (std::string_view name, int nvals, float* ptr) const;
     int queryarrWithParser (std::string_view name, int nvals, double* ptr) const;
     template <typename T>
-    requires (std::is_same_v<T,bool> ||
-              std::is_same_v<T,int> ||
-              std::is_same_v<T,long> ||
-              std::is_same_v<T,long long> ||
-              std::is_same_v<T,float> ||
-              std::is_same_v<T,double>)
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     int queryarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         if (this->contains(name)) {
@@ -1175,12 +1176,12 @@ public:
      * database. The return value indicates whether it's found.
      */
     template <typename T>
-    requires (std::is_same_v<T,bool> ||
-              std::is_same_v<T,int> ||
-              std::is_same_v<T,long> ||
-              std::is_same_v<T,long long> ||
-              std::is_same_v<T,float> ||
-              std::is_same_v<T,double>)
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     int queryAddWithParser (std::string_view name, T& ref)
     {
         int exist = this->queryWithParser(name, ref);
@@ -1196,12 +1197,12 @@ public:
      * scalar. If not, it's a runtime error.
      */
     template <typename T>
-    requires (std::is_same_v<T,bool> ||
-              std::is_same_v<T,int> ||
-              std::is_same_v<T,long> ||
-              std::is_same_v<T,long long> ||
-              std::is_same_v<T,float> ||
-              std::is_same_v<T,double>)
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     void getWithParser (std::string_view name, T& ref) const
     {
         int exist = this->queryWithParser(name, ref);
@@ -1216,12 +1217,12 @@ public:
      * a runtime error.
      */
     template <typename T>
-    requires (std::is_same_v<T,bool> ||
-              std::is_same_v<T,int> ||
-              std::is_same_v<T,long> ||
-              std::is_same_v<T,long long> ||
-              std::is_same_v<T,float> ||
-              std::is_same_v<T,double>)
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     void getarrWithParser (std::string_view name, int nvals, T* ptr) const
     {
         int exist = this->queryarrWithParser(name, nvals, ptr);
@@ -1236,12 +1237,12 @@ public:
      * a runtime error.
      */
     template <typename T>
-    requires (std::is_same_v<T,bool> ||
-              std::is_same_v<T,int> ||
-              std::is_same_v<T,long> ||
-              std::is_same_v<T,long long> ||
-              std::is_same_v<T,float> ||
-              std::is_same_v<T,double>)
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     void getarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         int exist = this->queryarrWithParser(name, nvals, ref);
@@ -1256,12 +1257,12 @@ public:
      * For unknown symbols, ParmParse database will be queried.
      */
     template <typename T>
-    requires (std::is_same_v<T,bool> ||
-              std::is_same_v<T,int> ||
-              std::is_same_v<T,long> ||
-              std::is_same_v<T,long long> ||
-              std::is_same_v<T,float> ||
-              std::is_same_v<T,double>)
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     T eval (std::string const& expr) const
     {
         if constexpr (std::is_integral_v<T>) {
