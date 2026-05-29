@@ -89,7 +89,7 @@ namespace detail {
 
     // call_f_intvect_ncomp_engine
 
-    template <typename F, std::integral T, int dim>
+    template <typename F, typename T, int dim>
     AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_engine (F const& f, IntVectND<dim> iv, T n, RandomEngine engine)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, engine))
@@ -99,7 +99,7 @@ namespace detail {
 
     // call_f_intvect_ncomp_handler
 
-    template <typename F, std::integral T, int dim>
+    template <typename F, typename T, int dim>
     AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n))
@@ -107,7 +107,7 @@ namespace detail {
         return call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n);
     }
 
-    template <typename F, std::integral T, int dim>
+    template <typename F, typename T, int dim>
     AMREX_FORCE_INLINE
     auto call_f_intvect_ncomp_handler (F const& f, IntVectND<dim> iv, T n)
         noexcept -> decltype(call_f_intvect_inner(std::make_index_sequence<dim>(), f, iv, n, Gpu::Handler{}))
@@ -118,13 +118,13 @@ namespace detail {
 }
 /// \endcond
 
-template<std::integral T, typename L>
+template<typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     std::forward<L>(f)(n);
 }
 
-template<int MT, std::integral T, typename L>
+template<int MT, typename T, typename L>
 void launch (T const& n, L&& f) noexcept
 {
     amrex::ignore_unused(MT);
@@ -320,7 +320,7 @@ void ParallelFor (Gpu::KernelInfo const&, BoxND<dim> const& box, L&& f) noexcept
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-template <int idim, typename L, std::integral T, int dim>
+template <int idim, typename L, typename T, int dim>
 AMREX_FORCE_INLINE
 void For_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, IntVectND<dim> iv, T n) noexcept
 {
@@ -384,7 +384,7 @@ void For (Gpu::KernelInfo const&, BoxND<dim> const& box, T ncomp, L&& f) noexcep
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-template <int idim, typename L, std::integral T, int dim>
+template <int idim, typename L, typename T, int dim>
 AMREX_FORCE_INLINE
 void ParallelFor_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, IntVectND<dim> iv, T n) noexcept
 {
@@ -1184,7 +1184,7 @@ void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> c
     }
 }
 
-template <int idim, typename L, std::integral T, int dim>
+template <int idim, typename L, typename T, int dim>
 AMREX_FORCE_INLINE
 void ParallelForRNG_impND (L const& f, IntVectND<dim> const lo, IntVectND<dim> const hi, IntVectND<dim> iv, T n) noexcept
 {

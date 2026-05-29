@@ -51,8 +51,7 @@ namespace amrex::RungeKutta {
 
 struct PostStageNoOp {
     template <FabArrayType MF>
-    void operator()(int, MF&) const
-    {}
+    void operator() (int, MF&) const {}
 };
 
 /// \cond DOXYGEN_IGNORE
