@@ -119,14 +119,12 @@ public:
     {}
 
     template <typename... Us>
-    requires (sizeof...(Us) == sizeof...(Ts))
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> const& rhs);
 
 
     template <typename... Us>
-    requires (sizeof...(Us) == sizeof...(Ts))
     AMREX_GPU_HOST_DEVICE
     inline GpuTuple<Ts...>&
     operator= (GpuTuple<Us...> && rhs);
@@ -243,20 +241,20 @@ namespace detail {
 
 template <typename... Ts>
 template <typename... Us>
-requires (sizeof...(Us) == sizeof...(Ts))
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> const& rhs)
 {
+    static_assert(sizeof...(Us) == sizeof...(Ts)); // We use static_assert instead of constraint to work around a Clang issue.
     detail::tuple_copy<0,sizeof...(Ts)>(*this, rhs);
     return *this;
 }
 
 template <typename... Ts>
 template <typename... Us>
-requires (sizeof...(Us) == sizeof...(Ts))
 AMREX_GPU_HOST_DEVICE inline GpuTuple<Ts...>&
 GpuTuple<Ts...>::operator= (GpuTuple<Us...> && rhs)
 {
+    static_assert(sizeof...(Us) == sizeof...(Ts)); // We use static_assert instead of constraint to work around a Clang issue.
     detail::tuple_copy<0,sizeof...(Ts)>(*this, std::move(rhs));
     return *this;
 }
