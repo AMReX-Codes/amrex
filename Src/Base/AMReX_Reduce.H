@@ -2,6 +2,7 @@
 #define AMREX_REDUCE_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Concepts.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_Arena.H>
 #include <AMReX_OpenMP.H>
@@ -734,12 +735,10 @@ public:
 
 /// \endcond
 
-    template <typename MF, typename D, typename F>
-    requires (IsFabArray<MF>::value
+    template <FabArrayType MF, typename D, typename F>
 #ifndef AMREX_USE_CUDA
-                     && IsCallable<F, int, int, int, int>::value
+    requires (IsCallable<F, int, int, int, int>::value)
 #endif
-             )
     void eval (MF const& mf, IntVect const& nghost, D& reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
@@ -762,12 +761,10 @@ public:
         }
     }
 
-    template <typename MF, typename D, typename F>
-    requires (IsFabArray<MF>::value
+    template <FabArrayType MF, typename D, typename F>
 #ifndef AMREX_USE_CUDA
-                     && IsCallable<F, int, int, int, int, int>::value
+    requires (IsCallable<F, int, int, int, int, int>::value)
 #endif
-             )
     void eval (MF const& mf, IntVect const& nghost, int ncomp, D& reduce_data, F&& f)
     {
         using ReduceTuple = typename D::Type;
@@ -1275,8 +1272,8 @@ private:
 
 public:
 
-    template <typename MF, typename D, typename F>
-    requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int>::value)
+    template <FabArrayType MF, typename D, typename F>
+    requires (IsCallable<F, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, D & reduce_data, F const& f)
     {
@@ -1303,8 +1300,8 @@ public:
         }
     }
 
-    template <typename MF, typename D, typename F>
-    requires (IsFabArray<MF>::value && IsCallable<F, int, int, int, int, int>::value)
+    template <FabArrayType MF, typename D, typename F>
+    requires (IsCallable<F, int, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, int ncomp, D & reduce_data, F const& f)
     {
@@ -1701,9 +1698,8 @@ public:
      *          \c Result_t(int,int,int,int), where the arguments correspond to the
      *          local box index in \c mf and the \f$(i,j,k)\f$ cell indices.
      */
-    template <typename MF, typename F>
-    requires (IsFabArray<MF>::value &&
-              IsCallable<F, int, int, int, int>::value)
+    template <FabArrayType MF, typename F>
+    requires (IsCallable<F, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, F && f)
     {
@@ -1732,9 +1728,8 @@ public:
      *          local box index in \c mf, the \f$(i,j,k)\f$ cell indices, and the
      *          component index.
      */
-    template <typename MF, typename F>
-    requires (IsFabArray<MF>::value &&
-              IsCallable<F, int, int, int, int, int>::value)
+    template <FabArrayType MF, typename F>
+    requires (IsCallable<F, int, int, int, int, int>::value)
     void
     eval (MF const& mf, IntVect const& nghost, int ncomp, F && f)
     {

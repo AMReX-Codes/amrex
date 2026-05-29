@@ -77,9 +77,8 @@ public:
  * \param [in]       abs_tol       Absolute convergence tolerance.
  * \param [in]       max_iter      Maximum iterations.
  */
-    template <class MF>
-    requires(IsFabArray<MF>::value &&
-             std::same_as<typename MF::value_type, HYPRE_Real>)
+    template <FabArrayType MF>
+    requires (std::same_as<typename MF::value_type, HYPRE_Real>)
     void solve (Vector<MF      *> const& a_soln,
                 Vector<MF const*> const& a_rhs,
                 HYPRE_Real rel_tol, HYPRE_Real abs_tol, int max_iter);
@@ -137,9 +136,8 @@ public:
      * \param a_soln Solution MultiFabs (initial guess overwritten).
      * \param a_rhs  RHS MultiFabs.
      */
-    template <class MF>
-    requires(IsFabArray<MF>::value &&
-             std::same_as<typename MF::value_type, HYPRE_Real>)
+    template <FabArrayType MF>
+    requires (std::same_as<typename MF::value_type, HYPRE_Real>)
     void load_vectors (Vector<MF      *> const& a_soln,
                        Vector<MF const*> const& a_rhs);
 
@@ -148,9 +146,8 @@ public:
      *
      * \param a_soln Solution MultiFabs populated in place.
      */
-    template <class MF>
-    requires(IsFabArray<MF>::value &&
-             std::same_as<typename MF::value_type, HYPRE_Real>)
+    template <FabArrayType MF>
+    requires (std::same_as<typename MF::value_type, HYPRE_Real>)
     void get_solution (Vector<MF*> const& a_soln);
 
 private:
@@ -605,9 +602,8 @@ HypreSolver<MSS>::fill_matrix (Filler const& filler)
 }
 
 template <int MSS>
-template <class MF>
-requires(IsFabArray<MF>::value &&
-         std::same_as<typename MF::value_type, HYPRE_Real>)
+template <FabArrayType MF>
+requires (std::same_as<typename MF::value_type, HYPRE_Real>)
 void
 HypreSolver<MSS>::solve (Vector<MF      *> const& a_soln,
                          Vector<MF const*> const& a_rhs,
@@ -631,9 +627,8 @@ HypreSolver<MSS>::solve (Vector<MF      *> const& a_soln,
 }
 
 template <int MSS>
-template <class MF>
-requires(IsFabArray<MF>::value &&
-         std::same_as<typename MF::value_type, HYPRE_Real>)
+template <FabArrayType MF>
+requires (std::same_as<typename MF::value_type, HYPRE_Real>)
 void
 HypreSolver<MSS>::load_vectors (Vector<MF      *> const& a_soln,
                                 Vector<MF const*> const& a_rhs)
@@ -688,9 +683,8 @@ HypreSolver<MSS>::load_vectors (Vector<MF      *> const& a_soln,
 }
 
 template <int MSS>
-template <class MF>
-requires(IsFabArray<MF>::value &&
-         std::same_as<typename MF::value_type, HYPRE_Real>)
+template <FabArrayType MF>
+requires (std::same_as<typename MF::value_type, HYPRE_Real>)
 void
 HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
 {

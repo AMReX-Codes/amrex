@@ -77,9 +77,8 @@ public:
      *                    AMR hierarchy represented in the solve.
      * \param [in] alpha  Multifab of alpha values.
      */
-    template <typename AMF>
-    requires (IsFabArray<AMF>::value &&
-              std::convertible_to<typename AMF::value_type, typename MF::value_type>)
+    template <FabArrayType AMF>
+    requires (std::convertible_to<typename AMF::value_type, typename MF::value_type>)
     void setACoeffs (int amrlev, const AMF& alpha);
 
     /**
@@ -103,9 +102,8 @@ public:
      *                    AMR hierarchy represented in the solve.
      * \param [in] beta   Array of Multifabs of beta values.
      */
-    template <typename AMF>
-    requires (IsFabArray<AMF>::value &&
-              std::convertible_to<typename AMF::value_type, typename MF::value_type>)
+    template <FabArrayType AMF>
+    requires (std::convertible_to<typename AMF::value_type, typename MF::value_type>)
     void setBCoeffs (int amrlev, const Array<AMF const*,AMREX_SPACEDIM>& beta);
 
     /**
@@ -304,9 +302,8 @@ MLABecLaplacianT<MF>::setScalars (T1 a, T2 b) noexcept
 }
 
 template <typename MF>
-template <typename AMF>
-requires (IsFabArray<AMF>::value &&
-          std::convertible_to<typename AMF::value_type, typename MF::value_type>)
+template <FabArrayType AMF>
+requires (std::convertible_to<typename AMF::value_type, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setACoeffs (int amrlev, const AMF& alpha)
 {
@@ -329,9 +326,8 @@ MLABecLaplacianT<MF>::setACoeffs (int amrlev, T alpha)
 
 
 template <typename MF>
-template <typename AMF>
-requires (IsFabArray<AMF>::value &&
-          std::convertible_to<typename AMF::value_type, typename MF::value_type>)
+template <FabArrayType AMF>
+requires (std::convertible_to<typename AMF::value_type, typename MF::value_type>)
 void
 MLABecLaplacianT<MF>::setBCoeffs (int amrlev,
                                   const Array<AMF const*,AMREX_SPACEDIM>& beta)
