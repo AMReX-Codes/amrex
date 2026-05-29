@@ -473,11 +473,11 @@ struct ImplicitIntegral
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
     template <int K = M>
+    requires (K==1)
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_) noexcept
-    requires (K==1)
         : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {
@@ -494,11 +494,11 @@ struct ImplicitIntegral
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
     template <int K = M>
+    requires ((K>1))
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
                       int psiCount_) noexcept
-    requires ((K>1))
         : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {

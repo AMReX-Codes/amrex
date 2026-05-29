@@ -329,7 +329,7 @@ class RealVectND {
         Returns the result of the cross product with another RealVectND
     */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline RealVectND crossProduct (
-        const RealVectND& a_rhs) const noexcept requires(dim == 3);
+        const RealVectND& a_rhs) const noexcept requires (dim == 3);
 
 
     ///
@@ -849,7 +849,7 @@ template <int dim>
 AMREX_GPU_HOST_DEVICE inline
 RealVectND<dim>
 RealVectND<dim>::crossProduct (const RealVectND<dim>& a_rhs) const noexcept
-requires (dim == 3)
+    requires (dim == 3)
 {
     RealVectND<dim> tmp(vect[1] * a_rhs[2] - vect[2] * a_rhs[1],
                         vect[2] * a_rhs[0] - vect[0] * a_rhs[2],

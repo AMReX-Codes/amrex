@@ -133,8 +133,8 @@ public:
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>
-    void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const
-    requires (!std::same_as<F, Vector<std::string>>);
+    requires (!std::same_as<F, Vector<std::string>>)
+    void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const;
 
 
     /**
@@ -199,10 +199,10 @@ public:
      * \param f callable that returns whether or not to write each particle
      */
     template <class F>
+    requires (!std::same_as<F, Vector<std::string>>)
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
-                            const std::string& compression, F&& f) const
-    requires (!std::same_as<F, Vector<std::string>>);
+                            const std::string& compression, F&& f) const;
 
 
     /**

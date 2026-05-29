@@ -66,8 +66,8 @@ public:
     void setEBDirichlet (Real a_phi_eb);
     //
     template <typename F>
-    void setEBDirichlet (F const& f)
-    requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value);
+    requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
+    void setEBDirichlet (F const& f);
 
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
@@ -141,8 +141,8 @@ private:
 #ifdef AMREX_USE_EB
 
 template <typename F>
-void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
 requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
+void MLEBNodeFDLaplacian::setEBDirichlet (F const& f)
 {
     m_phi_eb.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {

@@ -307,8 +307,8 @@ public:
     }
 
     template <typename T>
-    void AddRealComp (T communicate=true)
     requires (std::same_as<T,bool>)
+    void AddRealComp (T communicate=true)
     {
         ParticleContainerType::AddRealComp(communicate);
         ghost_real_comp.push_back(communicate);
@@ -316,8 +316,8 @@ public:
     }
 
     template <typename T>
-    void AddIntComp (T communicate=true)
     requires (std::same_as<T,bool>)
+    void AddIntComp (T communicate=true)
     {
         ParticleContainerType::AddIntComp(communicate);
         ghost_int_comp.push_back(communicate);

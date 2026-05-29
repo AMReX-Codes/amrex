@@ -43,10 +43,10 @@ namespace amrex {
  * \return reduction result (GpuTuple<Ts...>)
  */
 template <typename... Ops, typename... Ts, typename FAB, typename F>
+requires (IsBaseFab<FAB>::value)
 typename ReduceData<Ts...>::Type
 ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-requires (IsBaseFab<FAB>::value)
 {
     amrex::ignore_unused(operation_list,type_list);
     ReduceOps<Ops...> reduce_op;
@@ -94,10 +94,10 @@ requires (IsBaseFab<FAB>::value)
  * \return reduction result (T)
  */
 template <typename Op, typename T, typename FAB, typename F>
+requires (IsBaseFab<FAB>::value)
 T
 ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, F&& f)
-requires (IsBaseFab<FAB>::value)
 {
     amrex::ignore_unused(operation_list,type_list);
     ReduceOps<Op> reduce_op;
@@ -146,10 +146,10 @@ requires (IsBaseFab<FAB>::value)
  * \return reduction result (GpuTuple<Ts...>)
  */
 template <typename... Ops, typename... Ts, typename FAB, typename F>
+requires (IsBaseFab<FAB>::value)
 typename ReduceData<Ts...>::Type
 ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, int ncomp, F&& f)
-requires (IsBaseFab<FAB>::value)
 {
     amrex::ignore_unused(operation_list,type_list);
     ReduceOps<Ops...> reduce_op;
@@ -194,10 +194,10 @@ requires (IsBaseFab<FAB>::value)
  * \return reduction result (T)
  */
 template <typename Op, typename T, typename FAB, typename F>
+requires (IsBaseFab<FAB>::value)
 T
 ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
            FabArray<FAB> const& fa, IntVect const& nghost, int ncomp, F&& f)
-requires (IsBaseFab<FAB>::value)
 {
     amrex::ignore_unused(operation_list,type_list);
     ReduceOps<Op> reduce_op;
@@ -242,10 +242,10 @@ requires (IsBaseFab<FAB>::value)
  * \return reduction result (GpuTuple<Ts...>)
  */
 template <typename... Ops, typename... Ts, typename FAB, typename F>
+requires (IsBaseFab<FAB>::value)
 typename ReduceData<Ts...>::Type
 ParReduce (TypeList<Ops...> operation_list, TypeList<Ts...> type_list,
            FabArray<FAB> const& fa, F&& f)
-requires (IsBaseFab<FAB>::value)
 {
     return ParReduce(operation_list, type_list, fa, IntVect(0), std::forward<F>(f));
 }
@@ -287,10 +287,10 @@ requires (IsBaseFab<FAB>::value)
  * \return reduction result (T)
  */
 template <typename Op, typename T, typename FAB, typename F>
+requires (IsBaseFab<FAB>::value)
 T
 ParReduce (TypeList<Op> operation_list, TypeList<T> type_list,
            FabArray<FAB> const& fa, F&& f)
-requires (IsBaseFab<FAB>::value)
 {
     return ParReduce(operation_list, type_list, fa, IntVect(0), std::forward<F>(f));
 }

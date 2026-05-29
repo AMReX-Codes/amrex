@@ -167,10 +167,11 @@ namespace amrex
     }
 
     template <class T>
+    requires (IsFabArray<T>::value ||
+              IsBaseFab<T>::value)
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
-    requires (IsFabArray<T>::value ||
-                                               IsBaseFab<T>::value) {
+    {
         Vector<std::array<T const*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
         for (const auto& x : a) { r.push_back(GetArrOfConstPtrs(x)); }
@@ -178,10 +179,11 @@ namespace amrex
     }
 
     template <class T>
+    requires (IsFabArray<T>::value ||
+              IsBaseFab<T>::value)
     [[nodiscard]] Vector<std::array<T*, AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a)
-    requires (IsFabArray<T>::value ||
-                                               IsBaseFab<T>::value) {
+    {
         Vector<std::array<T*, AMREX_SPACEDIM> > r;
         r.reserve(a.size());
         for (auto &x: a) { r.push_back(GetArrOfPtrs(x)); }

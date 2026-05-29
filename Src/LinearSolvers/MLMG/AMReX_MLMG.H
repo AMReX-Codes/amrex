@@ -229,14 +229,14 @@ public:
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     template <class TMF=MF>
-    void bottomSolveWithHypre (MF& x, const MF& b)
-    requires std::is_same_v<TMF,MultiFab>;
+    requires (std::is_same_v<TMF,MultiFab>)
+    void bottomSolveWithHypre (MF& x, const MF& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
     template <class TMF=MF>
-    void bottomSolveWithPETSc (MF& x, const MF& b)
-    requires std::is_same_v<TMF,MultiFab>;
+    requires (std::is_same_v<TMF,MultiFab>)
+    void bottomSolveWithPETSc (MF& x, const MF& b);
 #endif
 
     int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);
@@ -1921,10 +1921,9 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
-template <class TMF>
+requires (std::is_same_v<TMF,MultiFab>)
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
-requires std::is_same_v<TMF,MultiFab>
 {
     const int amrlev = 0;
     const int mglev  = linop.NMGLevels(amrlev) - 1;
@@ -1992,10 +1991,9 @@ requires std::is_same_v<TMF,MultiFab>
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
-template <class TMF>
+requires (std::is_same_v<TMF,MultiFab>)
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
-requires std::is_same_v<TMF,MultiFab>
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ncomp == 1, "bottomSolveWithPETSc doesn't work with ncomp > 1");
 
