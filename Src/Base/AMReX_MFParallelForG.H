@@ -4,6 +4,7 @@
 
 #ifdef AMREX_USE_GPU
 
+#include <AMReX_Concepts.H>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -55,10 +56,9 @@ namespace parfor_mf_detail {
     }
 }
 
-template <int MT, typename MF, typename F>
+template <int MT, FabArrayType MF, typename F>
 void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F const& f)
-requires IsFabArray<MF>::value
 {
     const auto& index_array = mf.IndexArray();
     const int nboxes = index_array.size();
@@ -107,10 +107,9 @@ requires IsFabArray<MF>::value
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename MF, typename F>
+template <FabArrayType MF, typename F>
 void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
-requires IsFabArray<MF>::value
 {
 #ifdef AMREX_USE_CUDA
     constexpr int MT = 128;
@@ -120,10 +119,9 @@ requires IsFabArray<MF>::value
     ParallelFor_doit<MT>(mf, nghost, ncomp, ts, dynamic, std::forward<F>(f));
 }
 
-template <typename MF, typename F>
+template <FabArrayType MF, typename F>
 void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
-requires IsFabArray<MF>::value
 {
 #ifdef AMREX_USE_CUDA
     constexpr int MT = 128;
