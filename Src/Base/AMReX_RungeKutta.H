@@ -2,6 +2,7 @@
 #define AMREX_RUNGE_KUTTA_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Concepts.H>
 #include <AMReX_FabArray.H>
 
 /**
@@ -49,9 +50,8 @@
 namespace amrex::RungeKutta {
 
 struct PostStageNoOp {
-    template <typename MF>
+    template <FabArrayType MF>
     void operator()(int, MF&) const
-    requires (IsFabArray<MF>::value)
     {}
 };
 

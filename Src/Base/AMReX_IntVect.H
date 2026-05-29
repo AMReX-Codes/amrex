@@ -200,8 +200,7 @@ public:
     template <class...Args>
     requires ((sizeof...(Args)+2 == dim) && IsConvertible_v<int, Args...>)
     AMREX_GPU_HOST_DEVICE
-    constexpr IntVectND (int i, int j, Args...ks) noexcept
-        : vect{i, j, static_cast<int>(ks)...} {}
+    constexpr IntVectND (int i, int j, Args...ks) noexcept : vect{i, j, static_cast<int>(ks)...} {}
 
     /**
     * \brief Construct an IntVectND whose components are all the same.

@@ -18,6 +18,7 @@
 #  include <oneapi/dpl/numeric>
 #endif
 
+#include <concepts>
 #include <cstdint>
 #include <numeric>
 #include <type_traits>
@@ -42,16 +43,16 @@ namespace Type {
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 
-template <std::integral T>
+template <typename T>
 struct STVA
 {
     char status;
     T value;
 };
 
-template <std::integral T, bool SINGLE_WORD> struct BlockStatus {};
+template <typename T, bool SINGLE_WORD> struct BlockStatus {};
 
-template <std::integral T>
+template <typename T>
 struct BlockStatus<T, true>
 {
     template<typename U>
@@ -116,7 +117,7 @@ struct BlockStatus<T, true>
     }
 };
 
-template <std::integral T>
+template <typename T>
 struct BlockStatus<T, false>
 {
     T aggregate;
