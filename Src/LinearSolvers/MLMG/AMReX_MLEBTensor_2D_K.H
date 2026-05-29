@@ -332,7 +332,7 @@ void mlebtensor_cross_terms (Box const& box, Array4<Real> const& Ax,
                     Real divu = dudx + dvdy;
                     Real xi = kapb(i,j,0);
                     Real mu = etab(i,j,0);
-                    Real tautmp = (xi-(2./3.)*mu)*divu;
+                    Real tautmp = (xi-Real(2./3.)*mu)*divu;
                     // Note that mu*(grad v) has been included already in MLEBABecLap
                     Real tauxx = mu*dudx + tautmp;
                     Real tauyx = mu*dvdx;
