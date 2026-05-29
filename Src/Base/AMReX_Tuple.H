@@ -29,8 +29,7 @@ struct gpu_tuple_element
     template <typename U=T>
     requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_element ()
-    {} // NOLINT
+    constexpr gpu_tuple_element () {} // NOLINT
 
     explicit constexpr gpu_tuple_element (T const& a_value)
         : m_value(a_value)
@@ -56,8 +55,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
     template<typename U=Head>
     requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl ()
-    {} // NOLINT
+    constexpr gpu_tuple_impl () {} // NOLINT
 
     constexpr gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(a_tail...),
@@ -80,8 +78,7 @@ struct gpu_tuple_impl<I, Head>
     template<typename U=Head>
     requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl ()
-    {} // NOLINT
+    constexpr gpu_tuple_impl () {} // NOLINT
 
     explicit constexpr gpu_tuple_impl (Head const& a_head)
         : gpu_tuple_element<I, Head>(a_head)
@@ -118,7 +115,7 @@ public:
     template <typename... Us>
     requires (sizeof...(Us) == sizeof...(Ts))
     constexpr GpuTuple (Us&&... args)
-        : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
+    : detail::gpu_tuple_impl<0, Ts...>(std::forward<Us>(args)...)
     {}
 
     template <typename... Us>
