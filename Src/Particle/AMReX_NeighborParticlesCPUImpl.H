@@ -276,13 +276,13 @@ template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::fillNeighborsCPU () {
+::fillNeighborsCPU (amrex::Real search_radius) {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsCPU");
-    if (!areMasksValid()) {
-        BuildMasks();
-        GetNeighborCommTags();
+    if (!areMasksValid(search_radius)) {
+        BuildMasks(search_radius);
+        GetNeighborCommTags(search_radius);
     }
-    cacheNeighborInfo();
+    cacheNeighborInfo(search_radius);
     updateNeighborsCPU(false);
 }
 
