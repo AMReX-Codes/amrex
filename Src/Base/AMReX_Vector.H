@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Concepts.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_SPACEDIM
@@ -167,7 +168,7 @@ namespace amrex
     }
 
     template <class T>
-    requires (FabArraType<T> || BaseFabType<T>)
+    requires (FabArrayType<T> || BaseFabType<T>)
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
     {
