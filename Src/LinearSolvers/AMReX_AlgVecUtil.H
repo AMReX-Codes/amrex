@@ -49,7 +49,8 @@ ForEach (V1 & x, F const& f)
  * \param f Callable with signature `void(X&, Y&)`.
  */
 template <typename V1, typename V2, typename F>
-requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value)
+requires (IsAlgVector<std::decay_t<V1> >::value &&
+          IsAlgVector<std::decay_t<V2> >::value)
 void
 ForEach (V1 & x, V2 & y, F const& f)
 {
@@ -72,7 +73,9 @@ ForEach (V1 & x, V2 & y, F const& f)
  * \param f Callable with signature `void(X&, Y&, Z&)`.
  */
 template <typename V1, typename V2, typename V3, typename F>
-requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value && IsAlgVector<std::decay_t<V3> >::value)
+requires (IsAlgVector<std::decay_t<V1> >::value &&
+          IsAlgVector<std::decay_t<V2> >::value &&
+          IsAlgVector<std::decay_t<V3> >::value)
 void
 ForEach (V1 & x, V2 & y, V3 & z, F const& f)
 {
@@ -98,7 +101,10 @@ ForEach (V1 & x, V2 & y, V3 & z, F const& f)
  * \param f Callable with signature `void(X&, Y&, Z&, A&)`.
  */
 template <typename V1, typename V2, typename V3, typename V4, typename F>
-requires (IsAlgVector<std::decay_t<V1> >::value && IsAlgVector<std::decay_t<V2> >::value && IsAlgVector<std::decay_t<V3> >::value && IsAlgVector<std::decay_t<V4> >::value)
+requires (IsAlgVector<std::decay_t<V1> >::value &&
+          IsAlgVector<std::decay_t<V2> >::value &&
+          IsAlgVector<std::decay_t<V3> >::value &&
+          IsAlgVector<std::decay_t<V4> >::value)
 void
 ForEach (V1 & x, V2 & y, V3 & z, V4 & a, F const& f)
 {
