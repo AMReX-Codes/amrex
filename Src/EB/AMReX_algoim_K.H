@@ -439,7 +439,7 @@ struct ImplicitIntegral
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-        constexpr Real tol = 50.0*eps;
+        constexpr auto tol = Real(50.0*eps);
 
         // Loop over segments of divided interval
         for (int i = 0; i < nroots - 1; ++i)

@@ -562,7 +562,7 @@ void mlebabeclap_gsrb (Box const& box,
                        bool is_dirichlet, bool beta_on_centroid, bool phi_on_centroid,
                        Box const& vbox, int redblack, int ncomp) noexcept
 {
-    constexpr Real omega = 1.15;
+    constexpr auto omega = Real(1.15);
 
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
