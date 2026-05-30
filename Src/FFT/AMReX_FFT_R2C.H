@@ -257,10 +257,10 @@ public:
      * \param out Complex-domain buffer that receives the Hermitian half-spectrum.
      */
     template <typename RT, typename CT, Direction DIR=D, bool CP=C>
-    void forward (RT const* in, CT* out)
     requires ((DIR == Direction::forward) || (DIR == Direction::both))
           && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
-              || ((sizeof(RT) == sizeof(CT)) && CP));
+              || ((sizeof(RT) == sizeof(CT)) && CP))
+    void forward (RT const* in, CT* out);
 
     /**
      * \brief Backward transform
@@ -1005,10 +1005,10 @@ R2C<T,D,C>::install_raw_ptr (FA& fa, RT const* p)
 
 template <typename T, Direction D, bool C>
 template <typename RT, typename CT, Direction DIR, bool CP>
-void R2C<T,D,C>::forward (RT const* in, CT* out)
 requires ((DIR == Direction::forward) || (DIR == Direction::both))
       && (((sizeof(RT)*2 == sizeof(CT)) && (!CP))
           || ((sizeof(RT) == sizeof(CT)) && CP))
+void R2C<T,D,C>::forward (RT const* in, CT* out)
 {
     auto [rdata, rsz] = install_raw_ptr(m_raw_mf, in);
     auto [cdata, csz] = install_raw_ptr(m_raw_cmf, out);
