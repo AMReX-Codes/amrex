@@ -11,6 +11,7 @@
 #endif
 
 #include <algorithm>
+#include <concepts>
 #include <climits>
 #include <type_traits>
 
@@ -106,9 +107,9 @@ struct CSR {
 };
 
 template <typename C, typename T, template<typename> class AD, template<typename> class AS>
-requires ((std::is_same_v<C,Gpu::HostToDevice>) ||
-          (std::is_same_v<C,Gpu::DeviceToHost>) ||
-          (std::is_same_v<C,Gpu::DeviceToDevice>))
+requires ((std::same_as<C,Gpu::HostToDevice>) ||
+          (std::same_as<C,Gpu::DeviceToHost>) ||
+          (std::same_as<C,Gpu::DeviceToDevice>))
 /**
  * \brief Copy CSR buffers between memory spaces asynchronously.
  *
