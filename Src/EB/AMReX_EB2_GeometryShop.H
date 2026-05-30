@@ -319,13 +319,11 @@ public:
 
     template <class U=F>
     requires (IsGPUable<U>::value)
-    static constexpr bool isGPUable () noexcept
-    { return true; }
+    static constexpr bool isGPUable () noexcept { return true; }
 
     template <class U=F>
     requires (!IsGPUable<U>::value)
-    static constexpr bool isGPUable () noexcept
-    { return false; }
+    static constexpr bool isGPUable () noexcept { return false; }
 
     /**
      * \brief Fill a level-set FAB by sampling the implicit function on each point in the FAB.

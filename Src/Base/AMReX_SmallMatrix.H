@@ -428,12 +428,12 @@ namespace amrex {
         }
 
         template <int N>
-        requires ((N<NRows*NCols))
+        requires (N<NRows*NCols)
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T const& get () const { return m_mat[N]; }
 
         template <int N>
-        requires ((N<NRows*NCols))
+        requires (N<NRows*NCols)
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T& get () { return m_mat[N]; }
 
