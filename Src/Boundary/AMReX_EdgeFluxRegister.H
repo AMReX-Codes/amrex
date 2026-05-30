@@ -31,7 +31,7 @@ namespace amrex {
  * level.
  *
  * \code{.cpp}
- *     template <typename MF> requires(IsFabArray<MF>::value)
+ *     template <FabArrayType MF>
  *     void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
  *                              const Array<MF*,AMREX_SPACEDIM>& crse,
  *                              const IntVect& ratio, const Geometry& crse_geom)
