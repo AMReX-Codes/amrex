@@ -286,7 +286,8 @@ namespace amrex {
         requires (MM==NN)
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
-        transposeInPlace () {
+        transposeInPlace ()
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             for (int j = 1+StartIndex; j < NCols+StartIndex; ++j) {
                 for (int i = StartIndex; i < j; ++i) {
@@ -322,7 +323,8 @@ namespace amrex {
         template <int MM=NRows, int NN=NCols>
         requires (MM==NN)
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T trace () const {
+        T trace () const
+        {
             T t = 0;
             constexpr_for<StartIndex,MM+StartIndex>([&] (int i) { t += (*this)(i,i); });
             return t;
