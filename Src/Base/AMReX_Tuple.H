@@ -10,7 +10,6 @@
 #include <AMReX_TypeTraits.H>
 
 #include <array>
-#include <concepts>
 #include <functional>
 #include <tuple>
 
@@ -28,7 +27,7 @@ template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
     template <typename U=T>
-    requires (std::default_initializable<U>)
+    requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_element () {} // NOLINT
 
@@ -53,7 +52,7 @@ struct gpu_tuple_impl<I, Head, Tail...>
       public gpu_tuple_element<I, Head>
 {
     template<typename U=Head>
-    requires (std::default_initializable<U>)
+    requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {} // NOLINT
 
@@ -76,7 +75,7 @@ struct gpu_tuple_impl<I, Head>
 {
 
     template<typename U=Head>
-    requires (std::default_initializable<U>)
+    requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr gpu_tuple_impl () {} // NOLINT
 
