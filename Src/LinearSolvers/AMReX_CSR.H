@@ -107,9 +107,9 @@ struct CSR {
 };
 
 template <typename C, typename T, template<typename> class AD, template<typename> class AS>
-requires ((std::same_as<C,Gpu::HostToDevice>) ||
-          (std::same_as<C,Gpu::DeviceToHost>) ||
-          (std::same_as<C,Gpu::DeviceToDevice>))
+requires (std::same_as<C,Gpu::HostToDevice> ||
+          std::same_as<C,Gpu::DeviceToHost> ||
+          std::same_as<C,Gpu::DeviceToDevice>)
 /**
  * \brief Copy CSR buffers between memory spaces asynchronously.
  *
