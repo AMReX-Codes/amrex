@@ -333,8 +333,7 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    template <typename T>
-    requires (std::same_as<T,bool>)
+    template <std::same_as<bool> T>
     void AddRealComp (T communicate=true)
     {
         ParticleContainerType::AddRealComp(communicate);
@@ -342,8 +341,7 @@ public:
         calcCommSize();
     }
 
-    template <typename T>
-    requires (std::same_as<T,bool>)
+    template <std::same_as<bool> T>
     void AddIntComp (T communicate=true)
     {
         ParticleContainerType::AddIntComp(communicate);
