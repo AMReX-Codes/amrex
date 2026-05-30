@@ -175,7 +175,7 @@ struct MultiArray4
 template <class FAB> class FabArray;
 
 template <BaseFabType DFAB, BaseFabType SFAB>
-requires (std::convertible_to<typename SFAB::value_type, typename DFAB::value_type>)
+requires (std::is_convertible_v<typename SFAB::value_type, typename DFAB::value_type>)
 void
 Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, int nghost)
 {
@@ -183,7 +183,7 @@ Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, 
 }
 
 template <BaseFabType DFAB, BaseFabType SFAB>
-requires (std::convertible_to<typename SFAB::value_type, typename DFAB::value_type>)
+requires (std::is_convertible_v<typename SFAB::value_type, typename DFAB::value_type>)
 void
 Copy (FabArray<DFAB>& dst, FabArray<SFAB> const& src, int srccomp, int dstcomp, int numcomp, const IntVect& nghost)
 {
@@ -693,7 +693,7 @@ public:
      * \param nghost number of ghost cells
      */
     template <BaseFabType SFAB, BaseFabType DFAB = FAB>
-    requires (std::convertible_to<typename SFAB::value_type,
+    requires (std::is_convertible_v<typename SFAB::value_type,
                                   typename DFAB::value_type>)
     void LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
                     IntVect const& nghost);
@@ -1984,7 +1984,7 @@ FabArray<FAB>::clear ()
 
 template <class FAB>
 template <BaseFabType SFAB, BaseFabType DFAB>
-requires (std::convertible_to<typename SFAB::value_type, typename DFAB::value_type>)
+requires (std::is_convertible_v<typename SFAB::value_type, typename DFAB::value_type>)
 void
 FabArray<FAB>::LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
                           IntVect const& nghost)
