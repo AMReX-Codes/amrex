@@ -592,10 +592,9 @@ public:
     /**
      * \brief Return capacity of memory for particles at specific grid
      */
-    template <typename I>
-    requires (std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)))
+    template <std::integral I>
+    requires (sizeof(I) >= sizeof(Long))
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
-
 
     /**
     * \brief Returns # of particles at all levels
