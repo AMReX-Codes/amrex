@@ -219,7 +219,7 @@ namespace amrex
     //                                                          [traits.Negation]
 
 
-    //! Logical traits let us combine multiple type requirements in one constraint.
+    //! Logical traits let us combine multiple type requirements.
 #if defined(__cpp_lib_logical_traits)
     template <typename... Args> using Conjunction = std::conjunction<Args...>;
     template <typename... Args> using Disjunction = std::disjunction<Args...>;

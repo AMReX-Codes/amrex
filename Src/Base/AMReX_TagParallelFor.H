@@ -126,34 +126,28 @@ struct CommSendBufTag { // for packing send buffer
 namespace detail {
 
     template <typename T>
-    Long
-    get_tag_size (T const& tag) noexcept
     requires (std::same_as<std::decay_t<decltype(std::declval<T>().box())>, Box>)
+    Long get_tag_size (T const& tag) noexcept
     {
         AMREX_ASSERT(tag.box().numPts() < Long(std::numeric_limits<int>::max()));
         return static_cast<int>(tag.box().numPts());
     }
 
     template <typename T>
-    Long
-    get_tag_size (T const& tag) noexcept
     requires (std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >)
+    Long get_tag_size (T const& tag) noexcept
     {
         AMREX_ASSERT(tag.size() < Long(std::numeric_limits<int>::max()));
         return tag.size();
     }
 
     template <typename T>
-    constexpr bool
-    is_box_tag (T const&)
     requires (std::same_as<std::decay_t<decltype(std::declval<T>().box())>, Box>)
-    { return true; }
+    constexpr bool is_box_tag (T const&) { return true; }
 
     template <typename T>
-    constexpr bool
-    is_box_tag (T const&)
     requires (std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >)
-    { return false; }
+    constexpr bool is_box_tag (T const&) { return false; }
 
 }
 /// \endcond
@@ -314,10 +308,9 @@ namespace detail {
 #ifdef AMREX_USE_GPU
 
 template <typename T, typename F>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void
-tagparfor_call_f (int icell, T const& tag, F&& f) noexcept
 requires (std::same_as<std::decay_t<decltype(std::declval<T>().box())>, Box>)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void tagparfor_call_f (int icell, T const& tag, F&& f) noexcept
 {
     int ncells = tag.box().numPts();
     const auto len = amrex::length(tag.box());
@@ -332,10 +325,9 @@ requires (std::same_as<std::decay_t<decltype(std::declval<T>().box())>, Box>)
 }
 
 template <typename T, typename F>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void
-tagparfor_call_f (int i, T const& tag, F&& f) noexcept
 requires (std::is_integral_v<std::decay_t<decltype(std::declval<T>().size())> >)
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void tagparfor_call_f (int i, T const& tag, F&& f) noexcept
 {
     int N = tag.size();
     f(i, N, tag);
@@ -440,9 +432,8 @@ ParallelFor_doit (TagVector<TagType> const& tv, F const& f)
 /// \endcond
 
 template <class TagType, class F>
-void
-ParallelFor (TagVector<TagType> const& tv, int ncomp, F const& f)
 requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Box>)
+void ParallelFor (TagVector<TagType> const& tv, int ncomp, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
@@ -457,9 +448,8 @@ requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Bo
 }
 
 template <class TagType, class F>
-void
-ParallelFor (TagVector<TagType> const& tv, F const& f)
 requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Box>)
+void ParallelFor (TagVector<TagType> const& tv, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
@@ -472,9 +462,8 @@ requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Bo
 }
 
 template <class TagType, class F>
-void
-ParallelFor (TagVector<TagType> const& tv, F const& f)
 requires (std::is_integral_v<std::decay_t<decltype(std::declval<TagType>().size())> >)
+void ParallelFor (TagVector<TagType> const& tv, F const& f)
 {
     detail::ParallelFor_doit(tv,
         [=] AMREX_GPU_DEVICE (
@@ -487,27 +476,24 @@ requires (std::is_integral_v<std::decay_t<decltype(std::declval<TagType>().size(
 }
 
 template <class TagType, class F>
-void
-ParallelFor (Vector<TagType> const& tags, int ncomp, F && f)
 requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Box>)
+void ParallelFor (Vector<TagType> const& tags, int ncomp, F && f)
 {
     TagVector<TagType> tv{tags};
     ParallelFor(tv, ncomp, std::forward<F>(f));
 }
 
 template <class TagType, class F>
-void
-ParallelFor (Vector<TagType> const& tags, F && f)
 requires (std::same_as<std::decay_t<decltype(std::declval<TagType>().box())>, Box>)
+void ParallelFor (Vector<TagType> const& tags, F && f)
 {
     TagVector<TagType> tv{tags};
     ParallelFor(tv, std::forward<F>(f));
 }
 
 template <class TagType, class F>
-void
-ParallelFor (Vector<TagType> const& tags, F && f)
 requires (std::is_integral_v<std::decay_t<decltype(std::declval<TagType>().size())> >)
+void ParallelFor (Vector<TagType> const& tags, F && f)
 {
     TagVector<TagType> tv{tags};
     ParallelFor(tv, std::forward<F>(f));
