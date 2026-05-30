@@ -242,8 +242,8 @@ public:
                              const MF* /*robinbc_b*/ = nullptr,
                              const MF* /*robinbc_f*/ = nullptr) = 0;
 
-    template <typename AMF>
-    requires (!std::same_as<MF,AMF>) && (IsMultiFabLike_v<AMF>)
+    template <MultiFabLike AMF>
+    requires (!std::same_as<MF,AMF>)
     void setLevelBC (int amrlev, const AMF* levelbcdata,
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,
@@ -1626,8 +1626,8 @@ MLLinOpT<MF>::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
 }
 
 template <typename MF>
-template <typename AMF>
-requires (!std::same_as<MF,AMF>) && (IsMultiFabLike_v<AMF>)
+template <MultiFabLike AMF>
+requires (!std::same_as<MF,AMF>)
 void
 MLLinOpT<MF>::setLevelBC (int amrlev, const AMF* levelbcdata,
                           const AMF* robinbc_a, const AMF* robinbc_b,
