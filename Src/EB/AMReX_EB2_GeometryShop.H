@@ -262,8 +262,8 @@ public:
      * \param run_on Whether to run on CPU or GPU.
      */
     template <class U=F>
-    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     requires (IsGPUable<U>::value)
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
         {
@@ -311,8 +311,8 @@ public:
 
     //! CPU-only fallback for getBoxType().
     template <class U=F>
-    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     requires (!IsGPUable<U>::value)
+    [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
     {
         return getBoxType_Cpu(bx, geom);
     }
