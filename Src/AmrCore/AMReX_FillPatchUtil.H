@@ -805,7 +805,7 @@ namespace amrex
      * \param ncomp number of components
      * \param geom Geometry for this level
      */
-    template <typename MF>
+    template <FabArrayType MF>
     void
     FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                           const Vector<MF*>& smf, IntVect const& snghost,
