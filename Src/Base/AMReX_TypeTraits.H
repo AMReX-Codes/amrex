@@ -18,7 +18,7 @@ namespace amrex
     template <class A> struct IsBaseFab : std::false_type {};
     //
     template <class D>
-    requires(std::derived_from<D,BaseFab<typename D::value_type>>)
+    requires(std::is_base_of_v<BaseFab<typename D::value_type>, D>)
     struct IsBaseFab<D> : std::true_type {};
     //
     template <class A>
@@ -27,7 +27,7 @@ namespace amrex
     template <class A> struct IsFabArray : std::false_type {};
     //
     template <class D>
-    requires(std::derived_from<D,FabArray<typename D::FABType::value_type>>)
+    requires(std::is_base_of_v<FabArray<typename D::FABType::value_type>, D>)
     struct IsFabArray<D> : std::true_type {};
     //
     template <class A>

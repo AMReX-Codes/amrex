@@ -19,7 +19,7 @@ template<class T> struct IntegratorOps;
 
 #if defined(AMREX_PARTICLES)
 template<class T>
-requires (std::derived_from<T, ParticleContainerBase>)
+requires (std::is_base_of_v<ParticleContainerBase, T>)
 struct IntegratorOps<T>
 {
 

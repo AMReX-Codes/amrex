@@ -578,7 +578,7 @@ struct GetSendBufferOffset
 
 template <class PC, class Buffer>
 requires (IsParticleContainer<PC>::value &&
-          std::derived_from<Buffer,PolymorphicArenaAllocator<typename Buffer::value_type>>)
+          std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>, Buffer>)
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
 {
