@@ -19,7 +19,7 @@ namespace amrex::Gpu {
  * destruction may break Gpu::Buffer's member functions.
  */
 template <typename T>
-requires(std::is_trivially_copyable_v<T>)
+requires (std::is_trivially_copyable_v<T>)
 class Buffer
 {
 public:

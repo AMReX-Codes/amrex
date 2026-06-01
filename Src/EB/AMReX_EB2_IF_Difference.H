@@ -57,7 +57,7 @@ protected:
 };
 
 template <class F, class G>
-requires(IsGPUable<F>::value && IsGPUable<G>::value)
+requires (IsGPUable<F>::value && IsGPUable<G>::value)
 struct IsGPUable<DifferenceIF<F,G>> : std::true_type {};
 
 template <class F, class G>

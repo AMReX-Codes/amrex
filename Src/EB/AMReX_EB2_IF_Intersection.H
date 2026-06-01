@@ -94,7 +94,7 @@ struct IsGPUable<IntersectionIF<Head, Tail...>>
     : IsGPUable<IntersectionIF<Tail...>> {};
 
 template <class F>
-requires(IsGPUable<F>::value)
+requires (IsGPUable<F>::value)
 struct IsGPUable<IntersectionIF<F>> : std::true_type {};
 
 template <class... Fs>

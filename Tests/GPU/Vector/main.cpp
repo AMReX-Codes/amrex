@@ -8,7 +8,7 @@ using namespace amrex;
 
 // v3 should contain the integers from -5 to 5, inclusive
 template <template <typename> class Container>
-requires(RunOnGpu<typename Container<int>::allocator_type>::value)
+requires (RunOnGpu<typename Container<int>::allocator_type>::value)
 void checkV3 (const Container<int>& c)
 {
     const auto c_ptr = c.dataPtr();
@@ -20,7 +20,7 @@ void checkV3 (const Container<int>& c)
 
 // v3 should contain the integers from -5 to 5, inclusive
 template <template <typename> class Container>
-requires(!RunOnGpu<typename Container<int>::allocator_type>::value)
+requires (!RunOnGpu<typename Container<int>::allocator_type>::value)
 void checkV3 (const Container<int>& c)
 {
     for (int i=-5, index=0; i <= 5; ++i, ++index)

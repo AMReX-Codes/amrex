@@ -18,7 +18,7 @@ namespace amrex
     template <class A> struct IsBaseFab : std::false_type {};
     //
     template <class D>
-    requires(std::is_base_of_v<BaseFab<typename D::value_type>, D>)
+    requires (std::is_base_of_v<BaseFab<typename D::value_type>, D>)
     struct IsBaseFab<D> : std::true_type {};
     //
     template <class A>
@@ -27,7 +27,7 @@ namespace amrex
     template <class A> struct IsFabArray : std::false_type {};
     //
     template <class D>
-    requires(std::is_base_of_v<FabArray<typename D::FABType::value_type>, D>)
+    requires (std::is_base_of_v<FabArray<typename D::FABType::value_type>, D>)
     struct IsFabArray<D> : std::true_type {};
     //
     template <class A>
@@ -37,7 +37,7 @@ namespace amrex
     struct IsMultiFabLike : std::false_type {};
     //
     template <class M>
-    requires(IsFabArray_v<M> && IsBaseFab_v<typename M::fab_type>)
+    requires (IsFabArray_v<M> && IsBaseFab_v<typename M::fab_type>)
     struct IsMultiFabLike<M> : std::true_type {};
     //
     template <class M>
@@ -104,11 +104,11 @@ namespace amrex
 #if defined(AMREX_USE_CUDA) && defined(__NVCC__)
 
     template <class T>
-    requires(__nv_is_extended_device_lambda_closure_type(T))
+    requires (__nv_is_extended_device_lambda_closure_type(T))
     struct MaybeHostDeviceRunnable<T> : std::false_type {};
 
     template <class T>
-    requires(__nv_is_extended_device_lambda_closure_type(T))
+    requires (__nv_is_extended_device_lambda_closure_type(T))
     struct DefinitelyNotHostRunnable<T> : std::true_type {};
 
 #elif defined(AMREX_USE_HIP)
@@ -277,7 +277,7 @@ namespace amrex
     struct IsStoreAtomic : std::false_type {};
     //
     template <class T>
-    requires(std::is_arithmetic_v<T> && sizeof(T) <= 8)
+    requires (std::is_arithmetic_v<T> && sizeof(T) <= 8)
     struct IsStoreAtomic<T> : std::true_type {};
 }
 

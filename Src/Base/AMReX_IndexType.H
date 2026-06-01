@@ -247,7 +247,7 @@ IndexTypeND(const IntVectND<dim>&) -> IndexTypeND<dim>;
 
 // Template deduction guide for IndexTypeND
 template <class...Args>
-requires(IsConvertible_v<IndexType::CellIndex, Args...>)
+requires (IsConvertible_v<IndexType::CellIndex, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 IndexTypeND(IndexType::CellIndex, Args...) -> IndexTypeND<sizeof...(Args)+1>;
 

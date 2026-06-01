@@ -105,9 +105,9 @@ public:
      */
     template <class Marker>
 #ifdef AMREX_USE_CUDA
-    requires(IsCallable<Marker,int,int,int,int,int>::value)
+    requires (IsCallable<Marker,int,int,int,int,int>::value)
 #else
-    requires(IsCallableR<bool,Marker,int,int,int,int,int>::value)
+    requires (IsCallableR<bool,Marker,int,int,int,int,int>::value)
 #endif
     void fill_local_id (Marker const& marker);
 
@@ -124,7 +124,7 @@ public:
      *        for each DOF.
      */
     template <class Filler>
-    requires(IsCallable<Filler,int,int,int,int,int,
+    requires (IsCallable<Filler,int,int,int,int,int,
                         Array4<HYPRE_Int const> const*,
                         HYPRE_Int&, HYPRE_Int*,
                         HYPRE_Real*>::value)
@@ -302,9 +302,9 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
 template <int MSS>
 template <class Marker>
 #ifdef AMREX_USE_CUDA
-requires(IsCallable<Marker,int,int,int,int,int>::value)
+requires (IsCallable<Marker,int,int,int,int,int>::value)
 #else
-requires(IsCallableR<bool,Marker,int,int,int,int,int>::value)
+requires (IsCallableR<bool,Marker,int,int,int,int,int>::value)
 #endif
 void HypreSolver<MSS>::fill_local_id (Marker const& marker)
 {
@@ -500,7 +500,7 @@ void pack_matrix_gpu (Gpu::DeviceVector<HYPRE_Int>& cols_tmp,
 
 template <int MSS>
 template <class Filler>
-requires(IsCallable<Filler,int,int,int,int,int,
+requires (IsCallable<Filler,int,int,int,int,int,
                     Array4<HYPRE_Int const> const*,
                     HYPRE_Int&, HYPRE_Int*,
                     HYPRE_Real*>::value)

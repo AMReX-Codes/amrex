@@ -94,7 +94,7 @@ struct IsGPUable<UnionIF<Head, Tail...>>
     : IsGPUable<UnionIF<Tail...>> {};
 
 template <class F>
-requires(IsGPUable<F>::value)
+requires (IsGPUable<F>::value)
 struct IsGPUable<UnionIF<F>> : std::true_type {};
 
 template <class... Fs>

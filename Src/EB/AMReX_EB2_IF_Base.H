@@ -24,7 +24,7 @@ namespace EB2 {
 template <class D> struct IsGPUable : std::false_type {};
 
 template <class D>
-requires(std::is_base_of_v<GPUable,D>)
+requires (std::is_base_of_v<GPUable,D>)
 struct IsGPUable<D> : std::true_type {};
 
 }
