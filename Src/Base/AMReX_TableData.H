@@ -24,7 +24,8 @@ struct Table1D
 
     constexpr Table1D () noexcept = default;
 
-    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
+    template <class U=T>
+    requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr Table1D (Table1D<std::remove_const_t<T>> const& rhs) noexcept
         : p(rhs.p),
@@ -42,7 +43,8 @@ struct Table1D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+    template <class U=T>
+    requires (!std::is_void_v<U>)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (IDX i) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -98,7 +100,8 @@ struct Table2D
 
     constexpr Table2D () noexcept = default;
 
-    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
+    template <class U=T>
+    requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr Table2D (Table2D<std::remove_const_t<T>, ORDER> const& rhs) noexcept
         : p(rhs.p),
@@ -120,7 +123,8 @@ struct Table2D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+    template <class U=T>
+    requires (!std::is_void_v<U>)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -179,7 +183,8 @@ struct Table3D
 
     constexpr Table3D () noexcept = default;
 
-    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
+    template <class U=T>
+    requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr Table3D (Table3D<std::remove_const_t<T>,ORDER> const& rhs) noexcept
         : p(rhs.p),
@@ -203,7 +208,8 @@ struct Table3D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+    template <class U=T>
+    requires (!std::is_void_v<U>)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j, int k) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
@@ -272,7 +278,8 @@ struct Table4D
 
     constexpr Table4D () noexcept = default;
 
-    template <class U=T, std::enable_if_t<std::is_const_v<U>,int> = 0>
+    template <class U=T>
+    requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
     constexpr Table4D (Table4D<std::remove_const_t<T>,ORDER> const& rhs) noexcept
         : p(rhs.p),
@@ -298,7 +305,8 @@ struct Table4D
     AMREX_GPU_HOST_DEVICE
     explicit operator bool () const noexcept { return p != nullptr; }
 
-    template <class U=T, std::enable_if_t<!std::is_void_v<U>,int> = 0>
+    template <class U=T>
+    requires (!std::is_void_v<U>)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     U& operator() (int i, int j, int k, int n) const noexcept {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)

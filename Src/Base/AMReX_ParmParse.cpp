@@ -9,6 +9,7 @@
 #include <AMReX_Utility.H>
 
 #include <algorithm>
+#include <concepts>
 #include <cmath>
 #include <cctype>
 #include <cstdlib>
@@ -141,7 +142,7 @@ isT (const std::string& str, T& val)
     return true;
 }
 
-template <typename T, std::enable_if_t<std::is_floating_point_v<T>,int> = 0>
+template <std::floating_point T>
 bool
 is_floating_point (const std::string& str, T& val)
 {

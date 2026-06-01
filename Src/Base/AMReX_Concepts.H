@@ -10,12 +10,20 @@ namespace amrex {
  * \brief Checks if a type is derived from amrex::BaseFab.
  */
 template <typename T>
-concept BaseFabType = amrex::IsBaseFab<T>::value;
+concept BaseFabType = amrex::IsBaseFab_v<T>;
 
 /**
- * \brief Checks if a type is an amrex::FabArray (like MultiFab).
+ * \brief Checks if a type is an amrex::FabArray.
  */
 template <typename T>
-concept FabArrayType = amrex::IsFabArray<T>::value;
+concept FabArrayType = amrex::IsFabArray_v<T>;
+
+/**
+ * \brief Checks if a type is amrex::MultiFab-like (i.e., FabArray<FAB>,
+ * where FAB is a BaseFabType).
+ */
+template <typename T>
+concept MultiFabLike = amrex::IsMultiFabLike_v<T>;
+
 } // namespace amrex
 #endif

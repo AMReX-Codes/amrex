@@ -68,9 +68,6 @@ public:
                  int                        a_verbose = 0,
                  std::string                a_options_namespace = "hypre");
 
-    template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
-                                         std::is_same_v<typename MF::value_type,
-                                                        HYPRE_Real>, int> = 0>
 /**
  * \brief Solve Ax=b after the constructor assembled the IJ matrix.
  *
@@ -80,6 +77,8 @@ public:
  * \param [in]       abs_tol       Absolute convergence tolerance.
  * \param [in]       max_iter      Maximum iterations.
  */
+    template <FabArrayType MF>
+    requires (std::same_as<typename MF::value_type, HYPRE_Real>)
     void solve (Vector<MF      *> const& a_soln,
                 Vector<MF const*> const& a_rhs,
                 HYPRE_Real rel_tol, HYPRE_Real abs_tol, int max_iter);
@@ -106,11 +105,11 @@ public:
      */
     template <class Marker>
 #ifdef AMREX_USE_CUDA
-    std::enable_if_t<IsCallable<Marker,int,int,int,int,int>::value>
+    requires (IsCallable<Marker,int,int,int,int,int>::value)
 #else
-    std::enable_if_t<IsCallableR<bool,Marker,int,int,int,int,int>::value>
+    requires (IsCallableR<bool,Marker,int,int,int,int,int>::value)
 #endif
-    fill_local_id (Marker const& marker);
+    void fill_local_id (Marker const& marker);
 
     //! Convert the local ids to globally unique ids visible to HYPRE.
     template <typename AI>
@@ -124,11 +123,11 @@ public:
      *        `HYPRE_Int& ncols, HYPRE_Int* cols, HYPRE_Real* mat)` that emits the nonzeros
      *        for each DOF.
      */
-    template <class Filler,
-              std::enable_if_t<IsCallable<Filler,int,int,int,int,int,
-                                          Array4<HYPRE_Int const> const*,
-                                          HYPRE_Int&, HYPRE_Int*,
-                                          HYPRE_Real*>::value,int> FOO = 0>
+    template <class Filler>
+    requires (IsCallable<Filler,int,int,int,int,int,
+                        Array4<HYPRE_Int const> const*,
+                        HYPRE_Int&, HYPRE_Int*,
+                        HYPRE_Real*>::value)
     void fill_matrix (Filler const& filler);
 
     /**
@@ -137,9 +136,8 @@ public:
      * \param a_soln Solution MultiFabs (initial guess overwritten).
      * \param a_rhs  RHS MultiFabs.
      */
-    template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
-                                         std::is_same_v<typename MF::value_type,
-                                                        HYPRE_Real>, int> = 0>
+    template <FabArrayType MF>
+    requires (std::same_as<typename MF::value_type, HYPRE_Real>)
     void load_vectors (Vector<MF      *> const& a_soln,
                        Vector<MF const*> const& a_rhs);
 
@@ -148,9 +146,8 @@ public:
      *
      * \param a_soln Solution MultiFabs populated in place.
      */
-    template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
-                                         std::is_same_v<typename MF::value_type,
-                                                        HYPRE_Real>, int> = 0>
+    template <FabArrayType MF>
+    requires (std::same_as<typename MF::value_type, HYPRE_Real>)
     void get_solution (Vector<MF*> const& a_soln);
 
 private:
@@ -305,11 +302,11 @@ HypreSolver<MSS>::HypreSolver (Vector<IndexType>   const& a_index_type,
 template <int MSS>
 template <class Marker>
 #ifdef AMREX_USE_CUDA
-    std::enable_if_t<IsCallable<Marker,int,int,int,int,int>::value>
+requires (IsCallable<Marker,int,int,int,int,int>::value)
 #else
-    std::enable_if_t<IsCallableR<bool,Marker,int,int,int,int,int>::value>
+requires (IsCallableR<bool,Marker,int,int,int,int,int>::value)
 #endif
-HypreSolver<MSS>::fill_local_id (Marker const& marker)
+void HypreSolver<MSS>::fill_local_id (Marker const& marker)
 {
     BL_PROFILE("HypreSolver::fill_local_id()");
 
@@ -502,11 +499,11 @@ void pack_matrix_gpu (Gpu::DeviceVector<HYPRE_Int>& cols_tmp,
 #endif
 
 template <int MSS>
-template <class Filler,
-          std::enable_if_t<IsCallable<Filler,int,int,int,int,int,
-                                      Array4<HYPRE_Int const> const*,
-                                      HYPRE_Int&, HYPRE_Int*,
-                                      HYPRE_Real*>::value,int> FOO>
+template <class Filler>
+requires (IsCallable<Filler,int,int,int,int,int,
+                    Array4<HYPRE_Int const> const*,
+                    HYPRE_Int&, HYPRE_Int*,
+                    HYPRE_Real*>::value)
 void
 HypreSolver<MSS>::fill_matrix (Filler const& filler)
 {
@@ -605,9 +602,8 @@ HypreSolver<MSS>::fill_matrix (Filler const& filler)
 }
 
 template <int MSS>
-template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
-                                     std::is_same_v<typename MF::value_type,
-                                                    HYPRE_Real>, int> FOO>
+template <FabArrayType MF>
+requires (std::same_as<typename MF::value_type, HYPRE_Real>)
 void
 HypreSolver<MSS>::solve (Vector<MF      *> const& a_soln,
                          Vector<MF const*> const& a_rhs,
@@ -631,9 +627,8 @@ HypreSolver<MSS>::solve (Vector<MF      *> const& a_soln,
 }
 
 template <int MSS>
-template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
-                                     std::is_same_v<typename MF::value_type,
-                                                    HYPRE_Real>, int> FOO>
+template <FabArrayType MF>
+requires (std::same_as<typename MF::value_type, HYPRE_Real>)
 void
 HypreSolver<MSS>::load_vectors (Vector<MF      *> const& a_soln,
                                 Vector<MF const*> const& a_rhs)
@@ -688,9 +683,8 @@ HypreSolver<MSS>::load_vectors (Vector<MF      *> const& a_soln,
 }
 
 template <int MSS>
-template <class MF, std::enable_if_t<IsFabArray<MF>::value &&
-                                     std::is_same_v<typename MF::value_type,
-                                                    HYPRE_Real>, int> FOO>
+template <FabArrayType MF>
+requires (std::same_as<typename MF::value_type, HYPRE_Real>)
 void
 HypreSolver<MSS>::get_solution (Vector<MF*> const& a_soln)
 {

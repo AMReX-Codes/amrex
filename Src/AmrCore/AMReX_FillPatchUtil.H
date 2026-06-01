@@ -37,14 +37,17 @@ namespace amrex
     template <typename MFFAB>
     struct NullInterpHook
     {
-        template <BaseFabType T = MFFAB>
-        void operator() (MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator()(MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
+        requires (BaseFabType<MFFAB>)
+        {}
 
-        template <BaseFabType T = MFFAB>
-        void operator() (Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator()(Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
+        requires (BaseFabType<MFFAB>)
+        {}
 
-        template <FabArrayType T = MFFAB>
-        void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator()(MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const
+        requires (FabArrayType<MFFAB>)
+        {}
     };
 
     /**
@@ -88,7 +91,8 @@ namespace amrex
      * \param bcfcomp starting component for physbcf
      */
     template <FabArrayType MF, typename BC>
-    void FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
                           const Geometry& geom,
@@ -118,7 +122,8 @@ namespace amrex
      * \param bcfcomp starting component for physbcf
      */
     template <FabArrayType MF, typename BC>
-    void FillPatchSingleLevel (MF& mf, Real time,
+    void
+    FillPatchSingleLevel (MF& mf, Real time,
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
                           const Geometry& geom,
@@ -165,7 +170,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -218,7 +224,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void FillPatchTwoLevels (MF& mf, Real time,
+    void
+    FillPatchTwoLevels (MF& mf, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -275,7 +282,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -332,7 +340,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -388,7 +397,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
+    void
+    FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                         int scomp, int dcomp, int ncomp,
@@ -442,7 +452,8 @@ namespace amrex
      * \param post_interp post-interpolation hook
      */
     template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -495,7 +506,8 @@ namespace amrex
      * \param post_interp post-interpolation hook
      */
     template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    void FillPatchTwoLevels (MF& mf, Real time,
+    void
+    FillPatchTwoLevels (MF& mf, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -543,7 +555,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void InterpFromCoarseLevel (MF& mf, Real time,
+    void
+    InterpFromCoarseLevel (MF& mf, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            BC& cbc, int cbccomp,
@@ -586,7 +599,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+    void
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            BC& cbc, int cbccomp,
@@ -630,7 +644,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+    void
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const EB2::IndexSpace* index_space,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -675,7 +690,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
+    void
+    InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                            const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
@@ -720,7 +736,8 @@ namespace amrex
     template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    void InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+    void
+    InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                            const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
                            Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
@@ -758,7 +775,8 @@ namespace amrex
      * \param bcscomp starting component for bcs
      */
     template <FabArrayType MF, typename Interp>
-    void InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
+    void
+    InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                            IntVect const& nghost_outside_domain,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -788,7 +806,8 @@ namespace amrex
      * \param geom Geometry for this level
      */
     template <FabArrayType MF>
-    void FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                           const Vector<MF*>& smf, IntVect const& snghost,
                           const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
                           const Geometry& geom);
@@ -824,7 +843,8 @@ namespace amrex
      * \param bcscomp starting component for bcs
      */
     template <FabArrayType MF, typename Interp>
-    void FillPatchTwoLevels (MF& mf, IntVect const& nghost,
+    void
+    FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                         IntVect const& nghost_outside_domain, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -888,7 +908,8 @@ namespace amrex
      * \param bcrcomp starting component for bcr
      */
     template <FabArrayType MF, typename BC, typename Interp>
-    void FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
+    void
+    FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                       const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
                       int scomp, int dcomp, int ncomp,
                       const Vector<Geometry>& geom,

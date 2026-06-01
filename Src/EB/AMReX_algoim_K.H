@@ -472,7 +472,8 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    template <int K = M, std::enable_if_t<K==1,int> = 0>
+    template <int K = M>
+    requires (K==1)
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
@@ -492,7 +493,8 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    template <int K = M, std::enable_if_t<(K>1),int> = 0>
+    template <int K = M>
+    requires (K>1)
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,

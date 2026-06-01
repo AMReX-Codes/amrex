@@ -30,7 +30,8 @@ namespace amrex {
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator>
+requires (IsParticleIterator<Iterator>::value)
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
@@ -48,7 +49,8 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator>
+requires (IsParticleIterator<Iterator>::value)
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
@@ -94,7 +96,8 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC>
+requires (IsParticleContainer<PC>::value)
 Long
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
@@ -113,7 +116,8 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC>
+requires (IsParticleContainer<PC>::value)
 Long
 numParticlesOutOfRange (PC const& pc, IntVect nGrow)
 {
@@ -134,7 +138,8 @@ numParticlesOutOfRange (PC const& pc, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC>
+requires (IsParticleContainer<PC>::value)
 Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
@@ -158,7 +163,8 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC>
+requires (IsParticleContainer<PC>::value)
 Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 {
@@ -941,8 +947,8 @@ std::string getDefaultCompNameInt (const int i) {
  * \param ptile
  * \param permutations
  */
-template <class PTile, class index_type,
-          std::enable_if_t<!PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
+template <class PTile, class index_type>
+requires (!PTile::ParticleType::is_rtsoa_particle)
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {
@@ -1045,8 +1051,8 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
  * \param ptile
  * \param permutations
  */
-template <class PTile, class index_type,
-          std::enable_if_t<PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
+template <class PTile, class index_type>
+requires (PTile::ParticleType::is_rtsoa_particle)
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {

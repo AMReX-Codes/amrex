@@ -333,8 +333,7 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
+    template <std::same_as<bool> T>
     void AddRealComp (T communicate=true)
     {
         ParticleContainerType::AddRealComp(communicate);
@@ -342,8 +341,7 @@ public:
         calcCommSize();
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
+    template <std::same_as<bool> T>
     void AddIntComp (T communicate=true)
     {
         ParticleContainerType::AddIntComp(communicate);

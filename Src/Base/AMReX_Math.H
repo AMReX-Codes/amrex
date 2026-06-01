@@ -7,6 +7,7 @@
 #include <AMReX_INT.H>
 #include <AMReX_SIMD.H>
 #include <AMReX_REAL.H>
+#include <concepts>
 #include <cmath>
 #include <cstdlib>
 #include <limits>
@@ -64,8 +65,8 @@ using std::isinf;
 
 #endif
 
-template <typename T>
-constexpr std::enable_if_t<std::is_floating_point_v<T>,T> pi ()
+template <std::floating_point T>
+constexpr T pi ()
 {
     return std::numbers::pi_v<T>;
 }
@@ -142,8 +143,8 @@ namespace detail {
 
 #ifdef AMREX_USE_SIMD
 //! Return sine and cosine of given number
-template<typename T_Real,
-         std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincos (T_Real x)
 {
@@ -185,8 +186,8 @@ std::pair<float,float> sincos (float x)
 
 #ifdef AMREX_USE_SIMD
 //! Return sin(pi*x) and cos(pi*x) given x
-template<typename T_Real,
-         std::enable_if_t<amrex::simd::stdx::is_simd_v<T_Real>,int> = 0>
+template<typename T_Real>
+requires (amrex::simd::stdx::is_simd_v<T_Real>)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 std::pair<T_Real,T_Real> sincospi (T_Real x)
 {
@@ -228,8 +229,8 @@ std::pair<float,float> sincospi (float x)
 }
 
 //! Return pow(x, Power), where Power is an integer known at compile time
-template <int Power, typename T,
-    typename = std::enable_if_t<!std::is_integral<T>() || Power>=0>>
+template <int Power, typename T>
+requires (!std::integral<T> || Power >= 0)
 AMREX_FORCE_INLINE
 constexpr T powi (T x) noexcept
 {

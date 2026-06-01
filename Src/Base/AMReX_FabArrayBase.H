@@ -167,7 +167,7 @@ public:
         Long        bytes_hwm{0};
         std::string name;     //!< name of the cache
         explicit CacheStats (std::string  name_)
-            : name(std::move(name_)) {;}
+            : name(std::move(name_)) {}
         void recordBuild () noexcept {
             ++size;
             ++nbuild;

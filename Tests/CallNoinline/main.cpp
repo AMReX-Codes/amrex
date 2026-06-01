@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
     {
-        double pi = amrex::Math::pi<double>();
+        auto pi = amrex::Math::pi<double>();
         double one = 1.0;
 
         auto g = [] AMREX_GPU_DEVICE (double a, double b, double c)

@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Concepts.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_SPACEDIM
@@ -166,9 +167,8 @@ namespace amrex
         return r;
     }
 
-    template <class T, std::enable_if_t<IsFabArray<T>::value ||
-                                               IsBaseFab<T>::value,
-                                               int> = 0 >
+    template <class T>
+    requires (FabArrayType<T> || BaseFabType<T>)
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
     {
@@ -178,9 +178,8 @@ namespace amrex
         return r;
     }
 
-    template <class T, std::enable_if_t<IsFabArray<T>::value ||
-                                               IsBaseFab<T>::value,
-                                               int> = 0 >
+    template <class T>
+    requires (FabArrayType<T> || BaseFabType<T>)
     [[nodiscard]] Vector<std::array<T*, AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a)
     {

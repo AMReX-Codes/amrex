@@ -51,8 +51,8 @@ public:
                              const MF* robinbc_b = nullptr,
                              const MF* robinbc_f = nullptr) final;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
-                                             IsMultiFabLike_v<AMF>, int> = 0>
+    template <MultiFabLike AMF>
+    requires (!std::same_as<MF,AMF>)
     void setLevelBC (int amrlev, const AMF* levelbcdata,
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,

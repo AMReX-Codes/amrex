@@ -59,7 +59,8 @@ bool ProperlyNested (const IntVect& ratio, const IntVect& blocking_factor, int n
 }
 
 template <FabArrayType MF, typename BC>
-void FillPatchSingleLevel (MF& mf, Real time,
+void
+FillPatchSingleLevel (MF& mf, Real time,
                       const Vector<MF*>& smf, const Vector<Real>& stime,
                       int scomp, int dcomp, int ncomp,
                       const Geometry& geom,
@@ -70,7 +71,8 @@ void FillPatchSingleLevel (MF& mf, Real time,
 }
 
 template <FabArrayType MF, typename BC>
-void FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
+void
+FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                       const Vector<MF*>& smf, const Vector<Real>& stime,
                       int scomp, int dcomp, int ncomp,
                       const Geometry& geom,
@@ -216,7 +218,8 @@ void FillPatchInterp (MultiFab& mf_fine_patch, int fcomp, MultiFab const& mf_crs
 
 template <FabArrayType MF, typename Interp>
 requires (!std::is_same_v<Interp, MFInterpolater>)
-void FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
+void
+FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
                  int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
                  Box const& dest_domain, const IntVect& ratio,
                  Interp* mapper, const Vector<BCRec>& bcs, int bcscomp)
@@ -246,7 +249,8 @@ void FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int
 }
 
 template <FabArrayType MF>
-void FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
+void
+FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int ccomp,
                  int ncomp, IntVect const& ng, const Geometry& cgeom, const Geometry& fgeom,
                  Box const& dest_domain, const IntVect& ratio,
                  InterpBase* mapper, const Vector<BCRec>& bcs, int bcscomp)
@@ -266,7 +270,8 @@ void FillPatchInterp (MF& mf_fine_patch, int fcomp, MF const& mf_crse_patch, int
 
 template <FabArrayType MF, typename iMF, typename Interp>
 requires (!std::is_same_v<Interp, MFInterpolater>)
-void InterpFace (Interp *interp,
+void
+InterpFace (Interp *interp,
             MF const& mf_crse_patch,    int crse_comp,
             MF&       mf_refined_patch, int fine_comp,
             int ncomp, const IntVect&   ratio,
@@ -291,7 +296,8 @@ void InterpFace (Interp *interp,
 }
 
 template <FabArrayType MF, typename iMF>
-void InterpFace (InterpBase *interp,
+void
+InterpFace (InterpBase *interp,
             MF const& mf_crse_patch,    int crse_comp,
             MF&       mf_refined_patch, int fine_comp,
             int ncomp, const IntVect&   ratio,
@@ -322,10 +328,8 @@ namespace detail {
 
 // ======== FArrayBox
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         MF mf_crse_patch(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
@@ -333,10 +337,8 @@ namespace detail {
         return mf_crse_patch;
     }
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         MF mf_crse_patch(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch,
@@ -344,10 +346,8 @@ namespace detail {
         return mf_crse_patch;
     }
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         MF mf_fine_patch(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0, MFInfo(),
@@ -355,10 +355,8 @@ namespace detail {
         return mf_fine_patch;
     }
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         MF mf_fine_patch(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch,
@@ -366,10 +364,8 @@ namespace detail {
         return mf_fine_patch;
     }
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_refined_patch(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type),
@@ -377,10 +373,8 @@ namespace detail {
         return mf_refined_patch;
     }
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         MF mf_crse_mask(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type),
@@ -388,10 +382,8 @@ namespace detail {
         return mf_crse_mask;
     }
 
-    template <typename MF,
-              std::enable_if_t<std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (std::same_as<typename MF::FABType::value_type, FArrayBox>)
     void mf_set_domain_bndry (MF &mf, Geometry const & geom)
     {
         mf.setDomainBndry(std::numeric_limits<Real>::quiet_NaN(), geom);
@@ -400,71 +392,58 @@ namespace detail {
 
 // ======== Not FArrayBox
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                    FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         return MF(fpc.ba_crse_patch, fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                    FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         return MF(amrex::convert(fpc.ba_crse_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                    FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp)
     {
         return MF(fpc.ba_fine_patch, fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                    FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_fine_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type)
     {
         return MF(amrex::convert(fpc.ba_fine_patch, idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_refined_patch (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert( amrex::refine( amrex::coarsen(fpc.ba_fine_patch, ratio), ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                   FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     MF make_mf_crse_mask (FabArrayBase::FPinfo const& fpc, int ncomp, IndexType idx_type, IntVect ratio)
     {
         return MF(amrex::convert(amrex::coarsen(fpc.ba_fine_patch, ratio), idx_type), fpc.dm_patch, ncomp, 0);
     }
 
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<typename MF::FABType::value_type,
-                                                    FArrayBox>,
-                                      int> = 0>
+    template <MultiFabLike MF>
+    requires (!std::same_as<typename MF::FABType::value_type, FArrayBox>)
     void mf_set_domain_bndry (MF &/*mf*/, Geometry const & /*geom*/)
     {
         // nothing
     }
 
     template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    int FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
+    int
+    FillPatchTwoLevels_doit (MF& mf, IntVect const& nghost, Real time,
                              const Vector<MF*>& cmf, const Vector<Real>& ct,
                              const Vector<MF*>& fmf, const Vector<Real>& ft,
                              int scomp, int dcomp, int ncomp,
@@ -636,7 +615,8 @@ namespace detail {
     }
 
     template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    void FillPatchTwoLevels_doit (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+    void
+    FillPatchTwoLevels_doit (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                              const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                              const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                              int scomp, int dcomp, int ncomp,
@@ -807,7 +787,8 @@ namespace detail {
 /// \endcond
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+void
+FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -832,7 +813,8 @@ void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (MF& mf, Real time,
+void
+FillPatchTwoLevels (MF& mf, Real time,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -858,7 +840,8 @@ void FillPatchTwoLevels (MF& mf, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+void
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -884,7 +867,8 @@ void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ng
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+void
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -914,7 +898,8 @@ void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& ng
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
+void
+FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                     const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
                     int scomp, int dcomp, int ncomp,
@@ -945,7 +930,8 @@ void FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
 
 #ifdef AMREX_USE_EB
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
+void
+FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                     const EB2::IndexSpace& index_space,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -966,7 +952,8 @@ void FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void FillPatchTwoLevels (MF& mf, Real time,
+void
+FillPatchTwoLevels (MF& mf, Real time,
                     const EB2::IndexSpace& index_space,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -988,7 +975,8 @@ void FillPatchTwoLevels (MF& mf, Real time,
 #endif
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void InterpFromCoarseLevel (MF& mf, Real time,
+void
+InterpFromCoarseLevel (MF& mf, Real time,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        BC& cbc, int cbccomp,
@@ -1011,7 +999,8 @@ void InterpFromCoarseLevel (MF& mf, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
+void
+InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                        const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
@@ -1028,7 +1017,8 @@ void InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+void
+InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        BC& cbc, int cbccomp,
@@ -1051,7 +1041,8 @@ void InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
+void
+InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                        const EB2::IndexSpace* index_space,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
@@ -1146,7 +1137,8 @@ void InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
 }
 
 template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-void InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
+void
+InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                        const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
                        Array<BC, AMREX_SPACEDIM>& cbc, int cbccomp,
@@ -1295,7 +1287,8 @@ void InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const&
 }
 
 template <FabArrayType MF, typename Interp>
-void InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
+void
+InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                        IntVect const& nghost_outside_domain,
                        const MF& cmf, int scomp, int dcomp, int ncomp,
                        const Geometry& cgeom, const Geometry& fgeom,
@@ -1309,7 +1302,8 @@ void InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
 }
 
 template <FabArrayType MF>
-void FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
+void
+FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                       const Vector<MF*>& smf, IntVect const& snghost,
                       const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
                       const Geometry& geom)
@@ -1320,7 +1314,8 @@ void FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
 }
 
 template <FabArrayType MF, typename Interp>
-void FillPatchTwoLevels (MF& mf, IntVect const& nghost,
+void
+FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                     IntVect const& nghost_outside_domain, Real time,
                     const Vector<MF*>& cmf, const Vector<Real>& ct,
                     const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -1338,7 +1333,8 @@ void FillPatchTwoLevels (MF& mf, IntVect const& nghost,
 }
 
 template <FabArrayType MF, typename BC, typename Interp>
-void FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
+void
+FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                   const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
                   int scomp, int dcomp, int ncomp,
                   const Vector<Geometry>& geom,

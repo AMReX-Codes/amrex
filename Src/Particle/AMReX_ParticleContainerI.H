@@ -589,7 +589,8 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
+template <std::integral I>
+requires (sizeof(I) >= sizeof(Long))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
 {
@@ -1139,7 +1140,8 @@ clearParticles ()
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
+template <class PCType>
+requires (IsParticleContainer<PCType>::value)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, bool local)
@@ -1150,7 +1152,8 @@ copyParticles (const PCType& other, bool local)
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
+template <class PCType>
+requires (IsParticleContainer<PCType>::value)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, bool local)
@@ -1161,9 +1164,8 @@ addParticles (const PCType& other, bool local)
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, class PCType,
-          std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral_v<F>, int> bar>
+template <class F, class PCType>
+requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, F&& f, bool local)
@@ -1175,9 +1177,8 @@ copyParticles (const PCType& other, F&& f, bool local)
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, class PCType,
-          std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral_v<F>, int> bar>
+template <class F, class PCType>
+requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, F const& f, bool local)
