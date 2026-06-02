@@ -340,7 +340,8 @@ facediv_int (int ci, int cj, int ck, int n,
 }
 
 
-template <int i, std::enable_if_t<(i>=0 && i<8),int> = 0>
+template <int i>
+requires (i>=0 && i<8)
 constexpr IntVect facediv_get_refratio ()
 {
     if constexpr (i == 0) {

@@ -352,7 +352,8 @@ facediv_int_gen_RZ (int ci, int cj, int /*ck*/, int nf,
     }}
 }
 
-template <int i, std::enable_if_t<(i>=0 && i<4), int> = 0>
+template <int i>
+requires (i>=0 && i<4)
 constexpr IntVect facediv_get_refratio ()
 {
     if constexpr (i == 0) {
