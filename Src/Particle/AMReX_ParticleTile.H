@@ -237,10 +237,8 @@ struct ParticleTileData
         }
     }
 
-    template <typename T = ParticleType>
-    requires (!T::is_soa_particle)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SuperParticleType getSuperParticle (int index) const noexcept
+    SuperParticleType getSuperParticle (int index) const noexcept requires (!ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -268,10 +266,8 @@ struct ParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType>
-    requires (T::is_soa_particle)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SuperParticleType getSuperParticle (int index) const noexcept
+    SuperParticleType getSuperParticle (int index) const noexcept requires (ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -286,10 +282,8 @@ struct ParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType>
-    requires (!T::is_soa_particle)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept requires (!ParticleType::is_soa_particle)
     {
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             m_aos[index].pos(i) = sp.pos(i);
@@ -310,10 +304,8 @@ struct ParticleTileData
         }
     }
 
-    template <typename T = ParticleType>
-    requires (T::is_soa_particle)
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+    void setSuperParticle (const SuperParticleType& sp, int index) const noexcept requires (ParticleType::is_soa_particle)
     {
         m_idcpu[index] = sp.m_idcpu;
         for (int i = 0; i < NAR; ++i) {
@@ -668,10 +660,8 @@ struct ConstParticleTileData
         }
     }
 
-    template <typename T = ParticleType>
-    requires (!T::is_soa_particle)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SuperParticleType getSuperParticle (int index) const noexcept
+    SuperParticleType getSuperParticle (int index) const noexcept requires (!ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -699,10 +689,8 @@ struct ConstParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType>
-    requires (T::is_soa_particle)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    SuperParticleType getSuperParticle (int index) const noexcept
+    SuperParticleType getSuperParticle (int index) const noexcept requires (ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -1038,9 +1026,7 @@ struct ParticleTile
     ///
     /// Add one particle to this tile.
     ///
-    template <typename T = ParticleType>
-    requires (!T::is_soa_particle)
-    void push_back (const ParticleType& p)
+    void push_back (const ParticleType& p) requires (!ParticleType::is_soa_particle)
     {
         invalidateRuntimePtrCaches();
         m_aos_tile().push_back(p);
@@ -1049,9 +1035,7 @@ struct ParticleTile
     ///
     /// Add one particle to this tile.
     ///
-    template <int NR = NArrayReal, int NI = NArrayInt>
-    requires (NR != 0 || NI != 0)
-    void push_back (const SuperParticleType& sp)
+    void push_back (const SuperParticleType& sp) requires (NArrayReal != 0 || NArrayInt != 0)
     {
         invalidateRuntimePtrCaches();
         auto np = numParticles();
