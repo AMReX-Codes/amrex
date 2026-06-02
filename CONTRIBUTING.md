@@ -288,7 +288,9 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
       definitions outside the class body**: trailing constraints on those out-of-line
       definitions break CUDA-on-Windows builds. Trailing `requires` is acceptable for
       non-template member functions of class templates, where the constraint depends
-      on class template parameters and there is no function template parameter list.
+      on class template parameters and there is no function template parameter list,
+      **but only when the member is defined inline in the class body** (see the
+      out-of-line rule below).
       ```cpp
       // Good — requires after template <...> for a function template
       template <typename T>
@@ -299,10 +301,10 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
       template <typename T>
       void f (...) requires (std::is_arithmetic_v<T>);
 
-      // OK — trailing requires on a non-template member of a class template
+      // OK — trailing requires on an inline non-template member of a class template
       template <int dim>
       struct Vec {
-          auto cross (Vec const& rhs) const noexcept requires (dim == 3);
+          auto cross (Vec const& rhs) const noexcept requires (dim == 3) { ... }
       };
       ```
       **Order:** `template <...>` → `requires (...)` → attributes (e.g.
@@ -310,6 +312,40 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
       placement in declarations and definitions. For deduction guides, put
       `requires (...)` immediately after `template <...>` and before the guide
       signature.
+    * **Do not reference enclosing class template parameters in the constraint of an
+      out-of-line member definition.** CUDA-on-Windows (MSVC) fails with error C2244
+      ("unable to match function definition to an existing declaration") when a member
+      of a class template is *defined outside the class body* and its `requires` clause
+      refers to the **class** template parameters — this happens regardless of where
+      the `requires` clause is placed, and applies both to constrained non-template
+      members and to member function templates. Use one of these instead:
+      * Constrain through the member's **own** template parameter. If the constraint
+        logically depends on a class parameter, introduce a defaulted member template
+        parameter that mirrors it, so the constraint names the member parameter rather
+        than the class parameter. This indirection is required for MSVC to match the
+        out-of-line definition; do not "simplify" it away.
+        ```cpp
+        template <class FAB>
+        struct FabArray {
+            // Declaration: constraint names the member parameter F (= FAB), not FAB.
+            template <class F = FAB>
+            requires (BaseFabType<F>)
+            void setVal (value_type val);
+        };
+
+        // Out-of-line definition: still constrains on the member parameter F.
+        template <class FAB>
+        template <class F>
+        requires (BaseFabType<F>)
+        void FabArray<FAB>::setVal (value_type val) { ... }
+
+        // Avoid — out-of-line definition whose constraint names the class
+        // parameter FAB directly; this triggers C2244 on CUDA-on-Windows.
+        template <class FAB>
+        void FabArray<FAB>::setVal (value_type val) requires (BaseFabType<FAB>) { ... }
+        ```
+      * Or define the member **inline** in the class body, where referencing the class
+        template parameters in the constraint is fine.
 These guidelines should be adhered to in new contributions to AMReX, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.
 
