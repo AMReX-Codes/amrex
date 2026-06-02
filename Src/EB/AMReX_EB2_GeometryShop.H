@@ -261,9 +261,8 @@ public:
      * \param geom Geometry providing physical coordinates.
      * \param run_on Whether to run on CPU or GPU.
      */
-    template <class U=F>
-    requires (IsGPUable<U>::value)
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn run_on) const noexcept
+    requires (IsGPUable<F>::value)
     {
         if (run_on == RunOn::Gpu && Gpu::inLaunchRegion())
         {
@@ -310,20 +309,19 @@ public:
     }
 
     //! CPU-only fallback for getBoxType().
-    template <class U=F>
-    requires (!IsGPUable<U>::value)
     [[nodiscard]] int getBoxType (const Box& bx, const Geometry& geom, RunOn) const noexcept
+    requires (!IsGPUable<F>::value)
     {
         return getBoxType_Cpu(bx, geom);
     }
 
-    template <class U=F>
-    requires (IsGPUable<U>::value)
-    static constexpr bool isGPUable () noexcept { return true; }
+    static constexpr bool isGPUable () noexcept
+    requires (IsGPUable<F>::value)
+    { return true; }
 
-    template <class U=F>
-    requires (!IsGPUable<U>::value)
-    static constexpr bool isGPUable () noexcept { return false; }
+    static constexpr bool isGPUable () noexcept
+    requires (!IsGPUable<F>::value)
+    { return false; }
 
     /**
      * \brief Fill a level-set FAB by sampling the implicit function on each point in the FAB.
@@ -333,10 +331,9 @@ public:
      * \param run_on   Execution target.
      * \param bounding_box Bounding box limiting the sampling region.
      */
-    template <class U=F>
-    requires (IsGPUable<U>::value)
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn run_on,
                   Box const& bounding_box) const noexcept
+    requires (IsGPUable<F>::value)
     {
         const auto& problo = geom.ProbLoArray();
         const auto& dx = geom.CellSizeArray();
@@ -354,10 +351,9 @@ public:
     }
 
     //! CPU-only overload of fillFab().
-    template <class U=F>
-    requires (!IsGPUable<U>::value)
     void fillFab (BaseFab<Real>& levelset, const Geometry& geom, RunOn,
                   Box const& bounding_box) const noexcept
+    requires (!IsGPUable<F>::value)
     {
 #ifdef AMREX_USE_GPU
         if (!levelset.arena()->isHostAccessible()) {
@@ -403,12 +399,11 @@ public:
      * \param run_on    Execution target.
      * \param bounding_box Bounding box limiting evaluation.
      */
-    template <class U=F>
-    requires (IsGPUable<U>::value)
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn run_on,
                        Box const& bounding_box) const noexcept
+    requires (IsGPUable<F>::value)
     {
         auto const& dx = geom.CellSizeArray();
         auto const& problo = geom.ProbLoArray();
@@ -441,12 +436,11 @@ public:
     }
 
     //! CPU-only overload of getIntercept().
-    template <class U=F>
-    requires (!IsGPUable<U>::value)
     void getIntercept (Array<Array4<Real>,AMREX_SPACEDIM> const& inter_arr,
                        Array<Array4<Type_t const>,AMREX_SPACEDIM> const& type_arr,
                        Array4<Real const> const&, Geometry const& geom, RunOn,
                        Box const& bounding_box) const noexcept
+    requires (!IsGPUable<F>::value)
     {
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             Array4<Real> const& inter = inter_arr[idim];
