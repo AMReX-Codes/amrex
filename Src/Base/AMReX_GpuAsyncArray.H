@@ -50,7 +50,8 @@ public:
     }
 
     explicit AsyncArray (const std::size_t n)
-    requires (std::is_standard_layout_v<T> && std::is_trivial_v<T>)
+        requires (std::is_standard_layout_v<T> && std::is_trivial_v<T>)
+
     {
         if (n == 0) { return; }
 #ifdef AMREX_USE_GPU

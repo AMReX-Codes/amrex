@@ -101,7 +101,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator[] (int n) const
-        requires (!std::is_void_v<T>)
+            requires (!std::is_void_v<T>)
+
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             if (n < 0 || n >= ncomp) {
@@ -761,7 +762,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         CellData<T> cellData (int i, int j, int k) const noexcept
-        requires (IsArray4_v)
+            requires (IsArray4_v)
+
         {
             int ncomp = end.vect[N-1];
             return CellData<T>(this->ptr(i,j,k), stride.a[N-2], ncomp);
@@ -918,7 +920,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
@@ -953,7 +956,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k, int n) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
@@ -1036,7 +1040,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (Dim3 const& cell) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
             return this->operator()(cell.x,cell.y,cell.z);
         }
@@ -1050,7 +1055,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (Dim3 const& cell, int n) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
             return this->operator()(cell.x,cell.y,cell.z,n);
         }
@@ -1065,7 +1071,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,0);
@@ -1094,7 +1101,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (int i, int j, int k, int n) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
 #if defined(AMREX_DEBUG) || defined(AMREX_BOUND_CHECK)
             AMREX_ARRAY4_INDEX_ASSERT(i,j,k,n);
@@ -1170,7 +1178,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (Dim3 const& cell) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
             return this->ptr(cell.x,cell.y,cell.z);
         }
@@ -1184,7 +1193,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T* ptr (Dim3 const& cell, int n) const noexcept
-        requires (!std::is_void_v<T> && IsArray4_v)
+            requires (!std::is_void_v<T> && IsArray4_v)
+
         {
             return this->ptr(cell.x,cell.y,cell.z,n);
         }
@@ -1199,7 +1209,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (int i, int j, int k) const noexcept
-        requires (IsArray4_v)
+            requires (IsArray4_v)
+
         {
             return (i>=begin.vect[0] && i<end.vect[0] &&
                     j>=begin.vect[1] && j<end.vect[1] &&
@@ -1238,7 +1249,8 @@ namespace amrex {
          */
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool contains (Dim3 const& cell) const noexcept
-        requires (IsArray4_v)
+            requires (IsArray4_v)
+
         {
             return (cell.x>=begin.vect[0] && cell.x<end.vect[0] &&
                     cell.y>=begin.vect[1] && cell.y<end.vect[1] &&
@@ -1252,7 +1264,8 @@ namespace amrex {
         AMREX_GPU_HOST_DEVICE
 #endif
         void index_assert_print_error_message (int i, int j, int k, int n) const
-        requires (IsArray4_v)
+            requires (IsArray4_v)
+
         {
             AMREX_IF_ON_DEVICE((
                     AMREX_DEVICE_PRINTF(" (%d,%d,%d,%d) is out of bound (%d:%d,%d:%d,%d:%d,0:%d)\n",
@@ -1411,14 +1424,16 @@ namespace amrex {
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         typename T::reference_type
         operator() (int i, int j, int k, int n) const noexcept
-        requires (amrex::HasMultiComp<T>::value)
+            requires (amrex::HasMultiComp<T>::value)
+
         {
             return this->Array4<T>::operator()(i,j,k,0)[n];
         }
 
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         T& operator() (int i, int j, int k, int n) const noexcept
-        requires (!amrex::HasMultiComp<T>::value)
+            requires (!amrex::HasMultiComp<T>::value)
+
         {
             return this->Array4<T>::operator()(i,j,k,n);
         }
