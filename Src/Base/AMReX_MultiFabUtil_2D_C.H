@@ -409,7 +409,7 @@ void amrex_compute_convective_difference (Box const& bx, Array4<amrex::Real> con
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    diff(i,j,n) = Real(0.5)*dxi * (u_face(i+1,j,0,0)+u_face(i,j,0,0)) *
+                    diff(i,j,0,n) = Real(0.5)*dxi * (u_face(i+1,j,0,0)+u_face(i,j,0,0)) *
                                             (s_on_x_face(i+1,j,0,n)-s_on_x_face(i,j,0,n))
                         +         Real(0.5)*dyi * (v_face(i,j+1,0,0)+v_face(i,j,0,0)) *
                                             (s_on_y_face(i,j+1,0,n)-s_on_y_face(i,j,0,n));
