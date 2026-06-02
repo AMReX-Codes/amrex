@@ -261,7 +261,8 @@ T shuffle_down (T x, int offset) noexcept
 }
 
 // If other sizeof is needed, we can implement it later.
-template <class T, std::enable_if_t<sizeof(T)%sizeof(unsigned int) == 0, int> = 0>
+template <class T>
+requires (sizeof(T)%sizeof(unsigned int) == 0)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T multi_shuffle_down (T x, int offset) noexcept
 {
@@ -282,9 +283,9 @@ template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     // Not all arithmetic types can be taken by shuffle_down, but it's good enough.
-    template <class U=T, std::enable_if_t<std::is_arithmetic<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T operator() (T x) const noexcept
+    T operator()(T x) const noexcept
+    requires (std::is_arithmetic_v<T>)
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = detail::shuffle_down(x, offset);
@@ -293,9 +294,9 @@ struct warpReduce
         return x;
     }
 
-    template <class U=T, std::enable_if_t<!std::is_arithmetic<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T operator() (T x) const noexcept
+    T operator()(T x) const noexcept
+    requires (!std::is_arithmetic_v<T>)
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = detail::multi_shuffle_down(x, offset);

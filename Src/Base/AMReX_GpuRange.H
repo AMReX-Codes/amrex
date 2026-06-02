@@ -7,10 +7,11 @@
 #include <AMReX_GpuError.H>
 #include <AMReX_Box.H>
 #include <AMReX_TypeTraits.H>
+#include <concepts>
 
 namespace amrex {
 
-template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+template <std::integral T>
 bool isEmpty (T n) noexcept { return n <= 0; }
 
 template<int dim>
@@ -22,11 +23,11 @@ namespace Gpu {
 namespace range_detail {
 
 //! integer version
-template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+template <std::integral T>
 AMREX_GPU_HOST_DEVICE
 Long size (T const& b) noexcept { return static_cast<Long>(b); }
 
-template <typename T, std::enable_if_t<std::is_integral_v<T>,int> = 0>
+template <std::integral T>
 AMREX_GPU_HOST_DEVICE
 Long at (T const& /*b*/, Long offset) noexcept { return offset; }
 

@@ -439,7 +439,7 @@ struct ImplicitIntegral
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-        constexpr Real tol = 50.0*eps;
+        constexpr auto tol = Real(50.0*eps);
 
         // Loop over segments of divided interval
         for (int i = 0; i < nroots - 1; ++i)
@@ -472,7 +472,8 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    template <int K = M, std::enable_if_t<K==1,int> = 0>
+    template <int K = M>
+    requires (K==1)
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
@@ -492,7 +493,8 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    template <int K = M, std::enable_if_t<(K>1),int> = 0>
+    template <int K = M>
+    requires (K>1)
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,

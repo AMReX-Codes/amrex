@@ -38,7 +38,6 @@ Checks: >
        -modernize-avoid-c-arrays,
        -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
-       -modernize-use-constraints,
        -modernize-use-ranges,
        -modernize-use-trailing-return-type,
      performance-*,
@@ -74,5 +73,4 @@ HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'
 HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 
 # We will try to modernize this after switching to C++20
-# -modernize-use-constraints
 # -modernize-use-ranges

@@ -481,7 +481,8 @@ packIOData (Vector<int>& idata, Vector<ParticleReal>& rdata, const PC& pc, int l
 }
 /// \endcond
 
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires (IsParticleContainer<PC>::value)
 void WriteBinaryParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -780,7 +781,8 @@ void WriteBinaryParticleDataSync (PC const& pc,
     }
 }
 
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC>
+requires (IsParticleContainer<PC>::value)
 void WriteBinaryParticleDataAsync (PC const& pc,
                                    const std::string& dir, const std::string& name,
                                    const Vector<int>& write_real_comp,

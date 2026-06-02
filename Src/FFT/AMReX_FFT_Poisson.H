@@ -73,7 +73,8 @@ public:
      * \param geom Geometry describing the domain and metric information.
      * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
      */
-    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
+    template <typename FA=MF>
+    requires (IsFabArray_v<FA>)
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
         : m_domain_lo(geom.Domain().smallEnd()),
@@ -98,7 +99,8 @@ public:
      *
      * \param geom Periodic geometry (all directions must be periodic).
      */
-    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
+    template <typename FA=MF>
+    requires (IsFabArray_v<FA>)
     explicit Poisson (Geometry const& geom)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
@@ -150,7 +152,8 @@ public:
      * \param ixtype  Index type (cell vs. node) for the working arrays.
      * \param ngrow   Number of grow cells applied prior to solving.
      */
-    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
+    template <typename FA=MF>
+    requires (IsFabArray_v<FA>)
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
                             IntVect const& ngrow = IntVect(0));
@@ -194,7 +197,8 @@ public:
      * \param geom Geometry describing domain and spacing.
      * \param bc   Boundary descriptors for each direction.
      */
-    template <typename FA=MF, std::enable_if_t<IsFabArray_v<FA>,int> = 0>
+    template <typename FA=MF>
+    requires (IsFabArray_v<FA>)
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
         : m_domain_lo(geom.Domain().smallEnd()),
@@ -394,7 +398,8 @@ void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
 #if (AMREX_SPACEDIM == 3)
 
 template <typename MF>
-template <typename FA, std::enable_if_t<IsFabArray_v<FA>,int> FOO>
+template <typename FA>
+requires (IsFabArray_v<FA>)
 PoissonOpenBC<MF>::PoissonOpenBC (Geometry const& geom, IndexType ixtype,
                                   IntVect const& ngrow)
     : m_geom(geom),

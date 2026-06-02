@@ -250,6 +250,14 @@ public:
     void fillNeighbors ();
 
     ///
+    /// Fill neighbor buffers, but only communicate particles within
+    /// physical distance search_radius of tile boundaries.
+    /// Reduces communication volume when search_radius << cell size.
+    /// CPU build only; the GPU path is not yet implemented.
+    ///
+    void fillNeighbors (amrex::Real search_radius);
+
+    ///
     /// This does an "inverse" fillNeighbors operation, meaning that it adds
     /// data from the ghost particles to the corresponding real ones.
     ///
@@ -273,6 +281,14 @@ public:
     void buildNeighborList (CheckPair const& check_pair, bool sort=false);
 
     ///
+    /// Build a Neighbor List for each tile, using custom bin_size
+    /// instead of the mesh cell size. Useful when the interaction
+    /// radius is much smaller than dx.
+    ///
+    template <class CheckPair>
+    void buildNeighborList (CheckPair const& check_pair, amrex::Real bin_size, bool sort=false);
+
+    ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair, class OtherPCType>
@@ -280,6 +296,17 @@ public:
                             Vector<std::map<std::pair<int, int>,
                                 amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
+
+    ///
+    /// Build a cross-container Neighbor List for each tile, using custom
+    /// bin_size instead of the mesh cell size. Useful when the interaction
+    /// radius is much smaller than dx.
+    ///
+    template <class CheckPair, class OtherPCType>
+    void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
+                            Vector<std::map<std::pair<int, int>,
+                                amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            amrex::Real bin_size, bool sort=false);
 
     ///
     /// Build a Neighbor List for each tile
@@ -306,8 +333,7 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
+    template <std::same_as<bool> T>
     void AddRealComp (T communicate=true)
     {
         ParticleContainerType::AddRealComp(communicate);
@@ -315,8 +341,7 @@ public:
         calcCommSize();
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
+    template <std::same_as<bool> T>
     void AddIntComp (T communicate=true)
     {
         ParticleContainerType::AddIntComp(communicate);
@@ -346,7 +371,7 @@ public:
     void updateNeighborsGPU (bool boundary_neighbors_only=false);
     void clearNeighborsGPU ();
 #else
-    void fillNeighborsCPU ();
+    void fillNeighborsCPU (amrex::Real search_radius = amrex::Real(0));
     void sumNeighborsCPU (int real_start_comp, int real_num_comp,
                           int int_start_comp, int int_num_comp);
     void updateNeighborsCPU (bool reuse_rcv_counts=true);
@@ -370,21 +395,27 @@ protected:
     [[nodiscard]] int numRealCommComps () const { return RealCommCompStart + this->NumRealComps(); }
     [[nodiscard]] int numIntCommComps () const { return IntCommCompStart + this->NumIntComps(); }
 
-    void cacheNeighborInfo ();
+    void cacheNeighborInfo (amrex::Real search_radius = amrex::Real(0));
 
     ///
-    /// This builds the internal mask data structure used for looking up neighbors
+    /// This builds the internal mask data structure used for looking up neighbors.
+    /// When search_radius > 0, the mask grow is sized to cover that physical
+    /// distance per level; otherwise the constructor's m_num_neighbor_cells
+    /// is used.
     ///
-    void BuildMasks ();
+    void BuildMasks (amrex::Real search_radius = amrex::Real(0));
 
     ///
     /// Are the masks computed by the above function still valid?
+    /// When search_radius > 0, masks are additionally invalid if their
+    /// per-level grow is smaller than ceil(search_radius / min(dx_lev)).
     ///
-    bool areMasksValid ();
+    bool areMasksValid (amrex::Real search_radius = amrex::Real(0));
 
-    void GetNeighborCommTags ();
+    void GetNeighborCommTags (amrex::Real search_radius = amrex::Real(0));
 
-    void GetCommTagsBox (Vector<NeighborCommTag>& tags, int lev, const Box& in_box);
+    void GetCommTagsBox (Vector<NeighborCommTag>& tags, int lev, const Box& in_box,
+                         amrex::Real search_radius = amrex::Real(0));
 
     void resizeContainers (int num_levels);
 
@@ -409,12 +440,14 @@ protected:
     template <typename P>
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
                           const P& p,
-                          int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti,
+                          amrex::Real search_radius = amrex::Real(0));
 
     template <typename P>
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
                           const P& p,
-                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti,
+                          amrex::Real search_radius = amrex::Real(0));
 
     IntVect computeRefFac (int src_lev, int lev);
 

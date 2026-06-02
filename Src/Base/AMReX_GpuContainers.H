@@ -414,11 +414,10 @@ namespace amrex::Gpu {
      *              index for the element to be filled.
      */
     template <typename IT, typename F,
-              typename T = typename std::iterator_traits<IT>::value_type,
-              std::enable_if_t<(sizeof(T) <= 36*8) &&  // so there is enough shared memory
-                               std::is_trivially_copyable_v<T> &&
-                               amrex::IsCallable<F, T&, Long>::value,
-                               int> FOO = 0>
+              typename T = typename std::iterator_traits<IT>::value_type>
+    requires ((sizeof(T) <= 36*8) &&  // so there is enough shared memory
+             std::is_trivially_copyable_v<T> &&
+             amrex::IsCallable<F, T&, Long>::value)
     void fillAsync (IT first, IT last, F const& f) noexcept
     {
         auto N = static_cast<Long>(std::distance(first, last));

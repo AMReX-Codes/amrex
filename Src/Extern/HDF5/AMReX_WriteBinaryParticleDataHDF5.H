@@ -180,7 +180,8 @@ static void SetHDF5fapl(hid_t fapl)
  * \param f                Predicate that filters individual particles.
  * \param is_checkpoint    True when ids/cpus are required for restarts.
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires (IsParticleContainer<PC>::value)
 void WriteHDF5ParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
                                   const Vector<int>& write_real_comp,

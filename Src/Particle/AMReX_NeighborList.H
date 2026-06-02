@@ -39,8 +39,8 @@ namespace detail
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2,
-              std::enable_if_t<!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle, int> = 0>
+              typename N1, typename N2>
+    requires (!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle)
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
@@ -89,8 +89,8 @@ namespace detail
 
     template <typename F,
               typename SrcData, typename DstData,
-              typename N1, typename N2, typename N3, typename N4, typename N5,
-              std::enable_if_t<!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle, int> = 0>
+              typename N1, typename N2, typename N3, typename N4, typename N5>
+    requires (!std::remove_cv_t<SrcData>::ParticleType::is_soa_particle)
     AMREX_GPU_HOST_DEVICE
     auto call_check_pair (F const& check_pair,
                           const SrcData& src_tile, const DstData& /*dst_tile*/,
@@ -290,17 +290,15 @@ struct NeighborData
     ConstPTDType m_const_ptile_data;
 };
 
-template<typename A, typename B,
-         std::enable_if_t<std::is_same_v<std::remove_cv_t<A>,
-                                         std::remove_cv_t<B> >, int> = 0>
+template<typename A, typename B>
+requires (std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
 bool isSame (A const* pa, B const* pb)
 {
     return pa == pb;
 }
 
-template<typename A, typename B,
-         std::enable_if_t<!std::is_same_v<std::remove_cv_t<A>,
-                                          std::remove_cv_t<B> >, int> = 0>
+template<typename A, typename B>
+requires (!std::same_as<std::remove_cv_t<A>, std::remove_cv_t<B>>)
 bool isSame (A const* /*pa*/, B const* /*pb*/)
 {
     return false;
@@ -439,10 +437,10 @@ public:
               int ny = hi_p[type].y-lo_p[type].y+1;
               int nz = hi_p[type].z-lo_p[type].z+1;
 
-              for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+              for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
                 for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
-                  for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
-                    int index = (ii * ny + jj) * nz + kk + off_bins;
+                  for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                    int index = (kk * ny + jj) * nx + ii + off_bins;
                     for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                       const auto& pid = pperm[p];
                       bool  ghost_pid = (pid >= np_real);
@@ -453,9 +451,9 @@ public:
                           count += 1;
                       }
                     } // p
-                  } // kk
+                  } // ii
                 } // jj
-              } // ii
+              } // kk
             } // type
 
             pnbor_counts[i] = count;
@@ -495,10 +493,10 @@ public:
             int ny = hi_p[type].y-lo_p[type].y+1;
             int nz = hi_p[type].z-lo_p[type].z+1;
 
-            for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+            for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
               for (int jj = amrex::max(iy-num_cells, 0); jj <= amrex::min(iy+num_cells, ny-1); ++jj) {
-                for (int kk = amrex::max(iz-num_cells, 0); kk <= amrex::min(iz+num_cells, nz-1); ++kk) {
-                  int index = (ii * ny + jj) * nz + kk + off_bins;
+                for (int ii = amrex::max(ix-num_cells, 0); ii <= amrex::min(ix+num_cells, nx-1); ++ii) {
+                  int index = (kk * ny + jj) * nx + ii + off_bins;
                   for (auto p = poffset[index]; p < poffset[index+1]; ++p) {
                     const auto& pid = pperm[p];
                     bool  ghost_pid = (pid >= np_real);
@@ -510,9 +508,9 @@ public:
                         ++n;
                     }
                   }// p
-                }// kk
+                }// ii
               }// jj
-            }// ii
+            }// kk
           } // type
         });
         Gpu::Device::streamSynchronize();

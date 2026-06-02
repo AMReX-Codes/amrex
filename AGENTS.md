@@ -21,12 +21,13 @@ Use this guide whenever you orchestrate explorers/workers inside the AMReX repos
   cmake -S . -B build \
     -DAMReX_ENABLE_TESTS=ON \
     -DAMReX_TEST_TYPE=Small
-  cmake --build build -j
+  cmake --build build -jN
   ctest --test-dir build --output-on-failure
   ```
+  Use `-jN` (not bare `-j`) for parallel builds. Set `N` to a job count appropriate for the machine—typically the number of available physical CPU cores, or slightly less if memory is tight (e.g. `4` on a four-core laptop, `8` on an eight-core workstation).
   Toggle options from `Docs/sphinx_documentation/source/BuildingAMReX.rst` (“Customization options”) and `Tools/CMake/AMReXOptions.cmake` for GPUs, dimensions, debug flags, etc.
-- **Targeted builds/tests**: `cmake --build build -j --target <name>` for individual executables; `ctest --test-dir build -R <regex>` (or `ctest -R <regex>`) to rerun impacted cases only.
-- **GNUmakefile workflows**: When a directory ships a `GNUmakefile`, `cd` there and run `make -j` with required variables (e.g., `DIM`, `USE_MPI`, `USE_CUDA`, `COMP`) as documented in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and `Tools/GNUMake/README.md`.
+- **Targeted builds/tests**: `cmake --build build -jN --target <name>` for individual executables; `ctest --test-dir build -R <regex>` (or `ctest -R <regex>`) to rerun impacted cases only.
+- **GNUmakefile workflows**: When a directory ships a `GNUmakefile`, `cd` there and run `make -jN` with required variables (e.g., `DIM`, `USE_MPI`, `USE_CUDA`, `COMP`) as documented in `Docs/sphinx_documentation/source/BuildingAMReX.rst` and `Tools/GNUMake/README.md`. Use the same `N` guidance as for CMake builds.
 - **Log everything**: Capture exact commands plus pass/fail output in PR descriptions or linked issues so reviewers can reproduce without guessing.
 
 ## Hard Rules & Defaults

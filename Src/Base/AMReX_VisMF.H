@@ -388,8 +388,9 @@ std::istream& operator>> (std::istream& is, VisMF::Header& hd);
  * \param name is the base name for the files.
  */
 template <typename FAB>
+requires (std::same_as<FAB,IArrayBox>)
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
+void
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
@@ -566,8 +567,9 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  * \param name is the base name for the files.
  */
 template <typename FAB>
+requires (std::same_as<FAB,IArrayBox>)
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
+void
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");

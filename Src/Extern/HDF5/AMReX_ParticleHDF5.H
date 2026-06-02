@@ -266,7 +266,8 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
+template <class F>
+requires (!std::same_as<F, Vector<std::string>>)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -324,7 +325,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
+template <class F>
+requires (!std::same_as<F, Vector<std::string>>)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,

@@ -4,6 +4,7 @@
 
 #ifdef AMREX_USE_GPU
 
+#include <AMReX_Concepts.H>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -55,8 +56,8 @@ namespace parfor_mf_detail {
     }
 }
 
-template <int MT, typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+template <int MT, FabArrayType MF, typename F>
+void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&, bool, F const& f)
 {
     const auto& index_array = mf.IndexArray();
@@ -106,8 +107,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
     AMREX_GPU_ERROR_CHECK();
 }
 
-template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+template <FabArrayType MF, typename F>
+void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const& ts, bool dynamic, F&& f)
 {
 #ifdef AMREX_USE_CUDA
@@ -118,8 +119,8 @@ ParallelFor_doit (MF const& mf, IntVect const& nghost, int ncomp, IntVect const&
     ParallelFor_doit<MT>(mf, nghost, ncomp, ts, dynamic, std::forward<F>(f));
 }
 
-template <typename MF, typename F>
-std::enable_if_t<IsFabArray<MF>::value>
+template <FabArrayType MF, typename F>
+void
 ParallelFor_doit (MF const& mf, IntVect const& nghost, IntVect const& ts, bool dynamic, F&& f)
 {
 #ifdef AMREX_USE_CUDA

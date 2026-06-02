@@ -2,6 +2,7 @@
 #define AMREX_ANY_H_
 #include <AMReX_Config.H>
 
+#include <concepts>
 #include <memory>
 #include <typeinfo>
 #include <type_traits>
@@ -27,16 +28,17 @@ public:
     Any& operator= (Any && rhs) = default;
 
     //! Constructs by moving the given object.
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
+    template <typename MF>
+    requires (!std::same_as<Any,std::remove_cvref_t<MF>>)
     Any (MF && mf) // NOLINT(bugprone-forwarding-reference-overload)
         : m_ptr(std::make_unique<innards<MF> >(std::forward<MF>(mf)))
         {}
 
     //! Assigns by moving the given object.
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
-    Any& operator= (MF && mf) {
+    template <typename MF>
+    requires (!std::same_as<Any,std::remove_cvref_t<MF>>)
+    Any& operator= (MF && mf)
+    {
         m_ptr = std::make_unique<innards<MF> >(std::forward<MF>(mf));
         return *this;
     }
