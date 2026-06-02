@@ -1045,7 +1045,7 @@ namespace amrex
             {
 #if (AMREX_SPACEDIM == 1)
                 if (geom[ilev].IsSPHERICAL()) {
-                    const auto rlo = geom[ilev].CellSize(0);
+                    const auto rlo = geom[ilev].ProbLo(0);
                     reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                    noexcept -> Real
@@ -1063,7 +1063,7 @@ namespace amrex
                 } else
 #elif (AMREX_SPACEDIM == 2)
                 if (geom[ilev].IsRZ()) {
-                    const auto rlo = geom[ilev].CellSize(0);
+                    const auto rlo = geom[ilev].ProbLo(0);
                     reduce_op.eval(*mf[ilev], IntVect(0), reduce_data,
                     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                    noexcept -> Real
@@ -1113,7 +1113,7 @@ namespace amrex
         {
 #if (AMREX_SPACEDIM == 1)
             if (geom[nlevels-1].IsSPHERICAL()) {
-                const auto rlo = geom[nlevels-1].CellSize(0);
+                const auto rlo = geom[nlevels-1].ProbLo(0);
                 reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                noexcept -> Real
@@ -1127,7 +1127,7 @@ namespace amrex
             } else
 #elif (AMREX_SPACEDIM == 2)
             if (geom[nlevels-1].IsRZ()) {
-                const auto rlo = geom[nlevels-1].CellSize(0);
+                const auto rlo = geom[nlevels-1].ProbLo(0);
                 reduce_op.eval(*mf.back(), IntVect(0), reduce_data,
                 [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k)
                                noexcept -> Real
