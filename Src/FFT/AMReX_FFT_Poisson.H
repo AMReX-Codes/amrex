@@ -396,6 +396,7 @@ void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
 template <typename MF>
 PoissonOpenBC<MF>::PoissonOpenBC (Geometry const& geom, IndexType ixtype,
                                   IntVect const& ngrow)
+    requires (IsFabArray_v<MF>)
     : m_geom(geom),
       m_grown_domain(amrex::grow(amrex::convert(geom.Domain(),ixtype),ngrow)),
       m_ngrow(ngrow),
