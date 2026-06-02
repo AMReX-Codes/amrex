@@ -92,8 +92,9 @@ public:
      * \param indata input data
      * \param outdata output data
      */
-    void forward (T const* indata, GpuComplex<T>* outdata)
-    requires ((D == Direction::forward) || (D == Direction::both));
+    template <Direction DIR=D>
+    requires ((DIR == Direction::forward) || (DIR == Direction::both))
+    void forward (T const* indata, GpuComplex<T>* outdata);
 
     /**
      * \brief Destroy any cached FFT plans; leaves the object in an uninitialized state.
@@ -110,8 +111,9 @@ public:
      * \param indata input data
      * \param outdata output data
      */
-    void backward (GpuComplex<T> const* indata, T* outdata)
-    requires ((D == Direction::backward) || (D == Direction::both));
+    template <Direction DIR=D>
+    requires ((DIR == Direction::backward) || (DIR == Direction::both))
+    void backward (GpuComplex<T> const* indata, T* outdata);
 
     /**
      * \brief Scaling factor for normalization.
@@ -258,8 +260,9 @@ LocalR2C<T,D,M>& LocalR2C<T,D,M>::operator= (LocalR2C && rhs) noexcept
 }
 
 template <typename T, FFT::Direction D, int M>
+template <Direction DIR>
+requires ((DIR == Direction::forward) || (DIR == Direction::both))
 void LocalR2C<T,D,M>::forward (T const* indata, GpuComplex<T>* outdata)
-requires ((D == Direction::forward) || (D == Direction::both))
 {
     BL_PROFILE("FFT::LocalR2C::forward");
 
@@ -302,8 +305,9 @@ requires ((D == Direction::forward) || (D == Direction::both))
 }
 
 template <typename T, FFT::Direction D, int M>
+template <Direction DIR>
+requires ((DIR == Direction::backward) || (DIR == Direction::both))
 void LocalR2C<T,D,M>::backward (GpuComplex<T> const* indata, T* outdata)
-requires ((D == Direction::backward) || (D == Direction::both))
 {
     BL_PROFILE("FFT::LocalR2C::backward");
 
