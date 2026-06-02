@@ -124,10 +124,8 @@ jobs:
     - name: Checkout pyamrex
       uses: actions/checkout@v6
       with:
-        # TODO: revert to AMReX-Codes/pyamrex @ development once the constraints
-        # changes have landed there. This fork/branch is for testing only.
-        repository: 'WeiqunZhang/pyamrex'
-        ref: 'constraints'
+        repository: 'AMReX-Codes/pyamrex'
+        ref: 'development'
         path: 'pyamrex'
     - name: Dependencies
       run: |
