@@ -688,9 +688,10 @@ public:
      * \param ncomp  number of components
      * \param nghost number of ghost cells
      */
-    template <BaseFabType SFAB>
-    requires (std::is_convertible_v<typename SFAB::value_type,
-                                  typename FAB::value_type>)
+    template <typename SFAB>
+    requires (BaseFabType<SFAB> &&
+              std::is_convertible_v<typename SFAB::value_type,
+                                    typename FAB::value_type>)
     void LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
                     IntVect const& nghost);
 
@@ -1921,8 +1922,9 @@ FabArray<FAB>::clear ()
 }
 
 template <class FAB>
-template <BaseFabType SFAB>
-requires (std::is_convertible_v<typename SFAB::value_type, typename FAB::value_type>)
+template <typename SFAB>
+requires (BaseFabType<SFAB> &&
+          std::is_convertible_v<typename SFAB::value_type, typename FAB::value_type>)
 void
 FabArray<FAB>::LocalCopy (FabArray<SFAB> const& src, int scomp, int dcomp, int ncomp,
                           IntVect const& nghost)

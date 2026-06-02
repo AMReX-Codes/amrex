@@ -223,8 +223,7 @@ public:
      * \brief Define a fine level for multi-valued multi-cut STL geometries (3-D only)
      */
     void define_fine_mvmc (G const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
-    requires (std::same_as<G,STLtools>);
+                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
 #endif
 
     /**
@@ -667,8 +666,9 @@ template <typename G>
 void
 GShopLevel<G>::define_fine_mvmc (G const& gshop, const Geometry& geom,
                                  int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
-requires (std::same_as<G,STLtools>)
 {
+    static_assert(std::same_as<G,STLtools>);
+
     BL_PROFILE("EB2::GShopLevel()-fine-mvmc");
 
     prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
