@@ -478,9 +478,10 @@ public:
     //! Given the offset, return its corresponding index vector in
     //! GpuArray<int,3>. This function is available for 1D, 2D and 3D Boxes
     //! only,
+    template <int N=dim>
+    requires (1 <= N && N <= 3)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
-    GpuArray<int,3> atOffset3d (Long offset) const noexcept
-        requires (1 <= dim && dim <= 3);
+    GpuArray<int,3> atOffset3d (Long offset) const noexcept;
 
     AMREX_GPU_HOST_DEVICE
     BoxND& setSmall (const IntVectND<dim>& sm) noexcept { smallend = sm; return *this; }
@@ -1098,11 +1099,12 @@ BoxND<dim>::atOffset (Long offset) const noexcept
 }
 
 template<int dim>
+template <int N>
+requires (1 <= N && N <= 3)
 AMREX_GPU_HOST_DEVICE
 AMREX_FORCE_INLINE
 GpuArray<int,3>
 BoxND<dim>::atOffset3d (Long offset) const noexcept
-    requires (1 <= dim && dim <= 3)
 {
     Dim3 iv3d = atOffset(offset).dim3(0);
     return {{iv3d.x, iv3d.y, iv3d.z}};

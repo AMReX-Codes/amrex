@@ -150,10 +150,11 @@ public:
      * \param ixtype  Index type (cell vs. node) for the working arrays.
      * \param ngrow   Number of grow cells applied prior to solving.
      */
+    template <typename FA=MF>
+    requires (IsFabArray_v<FA>)
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
-                            IntVect const& ngrow = IntVect(0))
-        requires (IsFabArray_v<MF>);
+                            IntVect const& ngrow = IntVect(0));
 
     /**
      * \brief Solve the open-boundary Poisson problem.
@@ -394,9 +395,10 @@ void Poisson<MF>::solve (MF& a_soln, MF const& a_rhs)
 #if (AMREX_SPACEDIM == 3)
 
 template <typename MF>
+template <typename FA>
+requires (IsFabArray_v<FA>)
 PoissonOpenBC<MF>::PoissonOpenBC (Geometry const& geom, IndexType ixtype,
                                   IntVect const& ngrow)
-    requires (IsFabArray_v<MF>)
     : m_geom(geom),
       m_grown_domain(amrex::grow(amrex::convert(geom.Domain(),ixtype),ngrow)),
       m_ngrow(ngrow),

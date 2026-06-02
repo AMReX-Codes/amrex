@@ -257,8 +257,9 @@ public:
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    [[nodiscard]] Elixir elixir () noexcept
-        requires (std::is_trivially_destructible_v<T>);
+    template <class U=T>
+    requires (std::is_trivially_destructible_v<U>)
+    [[nodiscard]] Elixir elixir () noexcept;
 
     /**
      * \brief The function returns the BaseFab to the invalid state.
@@ -1669,9 +1670,10 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 }
 
 template <class T>
+template <class U>
+requires (std::is_trivially_destructible_v<U>)
 Elixir
 BaseFab<T>::elixir () noexcept
-    requires (std::is_trivially_destructible_v<T>)
 {
     bool o;
     if (Gpu::inLaunchRegion()) {
