@@ -8,6 +8,7 @@
 #include <array>
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 /* This header is not for the users to include directly.  It's meant to be
  * included in AMReX_GpuLaunch.H, which has included the headers needed
@@ -74,8 +75,16 @@ namespace detail
         amrex::ignore_unused(found_option);
         AMREX_ASSERT(found_option);
     }
+
+    template <int Begin, int End, int... I>
+    constexpr auto MakeCTOImpl(std::integer_sequence<int, I...>)
+        -> CompileTimeOptions<Begin + I...>;
 }
 /// \endcond
+
+template <int Begin, int End>
+using CTOSeq = decltype(detail::MakeCTOImpl<Begin, End>(
+                            std::make_integer_sequence<int, End - Begin>{}));
 
 /**
  * \brief Compile time optimization of kernels with run time options.
