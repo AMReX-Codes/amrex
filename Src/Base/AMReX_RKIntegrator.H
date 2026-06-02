@@ -298,11 +298,10 @@ public:
             // S_error = S_low - S_high (pointwise error estimate)
             IntegratorOps<T>::Saxpy(*S_error_vec[0], -1.0, S_new);
 
-            const amrex::Real scaled_err = BaseT::custom_error_norm
-                ? BaseT::custom_error_norm(*S_error_vec[0], S_old, S_new,
-                                           BaseT::abs_tol, BaseT::rel_tol)
-                : IntegratorOps<T>::ScaledMaxNorm(*S_error_vec[0], S_old, S_new,
-                                                  BaseT::abs_tol, BaseT::rel_tol);
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<bool>(BaseT::custom_error_norm),
+                "Adaptive time stepping requires an error norm to be set via set_error_norm.");
+            const amrex::Real scaled_err = BaseT::custom_error_norm(*S_error_vec[0], S_old, S_new,
+                                                                    BaseT::abs_tol, BaseT::rel_tol);
             BaseT::last_scaled_error = scaled_err;
 
             // Step-size controller: exponent is 1/(error_order+1) per standard embedded RK theory
