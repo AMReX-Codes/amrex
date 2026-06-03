@@ -78,6 +78,9 @@ endif
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c11
 
+ifeq ($(USE_LIBCXX),TRUE)
+  CXXFLAGS += -stdlib=libc++
+endif
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
 
