@@ -154,7 +154,9 @@ std::unique_ptr<FabFactory<FArrayBox> >
 MLEBNodeFDLaplacian::makeFactory (int amrlev, int mglev) const
 {
     if (EB2::TopIndexSpaceIfPresent()) {
-        return makeEBFabFactory(m_geom[amrlev][mglev],
+        auto const* fact0 = Factory(amrlev,0) ? Factory(amrlev, 0) : Factory(0,0);
+        return makeEBFabFactory(static_cast<EBFArrayBoxFactory const*>(fact0)->getEBIndexSpace(),
+                                m_geom[amrlev][mglev],
                                 m_grids[amrlev][mglev],
                                 m_dmap[amrlev][mglev],
                                 {1,1,1}, EBSupport::full);
