@@ -49,6 +49,10 @@ endif
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c11
 
+ifeq ($(USE_LIBCXX),TRUE)
+  CXXFLAGS += -stdlib=libc++
+endif
+
 FMODULES = -J$(fmoddir) -I $(fmoddir)
 
 ########################################################################
