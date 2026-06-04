@@ -37,10 +37,9 @@ public:
 #endif
     }
 
-    template <class U=F>
-    requires (IsGPUable<U>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires (IsGPUable<F>::value)
     {
         Real r = std::hypot(x,y);
 #if (AMREX_SPACEDIM == 2)

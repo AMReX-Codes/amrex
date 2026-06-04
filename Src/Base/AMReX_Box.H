@@ -161,28 +161,25 @@ public:
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     int length (int dir) const noexcept { return bigend[dir] - smallend[dir] + 1; }
 
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> length3d () const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         Dim3 len3d = length().dim3(1);
         return {{len3d.x, len3d.y, len3d.z}};
     }
 
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> loVect3d () const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         Dim3 lo3d = smallend.dim3(0);
         return {{lo3d.x, lo3d.y, lo3d.z}};
     }
 
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     GpuArray<int,3> hiVect3d () const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         Dim3 hi3d = bigend.dim3(0);
         return {{hi3d.x, hi3d.y, hi3d.z}};
@@ -221,20 +218,18 @@ public:
     }
 
     //! Return true if argument is contained within BoxND.
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (const Dim3& p) const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         IntVectND<dim> piv{p};
         return contains(piv);
     }
 
     //! Return true if argument is contained within BoxND.
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool contains (int i, int j, int k) const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         Dim3 p3d{.x = i, .y = j, .z = k};
         return contains(p3d);
@@ -268,20 +263,18 @@ public:
     }
 
     //! Return true if argument is strictly contained within BoxND.
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool strictly_contains (const Dim3& p) const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         IntVectND<dim> piv{p};
         return strictly_contains(piv);
     }
 
     //! Return true if argument is strictly contained within BoxND.
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     bool strictly_contains (int i, int j, int k) const noexcept
+        requires (1 <= dim && dim <= 3)
     {
         Dim3 p3d{.x = i, .y = j, .z = k};
         return strictly_contains(p3d);
@@ -2207,10 +2200,9 @@ struct BoxIndexerND
         return retval;
     }
 
-    template <int N=dim>
-    requires ( 1<=N && N<=3 )
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Dim3 operator()(std::uint64_t icell) const
+        requires (1 <= dim && dim <= 3)
     {
         return intVect(icell).dim3();
     }

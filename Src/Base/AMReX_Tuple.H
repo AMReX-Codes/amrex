@@ -26,10 +26,8 @@ namespace detail {
 template <std::size_t I, typename T>
 struct gpu_tuple_element
 {
-    template <typename U=T>
-    requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_element () {} // NOLINT
+    constexpr gpu_tuple_element () requires (std::is_default_constructible_v<T>) {} // NOLINT
 
     explicit constexpr gpu_tuple_element (T const& a_value)
         : m_value(a_value)
@@ -51,10 +49,8 @@ struct gpu_tuple_impl<I, Head, Tail...>
     : public gpu_tuple_impl<I+1, Tail...>,
       public gpu_tuple_element<I, Head>
 {
-    template<typename U=Head>
-    requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl () {} // NOLINT
+    constexpr gpu_tuple_impl () requires (std::is_default_constructible_v<Head>) {} // NOLINT
 
     constexpr gpu_tuple_impl (Head const& a_head, Tail const&... a_tail)
         : gpu_tuple_impl<I+1, Tail...>(a_tail...),
@@ -74,10 +70,8 @@ struct gpu_tuple_impl<I, Head>
     : public gpu_tuple_element<I, Head>
 {
 
-    template<typename U=Head>
-    requires (std::is_default_constructible_v<U>)
     AMREX_GPU_HOST_DEVICE
-    constexpr gpu_tuple_impl () {} // NOLINT
+    constexpr gpu_tuple_impl () requires (std::is_default_constructible_v<Head>) {} // NOLINT
 
     explicit constexpr gpu_tuple_impl (Head const& a_head)
         : gpu_tuple_element<I, Head>(a_head)

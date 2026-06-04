@@ -73,10 +73,9 @@ public:
      * \param geom Geometry describing the domain and metric information.
      * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
      */
-    template <typename FA=MF>
-    requires (IsFabArray_v<FA>)
     Poisson (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+        requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc(bc)
@@ -99,9 +98,8 @@ public:
      *
      * \param geom Periodic geometry (all directions must be periodic).
      */
-    template <typename FA=MF>
-    requires (IsFabArray_v<FA>)
     explicit Poisson (Geometry const& geom)
+        requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
@@ -197,10 +195,9 @@ public:
      * \param geom Geometry describing domain and spacing.
      * \param bc   Boundary descriptors for each direction.
      */
-    template <typename FA=MF>
-    requires (IsFabArray_v<FA>)
     PoissonHybrid (Geometry const& geom,
                    Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+        requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc(bc)
