@@ -2,6 +2,7 @@
 #define AMREX_PARTICLEIO_H
 #include <AMReX_Config.H>
 
+#include <AMReX_ParticleHeader.H>
 #include <AMReX_WriteBinaryParticleData.H>
 #include <AMReX_VisMF.H>
 
@@ -675,88 +676,34 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     std::string fileCharPtrString(fileCharPtr.dataPtr());
     std::istringstream HdrFile(fileCharPtrString, std::istringstream::in);
 
-    std::string version;
-    HdrFile >> version;
-    AMREX_ASSERT(!version.empty());
+    // The metadata prefix (version through finest level) is parsed by the
+    // shared ParticleHeader, which leaves HdrFile positioned at the per-level
+    // grid table read below. See AMReX_ParticleHeader.{H,cpp}.
+    ParticleHeader header;
+    header.parse(HdrFile);
 
-    // What do our version strings mean?
-    // "Version_One_Dot_Zero" -- hard-wired to write out in double precision.
-    // "Version_One_Dot_One" -- can write out either as either single or double precision.
-    // Appended to the latter version string are either "_single" or "_double" to
-    // indicate how the particles were written.
-    // "Version_Two_Dot_Zero" -- this is the AMReX particle file format
-    // "Version_Two_Dot_One" -- expanded particle ids to allow for 2**39-1 per proc
-    std::string how;
-    bool convert_ids = false;
-    if (version.find("Version_Two_Dot_One") != std::string::npos) {
-        convert_ids = true;
-    }
-    if (version.find("Version_One_Dot_Zero") != std::string::npos) {
-        how = "double";
-    }
-    else if (version.find("Version_One_Dot_One")  != std::string::npos ||
-             version.find("Version_Two_Dot_Zero") != std::string::npos ||
-             version.find("Version_Two_Dot_One") != std::string::npos) {
-        if (version.find("_single") != std::string::npos) {
-            how = "single";
-        }
-        else if (version.find("_double") != std::string::npos) {
-            how = "double";
-        }
-        else {
-            std::string msg("ParticleContainer::Restart(): bad version string: ");
-            msg += version;
-            amrex::Error(version.c_str());
-        }
-    }
-    else {
-        std::string msg("ParticleContainer::Restart(): unknown version string: ");
-        msg += version;
-        amrex::Abort(msg.c_str());
-    }
+    const std::string& how = header.how;
+    const bool convert_ids = header.convert_ids;
 
-    int dm;
-    HdrFile >> dm;
-    if (dm != AMREX_SPACEDIM) {
+    if (header.dim != AMREX_SPACEDIM) {
         amrex::Abort("ParticleContainer::Restart(): dm != AMREX_SPACEDIM");
     }
 
-    int nr;
-    HdrFile >> nr;
-    int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
-    if (nr != nrc) {
+    const int nrc = ParticleType::is_soa_particle ? NStructReal + NumRealComps() - AMREX_SPACEDIM : NStructReal + NumRealComps();
+    if (header.num_real != nrc) {
         amrex::Abort("ParticleContainer::Restart(): nr not the expected value");
     }
 
-    std::string comp_name;
-    for (int i = 0; i < nr; ++i) {
-        HdrFile >> comp_name;
-    }
-
-    int ni;
-    HdrFile >> ni;
-    if (ni != NStructInt + NumIntComps()) {
+    if (header.num_int != NStructInt + NumIntComps()) {
         amrex::Abort("ParticleContainer::Restart(): ni != NStructInt");
     }
 
-    for (int i = 0; i < ni; ++i) {
-        HdrFile >> comp_name;
-    }
+    AMREX_ASSERT(header.num_particles >= 0);
 
-    bool checkpoint;
-    HdrFile >> checkpoint;
+    AMREX_ASSERT(header.next_id > 0);
+    ParticleType::NextID(header.next_id);
 
-    Long nparticles;
-    HdrFile >> nparticles;
-    AMREX_ASSERT(nparticles >= 0);
-
-    Long maxnextid;
-    HdrFile >> maxnextid;
-    AMREX_ASSERT(maxnextid > 0);
-    ParticleType::NextID(maxnextid);
-
-    int finest_level_in_file;
-    HdrFile >> finest_level_in_file;
+    const int finest_level_in_file = header.finest_level;
     AMREX_ASSERT(finest_level_in_file >= 0);
 
     // Determine whether this is a dual-grid restart or not.

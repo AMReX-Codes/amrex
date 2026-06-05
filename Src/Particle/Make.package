@@ -48,6 +48,8 @@ CEXE_headers += AMReX_ParticleMesh.H
 CEXE_headers += AMReX_ParticleInterpolators.H
 
 CEXE_headers += AMReX_ParticleIO.H
+CEXE_headers += AMReX_ParticleHeader.H
+CEXE_sources += AMReX_ParticleHeader.cpp
 CEXE_headers += AMReX_WriteBinaryParticleData.H
 
 CEXE_headers += AMReX_ParticleTransformation.H
