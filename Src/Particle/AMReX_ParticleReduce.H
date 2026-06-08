@@ -20,10 +20,10 @@ namespace amrex {
 /// \cond DOXYGEN_IGNORE
 namespace particle_detail {
 
-template <typename F, typename T_ParticleType, int NAR, int NAI>
+template <typename F, typename T_ParticleType, int NAR, int NAI, class RType>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 auto call_f (F const& f,
-             const ConstParticleTileData<T_ParticleType, NAR, NAI>& p,
+             const ConstParticleTileData<T_ParticleType, NAR, NAI, RType>& p,
              const int i) noexcept
 {
     if constexpr ( ! T_ParticleType::is_soa_particle &&
