@@ -7,62 +7,69 @@ namespace amrex {
 /// \cond DOXYGEN_IGNORE
 namespace mlndts_detail {
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_x (Array4<Real const> const& crse,
+    T ts_interp_line_x (Array4<T const> const& crse,
                            int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic+1,jc,kc))*Real(0.5);
+        return (crse(ic,jc,kc)+crse(ic+1,jc,kc))*T(0.5);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_y (Array4<Real const> const& crse,
+    T ts_interp_line_y (Array4<T const> const& crse,
                            int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic,jc+1,kc))*Real(0.5);
+        return (crse(ic,jc,kc)+crse(ic,jc+1,kc))*T(0.5);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_z (Array4<Real const> const& crse,
+    T ts_interp_line_z (Array4<T const> const& crse,
                            int ic, int jc, int kc) noexcept
     {
-        return (crse(ic,jc,kc)+crse(ic,jc,kc+1))*Real(0.5);
+        return (crse(ic,jc,kc)+crse(ic,jc,kc+1))*T(0.5);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_face_xy (Array4<Real const> const& crse,
+    T ts_interp_face_xy (Array4<T const> const& crse,
                             int ic, int jc, int kc) noexcept
     {
         return (ts_interp_line_y(crse,ic  ,jc  ,kc) +
                 ts_interp_line_y(crse,ic+1,jc  ,kc) +
                 ts_interp_line_x(crse,ic  ,jc  ,kc) +
-                ts_interp_line_x(crse,ic  ,jc+1,kc)) * Real(0.25);
+                ts_interp_line_x(crse,ic  ,jc+1,kc)) * T(0.25);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_face_xz (Array4<Real const> const& crse,
+    T ts_interp_face_xz (Array4<T const> const& crse,
                             int ic, int jc, int kc) noexcept
     {
         return (ts_interp_line_z(crse,ic  ,jc,kc  ) +
                 ts_interp_line_z(crse,ic+1,jc,kc  ) +
                 ts_interp_line_x(crse,ic  ,jc,kc  ) +
-                ts_interp_line_x(crse,ic  ,jc,kc+1)) * Real(0.25);
+                ts_interp_line_x(crse,ic  ,jc,kc+1)) * T(0.25);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_face_yz (Array4<Real const> const& crse,
+    T ts_interp_face_yz (Array4<T const> const& crse,
                             int ic, int jc, int kc) noexcept
     {
         return (ts_interp_line_z(crse,ic,jc  ,kc  ) +
                 ts_interp_line_z(crse,ic,jc+1,kc  ) +
                 ts_interp_line_y(crse,ic,jc  ,kc  ) +
-                ts_interp_line_y(crse,ic,jc  ,kc+1)) * Real(0.25);
+                ts_interp_line_y(crse,ic,jc  ,kc+1)) * T(0.25);
     }
 }
 /// \endcond
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
-                          Array4<Real const> const& crse, Array4<int const> const& msk) noexcept
+void mlndtslap_interpadd (int i, int j, int k, Array4<T> const& fine,
+                          Array4<T const> const& crse, Array4<int const> const& msk) noexcept
 {
     using namespace mlndts_detail;
 
@@ -80,7 +87,7 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
                             ts_interp_face_xz(crse,ic  ,jc  ,kc  ) +
                             ts_interp_face_xz(crse,ic  ,jc+1,kc  ) +
                             ts_interp_face_xy(crse,ic  ,jc  ,kc  ) +
-                            ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * Real(1./6.);
+                            ts_interp_face_xy(crse,ic  ,jc  ,kc+1)) * T(1./6.);
         } else if (j_is_odd && k_is_odd) {
             // Node on a Y-Z face
             fine(i,j,k) += ts_interp_face_yz(crse,ic,jc,kc);
@@ -106,9 +113,10 @@ void mlndtslap_interpadd (int i, int j, int k, Array4<Real> const& fine,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_semi_interpadd (int i, int j, int k, Array4<Real> const& fine,
-                               Array4<Real const> const& crse, Array4<int const> const& msk,
+void mlndtslap_semi_interpadd (int i, int j, int k, Array4<T> const& fine,
+                               Array4<T const> const& crse, Array4<int const> const& msk,
                                int semi_dir) noexcept
 {
     using namespace mlndts_detail;
@@ -172,40 +180,42 @@ void mlndtslap_semi_interpadd (int i, int j, int k, Array4<Real> const& fine,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_adotx (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+void mlndtslap_adotx (int i, int j, int k, Array4<T> const& y, Array4<T const> const& x,
                       Array4<int const> const& msk, GpuArray<Real,6> const& s) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = Real(0.0);
+        y(i,j,k) = T(0.0);
     } else {
-        y(i,j,k) = s[0] * (x(i-1,j  ,k  ) + x(i+1,j  ,k  ))
-            +      s[3] * (x(i  ,j-1,k  ) + x(i  ,j+1,k  ))
-            +      s[5] * (x(i  ,j  ,k-1) + x(i  ,j  ,k+1))
-            - Real(2.)*(s[0]+s[3]+s[5]) * x(i,j,k)
-            + Real(0.5)*s[1] * (x(i-1,j-1,k  ) + x(i+1,j+1,k  ) - x(i-1,j+1,k  ) - x(i+1,j-1,k  ))
-            + Real(0.5)*s[2] * (x(i-1,j  ,k-1) + x(i+1,j  ,k+1) - x(i-1,j  ,k+1) - x(i+1,j  ,k-1))
-            + Real(0.5)*s[4] * (x(i  ,j-1,k-1) + x(i  ,j+1,k+1) - x(i  ,j-1,k+1) - x(i  ,j+1,k-1));
+        y(i,j,k) = T(s[0]) * (x(i-1,j  ,k  ) + x(i+1,j  ,k  ))
+            +      T(s[3]) * (x(i  ,j-1,k  ) + x(i  ,j+1,k  ))
+            +      T(s[5]) * (x(i  ,j  ,k-1) + x(i  ,j  ,k+1))
+            - T(2.)*T(s[0]+s[3]+s[5]) * x(i,j,k)
+            + T(0.5)*T(s[1]) * (x(i-1,j-1,k  ) + x(i+1,j+1,k  ) - x(i-1,j+1,k  ) - x(i+1,j-1,k  ))
+            + T(0.5)*T(s[2]) * (x(i-1,j  ,k-1) + x(i+1,j  ,k+1) - x(i-1,j  ,k+1) - x(i+1,j  ,k-1))
+            + T(0.5)*T(s[4]) * (x(i  ,j-1,k-1) + x(i  ,j+1,k+1) - x(i  ,j-1,k+1) - x(i  ,j+1,k-1));
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_gauss_seidel (int i, int j, int k, Array4<Real> const& sol,
-                             Array4<Real const> const& rhs, Array4<int const> const& msk,
+void mlndtslap_gauss_seidel (int i, int j, int k, Array4<T> const& sol,
+                             Array4<T const> const& rhs, Array4<int const> const& msk,
                              GpuArray<Real,6> const& s) noexcept
 {
     if (msk(i,j,k)) {
-        sol(i,j,k) = 0.0;
+        sol(i,j,k) = T(0.0);
     } else {
-        constexpr Real omega = Real(1.25);
-        Real s0 = Real(-2.)*(s[0]+s[3]+s[5]);
-        Real Ax = s[0] * (sol(i-1,j  ,k  ) + sol(i+1,j  ,k  ))
-            +     s[3] * (sol(i  ,j-1,k  ) + sol(i  ,j+1,k  ))
-            +     s[5] * (sol(i  ,j  ,k-1) + sol(i  ,j  ,k+1))
+        constexpr T omega = T(1.25);
+        T s0 = T(-2.)*T(s[0]+s[3]+s[5]);
+        T Ax = T(s[0]) * (sol(i-1,j  ,k  ) + sol(i+1,j  ,k  ))
+            +     T(s[3]) * (sol(i  ,j-1,k  ) + sol(i  ,j+1,k  ))
+            +     T(s[5]) * (sol(i  ,j  ,k-1) + sol(i  ,j  ,k+1))
             + s0 * sol(i,j,k)
-            + Real(0.5)*s[1] * (sol(i-1,j-1,k  ) + sol(i+1,j+1,k  ) - sol(i-1,j+1,k  ) - sol(i+1,j-1,k  ))
-            + Real(0.5)*s[2] * (sol(i-1,j  ,k-1) + sol(i+1,j  ,k+1) - sol(i-1,j  ,k+1) - sol(i+1,j  ,k-1))
-            + Real(0.5)*s[4] * (sol(i  ,j-1,k-1) + sol(i  ,j+1,k+1) - sol(i  ,j-1,k+1) - sol(i  ,j+1,k-1));
+            + T(0.5)*T(s[1]) * (sol(i-1,j-1,k  ) + sol(i+1,j+1,k  ) - sol(i-1,j+1,k  ) - sol(i+1,j-1,k  ))
+            + T(0.5)*T(s[2]) * (sol(i-1,j  ,k-1) + sol(i+1,j  ,k+1) - sol(i-1,j  ,k+1) - sol(i+1,j  ,k-1))
+            + T(0.5)*T(s[4]) * (sol(i  ,j-1,k-1) + sol(i  ,j+1,k+1) - sol(i  ,j-1,k+1) - sol(i  ,j+1,k-1));
         sol(i,j,k) += (rhs(i,j,k) - Ax) * (omega/s0);
     }
 }

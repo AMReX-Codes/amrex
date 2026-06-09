@@ -5,7 +5,8 @@
 
 namespace amrex {
 
-MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
+template <typename MF>
+MLNodeTensorLaplacianT<MF>::MLNodeTensorLaplacianT (const Vector<Geometry>& a_geom,
                                               const Vector<BoxArray>& a_grids,
                                               const Vector<DistributionMapping>& a_dmap,
                                               const LPInfo& a_info)
@@ -13,14 +14,16 @@ MLNodeTensorLaplacian::MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
     define(a_geom, a_grids, a_dmap, a_info);
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::setSigma (Array<Real,nelems> const& a_sigma) noexcept
+MLNodeTensorLaplacianT<MF>::setSigma (Array<Real,nelems> const& a_sigma) noexcept
 {
     for (int i = 0; i < nelems; ++i) { m_sigma[i] = a_sigma[i]; }
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept // NOLINT(readability-convert-member-functions-to-static)
+MLNodeTensorLaplacianT<MF>::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexcept // NOLINT(readability-convert-member-functions-to-static)
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(a_beta);
@@ -38,11 +41,12 @@ MLNodeTensorLaplacian::setBeta (Array<Real,AMREX_SPACEDIM> const& a_beta) noexce
 #endif
 }
 
-GpuArray<Real,MLNodeTensorLaplacian::nelems>
-MLNodeTensorLaplacian::scaledSigma (int amrlev, int mglev) const noexcept
+template <typename MF>
+GpuArray<Real,MLNodeTensorLaplacianT<MF>::nelems>
+MLNodeTensorLaplacianT<MF>::scaledSigma (int amrlev, int mglev) const noexcept
 {
     auto s = m_sigma;
-    auto const& dxinv = m_geom[amrlev][mglev].InvCellSizeArray();
+    auto const& dxinv = this->m_geom[amrlev][mglev].InvCellSizeArray();
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(dxinv);
 #elif (AMREX_SPACEDIM == 2)
@@ -60,8 +64,9 @@ MLNodeTensorLaplacian::scaledSigma (int amrlev, int mglev) const noexcept
     return s;
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::define (const Vector<Geometry>& a_geom,
+MLNodeTensorLaplacianT<MF>::define (const Vector<Geometry>& a_geom,
                                const Vector<BoxArray>& a_grids,
                                const Vector<DistributionMapping>& a_dmap,
                                const LPInfo& a_info)
@@ -74,29 +79,30 @@ MLNodeTensorLaplacian::define (const Vector<Geometry>& a_geom,
         ba.enclosedCells();
     }
 
-    m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
-    MLNodeLinOp::define(a_geom, cc_grids, a_dmap, a_info);
+    this->m_coarsening_strategy = CoarseningStrategy::Sigma; // This will fill nodes outside Neumann BC
+    MLNodeLinOpT<MF>::define(a_geom, cc_grids, a_dmap, a_info);
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const
+MLNodeTensorLaplacianT<MF>::restriction (int amrlev, int cmglev, MF& crse, MF& fine) const
 {
     BL_PROFILE("MLNodeTensorLaplacian::restriction()");
 
-    applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
+    this->applyBC(amrlev, cmglev-1, fine, BCMode::Homogeneous, StateMode::Solution);
 
-    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[cmglev-1];
-    int semicoarsening_dir = info.semicoarsening_direction;
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[cmglev-1];
+    int semicoarsening_dir = this->info.semicoarsening_direction;
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
-    MultiFab cfine;
+    MF cfine;
     if (need_parallel_copy) {
         const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0);
     }
 
-    MultiFab* pcrse = (need_parallel_copy) ? &cfine : &crse;
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][cmglev-1];
+    MF* pcrse = (need_parallel_copy) ? &cfine : &crse;
+    const iMultiFab& dmsk = *this->m_dirichlet_mask[amrlev][cmglev-1];
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -104,8 +110,8 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
     for (MFIter mfi(*pcrse, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Array4<Real> cfab = pcrse->array(mfi);
-        Array4<Real const> const& ffab = fine.const_array(mfi);
+        Array4<RT> cfab = pcrse->array(mfi);
+        Array4<RT const> const& ffab = fine.const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
         if (ratio == 2) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
@@ -125,18 +131,19 @@ MLNodeTensorLaplacian::restriction (int amrlev, int cmglev, MultiFab& crse, Mult
     }
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
-                                      const MultiFab& crse) const
+MLNodeTensorLaplacianT<MF>::interpolation (int amrlev, int fmglev, MF& fine,
+                                      const MF& crse) const
 {
     BL_PROFILE("MLNodeTensorLaplacian::interpolation()");
 
-    IntVect const ratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
-    int semicoarsening_dir = info.semicoarsening_direction;
+    IntVect const ratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
+    int semicoarsening_dir = this->info.semicoarsening_direction;
 
     bool need_parallel_copy = !amrex::isMFIterSafe(crse, fine);
-    MultiFab cfine;
-    const MultiFab* cmf = &crse;
+    MF cfine;
+    const MF* cmf = &crse;
     if (need_parallel_copy) {
         const BoxArray& ba = amrex::coarsen(fine.boxArray(), ratio);
         cfine.define(ba, fine.DistributionMap(), 1, 0);
@@ -144,7 +151,7 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
         cmf = &cfine;
     }
 
-    const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][fmglev];
+    const iMultiFab& dmsk = *this->m_dirichlet_mask[amrlev][fmglev];
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -152,8 +159,8 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         Box const& bx = mfi.tilebox();
-        Array4<Real> const& ffab = fine.array(mfi);
-        Array4<Real const> const& cfab = cmf->const_array(mfi);
+        Array4<RT> const& ffab = fine.array(mfi);
+        Array4<RT const> const& cfab = cmf->const_array(mfi);
         Array4<int const> const& mfab = dmsk.const_array(mfi);
         if (ratio == 2) {
             AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
@@ -169,39 +176,43 @@ MLNodeTensorLaplacian::interpolation (int amrlev, int fmglev, MultiFab& fine,
     }
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& /*crse_rhs*/,
-                                               const MultiFab& fine_sol, const MultiFab& /*fine_rhs*/)
+MLNodeTensorLaplacianT<MF>::averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& /*crse_rhs*/,
+                                               const MF& fine_sol, const MF& /*fine_rhs*/)
 {
-    const auto& amrrr = AMRRefRatio(camrlev);
+    const auto& amrrr = this->AMRRefRatio(camrlev);
     amrex::average_down(fine_sol, crse_sol, 0, 1, amrrr);
 
-    if (isSingular(0))
+    if (this->isSingular(0))
     {
         amrex::Abort("MLNodeTensorLaplacian::averageDownSolutionRHS: TODO");
     }
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::reflux (int /*crse_amrlev*/,
-                               MultiFab& /*res*/, const MultiFab& /*crse_sol*/, const MultiFab& /*crse_rhs*/,
-                               MultiFab& /*fine_res*/, MultiFab& /*fine_sol*/, const MultiFab& /*fine_rhs*/) const
+MLNodeTensorLaplacianT<MF>::reflux (int /*crse_amrlev*/,
+                               MF& /*res*/, const MF& /*crse_sol*/, const MF& /*crse_rhs*/,
+                               MF& /*fine_res*/, MF& /*fine_sol*/, const MF& /*fine_rhs*/) const
 {
     amrex::Abort("MLNodeTensorLaplacian::reflux: TODO");
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::prepareForSolve ()
+MLNodeTensorLaplacianT<MF>::prepareForSolve ()
 {
     BL_PROFILE("MLNodeTensorLaplacian::prepareForSolve()");
 
-    MLNodeLinOp::prepareForSolve();
+    MLNodeLinOpT<MF>::prepareForSolve();
 
-    buildMasks();
+    this->buildMasks();
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const
+MLNodeTensorLaplacianT<MF>::Fapply (int amrlev, int mglev, MF& out, const MF& in) const
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(amrlev, mglev, out, in);
@@ -212,7 +223,7 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
 
     auto const& in_a = in.const_arrays();
     auto const& out_a = out.arrays();
-    auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    auto const& dmsk_a = this->m_dirichlet_mask[amrlev][mglev]->const_arrays();
 
     amrex::ParallelFor(out,
     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
@@ -225,26 +236,28 @@ MLNodeTensorLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const Multi
 #endif
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+MLNodeTensorLaplacianT<MF>::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                                bool skip_fillboundary, int niter) const
 {
     BL_PROFILE("MLNodeTensorLaplacian::smooth()");
     for (int i = 0; i < niter; ++i) {
         for (int redblack = 0; redblack < 4; ++redblack) {
             if (!skip_fillboundary) {
-                applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
+                this->applyBC(amrlev, mglev, sol, BCMode::Homogeneous, StateMode::Correction);
             }
             m_redblack = redblack;
             Fsmooth(amrlev, mglev, sol, rhs);
             skip_fillboundary = false;
         }
-        nodalSync(amrlev, mglev, sol);
+        this->nodalSync(amrlev, mglev, sol);
     }
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const
+MLNodeTensorLaplacianT<MF>::Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs) const
 {
 #if (AMREX_SPACEDIM == 1)
     amrex::ignore_unused(amrlev, mglev, sol, rhs);
@@ -255,7 +268,7 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 
     auto const& sol_a = sol.arrays();
     auto const& rhs_a = rhs.const_arrays();
-    auto const& dmsk_a = m_dirichlet_mask[amrlev][mglev]->const_arrays();
+    auto const& dmsk_a = this->m_dirichlet_mask[amrlev][mglev]->const_arrays();
     int redblack = m_redblack;
 
     amrex::ParallelFor(sol,
@@ -271,21 +284,24 @@ MLNodeTensorLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const Mult
 #endif
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::normalize (int amrlev, int mglev, MultiFab& mf) const
+MLNodeTensorLaplacianT<MF>::normalize (int amrlev, int mglev, MF& mf) const
 {
     amrex::ignore_unused(amrlev,mglev,mf);
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
+MLNodeTensorLaplacianT<MF>::fixUpResidualMask (int /*amrlev*/, iMultiFab& /*resmsk*/)
 {
     amrex::Abort("MLNodeTensorLaplacian::fixUpResidualMask: TODO");
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+template <typename MF>
 void
-MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
+MLNodeTensorLaplacianT<MF>::fillIJMatrix (MFIter const& mfi,
                                      Array4<HypreNodeLap::AtomicInt const> const& gid,
                                      Array4<int const> const& lid,
                                      HypreNodeLap::Int* ncols,
@@ -293,7 +309,7 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
                                      Real* mat) const
 {
     const int amrlev = 0;
-    const int mglev = NMGLevels(amrlev)-1;
+    const int mglev = this->NMGLevels(amrlev)-1;
     auto const& s = scaledSigma(amrlev, mglev);
 
     const Box& ndbx = mfi.validbox();
@@ -331,8 +347,9 @@ MLNodeTensorLaplacian::fillIJMatrix (MFIter const& mfi,
     }
 }
 
+template <typename MF>
 void
-MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
+MLNodeTensorLaplacianT<MF>::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
                                 Real* rhs, Array4<Real const> const& bfab) const
 {
     const Box& bx = mfi.validbox();
@@ -344,5 +361,8 @@ MLNodeTensorLaplacian::fillRHS (MFIter const& mfi, Array4<int const> const& lid,
     });
 }
 #endif
+
+template class MLNodeTensorLaplacianT<MultiFab>;
+template class MLNodeTensorLaplacianT<fMultiFab>;
 
 }

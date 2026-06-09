@@ -11,10 +11,18 @@ namespace amrex {
 // It is assumed that tensor is symmetric tensor of rank AMREX_SPACEDIM.
 // Only periodic and Dirichlet are supported.
 
-class MLNodeTensorLaplacian
-    : public MLNodeLinOp
+template <typename MF = amrex::MultiFab>
+class MLNodeTensorLaplacianT
+    : public MLNodeLinOpT<MF>
 {
 public:
+
+    using FAB        = typename MF::fab_type;
+    using RT         = typename MF::value_type;
+
+    using BCMode     = typename MLNodeLinOpT<MF>::BCMode;
+    using StateMode  = typename MLNodeLinOpT<MF>::StateMode;
+    using CoarseningStrategy = typename MLNodeLinOpT<MF>::CoarseningStrategy;
 
 #if (AMREX_SPACEDIM == 2)
     static constexpr int nelems = 3;  // number of unique elements in sigma
@@ -22,17 +30,17 @@ public:
     static constexpr int nelems = 6;
 #endif
 
-    MLNodeTensorLaplacian () = default;
-    MLNodeTensorLaplacian (const Vector<Geometry>& a_geom,
+    MLNodeTensorLaplacianT () = default;
+    MLNodeTensorLaplacianT (const Vector<Geometry>& a_geom,
                            const Vector<BoxArray>& a_grids,
                            const Vector<DistributionMapping>& a_dmap,
                            const LPInfo& a_info = LPInfo());
-    ~MLNodeTensorLaplacian () override = default;
+    ~MLNodeTensorLaplacianT () override = default;
 
-    MLNodeTensorLaplacian (const MLNodeTensorLaplacian&) = delete;
-    MLNodeTensorLaplacian (MLNodeTensorLaplacian&&) = delete;
-    MLNodeTensorLaplacian& operator= (const MLNodeTensorLaplacian&) = delete;
-    MLNodeTensorLaplacian& operator= (MLNodeTensorLaplacian&&) = delete;
+    MLNodeTensorLaplacianT (const MLNodeTensorLaplacianT<MF>&) = delete;
+    MLNodeTensorLaplacianT (MLNodeTensorLaplacianT<MF>&&) = delete;
+    MLNodeTensorLaplacianT<MF>& operator= (const MLNodeTensorLaplacianT<MF>&) = delete;
+    MLNodeTensorLaplacianT<MF>& operator= (MLNodeTensorLaplacianT<MF>&&) = delete;
 
     // The user can set the tensor by calling either setSigma or setBeta.
     // For 2d, a_sigma contains components xx, xy, and yy.
@@ -48,22 +56,22 @@ public:
 
     [[nodiscard]] std::string name () const override { return std::string("MLNodeTensorLaplacian"); }
 
-    void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
-    void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
-    void averageDownSolutionRHS (int camrlev, MultiFab& crse_sol, MultiFab& crse_rhs,
-                                 const MultiFab& fine_sol, const MultiFab& fine_rhs) final;
+    void restriction (int amrlev, int cmglev, MF& crse, MF& fine) const final;
+    void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const final;
+    void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
+                                 const MF& fine_sol, const MF& fine_rhs) final;
 
     void reflux (int crse_amrlev,
-                 MultiFab& res, const MultiFab& crse_sol, const MultiFab& crse_rhs,
-                 MultiFab& fine_res, MultiFab& fine_sol, const MultiFab& fine_rhs) const final;
+                 MF& res, const MF& crse_sol, const MF& crse_rhs,
+                 MF& fine_res, MF& fine_sol, const MF& fine_rhs) const final;
 
-    void smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+    void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                  bool skip_fillboundary, int niter) const final;
 
     void prepareForSolve () final;
-    void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
-    void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
-    void normalize (int amrlev, int mglev, MultiFab& mf) const final;
+    void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs) const final;
+    void normalize (int amrlev, int mglev, MF& mf) const final;
 
     void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
@@ -88,6 +96,8 @@ private:
     GpuArray<Real,nelems> m_sigma;
     mutable int m_redblack = 0;
 };
+
+using MLNodeTensorLaplacian = MLNodeTensorLaplacianT<>;
 
 }
 

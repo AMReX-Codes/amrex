@@ -12,19 +12,23 @@
 #include <omp.h>
 #endif
 
+#include <type_traits>
+
 namespace amrex {
 
-MLNodeLinOp::MLNodeLinOp ()
+template <typename MF>
+MLNodeLinOpT<MF>::MLNodeLinOpT ()
 {
-    m_ixtype = IntVect::TheNodeVector();
+    this->m_ixtype = IntVect::TheNodeVector();
 }
 
+template <typename MF>
 void
-MLNodeLinOp::define (const Vector<Geometry>& a_geom,
+MLNodeLinOpT<MF>::define (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
                      const Vector<DistributionMapping>& a_dmap,
                      const LPInfo& a_info,
-                     const Vector<FabFactory<FArrayBox> const*>& a_factory,
+                     const Vector<FabFactory<FAB> const*>& a_factory,
                      int a_eb_limit_coarsening)
 {
     bool eb_limit_coarsening;
@@ -38,74 +42,76 @@ MLNodeLinOp::define (const Vector<Geometry>& a_geom,
         eb_limit_coarsening = a_eb_limit_coarsening;
     }
 
-    MLLinOp::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
+    MLLinOpT<MF>::define(a_geom, a_grids, a_dmap, a_info, a_factory, eb_limit_coarsening);
 
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!hasHiddenDimension(),
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!this->hasHiddenDimension(),
                                      "Nodal solver cannot have any hidden dimensions");
 
-    m_dirichlet_mask.resize(m_num_amr_levels);
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
-        m_dirichlet_mask[amrlev].resize(m_num_mg_levels[amrlev]);
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+    m_dirichlet_mask.resize(this->m_num_amr_levels);
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev) {
+        m_dirichlet_mask[amrlev].resize(this->m_num_mg_levels[amrlev]);
+        for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
             m_dirichlet_mask[amrlev][mglev] = std::make_unique<iMultiFab>
-                (amrex::convert(m_grids[amrlev][mglev],IntVect::TheNodeVector()),
-                 m_dmap[amrlev][mglev], 1, 0);
+                (amrex::convert(this->m_grids[amrlev][mglev],IntVect::TheNodeVector()),
+                 this->m_dmap[amrlev][mglev], 1, 0);
             m_dirichlet_mask[amrlev][mglev]->setVal(0); // non-Dirichlet by default
         }
     }
 
-    m_owner_mask_top = makeOwnerMask(m_grids[0][0],
-                                      m_dmap[0][0],
-                                      m_geom[0][0]);
-    if (m_num_mg_levels[0] == 1) {
+    m_owner_mask_top = makeOwnerMask(this->m_grids[0][0],
+                                      this->m_dmap[0][0],
+                                      this->m_geom[0][0]);
+    if (this->m_num_mg_levels[0] == 1) {
         m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
                                                           m_owner_mask_top->nComp());
     } else {
-        m_owner_mask_bottom = makeOwnerMask(m_grids[0][m_num_mg_levels[0]-1],
-                                             m_dmap[0][m_num_mg_levels[0]-1],
-                                             m_geom[0][m_num_mg_levels[0]-1]);
+        m_owner_mask_bottom = makeOwnerMask(this->m_grids[0][this->m_num_mg_levels[0]-1],
+                                             this->m_dmap[0][this->m_num_mg_levels[0]-1],
+                                             this->m_geom[0][this->m_num_mg_levels[0]-1]);
     }
 
-    m_cc_fine_mask.resize(m_num_amr_levels);
-    m_nd_fine_mask.resize(m_num_amr_levels);
-    m_has_fine_bndry.resize(m_num_amr_levels);
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    m_cc_fine_mask.resize(this->m_num_amr_levels);
+    m_nd_fine_mask.resize(this->m_num_amr_levels);
+    m_has_fine_bndry.resize(this->m_num_amr_levels);
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
-        if (amrlev < m_num_amr_levels-1)
+        if (amrlev < this->m_num_amr_levels-1)
         {
             m_nd_fine_mask[amrlev] = std::make_unique<iMultiFab>
-                (amrex::convert(m_grids[amrlev][0],IntVect::TheNodeVector()),
-                 m_dmap[amrlev][0], 1, 0);
+                (amrex::convert(this->m_grids[amrlev][0],IntVect::TheNodeVector()),
+                 this->m_dmap[amrlev][0], 1, 0);
             m_cc_fine_mask[amrlev] = std::make_unique<iMultiFab>
-                (m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1);
+                (this->m_grids[amrlev][0], this->m_dmap[amrlev][0], 1, 1);
         } else {
             m_cc_fine_mask[amrlev] = std::make_unique<iMultiFab>
-                (m_grids[amrlev][0], m_dmap[amrlev][0], 1, 1, MFInfo().SetAlloc(false));
+                (this->m_grids[amrlev][0], this->m_dmap[amrlev][0], 1, 1, MFInfo().SetAlloc(false));
         }
-        m_has_fine_bndry[amrlev] = std::make_unique<LayoutData<int> >(m_grids[amrlev][0],
-                                                                      m_dmap[amrlev][0]);
+        m_has_fine_bndry[amrlev] = std::make_unique<LayoutData<int> >(this->m_grids[amrlev][0],
+                                                                      this->m_dmap[amrlev][0]);
     }
 
-    m_norm_fine_mask.resize(m_num_amr_levels-1);
-    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev) {
+    m_norm_fine_mask.resize(this->m_num_amr_levels-1);
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels-1; ++amrlev) {
         m_norm_fine_mask[amrlev] = std::make_unique<iMultiFab>
-            (makeFineMask(amrex::convert(m_grids[amrlev][0], IntVect(1)), m_dmap[amrlev][0],
-                          amrex::convert(m_grids[amrlev+1][0], IntVect(1)),
-                          IntVect(m_amr_ref_ratio[amrlev]), 1, 0));
+            (makeFineMask(amrex::convert(this->m_grids[amrlev][0], IntVect(1)), this->m_dmap[amrlev][0],
+                          amrex::convert(this->m_grids[amrlev+1][0], IntVect(1)),
+                          IntVect(this->m_amr_ref_ratio[amrlev]), 1, 0));
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::prepareForSolve ()
+MLNodeLinOpT<MF>::prepareForSolve ()
 {
-    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev) {
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels-1; ++amrlev) {
         fixUpResidualMask(amrlev, *m_norm_fine_mask[amrlev]);
     }
 }
 
+template <typename MF>
 std::unique_ptr<iMultiFab>
-MLNodeLinOp::makeOwnerMask (const BoxArray& a_ba, const DistributionMapping& dm,
+MLNodeLinOpT<MF>::makeOwnerMask (const BoxArray& a_ba, const DistributionMapping& dm,
                             const Geometry& geom)
 {
     const BoxArray& ba = amrex::convert(a_ba, IntVect::TheNodeVector());
@@ -113,15 +119,17 @@ MLNodeLinOp::makeOwnerMask (const BoxArray& a_ba, const DistributionMapping& dm,
     return foo.OwnerMask(geom.periodicity());
 }
 
+template <typename MF>
 void
-MLNodeLinOp::nodalSync (int amrlev, int mglev, MultiFab& mf) const
+MLNodeLinOpT<MF>::nodalSync (int amrlev, int mglev, MF& mf) const
 {
-    mf.OverrideSync(m_geom[amrlev][mglev].periodicity());
+    mf.OverrideSync(this->m_geom[amrlev][mglev].periodicity());
 }
 
+template <typename MF>
 void
-MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                               const MultiFab* /*crse_bcdata*/)
+MLNodeLinOpT<MF>::solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
+                               const MF* /*crse_bcdata*/)
 {
     const int mglev = 0;
     const int ncomp = b.nComp();
@@ -134,13 +142,13 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     for (MFIter mfi(resid, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Array4<Real> const& res = resid.array(mfi);
-        Array4<Real const> const& bb = b.const_array(mfi);
+        Array4<RT> const& res = resid.array(mfi);
+        Array4<RT const> const& bb = b.const_array(mfi);
         Array4<int const> const& dd = dmsk.const_array(mfi);
         AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( bx, ncomp, i, j, k, n,
         {
             if (dd(i,j,k)) {
-                res(i,j,k,n) = 0.0;
+                res(i,j,k,n) = RT(0.0);
             } else {
                 res(i,j,k,n) = bb(i,j,k,n) - res(i,j,k,n);
             }
@@ -148,25 +156,28 @@ MLNodeLinOp::solutionResidual (int amrlev, MultiFab& resid, MultiFab& x, const M
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::correctionResidual (int amrlev, int mglev, MultiFab& resid, MultiFab& x, const MultiFab& b,
-                                 BCMode /*bc_mode*/, const MultiFab* /*crse_bcdata*/)
+MLNodeLinOpT<MF>::correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
+                                 BCMode /*bc_mode*/, const MF* /*crse_bcdata*/)
 {
     apply(amrlev, mglev, resid, x, BCMode::Homogeneous, StateMode::Correction);
     int ncomp = b.nComp();
-    MultiFab::Xpay(resid, -1.0, b, 0, 0, ncomp, 0);
+    MF::Xpay(resid, RT(-1.0), b, 0, 0, ncomp, IntVect(0));
 }
 
+template <typename MF>
 void
-MLNodeLinOp::apply (int amrlev, int mglev, MultiFab& out, MultiFab& in, BCMode bc_mode,
-                    StateMode s_mode, const MLMGBndry*) const
+MLNodeLinOpT<MF>::apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
+                    StateMode s_mode, const MLMGBndryT<MF>*) const
 {
     applyBC(amrlev, mglev, in, bc_mode, s_mode);
     Fapply(amrlev, mglev, out, in);
 }
 
+template <typename MF>
 void
-MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
+MLNodeLinOpT<MF>::smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                      bool skip_fillboundary, int niter) const
 {
     for (int i = 0; i < niter; ++i) {
@@ -178,29 +189,31 @@ MLNodeLinOp::smooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     }
 }
 
-Real
-MLNodeLinOp::xdoty (int amrlev, int mglev, const MultiFab& x, const MultiFab& y, bool local) const
+template <typename MF>
+auto
+MLNodeLinOpT<MF>::xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const -> RT
 {
     amrex::ignore_unused(amrlev);
     AMREX_ASSERT(amrlev==0);
-    AMREX_ASSERT(mglev+1==m_num_mg_levels[0] || mglev==0);
-    const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
+    AMREX_ASSERT(mglev+1==this->m_num_mg_levels[0] || mglev==0);
+    const auto& mask = (mglev+1 == this->m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const int ncomp = y.nComp();
     const IntVect nghost(0);
-    Real result = amrex::Dot(mask, x, 0, y, 0, ncomp, nghost, true);
+    RT result = amrex::Dot(mask, x, 0, y, 0, ncomp, nghost, true);
     if (!local) {
         ParallelAllReduce::Sum(result, ParallelContext::CommunicatorSub());
     }
     return result;
 }
 
-Real
-MLNodeLinOp::dotProductPrecond (Vector<MultiFab const*> const& x,
-                                Vector<MultiFab const*> const& y) const
+template <typename MF>
+auto
+MLNodeLinOpT<MF>::dotProductPrecond (Vector<MF const*> const& x,
+                                Vector<MF const*> const& y) const -> RT
 {
-    Real result = 0;
+    RT result = 0;
     const int ncomp = x[0]->nComp();
-    for (int ilev = 0; ilev < NAMRLevels(); ++ilev) {
+    for (int ilev = 0; ilev < this->NAMRLevels(); ++ilev) {
         result += amrex::Dot(m_precond_weight_mask[ilev],
                              *x[ilev],0,*y[ilev],0,ncomp,IntVect(0),true);
     }
@@ -208,12 +221,13 @@ MLNodeLinOp::dotProductPrecond (Vector<MultiFab const*> const& x,
     return result;
 }
 
-Real
-MLNodeLinOp::norm2Precond (Vector<MultiFab const*> const& x) const
+template <typename MF>
+auto
+MLNodeLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 {
-    Real result = 0;
+    RT result = 0;
     const int ncomp = x[0]->nComp();
-    for (int ilev = 0; ilev < NAMRLevels(); ++ilev) {
+    for (int ilev = 0; ilev < this->NAMRLevels(); ++ilev) {
         result += amrex::Dot(m_precond_weight_mask[ilev],
                              *x[ilev],0,ncomp,IntVect(0),true);
     }
@@ -221,48 +235,53 @@ MLNodeLinOp::norm2Precond (Vector<MultiFab const*> const& x) const
     return std::sqrt(result);
 }
 
-Vector<Real>
-MLNodeLinOp::getSolvabilityOffset (int amrlev, int mglev, MultiFab const& rhs) const
+template <typename MF>
+auto
+MLNodeLinOpT<MF>::getSolvabilityOffset (int amrlev, int mglev, MF const& rhs) const -> Vector<RT>
 {
     amrex::ignore_unused(amrlev);
-    AMREX_ASSERT(amrlev==0 && (mglev+1==m_num_mg_levels[0] || mglev==0));
-    AMREX_ASSERT(getNComp() == 1);
+    AMREX_ASSERT(amrlev==0 && (mglev+1==this->m_num_mg_levels[0] || mglev==0));
+    AMREX_ASSERT(this->getNComp() == 1);
 
-    const auto& mask = (mglev+1 == m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
+    const auto& mask = (mglev+1 == this->m_num_mg_levels[0]) ? m_bottom_dot_mask : m_coarse_dot_mask;
     const auto& mask_ma = mask.const_arrays();
     const auto& rhs_ma = rhs.const_arrays();
-    auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<Real,Real>{},
+    auto r = ParReduce(TypeList<ReduceOpSum,ReduceOpSum>{}, TypeList<RT,RT>{},
                        rhs, IntVect(0),
                        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-                           -> GpuTuple<Real,Real>
+                           -> GpuTuple<RT,RT>
                        {
                            return { mask_ma[box_no](i,j,k) * rhs_ma[box_no](i,j,k),
                                     mask_ma[box_no](i,j,k) };
                        });
 
-    Real s1 = amrex::get<0>(r);
-    Real s2 = amrex::get<1>(r);
-    ParallelAllReduce::Sum<Real>({s1,s2}, ParallelContext::CommunicatorSub());
+    RT s1 = amrex::get<0>(r);
+    RT s2 = amrex::get<1>(r);
+    ParallelAllReduce::Sum<RT>({s1,s2}, ParallelContext::CommunicatorSub());
     return {s1/s2};
 }
 
+template <typename MF>
 void
-MLNodeLinOp::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MultiFab& rhs,
-                                     Vector<Real> const& offset) const
+MLNodeLinOpT<MF>::fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MF& rhs,
+                                     Vector<RT> const& offset) const
 {
     rhs.plus(-offset[0], 0, 1);
 }
 
 namespace {
 
-void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geometry const& geom,
+template <typename MF>
+void MLNodeLinOp_set_dot_mask (MF& dot_mask, iMultiFab const& omask, Geometry const& geom,
                                GpuArray<LinOpBCType,AMREX_SPACEDIM> const& lobc,
                                GpuArray<LinOpBCType,AMREX_SPACEDIM> const& hibc,
-                               MLNodeLinOp::CoarseningStrategy strategy)
+                               typename MLNodeLinOpT<MF>::CoarseningStrategy strategy)
 {
+    using RT = typename MF::value_type;
+
     Box nddomain = amrex::surroundingNodes(geom.Domain());
 
-    if (strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
+    if (strategy != MLNodeLinOpT<MF>::CoarseningStrategy::Sigma) {
         nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
     }
 
@@ -272,7 +291,7 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
     for (MFIter mfi(dot_mask,TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& bx = mfi.tilebox();
-        Array4<Real> const& dfab = dot_mask.array(mfi);
+        Array4<RT> const& dfab = dot_mask.array(mfi);
         Array4<int const> const& sfab = omask.const_array(mfi);
         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
         {
@@ -283,8 +302,9 @@ void MLNodeLinOp_set_dot_mask (MultiFab& dot_mask, iMultiFab const& omask, Geome
 
 }
 
+template <typename MF>
 void
-MLNodeLinOp::buildMasks ()
+MLNodeLinOpT<MF>::buildMasks ()
 {
     if (m_masks_built) { return; }
 
@@ -293,28 +313,28 @@ MLNodeLinOp::buildMasks ()
     m_masks_built = true;
 
     m_is_bottom_singular = false;
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet); // NOLINT
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet); // NOLINT
-    if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end())
+    auto itlo = std::find(this->m_lobc[0].begin(), this->m_lobc[0].end(), BCType::Dirichlet); // NOLINT
+    auto ithi = std::find(this->m_hibc[0].begin(), this->m_hibc[0].end(), BCType::Dirichlet); // NOLINT
+    if (itlo == this->m_lobc[0].end() && ithi == this->m_hibc[0].end())
     {  // No Dirichlet
-        m_is_bottom_singular = (m_domain_covered[0] && !m_overset_dirichlet_mask);
+        m_is_bottom_singular = (this->m_domain_covered[0] && !m_overset_dirichlet_mask);
     }
 
-    const auto lobc = LoBC();
-    const auto hibc = HiBC();
+    const auto lobc = this->LoBC();
+    const auto hibc = this->HiBC();
 
-    for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels; ++amrlev)
     {
-        for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev)
+        for (int mglev = 0; mglev < this->m_num_mg_levels[amrlev]; ++mglev)
         {
-            const Geometry& geom = m_geom[amrlev][mglev];
+            const Geometry& geom = this->m_geom[amrlev][mglev];
             const auto& period = geom.periodicity();
             const Box& ccdomain = geom.Domain();
             const Box& nddomain = amrex::surroundingNodes(ccdomain);
 
             auto& dmask = *m_dirichlet_mask[amrlev][mglev];
 
-            iMultiFab ccm(m_grids[amrlev][mglev],m_dmap[amrlev][mglev],1,1);
+            iMultiFab ccm(this->m_grids[amrlev][mglev],this->m_dmap[amrlev][mglev],1,1);
             ccm.BuildMask(ccdomain,period,0,1,2,0);
 
             MFItInfo mfi_info;
@@ -340,18 +360,18 @@ MLNodeLinOp::buildMasks ()
         }
     }
 
-    for (int amrlev = 0; amrlev < m_num_amr_levels-1; ++amrlev)
+    for (int amrlev = 0; amrlev < this->m_num_amr_levels-1; ++amrlev)
     {
         iMultiFab& cc_mask = *m_cc_fine_mask[amrlev];
         iMultiFab& nd_mask = *m_nd_fine_mask[amrlev];
         LayoutData<int>& has_cf = *m_has_fine_bndry[amrlev];
-        const Box& ccdom = m_geom[amrlev][0].Domain();
+        const Box& ccdom = this->m_geom[amrlev][0].Domain();
 
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMRRefRatio(amrlev) == 2 || AMRRefRatio(amrlev) == 4,
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(this->AMRRefRatio(amrlev) == 2 || this->AMRRefRatio(amrlev) == 4,
                                          "ref_ratio != 2 and 4 not supported");
 
         cc_mask = amrex::makeFineMask(cc_mask, *m_cc_fine_mask[amrlev+1], cc_mask.nGrowVect(),
-                                      IntVect(AMRRefRatio(amrlev)), m_geom[amrlev][0].periodicity(),
+                                      IntVect(this->AMRRefRatio(amrlev)), this->m_geom[amrlev][0].periodicity(),
                                       0, 1, has_cf); // coarse: 0, fine: 1
 
 #ifdef AMREX_USE_OMP
@@ -379,7 +399,7 @@ MLNodeLinOp::buildMasks ()
         }
     }
 
-    auto& has_cf = *m_has_fine_bndry[m_num_amr_levels-1];
+    auto& has_cf = *m_has_fine_bndry[this->m_num_amr_levels-1];
 #ifdef AMREX_USE_OMP
 #pragma omp parallel
 #endif
@@ -390,8 +410,8 @@ MLNodeLinOp::buildMasks ()
 
     {
         int amrlev = 0;
-        int mglev = m_num_mg_levels[amrlev]-1;
-        const Geometry& geom = m_geom[amrlev][mglev];
+        int mglev = this->m_num_mg_levels[amrlev]-1;
+        const Geometry& geom = this->m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask_bottom;
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
@@ -401,31 +421,32 @@ MLNodeLinOp::buildMasks ()
     {
         int amrlev = 0;
         int mglev = 0;
-        const Geometry& geom = m_geom[amrlev][mglev];
+        const Geometry& geom = this->m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask_top;
         m_coarse_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_coarse_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::preparePrecond ()
+MLNodeLinOpT<MF>::preparePrecond ()
 {
     if (m_precond_weight_mask.empty()) {
-        m_precond_weight_mask.resize(m_num_amr_levels);
-        for (int ilev = 0; ilev < m_num_amr_levels; ++ilev) {
-            m_precond_weight_mask[ilev].define(amrex::convert(m_grids[ilev][0],IntVect(1)),
-                                               m_dmap[ilev][0], 1, 0);
-            auto omask = makeOwnerMask(m_grids[ilev][0],
-                                       m_dmap[ilev][0],
-                                       m_geom[ilev][0]);
-            const auto lobc = LoBC();
-            const auto hibc = HiBC();
-            Box nddomain = amrex::surroundingNodes(m_geom[ilev][0].Domain());
-            if (m_coarsening_strategy != MLNodeLinOp::CoarseningStrategy::Sigma) {
+        m_precond_weight_mask.resize(this->m_num_amr_levels);
+        for (int ilev = 0; ilev < this->m_num_amr_levels; ++ilev) {
+            m_precond_weight_mask[ilev].define(amrex::convert(this->m_grids[ilev][0],IntVect(1)),
+                                               this->m_dmap[ilev][0], 1, 0);
+            auto omask = makeOwnerMask(this->m_grids[ilev][0],
+                                       this->m_dmap[ilev][0],
+                                       this->m_geom[ilev][0]);
+            const auto lobc = this->LoBC();
+            const auto hibc = this->HiBC();
+            Box nddomain = amrex::surroundingNodes(this->m_geom[ilev][0].Domain());
+            if (m_coarsening_strategy != CoarseningStrategy::Sigma) {
                 nddomain.grow(1000); // hack to avoid masks being modified at Neumann boundary
             }
-            if (ilev < m_num_amr_levels-1) {
+            if (ilev < this->m_num_amr_levels-1) {
                 auto const& fmask = *m_nd_fine_mask[ilev];
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -434,7 +455,7 @@ MLNodeLinOp::preparePrecond ()
                      mfi.isValid(); ++mfi)
                 {
                     const Box& bx = mfi.tilebox();
-                    Array4<Real> const& dfab = m_precond_weight_mask[ilev].array(mfi);
+                    Array4<RT> const& dfab = m_precond_weight_mask[ilev].array(mfi);
                     Array4<int const> const& sfab = omask->const_array(mfi);
                     Array4<int const> const& ffab = fmask.const_array(mfi);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
@@ -450,7 +471,7 @@ MLNodeLinOp::preparePrecond ()
                      mfi.isValid(); ++mfi)
                 {
                     const Box& bx = mfi.tilebox();
-                    Array4<Real> const& dfab = m_precond_weight_mask[ilev].array(mfi);
+                    Array4<RT> const& dfab = m_precond_weight_mask[ilev].array(mfi);
                     Array4<int const> const& sfab = omask->const_array(mfi);
                     AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                     {
@@ -462,12 +483,13 @@ MLNodeLinOp::preparePrecond ()
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const
+MLNodeLinOpT<MF>::setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const
 {
     auto const& maskma = m_dirichlet_mask[amrlev][mglev]->const_arrays();
     auto const& ma = mf.arrays();
-    const int ncomp = getNComp();
+    const int ncomp = this->getNComp();
     ParallelFor(mf, IntVect(0), ncomp,
     [=] AMREX_GPU_DEVICE (int bno, int i, int j, int k, int n)
     {
@@ -477,12 +499,17 @@ MLNodeLinOp::setDirichletNodesToZero (int amrlev, int mglev, MultiFab& mf) const
         Gpu::streamSynchronize();
     }
 #ifdef AMREX_USE_EB
-    EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
+    // EB helpers are MultiFab/double-only; the nodal solver is never
+    // cell-centered, so this branch is unreached at runtime for any MF.
+    if constexpr (std::is_same_v<MF, amrex::MultiFab>) {
+        EB_set_covered(mf, 0, ncomp, 0, RT(0.0));
+    }
 #endif
 }
 
+template <typename MF>
 void
-MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
+MLNodeLinOpT<MF>::setOversetMask (int amrlev, const iMultiFab& a_dmask)
 {
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -499,15 +526,16 @@ MLNodeLinOp::setOversetMask (int amrlev, const iMultiFab& a_dmask)
     m_overset_dirichlet_mask = true;
 }
 
+template <typename MF>
 void
-MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
+MLNodeLinOpT<MF>::applyBC (int amrlev, int mglev, MF& phi, BCMode/* bc_mode*/,
                       StateMode state_mode, bool skip_fillboundary) const
 {
     BL_PROFILE("MLNodeLinOp::applyBC()");
 
     m_in_solution_mode = state_mode == StateMode::Solution;
 
-    const Geometry& geom = m_geom[amrlev][mglev];
+    const Geometry& geom = this->m_geom[amrlev][mglev];
     const Box& nd_domain = amrex::surroundingNodes(geom.Domain());
 
     if (!skip_fillboundary) {
@@ -516,23 +544,24 @@ MLNodeLinOp::applyBC (int amrlev, int mglev, MultiFab& phi, BCMode/* bc_mode*/,
 
     if (m_coarsening_strategy == CoarseningStrategy::Sigma)
     {
-        const auto lobc = LoBC();
-        const auto hibc = HiBC();
+        const auto lobc = this->LoBC();
+        const auto hibc = this->HiBC();
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
         for (MFIter mfi(phi); mfi.isValid(); ++mfi)
         {
-            Array4<Real> const& fab = phi.array(mfi);
+            Array4<RT> const& fab = phi.array(mfi);
             mlndlap_applybc(mfi.validbox(),fab,nd_domain,lobc,hibc);
         }
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::resizeMultiGrid (int new_size)
+MLNodeLinOpT<MF>::resizeMultiGrid (int new_size)
 {
-    if (new_size <= 0 || new_size >= m_num_mg_levels[0]) { return; }
+    if (new_size <= 0 || new_size >= this->m_num_mg_levels[0]) { return; }
 
     if (m_dirichlet_mask[0].size() > new_size) {
         m_dirichlet_mask[0].resize(new_size);
@@ -540,33 +569,34 @@ MLNodeLinOp::resizeMultiGrid (int new_size)
 
     if (m_masks_built)
     {
-        const auto lobc = LoBC();
-        const auto hibc = HiBC();
+        const auto lobc = this->LoBC();
+        const auto hibc = this->HiBC();
         int amrlev = 0;
         int mglev = new_size-1;
         if (mglev == 0) {
             m_owner_mask_bottom = std::make_unique<iMultiFab>(*m_owner_mask_top, amrex::make_alias, 0,
                                                               m_owner_mask_top->nComp());
         } else {
-            m_owner_mask_bottom = makeOwnerMask(m_grids[0][mglev],
-                                                 m_dmap[0][mglev],
-                                                 m_geom[0][mglev]);
+            m_owner_mask_bottom = makeOwnerMask(this->m_grids[0][mglev],
+                                                 this->m_dmap[0][mglev],
+                                                 this->m_geom[0][mglev]);
         }
-        const Geometry& geom = m_geom[amrlev][mglev];
+        const Geometry& geom = this->m_geom[amrlev][mglev];
         const iMultiFab& omask = *m_owner_mask_bottom;
-        m_bottom_dot_mask = MultiFab();
+        m_bottom_dot_mask = MF();
         m_bottom_dot_mask.define(omask.boxArray(), omask.DistributionMap(), 1, 0);
         MLNodeLinOp_set_dot_mask(m_bottom_dot_mask, omask, geom, lobc, hibc, m_coarsening_strategy);
     }
 
-    MLLinOp::resizeMultiGrid(new_size);
+    MLLinOpT<MF>::resizeMultiGrid(new_size);
 }
 
-Real
-MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
+template <typename MF>
+auto
+MLNodeLinOpT<MF>::normInf (int amrlev, MF const& mf, bool local) const -> RT
 {
     const int ncomp = this->getNComp();
-    const int finest_level = NAMRLevels() - 1;
+    const int finest_level = this->NAMRLevels() - 1;
     if (amrlev == finest_level) {
         return mf.norminf(0, ncomp, IntVect(0), local);
     } else {
@@ -574,12 +604,13 @@ MLNodeLinOp::normInf (int amrlev, MultiFab const& mf, bool local) const
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse,
+MLNodeLinOpT<MF>::interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                IntVect const& nghost) const
 {
-    const int ncomp = getNComp();
-    const int refratio = AMRRefRatio(famrlev-1);
+    const int ncomp = this->getNComp();
+    const int refratio = this->AMRRefRatio(famrlev-1);
 
     AMREX_ALWAYS_ASSERT(refratio == 2 || refratio == 4);
 #ifdef AMREX_USE_OMP
@@ -589,8 +620,8 @@ MLNodeLinOp::interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse
     {
         Box fbx = mfi.tilebox();
         fbx.grow(nghost);
-        Array4<Real> const& ffab = fine.array(mfi);
-        Array4<Real const> const& cfab = crse.const_array(mfi);
+        Array4<RT> const& ffab = fine.array(mfi);
+        Array4<RT const> const& cfab = crse.const_array(mfi);
 
         if (refratio == 2) {
             AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
@@ -606,11 +637,12 @@ MLNodeLinOp::interpolationAmr (int famrlev, MultiFab& fine, const MultiFab& crse
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::averageDownAndSync (Vector<MultiFab>& sol) const
+MLNodeLinOpT<MF>::averageDownAndSync (Vector<MF>& sol) const
 {
-    const int ncomp = getNComp();
-    const int finest_amr_lev = NAMRLevels() - 1;
+    const int ncomp = this->getNComp();
+    const int finest_amr_lev = this->NAMRLevels() - 1;
 
     nodalSync(finest_amr_lev, 0, sol[finest_amr_lev]);
 
@@ -619,25 +651,26 @@ MLNodeLinOp::averageDownAndSync (Vector<MultiFab>& sol) const
         const auto& fmf = sol[falev  ];
         auto&       cmf = sol[falev-1];
 
-        auto rr = AMRRefRatio(falev-1);
-        MultiFab tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
+        auto rr = this->AMRRefRatio(falev-1);
+        MF tmpmf(amrex::coarsen(fmf.boxArray(), rr), fmf.DistributionMap(), ncomp, 0);
         amrex::average_down(fmf, tmpmf, 0, ncomp, rr);
         cmf.ParallelCopy(tmpmf, 0, 0, ncomp);
         nodalSync(falev-1, 0, cmf);
     }
 }
 
+template <typename MF>
 void
-MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crse) const
+MLNodeLinOpT<MF>::interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const
 {
-    const int ncomp = getNComp();
+    const int ncomp = this->getNComp();
 
-    const Geometry& crse_geom = Geom(amrlev,fmglev+1);
-    const IntVect refratio = (amrlev > 0) ? IntVect(2) : mg_coarsen_ratio_vec[fmglev];
+    const Geometry& crse_geom = this->Geom(amrlev,fmglev+1);
+    const IntVect refratio = (amrlev > 0) ? IntVect(2) : this->mg_coarsen_ratio_vec[fmglev];
     AMREX_ALWAYS_ASSERT(refratio == 2);
 
-    MultiFab cfine;
-    const MultiFab* cmf;
+    MF cfine;
+    const MF* cmf;
 
     if (amrex::isMFIterSafe(crse, fine))
     {
@@ -659,8 +692,8 @@ MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crs
     for (MFIter mfi(fine, TilingIfNotGPU()); mfi.isValid(); ++mfi)
     {
         const Box& fbx = mfi.tilebox();
-        Array4<Real> const& ffab = fine.array(mfi);
-        Array4<Real const> const& cfab = cmf->const_array(mfi);
+        Array4<RT> const& ffab = fine.array(mfi);
+        Array4<RT const> const& cfab = cmf->const_array(mfi);
 
         AMREX_HOST_DEVICE_FOR_4D ( fbx, ncomp, i, j, k, n,
         {
@@ -670,20 +703,24 @@ MLNodeLinOp::interpAssign (int amrlev, int fmglev, MultiFab& fine, MultiFab& crs
 }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+template <typename MF>
 std::unique_ptr<HypreNodeLap>
-MLNodeLinOp::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const
+MLNodeLinOpT<MF>::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const
 {
-    const BoxArray& ba = m_grids[0].back();
-    const DistributionMapping& dm = m_dmap[0].back();
-    const Geometry& geom = m_geom[0].back();
-    const auto& factory = *(m_factory[0].back());
+    const BoxArray& ba = this->m_grids[0].back();
+    const DistributionMapping& dm = this->m_dmap[0].back();
+    const Geometry& geom = this->m_geom[0].back();
+    const auto& factory = *(this->m_factory[0].back());
     const auto& owner_mask = *m_owner_mask_bottom;
     const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
-    MPI_Comm comm = BottomCommunicator();
+    MPI_Comm comm = this->BottomCommunicator();
 
     return std::make_unique<amrex::HypreNodeLap>(ba, dm, geom, factory, owner_mask, dirichlet_mask,
                                                  comm, this, bottom_verbose, options_namespace);
 }
 #endif
+
+template class MLNodeLinOpT<MultiFab>;
+template class MLNodeLinOpT<fMultiFab>;
 
 }

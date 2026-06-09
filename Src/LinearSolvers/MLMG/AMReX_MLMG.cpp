@@ -16,4 +16,9 @@ template class MLABecLaplacianT<MultiFab>;
 template class MLALaplacianT<MultiFab>;
 template class MLPoissonT<MultiFab>;
 
+// Single-precision instantiations needed by the float nodal solve
+// (MLNodeTensorLaplacianT<fMultiFab> via MLMGT<fMultiFab>).
+template class MLMGT<fMultiFab>;
+template class MLLinOpT<fMultiFab>;
+
 }
