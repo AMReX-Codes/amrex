@@ -22,7 +22,11 @@
 
 namespace amrex {
 
-class MLNodeLinOp;
+// MLNodeLinOp is now an alias for the FabArray-templated MLNodeLinOpT<MF>
+// (default MF = MultiFab); forward-declare the template and the alias so this
+// header (included by AMReX_MLNodeLinOp.H) does not redeclare it as a class.
+template <typename MF> class MLNodeLinOpT;
+using MLNodeLinOp = MLNodeLinOpT<MultiFab>;
 
 /**
  * \brief IJ-based nodal Laplacian that mirrors MLNodeLinOp's discretization.

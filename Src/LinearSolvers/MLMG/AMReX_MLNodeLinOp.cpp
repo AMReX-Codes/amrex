@@ -707,16 +707,25 @@ template <typename MF>
 std::unique_ptr<HypreNodeLap>
 MLNodeLinOpT<MF>::makeHypreNodeLap (int bottom_verbose, const std::string& options_namespace) const
 {
-    const BoxArray& ba = this->m_grids[0].back();
-    const DistributionMapping& dm = this->m_dmap[0].back();
-    const Geometry& geom = this->m_geom[0].back();
-    const auto& factory = *(this->m_factory[0].back());
-    const auto& owner_mask = *m_owner_mask_bottom;
-    const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
-    MPI_Comm comm = this->BottomCommunicator();
+    // HypreNodeLap takes an MLNodeLinOp const* (== MLNodeLinOpT<MultiFab> const*)
+    // and the HYPRE IJ interface is double-only, so the HYPRE bottom solver is
+    // only available for the double-precision nodal operator.
+    if constexpr (std::is_same_v<MF, amrex::MultiFab>) {
+        const BoxArray& ba = this->m_grids[0].back();
+        const DistributionMapping& dm = this->m_dmap[0].back();
+        const Geometry& geom = this->m_geom[0].back();
+        const auto& factory = *(this->m_factory[0].back());
+        const auto& owner_mask = *m_owner_mask_bottom;
+        const auto& dirichlet_mask = *(m_dirichlet_mask[0].back());
+        MPI_Comm comm = this->BottomCommunicator();
 
-    return std::make_unique<amrex::HypreNodeLap>(ba, dm, geom, factory, owner_mask, dirichlet_mask,
-                                                 comm, this, bottom_verbose, options_namespace);
+        return std::make_unique<amrex::HypreNodeLap>(ba, dm, geom, factory, owner_mask, dirichlet_mask,
+                                                     comm, this, bottom_verbose, options_namespace);
+    } else {
+        amrex::ignore_unused(bottom_verbose, options_namespace);
+        amrex::Abort("MLNodeLinOpT::makeHypreNodeLap: the HYPRE bottom solver is only supported in double precision");
+        return nullptr;
+    }
 }
 #endif
 
