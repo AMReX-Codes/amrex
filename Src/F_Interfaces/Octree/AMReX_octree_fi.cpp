@@ -71,6 +71,10 @@ extern "C" {
         const int myproc = ParallelDescriptor::MyProc();
 
         auto* famrcore = dynamic_cast<FAmrCore*>(amrcore);
+        if (famrcore == nullptr) {
+            amrex::Abort("amrex_fi_build_octree_leaves failed to dynamic_cast<FAmrCore*>");
+            return;
+        }
 
         famrcore->octree_leaf_grids.resize(finest_level+1);
         famrcore->octree_leaf_dmap.resize(finest_level+1);

@@ -17,10 +17,12 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Exec/SingleVortex/Prob_${D}d.f90
        )
 
-    file( GLOB_RECURSE _input_files LIST_DIRECTORIES false
-       ${CMAKE_CURRENT_LIST_DIR}/input* )
+    set(_input_files inputs.rt)
+    list(TRANSFORM _input_files PREPEND "Exec/SingleVortex/")
 
-    setup_test(${D} _sources _input_files HAS_FORTRAN_MODULES)
+    setup_test(${D} _sources _input_files
+       CMDLINE_PARAMS_AFTER_INPUTS max_step=5
+       HAS_FORTRAN_MODULES)
 
     unset(_sources)
     unset(_input_files)
