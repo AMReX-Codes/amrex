@@ -57,6 +57,7 @@ contains
     type(amrex_physbc), intent(inout) :: pbc
     procedure(amrex_physbc_proc) :: fill
     type(amrex_geometry), intent(in) :: geom
+    call amrex_physbc_destroy(pbc)
     pbc%owner = .true.
     call amrex_fi_new_physbc(pbc%p, c_funloc(fill), geom%p)
   end subroutine amrex_physbc_build
