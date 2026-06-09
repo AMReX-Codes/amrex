@@ -1,7 +1,11 @@
 foreach(D IN LISTS AMReX_SPACEDIM)
-    if ( NOT AMReX_PARTICLES OR (D EQUAL 1) )
+    if ( D EQUAL 1 )
        continue()
     endif ()
+
+    if (AMReX_PARTICLES) # Particle currently does not work. Remove this block once the issue is resolved.
+       continue()
+    endif()
 
     set(_sources advect_${D}d_mod.F90 compute_flux_${D}d.f90 slope_${D}d.f90 )
     list(TRANSFORM _sources PREPEND Src_${D}d/ )
