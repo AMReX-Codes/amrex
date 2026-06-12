@@ -58,6 +58,7 @@ Checks: >
        -readability-magic-numbers,
        -readability-math-missing-parentheses,
        -readability-named-parameter,
+       -readability-qualified-auto,
        -readability-redundant-casting,
        -readability-redundant-member-init,
        -readability-static-accessed-through-instance,
