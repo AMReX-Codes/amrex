@@ -247,105 +247,10 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
     ```cpp
     amrex::Real m_variable;
     ```
-  * Use C++20 constraints instead of `std::enable_if_t` on dummy template parameters
-    when a template argument must be constrained.
-    * **Prefer concept type constraints when possible:** for AMReX fab types, use the
-      concepts in `AMReX_Concepts.H` as abbreviated template parameters instead of
-      `requires (IsFabArray<T>::value)` or `requires (IsBaseFab<T>::value)`.
-      ```cpp
-      // Good
-      template <FabArrayType MF, typename BC>
-      void FillPatchSingleLevel (...);
+  * C++20 concepts and constraints are discouraged on class templates and their member functions.
+    Compiler support for these features is still inconsistent across AMReX's target platforms
+    (e.g., MSVC, NVHPC, older Clang).
 
-      template <BaseFabType FAB>
-      void f (FAB& fab);
-
-      // Avoid — use FabArrayType MF instead of requires (IsFabArray<MF>::value)
-      template <typename MF, typename BC>
-      requires (IsFabArray<MF>::value)
-      void FillPatchSingleLevel (...);
-      ```
-      Use a separate `requires (...)` clause when a concept cannot be written as a
-      type constraint (for example, multiple template parameters, negation, or
-      relations between types).
-    Follow these placement and formatting rules for `requires` clauses:
-    * **Parentheses are required:** write `requires (...)` with parentheses around the
-      constraint expression. This keeps Doxygen and other tools from misparsing the
-      constraint.
-      ```cpp
-      // Good
-      requires (std::is_arithmetic_v<T>)
-
-      // Avoid
-      requires std::is_arithmetic_v<T>
-      ```
-    * **Place `requires` immediately after `template <...>`:** for function
-      templates (both free functions and member function templates of classes), put
-      the `requires` clause on the line(s) directly after the template parameter list
-      and before the return type, attributes, and function name. Do **not** use a
-      trailing `requires` clause after the parameter list (before `{` or `;`) for
-      function templates. This is especially important for **member function template
-      definitions outside the class body**: trailing constraints on those out-of-line
-      definitions break CUDA-on-Windows builds. Trailing `requires` is acceptable for
-      non-template member functions of class templates, where the constraint depends
-      on class template parameters and there is no function template parameter list,
-      **but only when the member is defined inline in the class body** (see the
-      out-of-line rule below).
-      ```cpp
-      // Good — requires after template <...> for a function template
-      template <typename T>
-      requires (std::is_arithmetic_v<T>)
-      void f (...);
-
-      // Avoid — trailing requires on a function template
-      template <typename T>
-      void f (...) requires (std::is_arithmetic_v<T>);
-
-      // OK — trailing requires on an inline non-template member of a class template
-      template <int dim>
-      struct Vec {
-          auto cross (Vec const& rhs) const noexcept requires (dim == 3) { ... }
-      };
-      ```
-      **Order:** `template <...>` → `requires (...)` → attributes (e.g.
-      `AMREX_GPU_HOST_DEVICE`) → return type → signature → `{` or `;`. Use the same
-      placement in declarations and definitions. For deduction guides, put
-      `requires (...)` immediately after `template <...>` and before the guide
-      signature.
-    * **Do not reference enclosing class template parameters in the constraint of an
-      out-of-line member definition.** CUDA-on-Windows (MSVC) fails with error C2244
-      ("unable to match function definition to an existing declaration") when a member
-      of a class template is *defined outside the class body* and its `requires` clause
-      refers to the **class** template parameters — this happens regardless of where
-      the `requires` clause is placed, and applies both to constrained non-template
-      members and to member function templates. Use one of these instead:
-      * Constrain through the member's **own** template parameter. If the constraint
-        logically depends on a class parameter, introduce a defaulted member template
-        parameter that mirrors it, so the constraint names the member parameter rather
-        than the class parameter. This indirection is required for MSVC to match the
-        out-of-line definition; do not "simplify" it away.
-        ```cpp
-        template <class FAB>
-        struct FabArray {
-            // Declaration: constraint names the member parameter F (= FAB), not FAB.
-            template <class F = FAB>
-            requires (BaseFabType<F>)
-            void setVal (value_type val);
-        };
-
-        // Out-of-line definition: still constrains on the member parameter F.
-        template <class FAB>
-        template <class F>
-        requires (BaseFabType<F>)
-        void FabArray<FAB>::setVal (value_type val) { ... }
-
-        // Avoid — out-of-line definition whose constraint names the class
-        // parameter FAB directly; this triggers C2244 on CUDA-on-Windows.
-        template <class FAB>
-        void FabArray<FAB>::setVal (value_type val) requires (BaseFabType<FAB>) { ... }
-        ```
-      * Or define the member **inline** in the class body, where referencing the class
-        template parameters in the constraint is fine.
 These guidelines should be adhered to in new contributions to AMReX, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.
 
