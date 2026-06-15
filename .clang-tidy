@@ -38,6 +38,7 @@ Checks: >
        -modernize-avoid-c-arrays,
        -modernize-macro-to-enum,
        -modernize-return-braced-init-list,
+       -modernize-use-constraints,
        -modernize-use-ranges,
        -modernize-use-trailing-return-type,
      performance-*,
@@ -72,5 +73,6 @@ HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'
 # Only available in clang-tidy >= 17
 HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 
-# We will try to modernize this after switching to C++20
-# -modernize-use-ranges
+# modernize-use-constraints and modernize-use-ranges are disabled.
+# C++20 concepts/constraints have too many compiler-specific issues
+# (MSVC, NVHPC, CUDA-on-Windows, etc.) to be used in AMReX.
