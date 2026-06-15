@@ -229,6 +229,7 @@ jobs:
             -DCMAKE_VERBOSE_MAKEFILE=ON                  \
             -DAMReX_ENABLE_TESTS=ON                      \
             -DAMReX_TEST_TYPE=Small                      \
+            -DAMReX_EB=ON                                \
             -DAMReX_FFT=ON                               \
             -DAMReX_FORTRAN=ON                           \
             -DAMReX_FORTRAN_INTERFACES=ON                \

@@ -42,6 +42,9 @@ setup_test(3 _sod_sources _input_files
    BASE_NAME CNS_Sod
    RUNTIME_SUBDIR Sod)
 
+target_link_options(Test_CNS_Sod_3d PRIVATE
+   "$<$<COMPILE_LANG_AND_ID:Fortran,NVHPC>:-Mnomain>")
+
 unset(_sod_sources)
 
 
