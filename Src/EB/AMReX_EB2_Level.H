@@ -143,6 +143,37 @@ public:
      */
     void setShift (int direction, int ncells);
 
+    //! Check if face-centered data is available for face_dir (0=x, 1=y, 2=z).
+    [[nodiscard]] bool hasFCData (int face_dir) const noexcept {
+        return face_dir >= 0 && face_dir < AMREX_SPACEDIM &&
+               m_fc_data[face_dir] && m_fc_data[face_dir]->m_built;
+    }
+
+    //! Get reference to face-centered data for face_dir (0=x, 1=y, 2=z).
+    [[nodiscard]] const FCData& getFCData (int face_dir) const {
+        AMREX_ASSERT(hasFCData(face_dir));
+        return *m_fc_data[face_dir];
+    }
+
+    //! Fill face-centered volume fractions for face_dir.
+    void fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered area fractions for face_dir.
+    void fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered centroids for face_dir.
+    void fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered boundary areas for face_dir.
+    void fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered boundary centroids for face_dir.
+    void fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered boundary normals for face_dir.
+    void fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered EBCellFlags for face_dir.
+    void fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered face centroids for face_dir.
+    void fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const;
+    //! Fill face-centered edge centroids for face_dir.
+    void fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const;
+
 // public: // for cuda
     /**
      * \brief Coarsen EB data from \p fineLevel into this level.
@@ -156,6 +187,25 @@ public:
     void buildCellFlag ();
     //! Build the cut-cell mask by coarsening from \p fine_level.
     void buildCutCellMask (Level const& fine_level);
+
+    /**
+     * \brief Face-centered EB data storage structure.
+     *
+     * Stores EB data for a specific face direction (x, y, or z).
+     * Data is derived from refined (2x finer) cell-centered grids.
+     */
+    struct FCData {
+        FabArray<EBCellFlagFab> m_cellflag_fc;
+        MultiFab m_volfrac_fc;
+        MultiFab m_centroid_fc;
+        MultiFab m_bndryarea_fc;
+        MultiFab m_bndrycent_fc;
+        MultiFab m_bndrynorm_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
+        bool m_built = false;  //!< Lazy building flag
+    };
 
 protected:
 
@@ -185,6 +235,9 @@ protected:
     bool m_has_eb_info = true;
     IntVect m_shift{0};
     IndexSpace const* m_parent;
+
+    //! Face-centered data storage: [0]=x-face, [1]=y-face, [2]=z-face
+    Array<std::unique_ptr<FCData>, AMREX_SPACEDIM> m_fc_data;
 
 private:
     template <typename G> friend class GShopLevel;
@@ -238,6 +291,9 @@ public:
         r.setRegularLevel();
         return r;
     }
+
+    //! Build face-centered EB data for face_dir by refining CC grid 2x, then coarsening to FC.
+    void buildFCData (G const& gshop, int face_dir);
 
 private:
 
