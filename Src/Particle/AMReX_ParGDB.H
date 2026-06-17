@@ -46,6 +46,11 @@ public:
     virtual void ClearParticleDistributionMap (int level) = 0;
     virtual void ClearParticleGeometry (int level) = 0;
 
+    // Returns true if the particle BoxArray on this level is an explicit override
+    // rather than a pass-through to an underlying AmrCore. Used during checkpoint
+    // restart to determine whether restoring grids should call Set* or Clear*.
+    [[nodiscard]] virtual bool ParticleBoxArraySet (int level) const = 0;
+
     [[nodiscard]] virtual bool LevelDefined (int level) const = 0;
     [[nodiscard]] virtual int finestLevel () const = 0;
     [[nodiscard]] virtual int maxLevel () const = 0;
@@ -109,6 +114,9 @@ public:
     void ClearParticleBoxArray (int level) override;
     void ClearParticleDistributionMap (int level) override;
     void ClearParticleGeometry (int level) override;
+
+    [[nodiscard]] bool ParticleBoxArraySet (int level) const override
+        { amrex::ignore_unused(level); return true; }
 
     [[nodiscard]] bool LevelDefined (int level) const override;
     [[nodiscard]] int finestLevel () const override;

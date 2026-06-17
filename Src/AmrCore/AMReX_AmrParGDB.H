@@ -76,6 +76,11 @@ public:
     //! Clear the cached particle Geometry on level \p level.
     void ClearParticleGeometry (int level) override;
 
+    //! Return true if a particle BoxArray override is active on level \p level
+    //! (i.e. the container is not falling through to the AmrCore boxArray).
+    [[nodiscard]] bool ParticleBoxArraySet (int level) const override
+        { return !m_ba[level].empty(); }
+
     //! Return true if level \p level has been defined.
     [[nodiscard]] bool LevelDefined (int level) const override;
     //! Return the current finest level known to the owning AmrCore.

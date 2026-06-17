@@ -767,6 +767,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<DistributionMapping> old_dms(max_level + 1);
     Vector<BoxArray> old_bas(max_level + 1);
     Vector<BoxArray> particle_box_arrays(max_level + 1);
+    Vector<bool> ba_was_set(max_level + 1, false);
     bool dual_grid = false;
 
     bool have_pheaders = false;
@@ -789,6 +790,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         {
             old_dms[lev] = ParticleDistributionMap(lev);
             old_bas[lev] = ParticleBoxArray(lev);
+            ba_was_set[lev] = m_gdb->ParticleBoxArraySet(lev);
             std::string phdr_name = fullname;
             phdr_name += "/Level_";
             phdr_name = amrex::Concatenate(phdr_name, lev, 1);
@@ -942,8 +944,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (dual_grid) {
         for (int lev = 0; lev <= finestLevel(); lev++) {
-            SetParticleBoxArray(lev, old_bas[lev]);
-            SetParticleDistributionMap(lev, old_dms[lev]);
+            if (ba_was_set[lev]) {
+                SetParticleBoxArray(lev, old_bas[lev]);
+                SetParticleDistributionMap(lev, old_dms[lev]);
+            } else {
+                // The particle grids were tracking an AmrCore pass-through before
+                // the dual-grid override; restore that by clearing the cached overrides.
+                m_gdb->ClearParticleBoxArray(lev);
+                m_gdb->ClearParticleDistributionMap(lev);
+            }
         }
     }
 
