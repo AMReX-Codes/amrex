@@ -292,8 +292,8 @@ public:
         return r;
     }
 
-    //! Build face-centered EB data for face_dir by refining CC grid 2x, then coarsening to FC.
-    void buildFCData (G const& gshop, int face_dir);
+    //! Build face-centered EB data for face_dir. If fine_level provided, coarsen from it; otherwise build refined CC transiently.
+    void buildFCData (G const& gshop, int face_dir, Level const* fine_level = nullptr);
 
 private:
 
@@ -796,6 +796,89 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
         int ierr = coarsenFromFine(fine_level_2, false);
         m_ok = (ierr == 0);
     }
+}
+
+template <typename G>
+void
+GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_level)
+{
+    BL_PROFILE("EB2::GShopLevel::buildFCData");
+
+    AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
+
+    if (m_allregular) { return; }
+
+    // Allocate FC data structure if needed
+    if (!m_fc_data[face_dir]) {
+        m_fc_data[face_dir] = std::make_unique<FCData>();
+    }
+
+    if (m_fc_data[face_dir]->m_built) { return; }
+
+    // Get or build the one-level-finer CC data
+    Level const* refined_cc_level = nullptr;
+    std::unique_ptr<GShopLevel<G>> transient_level;
+
+    if (fine_level != nullptr) {
+        // Reuse existing finer CC level from hierarchy
+        refined_cc_level = fine_level;
+    } else {
+        // Finest FC level: build transient refined CC level (2x finer)
+        Geometry refined_geom = amrex::refine(m_geom, 2);
+        transient_level = std::make_unique<GShopLevel<G>>(
+            m_parent, gshop, refined_geom,
+            EB2::max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0);
+
+        if (!transient_level->isOK()) {
+            amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
+        }
+        refined_cc_level = transient_level.get();
+    }
+
+    // Define FC data structures
+    const int ng = 0;  // No ghost cells for FC data
+    m_fc_data[face_dir]->m_cellflag_fc.define(m_grids, m_dmap, 1, ng);
+    m_fc_data[face_dir]->m_volfrac_fc.define(m_grids, m_dmap, 1, ng);
+    m_fc_data[face_dir]->m_centroid_fc.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+    m_fc_data[face_dir]->m_bndryarea_fc.define(m_grids, m_dmap, 1, ng);
+    m_fc_data[face_dir]->m_bndrycent_fc.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+    m_fc_data[face_dir]->m_bndrynorm_fc.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        BoxArray faceba = amrex::convert(m_grids, IntVect::TheDimensionVector(idim));
+        m_fc_data[face_dir]->m_areafrac_fc[idim].define(faceba, m_dmap, 1, ng);
+        m_fc_data[face_dir]->m_facecent_fc[idim].define(faceba, m_dmap, AMREX_SPACEDIM-1, ng);
+        IntVect edge_type{1}; edge_type[idim] = 0;
+        m_fc_data[face_dir]->m_edgecent_fc[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng);
+    }
+
+    // Coarsen from refined CC to FC with staggered averaging
+    auto const& cc_volfrac = refined_cc_level->m_volfrac;
+    auto const& cc_cellflag = refined_cc_level->m_cellflag;
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+    for (MFIter mfi(m_fc_data[face_dir]->m_volfrac_fc); mfi.isValid(); ++mfi) {
+        const Box& bx = mfi.validbox();
+        auto const& fc_vfrac = m_fc_data[face_dir]->m_volfrac_fc.array(mfi);
+        auto const& cc_vfrac = cc_volfrac.const_array(mfi);
+
+        // Staggered coarsening: average 4 refined cells (2x2 in perpendicular directions)
+        amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+        {
+            // Simplified averaging - full staggered coarsening to be implemented
+            fc_vfrac(i,j,k) = 0.25_rt * (
+                cc_vfrac(2*i, 2*j, 2*k) + cc_vfrac(2*i+1, 2*j, 2*k) +
+                cc_vfrac(2*i, 2*j+1, 2*k) + cc_vfrac(2*i+1, 2*j+1, 2*k)
+            );
+        });
+    }
+
+    // SK: This part needs to be done: coarse all EB data set in a staggering fashion.
+
+    m_fc_data[face_dir]->m_built = true;
+    // If transient_level exists, it's automatically destroyed here
 }
 
 }

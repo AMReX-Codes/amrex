@@ -211,8 +211,11 @@ void
 IndexSpaceImp<G>::buildAllFCData ()
 {
     for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
-        for (auto& level : m_gslevel) {
-            level.buildFCData(m_gshop, face_dir);
+        for (size_t ilev = 0; ilev < m_gslevel.size(); ++ilev) {
+            // For finest level (ilev==0), build transient refined CC
+            // For coarser levels, reuse existing finer CC level from hierarchy
+            Level const* fine_level = (ilev == 0) ? nullptr : &m_gslevel[ilev-1];
+            m_gslevel[ilev].buildFCData(m_gshop, face_dir, fine_level);
         }
     }
 }
