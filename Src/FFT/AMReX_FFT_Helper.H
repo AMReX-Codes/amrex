@@ -89,6 +89,12 @@ struct Info
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
 
+    //! Whether OpenBCSolver pads internal FFT lengths for better performance.
+    bool openbc_padding = true;
+
+    //! Number of factors used by FFT::nextFastLen for OpenBCSolver padding.
+    int openbc_padding_nfactors = 3;
+
     /**
      * \brief Select how the domain is decomposed across MPI ranks.
      *
@@ -135,7 +141,85 @@ struct Info
      * \return Reference to this Info.
      */
     Info& setNumProcs (int n) { nprocs = n; return *this; }
+    /**
+     * \brief Enable or disable OpenBCSolver internal FFT padding.
+     *
+     * \param x True to pad OpenBCSolver FFT lengths to fast sizes.
+     * \return Reference to this Info.
+     */
+    Info& setOpenBCPadding (bool x) { openbc_padding = x; return *this; }
+    /**
+     * \brief Set the factor count used for OpenBCSolver FFT padding.
+     *
+     * \param n Number of factors passed to FFT::nextFastLen. It must be between 3 and 5.
+     * \return Reference to this Info.
+     */
+    Info& setOpenBCPaddingFactors (int n)
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            3 <= n && 5 >= n,
+            "amrex::FFT::Info::setOpenBCPaddingFactors: nfactors must be between 3 and 5");
+        openbc_padding_nfactors = n;
+        return *this;
+    }
 };
+
+/// \cond DOXYGEN_IGNORE
+namespace detail
+{
+inline void next_fast_len_doit (Long target, Long n, int const* factors,
+                                int nfactors, int ifactor, Long& best)
+{
+    if (n >= target) {
+        best = std::min(best, n);
+        return;
+    }
+
+    if (ifactor == nfactors) {
+        return;
+    }
+
+    int const factor = factors[ifactor];
+    Long const max_len = std::numeric_limits<int>::max();
+    for (Long m = n; m < best; ) {
+        next_fast_len_doit(target, m, factors, nfactors, ifactor+1, best);
+        if (m > max_len / factor) {
+            break;
+        }
+        m *= factor;
+    }
+}
+}
+/// \endcond
+
+/**
+ * \brief Return the smallest fast FFT length greater than or equal to \p target.
+ *
+ * The allowed factors are the first \p nfactors values from {2, 3, 5, 7, 11}.
+ *
+ * \param target Minimum requested FFT length. It must be positive.
+ * \param nfactors Number of supported factors. It must be between 3 and 5.
+ * \return A fast FFT length no smaller than \p target.
+ */
+[[nodiscard]] inline int
+nextFastLen (int target, int nfactors = 3)
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(target > 0,
+                                     "amrex::FFT::nextFastLen: target must be positive");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 5 >= nfactors,
+                                     "amrex::FFT::nextFastLen: nfactors must be between 3 and 5");
+
+    int constexpr factors[] = {2, 3, 5, 7, 11, 13}; // The extra '13" is to make the buggy GCC -Warray-bounds quiet.
+
+    Long const max_len = std::numeric_limits<int>::max();
+    Long best = max_len + Long(1);
+
+    detail::next_fast_len_doit(target, Long(1), factors, nfactors, 0, best);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(best <= max_len,
+                                     "amrex::FFT::nextFastLen: result exceeds int range");
+    return static_cast<int>(best);
+}
 
 #ifdef AMREX_USE_HIP
 /// \cond DOXYGEN_IGNORE

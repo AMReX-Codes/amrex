@@ -7,6 +7,44 @@
 
 using namespace amrex;
 
+namespace {
+
+void fill_rhs (MultiFab& rho, Geometry const& geom, IndexType ixtype)
+{
+    auto const& dx = geom.CellSizeArray();
+    auto const& problo = geom.ProbLoArray();
+    auto const& rhoma = rho.arrays();
+
+    constexpr int nsub = 4;
+    Real dxsub = dx[0]/nsub;
+    Real dysub = dx[1]/nsub;
+    Real dzsub = dx[2]/nsub;
+
+    ParallelFor(rho, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+    {
+        Real x = (i+0.5_rt/nsub)*dx[0] + problo[0];
+        Real y = (j+0.5_rt/nsub)*dx[1] + problo[1];
+        Real z = (k+0.5_rt/nsub)*dx[2] + problo[2];
+        if (ixtype.nodeCentered()) {
+            x -= 0.5_rt*dx[0];
+            y -= 0.5_rt*dx[1];
+            z -= 0.5_rt*dx[2];
+        }
+        int n = 0;
+        for (int isub = 0; isub < nsub; ++isub) {
+        for (int jsub = 0; jsub < nsub; ++jsub) {
+        for (int ksub = 0; ksub < nsub; ++ksub) {
+            auto xs = x + isub*dxsub;
+            auto ys = y + jsub*dysub;
+            auto zs = z + ksub*dzsub;
+            if ((xs*xs+ys*ys+zs*zs) < 0.25_rt) { ++n; }
+        }}}
+        rhoma[b](i,j,k) = Real(n) / Real(nsub*nsub*nsub);
+    });
+}
+
+}
+
 int main (int argc, char* argv[])
 {
     static_assert(AMREX_SPACEDIM == 3);
@@ -40,7 +78,6 @@ int main (int argc, char* argv[])
                       CoordSys::cartesian, {AMREX_D_DECL(0,0,0)});
 
         auto const& dx = geom.CellSizeArray();
-        auto const& problo = geom.ProbLoArray();
 
         std::array<IndexType,2> ixtypes{IndexType::TheCellType(),
                                         IndexType::TheNodeType()};
@@ -54,34 +91,7 @@ int main (int argc, char* argv[])
             MultiFab phi(iba,dm,1,ng);
             phi.setVal(std::numeric_limits<Real>::max());
 
-            auto const& rhoma = rho.arrays();
-
-            constexpr int nsub = 4;
-            Real dxsub = dx[0]/nsub;
-            Real dysub = dx[1]/nsub;
-            Real dzsub = dx[2]/nsub;
-
-            ParallelFor(rho, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
-            {
-                Real x = (i+0.5_rt/nsub)*dx[0] + problo[0];
-                Real y = (j+0.5_rt/nsub)*dx[1] + problo[1];
-                Real z = (k+0.5_rt/nsub)*dx[2] + problo[2];
-                if (ixtype.nodeCentered()) {
-                    x -= 0.5_rt*dx[0];
-                    y -= 0.5_rt*dx[1];
-                    z -= 0.5_rt*dx[2];
-                }
-                int n = 0;
-                for (int isub = 0; isub < nsub; ++isub) {
-                for (int jsub = 0; jsub < nsub; ++jsub) {
-                for (int ksub = 0; ksub < nsub; ++ksub) {
-                    auto xs = x + isub*dxsub;
-                    auto ys = y + jsub*dysub;
-                    auto zs = z + ksub*dzsub;
-                    if ((xs*xs+ys*ys+zs*zs) < 0.25_rt) { ++n; }
-                }}}
-                rhoma[b](i,j,k) = Real(n) / Real(nsub*nsub*nsub);
-            });
+            fill_rhs(rho, geom, ixtype);
 
             FFT::PoissonOpenBC solver(geom, ixtype, IntVect(ng));
             solver.solve(phi, rho);
@@ -117,6 +127,50 @@ int main (int argc, char* argv[])
                     AMREX_ALWAYS_ASSERT(error < eps);
                 }
             }}}
+        }
+
+        {
+            amrex::Print() << "\nTesting OpenBC padding against unpadded solve\n";
+
+            Box domain2(IntVect(0), IntVect(64,66,68));
+            BoxArray ba2(domain2);
+            ba2.maxSize(IntVect(32, 32, 32));
+            DistributionMapping dm2(ba2);
+
+            Geometry geom2(domain2,
+                           RealBox(-1._rt, -1._rt, -1._rt, 1._rt, 1._rt, 1._rt),
+                           CoordSys::cartesian, {AMREX_D_DECL(0,0,0)});
+
+            MultiFab rho2(ba2, dm2, 1, 0);
+            MultiFab phi_padded(ba2, dm2, 1, 0);
+            MultiFab phi_unpadded(ba2, dm2, 1, 0);
+            fill_rhs(rho2, geom2, IndexType::TheCellType());
+
+            FFT::PoissonOpenBC padded_solver(geom2);
+            FFT::Info unpadded_info;
+            unpadded_info.setOpenBCPadding(false);
+            FFT::PoissonOpenBC unpadded_solver(geom2, IndexType::TheCellType(),
+                                               IntVect(0), unpadded_info);
+
+            AMREX_ALWAYS_ASSERT(padded_solver.PaddedLength() == IntVect(72, 72, 72));
+            AMREX_ALWAYS_ASSERT(unpadded_solver.PaddedLength() == domain2.length());
+
+            padded_solver.solve(phi_padded, rho2);
+            unpadded_solver.solve(phi_unpadded, rho2);
+
+            MultiFab diff(ba2, dm2, 1, 0);
+            MultiFab::Copy(diff, phi_padded, 0, 0, 1, 0);
+            MultiFab::Subtract(diff, phi_unpadded, 0, 0, 1, 0);
+
+            Real const refnorm = phi_unpadded.norm0(0);
+            Real const error = diff.norm0(0) / refnorm;
+            amrex::Print() << "  relative padded/unpadded error " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+            constexpr Real eps = 1.e-5;
+#else
+            constexpr Real eps = 1.e-13;
+#endif
+            AMREX_ALWAYS_ASSERT(error < eps);
         }
     }
     amrex::Finalize();
