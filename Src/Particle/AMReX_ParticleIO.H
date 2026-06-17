@@ -767,7 +767,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<DistributionMapping> old_dms(max_level + 1);
     Vector<BoxArray> old_bas(max_level + 1);
     Vector<BoxArray> particle_box_arrays(max_level + 1);
-    Vector<bool> ba_was_set(max_level + 1, false);
+    Vector<int> ba_was_set(max_level + 1, 0);
     bool dual_grid = false;
 
     bool have_pheaders = false;
