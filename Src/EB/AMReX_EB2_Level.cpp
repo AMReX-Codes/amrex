@@ -1058,4 +1058,73 @@ Level::setShift (int direction, int ncells)
     m_shift[direction] = ncells;
 }
 
+void
+Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    vfrac.ParallelCopy(m_fc_data[face_dir]->m_volfrac_fc, 0, 0, 1, 0, vfrac.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        areafrac[idim]->ParallelCopy(m_fc_data[face_dir]->m_areafrac_fc[idim], 0, 0, 1, 0, areafrac[idim]->nGrow(), geom.periodicity());
+    }
+}
+
+void
+Level::fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    centroid.ParallelCopy(m_fc_data[face_dir]->m_centroid_fc, 0, 0, AMREX_SPACEDIM, 0, centroid.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    bndryarea.ParallelCopy(m_fc_data[face_dir]->m_bndryarea_fc, 0, 0, 1, 0, bndryarea.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    bndrycent.ParallelCopy(m_fc_data[face_dir]->m_bndrycent_fc, 0, 0, AMREX_SPACEDIM, 0, bndrycent.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    bndrynorm.ParallelCopy(m_fc_data[face_dir]->m_bndrynorm_fc, 0, 0, AMREX_SPACEDIM, 0, bndrynorm.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    cellflag.ParallelCopy(m_fc_data[face_dir]->m_cellflag_fc, 0, 0, 1, 0, cellflag.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        facecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_facecent_fc[idim], 0, 0, AMREX_SPACEDIM-1, 0, facecent[idim]->nGrow(), geom.periodicity());
+    }
+}
+
+void
+Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const
+{
+    AMREX_ASSERT(hasFCData(face_dir));
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        edgecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_edgecent_fc[idim], 0, 0, 1, 0, edgecent[idim]->nGrow(), geom.periodicity());
+    }
+}
+
 }
