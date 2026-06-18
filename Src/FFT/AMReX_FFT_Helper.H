@@ -202,7 +202,7 @@ inline void next_fast_len_doit (Long target, Long n, int const* factors,
  * \return A fast FFT length no smaller than \p target.
  */
 [[nodiscard]] inline int
-nextFastLen (int target, int nfactors = 3)
+nextFastLen (int target, int nfactors = 5)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(target > 0,
                                      "amrex::FFT::nextFastLen: target must be positive");

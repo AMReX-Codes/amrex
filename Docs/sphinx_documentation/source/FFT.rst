@@ -72,7 +72,7 @@ Choosing FFT lengths
 :cpp:`FFT::nextFastLen(target, nfactors)` returns the smallest FFT length
 greater than or equal to :cpp:`target` whose prime factors are limited to the
 first :cpp:`nfactors` values from :cpp:`{2, 3, 5, 7, 11}`. The default is
-:cpp:`nfactors = 3`. This helper can be used to choose a padded FFT domain
+:cpp:`nfactors = 5`. This helper can be used to choose a padded FFT domain
 size that is expected to perform well with common FFT backends.
 
 
