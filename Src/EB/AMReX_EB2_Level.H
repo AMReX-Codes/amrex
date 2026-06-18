@@ -179,21 +179,28 @@ public:
     //! Fill face-centered volume fractions for face_dir.
     void fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const;
     //! Fill face-centered area fractions for face_dir.
-    void fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const;
+    void fillAreaFracFC (Array<   MultiFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const;
+    void fillAreaFracFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const;
     //! Fill face-centered centroids for face_dir.
     void fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) const;
+    void fillCentroidFC (MultiCutFab& centroid, int face_dir, const Geometry& geom) const;
     //! Fill face-centered boundary areas for face_dir.
     void fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom) const;
+    void fillBndryAreaFC (MultiCutFab& bndryarea, int face_dir, const Geometry& geom) const;
     //! Fill face-centered boundary centroids for face_dir.
     void fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const;
+    void fillBndryCentFC (MultiCutFab& bndrycent, int face_dir, const Geometry& geom) const;
     //! Fill face-centered boundary normals for face_dir.
     void fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom) const;
+    void fillBndryNormFC (MultiCutFab& bndrynorm, int face_dir, const Geometry& geom) const;
     //! Fill face-centered EBCellFlags for face_dir.
     void fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const Geometry& geom) const;
     //! Fill face-centered face centroids for face_dir.
-    void fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const;
+    void fillFaceCentFC (Array<   MultiFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const;
+    void fillFaceCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const;
     //! Fill face-centered edge centroids for face_dir.
-    void fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const;
+    void fillEdgeCentFC (Array<   MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const;
+    void fillEdgeCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const;
 
 // public: // for cuda
     /**

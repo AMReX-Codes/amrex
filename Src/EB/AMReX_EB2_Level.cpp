@@ -1075,10 +1075,38 @@ Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face
 }
 
 void
+Level::fillAreaFracFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& areafrac, int face_dir, const Geometry& geom) const
+{
+    Array<MultiFab*,AMREX_SPACEDIM> tmp_ptrs;
+    Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> tmp_mfs;
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiCutFab& af = *areafrac[idim];
+        tmp_mfs[idim] = std::make_unique<MultiFab>(af.boxArray(), af.DistributionMap(), 1, af.nGrow());
+        tmp_ptrs[idim] = tmp_mfs[idim].get();
+    }
+
+    fillAreaFracFC(tmp_ptrs, face_dir, geom);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        copyMultiFabToMultiCutFab(*areafrac[idim], *tmp_mfs[idim]);
+    }
+}
+
+void
 Level::fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
     centroid.ParallelCopy(m_fc_data[face_dir]->m_centroid_fc, 0, 0, AMREX_SPACEDIM, 0, centroid.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillCentroidFC (MultiCutFab& centroid, int face_dir, const Geometry& geom) const
+{
+    MultiFab tmp(centroid.boxArray(), centroid.DistributionMap(),
+                 AMREX_SPACEDIM, centroid.nGrow());
+    fillCentroidFC(tmp, face_dir, geom);
+    copyMultiFabToMultiCutFab(centroid, tmp);
 }
 
 void
@@ -1089,6 +1117,15 @@ Level::fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom)
 }
 
 void
+Level::fillBndryAreaFC (MultiCutFab& bndryarea, int face_dir, const Geometry& geom) const
+{
+    MultiFab tmp(bndryarea.boxArray(), bndryarea.DistributionMap(),
+                 1, bndryarea.nGrow());
+    fillBndryAreaFC(tmp, face_dir, geom);
+    copyMultiFabToMultiCutFab(bndryarea, tmp);
+}
+
+void
 Level::fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
@@ -1096,10 +1133,28 @@ Level::fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom)
 }
 
 void
+Level::fillBndryCentFC (MultiCutFab& bndrycent, int face_dir, const Geometry& geom) const
+{
+    MultiFab tmp(bndrycent.boxArray(), bndrycent.DistributionMap(),
+                 AMREX_SPACEDIM, bndrycent.nGrow());
+    fillBndryCentFC(tmp, face_dir, geom);
+    copyMultiFabToMultiCutFab(bndrycent, tmp);
+}
+
+void
 Level::fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
     bndrynorm.ParallelCopy(m_fc_data[face_dir]->m_bndrynorm_fc, 0, 0, AMREX_SPACEDIM, 0, bndrynorm.nGrow(), geom.periodicity());
+}
+
+void
+Level::fillBndryNormFC (MultiCutFab& bndrynorm, int face_dir, const Geometry& geom) const
+{
+    MultiFab tmp(bndrynorm.boxArray(), bndrynorm.DistributionMap(),
+                 AMREX_SPACEDIM, bndrynorm.nGrow());
+    fillBndryNormFC(tmp, face_dir, geom);
+    copyMultiFabToMultiCutFab(bndrynorm, tmp);
 }
 
 void
@@ -1119,11 +1174,49 @@ Level::fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face
 }
 
 void
+Level::fillFaceCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& facecent, int face_dir, const Geometry& geom) const
+{
+    Array<MultiFab*,AMREX_SPACEDIM> tmp_ptrs;
+    Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> tmp_mfs;
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiCutFab& fc = *facecent[idim];
+        tmp_mfs[idim] = std::make_unique<MultiFab>(fc.boxArray(), fc.DistributionMap(), AMREX_SPACEDIM-1, fc.nGrow());
+        tmp_ptrs[idim] = tmp_mfs[idim].get();
+    }
+
+    fillFaceCentFC(tmp_ptrs, face_dir, geom);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        copyMultiFabToMultiCutFab(*facecent[idim], *tmp_mfs[idim]);
+    }
+}
+
+void
 Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         edgecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_edgecent_fc[idim], 0, 0, 1, 0, edgecent[idim]->nGrow(), geom.periodicity());
+    }
+}
+
+void
+Level::fillEdgeCentFC (Array<MultiCutFab*,AMREX_SPACEDIM> const& edgecent, int face_dir, const Geometry& geom) const
+{
+    Array<MultiFab*,AMREX_SPACEDIM> tmp_ptrs;
+    Array<std::unique_ptr<MultiFab>,AMREX_SPACEDIM> tmp_mfs;
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiCutFab& ec = *edgecent[idim];
+        tmp_mfs[idim] = std::make_unique<MultiFab>(ec.boxArray(), ec.DistributionMap(), 1, ec.nGrow());
+        tmp_ptrs[idim] = tmp_mfs[idim].get();
+    }
+
+    fillEdgeCentFC(tmp_ptrs, face_dir, geom);
+
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        copyMultiFabToMultiCutFab(*edgecent[idim], *tmp_mfs[idim]);
     }
 }
 
