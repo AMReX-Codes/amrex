@@ -67,7 +67,7 @@ public:
     }
 
     //! Build face-centered EB data for all three face directions.
-    virtual void buildAllFCData () = 0;
+    virtual void buildAllFCData () {}
 
 protected:
     static AMREX_EXPORT Vector<std::unique_ptr<IndexSpace> > m_instance;
