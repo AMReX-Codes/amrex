@@ -783,10 +783,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             // a placeholder so that MFIter below works uniformly.
             file_bas[lev] = BoxArray(Geom(lev).Domain());
         }
-        const int NReaders = std::min(ParallelDescriptor::NProcs(), MaxReaders());
-        Vector<int> pmap(file_bas[lev].size());
-        for (int i = 0; i < (int)pmap.size(); ++i) { pmap[i] = i % NReaders; }
-        file_dms[lev] = DistributionMapping(pmap);
+        const int NReaders = MaxReaders();
+        if (ParallelDescriptor::NProcs() <= NReaders) {
+            file_dms[lev] = DistributionMapping(file_bas[lev]);
+        } else {
+            Vector<int> pmap(file_bas[lev].size());
+            for (int i = 0; i < (int)pmap.size(); ++i) { pmap[i] = i % NReaders; }
+            file_dms[lev] = DistributionMapping(pmap);
+        }
     }
 
     Vector<int> ngrids(finest_level_in_file+1);
