@@ -81,6 +81,14 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #endif
 
     const auto& sigma_orig = m_sigma[0][0][0];
+    // Anisotropic (mapped) path: capture per-axis sigmas.
+    const bool aniso_sigma = m_use_mapped;
+#if (AMREX_SPACEDIM >= 2)
+    const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;
+#endif
+#if (AMREX_SPACEDIM == 3)
+    const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;
+#endif
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
 #ifdef AMREX_USE_EB
@@ -99,6 +107,11 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #endif
     {
         FArrayBox rhs, u;
+        // Per-axis sigma scratch for the anisotropic path.
+        FArrayBox sig_y_local;
+#if (AMREX_SPACEDIM == 3)
+        FArrayBox sig_z_local;
+#endif
 #ifdef AMREX_USE_EB
         FArrayBox sten, cn;
 #endif
@@ -289,17 +302,52 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                     {
                         Array4<Real> sigmaarr = uarr;
                         const Box& ibx = ccbxg1 & amrex::enclosedCells(mfi.validbox());
+
+                        // Per-axis sigma scratch when mapped.
+                        if (aniso_sigma) {
+                            sig_y_local.resize(ccbxg1, 1, The_Async_Arena());
+#if (AMREX_SPACEDIM == 3)
+                            sig_z_local.resize(ccbxg1, 1, The_Async_Arena());
+#endif
+                        }
+                        Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
+#if (AMREX_SPACEDIM == 3)
+                        Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
+#endif
+
                         if (sigma_orig) {
                             Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
+#if (AMREX_SPACEDIM >= 2)
+                            Array4<Real const> syarr_orig = aniso_sigma
+                                ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};
+#endif
+#if (AMREX_SPACEDIM == 3)
+                            Array4<Real const> szarr_orig = aniso_sigma
+                                ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};
+#endif
+                            const bool is_aniso = aniso_sigma;
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
                                 if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
                                     sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+#if (AMREX_SPACEDIM >= 2)
+                                    if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                    if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+#endif
                                 } else {
                                     sigmaarr(i,j,k) = 0.0;
+#if (AMREX_SPACEDIM >= 2)
+                                    if (is_aniso) { syarr_w(i,j,k) = 0.0; }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                    if (is_aniso) { szarr_w(i,j,k) = 0.0; }
+#endif
                                 }
                             });
                         } else {
+                            // Const sigma: anisotropic n/a here.
                             Real const_sigma = m_const_sigma;
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
@@ -311,19 +359,44 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                             });
                         }
 
-#if (AMREX_SPACEDIM == 2)
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-                        {
-                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i, j, k, phiarr, sigmaarr, dmskarr, is_rz, dxinv);
-                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
-                        });
-#else
-                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
-                        {
-                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i, j, k, phiarr, sigmaarr, dmskarr, dxinv);
-                            mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
-                        });
+                        if (aniso_sigma) {
+                            Array4<Real const> sxarr_c = sigmaarr;
+                            Array4<Real const> syarr_c = syarr_w;
+#if (AMREX_SPACEDIM == 3)
+                            Array4<Real const> szarr_c = szarr_w;
 #endif
+#if (AMREX_SPACEDIM == 2)
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                            {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_ha(i,j,k, phiarr,
+                                                                       sxarr_c, syarr_c, dmskarr,
+                                                                       is_rz, dxinv);
+                                mlndlap_crse_resid(i,j,k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
+                            });
+#else
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                            {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_ha(i,j,k, phiarr,
+                                                                       sxarr_c, syarr_c, szarr_c,
+                                                                       dmskarr, dxinv);
+                                mlndlap_crse_resid(i,j,k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
+                            });
+#endif
+                        } else {
+#if (AMREX_SPACEDIM == 2)
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                            {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_aa(i, j, k, phiarr, sigmaarr, dmskarr, is_rz, dxinv);
+                                mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
+                            });
+#else
+                            AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
+                            {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_aa(i, j, k, phiarr, sigmaarr, dmskarr, dxinv);
+                                mlndlap_crse_resid(i, j, k, sync_resid_a, rhsarr, cccmsk, nddom, lobc, hibc, neumann_doubling);
+                            });
+#endif
+                        }
                     }
                 }
             }
@@ -342,6 +415,14 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #endif
 
     const auto& sigma_orig = m_sigma[0][0][0];
+    // Per-axis sigma for the anisotropic (mapped) path.
+    const bool aniso_sigma = m_use_mapped;
+#if (AMREX_SPACEDIM >= 2)
+    const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;
+#endif
+#if (AMREX_SPACEDIM == 3)
+    const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;
+#endif
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
     const auto lobc = LoBC();
@@ -370,6 +451,11 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     {
         FArrayBox rhs, u;
         IArrayBox tmpmask;
+        // Per-axis sigma scratch for the anisotropic path.
+        FArrayBox sig_y_local;
+#if (AMREX_SPACEDIM == 3)
+        FArrayBox sig_z_local;
+#endif
 #ifdef AMREX_USE_EB
         FArrayBox sten, cn;
 #endif
@@ -556,14 +642,47 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                 {
                     Array4<Real> sigmaarr = uarr;
                     const Box& ovlp2 = ccvbx & ccbxg1;
+
+                    if (aniso_sigma) {
+                        sig_y_local.resize(ccbxg1, 1, The_Async_Arena());
+#if (AMREX_SPACEDIM == 3)
+                        sig_z_local.resize(ccbxg1, 1, The_Async_Arena());
+#endif
+                    }
+                    Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
+#if (AMREX_SPACEDIM == 3)
+                    Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
+#endif
+
                     if (sigma_orig) {
                         Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
+#if (AMREX_SPACEDIM >= 2)
+                        Array4<Real const> syarr_orig = aniso_sigma
+                            ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};
+#endif
+#if (AMREX_SPACEDIM == 3)
+                        Array4<Real const> szarr_orig = aniso_sigma
+                            ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};
+#endif
+                        const bool is_aniso = aniso_sigma;
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
                             if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                                 sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+#if (AMREX_SPACEDIM >= 2)
+                                if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+#endif
                             } else {
                                 sigmaarr(i,j,k) = 0.0;
+#if (AMREX_SPACEDIM >= 2)
+                                if (is_aniso) { syarr_w(i,j,k) = 0.0; }
+#endif
+#if (AMREX_SPACEDIM == 3)
+                                if (is_aniso) { szarr_w(i,j,k) = 0.0; }
+#endif
                             }
                         });
                     } else {
@@ -578,29 +697,62 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                         });
                     }
 
-#if (AMREX_SPACEDIM == 2)
-                    AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
-                    {
-                        if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i,j,k, phiarr, sigmaarr, tmpmaskarr,
-                                                                   is_rz, dxinv);
-                            sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
-                        } else {
-                            sync_resid_a(i,j,k) = 0.0;
-                        }
-                    });
-#else
-                    AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
-                    {
-                        if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                            sync_resid_a(i,j,k) = mlndlap_adotx_aa(i,j,k, phiarr, sigmaarr, tmpmaskarr,
-                                                                   dxinv);
-                            sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
-                        } else {
-                            sync_resid_a(i,j,k) = 0.0;
-                        }
-                    });
+                    if (aniso_sigma) {
+                        Array4<Real const> sxarr_c = sigmaarr;
+                        Array4<Real const> syarr_c = syarr_w;
+#if (AMREX_SPACEDIM == 3)
+                        Array4<Real const> szarr_c = szarr_w;
 #endif
+#if (AMREX_SPACEDIM == 2)
+                        AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
+                        {
+                            if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_ha(i,j,k, phiarr,
+                                                                       sxarr_c, syarr_c, tmpmaskarr,
+                                                                       is_rz, dxinv);
+                                sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
+                            } else {
+                                sync_resid_a(i,j,k) = 0.0;
+                            }
+                        });
+#else
+                        AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
+                        {
+                            if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_ha(i,j,k, phiarr,
+                                                                       sxarr_c, syarr_c, szarr_c,
+                                                                       tmpmaskarr, dxinv);
+                                sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
+                            } else {
+                                sync_resid_a(i,j,k) = 0.0;
+                            }
+                        });
+#endif
+                    } else {
+#if (AMREX_SPACEDIM == 2)
+                        AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
+                        {
+                            if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_aa(i,j,k, phiarr, sigmaarr, tmpmaskarr,
+                                                                       is_rz, dxinv);
+                                sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
+                            } else {
+                                sync_resid_a(i,j,k) = 0.0;
+                            }
+                        });
+#else
+                        AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,
+                        {
+                            if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                sync_resid_a(i,j,k) = mlndlap_adotx_aa(i,j,k, phiarr, sigmaarr, tmpmaskarr,
+                                                                       dxinv);
+                                sync_resid_a(i,j,k) = rhsarr(i,j,k) - sync_resid_a(i,j,k);
+                            } else {
+                                sync_resid_a(i,j,k) = 0.0;
+                            }
+                        });
+#endif
+                    }
                 }
             }
 
@@ -728,8 +880,31 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
         if (fsigma) {
             Array4<Real const> const& sigarr = fsigma->const_array(mfi);
+            const bool aniso_sigma = m_use_mapped;
+#if (AMREX_SPACEDIM >= 2)
+            Array4<Real const> syarr = aniso_sigma
+                ? m_sigma[crse_amrlev+1][0][1]->const_array(mfi) : Array4<Real const>{};
+#endif
+#if (AMREX_SPACEDIM == 3)
+            Array4<Real const> szarr = aniso_sigma
+                ? m_sigma[crse_amrlev+1][0][2]->const_array(mfi) : Array4<Real const>{};
+#endif
 #if (AMREX_SPACEDIM == 2)
-            if (amrrr == 2) {
+            if (aniso_sigma) {
+                if (amrrr == 2) {
+                    AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
+                    {
+                        mlndlap_Ax_fine_contrib_ha<2>(i,j,k,fvbx,cc_fvbx,farr,resarr,rhsarr,solarr,
+                                                      sigarr,syarr,marr,is_rz,fdxinv);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
+                    {
+                        mlndlap_Ax_fine_contrib_ha<4>(i,j,k,fvbx,cc_fvbx,farr,resarr,rhsarr,solarr,
+                                                      sigarr,syarr,marr,is_rz,fdxinv);
+                    });
+                }
+            } else if (amrrr == 2) {
                 AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
                 {
                     mlndlap_Ax_fine_contrib<2>(i,j,k,fvbx,cc_fvbx,farr,resarr,rhsarr,solarr,
@@ -743,7 +918,21 @@ MLNodeLaplacian::reflux (int crse_amrlev,
                 });
             }
 #elif (AMREX_SPACEDIM == 3)
-            if (amrrr == 2) {
+            if (aniso_sigma) {
+                if (amrrr == 2) {
+                    AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
+                    {
+                        mlndlap_Ax_fine_contrib_ha<2>(i,j,k,fvbx,cc_fvbx,farr,resarr,rhsarr,solarr,
+                                                      sigarr,syarr,szarr,marr,fdxinv);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
+                    {
+                        mlndlap_Ax_fine_contrib_ha<4>(i,j,k,fvbx,cc_fvbx,farr,resarr,rhsarr,solarr,
+                                                      sigarr,syarr,szarr,marr,fdxinv);
+                    });
+                }
+            } else if (amrrr == 2) {
                 AMREX_HOST_DEVICE_FOR_3D(cbx, i, j, k,
                 {
                     mlndlap_Ax_fine_contrib<2>(i,j,k,fvbx,cc_fvbx,farr,resarr,rhsarr,solarr,
@@ -801,6 +990,7 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
 
     const auto& csigma = m_sigma[crse_amrlev][0][0];
+    const bool aniso_csigma = m_use_mapped;
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
@@ -820,23 +1010,54 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
             if (csigma) {
                 Array4<Real const> const& csigarr = csigma->const_array(mfi);
+#if (AMREX_SPACEDIM >= 2)
+                Array4<Real const> csigyarr = aniso_csigma
+                    ? m_sigma[crse_amrlev][0][1]->const_array(mfi) : Array4<Real const>{};
+#endif
+#if (AMREX_SPACEDIM == 3)
+                Array4<Real const> csigzarr = aniso_csigma
+                    ? m_sigma[crse_amrlev][0][2]->const_array(mfi) : Array4<Real const>{};
+#endif
 #if (AMREX_SPACEDIM == 2)
-                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
-                {
-                    mlndlap_res_cf_contrib(i,j,k,resarr,csolarr,crhsarr,csigarr,
-                                           cdmskarr,ndmskarr,ccmskarr,fcocarr,
-                                           cdxinv,c_cc_domain_p,c_nd_domain,
-                                           is_rz,
-                                           lobc,hibc, neumann_doubling);
-                });
+                if (aniso_csigma) {
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_res_cf_contrib_ha(i,j,k,resarr,csolarr,crhsarr,
+                                                  csigarr,csigyarr,
+                                                  cdmskarr,ndmskarr,ccmskarr,fcocarr,
+                                                  cdxinv,c_cc_domain_p,c_nd_domain,
+                                                  is_rz,
+                                                  lobc,hibc, neumann_doubling);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_res_cf_contrib(i,j,k,resarr,csolarr,crhsarr,csigarr,
+                                               cdmskarr,ndmskarr,ccmskarr,fcocarr,
+                                               cdxinv,c_cc_domain_p,c_nd_domain,
+                                               is_rz,
+                                               lobc,hibc, neumann_doubling);
+                    });
+                }
 #elif (AMREX_SPACEDIM == 3)
-                AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
-                {
-                    mlndlap_res_cf_contrib(i,j,k,resarr,csolarr,crhsarr,csigarr,
-                                           cdmskarr,ndmskarr,ccmskarr,fcocarr,
-                                           cdxinv,c_cc_domain_p,c_nd_domain,
-                                           lobc,hibc, neumann_doubling);
-                });
+                if (aniso_csigma) {
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_res_cf_contrib_ha(i,j,k,resarr,csolarr,crhsarr,
+                                                  csigarr,csigyarr,csigzarr,
+                                                  cdmskarr,ndmskarr,ccmskarr,fcocarr,
+                                                  cdxinv,c_cc_domain_p,c_nd_domain,
+                                                  lobc,hibc, neumann_doubling);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
+                    {
+                        mlndlap_res_cf_contrib(i,j,k,resarr,csolarr,crhsarr,csigarr,
+                                               cdmskarr,ndmskarr,ccmskarr,fcocarr,
+                                               cdxinv,c_cc_domain_p,c_nd_domain,
+                                               lobc,hibc, neumann_doubling);
+                    });
+                }
 #endif
             } else {
                 Real const_sigma = m_const_sigma;
