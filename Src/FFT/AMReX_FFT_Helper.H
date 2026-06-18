@@ -93,7 +93,7 @@ struct Info
     bool openbc_padding = true;
 
     //! Number of factors used by FFT::nextFastLen for OpenBCSolver padding.
-    int openbc_padding_nfactors = 3;
+    int openbc_padding_nfactors = 5;
 
     /**
      * \brief Select how the domain is decomposed across MPI ranks.
@@ -154,11 +154,11 @@ struct Info
      * \param n Number of factors passed to FFT::nextFastLen. It must be between 3 and 5.
      * \return Reference to this Info.
      */
-    Info& setOpenBCPaddingFactors (int n)
+    Info& setOpenBCPaddingNumPrimeFactors (int n)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             3 <= n && 5 >= n,
-            "amrex::FFT::Info::setOpenBCPaddingFactors: nfactors must be between 3 and 5");
+            "amrex::FFT::Info::setOpenBCPaddingNumPrimeFactors: nfactors must be between 3 and 5");
         openbc_padding_nfactors = n;
         return *this;
     }

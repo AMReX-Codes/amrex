@@ -188,11 +188,11 @@ boundaries.
 solve. It does not support :cpp:`FFT::Info::setBatchSize` values greater than
 one. The solver uses an internal doubled convolution domain in each transformed
 direction. By default, the one-sided length is rounded up with
-:cpp:`FFT::nextFastLen(n, 3)` before doubling, adding extra padding only for
+:cpp:`FFT::nextFastLen(n, 5)` before doubling, adding extra padding only for
 FFT performance. This extra padding changes only the internal FFT work arrays,
 not the user-provided :cpp:`MultiFab` domains. Users can disable it with
 :cpp:`FFT::Info::setOpenBCPadding(false)` or tune it with
-:cpp:`FFT::Info::setOpenBCPaddingFactors(nfactors)`.
+:cpp:`FFT::Info::setOpenBCPaddingNumPrimeFactors(nfactors)`.
 
 .. highlight:: c++
 
