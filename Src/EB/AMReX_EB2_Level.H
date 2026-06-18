@@ -35,6 +35,8 @@ namespace amrex
 
 namespace amrex::EB2 {
 
+extern AMREX_EXPORT int max_grid_size;
+
 class IndexSpace;
 template <typename G> class GShopLevel;
 
@@ -143,6 +145,25 @@ public:
      */
     void setShift (int direction, int ncells);
 
+/**
+     * \brief Face-centered EB data storage structure.
+     *
+     * Stores EB data for a specific face direction (x, y, or z).
+     * Data is derived from refined (2x finer) cell-centered grids.
+     */
+    struct FCData {
+        FabArray<EBCellFlagFab> m_cellflag_fc;
+        MultiFab m_volfrac_fc;
+        MultiFab m_centroid_fc;
+        MultiFab m_bndryarea_fc;
+        MultiFab m_bndrycent_fc;
+        MultiFab m_bndrynorm_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
+        Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
+        bool m_built = false;  //!< Lazy building flag
+    };
+
     //! Check if face-centered data is available for face_dir (0=x, 1=y, 2=z).
     [[nodiscard]] bool hasFCData (int face_dir) const noexcept {
         return face_dir >= 0 && face_dir < AMREX_SPACEDIM &&
@@ -187,25 +208,6 @@ public:
     void buildCellFlag ();
     //! Build the cut-cell mask by coarsening from \p fine_level.
     void buildCutCellMask (Level const& fine_level);
-
-    /**
-     * \brief Face-centered EB data storage structure.
-     *
-     * Stores EB data for a specific face direction (x, y, or z).
-     * Data is derived from refined (2x finer) cell-centered grids.
-     */
-    struct FCData {
-        FabArray<EBCellFlagFab> m_cellflag_fc;
-        MultiFab m_volfrac_fc;
-        MultiFab m_centroid_fc;
-        MultiFab m_bndryarea_fc;
-        MultiFab m_bndrycent_fc;
-        MultiFab m_bndrynorm_fc;
-        Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
-        Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
-        Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
-        bool m_built = false;  //!< Lazy building flag
-    };
 
 protected:
 
