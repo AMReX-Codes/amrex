@@ -151,13 +151,13 @@ struct Info
     /**
      * \brief Set the factor count used for OpenBCSolver FFT padding.
      *
-     * \param n Number of factors passed to FFT::nextFastLen. It must be between 3 and 5.
+     * \param n Number of factors passed to FFT::nextFastLen. It must be between 3 and 6.
      * \return Reference to this Info.
      */
     Info& setOpenBCPaddingNumPrimeFactors (int n)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            3 <= n && 5 >= n,
+            3 <= n && 6 >= n,
             "amrex::FFT::Info::setOpenBCPaddingNumPrimeFactors: nfactors must be between 3 and 5");
         openbc_padding_nfactors = n;
         return *this;
@@ -206,10 +206,10 @@ nextFastLen (int target, int nfactors = 5)
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(target > 0,
                                      "amrex::FFT::nextFastLen: target must be positive");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 5 >= nfactors,
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 6 >= nfactors,
                                      "amrex::FFT::nextFastLen: nfactors must be between 3 and 5");
 
-    int constexpr factors[] = {2, 3, 5, 7, 11, 13}; // The extra '13" is to make the buggy GCC -Warray-bounds quiet.
+    int constexpr factors[] = {2, 3, 5, 7, 11, 13, 17}; // The extra '17" is to make the buggy GCC -Warray-bounds quiet.
 
     Long const max_len = std::numeric_limits<int>::max();
     Long best = max_len + Long(1);
