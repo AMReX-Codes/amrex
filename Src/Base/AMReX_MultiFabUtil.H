@@ -461,6 +461,18 @@ namespace amrex
      * \param f         a callable object returning data fore reduction. It takes
      *                  four ints, where the first int is the local box index and
      *                  the others are spatial indices for x, y, and z-directions.
+     * \param nghost    number of guard cells to include in the reduction. Cells
+     *                  in the reduction \p direction are summed into the plane
+     *                  (e.g. to capture charge deposited outside the valid range
+     *                  when there is a single cell in that direction). Guard
+     *                  cells in the transverse directions are folded into the
+     *                  owning valid nodes of the result (\p period controls the
+     *                  domain-boundary behaviour), so the reduction conserves a
+     *                  summed quantity across box boundaries (MPI-safe). The
+     *                  caller must pass *un-synchronized* data (i.e. no prior
+     *                  SumBoundary), otherwise shared nodes are counted twice.
+     * \param period    periodicity used to fold the transverse guard cells back
+     *                  into the valid region (default: non-periodic).
      *
      * \return reduction result (std::pair<FA,FA>)
      */
@@ -470,7 +482,9 @@ namespace amrex
                            F,int,int,int,int>::value)
 #endif
     std::pair<FA,FA>
-    ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f);
+    ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f,
+                      IntVect const& nghost = IntVect(0),
+                      Periodicity const& period = Periodicity::NonPeriodic());
 
     /**
      * \brief Reduce FabArray/MultiFab data to plane FabArray for patchy BoxArrays
@@ -1374,7 +1388,8 @@ ReduceToPlane (int direction, Box const& a_domain, FabArray<FAB> const& mf, F co
 /// \cond DOXYGEN_IGNORE
 namespace detail {
 template <typename Op, MultiFabLike FA, typename F>
-FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
+FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f,
+                    IntVect const& nghost = IntVect(0))
 {
     using T = typename FA::value_type;
 
@@ -1385,20 +1400,32 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f)
         amrex::Abort("ReduceToPlaneMF: mf's BoxArray must have a rectangular domain.");
     }
 
+    // the reduction reads mf's guard cells, so it cannot include more guard
+    // cells than mf actually has
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(mf.nGrowVect()),
+        "ReduceToPlaneMF2: nghost must not exceed mf.nGrowVect().");
+
     T initval;
     Op().init(initval);
+
+    // guard cells in the reduction direction are summed into the plane; guard
+    // cells in the transverse directions are stored in the result's ghost cells
+    // (and folded into the valid region by the caller's ParallelAdd)
+    IntVect ng2d = nghost;
+    ng2d[direction] = 0;
+    Box const gdomain = amrex::grow(ndomain, nghost);
 
     BoxList bl = mf.boxArray().boxList();
     for (auto& b : bl) {
         b.setRange(direction, 0);
     }
     BoxArray ba(std::move(bl));
-    FA tmpfa(ba, mf.DistributionMap(), 1, 0);
+    FA tmpfa(ba, mf.DistributionMap(), 1, ng2d);
     tmpfa.setVal(initval);
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi)
     {
-        Box bx = mfi.validbox() & ndomain;
+        Box bx = amrex::grow(mfi.validbox(), nghost) & gdomain;
         if (bx.ok()) {
             int box_no = mfi.LocalIndex();
             detail::reduce_to_plane<Op, T>(tmpfa.array(mfi), direction, bx, box_no, f);
@@ -1429,14 +1456,15 @@ requires (IsCallableR<typename FA::value_type,
                       F,int,int,int,int>::value)
 #endif
 std::pair<FA,FA>
-ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
+ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f,
+                  IntVect const& nghost, Periodicity const& period)
 {
     using T = typename FA::value_type;
 
     T initval;
     Op().init(initval);
 
-    auto tmpmf = detail::reduce_to_plane<Op>(direction, domain, mf, f);
+    auto tmpmf = detail::reduce_to_plane<Op>(direction, domain, mf, f, nghost);
 
     BoxList bl2d(mf.ixType());
     Vector<int> procmap2d;
@@ -1459,7 +1487,11 @@ ReduceToPlaneMF2 (int direction, Box const& domain, FA const& mf, F const& f)
     mf2d.setVal(initval);
 
     static_assert(std::is_same_v<Op, ReduceOpSum>, "Currently only ReduceOpSum is supported.");
-    mf2d.ParallelAdd(tmpmf);
+    // fold the transverse guard cells of the local results into the valid
+    // region of the unique result (sums the quantity across box seams)
+    IntVect ng2d = nghost;
+    ng2d[direction] = 0;
+    mf2d.ParallelAdd(tmpmf, 0, 0, 1, ng2d, IntVect(0), IntVect(0), period);
 
     return std::make_pair(std::move(tmpmf), std::move(mf2d));
 }
