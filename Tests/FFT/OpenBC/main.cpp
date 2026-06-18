@@ -152,7 +152,11 @@ int main (int argc, char* argv[])
             FFT::PoissonOpenBC unpadded_solver(geom2, IndexType::TheCellType(),
                                                IntVect(0), unpadded_info);
 
-            AMREX_ALWAYS_ASSERT(padded_solver.PaddedLength() == IntVect(72, 72, 72));
+            IntVect expected_padded_length = domain2.length();
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                expected_padded_length[idim] = FFT::nextFastLen(expected_padded_length[idim]);
+            }
+            AMREX_ALWAYS_ASSERT(padded_solver.PaddedLength() == expected_padded_length);
             AMREX_ALWAYS_ASSERT(unpadded_solver.PaddedLength() == domain2.length());
 
             padded_solver.solve(phi_padded, rho2);
