@@ -1414,7 +1414,8 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int, Array4<Real> const& res,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
                           Array4<Real const> const& sigma,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                          bool is_rz = false) noexcept
 {
     Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
@@ -1427,6 +1428,11 @@ void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
         sten(i,j,k,1) = f2xmy*(sigma(i,j-1,k)+sigma(i,j,k));
         sten(i,j,k,2) = fmx2y*(sigma(i-1,j,k)+sigma(i,j,k));
         sten(i,j,k,3) = fxy*sigma(i,j,k);
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            sten(i,j,k,2) += fm*sigma(i-1,j,k) - fp*sigma(i,j,k);
+        }
     });
 }
 
@@ -1883,7 +1889,8 @@ void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
                              Array4<Real const> const& sig, Array4<Real const> const& conn,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                             bool is_rz = false) noexcept
 {
     Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
     Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
@@ -1893,6 +1900,12 @@ void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
     sten(i,j,0,2) = Real(2.)*facy*(sig(i-1,j,0)*conn(i-1,j,0,5)+sig(i,j,0)*conn(i,j,0,3))
                             -facx*(sig(i-1,j,0)*conn(i-1,j,0,1)+sig(i,j,0)*conn(i,j,0,1));
     sten(i,j,0,3) = (facx*conn(i,j,0,1)+facy*conn(i,j,0,4))*sig(i,j,0);
+    if (is_rz) {
+        Real fp = facy / static_cast<Real>(2*i+1);
+        Real fm = facy / static_cast<Real>(2*i-1);
+        sten(i,j,0,2) += fm*sig(i-1,j,0)*conn(i-1,j,0,5)
+                       - fp*sig(i  ,j,0)*conn(i  ,j,0,3);
+    }
 }
 
 
@@ -1979,6 +1992,40 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
                                       -Real(2.)*sintg(i-1,j  ,0,i_B_y )
                                       -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
           +eb_vel_dot_n(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
+                                      -Real(2.)*sintg(i  ,j  ,0,i_B_x )
+                                      -Real(2.)*sintg(i  ,j  ,0,i_B_y )
+                                      +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void add_eb_neumann_contribution (int i, int j, int, Array4<Real> const& rhs,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& sintg,
+                      Array4<Real const> const& eb_neumann_flux) noexcept
+{
+    using namespace nodelap_detail;
+
+    // eb_neumann_flux is sigma*dphi/dn_EB, with n_EB pointing from valid
+    // cells toward covered cells.
+    Real fac_eb = Real(0.25) * dxinv[0];
+
+    if (!msk(i,j,0)) {
+        rhs(i,j,0) -= fac_eb*(
+           eb_neumann_flux(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
+                                      +Real(2.)*sintg(i-1,j-1,0,i_B_x )
+                                      +Real(2.)*sintg(i-1,j-1,0,i_B_y )
+                                      +Real(4.)*sintg(i-1,j-1,0,i_B_xy))
+          +eb_neumann_flux(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
+                                      -Real(2.)*sintg(i  ,j-1,0,i_B_x )
+                                      +Real(2.)*sintg(i  ,j-1,0,i_B_y )
+                                      -Real(4.)*sintg(i  ,j-1,0,i_B_xy))
+          +eb_neumann_flux(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
+                                      +Real(2.)*sintg(i-1,j  ,0,i_B_x )
+                                      -Real(2.)*sintg(i-1,j  ,0,i_B_y )
+                                      -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
+          +eb_neumann_flux(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
                                       -Real(2.)*sintg(i  ,j  ,0,i_B_x )
                                       -Real(2.)*sintg(i  ,j  ,0,i_B_y )
                                       +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));

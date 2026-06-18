@@ -1,0 +1,18 @@
+mode = cart_mms_rap
+
+n_cell = 32 64 128
+max_grid_size = 16
+max_coarsening_level = 100
+
+verbose = 0
+bottom_verbose = 0
+max_iter = 100
+max_fmg_iter = 0
+reltol = 1.e-11
+abstol = 0.0
+
+do_assert = 1
+min_l2_order = 1.80
+min_linf_order = 1.80
+max_finest_l2 = 5.e-5
+max_finest_linf = 5.e-5

@@ -126,6 +126,7 @@ public :
     void getFluxes (const Vector<MultiFab*>& a_flux,
                             const Vector<MultiFab*>& a_sol) const final;
     void unimposeNeumannBC (int amrlev, MultiFab& rhs) const final;
+    void applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const final;
     Vector<Real> getSolvabilityOffset (int amrlev, int mglev,
                                        MultiFab const& rhs) const override;
     void fixSolvabilityByOffset (int amrlev, int mglev, MultiFab& rhs,
@@ -151,8 +152,23 @@ public :
     void buildIntegral ();
     void buildSurfaceIntegral ();
 
-    // Tells the solver that EB boundaries have inflow specified by "eb_vel"
+    /**
+     * \brief Set velocity data on embedded boundaries.
+     *
+     * The solver uses `eb_vel dot n_EB` on EB faces, where the AMReX EB normal
+     * `n_EB` points from the valid/fluid region toward the covered/body region.
+     */
     void setEBInflowVelocity (int amrlev, const MultiFab& eb_vel);
+
+    /**
+     * \brief Set inhomogeneous Neumann data on embedded boundaries.
+     *
+     * The first component of `eb_neumann_flux` is the cell-centered cut-cell
+     * value of `sigma*dphi/dn_EB` at the EB surface. AMReX EB normals point
+     * from the valid/fluid region toward the covered/body region. This is
+     * currently implemented for 2D EB nodal solves.
+     */
+    void setEBInhomogNeumannFlux (int amrlev, const MultiFab& eb_neumann_flux);
 
 #endif
 
@@ -209,6 +225,7 @@ private:
     bool m_surface_integral_built = false;
     bool m_build_surface_integral = false;
     Vector<std::unique_ptr<MultiFab> > m_eb_vel_dot_n;
+    Vector<std::unique_ptr<MultiFab> > m_eb_neumann_flux;
 #endif
 
     bool m_use_gauss_seidel     = true;
