@@ -2,6 +2,7 @@
 
 #include <AMReX.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_ParReduce.H>
 #include <AMReX_ParmParse.H>
 #include <AMReX_PlotFileUtil.H>
 
@@ -234,6 +235,58 @@ int main (int argc, char* argv[])
             auto eps = 1.e-13;
 #endif
             AMREX_ALWAYS_ASSERT(error < eps);
+        }
+
+        // Test face MultiFabs
+        {
+            FFT::R2C<Real> r2c(geom.Domain());
+
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                BoxArray fba = amrex::convert(ba, IntVect::TheDimensionVector(idim));
+                MultiFab face_mf(fba, dm, 1, 0);
+                MultiFab face_mf2(fba, dm, 1, 0);
+
+                auto const& face_ma = face_mf.arrays();
+                ParallelFor(face_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+                {
+                    AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
+                                 int jj = (j == n_cell_y) ? 0 : j;,
+                                 int kk = (k == n_cell_z) ? 0 : k);
+                    AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
+                                 Real y = Real(jj) * dx[1] - 0.5_rt;,
+                                 Real z = Real(kk) * dx[2] - 0.5_rt);
+                    face_ma[b](i,j,k) = std::exp(-10._rt*
+                        (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
+                });
+
+                auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+                cMultiFab cmf(cba, cdm, 1, 0);
+                r2c.forward(face_mf, cmf);
+                amrex::Scale(cmf, scaling, 0, 1, 0);
+
+                constexpr Real sentinel = -1.2345e30_rt;
+                face_mf2.setVal(sentinel);
+                r2c.backward(cmf, face_mf2);
+
+                auto const& face_ma2 = face_mf2.const_arrays();
+
+                auto error = ParReduce(TypeList<ReduceOpMax>{}, TypeList<Real>{}, face_mf,
+                    IntVect(0), [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
+                        -> GpuTuple<Real>
+                {
+                    Real e = std::abs(face_ma2[b](i,j,k) - face_ma[b](i,j,k));
+                    return {e};
+                });
+                ParallelDescriptor::ReduceRealMax(error);
+                amrex::Print() << "  Face MultiFab dir " << idim
+                               << " expected to be close to zero: " << error << "\n";
+#ifdef AMREX_USE_FLOAT
+                auto eps = 1.e-6f;
+#else
+                auto eps = 1.e-13;
+#endif
+                AMREX_ALWAYS_ASSERT(error < eps);
+            }
         }
     }
     amrex::Finalize();
