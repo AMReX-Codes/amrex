@@ -330,20 +330,20 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                             {
                                 if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
                                     sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-#if (AMREX_SPACEDIM >= 2)
-                                    if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
-#endif
-#if (AMREX_SPACEDIM == 3)
-                                    if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
-#endif
+									if constexpr (AMREX_SPACEDIM >= 2) {
+									  if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
+									}
+									if constexpr (AMREX_SPACEDIM == 3) {
+									  if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+									}
                                 } else {
                                     sigmaarr(i,j,k) = 0.0;
-#if (AMREX_SPACEDIM >= 2)
-                                    if (is_aniso) { syarr_w(i,j,k) = 0.0; }
-#endif
-#if (AMREX_SPACEDIM == 3)
-                                    if (is_aniso) { szarr_w(i,j,k) = 0.0; }
-#endif
+									if constexpr (AMREX_SPACEDIM >= 2) {
+									  if (is_aniso) { syarr_w(i,j,k) = 0.0; }
+									}
+									if constexpr (AMREX_SPACEDIM == 3) {
+									  if (is_aniso) { szarr_w(i,j,k) = 0.0; }
+									}
                                 }
                             });
                         } else {
@@ -669,20 +669,20 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                         {
                             if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                                 sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-#if (AMREX_SPACEDIM >= 2)
-                                if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
-#endif
-#if (AMREX_SPACEDIM == 3)
-                                if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
-#endif
+								if constexpr (AMREX_SPACEDIM >= 2) {
+								  if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
+								}
+								if constexpr (AMREX_SPACEDIM == 3) {
+								  if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+								}
                             } else {
                                 sigmaarr(i,j,k) = 0.0;
-#if (AMREX_SPACEDIM >= 2)
-                                if (is_aniso) { syarr_w(i,j,k) = 0.0; }
-#endif
-#if (AMREX_SPACEDIM == 3)
-                                if (is_aniso) { szarr_w(i,j,k) = 0.0; }
-#endif
+								if constexpr (AMREX_SPACEDIM >= 2) {
+								  if (is_aniso) { syarr_w(i,j,k) = 0.0; }
+								}
+								if constexpr (AMREX_SPACEDIM == 3) {
+									if (is_aniso) { szarr_w(i,j,k) = 0.0; }
+								}
                             }
                         });
                     } else {
