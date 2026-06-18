@@ -1400,6 +1400,11 @@ FA reduce_to_plane (int direction, Box const& domain, FA const& mf, F const& f,
         amrex::Abort("ReduceToPlaneMF: mf's BoxArray must have a rectangular domain.");
     }
 
+    // the reduction reads mf's guard cells, so it cannot include more guard
+    // cells than mf actually has
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(nghost.allLE(mf.nGrowVect()),
+        "ReduceToPlaneMF2: nghost must not exceed mf.nGrowVect().");
+
     T initval;
     Op().init(initval);
 
