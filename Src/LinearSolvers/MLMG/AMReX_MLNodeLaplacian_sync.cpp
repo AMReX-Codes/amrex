@@ -82,7 +82,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
     const auto& sigma_orig = m_sigma[0][0][0];
     // Anisotropic (mapped) path: capture per-axis sigmas.
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped && (sigma_orig != nullptr)
+        AMREX_D_TERM(, && (m_sigma[0][0][1] != nullptr),
+                     && (m_sigma[0][0][2] != nullptr));
     AMREX_D_TERM(,
                  const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
                  const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
@@ -414,7 +416,9 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
     const auto& sigma_orig = m_sigma[0][0][0];
     // Per-axis sigma for the anisotropic (mapped) path.
-    const bool aniso_sigma = m_use_mapped;
+    const bool aniso_sigma = m_use_mapped && (sigma_orig != nullptr)
+        AMREX_D_TERM(, && (m_sigma[0][0][1] != nullptr),
+                     && (m_sigma[0][0][2] != nullptr));
     AMREX_D_TERM(,
                  const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
                  const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
@@ -880,7 +884,9 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
         if (fsigma) {
             Array4<Real const> const& sigarr = fsigma->const_array(mfi);
-            const bool aniso_sigma = m_use_mapped;
+            const bool aniso_sigma = m_use_mapped && (fsigma != nullptr)
+                AMREX_D_TERM(, && (m_sigma[crse_amrlev+1][0][1] != nullptr),
+                             && (m_sigma[crse_amrlev+1][0][2] != nullptr));
             AMREX_D_TERM(,
                          Array4<Real const> syarr = aniso_sigma
                              ? m_sigma[crse_amrlev+1][0][1]->const_array(mfi) : Array4<Real const>{};,
