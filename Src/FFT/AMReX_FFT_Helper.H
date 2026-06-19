@@ -60,6 +60,24 @@ AMREX_ENUM( Boundary, periodic, even, odd );
 enum struct Kind { none, r2c_f, r2c_b, c2c_f, c2c_b, r2r_ee_f, r2r_ee_b,
                    r2r_oo_f, r2r_oo_b, r2r_eo, r2r_oe };
 
+/**
+ * \brief Return the default factor count used for selecting fast FFT lengths.
+ *
+ * The default is platform dependent. CUDA currently uses 5; other backends
+ * currently use 6. This tuning default may change in the future.
+ *
+ * \return Default number of prime factors used by FFT::nextFastLen.
+ */
+[[nodiscard]] inline constexpr int
+FastNumPrimeFactors () noexcept
+{
+#if defined(AMREX_USE_CUDA)
+    return 5;
+#else
+    return 6;
+#endif
+}
+
 struct Info
 {
     //! Domain composition strategy.
@@ -92,8 +110,9 @@ struct Info
     //! Whether OpenBCSolver pads internal FFT lengths for better performance.
     bool openbc_padding = true;
 
-    //! Number of factors used by FFT::nextFastLen for OpenBCSolver padding.
-    int openbc_padding_nfactors = 5;
+    //! Number of prime factors used by FFT::nextFastLen for OpenBCSolver padding.
+    //! Defaults to FFT::FastNumPrimeFactors().
+    int openbc_padding_nfactors = FastNumPrimeFactors();
 
     /**
      * \brief Select how the domain is decomposed across MPI ranks.
@@ -151,14 +170,14 @@ struct Info
     /**
      * \brief Set the factor count used for OpenBCSolver FFT padding.
      *
-     * \param n Number of factors passed to FFT::nextFastLen. It must be between 3 and 6.
+     * \param n Number of prime factors passed to FFT::nextFastLen. It must be between 3 and 6.
      * \return Reference to this Info.
      */
     Info& setOpenBCPaddingNumPrimeFactors (int n)
     {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             3 <= n && 6 >= n,
-            "amrex::FFT::Info::setOpenBCPaddingNumPrimeFactors: nfactors must be between 3 and 5");
+            "amrex::FFT::Info::setOpenBCPaddingNumPrimeFactors: nfactors must be between 3 and 6");
         openbc_padding_nfactors = n;
         return *this;
     }
@@ -195,19 +214,21 @@ inline void next_fast_len_doit (Long target, Long n, int const* factors,
 /**
  * \brief Return the smallest fast FFT length greater than or equal to \p target.
  *
- * The allowed factors are the first \p nfactors values from {2, 3, 5, 7, 11}.
+ * The allowed factors are the first \p nfactors values from {2, 3, 5, 7, 11, 13}.
+ * When \p nfactors is omitted, FFT::FastNumPrimeFactors() provides a
+ * platform-dependent default.
  *
  * \param target Minimum requested FFT length. It must be positive.
- * \param nfactors Number of supported factors. It must be between 3 and 5.
+ * \param nfactors Number of supported prime factors. It must be between 3 and 6.
  * \return A fast FFT length no smaller than \p target.
  */
 [[nodiscard]] inline int
-nextFastLen (int target, int nfactors = 5)
+nextFastLen (int target, int nfactors = FastNumPrimeFactors())
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(target > 0,
                                      "amrex::FFT::nextFastLen: target must be positive");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 6 >= nfactors,
-                                     "amrex::FFT::nextFastLen: nfactors must be between 3 and 5");
+                                     "amrex::FFT::nextFastLen: nfactors must be between 3 and 6");
 
     int constexpr factors[] = {2, 3, 5, 7, 11, 13, 17}; // The extra '17" is to make the buggy GCC -Warray-bounds quiet.
 

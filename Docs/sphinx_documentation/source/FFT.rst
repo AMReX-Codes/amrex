@@ -71,9 +71,12 @@ Choosing FFT lengths
 
 :cpp:`FFT::nextFastLen(target, nfactors)` returns the smallest FFT length
 greater than or equal to :cpp:`target` whose prime factors are limited to the
-first :cpp:`nfactors` values from :cpp:`{2, 3, 5, 7, 11}`. The default is
-:cpp:`nfactors = 5`. This helper can be used to choose a padded FFT domain
-size that is expected to perform well with common FFT backends.
+first :cpp:`nfactors` values from :cpp:`{2, 3, 5, 7, 11, 13}`. If
+:cpp:`nfactors` is omitted, :cpp:`FFT::FastNumPrimeFactors()` provides the
+platform-dependent default. It currently returns 5 for CUDA and 6 for other
+backends. This default is a performance tuning policy and may change in the
+future. This helper can be used to choose a padded FFT domain size that is
+expected to perform well with common FFT backends.
 
 
 Class template `FFT::R2C` also supports batched FFTs. The batch size is set
@@ -188,10 +191,11 @@ boundaries.
 solve. It does not support :cpp:`FFT::Info::setBatchSize` values greater than
 one. The solver uses an internal doubled convolution domain in each transformed
 direction. By default, the one-sided length is rounded up with
-:cpp:`FFT::nextFastLen(n, 5)` before doubling, adding extra padding only for
-FFT performance. This extra padding changes only the internal FFT work arrays,
-not the user-provided :cpp:`MultiFab` domains. Users can disable it with
-:cpp:`FFT::Info::setOpenBCPadding(false)` or tune it with
+:cpp:`FFT::nextFastLen(n)` before doubling, using the platform-dependent
+:cpp:`FFT::FastNumPrimeFactors()` default described above. This extra padding
+changes only the internal FFT work arrays, not the user-provided
+:cpp:`MultiFab` domains. Users can disable it with
+:cpp:`FFT::Info::setOpenBCPadding(false)` or tune the factor count with
 :cpp:`FFT::Info::setOpenBCPaddingNumPrimeFactors(nfactors)`.
 
 .. highlight:: c++

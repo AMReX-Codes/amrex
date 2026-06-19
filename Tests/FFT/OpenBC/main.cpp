@@ -132,6 +132,11 @@ int main (int argc, char* argv[])
         {
             amrex::Print() << "\nTesting OpenBC padding against unpadded solve\n";
 
+            AMREX_ALWAYS_ASSERT(FFT::Info{}.openbc_padding_nfactors ==
+                                FFT::FastNumPrimeFactors());
+            AMREX_ALWAYS_ASSERT(FFT::nextFastLen(13) ==
+                                FFT::nextFastLen(13, FFT::FastNumPrimeFactors()));
+
             Box domain2(IntVect(0), IntVect(64,66,68));
             BoxArray ba2(domain2);
             ba2.maxSize(IntVect(32, 32, 32));
