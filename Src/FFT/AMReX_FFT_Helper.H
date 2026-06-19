@@ -68,7 +68,7 @@ enum struct Kind { none, r2c_f, r2c_b, c2c_f, c2c_b, r2r_ee_f, r2r_ee_b,
  *
  * \return Default number of prime factors used by FFT::nextFastLen.
  */
-[[nodiscard]] inline constexpr int
+[[nodiscard]] constexpr int
 FastNumPrimeFactors () noexcept
 {
 #if defined(AMREX_USE_CUDA)
