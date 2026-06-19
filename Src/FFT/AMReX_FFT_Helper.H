@@ -195,14 +195,29 @@ inline void next_fast_len_doit (Long target, Long n, int const* factors,
     }
 
     if (ifactor == nfactors) {
-        Long const max_m = std::numeric_limits<int>::max() / 2;
-        while (n < target) {
-            if (n > max_m) {
-                return;
+        // Factors 2 and 3 are handled here.  For each power of 3 that
+        // keeps the product below the current best, multiply by 2 until
+        // the target is reached and update best accordingly.
+        Long const max_m3 = std::numeric_limits<int>::max() / 3;
+        Long const max_m2 = std::numeric_limits<int>::max() / 2;
+        Long const big = std::numeric_limits<int>::max() + Long(1);
+        for (Long m3 = n; m3 < best; ) {
+            Long k = m3;
+            while (k < target) {
+                if (k > max_m2) {
+                    k = big;
+                    break;
+                }
+                k *= 2;
             }
-            n *= 2;
+            if (k < best) {
+                best = k;
+            }
+            if (m3 > max_m3) {
+                break;
+            }
+            m3 *= 3;
         }
-        best = std::min(best, n);
         return;
     }
 
@@ -239,13 +254,13 @@ nextFastLen (int target, int nfactors = FastNumPrimeFactors())
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 6 >= nfactors,
                                      "amrex::FFT::nextFastLen: nfactors must be between 3 and 6");
 
-    int constexpr factors[] = {3, 5, 7, 11, 13, 17}; // The extra '17' is to make the buggy GCC -Warray-bounds quiet.
+    int constexpr factors[] = {5, 7, 11, 13, 17}; // The extra '17' is to make the buggy GCC -Warray-bounds quiet.
 
     Long const max_len = std::numeric_limits<int>::max();
     Long best = max_len + Long(1);
 
-    // Factor 2 is handled directly in the base case.
-    detail::next_fast_len_doit(target, Long(1), factors, nfactors-1, 0, best);
+    // Factors 2 and 3 are handled directly in the base case.
+    detail::next_fast_len_doit(target, Long(1), factors, nfactors-2, 0, best);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(best <= max_len,
                                      "amrex::FFT::nextFastLen: result exceeds int range");
