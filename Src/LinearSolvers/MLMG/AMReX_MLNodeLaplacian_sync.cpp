@@ -310,7 +310,11 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                             sig_z_local.resize(ccbxg1, 1, The_Async_Arena());
 #endif
                         }
+#if (AMREX_SPACEDIM >= 2)
                         Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
+#else
+                        Array4<Real> syarr_w{};
+#endif
 #if (AMREX_SPACEDIM == 3)
                         Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
 #else
@@ -331,24 +335,23 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #else
                             Array4<Real const> szarr_orig{};
 #endif
-                            const bool is_aniso = aniso_sigma;
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
                                 if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
                                     sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
                                     if constexpr (AMREX_SPACEDIM >= 2) {
-                                        if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
+                                        if (aniso_sigma) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
                                     }
                                     if constexpr (AMREX_SPACEDIM == 3) {
-                                        if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+                                        if (aniso_sigma) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
                                     }
                                 } else {
                                     sigmaarr(i,j,k) = 0.0;
                                     if constexpr (AMREX_SPACEDIM >= 2) {
-                                        if (is_aniso) { syarr_w(i,j,k) = 0.0; }
+                                        if (aniso_sigma) { syarr_w(i,j,k) = 0.0; }
                                     }
                                     if constexpr (AMREX_SPACEDIM == 3) {
-                                        if (is_aniso) { szarr_w(i,j,k) = 0.0; }
+                                        if (aniso_sigma) { szarr_w(i,j,k) = 0.0; }
                                     }
                                 }
                             });
@@ -664,7 +667,11 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                         sig_z_local.resize(ccbxg1, 1, The_Async_Arena());
 #endif
                     }
+#if (AMREX_SPACEDIM >= 2)
                     Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
+#else
+                    Array4<Real> syarr_w{};
+#endif
 #if (AMREX_SPACEDIM == 3)
                     Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
 #else
@@ -685,24 +692,23 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 #else
                         Array4<Real const> szarr_orig{};
 #endif
-                        const bool is_aniso = aniso_sigma;
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
                             if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                                 sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
                                 if constexpr (AMREX_SPACEDIM >= 2) {
-                                    if (is_aniso) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
+                                    if (aniso_sigma) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
                                 }
                                 if constexpr (AMREX_SPACEDIM == 3) {
-                                    if (is_aniso) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+                                    if (aniso_sigma) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
                                 }
                             } else {
                                 sigmaarr(i,j,k) = 0.0;
                                 if constexpr (AMREX_SPACEDIM >= 2) {
-                                    if (is_aniso) { syarr_w(i,j,k) = 0.0; }
+                                    if (aniso_sigma) { syarr_w(i,j,k) = 0.0; }
                                 }
                                 if constexpr (AMREX_SPACEDIM == 3) {
-                                    if (is_aniso) { szarr_w(i,j,k) = 0.0; }
+                                    if (aniso_sigma) { szarr_w(i,j,k) = 0.0; }
                                 }
                             }
                         });
