@@ -83,12 +83,9 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
     const auto& sigma_orig = m_sigma[0][0][0];
     // Anisotropic (mapped) path: capture per-axis sigmas.
     const bool aniso_sigma = m_use_mapped;
-#if (AMREX_SPACEDIM >= 2)
-    const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;
-#endif
-#if (AMREX_SPACEDIM == 3)
-    const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;
-#endif
+    AMREX_D_TERM(,
+                 const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
+                 const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
 #ifdef AMREX_USE_EB
@@ -305,53 +302,36 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
                         // Per-axis sigma scratch when mapped.
                         if (aniso_sigma) {
-                            sig_y_local.resize(ccbxg1, 1, The_Async_Arena());
-#if (AMREX_SPACEDIM == 3)
-                            sig_z_local.resize(ccbxg1, 1, The_Async_Arena());
-#endif
+                            AMREX_D_TERM(,
+                                         sig_y_local.resize(ccbxg1, 1, The_Async_Arena());,
+                                         sig_z_local.resize(ccbxg1, 1, The_Async_Arena());)
                         }
-#if (AMREX_SPACEDIM >= 2)
-                        Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
-#else
-                        Array4<Real> syarr_w{};
-#endif
-#if (AMREX_SPACEDIM == 3)
-                        Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
-#else
-                        Array4<Real> szarr_w{};
-#endif
+                        AMREX_D_TERM(,
+                                     Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};,
+                                     Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};)
 
                         if (sigma_orig) {
                             Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
-#if (AMREX_SPACEDIM >= 2)
-                            Array4<Real const> syarr_orig = aniso_sigma
-                                ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};
-#else
-                            Array4<Real const> syarr_orig{};
-#endif
-#if (AMREX_SPACEDIM == 3)
-                            Array4<Real const> szarr_orig = aniso_sigma
-                                ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};
-#else
-                            Array4<Real const> szarr_orig{};
-#endif
+                            AMREX_D_TERM(,
+                                         Array4<Real const> syarr_orig = aniso_sigma
+                                             ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};,
+                                         Array4<Real const> szarr_orig = aniso_sigma
+                                             ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};)
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                             {
                                 if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
                                     sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-                                    if constexpr (AMREX_SPACEDIM >= 2) {
-                                        if (aniso_sigma) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
-                                    }
-                                    if constexpr (AMREX_SPACEDIM == 3) {
-                                        if (aniso_sigma) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+                                    if (aniso_sigma) {
+                                        AMREX_D_TERM(,
+                                                     syarr_w(i,j,k) = syarr_orig(i,j,k);,
+                                                     szarr_w(i,j,k) = szarr_orig(i,j,k);)
                                     }
                                 } else {
                                     sigmaarr(i,j,k) = 0.0;
-                                    if constexpr (AMREX_SPACEDIM >= 2) {
-                                        if (aniso_sigma) { syarr_w(i,j,k) = 0.0; }
-                                    }
-                                    if constexpr (AMREX_SPACEDIM == 3) {
-                                        if (aniso_sigma) { szarr_w(i,j,k) = 0.0; }
+                                    if (aniso_sigma) {
+                                        AMREX_D_TERM(,
+                                                     syarr_w(i,j,k) = 0.0;,
+                                                     szarr_w(i,j,k) = 0.0;)
                                     }
                                 }
                             });
@@ -435,12 +415,9 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
     const auto& sigma_orig = m_sigma[0][0][0];
     // Per-axis sigma for the anisotropic (mapped) path.
     const bool aniso_sigma = m_use_mapped;
-#if (AMREX_SPACEDIM >= 2)
-    const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;
-#endif
-#if (AMREX_SPACEDIM == 3)
-    const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;
-#endif
+    AMREX_D_TERM(,
+                 const MultiFab* sigma_orig_y = aniso_sigma ? m_sigma[0][0][1].get() : nullptr;,
+                 const MultiFab* sigma_orig_z = aniso_sigma ? m_sigma[0][0][2].get() : nullptr;)
     const iMultiFab& dmsk = *m_dirichlet_mask[0][0];
 
     const auto lobc = LoBC();
@@ -662,53 +639,36 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
                     const Box& ovlp2 = ccvbx & ccbxg1;
 
                     if (aniso_sigma) {
-                        sig_y_local.resize(ccbxg1, 1, The_Async_Arena());
-#if (AMREX_SPACEDIM == 3)
-                        sig_z_local.resize(ccbxg1, 1, The_Async_Arena());
-#endif
+                        AMREX_D_TERM(,
+                                     sig_y_local.resize(ccbxg1, 1, The_Async_Arena());,
+                                     sig_z_local.resize(ccbxg1, 1, The_Async_Arena());)
                     }
-#if (AMREX_SPACEDIM >= 2)
-                    Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
-#else
-                    Array4<Real> syarr_w{};
-#endif
-#if (AMREX_SPACEDIM == 3)
-                    Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
-#else
-                    Array4<Real> szarr_w{};
-#endif
+                    AMREX_D_TERM(,
+                                 Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};,
+                                 Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};)
 
                     if (sigma_orig) {
                         Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
-#if (AMREX_SPACEDIM >= 2)
-                        Array4<Real const> syarr_orig = aniso_sigma
-                            ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};
-#else
-                        Array4<Real const> syarr_orig{};
-#endif
-#if (AMREX_SPACEDIM == 3)
-                        Array4<Real const> szarr_orig = aniso_sigma
-                            ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};
-#else
-                        Array4<Real const> szarr_orig{};
-#endif
+                        AMREX_D_TERM(,
+                                     Array4<Real const> syarr_orig = aniso_sigma
+                                         ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};,
+                                     Array4<Real const> szarr_orig = aniso_sigma
+                                         ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};)
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
                         {
                             if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
                                 sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-                                if constexpr (AMREX_SPACEDIM >= 2) {
-                                    if (aniso_sigma) { syarr_w(i,j,k) = syarr_orig(i,j,k); }
-                                }
-                                if constexpr (AMREX_SPACEDIM == 3) {
-                                    if (aniso_sigma) { szarr_w(i,j,k) = szarr_orig(i,j,k); }
+                                if (aniso_sigma) {
+                                    AMREX_D_TERM(,
+                                                 syarr_w(i,j,k) = syarr_orig(i,j,k);,
+                                                 szarr_w(i,j,k) = szarr_orig(i,j,k);)
                                 }
                             } else {
                                 sigmaarr(i,j,k) = 0.0;
-                                if constexpr (AMREX_SPACEDIM >= 2) {
-                                    if (aniso_sigma) { syarr_w(i,j,k) = 0.0; }
-                                }
-                                if constexpr (AMREX_SPACEDIM == 3) {
-                                    if (aniso_sigma) { szarr_w(i,j,k) = 0.0; }
+                                if (aniso_sigma) {
+                                    AMREX_D_TERM(,
+                                                 syarr_w(i,j,k) = 0.0;,
+                                                 szarr_w(i,j,k) = 0.0;)
                                 }
                             }
                         });
@@ -921,14 +881,11 @@ MLNodeLaplacian::reflux (int crse_amrlev,
         if (fsigma) {
             Array4<Real const> const& sigarr = fsigma->const_array(mfi);
             const bool aniso_sigma = m_use_mapped;
-#if (AMREX_SPACEDIM >= 2)
-            Array4<Real const> syarr = aniso_sigma
-                ? m_sigma[crse_amrlev+1][0][1]->const_array(mfi) : Array4<Real const>{};
-#endif
-#if (AMREX_SPACEDIM == 3)
-            Array4<Real const> szarr = aniso_sigma
-                ? m_sigma[crse_amrlev+1][0][2]->const_array(mfi) : Array4<Real const>{};
-#endif
+            AMREX_D_TERM(,
+                         Array4<Real const> syarr = aniso_sigma
+                             ? m_sigma[crse_amrlev+1][0][1]->const_array(mfi) : Array4<Real const>{};,
+                         Array4<Real const> szarr = aniso_sigma
+                             ? m_sigma[crse_amrlev+1][0][2]->const_array(mfi) : Array4<Real const>{};)
 #if (AMREX_SPACEDIM == 2)
             if (aniso_sigma) {
                 if (amrrr == 2) {
@@ -1050,14 +1007,11 @@ MLNodeLaplacian::reflux (int crse_amrlev,
 
             if (csigma) {
                 Array4<Real const> const& csigarr = csigma->const_array(mfi);
-#if (AMREX_SPACEDIM >= 2)
-                Array4<Real const> csigyarr = aniso_csigma
-                    ? m_sigma[crse_amrlev][0][1]->const_array(mfi) : Array4<Real const>{};
-#endif
-#if (AMREX_SPACEDIM == 3)
-                Array4<Real const> csigzarr = aniso_csigma
-                    ? m_sigma[crse_amrlev][0][2]->const_array(mfi) : Array4<Real const>{};
-#endif
+                AMREX_D_TERM(,
+                             Array4<Real const> csigyarr = aniso_csigma
+                                 ? m_sigma[crse_amrlev][0][1]->const_array(mfi) : Array4<Real const>{};,
+                             Array4<Real const> csigzarr = aniso_csigma
+                                 ? m_sigma[crse_amrlev][0][2]->const_array(mfi) : Array4<Real const>{};)
 #if (AMREX_SPACEDIM == 2)
                 if (aniso_csigma) {
                     AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
