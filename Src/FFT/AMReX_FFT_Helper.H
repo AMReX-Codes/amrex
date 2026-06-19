@@ -200,9 +200,10 @@ inline void next_fast_len_doit (Long target, Long n, int const* factors,
 
     int const factor = factors[ifactor];
     Long const max_len = std::numeric_limits<int>::max();
+    Long const max_m = max_len / factor;
     for (Long m = n; m < best; ) {
         next_fast_len_doit(target, m, factors, nfactors, ifactor+1, best);
-        if (m > max_len / factor) {
+        if (m > max_m) {
             break;
         }
         m *= factor;
