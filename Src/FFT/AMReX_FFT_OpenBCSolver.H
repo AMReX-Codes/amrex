@@ -106,6 +106,8 @@ Box OpenBCSolver<T>::make_grown_domain (Box const& domain, IntVect const& padded
     int ndims = AMREX_SPACEDIM;
 #if (AMREX_SPACEDIM == 3)
     if (info.twod_mode) { ndims = 2; }
+#else
+    amrex::ignore_unused(info);
 #endif
     for (int idim = 0; idim < ndims; ++idim) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
