@@ -987,7 +987,9 @@ MLNodeLaplacian::reflux (int crse_amrlev,
     const auto& has_fine_bndry = m_has_fine_bndry[crse_amrlev];
 
     const auto& csigma = m_sigma[crse_amrlev][0][0];
-    const bool aniso_csigma = m_use_mapped;
+    const bool aniso_csigma = m_use_mapped && (csigma != nullptr)
+        AMREX_D_TERM(, && (m_sigma[crse_amrlev][0][1] != nullptr),
+                     && (m_sigma[crse_amrlev][0][2] != nullptr));
 
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
