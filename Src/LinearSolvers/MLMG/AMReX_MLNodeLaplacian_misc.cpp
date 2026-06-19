@@ -93,7 +93,11 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     // the non-mapped / harmonic-average path idim>0 sigmas alias
     // idim=0 (or don't exist), so only idim=0 needs restriction.
     // In 1D this is always 1 (AMREX_SPACEDIM == 1).
+#if (AMREX_SPACEDIM == 1)
+    const int nsigma = 1;
+#else
     const int nsigma = m_use_mapped ? AMREX_SPACEDIM : 1;
+#endif
     for (int idim = 0; idim < nsigma; ++idim) {
         if (m_sigma[flev][mglev][idim] && m_sigma[flev-1][mglev][idim]) {
 #ifdef AMREX_USE_EB
