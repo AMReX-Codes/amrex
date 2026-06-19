@@ -230,7 +230,7 @@ nextFastLen (int target, int nfactors = FastNumPrimeFactors())
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 6 >= nfactors,
                                      "amrex::FFT::nextFastLen: nfactors must be between 3 and 6");
 
-    int constexpr factors[] = {2, 3, 5, 7, 11, 13, 17}; // The extra '17" is to make the buggy GCC -Warray-bounds quiet.
+    int constexpr factors[] = {2, 3, 5, 7, 11, 13, 17}; // The extra '17' is to make the buggy GCC -Warray-bounds quiet.
 
     Long const max_len = std::numeric_limits<int>::max();
     Long best = max_len + Long(1);

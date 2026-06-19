@@ -69,7 +69,8 @@ public:
 
 private:
     static IntVect make_padded_length (Box const& domain, Info const& info);
-    static Box make_grown_domain (Box const& domain, Info const& info);
+    static Box make_grown_domain (Box const& domain, IntVect const& padded_len,
+                                  Info const& info);
 
     Box m_domain;
     Info m_info;
@@ -98,9 +99,10 @@ IntVect OpenBCSolver<T>::make_padded_length (Box const& domain, Info const& info
 }
 
 template <typename T>
-Box OpenBCSolver<T>::make_grown_domain (Box const& domain, Info const& info)
+Box OpenBCSolver<T>::make_grown_domain (Box const& domain, IntVect const& padded_len,
+                                        Info const& info)
 {
-    IntVect len = make_padded_length(domain, info);
+    IntVect len = padded_len;
     int ndims = AMREX_SPACEDIM;
 #if (AMREX_SPACEDIM == 3)
     if (info.twod_mode) { ndims = 2; }
@@ -119,7 +121,7 @@ OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
     : m_domain(domain),
       m_info(info),
       m_padded_length(OpenBCSolver<T>::make_padded_length(domain, info)),
-      m_r2c(OpenBCSolver<T>::make_grown_domain(domain,info),
+      m_r2c(OpenBCSolver<T>::make_grown_domain(domain, m_padded_length, info),
             m_info.setDomainStrategy(FFT::DomainStrategy::slab))
 {
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_info.batch_size == 1,
@@ -127,7 +129,7 @@ OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
 
 #if (AMREX_SPACEDIM == 3)
     if (m_info.twod_mode) {
-        auto gdom = make_grown_domain(domain,m_info);
+        auto gdom = make_grown_domain(domain, m_padded_length, m_info);
         gdom.enclosedCells(2);
         gdom.setSmall(2, 0);
         int nprocs = std::min({ParallelContext::NProcsSub(),
