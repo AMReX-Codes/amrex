@@ -313,6 +313,8 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
                         Array4<Real> syarr_w = aniso_sigma ? sig_y_local.array() : Array4<Real>{};
 #if (AMREX_SPACEDIM == 3)
                         Array4<Real> szarr_w = aniso_sigma ? sig_z_local.array() : Array4<Real>{};
+#else
+                        Array4<Real> szarr_w{};
 #endif
 
                         if (sigma_orig) {
@@ -320,10 +322,14 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 #if (AMREX_SPACEDIM >= 2)
                             Array4<Real const> syarr_orig = aniso_sigma
                                 ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};
+#else
+                            Array4<Real const> syarr_orig{};
 #endif
 #if (AMREX_SPACEDIM == 3)
                             Array4<Real const> szarr_orig = aniso_sigma
                                 ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};
+#else
+                            Array4<Real const> szarr_orig{};
 #endif
                             const bool is_aniso = aniso_sigma;
                             AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
