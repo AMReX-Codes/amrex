@@ -314,29 +314,34 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
                         if (sigma_orig) {
                             Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
-                            AMREX_D_TERM(,
-                                         Array4<Real const> syarr_orig = aniso_sigma
-                                             ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};,
-                                         Array4<Real const> szarr_orig = aniso_sigma
-                                             ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};)
-                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
-                            {
-                                if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
-                                    sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-                                    if (aniso_sigma) {
-                                        AMREX_D_TERM(,
+                            if (aniso_sigma) {
+                                AMREX_D_TERM(,
+                                             Array4<Real const> syarr_orig
+                                                 = sigma_orig_y->const_array(mfi);,
+                                             Array4<Real const> szarr_orig
+                                                 = sigma_orig_z->const_array(mfi);)
+                                AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                                {
+                                    if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
+                                        AMREX_D_TERM(sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);,
                                                      syarr_w(i,j,k) = syarr_orig(i,j,k);,
                                                      szarr_w(i,j,k) = szarr_orig(i,j,k);)
-                                    }
-                                } else {
-                                    sigmaarr(i,j,k) = 0.0;
-                                    if (aniso_sigma) {
-                                        AMREX_D_TERM(,
+                                    } else {
+                                        AMREX_D_TERM(sigmaarr(i,j,k) = 0.0;,
                                                      syarr_w(i,j,k) = 0.0;,
                                                      szarr_w(i,j,k) = 0.0;)
                                     }
-                                }
-                            });
+                                });
+                            } else {
+                                AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                                {
+                                    if (ibx.contains(IntVect(AMREX_D_DECL(i,j,k))) && cccmsk(i,j,k)) {
+                                        sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+                                    } else {
+                                        sigmaarr(i,j,k) = 0.0;
+                                    }
+                                });
+                            }
                         } else {
                             // Const sigma: anisotropic n/a here.
                             Real const_sigma = m_const_sigma;
@@ -653,29 +658,34 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
                     if (sigma_orig) {
                         Array4<Real const> const& sigmaarr_orig = sigma_orig->const_array(mfi);
-                        AMREX_D_TERM(,
-                                     Array4<Real const> syarr_orig = aniso_sigma
-                                         ? sigma_orig_y->const_array(mfi) : Array4<Real const>{};,
-                                     Array4<Real const> szarr_orig = aniso_sigma
-                                         ? sigma_orig_z->const_array(mfi) : Array4<Real const>{};)
-                        AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
-                        {
-                            if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
-                                sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
-                                if (aniso_sigma) {
-                                    AMREX_D_TERM(,
+                        if (aniso_sigma) {
+                            AMREX_D_TERM(,
+                                         Array4<Real const> syarr_orig
+                                             = sigma_orig_y->const_array(mfi);,
+                                         Array4<Real const> szarr_orig
+                                             = sigma_orig_z->const_array(mfi);)
+                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                    AMREX_D_TERM(sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);,
                                                  syarr_w(i,j,k) = syarr_orig(i,j,k);,
                                                  szarr_w(i,j,k) = szarr_orig(i,j,k);)
-                                }
-                            } else {
-                                sigmaarr(i,j,k) = 0.0;
-                                if (aniso_sigma) {
-                                    AMREX_D_TERM(,
+                                } else {
+                                    AMREX_D_TERM(sigmaarr(i,j,k) = 0.0;,
                                                  syarr_w(i,j,k) = 0.0;,
                                                  szarr_w(i,j,k) = 0.0;)
                                 }
-                            }
-                        });
+                            });
+                        } else {
+                            AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
+                            {
+                                if (ovlp2.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                                    sigmaarr(i,j,k) = sigmaarr_orig(i,j,k);
+                                } else {
+                                    sigmaarr(i,j,k) = 0.0;
+                                }
+                            });
+                        }
                     } else {
                         Real const_sigma = m_const_sigma;
                         AMREX_HOST_DEVICE_FOR_3D(ccbxg1, i, j, k,
