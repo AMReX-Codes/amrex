@@ -276,6 +276,13 @@ void addFineLevels (int num_new_fine_levels);
 //! Add \p num_new_coarse_levels regular levels below the current coarsest level.
 void addRegularCoarseLevels (int num_new_coarse_levels);
 
+/**
+ * \brief Build face-centered EB data for all three face directions.
+ *
+ * Must be called after EB2::Build() has created the cell-centered EB geometry.
+ */
+void BuildFC();
+
 }
 
 #endif
