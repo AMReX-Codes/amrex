@@ -195,22 +195,21 @@ inline void next_fast_len_doit (Long target, Long n, int const* factors,
     }
 
     if (ifactor == nfactors) {
-        // Factors 2 and 3 are handled here.  For each power of 3 that
-        // keeps the product below the current best, multiply by 2 until
-        // the target is reached and update best accordingly.
+        // Factors 2 and 3 are handled here: try each n * 3^b, multiply it
+        // by the smallest power of 2 that reaches target, and keep the best.
         Long const max_m3 = std::numeric_limits<int>::max() / 3;
         Long const max_m2 = std::numeric_limits<int>::max() / 2;
-        Long const big = std::numeric_limits<int>::max() + Long(1);
         for (Long m3 = n; m3 < best; ) {
             Long k = m3;
+            bool overflow = false;
             while (k < target) {
                 if (k > max_m2) {
-                    k = big;
+                    overflow = true;
                     break;
                 }
                 k *= 2;
             }
-            if (k < best) {
+            if (!overflow && k < best) {
                 best = k;
             }
             if (m3 > max_m3) {
