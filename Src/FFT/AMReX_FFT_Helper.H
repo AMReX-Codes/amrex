@@ -195,6 +195,14 @@ inline void next_fast_len_doit (Long target, Long n, int const* factors,
     }
 
     if (ifactor == nfactors) {
+        Long const max_m = std::numeric_limits<int>::max() / 2;
+        while (n < target) {
+            if (n > max_m) {
+                return;
+            }
+            n *= 2;
+        }
+        best = std::min(best, n);
         return;
     }
 
@@ -231,12 +239,13 @@ nextFastLen (int target, int nfactors = FastNumPrimeFactors())
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 6 >= nfactors,
                                      "amrex::FFT::nextFastLen: nfactors must be between 3 and 6");
 
-    int constexpr factors[] = {2, 3, 5, 7, 11, 13, 17}; // The extra '17' is to make the buggy GCC -Warray-bounds quiet.
+    int constexpr factors[] = {3, 5, 7, 11, 13, 17}; // The extra '17' is to make the buggy GCC -Warray-bounds quiet.
 
     Long const max_len = std::numeric_limits<int>::max();
     Long best = max_len + Long(1);
 
-    detail::next_fast_len_doit(target, Long(1), factors, nfactors, 0, best);
+    // Factor 2 is handled directly in the base case.
+    detail::next_fast_len_doit(target, Long(1), factors, nfactors-1, 0, best);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(best <= max_len,
                                      "amrex::FFT::nextFastLen: result exceeds int range");
