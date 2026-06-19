@@ -325,15 +325,22 @@ makeEBFabFactory (const EB2::IndexSpace* index_space, const Geometry& a_geom,
                                                 a_ba, a_dm, a_ngrow, a_support);
 }
 
-std::unique_ptr<EBFArrayBoxFactory>
-makeEBFabFactory (const EB2::Level* eb_level,
-                  const BoxArray& a_ba,
-                  const DistributionMapping& a_dm,
-                  int face_dir,
-                  const Vector<int>& a_ngrow, EBSupport a_support)
+
+Array<std::unique_ptr<EBFArrayBoxFactory>, AMREX_SPACEDIM>
+makeEBFCFabFactories (const EB2::Level* eb_level,
+                      const BoxArray& a_ba,
+                      const DistributionMapping& a_dm,
+                      const Vector<int>& a_ngrow,
+                      EBSupport a_support)
 {
-    return std::make_unique<EBFArrayBoxFactory>(*eb_level, eb_level->Geom(),
-                                                a_ba, a_dm, a_ngrow, a_support, face_dir);
+    Array<std::unique_ptr<EBFArrayBoxFactory>, AMREX_SPACEDIM> factories;
+    for (int face_dir = 0; face_dir < AMREX_SPACEDIM; ++face_dir) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(eb_level->hasFCData(face_dir),
+            "makeEBFCFabFactories: FC data not available. Call EB2::BuildFC() first.");
+        factories[face_dir] = std::make_unique<EBFArrayBoxFactory>(
+            *eb_level, eb_level->Geom(), a_ba, a_dm, a_ngrow, a_support, face_dir);
+    }
+    return factories;
 }
 
 }

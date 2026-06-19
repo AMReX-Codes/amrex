@@ -191,6 +191,28 @@ makeEBFabFactory (const EB2::Level*,
                   int face_dir,
                   const Vector<int>& a_ngrow, EBSupport a_support);
 
+/// \ingroup amrex_eb
+/**
+ * \brief Create face-centered EB factories for all three face directions at once.
+ *
+ * \warning EB2::BuildFC() must be called before this function, or it will abort.
+ *
+ * Example:
+ *   EB2::Build(gshop, geom, ...);  // Build CC EB
+ *   EB2::BuildFC();                 // Build FC EB data
+ *   const EB2::Level& eb_level = EB2::IndexSpace::top().getLevel(geom);
+ *   auto fc_factories = makeEBFCFabFactories(&eb_level, ba, dm, {4,4,4}, EBSupport::full);
+ *   // fc_factories[0] is x-face factory
+ *   // fc_factories[1] is y-face factory
+ *   // fc_factories[2] is z-face factory
+ */
+Array<std::unique_ptr<EBFArrayBoxFactory>, AMREX_SPACEDIM>
+makeEBFCFabFactories (const EB2::Level* eb_level,
+                      const BoxArray& a_ba,
+                      const DistributionMapping& a_dm,
+                      const Vector<int>& a_ngrow,
+                      EBSupport a_support);
+
 }
 
 #endif
