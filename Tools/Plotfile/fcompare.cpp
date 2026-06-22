@@ -257,7 +257,14 @@ int main_main()
                 }
 
                 if (norm == 0) {
-                    rerror[icomp_a] /= rerror_denom[icomp_a];
+                    if (rerror_denom[icomp_a] != 0.0) {
+                        rerror[icomp_a] /= rerror_denom[icomp_a];
+                    } else {
+                        // A is identically zero; relative error is undefined.
+                        // If there is no absolute error either, report 0.
+                        rerror[icomp_a] = (rerror[icomp_a] == 0.0) ? 0.0
+                            : std::numeric_limits<Real>::infinity();
+                    }
                 } else {
                     const auto& dx = pf_a.cellSize(ilev);
                     Real dv = 1.0;
@@ -265,7 +272,12 @@ int main_main()
                         dv *= dx[idim];
                     }
                     aerror[icomp_a] *= std::pow(dv,Real(1.)/static_cast<Real>(norm));
-                    rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
+                    if (rerror_denom[icomp_a] != 0.0) {
+                        rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
+                    } else {
+                        rerror[icomp_a] = (rerror[icomp_a] == 0.0) ? 0.0
+                            : std::numeric_limits<Real>::infinity();
+                    }
                 }
 
                 if (icomp_a == save_var_a || icomp_a == zone_info_var_a) {
