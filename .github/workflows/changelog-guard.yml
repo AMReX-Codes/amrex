@@ -11,6 +11,6 @@ jobs:
   duplicate-changes-headings:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Check for duplicate CHANGES headings
         run: python3 .github/workflows/scripts/check_changelog_headings.py CHANGES.md

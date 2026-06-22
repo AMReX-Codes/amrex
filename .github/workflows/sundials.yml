@@ -24,7 +24,7 @@ jobs:
        CCACHE_COMPRESSLEVEL: 10
        CCACHE_MAXSIZE: 20M
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -86,7 +86,7 @@ jobs:
        CCACHE_COMPRESSLEVEL: 10
        CCACHE_MAXSIZE: 75M
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 12.2

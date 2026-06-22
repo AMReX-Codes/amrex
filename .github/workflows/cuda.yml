@@ -21,7 +21,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -78,7 +78,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -140,7 +140,7 @@ jobs:
       CUDAARCHS: "80"
       AMReX_CUDA_ARCH: "8.0"
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -189,7 +189,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -256,7 +256,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
