@@ -22,7 +22,7 @@ jobs:
     env:
       AMREX_HYPRE_HOME: ${HOME}/.cache/hypre-3.1.0-cuda
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_nvcc.sh 12.2
@@ -74,7 +74,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -125,7 +125,7 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh

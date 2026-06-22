@@ -16,7 +16,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Clean up ccache
         run: |
           gh extension install actions/gh-actions-cache

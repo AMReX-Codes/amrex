@@ -14,21 +14,21 @@ jobs:
   tabs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Tabs
         run: .github/workflows/style/check_tabs.sh
 
   trailing_whitespaces:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Trailing Whitespaces
         run: .github/workflows/style/check_trailing_whitespaces.sh
 
   doxygen:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Doxygen
         run: |
           sudo apt-get install -y --no-install-recommends doxygen
@@ -37,7 +37,7 @@ jobs:
   zenodo:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Validate Zenodo Metadata
         uses: vsoch/zenodo-validator@main
         with:
