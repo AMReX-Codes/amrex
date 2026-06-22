@@ -54,6 +54,7 @@ jobs:
             -DCMAKE_CXX_STANDARD=20               \
             -DAMReX_FFT=ON                        \
             -DAMReX_FORTRAN=ON                    \
+            -DAMReX_FORTRAN_INTERFACES=ON         \
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
@@ -117,6 +118,7 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_SPACEDIM=3          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
@@ -169,6 +171,7 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_SPACEDIM=2          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
@@ -222,6 +225,7 @@ jobs:
             -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_SPACEDIM=1          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
@@ -292,6 +296,7 @@ jobs:
             -DAMReX_BOUND_CHECK=ON      \
             -DAMReX_FPE=ON              \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_OMP=ON              \
             -DAMReX_SIMD=ON             \
             -DCMAKE_C_COMPILER=$(which gcc-14)              \
@@ -355,6 +360,7 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_MPI=OFF             \
             -DCMAKE_C_COMPILER=$(which gcc-14)     \
             -DCMAKE_CXX_COMPILER=$(which g++-14)   \

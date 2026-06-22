@@ -55,6 +55,7 @@ jobs:
             -DAMReX_FFT=ON                            \
             -DAMReX_EB=ON                             \
             -DAMReX_FORTRAN=ON                        \
+            -DAMReX_FORTRAN_INTERFACES=ON             \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PLOTFILE_TOOLS=ON                 \
             -DAMReX_PRECISION=SINGLE                  \
@@ -120,6 +121,7 @@ jobs:
             -DAMReX_EB=ON                             \
             -DAMReX_ENABLE_TESTS=ON                   \
             -DAMReX_FORTRAN=ON                        \
+            -DAMReX_FORTRAN_INTERFACES=ON             \
             -DAMReX_MPI=OFF                           \
             -DAMReX_PRECISION=DOUBLE                  \
             -DAMReX_PARTICLES_PRECISION=SINGLE        \

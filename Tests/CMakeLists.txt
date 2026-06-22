@@ -4,7 +4,8 @@
 function (setup_test _dim _srcs  _inputs)
 
    cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
-      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS" "" ${ARGN} )
+      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS"
+      "CMDLINE_PARAMS_AFTER_INPUTS" ${ARGN} )
 
    if (_BASE_NAME)
       set(_base_name ${_BASE_NAME}_${_dim}d)
@@ -69,6 +70,10 @@ function (setup_test _dim _srcs  _inputs)
       list(GET ${_inputs} 0 _first_inputs)
       get_filename_component( _inputs_filename ${_first_inputs} NAME )
       list(APPEND _cmd ${_inputs_filename})
+   endif ()
+
+   if (_CMDLINE_PARAMS_AFTER_INPUTS)
+      list(APPEND _cmd ${_CMDLINE_PARAMS_AFTER_INPUTS})
    endif ()
 
    #
