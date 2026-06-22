@@ -24,6 +24,8 @@ struct Table1D
 
     constexpr Table1D () noexcept = default;
 
+    // Use a template so this constructor never suppresses the
+    // implicit copy constructor when T is non-const.
     template <class U=T>
     requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
@@ -100,6 +102,8 @@ struct Table2D
 
     constexpr Table2D () noexcept = default;
 
+    // Use a template so this constructor never suppresses the
+    // implicit copy constructor when T is non-const.
     template <class U=T>
     requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
@@ -183,6 +187,8 @@ struct Table3D
 
     constexpr Table3D () noexcept = default;
 
+    // Use a template so this constructor never suppresses the
+    // implicit copy constructor when T is non-const.
     template <class U=T>
     requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
@@ -278,6 +284,8 @@ struct Table4D
 
     constexpr Table4D () noexcept = default;
 
+    // Use a template so this constructor never suppresses the
+    // implicit copy constructor when T is non-const.
     template <class U=T>
     requires (std::is_const_v<U>)
     AMREX_GPU_HOST_DEVICE
