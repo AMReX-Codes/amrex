@@ -37,17 +37,18 @@ void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
     });
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_restriction (int i, int, int, Array4<Real> const& crse,
-                          Array4<Real const> const& fine, Array4<int const> const& msk) noexcept
+void mlndlap_restriction (int i, int, int, Array4<T> const& crse,
+                          Array4<T const> const& fine, Array4<int const> const& msk) noexcept
 {
     int ii = i*2;
     if (msk(ii,0,0)) {
-        crse(i,0,0) = Real(0.0);
+        crse(i,0,0) = T(0.0);
     } else {
-        crse(i,0,0) = Real(1./4.)  *(fine(ii-1,0,0)
-                         + Real(2.)* fine(ii  ,0,0)
-                         +           fine(ii+1,0,0));
+        crse(i,0,0) = T(1./4.)  *(fine(ii-1,0,0)
+                         + T(2.)* fine(ii  ,0,0)
+                         +        fine(ii+1,0,0));
     }
 }
 
@@ -82,9 +83,10 @@ void mlndlap_restriction (int i, int, int, Array4<Real> const& crse,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_semi_restriction (int /*i*/, int /*j*/, int /*k*/, Array4<Real> const&,
-                          Array4<Real const> const&, Array4<int const> const&, int)
+void mlndlap_semi_restriction (int /*i*/, int /*j*/, int /*k*/, Array4<T> const&,
+                          Array4<T const> const&, Array4<int const> const&, int)
 {
     amrex::Abort("mlndlap_semi_restriction: not implemented in 1D");
 }
@@ -132,8 +134,9 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
+void mlndlap_set_dot_mask (Box const& bx, Array4<T> const& dmsk,
                            Array4<int const> const& omsk, Box const& dom,
                            GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
                            GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
@@ -143,7 +146,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
 
     AMREX_PRAGMA_SIMD
     for (int i = lo; i <= hi; ++i) {
-        dmsk(i,0,0) = static_cast<Real>(omsk(i,0,0));
+        dmsk(i,0,0) = static_cast<T>(omsk(i,0,0));
     }
 
     const auto domlo = dom.smallEnd(0);
@@ -152,18 +155,19 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
         && lo == domlo)
     {
-        dmsk(lo,0,0) *= Real(0.5);
+        dmsk(lo,0,0) *= T(0.5);
     }
 
     if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
         && hi == domhi)
     {
-        dmsk(hi,0,0) *= Real(0.5);
+        dmsk(hi,0,0) *= T(0.5);
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
+void mlndlap_set_dot_mask (Box const& bx, Array4<T> const& dmsk,
                            Array4<int const> const& omsk,
                            Array4<int const> const& fmsk, Box const& dom,
                            GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
@@ -175,9 +179,9 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     AMREX_PRAGMA_SIMD
     for (int i = lo; i <= hi; ++i) {
         if (fmsk(i,0,0) == 0) {
-            dmsk(i,0,0) = static_cast<Real>(omsk(i,0,0));
+            dmsk(i,0,0) = static_cast<T>(omsk(i,0,0));
         } else {
-            dmsk(i,0,0) = Real(0);
+            dmsk(i,0,0) = T(0);
         }
     }
 
@@ -187,13 +191,13 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     if ((bclo[0] == LinOpBCType::Neumann || bclo[0] == LinOpBCType::inflow)
         && lo == domlo)
     {
-        dmsk(lo,0,0) *= Real(0.5);
+        dmsk(lo,0,0) *= T(0.5);
     }
 
     if ((bchi[0] == LinOpBCType::Neumann || bchi[0] == LinOpBCType::inflow)
         && hi == domhi)
     {
-        dmsk(hi,0,0) *= Real(0.5);
+        dmsk(hi,0,0) *= T(0.5);
     }
 }
 

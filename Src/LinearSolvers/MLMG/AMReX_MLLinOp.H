@@ -1696,6 +1696,7 @@ MLLinOpT<MF>::norm2Precond (Vector<MF const*> const& x) const -> RT
 }
 
 extern template class MLLinOpT<MultiFab>;
+extern template class MLLinOpT<fMultiFab>;
 
 /// \ingroup amrex_solver_mlmg
 using MLLinOp = MLLinOpT<MultiFab>;

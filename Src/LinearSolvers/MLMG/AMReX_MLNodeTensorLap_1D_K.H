@@ -4,14 +4,16 @@
 
 namespace amrex {
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_interpadd (int, int, int, Array4<Real> const&,
-                          Array4<Real const> const&, Array4<int const> const&) noexcept
+void mlndtslap_interpadd (int, int, int, Array4<T> const&,
+                          Array4<T const> const&, Array4<int const> const&) noexcept
 {}
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_semi_interpadd (int, int, int, Array4<Real> const&,
-                               Array4<Real const> const&, Array4<int const> const&,
+void mlndtslap_semi_interpadd (int, int, int, Array4<T> const&,
+                               Array4<T const> const&, Array4<int const> const&,
                                int) noexcept
 {
 }

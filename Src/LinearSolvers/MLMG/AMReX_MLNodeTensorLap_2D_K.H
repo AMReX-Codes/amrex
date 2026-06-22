@@ -7,32 +7,36 @@ namespace amrex {
 /// \cond DOXYGEN_IGNORE
 namespace mlndts_detail {
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_x (Array4<Real const> const& crse, int ic, int jc) noexcept
+    T ts_interp_line_x (Array4<T const> const& crse, int ic, int jc) noexcept
     {
-        return (crse(ic,jc,0)+crse(ic+1,jc,0))*Real(0.5);
+        return (crse(ic,jc,0)+crse(ic+1,jc,0))*T(0.5);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_line_y (Array4<Real const> const& crse, int ic, int jc) noexcept
+    T ts_interp_line_y (Array4<T const> const& crse, int ic, int jc) noexcept
     {
-        return (crse(ic,jc,0)+crse(ic,jc+1,0))*Real(0.5);
+        return (crse(ic,jc,0)+crse(ic,jc+1,0))*T(0.5);
     }
 
+    template <typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    Real ts_interp_face_xy (Array4<Real const> const& crse, int ic, int jc) noexcept
+    T ts_interp_face_xy (Array4<T const> const& crse, int ic, int jc) noexcept
     {
         return (ts_interp_line_y(crse,ic  ,jc  ) +
                 ts_interp_line_y(crse,ic+1,jc  ) +
                 ts_interp_line_x(crse,ic  ,jc  ) +
-                ts_interp_line_x(crse,ic  ,jc+1)) * Real(0.25);
+                ts_interp_line_x(crse,ic  ,jc+1)) * T(0.25);
     }
 }
 /// \endcond
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
-                          Array4<Real const> const& crse, Array4<int const> const& msk) noexcept
+void mlndtslap_interpadd (int i, int j, int, Array4<T> const& fine,
+                          Array4<T const> const& crse, Array4<int const> const& msk) noexcept
 {
     using namespace mlndts_detail;
 
@@ -57,9 +61,10 @@ void mlndtslap_interpadd (int i, int j, int, Array4<Real> const& fine,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_semi_interpadd (int i, int j, int, Array4<Real> const& fine,
-                               Array4<Real const> const& crse, Array4<int const> const& msk,
+void mlndtslap_semi_interpadd (int i, int j, int, Array4<T> const& fine,
+                               Array4<T const> const& crse, Array4<int const> const& msk,
                                int semi_dir) noexcept
 {
     using namespace mlndts_detail;
@@ -89,34 +94,36 @@ void mlndtslap_semi_interpadd (int i, int j, int, Array4<Real> const& fine,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_adotx (int i, int j, int k, Array4<Real> const& y, Array4<Real const> const& x,
+void mlndtslap_adotx (int i, int j, int k, Array4<T> const& y, Array4<T const> const& x,
                       Array4<int const> const& msk, GpuArray<Real,3> const& s) noexcept
 {
     if (msk(i,j,k)) {
-        y(i,j,k) = Real(0.0);
+        y(i,j,k) = T(0.0);
     } else {
-        y(i,j,k) = s[0] * (x(i-1,j,0) + x(i+1,j,0))
-            +      s[2] * (x(i,j-1,0) + x(i,j+1,0))
-            - Real(2.)*(s[0]+s[2]) * x(i,j,0)
-            + Real(0.5)*s[1] * (x(i-1,j-1,0) + x(i+1,j+1,0) - x(i-1,j+1,0) - x(i+1,j-1,0));
+        y(i,j,k) = T(s[0]) * (x(i-1,j,0) + x(i+1,j,0))
+            +      T(s[2]) * (x(i,j-1,0) + x(i,j+1,0))
+            - T(2.)*T(s[0]+s[2]) * x(i,j,0)
+            + T(0.5)*T(s[1]) * (x(i-1,j-1,0) + x(i+1,j+1,0) - x(i-1,j+1,0) - x(i+1,j-1,0));
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndtslap_gauss_seidel (int i, int j, int k, Array4<Real> const& sol,
-                             Array4<Real const> const& rhs, Array4<int const> const& msk,
+void mlndtslap_gauss_seidel (int i, int j, int k, Array4<T> const& sol,
+                             Array4<T const> const& rhs, Array4<int const> const& msk,
                              GpuArray<Real,3> const& s) noexcept
 {
     if (msk(i,j,k)) {
-        sol(i,j,k) = 0.0;
+        sol(i,j,k) = T(0.0);
     } else {
-        constexpr Real omega = Real(1.25);
-        Real s0 = Real(-2.)*(s[0]+s[2]);
-        Real Ax = s[0] * (sol(i-1,j,0) + sol(i+1,j,0))
-            +     s[2] * (sol(i,j-1,0) + sol(i,j+1,0))
+        constexpr T omega = T(1.25);
+        T s0 = T(-2.)*T(s[0]+s[2]);
+        T Ax = T(s[0]) * (sol(i-1,j,0) + sol(i+1,j,0))
+            +     T(s[2]) * (sol(i,j-1,0) + sol(i,j+1,0))
             + s0 * sol(i,j,0)
-            + Real(0.5)*s[1] * (sol(i-1,j-1,0) + sol(i+1,j+1,0) - sol(i-1,j+1,0) - sol(i+1,j-1,0));
+            + T(0.5)*T(s[1]) * (sol(i-1,j-1,0) + sol(i+1,j+1,0) - sol(i-1,j+1,0) - sol(i+1,j-1,0));
         sol(i,j,k) += (rhs(i,j,k) - Ax) * (omega/s0);
     }
 }

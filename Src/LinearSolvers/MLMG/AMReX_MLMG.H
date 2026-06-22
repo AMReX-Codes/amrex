@@ -6,6 +6,8 @@
 #include <AMReX_MLLinOp.H>
 #include <AMReX_MLCGSolver.H>
 
+#include <type_traits>
+
 namespace amrex {
 
 // Norm used to evaluate the target convergece criteria
@@ -814,7 +816,13 @@ MLMGT<MF>::getFluxes (const Vector<AMF*> & a_flux,
         }
         for (int alev = 0; alev < namrlevs; ++alev) {
 #ifdef AMREX_USE_EB
-            EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            // EB_average_face_to_cellcenter is MultiFab/double-only; use the
+            // plain version for any other (e.g. float) FabArray type.
+            if constexpr (std::is_same_v<MF, amrex::MultiFab>) {
+                EB_average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            } else {
+                average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
+            }
 #else
             average_face_to_cellcenter(*a_flux[alev], 0, amrex::GetArrOfConstPtrs(ffluxes[alev]));
 #endif
@@ -925,7 +933,13 @@ MLMGT<MF>::compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
                          *a_res[alev+1], sol[alev+1], *a_rhs[alev+1]);
             if (linop.isCellCentered()) {
 #ifdef AMREX_USE_EB
-                EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
+                // EB_average_down is MultiFab/double-only; use the plain
+                // average_down for any other (e.g. float) FabArray type.
+                if constexpr (std::is_same_v<MF, amrex::MultiFab>) {
+                    EB_average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
+                } else {
+                    average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
+                }
 #else
                 average_down(*a_res[alev+1], *a_res[alev], 0, ncomp, linop.AMRRefRatioVect(alev));
 #endif
@@ -993,7 +1007,13 @@ MLMGT<MF>::apply (const Vector<MF*>& out, const Vector<MF*>& a_in)
             if (linop.isCellCentered()) {
                 if constexpr (IsMultiFabLike_v<MF>) {
 #ifdef AMREX_USE_EB
-                    EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
+                    // EB_average_down is MultiFab/double-only; use the plain
+                    // average_down for any other (e.g. float) FabArray type.
+                    if constexpr (std::is_same_v<MF, amrex::MultiFab>) {
+                        EB_average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
+                    } else {
+                        average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
+                    }
 #else
                     average_down(*out[alev+1], *out[alev], 0, nComp(*out[alev]), linop.AMRRefRatioVect(alev));
 #endif
@@ -2101,6 +2121,7 @@ MLMGT<MF>::decPrintIdentation ()
 }
 
 extern template class MLMGT<MultiFab>;
+extern template class MLMGT<fMultiFab>;
 
 /// \ingroup amrex_solver_mlmg
 using MLMG = MLMGT<MultiFab>;

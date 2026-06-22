@@ -110,19 +110,20 @@ void mlndlap_bc_doit (Box const& vbx, Array4<T> const& a, Box const& domain,
     });
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
-                          Array4<Real const> const& fine, Array4<int const> const& msk) noexcept
+void mlndlap_restriction (int i, int j, int k, Array4<T> const& crse,
+                          Array4<T const> const& fine, Array4<int const> const& msk) noexcept
 {
     int ii = i*2;
     int jj = j*2;
     int kk = 0;
     if (msk(ii,jj,kk)) {
-        crse(i,j,k) = Real(0.0);
+        crse(i,j,k) = T(0.0);
     } else {
-        crse(i,j,k) = Real(1./16.)*(fine(ii-1,jj-1,kk) + Real(2.)*fine(ii  ,jj-1,kk) +          fine(ii+1,jj-1,kk)
-                         + Real(2.)*fine(ii-1,jj  ,kk) + Real(4.)*fine(ii  ,jj  ,kk) + Real(2.)*fine(ii+1,jj  ,kk)
-                                  + fine(ii-1,jj+1,kk) + Real(2.)*fine(ii  ,jj+1,kk) +          fine(ii+1,jj+1,kk));
+        crse(i,j,k) = T(1./16.)*(fine(ii-1,jj-1,kk) + T(2.)*fine(ii  ,jj-1,kk) +       fine(ii+1,jj-1,kk)
+                         + T(2.)*fine(ii-1,jj  ,kk) + T(4.)*fine(ii  ,jj  ,kk) + T(2.)*fine(ii+1,jj  ,kk)
+                               + fine(ii-1,jj+1,kk) + T(2.)*fine(ii  ,jj+1,kk) +       fine(ii+1,jj+1,kk));
     }
 }
 
@@ -167,26 +168,27 @@ void mlndlap_restriction (int i, int j, int k, Array4<Real> const& crse,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_semi_restriction (int i, int j, int k, Array4<Real> const& crse,
-                          Array4<Real const> const& fine, Array4<int const> const& msk, int idir) noexcept
+void mlndlap_semi_restriction (int i, int j, int k, Array4<T> const& crse,
+                          Array4<T const> const& fine, Array4<int const> const& msk, int idir) noexcept
 {
     int kk = 0;
     if (idir == 1) {
         int ii = i*2;
         int jj = j;
         if (msk(ii,jj,kk)) {
-            crse(i,j,k) = Real(0.0);
+            crse(i,j,k) = T(0.0);
         } else {
-            crse(i,j,k) = Real(1./4.)*(fine(ii-1,jj,kk) + Real(2.)*fine(ii,jj,kk) + fine(ii+1,jj,kk));
+            crse(i,j,k) = T(1./4.)*(fine(ii-1,jj,kk) + T(2.)*fine(ii,jj,kk) + fine(ii+1,jj,kk));
         }
     } else if (idir == 0) {
         int ii = i;
         int jj = j*2;
         if (msk(ii,jj,kk)) {
-            crse(i,j,k) = Real(0.0);
+            crse(i,j,k) = T(0.0);
         } else {
-            crse(i,j,k) = Real(1./4.)*(fine(ii,jj-1,kk) + Real(2.)*fine(ii,jj,kk) + fine(ii,jj+1,kk));
+            crse(i,j,k) = T(1./4.)*(fine(ii,jj-1,kk) + T(2.)*fine(ii,jj,kk) + fine(ii,jj+1,kk));
         }
     }
 }
@@ -260,8 +262,9 @@ void mlndlap_set_dirichlet_mask (Box const& bx, Array4<int> const& dmsk,
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
+void mlndlap_set_dot_mask (Box const& bx, Array4<T> const& dmsk,
                            Array4<int const> const& omsk, Box const& dom,
                            GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
                            GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi) noexcept
@@ -271,7 +274,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     for (int j = lo.y; j <= hi.y; ++j) {
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
-        dmsk(i,j,0) = static_cast<Real>(omsk(i,j,0));
+        dmsk(i,j,0) = static_cast<T>(omsk(i,j,0));
     }}
 
     const auto domlo = amrex::lbound(dom);
@@ -281,7 +284,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         && lo.x == domlo.x)
     {
         for (int j = lo.y; j <= hi.y; ++j) {
-            dmsk(lo.x,j,0) *= Real(0.5);
+            dmsk(lo.x,j,0) *= T(0.5);
         }
     }
 
@@ -289,7 +292,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         && hi.x == domhi.x)
     {
         for (int j = lo.y; j <= hi.y; ++j) {
-            dmsk(hi.x,j,0) *= Real(0.5);
+            dmsk(hi.x,j,0) *= T(0.5);
         }
     }
 
@@ -298,7 +301,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            dmsk(i,lo.y,0) *= Real(0.5);
+            dmsk(i,lo.y,0) *= T(0.5);
         }
     }
 
@@ -307,13 +310,14 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            dmsk(i,hi.y,0) *= Real(0.5);
+            dmsk(i,hi.y,0) *= T(0.5);
         }
     }
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
+void mlndlap_set_dot_mask (Box const& bx, Array4<T> const& dmsk,
                            Array4<int const> const& omsk,
                            Array4<int const> const& fmsk, Box const& dom,
                            GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
@@ -325,9 +329,9 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     AMREX_PRAGMA_SIMD
     for (int i = lo.x; i <= hi.x; ++i) {
         if (fmsk(i,j,0) == 0) {
-            dmsk(i,j,0) = static_cast<Real>(omsk(i,j,0));
+            dmsk(i,j,0) = static_cast<T>(omsk(i,j,0));
         } else {
-            dmsk(i,j,0) = Real(0);
+            dmsk(i,j,0) = T(0);
         }
     }}
 
@@ -338,7 +342,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         && lo.x == domlo.x)
     {
         for (int j = lo.y; j <= hi.y; ++j) {
-            dmsk(lo.x,j,0) *= Real(0.5);
+            dmsk(lo.x,j,0) *= T(0.5);
         }
     }
 
@@ -346,7 +350,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
         && hi.x == domhi.x)
     {
         for (int j = lo.y; j <= hi.y; ++j) {
-            dmsk(hi.x,j,0) *= Real(0.5);
+            dmsk(hi.x,j,0) *= T(0.5);
         }
     }
 
@@ -355,7 +359,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            dmsk(i,lo.y,0) *= Real(0.5);
+            dmsk(i,lo.y,0) *= T(0.5);
         }
     }
 
@@ -364,7 +368,7 @@ void mlndlap_set_dot_mask (Box const& bx, Array4<Real> const& dmsk,
     {
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
-            dmsk(i,hi.y,0) *= Real(0.5);
+            dmsk(i,hi.y,0) *= T(0.5);
         }
     }
 }
