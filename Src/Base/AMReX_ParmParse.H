@@ -1496,10 +1496,9 @@ public:
         int exist = this->query(name, s, ival);
         if (exist) {
             try {
-                s.erase(std::remove_if(s.begin(), s.end(),
-                                       [&] (auto const& c) {
-                                           return ignores.find(c) != std::string_view::npos; }),
-                        s.end());
+                std::erase_if(s, [&] (auto const& c) {
+                    return ignores.find(c) != std::string_view::npos;
+                });
                 ref = amrex::getEnumCaseInsensitive<T>(s);
             } catch (...) {
                 if (amrex::Verbose() > 0) {

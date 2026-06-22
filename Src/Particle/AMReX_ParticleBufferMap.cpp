@@ -82,7 +82,7 @@ void ParticleBufferMap::define (const ParGDBBase* a_gdb, bool a_do_tiling,
         }
     }
 
-    std::sort(box_tile_lev_proc_ids.begin(), box_tile_lev_proc_ids.end(),
+    std::ranges::sort(box_tile_lev_proc_ids,
               [](const FourIntTuple& a, const FourIntTuple& b) -> bool
               {
                   int pid_a = std::get<3>(a);

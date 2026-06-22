@@ -2404,9 +2404,9 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
         const int nworkers = ParallelDescriptor::TeamSize();
         if (nworkers > 1) {
             // reorder it so that each worker will be more likely to work on their own fabs
-            std::stable_sort(local_idxs.begin(), local_idxs.end(), [this](int i, int j)
-                             { return  this->distributionMap[this->indexArray[i]]
-                                     < this->distributionMap[this->indexArray[j]]; });
+            std::ranges::stable_sort(local_idxs, [this](int i, int j)
+                                     { return  this->distributionMap[this->indexArray[i]]
+                                             < this->distributionMap[this->indexArray[j]]; });
         }
 #endif
 

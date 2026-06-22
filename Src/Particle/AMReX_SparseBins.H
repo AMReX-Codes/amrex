@@ -147,8 +147,8 @@ public:
 
         Gpu::HostVector<index_type> host_perm(nitems);
         std::iota(host_perm.begin(), host_perm.end(), 0);
-        std::sort(host_perm.begin(), host_perm.end(),
-                  [&](int i, int j) {return host_cells[i] < host_cells[j];});
+        std::ranges::sort(host_perm,
+                          [&](int i, int j) {return host_cells[i] < host_cells[j];});
 
         Gpu::HostVector<index_type> host_bins;
         Gpu::HostVector<index_type> host_offsets = {0};

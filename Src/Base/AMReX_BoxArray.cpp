@@ -1943,7 +1943,7 @@ bool match (const BoxArray& x, const BoxArray& y)
 BoxArray decompose (Box const& domain, int nboxes,
                     Array<bool,AMREX_SPACEDIM> const& decomp, bool no_overlap)
 {
-    auto ndecomp = std::count(decomp.begin(), decomp.end(), true);
+    auto ndecomp = std::ranges::count(decomp, true);
 
     if (nboxes <= 1 || ndecomp == 0) {
         return BoxArray(domain);
@@ -2017,7 +2017,7 @@ BoxArray decompose (Box const& domain, int nboxes,
 
         int nprocs_tot = 1;
         while (!factors.empty()) {
-            std::sort(procdim.begin(), procdim.end(), comp);
+            std::ranges::sort(procdim, comp);
             auto f = factors.back();
             factors.pop_back();
             procdim.back().nproc *= f;
@@ -2031,7 +2031,7 @@ BoxArray decompose (Box const& domain, int nboxes,
         // swap to see if the decomposition can be improved.
         while (true)
         {
-            std::sort(procdim.begin(), procdim.end(), comp);
+            std::ranges::sort(procdim, comp);
             auto fit = std::find_if(procdim.begin(),procdim.end(),
                                     [] (ProcDim const& x) { return x.nproc > 1; });
             if (fit == procdim.end()) { break; } // This should not actually happen.

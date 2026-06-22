@@ -147,8 +147,7 @@ void main_main()
         Vector<std::string> args(std::istream_iterator<std::string>{is},
                                  std::istream_iterator<std::string>{  });
         for (auto const& vn : args) {
-            if (std::find(std::begin(all_names),std::end(all_names), vn)
-                != std::end(all_names)) {
+            if (std::ranges::find(all_names, vn) != std::end(all_names)) {
                 varnames.push_back(vn);
             } else {
                 amrex::Abort("fgradient: Unknown variable "+vn);

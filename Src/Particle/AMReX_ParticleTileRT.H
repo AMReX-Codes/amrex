@@ -804,7 +804,7 @@ private:
 
     static int get_idx_from_str (std::string const & name, std::vector<std::string>* name_list) {
         AMREX_ALWAYS_ASSERT(name_list != nullptr);
-        auto const pos = std::find(name_list->begin(), name_list->end(), name);
+        auto const pos = std::ranges::find(*name_list, name);
         AMREX_ALWAYS_ASSERT(pos != name_list->end());
         return static_cast<int>(std::distance(name_list->begin(), pos));
     }

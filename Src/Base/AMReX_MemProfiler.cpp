@@ -25,7 +25,7 @@ void
 MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
 {
     MemProfiler& mprofiler = getInstance();
-    auto it = std::find(mprofiler.the_names.begin(), mprofiler.the_names.end(), name);
+    auto it = std::ranges::find(mprofiler.the_names, name);
     if (it != mprofiler.the_names.end()) {
         std::string s = "MemProfiler::add (MemInfo) failed because " + name + " already existed";
         amrex::Abort(s.c_str());
@@ -38,7 +38,7 @@ void
 MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
 {
     MemProfiler& mprofiler = getInstance();
-    auto it = std::find(mprofiler.the_names_builds.begin(), mprofiler.the_names_builds.end(), name);
+    auto it = std::ranges::find(mprofiler.the_names_builds, name);
     if (it != mprofiler.the_names_builds.end()) {
         std::string s = "MemProfiler::add (NBuildsInfo) failed because " + name + " already existed";
         amrex::Abort(s.c_str());
@@ -249,8 +249,8 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
         std::vector<int> idxs(the_names.size());
         std::iota(idxs.begin(), idxs.end(), 0);
-        std::sort(idxs.begin(), idxs.end(), [&](int i, int j)
-                  { return hwm_max[i] > hwm_max[j]; });
+        std::ranges::sort(idxs, [&](int i, int j)
+                          { return hwm_max[i] > hwm_max[j]; });
 
         for (int ii = 0; ii < idxs.size(); ++ii) {
             int i = idxs[ii];
