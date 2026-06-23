@@ -1078,12 +1078,16 @@ MLNodeLaplacian::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
     const int mglev = 0;
     const Geometry& geom = m_geom[amrlev][mglev];
     const auto dxinvarr = geom.InvCellSizeArray();
+    const auto dxarr = geom.CellSizeArray();
+    const auto probloarr = geom.ProbLoArray();
+    const bool is_rz = m_is_rz;
 
     const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
     if (!factory || factory->isAllRegular()) { return; }
 
     const auto& flags = factory->getMultiEBCellFlagFab();
     const MultiCutFab& barea = factory->getBndryArea();
+    const MultiCutFab& bcent = factory->getBndryCent();
     const MultiFab& sintg = *m_surface_integral[amrlev];
     const MultiFab& eb_neumann_flux = *m_eb_neumann_flux[amrlev];
     const iMultiFab& dmsk = *m_dirichlet_mask[amrlev][mglev];
@@ -1103,13 +1107,15 @@ MLNodeLaplacian::applyInhomogNeumannTerm (int amrlev, MultiFab& rhs) const
             Array4<Real> const& rhsarr = rhs.array(mfi);
             Array4<int const> const& dmskarr = dmsk.const_array(mfi);
             Array4<Real const> const& bareaarr = barea.const_array(mfi);
+            Array4<Real const> const& bcarr = bcent.const_array(mfi);
             Array4<Real const> const& sintgarr = sintg.const_array(mfi);
             Array4<Real const> const& ebneuarr = eb_neumann_flux.const_array(mfi);
 
             AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
             {
                 add_eb_neumann_contribution(i, j, k, rhsarr, dmskarr, dxinvarr,
-                                            bareaarr, sintgarr, ebneuarr);
+                                            dxarr, probloarr, bareaarr, bcarr,
+                                            sintgarr, ebneuarr, is_rz);
             });
         }
     }

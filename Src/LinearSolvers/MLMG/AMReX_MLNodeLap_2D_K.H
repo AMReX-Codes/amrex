@@ -1999,36 +1999,66 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real eb_neumann_surface_term (int i, int j, Real weight,
+                              Array4<Real const> const& bcent,
+                              Array4<Real const> const& eb_neumann_flux,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                              GpuArray<Real,AMREX_SPACEDIM> const& problo,
+                              bool is_rz) noexcept
+{
+    if (weight == Real(0.0)) {
+        return Real(0.0);
+    }
+
+    Real metric = Real(1.0);
+    if (is_rz) {
+        metric = problo[0] + (static_cast<Real>(i) + Real(0.5) + bcent(i,j,0,0))*dx[0];
+    }
+
+    return metric * eb_neumann_flux(i,j,0) * weight;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void add_eb_neumann_contribution (int i, int j, int, Array4<Real> const& rhs,
                       Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                      GpuArray<Real,AMREX_SPACEDIM> const& problo,
                       Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& bcent,
                       Array4<Real const> const& sintg,
-                      Array4<Real const> const& eb_neumann_flux) noexcept
+                      Array4<Real const> const& eb_neumann_flux,
+                      bool is_rz) noexcept
 {
     using namespace nodelap_detail;
 
-    // eb_neumann_flux is sigma*dphi/dn_EB, with n_EB pointing from valid
-    // cells toward covered cells.
+    // eb_neumann_flux is the physical sigma*dphi/dn_EB, with n_EB pointing
+    // from valid cells toward covered cells. RZ metric weighting is applied
+    // here when needed.
     Real fac_eb = Real(0.25) * dxinv[0];
 
     if (!msk(i,j,0)) {
+        Real const w_im_jm =          bareaarr(i-1,j-1,0)
+                            + Real(2.)*sintg(i-1,j-1,0,i_B_x )
+                            + Real(2.)*sintg(i-1,j-1,0,i_B_y )
+                            + Real(4.)*sintg(i-1,j-1,0,i_B_xy);
+        Real const w_i_jm  =          bareaarr(i  ,j-1,0)
+                            - Real(2.)*sintg(i  ,j-1,0,i_B_x )
+                            + Real(2.)*sintg(i  ,j-1,0,i_B_y )
+                            - Real(4.)*sintg(i  ,j-1,0,i_B_xy);
+        Real const w_im_j  =          bareaarr(i-1,j  ,0)
+                            + Real(2.)*sintg(i-1,j  ,0,i_B_x )
+                            - Real(2.)*sintg(i-1,j  ,0,i_B_y )
+                            - Real(4.)*sintg(i-1,j  ,0,i_B_xy);
+        Real const w_i_j   =          bareaarr(i  ,j  ,0)
+                            - Real(2.)*sintg(i  ,j  ,0,i_B_x )
+                            - Real(2.)*sintg(i  ,j  ,0,i_B_y )
+                            + Real(4.)*sintg(i  ,j  ,0,i_B_xy);
+
         rhs(i,j,0) -= fac_eb*(
-           eb_neumann_flux(i-1,j-1,0)*(         bareaarr(i-1,j-1,0)
-                                      +Real(2.)*sintg(i-1,j-1,0,i_B_x )
-                                      +Real(2.)*sintg(i-1,j-1,0,i_B_y )
-                                      +Real(4.)*sintg(i-1,j-1,0,i_B_xy))
-          +eb_neumann_flux(i  ,j-1,0)*(         bareaarr(i  ,j-1,0)
-                                      -Real(2.)*sintg(i  ,j-1,0,i_B_x )
-                                      +Real(2.)*sintg(i  ,j-1,0,i_B_y )
-                                      -Real(4.)*sintg(i  ,j-1,0,i_B_xy))
-          +eb_neumann_flux(i-1,j  ,0)*(         bareaarr(i-1,j  ,0)
-                                      +Real(2.)*sintg(i-1,j  ,0,i_B_x )
-                                      -Real(2.)*sintg(i-1,j  ,0,i_B_y )
-                                      -Real(4.)*sintg(i-1,j  ,0,i_B_xy))
-          +eb_neumann_flux(i  ,j  ,0)*(         bareaarr(i  ,j  ,0)
-                                      -Real(2.)*sintg(i  ,j  ,0,i_B_x )
-                                      -Real(2.)*sintg(i  ,j  ,0,i_B_y )
-                                      +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
+           eb_neumann_surface_term(i-1,j-1,w_im_jm,bcent,eb_neumann_flux,dx,problo,is_rz)
+          +eb_neumann_surface_term(i  ,j-1,w_i_jm ,bcent,eb_neumann_flux,dx,problo,is_rz)
+          +eb_neumann_surface_term(i-1,j  ,w_im_j ,bcent,eb_neumann_flux,dx,problo,is_rz)
+          +eb_neumann_surface_term(i  ,j  ,w_i_j  ,bcent,eb_neumann_flux,dx,problo,is_rz));
     }
 }
 

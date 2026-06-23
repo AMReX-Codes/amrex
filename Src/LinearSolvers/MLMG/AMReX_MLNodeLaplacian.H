@@ -164,9 +164,11 @@ public :
      * \brief Set inhomogeneous Neumann data on embedded boundaries.
      *
      * The first component of `eb_neumann_flux` is the cell-centered cut-cell
-     * value of `sigma*dphi/dn_EB` at the EB surface. AMReX EB normals point
-     * from the valid/fluid region toward the covered/body region. This is
-     * currently implemented for 2D EB nodal solves.
+     * value of the physical flux `sigma*dphi/dn_EB` at the EB surface. AMReX
+     * EB normals point from the valid/fluid region toward the covered/body
+     * region. For RZ solves, this flux should not include the radial metric
+     * factor; the solver applies that factor internally. This is currently
+     * implemented for 2D EB nodal solves.
      */
     void setEBInhomogNeumannFlux (int amrlev, const MultiFab& eb_neumann_flux);
 

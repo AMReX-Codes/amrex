@@ -503,12 +503,15 @@ Neumann data on EB faces with
     ml_node_laplacian.setEBInhomogNeumannFlux(lev, eb_neumann_flux);
 
 The first component of :cpp:`eb_neumann_flux` is a cell-centered cut-cell
-MultiFab containing :math:`\sigma \partial \phi / \partial n_{EB}` at the EB
-surface. The AMReX EB normal :math:`n_{EB}` points from the valid computational
-region toward the covered region. Physical domain boundary conditions are still
-set separately with :cpp:`setDomainBC` and related linear-operator calls. The
-same EB normal convention is used when :cpp:`setEBInflowVelocity` forms
-:math:`u \cdot n_{EB}` on EB faces.
+MultiFab containing the physical flux
+:math:`\sigma \partial \phi / \partial n_{EB}` at the EB surface. The AMReX EB
+normal :math:`n_{EB}` points from the valid computational region toward the
+covered region. For cylindrical RZ solves, :cpp:`eb_neumann_flux` should not
+include the radial metric factor; :cpp:`MLNodeLaplacian` applies that factor
+internally when forming the EB contribution to the right-hand side. Physical
+domain boundary conditions are still set separately with :cpp:`setDomainBC` and
+related linear-operator calls. The same EB normal convention is used when
+:cpp:`setEBInflowVelocity` forms :math:`u \cdot n_{EB}` on EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
 :cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp:`MLABecLaplacian`)

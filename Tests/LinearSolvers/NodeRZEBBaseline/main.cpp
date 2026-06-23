@@ -246,7 +246,7 @@ void fill_rz_eb_neumann_mms (MultiFab& exact, MultiFab& sigma,
             Real const cr = std::cos(a*r);
             Real const sz = std::sin(a*z);
             rh(i,j,k) = (a*cr - Real(2.0)*r*a*a*sr) * sz;
-            ebneu(i,j,k) = eb_location * a * std::cos(a*eb_location) * sz;
+            ebneu(i,j,k) = a * std::cos(a*eb_location) * sz;
         });
     }
 }
@@ -327,7 +327,7 @@ void fill_rz_eb_neumann_curved_mms (MultiFab& exact, MultiFab& sigma,
                 Real const z = plo[1] + (static_cast<Real>(j) + Real(0.5) + bc(i,j,k,1)) * dx[1];
                 Real const dphidr = a * std::cos(a*r) * std::sin(a*z);
                 Real const dphidz = a * std::sin(a*r) * std::cos(a*z);
-                ebneu(i,j,k) = r * (dphidr * nx + dphidz * ny);
+                ebneu(i,j,k) = dphidr * nx + dphidz * ny;
             }
         });
     }
@@ -452,7 +452,7 @@ void fill_rz_eb_neumann_physical_bc_mms (MultiFab& exact, MultiFab& sigma,
                 Real const dzfac = all_neumann ? -az*std::sin(az*z) : az*std::cos(az*z);
                 Real const dphidr = -ar * sr * zfac;
                 Real const dphidz = cr * dzfac;
-                ebneu(i,j,k) = r * (dphidr * nx + dphidz * ny);
+                ebneu(i,j,k) = dphidr * nx + dphidz * ny;
             }
         });
     }
