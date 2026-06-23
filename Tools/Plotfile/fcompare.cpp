@@ -262,7 +262,7 @@ int main_main()
                     } else {
                         // A is identically zero; relative error is undefined.
                         // If there is no absolute error either, report 0.
-                        rerror[icomp_a] = (rerror[icomp_a] == 0.0) ? 0.0
+                        rerror[icomp_a] = (rerror[icomp_a] == Real(0.0)) ? Real(0.0)
                             : std::numeric_limits<Real>::infinity();
                     }
                 } else {
@@ -275,7 +275,7 @@ int main_main()
                     if (rerror_denom[icomp_a] != 0.0) {
                         rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
                     } else {
-                        rerror[icomp_a] = (rerror[icomp_a] == 0.0) ? 0.0
+                        rerror[icomp_a] = (rerror[icomp_a] == Real(0.0)) ? Real(0.0)
                             : std::numeric_limits<Real>::infinity();
                     }
                 }
