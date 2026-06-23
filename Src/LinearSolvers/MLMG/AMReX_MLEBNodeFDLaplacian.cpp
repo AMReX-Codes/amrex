@@ -316,6 +316,9 @@ MLEBNodeFDLaplacian::prepareForSolve ()
         if (m_sigma[0] == 0._rt) {
             m_sigma[0] = 1._rt; // For backward compatibility
         }
+#ifndef AMREX_USE_EB
+        AMREX_ASSERT(!m_has_sigma_mf);
+#endif
     }
 #endif
 

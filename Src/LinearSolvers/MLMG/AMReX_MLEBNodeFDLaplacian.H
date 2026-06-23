@@ -21,8 +21,8 @@ namespace amrex {
 // del dot (sigma grad phi) - alpha/r^2 phi = rhs, for RZ where alpha is a
 // scalar constant that is zero by default.
 //
-// New feature: for non-RZ, sigma can also be a single-component
-// cell-centered multifab.
+// New feature: sigma can also be a single-component cell-centered multifab
+// (except for RZ + non-EB builds).
 
 /// \ingroup amrex_eb
 class MLEBNodeFDLaplacian
