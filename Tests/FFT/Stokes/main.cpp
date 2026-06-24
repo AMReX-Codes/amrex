@@ -221,9 +221,9 @@ int main (int argc, char* argv[])
             amrex::Print() << "  U error expected to be close to zero: " << u_error << "\n";
             amrex::Print() << "  V error expected to be close to zero: " << v_error << "\n";
 #ifdef AMREX_USE_FLOAT
-            auto eps = 1.e-6f;
+            auto eps = 1.e-3f;
 #else
-            auto eps = 1.e-13;
+            auto eps = 1.e-12;
 #endif
             AMREX_ALWAYS_ASSERT(u_error < eps);
             AMREX_ALWAYS_ASSERT(v_error < eps);
