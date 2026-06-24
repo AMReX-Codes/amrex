@@ -1502,6 +1502,8 @@ with implicit methods (e.g., DIRK).
 
    The linear solver used with Newton's method for single rate methods (e.g.,
    DIRK) or at the slow time scale with multirate methods (e.g., IM-MRI).
+   AMReX currently provides GMRES here, with optional preconditioning supplied
+   through :cpp:`TimeIntegrator::set_preconditioner()`.
 
 .. py:data:: integration.sundials.max_linear_iters
    :type: int
@@ -1533,7 +1535,9 @@ with implicit methods (e.g., DIRK).
    :value: GMRES
 
    The linear solver used with Newton's method at the fast time scale with
-   multirate methods (e.g., when the fast method is DIRK).
+   multirate methods (e.g., when the fast method is DIRK). Optional fast
+   preconditioning can be attached through
+   :cpp:`TimeIntegrator::set_fast_preconditioner()`.
 
 .. py:data:: integration.sundials.fast_max_linear_iters
    :type: int

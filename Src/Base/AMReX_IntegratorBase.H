@@ -179,6 +179,18 @@ private:
     pp.query("fast_abs_tol", fast_abs_tol);
   }
 protected:
+    using PrecondSetupFunction = std::function<int(T& state, T& rhs,
+                                                   const amrex::Real time,
+                                                   bool jok, bool& jcur,
+                                                   const amrex::Real gamma)>;
+
+    using PrecondSolveFunction = std::function<int(T& soln, T& rhs,
+                                                   T& state, T& state_rhs,
+                                                   const amrex::Real time,
+                                                   const amrex::Real gamma,
+                                                   const amrex::Real delta,
+                                                   int lr)>;
+
     /**
      * \brief Rhs is the right-hand-side function the integrator will use.
      */
@@ -225,6 +237,30 @@ protected:
      * the computed state just after it is computed
      */
     std::function<void (T&, amrex::Real)> post_fast_step_action;
+
+    /**
+     * \brief Optional SUNDIALS-compatible setup callback for the slow or
+     * single-rate implicit preconditioner.
+     */
+    PrecondSetupFunction PrecondSetup;
+
+    /**
+     * \brief Optional SUNDIALS-compatible solve callback for the slow or
+     * single-rate implicit preconditioner.
+     */
+    PrecondSolveFunction PrecondSolve;
+
+    /**
+     * \brief Optional SUNDIALS-compatible setup callback for the fast implicit
+     * preconditioner in multirate methods.
+     */
+    PrecondSetupFunction FastPrecondSetup;
+
+    /**
+     * \brief Optional SUNDIALS-compatible solve callback for the fast implicit
+     * preconditioner in multirate methods.
+     */
+    PrecondSolveFunction FastPrecondSolve;
 
     /**
      * \brief Flag to enable/disable adaptive time stepping in single rate
@@ -313,6 +349,20 @@ public:
     void set_fast_rhs (std::function<void(T&, T&, const amrex::Real)> F)
     {
         RhsFast = F;
+    }
+
+    virtual void set_preconditioner (PrecondSetupFunction Psetup,
+                                     PrecondSolveFunction Psolve)
+    {
+        PrecondSetup = std::move(Psetup);
+        PrecondSolve = std::move(Psolve);
+    }
+
+    virtual void set_fast_preconditioner (PrecondSetupFunction Psetup,
+                                          PrecondSolveFunction Psolve)
+    {
+        FastPrecondSetup = std::move(Psetup);
+        FastPrecondSolve = std::move(Psolve);
     }
 
     void set_post_stage_action (std::function<void (T&, amrex::Real)> A)

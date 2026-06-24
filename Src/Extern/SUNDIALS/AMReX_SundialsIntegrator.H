@@ -37,6 +37,14 @@ struct SundialsUserData {
     std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fi;  //!< Implicit RHS for ImEx schemes.
     std::function<int(amrex::Real, N_Vector, N_Vector, void*)> fe;  //!< Explicit RHS for ImEx schemes.
     std::function<int(amrex::Real, N_Vector, N_Vector, void*)> ff;  //!< MRI fast-scale RHS.
+    std::function<int(amrex::Real, N_Vector, N_Vector, sunbooleantype,
+                      sunbooleantype*, amrex::Real, void*)> psetup; //!< Slow/single-rate preconditioner setup.
+    std::function<int(amrex::Real, N_Vector, N_Vector, N_Vector, N_Vector,
+                      amrex::Real, amrex::Real, int, void*)> psolve; //!< Slow/single-rate preconditioner solve.
+    std::function<int(amrex::Real, N_Vector, N_Vector, sunbooleantype,
+                      sunbooleantype*, amrex::Real, void*)> fast_psetup; //!< Fast preconditioner setup.
+    std::function<int(amrex::Real, N_Vector, N_Vector, N_Vector, N_Vector,
+                      amrex::Real, amrex::Real, int, void*)> fast_psolve; //!< Fast preconditioner solve.
     std::function<int(amrex::Real, N_Vector, void*)> post_stage;    //!< Hook invoked after each stage.
     std::function<int(amrex::Real, N_Vector, void*)> post_step;     //!< Hook invoked after each time step.
     std::function<int(amrex::Real, N_Vector, void*)> post_fast_stage; //!< Hook for MRI fast stages.
@@ -62,6 +70,36 @@ namespace SundialsUserFun {
     static int ff (amrex::Real t, N_Vector y_data, N_Vector y_rhs, void *user_data) {
         SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
         return udata->ff(t, y_data, y_rhs, user_data);
+    }
+
+    static int psetup (amrex::Real t, N_Vector y_data, N_Vector y_rhs,
+                       sunbooleantype jok, sunbooleantype* jcurPtr,
+                       amrex::Real gamma, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->psetup(t, y_data, y_rhs, jok, jcurPtr, gamma, user_data);
+    }
+
+    static int psolve (amrex::Real t, N_Vector y_data, N_Vector y_rhs,
+                       N_Vector r_data, N_Vector z_data, amrex::Real gamma,
+                       amrex::Real delta, int lr, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->psolve(t, y_data, y_rhs, r_data, z_data, gamma,
+                             delta, lr, user_data);
+    }
+
+    static int fast_psetup (amrex::Real t, N_Vector y_data, N_Vector y_rhs,
+                            sunbooleantype jok, sunbooleantype* jcurPtr,
+                            amrex::Real gamma, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->fast_psetup(t, y_data, y_rhs, jok, jcurPtr, gamma, user_data);
+    }
+
+    static int fast_psolve (amrex::Real t, N_Vector y_data, N_Vector y_rhs,
+                            N_Vector r_data, N_Vector z_data, amrex::Real gamma,
+                            amrex::Real delta, int lr, void *user_data) {
+        SundialsUserData* udata = static_cast<SundialsUserData*>(user_data);
+        return udata->fast_psolve(t, y_data, y_rhs, r_data, z_data, gamma,
+                                  delta, lr, user_data);
     }
 
     static int post_stage (amrex::Real t, N_Vector y_data, void *user_data) {
@@ -139,12 +177,14 @@ private:
     void *arkode_mem   = nullptr;
     SUNLinearSolver LS = nullptr;
     SUNNonlinearSolver NLS = nullptr;
+    bool slow_ls_needs_update = false;
 
     // Fast time scale
     void *arkode_fast_mem            = nullptr;
     MRIStepInnerStepper fast_stepper = nullptr;
     SUNLinearSolver fast_LS          = nullptr;
     SUNNonlinearSolver fast_NLS      = nullptr;
+    bool fast_ls_needs_update        = false;
 
     // Integrator stop time
     bool set_stop_time = false;
@@ -152,6 +192,90 @@ private:
 
     // Max steps between returns
     amrex::Long max_num_steps = 0;
+
+    void ConfigureSlowLinearSolver (N_Vector y_data)
+    {
+        if ((type != "DIRK" && type != "IMEX-RK" &&
+             type != "IM-MRI" && type != "IMEX-MRI") ||
+            nonlinear_solver != "Newton")
+        {
+            return;
+        }
+
+        const bool has_preconditioner = static_cast<bool>(BaseT::PrecondSolve);
+        if (BaseT::PrecondSetup && !has_preconditioner) {
+            amrex::Error("SUNDIALS preconditioner setup callback requires a solve callback.");
+        }
+
+        if (!slow_ls_needs_update && LS != nullptr) {
+            return;
+        }
+
+        SUNLinSolFree(LS);
+        LS = SUNLinSol_SPGMR(y_data,
+                             has_preconditioner ? SUN_PREC_LEFT : SUN_PREC_NONE,
+                             max_linear_iters, sunctx);
+        AMREX_ALWAYS_ASSERT(LS != nullptr);
+
+        int flag = 0;
+        if (use_ark) {
+            flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+            if (has_preconditioner) {
+                flag = ARKStepSetPreconditioner(
+                    arkode_mem,
+                    BaseT::PrecondSetup ? SundialsUserFun::psetup : nullptr,
+                    SundialsUserFun::psolve);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+        } else if (use_mri) {
+            flag = MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+            if (has_preconditioner) {
+                flag = MRIStepSetPreconditioner(
+                    arkode_mem,
+                    BaseT::PrecondSetup ? SundialsUserFun::psetup : nullptr,
+                    SundialsUserFun::psolve);
+                AMREX_ALWAYS_ASSERT(flag == 0);
+            }
+        }
+
+        slow_ls_needs_update = false;
+    }
+
+    void ConfigureFastLinearSolver (N_Vector y_data)
+    {
+        if (fast_type != "DIRK" || fast_nonlinear_solver != "Newton") {
+            return;
+        }
+
+        const bool has_preconditioner = static_cast<bool>(BaseT::FastPrecondSolve);
+        if (BaseT::FastPrecondSetup && !has_preconditioner) {
+            amrex::Error("SUNDIALS fast preconditioner setup callback requires a solve callback.");
+        }
+
+        if (!fast_ls_needs_update && fast_LS != nullptr) {
+            return;
+        }
+
+        SUNLinSolFree(fast_LS);
+        fast_LS = SUNLinSol_SPGMR(y_data,
+                                  has_preconditioner ? SUN_PREC_LEFT : SUN_PREC_NONE,
+                                  fast_max_linear_iters, sunctx);
+        AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
+
+        int flag = ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
+        AMREX_ALWAYS_ASSERT(flag == 0);
+        if (has_preconditioner) {
+            flag = ARKStepSetPreconditioner(
+                arkode_fast_mem,
+                BaseT::FastPrecondSetup ? SundialsUserFun::fast_psetup : nullptr,
+                SundialsUserFun::fast_psolve);
+            AMREX_ALWAYS_ASSERT(flag == 0);
+        }
+
+        fast_ls_needs_update = false;
+    }
 
     void initialize_parameters ()
     {
@@ -264,10 +388,8 @@ private:
                     amrex::Print() << "Linear solver: " << linear_solver << "\n";
                     amrex::Print() << "Max linear iters: " << max_linear_iters << "\n";
                 }
-                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
-                AMREX_ALWAYS_ASSERT(LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_mem, LS, nullptr);
-                AMREX_ALWAYS_ASSERT(flag == 0);
+                slow_ls_needs_update = true;
+                ConfigureSlowLinearSolver(y_data);
             }
         }
 
@@ -331,16 +453,14 @@ private:
                     amrex::Print() << "Linear solver: " << fast_linear_solver << "\n";
                     amrex::Print() << "Max linear iters: " << fast_max_linear_iters << "\n";
                 }
-                fast_LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, fast_max_linear_iters, sunctx);
-                AMREX_ALWAYS_ASSERT(fast_LS != nullptr);
-                flag = ARKStepSetLinearSolver(arkode_fast_mem, fast_LS, nullptr);
-                AMREX_ALWAYS_ASSERT(flag == 0);
+                fast_ls_needs_update = true;
             }
         }
 
         // Attach structure with user-supplied function wrappers
         flag = ARKStepSetUserData(arkode_fast_mem, &udata);
         AMREX_ALWAYS_ASSERT(flag == 0);
+        ConfigureFastLinearSolver(y_data);
 
         // Set integrator tolerances
         if (BaseT::use_adaptive_fast_time_step || fast_type == "DIRK" || fast_type == "IMEX-RK") {
@@ -429,10 +549,7 @@ private:
                     amrex::Print() << "Linear solver: " << linear_solver << "\n";
                     amrex::Print() << "Max linear iters: " << max_linear_iters << "\n";
                 }
-                LS = SUNLinSol_SPGMR(y_data, SUN_PREC_NONE, max_linear_iters, sunctx);
-                AMREX_ALWAYS_ASSERT(LS != nullptr);
-                flag = MRIStepSetLinearSolver(arkode_mem, LS, nullptr);
-                AMREX_ALWAYS_ASSERT(flag == 0);
+                slow_ls_needs_update = true;
             }
         }
 
@@ -452,6 +569,7 @@ private:
         // Set max number of steps between returns
         flag = MRIStepSetMaxNumSteps(arkode_mem, max_num_steps);
         AMREX_ALWAYS_ASSERT(flag == 0);
+        ConfigureSlowLinearSolver(y_data);
     }
 
     // -------------------------------------
@@ -668,6 +786,104 @@ public:
             return 0;
         };
 
+        udata.psetup = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                           sunbooleantype jok, sunbooleantype* jcurPtr,
+                           amrex::Real gamma, void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            T S_rhs;
+            unpack_vector(y_rhs, S_rhs);
+
+            bool jcur = (jcurPtr != nullptr) && (*jcurPtr != SUNFALSE);
+            if (!BaseT::PrecondSetup) {
+                if (jcurPtr != nullptr) {
+                    *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
+                }
+                return 0;
+            }
+
+            int ierr = BaseT::PrecondSetup(S_data, S_rhs, rhs_time,
+                                           jok != SUNFALSE, jcur, gamma);
+            if (jcurPtr != nullptr) {
+                *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
+            }
+            return ierr;
+        };
+
+        udata.psolve = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                           N_Vector r_data, N_Vector z_data, amrex::Real gamma,
+                           amrex::Real delta, int lr,
+                           void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            T S_rhs;
+            unpack_vector(y_rhs, S_rhs);
+
+            T S_r;
+            unpack_vector(r_data, S_r);
+
+            T S_z;
+            unpack_vector(z_data, S_z);
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<bool>(BaseT::PrecondSolve),
+                                             "SUNDIALS preconditioner solve callback not set.");
+            return BaseT::PrecondSolve(S_z, S_r, S_data, S_rhs,
+                                       rhs_time, gamma, delta, lr);
+        };
+
+        udata.fast_psetup = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                                sunbooleantype jok, sunbooleantype* jcurPtr,
+                                amrex::Real gamma, void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            T S_rhs;
+            unpack_vector(y_rhs, S_rhs);
+
+            bool jcur = (jcurPtr != nullptr) && (*jcurPtr != SUNFALSE);
+            if (!BaseT::FastPrecondSetup) {
+                if (jcurPtr != nullptr) {
+                    *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
+                }
+                return 0;
+            }
+
+            int ierr = BaseT::FastPrecondSetup(S_data, S_rhs, rhs_time,
+                                               jok != SUNFALSE, jcur, gamma);
+            if (jcurPtr != nullptr) {
+                *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
+            }
+            return ierr;
+        };
+
+        udata.fast_psolve = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
+                                N_Vector r_data, N_Vector z_data, amrex::Real gamma,
+                                amrex::Real delta, int lr,
+                                void * /* user_data */) -> int {
+
+            T S_data;
+            unpack_vector(y_data, S_data);
+
+            T S_rhs;
+            unpack_vector(y_rhs, S_rhs);
+
+            T S_r;
+            unpack_vector(r_data, S_r);
+
+            T S_z;
+            unpack_vector(z_data, S_z);
+
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(static_cast<bool>(BaseT::FastPrecondSolve),
+                                             "SUNDIALS fast preconditioner solve callback not set.");
+            return BaseT::FastPrecondSolve(S_z, S_r, S_data, S_rhs,
+                                           rhs_time, gamma, delta, lr);
+        };
+
         udata.post_stage = [&](amrex::Real time, N_Vector y_data,
                                void * /* user_data */) -> int {
 
@@ -762,6 +978,20 @@ public:
         SUNNonlinSolFree(fast_NLS);
     }
 
+    void set_preconditioner (typename BaseT::PrecondSetupFunction Psetup,
+                             typename BaseT::PrecondSolveFunction Psolve) override
+    {
+        BaseT::set_preconditioner(std::move(Psetup), std::move(Psolve));
+        slow_ls_needs_update = true;
+    }
+
+    void set_fast_preconditioner (typename BaseT::PrecondSetupFunction Psetup,
+                                  typename BaseT::PrecondSolveFunction Psolve) override
+    {
+        BaseT::set_fast_preconditioner(std::move(Psetup), std::move(Psolve));
+        fast_ls_needs_update = true;
+    }
+
     /**
      * \brief Take a single time step of size \p dt starting from \p S_old.
      *
@@ -778,6 +1008,12 @@ public:
 
         N_Vector y_old = wrap_data(S_old);
         N_Vector y_new = wrap_data(S_new);
+        if (use_ark) {
+            ConfigureSlowLinearSolver(y_old);
+        } else if (use_mri) {
+            ConfigureFastLinearSolver(y_old);
+            ConfigureSlowLinearSolver(y_old);
+        }
 
         if (use_ark) {
             ARKStepReset(arkode_mem, time, y_old); // should probably resize
@@ -812,6 +1048,12 @@ public:
         amrex::Real time_ret; // SUNDIALS return time
 
         N_Vector y_out = wrap_data(S_out);
+        if (use_ark) {
+            ConfigureSlowLinearSolver(y_out);
+        } else if (use_mri) {
+            ConfigureFastLinearSolver(y_out);
+            ConfigureSlowLinearSolver(y_out);
+        }
 
         if (use_ark) {
             if (!BaseT::use_adaptive_time_step) {
