@@ -316,9 +316,6 @@ MLEBNodeFDLaplacian::prepareForSolve ()
         if (m_sigma[0] == 0._rt) {
             m_sigma[0] = 1._rt; // For backward compatibility
         }
-#ifndef AMREX_USE_EB
-        AMREX_ASSERT(!m_has_sigma_mf);
-#endif
     }
 #endif
 
@@ -485,10 +482,18 @@ MLEBNodeFDLaplacian::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFa
         {
 #if (AMREX_SPACEDIM == 2)
             if (m_rz) {
-                AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                {
-                    mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,sig0,dx0,dx1,xlo,alpha);
-                });
+                if (m_has_sigma_mf) {
+                    auto const& sigarr = m_sigma_mf[amrlev][mglev]->const_array(mfi);
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_sig_adotx_rz(i,j,k,yarr,xarr,dmarr,sigarr,dx0,dx1,xlo,alpha);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                    {
+                        mlebndfdlap_adotx_rz(i,j,k,yarr,xarr,dmarr,sig0,dx0,dx1,xlo,alpha);
+                    });
+                }
             } else
 #endif
             if (m_has_sigma_mf) {
@@ -594,11 +599,20 @@ MLEBNodeFDLaplacian::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiF
             {
 #if (AMREX_SPACEDIM == 2)
                 if (m_rz) {
-                    AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
-                    {
-                        mlebndfdlap_gsrb_rz(i,j,k,solarr,rhsarr,dmskarr,
-                                            sig0, dx0, dx1, xlo, redblack, alpha);
-                    });
+                    if (m_has_sigma_mf) {
+                        auto const& sigarr = m_sigma_mf[amrlev][mglev]->const_array(mfi);
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_sig_gsrb_rz(i,j,k,solarr,rhsarr,dmskarr,sigarr,
+                                                    dx0, dx1, xlo, redblack, alpha);
+                        });
+                    } else {
+                        AMREX_HOST_DEVICE_FOR_3D(box, i, j, k,
+                        {
+                            mlebndfdlap_gsrb_rz(i,j,k,solarr,rhsarr,dmskarr,
+                                                sig0, dx0, dx1, xlo, redblack, alpha);
+                        });
+                    }
                 } else
 #endif
                 if (m_has_sigma_mf) {

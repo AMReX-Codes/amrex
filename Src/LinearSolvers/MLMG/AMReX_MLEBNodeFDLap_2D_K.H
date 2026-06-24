@@ -467,6 +467,71 @@ void mlebndfdlap_sig_gsrb (int i, int j, int k, Array4<Real> const& x,
     }
 }
 
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_sig_adotx_rz (int i, int j, int k, Array4<Real> const& y,
+                                Array4<Real const> const& x,
+                                Array4<int const> const& dmsk,
+                                Array4<Real const> const& sig,
+                                Real dr, Real dz, Real rlo, Real alpha) noexcept
+{
+    Real const r = rlo + Real(i)*dr;
+    if (dmsk(i,j,k) || (r == Real(0.0) && alpha != Real(0.0))) {
+        y(i,j,k) = Real(0.0);
+    } else {
+        Real const rp = r + Real(0.5)*dr;
+        Real const rm = (r >= Real(0.5)*dr) ? (r - Real(0.5)*dr) : (Real(0.5)*dr - r);
+        Real const sigyp = (sig(i-1,j  ,k)*rm + sig(i,j  ,k)*rp) / (rm+rp);
+        Real const sigym = (sig(i-1,j-1,k)*rm + sig(i,j-1,k)*rp) / (rm+rp);
+        Real Ax = (sigyp*(x(i,j+1,k)-x(i,j,k)) + sigym*(x(i,j-1,k)-x(i,j,k))) / (dz*dz);
+        if (r == Real(0.0)) {
+            Real const sigxp = Real(0.5)*(sig(i,j-1,k)+sig(i,j,k));
+            Ax += Real(4.0) * sigxp * (x(i+1,j,k)-x(i,j,k)) / (dr*dr);
+        } else {
+            Real const sigxp = Real(0.5)*(sig(i,  j-1,k)+sig(i,  j,k));
+            Real const sigxm = Real(0.5)*(sig(i-1,j-1,k)+sig(i-1,j,k));
+            Ax += (sigxp*rp*(x(i+1,j,k)-x(i,j,k)) + sigxm*rm*(x(i-1,j,k)-x(i,j,k))) / (r*dr*dr);
+            Ax -= alpha/(r*r) * x(i,j,k);
+        }
+        y(i,j,k) = Ax;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlebndfdlap_sig_gsrb_rz (int i, int j, int k, Array4<Real> const& x,
+                               Array4<Real const> const& rhs,
+                               Array4<int const> const& dmsk,
+                               Array4<Real const> const& sig,
+                               Real dr, Real dz, Real rlo, int redblack, Real alpha) noexcept
+{
+    if ((i+j+k+redblack)%2 == 0) {
+        Real const r = rlo + Real(i)*dr;
+        if (dmsk(i,j,k) || (r == Real(0.0) && alpha != Real(0.0))) {
+            x(i,j,k) = Real(0.);
+        } else {
+            Real const rp = r + Real(0.5)*dr;
+            Real const rm = (r >= Real(0.5)*dr) ? (r - Real(0.5)*dr) : (Real(0.5)*dr - r);
+            Real const sigyp = (sig(i-1,j  ,k)*rm + sig(i,j  ,k)*rp) / (rm+rp);
+            Real const sigym = (sig(i-1,j-1,k)*rm + sig(i,j-1,k)*rp) / (rm+rp);
+            Real Ax = (sigyp*(x(i,j+1,k)-x(i,j,k)) + sigym*(x(i,j-1,k)-x(i,j,k))) / (dz*dz);
+            Real gamma = -(sigyp+sigym) / (dz*dz);
+            if (r == Real(0.0)) {
+                Real const sigxp = Real(0.5)*(sig(i,j-1,k)+sig(i,j,k));
+                Ax += (Real(4.0)*sigxp/(dr*dr)) * (x(i+1,j,k)-x(i,j,k));
+                gamma += -(Real(4.0)*sigxp/(dr*dr));
+            } else {
+                Real const sigxp = Real(0.5)*(sig(i,  j-1,k)+sig(i,  j,k));
+                Real const sigxm = Real(0.5)*(sig(i-1,j-1,k)+sig(i-1,j,k));
+                Ax += (sigxp*rp*(x(i+1,j,k)-x(i,j,k)) + sigxm*rm*(x(i-1,j,k)-x(i,j,k))) / (r*dr*dr);
+                gamma += -(sigxp*rp+sigxm*rm) / (r*dr*dr);
+                Ax -= alpha/(r*r) * x(i,j,k);
+                gamma -= alpha/(r*r);
+            }
+            constexpr Real omega = Real(1.25);
+            x(i,j,k) += (rhs(i,j,k) - Ax) * (omega / gamma);
+        }
+    }
+}
+
 template <typename F>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlebndfdlap_sig_adotx_eb_doit (int i, int j, int k, Array4<Real> const& y,
