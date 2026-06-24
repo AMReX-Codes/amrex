@@ -118,126 +118,120 @@ void Stokes<MF>::solve (MF& U,
 {
     using Real = typename MF::value_type;
 
-            auto const& dx = m_geom.CellSizeArray();
-            auto scaling = Real(1) / Real(m_geom.Domain().d_numPts());
+    auto const& dx = m_geom.CellSizeArray();
+    auto scaling = Real(1) / Real(m_geom.Domain().d_numPts());
 
-            R2C<Real> r2c(m_geom.Domain());
-            auto const& [cba, cdm] = r2c.getSpectralDataLayout();
+    R2C<Real> r2c(m_geom.Domain());
+    auto const& [cba, cdm] = r2c.getSpectralDataLayout();
 
-            cMF phat(cba, cdm, 1, 0);
+    cMF phat(cba, cdm, 1, 0);
 
-            cMF uhat(cba,cdm,1,0);
-            cMF vhat(cba,cdm,1,0);
+    cMF uhat(cba,cdm,1,0);
+    cMF vhat(cba,cdm,1,0);
 #if (BL_SPACEDIM ==3)
-            cMF what(cba,cdm,1,0);
+    cMF what(cba,cdm,1,0);
 #endif
 
-            cMF rxhat(cba,cdm,1,0);
-            r2c.forward(rhsx, rxhat);
-            amrex::Scale(rxhat, scaling, 0, 1, 0);
+    cMF rxhat(cba,cdm,1,0);
+    r2c.forward(rhsx, rxhat);
+    amrex::Scale(rxhat, scaling, 0, 1, 0);
 
-            cMF ryhat(cba,cdm,1,0);
-            r2c.forward(rhsy, ryhat);
-            amrex::Scale(ryhat, scaling, 0, 1, 0);
+    cMF ryhat(cba,cdm,1,0);
+    r2c.forward(rhsy, ryhat);
+    amrex::Scale(ryhat, scaling, 0, 1, 0);
 
 #if (BL_SPACEDIM ==3)
-            cMF rzhat(cba,cdm,1,0);
-            r2c.forward(rhsz, rzhat);
-            amrex::Scale(rzhat, scaling, 0, 1, 0);
+    cMF rzhat(cba,cdm,1,0);
+    r2c.forward(rhsz, rzhat);
+    amrex::Scale(rzhat, scaling, 0, 1, 0);
 #endif
 
-            using Complex = GpuComplex<Real>;
-            int const nx = m_geom.Domain().length(0);
+    using Complex = GpuComplex<Real>;
+    int const nx = m_geom.Domain().length(0);
 #if (AMREX_SPACEDIM >= 2)
-            int const ny = m_geom.Domain().length(1);
+    int const ny = m_geom.Domain().length(1);
 #endif
 #if (AMREX_SPACEDIM == 3)
-            int const nz = m_geom.Domain().length(2);
+    int const nz = m_geom.Domain().length(2);
 #endif
-            for (MFIter mfi(phat); mfi.isValid(); ++mfi) {
-                auto const& pb = phat[mfi].box();
-                auto const& parr = phat[mfi].array();
-                auto const& u = uhat[mfi].array();
-                auto const& v = vhat[mfi].array();
+    for (MFIter mfi(phat); mfi.isValid(); ++mfi) {
+        auto const& pb = phat[mfi].box();
+        auto const& parr = phat[mfi].array();
+        auto const& u = uhat[mfi].array();
+        auto const& v = vhat[mfi].array();
 #if (BL_SPACEDIM ==3)
-                auto const& w = what[mfi].array();
+        auto const& w = what[mfi].array();
 #endif
-                auto const& rx = rxhat[mfi].array();
-                auto const& ry = ryhat[mfi].array();
+        auto const& rx = rxhat[mfi].array();
+        auto const& ry = ryhat[mfi].array();
 #if (BL_SPACEDIM ==3)
-                auto const& rz = rzhat[mfi].array();
+        auto const& rz = rzhat[mfi].array();
 #endif
-                ParallelFor(pb, [=, this] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        AMREX_D_TERM(Real kwx = Real(2)*Math::pi<Real>()/Real(nx);,
+                     Real kwy = Real(2)*Math::pi<Real>()/Real(ny);,
+                     Real kwz = Real(2)*Math::pi<Real>()/Real(nz);)
+        ParallelFor(pb, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+        {
+            AMREX_D_TERM(int ik = (i <= nx/2) ? i : i - nx;,
+                         int jk = (j <= ny/2) ? j : j - ny;,
+                         int kk = (k <= nz/2) ? k : k - nz);
 
-                   AMREX_D_TERM(int ik = (i <= nx/2) ? i : i - nx;,
-                                int jk = (j <= ny/2) ? j : j - ny;,
-                                int kk = (k <= nz/2) ? k : k - nz);
+            GpuArray<Real,AMREX_SPACEDIM> kwave{AMREX_D_DECL(ik*kwx,jk*kwy,kk*kwz)};
 
-                   GpuArray<Real,AMREX_SPACEDIM> kwave
-                         {AMREX_D_DECL(Real(2)*ik*Math::pi<Real>()/Real(m_geom.Domain().length(0)),
-                                       Real(2)*jk*Math::pi<Real>()/Real(m_geom.Domain().length(1)),
-                                       Real(2)*kk*Math::pi<Real>()/Real(m_geom.Domain().length(2)))};
+            Real delsqk = AMREX_D_TERM(Real(2)*(std::cos(kwave[0])-Real(1))/(dx[0]*dx[0]),
+                                     + Real(2)*(std::cos(kwave[1])-Real(1))/(dx[1]*dx[1]),
+                                     + Real(2)*(std::cos(kwave[2])-Real(1))/(dx[2]*dx[2]));
 
-                   Real delsqk =
-                         AMREX_D_TERM(Real(2)*(std::cos(kwave[0])-Real(1))/(dx[0]*dx[0]),
-                                     +(Real(2)*(std::cos(kwave[1])-Real(1))/(dx[1]*dx[1])),
-                                     +(Real(2)*(std::cos(kwave[2])-Real(1))/(dx[2]*dx[2])));
+            amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkp
+                {AMREX_D_DECL(amrex::GpuComplex<amrex::Real>((std::cos(kwave[0])-Real(1))/dx[0],
+                                                              std::sin(kwave[0])         /dx[0]),
+                              amrex::GpuComplex<amrex::Real>((std::cos(kwave[1])-Real(1))/dx[1],
+                                                              std::sin(kwave[1])         /dx[1]),
+                              amrex::GpuComplex<amrex::Real>((std::cos(kwave[2])-Real(1))/dx[2],
+                                                              std::sin(kwave[2])         /dx[2]))};
 
-                   amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkp
-                         {AMREX_D_DECL(
-                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[0])-Real(1))/dx[0],
-                                                               std::sin(kwave[0])/dx[0]),
-                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[1])-Real(1))/dx[1],
-                                                               std::sin(kwave[1])/dx[1]),
-                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[2])-Real(1))/dx[2],
-                                                               std::sin(kwave[2])/dx[2]))};
+            amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkm
+                {AMREX_D_DECL(amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[0]))/dx[0],
+                                                                      std::sin(kwave[0]) /dx[0]),
+                              amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[1]))/dx[1],
+                                                                      std::sin(kwave[1]) /dx[1]),
+                              amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[2]))/dx[2],
+                                                                      std::sin(kwave[2]) /dx[2]))};
 
-                   amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkm
-                         {AMREX_D_DECL(
-                               amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[0]))/dx[0],
-                                                                  std::sin(kwave[0])/dx[0]),
-                               amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[1]))/dx[1],
-                                                                  std::sin(kwave[1])/dx[1]),
-                               amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[2]))/dx[2],
-                                                                  std::sin(kwave[2])/dx[2]))};
+            Complex rhsdotdp = AMREX_D_TERM(rx(i,j,k)*delkp[0],
+                                           +ry(i,j,k)*delkp[1],
+                                           +rz(i,j,k)*delkp[2]);
 
-                   Complex rhsdotdp =
-                         AMREX_D_TERM(rx(i,j,k)*delkp[0],
-                                     +ry(i,j,k)*delkp[1],
-                                     +rz(i,j,k)*delkp[2]);
-
-                   if(std::abs(delsqk) > Real(1.e-10)){
-                       parr(i,j,k)= rhsdotdp / delsqk;
-                   } else {
-                       parr(i,j,k)= Real(0.);
-                   }
-
-                   Real diffop = alpha - eta*delsqk;
-                   if(diffop > Real(1.e-10)) {
-                        u(i,j,k) = (rx(i,j,k) - parr(i,j,k)*delkm[0])/diffop;
-                        v(i,j,k) = (ry(i,j,k) - parr(i,j,k)*delkm[1])/diffop;
-#if (BL_SPACEDIM ==3)
-                        w(i,j,k) = (rz(i,j,k) - parr(i,j,k)*delkm[2])/diffop;
-#endif
-                   } else {
-                        u(i,j,k) = Real(0.);
-                        v(i,j,k) = Real(0.);
-#if (BL_SPACEDIM ==3)
-                        w(i,j,k) = Real(0.);
-#endif
-                   }
-
-                 });
+            if (std::abs(delsqk) > Real(1.e-10)) {
+                parr(i,j,k)= rhsdotdp / delsqk;
+            } else {
+                parr(i,j,k)= Real(0.);
             }
 
-
-                r2c.backward(phat, p);
-                r2c.backward(uhat, U);
-                r2c.backward(vhat, V);
+            Real diffop = alpha - eta*delsqk;
+            if (diffop > Real(1.e-10)) {
+                u(i,j,k) = (rx(i,j,k) - parr(i,j,k)*delkm[0])/diffop;
+                v(i,j,k) = (ry(i,j,k) - parr(i,j,k)*delkm[1])/diffop;
 #if (BL_SPACEDIM ==3)
-                r2c.backward(what, W);
+                w(i,j,k) = (rz(i,j,k) - parr(i,j,k)*delkm[2])/diffop;
 #endif
+            } else {
+                u(i,j,k) = Real(0.);
+                v(i,j,k) = Real(0.);
+#if (BL_SPACEDIM ==3)
+                w(i,j,k) = Real(0.);
+#endif
+            }
 
+        });
+    }
+
+    r2c.backward(phat, p);
+    r2c.backward(uhat, U);
+    r2c.backward(vhat, V);
+#if (BL_SPACEDIM ==3)
+    r2c.backward(what, W);
+#endif
 }
 
 } // namespace amrex::FFT
