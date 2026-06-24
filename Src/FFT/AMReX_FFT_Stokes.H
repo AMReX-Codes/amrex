@@ -1,7 +1,7 @@
 #ifndef AMREX_FFT_STOKES_H_
 #define AMREX_FFT_STOKES_H_
 
-#include <AMReX_FFT.H> // Put this at the top for test
+#include <AMReX_FFT.H>
 #include <AMReX_Geometry.H>
 
 namespace amrex::FFT
@@ -72,14 +72,25 @@ public:
     }
 
     /**
-     * \brief Solve del dot grad soln = rhs.
+     * \brief Solve the generalized Stokes problem in spectral space.
      *
-     * If \p soln has ghost cells, one layer of ghost cells will be filled
-     * except for the corners of the physical domain where they are not used
-     * in the cross stencil of the operator. The two MFs could be the same MF.
+     * Solves \f$(\alpha - \eta \nabla^2) \mathbf{u} + \nabla p = \mathbf{f}\f$
+     * with the divergence-free constraint enforced in Fourier space.
      *
-     * \param a_soln Solution MultiFab (updated in place).
-     * \param a_rhs  Right-hand side MultiFab.
+     * This solver uses a MAC staggered grid. \p U and \p rhsx must be
+     * at x-face centers, \p V and \p rhsy at y-face centers,
+     * \p W and \p rhsz at z-face centers, and \p p cell-centered.
+     *
+     * \param U     x-component of velocity (output, at x-face centers).
+     * \param V     y-component of velocity (output, at y-face centers).
+     * \param W     z-component of velocity (output, at z-face centers, 3D only).
+     * \param p     Pressure (output, cell-centered).
+     * \param rhsx  x-component of the right-hand side (at x-face centers).
+     * \param rhsy  y-component of the right-hand side (at y-face centers).
+     * \param rhsz  z-component of the right-hand side (at z-face centers, 3D only).
+     * \param geom  Geometry describing the domain.
+     * \param alpha Scalar coefficient in the Helmholtz operator.
+     * \param eta   Scalar coefficient in the Helmholtz operator.
      */
     void solve (AMREX_D_DECL(MultiFab& U, MultiFab& V, MultiFab& W), MultiFab& p,
                 AMREX_D_DECL(MultiFab const& rhsx, MultiFab const& rhsy, MultiFab const& rhsz),
@@ -167,7 +178,7 @@ void Stokes::solve (MultiFab& U,
                          {AMREX_D_DECL(2.*ik*Math::pi<Real>()/m_geom.Domain().length(0),
                                        2.*jk*Math::pi<Real>()/m_geom.Domain().length(1),
                                        2.*kk*Math::pi<Real>()/m_geom.Domain().length(2))};
-                
+
                    Real delsqk =
                          AMREX_D_TERM(2.*(std::cos(kwave[0])-1.)/(dx[0]*dx[0]),
                                      +(2.*(std::cos(kwave[1])-1.)/(dx[1]*dx[1])),
@@ -190,7 +201,7 @@ void Stokes::solve (MultiFab& U,
                                                                   std::sin(kwave[1])/dx[1]),
                                amrex::GpuComplex<amrex::Real>((1.-std::cos(kwave[2]))/dx[2],
                                                                   std::sin(kwave[2])/dx[2]))};
-                
+
                    Complex rhsdotdp =
                          AMREX_D_TERM(rx(i,j,k)*delkp[0],
                                      +ry(i,j,k)*delkp[1],
@@ -216,7 +227,7 @@ void Stokes::solve (MultiFab& U,
                         w(i,j,k) = 0.;
 #endif
                    }
-                                       
+
                  });
             }
 
