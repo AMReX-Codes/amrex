@@ -148,17 +148,17 @@ public:
     }
 
     void set_preconditioner (
-        std::function<int(T&, T&, const amrex::Real, bool, bool&, const amrex::Real)> Psetup,
-        std::function<int(T&, T&, T&, T&, const amrex::Real, const amrex::Real,
-                          const amrex::Real, int)> Psolve)
+        std::function<void(T&, T&, const amrex::Real, bool, bool&, const amrex::Real)> Psetup,
+        std::function<void(T&, T&, T&, T&, const amrex::Real, const amrex::Real,
+                           const amrex::Real, int)> Psolve)
     {
         integrator_ptr->set_preconditioner(std::move(Psetup), std::move(Psolve));
     }
 
     void set_fast_preconditioner (
-        std::function<int(T&, T&, const amrex::Real, bool, bool&, const amrex::Real)> Psetup,
-        std::function<int(T&, T&, T&, T&, const amrex::Real, const amrex::Real,
-                          const amrex::Real, int)> Psolve)
+        std::function<void(T&, T&, const amrex::Real, bool, bool&, const amrex::Real)> Psetup,
+        std::function<void(T&, T&, T&, T&, const amrex::Real, const amrex::Real,
+                           const amrex::Real, int)> Psolve)
     {
         integrator_ptr->set_fast_preconditioner(std::move(Psetup), std::move(Psolve));
     }
