@@ -161,8 +161,8 @@ int main (int argc, char* argv[])
         w_mf.FillBoundary(geom.periodicity());
 #endif
 
-        amrex::Real alpha = Real(.01);
-        amrex::Real eta = Real(.01);
+        auto alpha = Real(.01);
+        auto eta = Real(.01);
 
         {
             auto const& pres_arr = pres.const_arrays();
