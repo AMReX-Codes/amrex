@@ -178,7 +178,7 @@ public:
      * appropriate.
      *
      * \param pt Existing allocation to be reused when possible.
-     * \param szmin Minimum size guaranteed to fit within \p pt.
+     * \param szmin Minimum acceptable size for reusing \p pt in place.
      * \param szmax Requested size for the returned allocation.
      * \return Pointer/size pair describing the resulting allocation.
      */

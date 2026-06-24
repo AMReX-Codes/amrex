@@ -195,12 +195,14 @@ namespace amrex
     /**
      * \brief Minimal initialization for utilities that need only part of AMReX.
      *
-     * Skips signal handlers, RNG initialization, async I/O, arena pre-allocation,
-     * and the default multi-GPU device-mapping policy.  FFT and other components
-     * still initialize normally.  \c Init_minimal calls \c Initialize(); MPI is
-     * started via \c StartParallel if it is not already up.  On multi-GPU systems
-     * the caller may need to select devices before calling if the default minimal
-     * policy is insufficient.
+     * Skips signal handlers, RNG initialization, async I/O, and the default
+     * multi-GPU device-mapping policy. Arena setup still runs; minimal mode
+     * disables the pinned-arena warm-up and avoids the large default GPU arena
+     * warm-up. FFT and other components still initialize normally.
+     * \c Init_minimal calls \c Initialize(); MPI is started via
+     * \c StartParallel if it is not already up.  On multi-GPU systems the caller
+     * may need to select devices before calling if the default minimal policy is
+     * insufficient.
      *
      * \param mpi_comm Communicator.
      */
@@ -382,7 +384,7 @@ namespace amrex
      * \param EX   Stringized expression that failed.
      * \param file Source file containing the assertion.
      * \param line Line number where the assertion triggered.
-     * \param msg  Optional text providing additional context.
+     * \param msg  Non-null text providing additional context.
      */
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Assert (const char* EX, const char* file, int line, const char* msg) {
@@ -405,10 +407,10 @@ namespace amrex
     }
 
     /**
-     * \brief Write directly to stderr without allocating heap buffers.
+     * \brief Write directly to stderr after flushing standard I/O buffers.
      *
      * Used internally by amrex::Error(), amrex::Abort(), and amrex::Assert()
-     * so low-memory situations cannot trigger another allocation failure.
+     * to emit the final abort message through C stdio.
      *
      * \param str Null-terminated string describing the failure (may be nullptr).
      */

@@ -151,7 +151,8 @@ namespace amrex
      * \brief Find a root of a scalar function on a bracketing interval
      * using bisection.
      *
-     * It's a runtime error if the root finding fails.
+     * Invalid bracketing and iteration failures are checked with AMReX
+     * assertions when assertions are enabled.
      *
      * \tparam T floating-point type
      * \tparam F callable type of the scalar function
@@ -159,7 +160,7 @@ namespace amrex
      * \param hi upper bound
      * \param f scalar function
      * \param tol absolute tolerance. Iteration stops when `hi-lo < tol` or when
-     *            `almostEqual(lo,hi) returns true.
+     *            `almostEqual(lo,hi)` returns true.
      * \param max_iter maximum number of bisection iterations allowed.
      * \return an approximate root found using bisection.
      */
@@ -427,6 +428,7 @@ int builtin_clz_wrapper (clzll_tag, T x) noexcept
 
 /// \ingroup amrex_utilities
 //! Return the number of leading zeros present in the unsigned integer \p x.
+//! \pre \p x must be nonzero.
 template <class T>
 requires (std::same_as<std::remove_cvref_t<T>,std::uint8_t>  ||
           std::same_as<std::remove_cvref_t<T>,std::uint16_t> ||
