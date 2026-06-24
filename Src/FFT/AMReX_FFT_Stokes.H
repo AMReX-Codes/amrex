@@ -86,8 +86,8 @@ public:
      * \param rhsx  x-component of the right-hand side (at x-face centers).
      * \param rhsy  y-component of the right-hand side (at y-face centers).
      * \param rhsz  z-component of the right-hand side (at z-face centers, 3D only).
-     * \param alpha Scalar coefficient in the Helmholtz operator.
-     * \param eta   Scalar coefficient in the Helmholtz operator.
+     * \param alpha Coefficient multiplying the velocity.
+     * \param eta   Coefficient multiplying the velocity Laplacian.
      */
     void solve (AMREX_D_DECL(MF& U, MF& V, MF& W), MF& p,
                 AMREX_D_DECL(MF const& rhsx, MF const& rhsy, MF const& rhsz),
