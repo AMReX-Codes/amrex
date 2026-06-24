@@ -296,7 +296,7 @@ namespace amrex
 
     /**
      * \brief Print a warning message to the diagnostic stream (host only).
-     * \param msg Text appended with `!` before a trailing newline (may be nullptr).
+     * \param msg Message (may be nullptr).
      */
     void Warning_host (const char * msg);
 
@@ -492,15 +492,12 @@ namespace amrex
      * \brief Runtime context stored for each active amrex::Initialize() call.
      *
      * Instances live on an internal stack so nested initialization sequences
-     * (multi-component executables) can cooperate. Each instance owns a
-     * default Geometry object shared with legacy utilities.
+     * can cooperate.
      */
     class AMReX
     {
     public:
-        //! Construct a runtime context with its own Geometry placeholder.
         AMReX ();
-        //! Destroy the owned Geometry.
         ~AMReX ();
         AMReX (AMReX const&) = delete;
         AMReX (AMReX &&) = delete;
