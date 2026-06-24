@@ -250,23 +250,14 @@ Below is an example of using the solver.
     MultiFab pres(...);        // cell-centered
     MultiFab u(...);           // at x-face centers
     MultiFab v(...);           // at y-face centers
+    MultiFab w(...);           // at z-face centers
     MultiFab rhsx(...);        // at x-face centers
     MultiFab rhsy(...);        // at y-face centers
-    MultiFab pres_return(...); // cell-centered
-    MultiFab u_out(...);       // at x-face centers
-    MultiFab v_out(...);       // at y-face centers
-#if (BL_SPACEDIM == 3)
-    MultiFab w(...);           // at z-face centers
     MultiFab rhsz(...);        // at z-face centers
-    MultiFab w_out(...);       // at z-face centers
-#endif
 
-    Array<std::pair<FFT::Boundary,FFT::Boundary>,AMREX_SPACEDIM>
-            fft_bc{AMREX_D_DECL(bcs,bcs,bcs)};
-
-    FFT::Stokes stokes(geom, fft_bc);
-    stokes.solve(AMREX_D_DECL(u_out, v_out, w_out), pres_return,
-                 AMREX_D_DECL(rhsx, rhsy, rhsz), alpha, eta);
+    FFT::Stokes stokes(geom);
+    stokes.solve(u, v, w, pres,                 // outputs
+                 rhsx, rhsy, rhsz, alpha, eta); // inputs
 
 Similar to the other FFT classes, the solver should be cached for reuse.
 
