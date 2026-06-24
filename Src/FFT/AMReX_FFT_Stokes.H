@@ -118,10 +118,47 @@ void Stokes<MF>::solve (MF& U,
 {
     using Real = typename MF::value_type;
 
+    MF* Umf = &U;
+    MF* Vmf = &V;
+#if (BL_SPACEDIM == 3)
+    MF* Wmf = &W;
+#endif
+    MF* pmf = &p;
+    MF const* rhsxmf = &rhsx;
+    MF const* rhsymf = &rhsy;
+#if (BL_SPACEDIM == 3)
+    MF const* rhszmf = &rhsz;
+#endif
+    MF Utmp, rhsxtmp;
+    MF Vtmp, rhsytmp;
+#if (BL_SPACEDIM == 3)
+    MF Wtmp, rhsztmp;
+#endif
+    MF ptmp;
+    if (m_domain_lo != 0) {
+        detail::shift_mfs(m_domain_lo, U, rhsx, Utmp, rhsxtmp);
+        detail::shift_mfs(m_domain_lo, V, rhsy, Vtmp, rhsytmp);
+#if (BL_SPACEDIM == 3)
+        detail::shift_mfs(m_domain_lo, W, rhsz, Wtmp, rhsztmp);
+#endif
+        detail::shift_mf(m_domain_lo, p, ptmp);
+        Umf = &Utmp;
+        Vmf = &Vtmp;
+#if (BL_SPACEDIM == 3)
+        Wmf = &Wtmp;
+#endif
+        pmf = &ptmp;
+        rhsxmf = &rhsxtmp;
+        rhsymf = &rhsytmp;
+#if (BL_SPACEDIM == 3)
+        rhszmf = &rhsztmp;
+#endif
+    }
+
     auto const& dxinv = m_geom.InvCellSizeArray();
     auto scaling = Real(1) / Real(m_geom.Domain().d_numPts());
 
-    R2C<Real> r2c(m_geom.Domain());
+    auto& r2c = *m_r2c;
     auto const& [cba, cdm] = r2c.getSpectralDataLayout();
 
     cMF phat(cba, cdm, 1, 0);
@@ -133,16 +170,16 @@ void Stokes<MF>::solve (MF& U,
 #endif
 
     cMF rxhat(cba,cdm,1,0);
-    r2c.forward(rhsx, rxhat);
+    r2c.forward(*rhsxmf, rxhat);
     amrex::Scale(rxhat, scaling, 0, 1, 0);
 
     cMF ryhat(cba,cdm,1,0);
-    r2c.forward(rhsy, ryhat);
+    r2c.forward(*rhsymf, ryhat);
     amrex::Scale(ryhat, scaling, 0, 1, 0);
 
 #if (BL_SPACEDIM ==3)
     cMF rzhat(cba,cdm,1,0);
-    r2c.forward(rhsz, rzhat);
+    r2c.forward(*rhszmf, rzhat);
     amrex::Scale(rzhat, scaling, 0, 1, 0);
 #endif
 
@@ -226,11 +263,11 @@ void Stokes<MF>::solve (MF& U,
         });
     }
 
-    r2c.backward(phat, p);
-    r2c.backward(uhat, U);
-    r2c.backward(vhat, V);
+    r2c.backward(phat, *pmf);
+    r2c.backward(uhat, *Umf);
+    r2c.backward(vhat, *Vmf);
 #if (BL_SPACEDIM ==3)
-    r2c.backward(what, W);
+    r2c.backward(what, *Wmf);
 #endif
 }
 

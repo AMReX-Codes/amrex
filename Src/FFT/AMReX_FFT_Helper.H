@@ -199,6 +199,30 @@ inline Geometry shift_geom (Geometry const& geom)
     }
 }
 
+template <typename MF>
+void shift_mf (IntVect const& domain_lo, MF const& mf, MF& new_mf)
+{
+    BoxArray ba = mf.boxArray();
+    ba.shift(-domain_lo);
+    new_mf.define(ba, mf.DistributionMap(), mf.nComp(), mf.nGrowVect(),
+                  MFInfo().SetAlloc(false));
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        typename MF::fab_type fab(mf[mfi], amrex::make_alias, 0, mf.nComp());
+        fab.shift(-domain_lo);
+        new_mf.setFab(mfi, std::move(fab));
+    }
+}
+
+template <typename MF>
+void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
+                MF& new_mf1, MF& new_mf2)
+{
+    AMREX_ALWAYS_ASSERT(mf1.boxArray() == mf2.boxArray() &&
+                        mf1.DistributionMap() == mf2.DistributionMap());
+    detail::shift_mf(domain_lo, mf1, new_mf1);
+    detail::shift_mf(domain_lo, mf2, new_mf2);
+}
+
 inline void next_fast_len_doit (Long target, Long n, int const* factors,
                                 int nfactors, int ifactor, Long& best)
 {
