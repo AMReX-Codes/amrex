@@ -266,7 +266,7 @@ Below is an example of using the solver.
 
     FFT::Stokes stokes(geom, fft_bc);
     stokes.solve(AMREX_D_DECL(u_out, v_out, w_out), pres_return,
-                 AMREX_D_DECL(rhsx, rhsy, rhsz), geom, alpha, eta);
+                 AMREX_D_DECL(rhsx, rhsy, rhsz), alpha, eta);
 
 Similar to the other FFT classes, the solver should be cached for reuse.
 

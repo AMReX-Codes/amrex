@@ -7,11 +7,18 @@
 namespace amrex::FFT
 {
 
+/**
+ * \ingroup amrex_fft
+ * \brief Stokes solver for periodic domains using FFT.
+ */
+template <typename MF = MultiFab>
 class Stokes
 {
 public:
 
     static_assert(AMREX_SPACEDIM >= 2, "FFT::Stokes requires 2D or 3D");
+
+    using cMF = FabArray<BaseFab<GpuComplex<typename MF::value_type>>>;
 
     /**
      * \brief Construct a Stokes solver with explicit boundary types.
@@ -23,6 +30,7 @@ public:
      */
     Stokes (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+        requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc(bc)
@@ -34,7 +42,7 @@ public:
                 && (bc[idim].second == Boundary::periodic);
         }
         if (all_periodic) {
-            m_r2c = std::make_unique<R2C<Real>>(m_geom.Domain());
+            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
         } else {
             amrex::Abort("FFT::Stokes: only supports periodic BC");
         }
@@ -46,6 +54,7 @@ public:
      * \param geom Periodic geometry (all directions must be periodic).
      */
     explicit Stokes (Geometry const& geom)
+        requires (IsFabArray_v<MF>)
         : m_domain_lo(geom.Domain().smallEnd()),
           m_geom(detail::shift_geom(geom)),
           m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
@@ -53,7 +62,7 @@ public:
                             std::make_pair(Boundary::periodic,Boundary::periodic))}
     {
         if (m_geom.isAllPeriodic()) {
-            m_r2c = std::make_unique<R2C<Real>>(m_geom.Domain());
+            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
         } else {
             amrex::Abort("FFT::Stokes: only supports periodic BC");
         }
@@ -77,37 +86,37 @@ public:
      * \param rhsx  x-component of the right-hand side (at x-face centers).
      * \param rhsy  y-component of the right-hand side (at y-face centers).
      * \param rhsz  z-component of the right-hand side (at z-face centers, 3D only).
-     * \param geom  Geometry describing the domain.
      * \param alpha Scalar coefficient in the Helmholtz operator.
      * \param eta   Scalar coefficient in the Helmholtz operator.
      */
-    void solve (AMREX_D_DECL(MultiFab& U, MultiFab& V, MultiFab& W), MultiFab& p,
-                AMREX_D_DECL(MultiFab const& rhsx, MultiFab const& rhsy, MultiFab const& rhsz),
-                Geometry const& geom, Real alpha, Real eta);
+    void solve (AMREX_D_DECL(MF& U, MF& V, MF& W), MF& p,
+                AMREX_D_DECL(MF const& rhsx, MF const& rhsy, MF const& rhsz),
+                typename MF::value_type alpha, typename MF::value_type eta);
 
 private:
     IntVect m_domain_lo;
     Geometry m_geom;
     Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> m_bc;
-    std::unique_ptr<R2C<Real>> m_r2c;
+    std::unique_ptr<R2C<typename MF::value_type>> m_r2c;
 };
 
 
-void Stokes::solve (MultiFab& U,
-                    MultiFab& V,
+template <typename MF>
+void Stokes<MF>::solve (MF& U,
+                        MF& V,
 #if (BL_SPACEDIM == 3)
-                    MultiFab& W,
+                        MF& W,
 #endif
-                    MultiFab& p,
-                    MultiFab const& rhsx,
-                    MultiFab const& rhsy,
+                        MF& p,
+                        MF const& rhsx,
+                        MF const& rhsy,
 #if (BL_SPACEDIM == 3)
-                    MultiFab const& rhsz,
+                        MF const& rhsz,
 #endif
-                    Geometry const& geom,
-                    Real alpha, Real eta)
+                        typename MF::value_type alpha,
+                        typename MF::value_type eta)
 {
-            amrex::ignore_unused(geom);
+    using Real = typename MF::value_type;
 
             auto const& dx = m_geom.CellSizeArray();
             auto scaling = Real(1) / Real(m_geom.Domain().d_numPts());
@@ -115,24 +124,24 @@ void Stokes::solve (MultiFab& U,
             R2C<Real> r2c(m_geom.Domain());
             auto const& [cba, cdm] = r2c.getSpectralDataLayout();
 
-            cMultiFab phat(cba, cdm, 1, 0);
+            cMF phat(cba, cdm, 1, 0);
 
-            cMultiFab uhat(cba,cdm,1,0);
-            cMultiFab vhat(cba,cdm,1,0);
+            cMF uhat(cba,cdm,1,0);
+            cMF vhat(cba,cdm,1,0);
 #if (BL_SPACEDIM ==3)
-            cMultiFab what(cba,cdm,1,0);
+            cMF what(cba,cdm,1,0);
 #endif
 
-            cMultiFab rxhat(cba,cdm,1,0);
+            cMF rxhat(cba,cdm,1,0);
             r2c.forward(rhsx, rxhat);
             amrex::Scale(rxhat, scaling, 0, 1, 0);
 
-            cMultiFab ryhat(cba,cdm,1,0);
+            cMF ryhat(cba,cdm,1,0);
             r2c.forward(rhsy, ryhat);
             amrex::Scale(ryhat, scaling, 0, 1, 0);
 
 #if (BL_SPACEDIM ==3)
-            cMultiFab rzhat(cba,cdm,1,0);
+            cMF rzhat(cba,cdm,1,0);
             r2c.forward(rhsz, rzhat);
             amrex::Scale(rzhat, scaling, 0, 1, 0);
 #endif

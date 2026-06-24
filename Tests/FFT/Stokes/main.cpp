@@ -207,7 +207,7 @@ int main (int argc, char* argv[])
         {
             FFT::Stokes stokes(geom, fft_bc);
             stokes.solve(AMREX_D_DECL(u_mf2, v_mf2, w_mf2), pres_return,
-                         AMREX_D_DECL(rhsx, rhsy, rhsz), geom, alpha, eta);
+                         AMREX_D_DECL(rhsx, rhsy, rhsz), alpha, eta);
 
             MultiFab u_err(u_mf.boxArray(), dm, 1, 0);
             MultiFab v_err(v_mf.boxArray(), dm, 1, 0);
