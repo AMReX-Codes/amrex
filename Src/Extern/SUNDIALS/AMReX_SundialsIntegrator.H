@@ -796,20 +796,11 @@ public:
             T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
-            bool jcur = (jcurPtr != nullptr) && (*jcurPtr != SUNFALSE);
-            if (!BaseT::PrecondSetup) {
-                if (jcurPtr != nullptr) {
-                    *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
-                }
-                return 0;
-            }
-
-            int ierr = BaseT::PrecondSetup(S_data, S_rhs, rhs_time,
-                                           jok != SUNFALSE, jcur, gamma);
-            if (jcurPtr != nullptr) {
-                *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
-            }
-            return ierr;
+            bool jcur = false;
+            BaseT::PrecondSetup(S_data, S_rhs, rhs_time, jok, jcur, gamma);
+            *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
+            
+            return 0;
         };
 
         udata.psolve = [&](amrex::Real rhs_time, N_Vector y_data, N_Vector y_rhs,
@@ -845,19 +836,10 @@ public:
             T S_rhs;
             unpack_vector(y_rhs, S_rhs);
 
-            bool jcur = (jcurPtr != nullptr) && (*jcurPtr != SUNFALSE);
-            if (!BaseT::FastPrecondSetup) {
-                if (jcurPtr != nullptr) {
-                    *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
-                }
-                return 0;
-            }
-
-            int ierr = BaseT::FastPrecondSetup(S_data, S_rhs, rhs_time,
-                                               jok != SUNFALSE, jcur, gamma);
-            if (jcurPtr != nullptr) {
-                *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
-            }
+            bool jcur = false;
+            BaseT::FastPrecondSetup(S_data, S_rhs, rhs_time, jcur, gamma);
+            *jcurPtr = jcur ? SUNTRUE : SUNFALSE;
+            
             return ierr;
         };
 

@@ -179,17 +179,17 @@ private:
     pp.query("fast_abs_tol", fast_abs_tol);
   }
 protected:
-    using PrecondSetupFunction = std::function<int(T& state, T& rhs,
-                                                   const amrex::Real time,
-                                                   bool jok, bool& jcur,
-                                                   const amrex::Real gamma)>;
+    using PrecondSetupFunction = std::function<void(T& state, T& rhs,
+                                                    const amrex::Real time,
+                                                    bool jok, bool& jcur,
+                                                    const amrex::Real gamma)>;
 
-    using PrecondSolveFunction = std::function<int(T& soln, T& rhs,
-                                                   T& state, T& state_rhs,
-                                                   const amrex::Real time,
-                                                   const amrex::Real gamma,
-                                                   const amrex::Real delta,
-                                                   int lr)>;
+    using PrecondSolveFunction = std::function<void(T& soln, T& rhs,
+                                                    T& state, T& state_rhs,
+                                                    const amrex::Real time,
+                                                    const amrex::Real gamma,
+                                                    const amrex::Real delta,
+                                                    int lr)>;
 
     /**
      * \brief Rhs is the right-hand-side function the integrator will use.
