@@ -1,4 +1,3 @@
-#include <AMReX_FFT.H> // Put this at the top for testing
 #include <AMReX_FFT_Stokes.H>
 
 #include <AMReX.H>
@@ -69,7 +68,11 @@ int main (int argc, char* argv[])
             AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] - 0.5_rt;,
                          Real y = (j+0.5_rt) * dx[1] - 0.5_rt;,
                          Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
-            p[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x)+std::cos(Real(2.)*Math::pi<Real>()*y)+std::sin(Real(2.)*Math::pi<Real>()*z);
+            p[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x)
+                         + std::cos(Real(2.)*Math::pi<Real>()*y);
+#if (BL_SPACEDIM == 3)
+            p[b](i,j,k) += std::sin(Real(2.)*Math::pi<Real>()*z);
+#endif
         });
 
         pres.FillBoundary(geom.periodicity());
@@ -103,17 +106,21 @@ int main (int argc, char* argv[])
         auto const& face_u = u_mf.arrays();
         ParallelFor(u_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-                    AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
-                                 int jj = (j == n_cell_y) ? 0 : j;,
-                                 int kk = (k == n_cell_z) ? 0 : k);
-                    AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
-                                 Real y = Real(jj) * dx[1] - 0.5_rt;,
-                                 Real z = Real(kk) * dx[2] - 0.5_rt);
-                    face_u[b](i,j,k) = std::exp(-10._rt*
+            AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
+                         int jj = (j == n_cell_y) ? 0 : j;,
+                         int kk = (k == n_cell_z) ? 0 : k);
+            AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
+                         Real y = Real(jj) * dx[1] - 0.5_rt;,
+                         Real z = Real(kk) * dx[2] - 0.5_rt);
+            face_u[b](i,j,k) = std::exp(-10._rt*
                         (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
-                    z = Real(kk) * dx[2];
-                    x = Real(ii) * dx[0];
+#if (BL_SPACEDIM == 3)
+            z = Real(kk) * dx[2];
             face_u[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*z);
+#else
+            y = Real(jj) * dx[1];
+            face_u[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*y);
+#endif
         });
 
         u_mf.FillBoundary(geom.periodicity());
@@ -121,15 +128,15 @@ int main (int argc, char* argv[])
         auto const& face_v = v_mf.arrays();
         ParallelFor(v_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-                    AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
-                                 int jj = (j == n_cell_y) ? 0 : j;,
-                                 int kk = (k == n_cell_z) ? 0 : k);
-                    AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
-                                 Real y = Real(jj) * dx[1] - 0.5_rt;,
-                                 Real z = Real(kk) * dx[2] - 0.5_rt);
-                    face_v[b](i,j,k) = std::exp(-10._rt*
+            AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
+                         int jj = (j == n_cell_y) ? 0 : j;,
+                         int kk = (k == n_cell_z) ? 0 : k);
+            AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
+                         Real y = Real(jj) * dx[1] - 0.5_rt;,
+                         Real z = Real(kk) * dx[2] - 0.5_rt);
+            face_v[b](i,j,k) = std::exp(-10._rt*
                         (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
-                    face_v[b](i,j,k) = 0.;
+            face_v[b](i,j,k) = 0.;
             face_v[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x);
         });
 
@@ -139,15 +146,15 @@ int main (int argc, char* argv[])
         auto const& face_w = w_mf.arrays();
         ParallelFor(w_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-                    AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
-                                 int jj = (j == n_cell_y) ? 0 : j;,
-                                 int kk = (k == n_cell_z) ? 0 : k);
-                    AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
-                                 Real y = Real(jj) * dx[1] - 0.5_rt;,
-                                 Real z = Real(kk) * dx[2] - 0.5_rt);
-                    face_w[b](i,j,k) = std::exp(-10._rt*
+            AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
+                         int jj = (j == n_cell_y) ? 0 : j;,
+                         int kk = (k == n_cell_z) ? 0 : k);
+            AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
+                         Real y = Real(jj) * dx[1] - 0.5_rt;,
+                         Real z = Real(kk) * dx[2] - 0.5_rt);
+            face_w[b](i,j,k) = std::exp(-10._rt*
                         (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
-                    face_w[b](i,j,k) = 0.;
+            face_w[b](i,j,k) = 0.;
             face_w[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x) +  std::sin(2+Real(2.)*Math::pi<Real>()*y)  ;
         });
 
