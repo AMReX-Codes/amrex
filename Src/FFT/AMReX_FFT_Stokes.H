@@ -164,31 +164,31 @@ void Stokes::solve (MultiFab& U,
                                 int kk = (k <= nz/2) ? k : k - nz);
 
                    GpuArray<Real,AMREX_SPACEDIM> kwave
-                         {AMREX_D_DECL(2.*ik*Math::pi<Real>()/m_geom.Domain().length(0),
-                                       2.*jk*Math::pi<Real>()/m_geom.Domain().length(1),
-                                       2.*kk*Math::pi<Real>()/m_geom.Domain().length(2))};
+                         {AMREX_D_DECL(Real(2)*ik*Math::pi<Real>()/Real(m_geom.Domain().length(0)),
+                                       Real(2)*jk*Math::pi<Real>()/Real(m_geom.Domain().length(1)),
+                                       Real(2)*kk*Math::pi<Real>()/Real(m_geom.Domain().length(2)))};
 
                    Real delsqk =
-                         AMREX_D_TERM(2.*(std::cos(kwave[0])-1.)/(dx[0]*dx[0]),
-                                     +(2.*(std::cos(kwave[1])-1.)/(dx[1]*dx[1])),
-                                     +(2.*(std::cos(kwave[2])-1.)/(dx[2]*dx[2])));
+                         AMREX_D_TERM(Real(2)*(std::cos(kwave[0])-Real(1))/(dx[0]*dx[0]),
+                                     +(Real(2)*(std::cos(kwave[1])-Real(1))/(dx[1]*dx[1])),
+                                     +(Real(2)*(std::cos(kwave[2])-Real(1))/(dx[2]*dx[2])));
 
                    amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkp
                          {AMREX_D_DECL(
-                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[0])-1.)/dx[0],
+                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[0])-Real(1))/dx[0],
                                                                std::sin(kwave[0])/dx[0]),
-                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[1])-1.)/dx[1],
+                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[1])-Real(1))/dx[1],
                                                                std::sin(kwave[1])/dx[1]),
-                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[2])-1.)/dx[2],
+                               amrex::GpuComplex<amrex::Real>((std::cos(kwave[2])-Real(1))/dx[2],
                                                                std::sin(kwave[2])/dx[2]))};
 
                    amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkm
                          {AMREX_D_DECL(
-                               amrex::GpuComplex<amrex::Real>((1.-std::cos(kwave[0]))/dx[0],
+                               amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[0]))/dx[0],
                                                                   std::sin(kwave[0])/dx[0]),
-                               amrex::GpuComplex<amrex::Real>((1.-std::cos(kwave[1]))/dx[1],
+                               amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[1]))/dx[1],
                                                                   std::sin(kwave[1])/dx[1]),
-                               amrex::GpuComplex<amrex::Real>((1.-std::cos(kwave[2]))/dx[2],
+                               amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[2]))/dx[2],
                                                                   std::sin(kwave[2])/dx[2]))};
 
                    Complex rhsdotdp =
@@ -196,24 +196,24 @@ void Stokes::solve (MultiFab& U,
                                      +ry(i,j,k)*delkp[1],
                                      +rz(i,j,k)*delkp[2]);
 
-                   if(std::abs(delsqk) > 1.e-10){
+                   if(std::abs(delsqk) > Real(1.e-10)){
                        p(i,j,k) = rhsdotdp / delsqk;
                    } else {
-                       p(i,j,k) = 0.;
+                       p(i,j,k) = Real(0.);
                    }
 
                    Real diffop = alpha - eta*delsqk;
-                   if(diffop > 1.e-10) {
+                   if(diffop > Real(1.e-10)) {
                         u(i,j,k) = (rx(i,j,k) - p(i,j,k)*delkm[0])/diffop;
                         v(i,j,k) = (ry(i,j,k) - p(i,j,k)*delkm[1])/diffop;
 #if (BL_SPACEDIM ==3)
                         w(i,j,k) = (rz(i,j,k) - p(i,j,k)*delkm[2])/diffop;
 #endif
                    } else {
-                        u(i,j,k) = 0.;
-                        v(i,j,k) = 0.;
+                        u(i,j,k) = Real(0.);
+                        v(i,j,k) = Real(0.);
 #if (BL_SPACEDIM ==3)
-                        w(i,j,k) = 0.;
+                        w(i,j,k) = Real(0.);
 #endif
                    }
 
