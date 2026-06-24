@@ -19,18 +19,6 @@ template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
                   Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc);
 
-inline Geometry shift_geom (Geometry const& geom)
-{
-    auto const& dom = geom.Domain();
-    auto const& dlo = dom.smallEnd();
-    if (dlo == 0) {
-        return geom;
-    } else {
-        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
-                        geom.isPeriodic());
-    }
-}
-
 template <typename MF>
 void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
                 MF& new_mf1, MF& new_mf2)

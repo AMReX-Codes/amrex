@@ -7,28 +7,16 @@
 namespace amrex::FFT
 {
 
-/// \cond DOXYGEN_IGNORE
-namespace detail {
-inline Geometry shift_geom (Geometry const& geom)
-{
-    auto const& dom = geom.Domain();
-    auto const& dlo = dom.smallEnd();
-    if (dlo == 0) {
-        return geom;
-    } else {
-        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
-                        geom.isPeriodic());
-    }
-}
-}
-/// \endcond
-
 class Stokes
 {
 public:
 
+    static_assert(AMREX_SPACEDIM >= 2, "FFT::Stokes requires 2D or 3D");
+
     /**
-     * \brief Construct a Poisson solver with explicit boundary types.
+     * \brief Construct a Stokes solver with explicit boundary types.
+     *
+     * Only periodic BCs are supported.
      *
      * \param geom Geometry describing the domain and metric information.
      * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
@@ -53,7 +41,7 @@ public:
     }
 
     /**
-     * \brief Construct a purely periodic Poisson solver.
+     * \brief Construct a purely periodic Stokes solver.
      *
      * \param geom Periodic geometry (all directions must be periodic).
      */
@@ -76,6 +64,7 @@ public:
      *
      * Solves \f$(\alpha - \eta \nabla^2) \mathbf{u} + \nabla p = \mathbf{f}\f$
      * with the divergence-free constraint enforced in Fourier space.
+     * This solver is for 2D and 3D only.
      *
      * This solver uses a MAC staggered grid. \p U and \p rhsx must be
      * at x-face centers, \p V and \p rhsy at y-face centers,

@@ -10,6 +10,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuComplex.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_Math.H>
 #include <AMReX_Periodicity.H>
 
@@ -186,6 +187,18 @@ struct Info
 /// \cond DOXYGEN_IGNORE
 namespace detail
 {
+inline Geometry shift_geom (Geometry const& geom)
+{
+    auto const& dom = geom.Domain();
+    auto const& dlo = dom.smallEnd();
+    if (dlo == 0) {
+        return geom;
+    } else {
+        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
+                        geom.isPeriodic());
+    }
+}
+
 inline void next_fast_len_doit (Long target, Long n, int const* factors,
                                 int nfactors, int ifactor, Long& best)
 {
