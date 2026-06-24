@@ -106,21 +106,14 @@ int main (int argc, char* argv[])
         auto const& face_u = u_mf.arrays();
         ParallelFor(u_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
-                         int jj = (j == n_cell_y) ? 0 : j;,
-                         int kk = (k == n_cell_z) ? 0 : k);
-            AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
-                         Real y = Real(jj) * dx[1] - 0.5_rt;,
-                         Real z = Real(kk) * dx[2] - 0.5_rt);
-            face_u[b](i,j,k) = std::exp(-10._rt*
-                        (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
 #if (BL_SPACEDIM == 3)
-            z = Real(kk) * dx[2];
-            face_u[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*z);
+            int kk = (k == n_cell_z) ? 0 : k;
+            Real xlast = Real(kk) * dx[2];
 #else
-            y = Real(jj) * dx[1];
-            face_u[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*y);
+            int jj = (j == n_cell_y) ? 0 : j;
+            Real xlast = Real(jj) * dx[1];
 #endif
+            face_u[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*xlast);
         });
 
         u_mf.FillBoundary(geom.periodicity());
@@ -128,15 +121,8 @@ int main (int argc, char* argv[])
         auto const& face_v = v_mf.arrays();
         ParallelFor(v_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
-                         int jj = (j == n_cell_y) ? 0 : j;,
-                         int kk = (k == n_cell_z) ? 0 : k);
-            AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
-                         Real y = Real(jj) * dx[1] - 0.5_rt;,
-                         Real z = Real(kk) * dx[2] - 0.5_rt);
-            face_v[b](i,j,k) = std::exp(-10._rt*
-                        (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
-            face_v[b](i,j,k) = 0.;
+            int ii = (i == n_cell_x) ? 0 : i;
+            Real x = Real(ii) * dx[0] - 0.5_rt;
             face_v[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x);
         });
 
@@ -146,15 +132,10 @@ int main (int argc, char* argv[])
         auto const& face_w = w_mf.arrays();
         ParallelFor(w_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k)
         {
-            AMREX_D_TERM(int ii = (i == n_cell_x) ? 0 : i;,
-                         int jj = (j == n_cell_y) ? 0 : j;,
-                         int kk = (k == n_cell_z) ? 0 : k);
-            AMREX_D_TERM(Real x = Real(ii) * dx[0] - 0.5_rt;,
-                         Real y = Real(jj) * dx[1] - 0.5_rt;,
-                         Real z = Real(kk) * dx[2] - 0.5_rt);
-            face_w[b](i,j,k) = std::exp(-10._rt*
-                        (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
-            face_w[b](i,j,k) = 0.;
+            int ii = (i == n_cell_x) ? 0 : i;
+            int jj = (j == n_cell_y) ? 0 : j;
+            Real x = Real(ii) * dx[0] - 0.5_rt;
+            Real y = Real(jj) * dx[1] - 0.5_rt;
             face_w[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x) +  std::sin(2+Real(2.)*Math::pi<Real>()*y)  ;
         });
 
@@ -218,8 +199,8 @@ int main (int argc, char* argv[])
 
             MultiFab u_err(u_mf.boxArray(), dm, 1, 0);
             MultiFab v_err(v_mf.boxArray(), dm, 1, 0);
-            u_err.ParallelCopy(u_mf);
-            v_err.ParallelCopy(v_mf);
+            u_err.LocalCopy(u_mf, 0, 0, 1, IntVect(0));
+            v_err.LocalCopy(v_mf, 0, 0, 1, IntVect(0));
             MultiFab::Subtract(u_err, u_mf2, 0, 0, 1, 0);
             MultiFab::Subtract(v_err, v_mf2, 0, 0, 1, 0);
 
@@ -237,7 +218,7 @@ int main (int argc, char* argv[])
 
 #if (BL_SPACEDIM == 3)
             MultiFab w_err(w_mf.boxArray(), dm, 1, 0);
-            w_err.ParallelCopy(w_mf);
+            w_err.LocalCopy(w_mf, 0, 0, 1, IntVect(0));
             MultiFab::Subtract(w_err, w_mf2, 0, 0, 1, 0);
             Real w_error = w_err.norminf();
             amrex::Print() << "  W error expected to be close to zero: " << w_error << "\n";
@@ -245,7 +226,7 @@ int main (int argc, char* argv[])
 #endif
 
             MultiFab p_err(ba, dm, 1, 0);
-            p_err.ParallelCopy(pres);
+            p_err.LocalCopy(pres, 0, 0, 1, IntVect(0));
             MultiFab::Subtract(p_err, pres_return, 0, 0, 1, 0);
             Real mean_ref = pres.sum(0, false) / Real(geom.Domain().d_numPts());
             Real mean_sol = pres_return.sum(0, false) / Real(geom.Domain().d_numPts());

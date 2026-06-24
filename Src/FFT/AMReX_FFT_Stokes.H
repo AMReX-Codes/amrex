@@ -118,6 +118,14 @@ void Stokes<MF>::solve (MF& U,
 {
     using Real = typename MF::value_type;
 
+    AMREX_ASSERT(p.ixType() == IndexType::TheCellType() &&
+                 AMREX_D_TERM(U.ixType() == IndexType(IntVect::TheDimensionVector(0)) &&
+                              rhsx.ixType() == U.ixType(),
+                           && V.ixType() == IndexType(IntVect::TheDimensionVector(1)) &&
+                              rhsy.ixType() == V.ixType(),
+                           && W.ixType() == IndexType(IntVect::TheDimensionVector(2)) &&
+                              rhsz.ixType() == W.ixType()));
+
     MF* Umf = &U;
     MF* Vmf = &V;
 #if (BL_SPACEDIM == 3)
