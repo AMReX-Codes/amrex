@@ -69,7 +69,7 @@ int main (int argc, char* argv[])
             AMREX_D_TERM(Real x = (i+0.5_rt) * dx[0] - 0.5_rt;,
                          Real y = (j+0.5_rt) * dx[1] - 0.5_rt;,
                          Real z = (k+0.5_rt) * dx[2] - 0.5_rt);
-            p[b](i,j,k) = std::cos(2.*Math::pi<Real>()*x)+std::cos(2.*Math::pi<Real>()*y)+std::sin(2.*Math::pi<Real>()*z);
+            p[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x)+std::cos(Real(2.)*Math::pi<Real>()*y)+std::sin(Real(2.)*Math::pi<Real>()*z);
         });
 
         pres.FillBoundary(geom.periodicity());
@@ -113,7 +113,7 @@ int main (int argc, char* argv[])
                         (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
                     z = Real(kk) * dx[2];
                     x = Real(ii) * dx[0];
-            face_u[b](i,j,k) = std::cos(2.*Math::pi<Real>()*z);
+            face_u[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*z);
         });
 
         u_mf.FillBoundary(geom.periodicity());
@@ -130,7 +130,7 @@ int main (int argc, char* argv[])
                     face_v[b](i,j,k) = std::exp(-10._rt*
                         (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
                     face_v[b](i,j,k) = 0.;
-            face_v[b](i,j,k) = std::cos(2.*Math::pi<Real>()*x);
+            face_v[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x);
         });
 
         v_mf.FillBoundary(geom.periodicity());
@@ -148,59 +148,59 @@ int main (int argc, char* argv[])
                     face_w[b](i,j,k) = std::exp(-10._rt*
                         (AMREX_D_TERM(x*x*1.05_rt, + y*y*0.90_rt, + z*z)));
                     face_w[b](i,j,k) = 0.;
-            face_w[b](i,j,k) = std::cos(2.*Math::pi<Real>()*x) +  std::sin(2+2.*Math::pi<Real>()*y)  ;
+            face_w[b](i,j,k) = std::cos(Real(2.)*Math::pi<Real>()*x) +  std::sin(2+Real(2.)*Math::pi<Real>()*y)  ;
         });
 
         w_mf.FillBoundary(geom.periodicity());
 #endif
 
-        amrex::Real alpha=.01;
-        amrex::Real eta = .01;
+        amrex::Real alpha = Real(.01);
+        amrex::Real eta = Real(.01);
 
         {
-            auto const& p = pres.const_arrays();
+            auto const& pres_arr = pres.const_arrays();
             auto const& u = u_mf.const_arrays();
             auto const& rx = rhsx.arrays();
 
             ParallelFor(u_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept {
-                Real lap = (u[b](i-1,j,k)-2.*u[b](i,j,k)+u[b](i+1,j,k))/(dx[0]*dx[0])
-                         + (u[b](i,j-1,k)-2.*u[b](i,j,k)+u[b](i,j+1,k))/(dx[1]*dx[1]);
+                Real lap = (u[b](i-1,j,k)-Real(2.)*u[b](i,j,k)+u[b](i+1,j,k))/(dx[0]*dx[0])
+                         + (u[b](i,j-1,k)-Real(2.)*u[b](i,j,k)+u[b](i,j+1,k))/(dx[1]*dx[1]);
 #if (BL_SPACEDIM == 3)
-                lap += (u[b](i,j,k-1)-2.*u[b](i,j,k)+u[b](i,j,k+1))/(dx[2]*dx[2]);
+                lap += (u[b](i,j,k-1)-Real(2.)*u[b](i,j,k)+u[b](i,j,k+1))/(dx[2]*dx[2]);
 #endif
                 rx[b](i,j,k) = alpha*u[b](i,j,k) - eta*lap
-                             + (p[b](i,j,k)-p[b](i-1,j,k))/dx[0];
+                             + (pres_arr[b](i,j,k)-pres_arr[b](i-1,j,k))/dx[0];
             });
         }
 
         {
-            auto const& p = pres.const_arrays();
+            auto const& pres_arr = pres.const_arrays();
             auto const& v = v_mf.const_arrays();
             auto const& ry = rhsy.arrays();
 
             ParallelFor(v_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept {
-                Real lap = (v[b](i-1,j,k)-2.*v[b](i,j,k)+v[b](i+1,j,k))/(dx[0]*dx[0])
-                         + (v[b](i,j-1,k)-2.*v[b](i,j,k)+v[b](i,j+1,k))/(dx[1]*dx[1]);
+                Real lap = (v[b](i-1,j,k)-Real(2.)*v[b](i,j,k)+v[b](i+1,j,k))/(dx[0]*dx[0])
+                         + (v[b](i,j-1,k)-Real(2.)*v[b](i,j,k)+v[b](i,j+1,k))/(dx[1]*dx[1]);
 #if (BL_SPACEDIM == 3)
-                lap += (v[b](i,j,k-1)-2.*v[b](i,j,k)+v[b](i,j,k+1))/(dx[2]*dx[2]);
+                lap += (v[b](i,j,k-1)-Real(2.)*v[b](i,j,k)+v[b](i,j,k+1))/(dx[2]*dx[2]);
 #endif
                 ry[b](i,j,k) = alpha*v[b](i,j,k) - eta*lap
-                             + (p[b](i,j,k)-p[b](i,j-1,k))/dx[1];
+                             + (pres_arr[b](i,j,k)-pres_arr[b](i,j-1,k))/dx[1];
             });
         }
 #if (BL_SPACEDIM == 3)
 
         {
-            auto const& p = pres.const_arrays();
+            auto const& pres_arr = pres.const_arrays();
             auto const& w = w_mf.const_arrays();
             auto const& rz = rhsz.arrays();
 
             ParallelFor(w_mf, [=] AMREX_GPU_DEVICE (int b, int i, int j, int k) noexcept {
-                Real lap = (w[b](i-1,j,k)-2.*w[b](i,j,k)+w[b](i+1,j,k))/(dx[0]*dx[0])
-                         + (w[b](i,j-1,k)-2.*w[b](i,j,k)+w[b](i,j+1,k))/(dx[1]*dx[1])
-                         + (w[b](i,j,k-1)-2.*w[b](i,j,k)+w[b](i,j,k+1))/(dx[2]*dx[2]);
+                Real lap = (w[b](i-1,j,k)-Real(2.)*w[b](i,j,k)+w[b](i+1,j,k))/(dx[0]*dx[0])
+                         + (w[b](i,j-1,k)-Real(2.)*w[b](i,j,k)+w[b](i,j+1,k))/(dx[1]*dx[1])
+                         + (w[b](i,j,k-1)-Real(2.)*w[b](i,j,k)+w[b](i,j,k+1))/(dx[2]*dx[2]);
                 rz[b](i,j,k) = alpha*w[b](i,j,k) - eta*lap
-                            + (p[b](i,j,k)-p[b](i,j,k-1))/dx[2];
+                            + (pres_arr[b](i,j,k)-pres_arr[b](i,j,k-1))/dx[2];
             });
         }
 #endif
@@ -225,6 +225,8 @@ int main (int argc, char* argv[])
 #else
             auto eps = 1.e-13;
 #endif
+            AMREX_ALWAYS_ASSERT(u_error < eps);
+            AMREX_ALWAYS_ASSERT(v_error < eps);
 
 #if (BL_SPACEDIM == 3)
             MultiFab w_err(w_mf.boxArray(), dm, 1, 0);
@@ -232,6 +234,7 @@ int main (int argc, char* argv[])
             MultiFab::Subtract(w_err, w_mf2, 0, 0, 1, 0);
             Real w_error = w_err.norminf();
             amrex::Print() << "  W error expected to be close to zero: " << w_error << "\n";
+            AMREX_ALWAYS_ASSERT(w_error < eps);
 #endif
 
             MultiFab p_err(ba, dm, 1, 0);
@@ -243,6 +246,7 @@ int main (int argc, char* argv[])
             Real p_error = p_err.norminf();
             amrex::Print() << "  Pressure error (mean-adjusted) expected to be close to zero: "
                            << p_error << "\n";
+            AMREX_ALWAYS_ASSERT(p_error < eps);
         }
     }
     amrex::Finalize();

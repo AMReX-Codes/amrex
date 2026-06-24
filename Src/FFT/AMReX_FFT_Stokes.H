@@ -107,6 +107,7 @@ void Stokes::solve (MultiFab& U,
                     Geometry const& geom,
                     Real alpha, Real eta)
 {
+            amrex::ignore_unused(geom);
 
             auto const& dx = m_geom.CellSizeArray();
             auto scaling = Real(1) / Real(m_geom.Domain().d_numPts());
@@ -146,7 +147,7 @@ void Stokes::solve (MultiFab& U,
 #endif
             for (MFIter mfi(phat); mfi.isValid(); ++mfi) {
                 auto const& pb = phat[mfi].box();
-                auto const& p = phat[mfi].array();
+                auto const& parr = phat[mfi].array();
                 auto const& u = uhat[mfi].array();
                 auto const& v = vhat[mfi].array();
 #if (BL_SPACEDIM ==3)
@@ -197,17 +198,17 @@ void Stokes::solve (MultiFab& U,
                                      +rz(i,j,k)*delkp[2]);
 
                    if(std::abs(delsqk) > Real(1.e-10)){
-                       p(i,j,k) = rhsdotdp / delsqk;
+                       parr(i,j,k)= rhsdotdp / delsqk;
                    } else {
-                       p(i,j,k) = Real(0.);
+                       parr(i,j,k)= Real(0.);
                    }
 
                    Real diffop = alpha - eta*delsqk;
                    if(diffop > Real(1.e-10)) {
-                        u(i,j,k) = (rx(i,j,k) - p(i,j,k)*delkm[0])/diffop;
-                        v(i,j,k) = (ry(i,j,k) - p(i,j,k)*delkm[1])/diffop;
+                        u(i,j,k) = (rx(i,j,k) - parr(i,j,k)*delkm[0])/diffop;
+                        v(i,j,k) = (ry(i,j,k) - parr(i,j,k)*delkm[1])/diffop;
 #if (BL_SPACEDIM ==3)
-                        w(i,j,k) = (rz(i,j,k) - p(i,j,k)*delkm[2])/diffop;
+                        w(i,j,k) = (rz(i,j,k) - parr(i,j,k)*delkm[2])/diffop;
 #endif
                    } else {
                         u(i,j,k) = Real(0.);
