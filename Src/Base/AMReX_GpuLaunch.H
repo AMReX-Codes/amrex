@@ -341,7 +341,28 @@ void ParallelForOMP (T n, L const& f) noexcept
 template <typename L>
 void ParallelForOMP (Box const& box, L const& f) noexcept
 {
-    ParallelFor(box, f);
+    constexpr int WIDTH = amrex::simd::native_simd_size_real;
+    if constexpr (std::is_invocable_v<L const&, SIMDindex<WIDTH, int>, int, int>) {
+        // CPU + SIMD without OpenMP threading: serial SIMD-chunked loop along
+        // the contiguous i-direction, with a scalar (width 1) remainder.
+        // (On GPU AMREX_USE_SIMD is off, so no kernel is SIMD-invocable and
+        //  this branch is never instantiated; the #else forwards to ParallelFor.)
+        auto lo = amrex::lbound(box);
+        auto hi = amrex::ubound(box);
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                int i = lo.x;
+                for (; i + WIDTH <= hi.x + 1; i += WIDTH) {
+                    f(SIMDindex<WIDTH, int>{i}, j, k);
+                }
+                for (; i <= hi.x; ++i) {
+                    f(SIMDindex<1, int>{i}, j, k);
+                }
+            }
+        }
+    } else {
+        ParallelFor(box, f);
+    }
 }
 
 /**
@@ -376,31 +397,75 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
 {
     auto lo = amrex::lbound(box);
     auto hi = amrex::ubound(box);
+
+    // Dispatch: a SIMD-aware kernel takes an amrex::SIMDindex<WIDTH> as its
+    // running index (instead of a plain int) and is processed in SIMD-width
+    // chunks along the contiguous i-direction, with a scalar (width 1)
+    // remainder. All other (scalar) kernels keep the original (int,int,int)
+    // contract. The decision is made at compile time, so unrelated scalar
+    // callers are unaffected.
+    constexpr int WIDTH = amrex::simd::native_simd_size_real;
+    constexpr bool simd_invocable =
+        std::is_invocable_v<L const&, SIMDindex<WIDTH, int>, int, int>;
+
 #if (AMREX_SPACEDIM == 1)
+    if constexpr (simd_invocable) {
+        int i = lo.x;
+        for (; i + WIDTH <= hi.x + 1; i += WIDTH) {
+            f(SIMDindex<WIDTH, int>{i}, 0, 0);
+        }
+        for (; i <= hi.x; ++i) {
+            f(SIMDindex<1, int>{i}, 0, 0);
+        }
+    } else {
 #pragma omp parallel for
-    for (int i = lo.x; i <= hi.x; ++i) {
-        f(i,0,0);
+        for (int i = lo.x; i <= hi.x; ++i) {
+            f(i,0,0);
+        }
     }
 #elif (AMREX_SPACEDIM == 2)
+    if constexpr (simd_invocable) {
 #pragma omp parallel for
-    for     (int j = lo.y; j <= hi.y; ++j) {
-        AMREX_PRAGMA_SIMD
-        for (int i = lo.x; i <= hi.x; ++i) {
-            f(i,j,0);
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            int i = lo.x;
+            for (; i + WIDTH <= hi.x + 1; i += WIDTH) {
+                f(SIMDindex<WIDTH, int>{i}, j, 0);
+            }
+            for (; i <= hi.x; ++i) {
+                f(SIMDindex<1, int>{i}, j, 0);
+            }
+        }
+    } else {
+#pragma omp parallel for
+        for     (int j = lo.y; j <= hi.y; ++j) {
+            AMREX_PRAGMA_SIMD
+            for (int i = lo.x; i <= hi.x; ++i) {
+                f(i,j,0);
+            }
         }
     }
 #else
+    if constexpr (simd_invocable) {
 #pragma omp parallel for collapse(2)
-    for         (int k = lo.z; k <= hi.z; ++k) {
-        for     (int j = lo.y; j <= hi.y; ++j) {
-            constexpr int WIDTH = amrex::simd::native_simd_size_real;
-            int i = lo.x;
-            for (; i + WIDTH <= hi.x; i+=WIDTH) {
-                f(SIMDindex<WIDTH, int>{i}, j, k);
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                int i = lo.x;
+                for (; i + WIDTH <= hi.x + 1; i += WIDTH) {
+                    f(SIMDindex<WIDTH, int>{i}, j, k);
+                }
+                for (; i <= hi.x; ++i) {
+                    f(SIMDindex<1, int>{i}, j, k);
+                }
             }
-            for (; i <= hi.x; ++i) {
-                // TODO: template, etc.
-                f(SIMDindex<1, int>{i}, j, k);
+        }
+    } else {
+#pragma omp parallel for collapse(2)
+        for         (int k = lo.z; k <= hi.z; ++k) {
+            for     (int j = lo.y; j <= hi.y; ++j) {
+                AMREX_PRAGMA_SIMD
+                for (int i = lo.x; i <= hi.x; ++i) {
+                    f(i,j,k);
+                }
             }
         }
     }

@@ -2,6 +2,10 @@
 #define AMREX_FFT_OPENBC_SOLVER_H_
 
 #include <AMReX_FFT_R2C.H>
+#include <AMReX_GpuLaunch.H>
+#include <AMReX_SIMD.H>
+
+#include <type_traits>
 
 namespace amrex::FFT
 {
@@ -176,46 +180,97 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         }
         AMREX_ASSERT(nimages[0] == 2);
         box.shift(-lo);
-        amrex::ParallelForOMP(box, [=]<int WIDTH> AMREX_GPU_DEVICE (amrex::SIMDindex<WIDTH> i, int j, int k)
+#ifdef AMREX_USE_SIMD
+        // A SIMD-capable Green's function can be evaluated on a whole vector of
+        // i-indices at once. We detect this by checking whether it is callable
+        // with a SIMD integer register; scalar Green's functions (e.g. the one
+        // in PoissonOpenBC) take the scalar path in the #else branch below.
+        if constexpr (std::is_invocable_v<F const&,
+            simd::stdx::fixed_size_simd<int, simd::native_simd_size_real>, int, int>)
         {
-            using SIMD_T = simd::stdx::fixed_size_simd<T, i.width>;
-            using SIMD_int = simd::stdx::fixed_size_simd<int, i.width>; // simd::stdx::rebind_simd_t<int, SIMD_T>;
-
-            SIMD_T G = 0;
-            if (j != len[1] && k != len[2])
+            amrex::ParallelForOMP(box, [=]<int WIDTH> AMREX_GPU_DEVICE (amrex::SIMDindex<WIDTH> i, int j, int k)
             {
-                SIMD_int ii = simd::stdx::iota_v<SIMD_int> + i.index;
-                auto jj = (j > len[1]) ? 2*len[1]-j : j;
-                auto kk = (k > len[2]) ? 2*len[2]-k : k;
+                using SIMD_T   = simd::stdx::fixed_size_simd<T, WIDTH>;
+                using SIMD_int = simd::stdx::fixed_size_simd<int, WIDTH>;
 
-                auto const i_bound = ii == len[0];
-                simd::stdx::where(simd::stdx::cvt(i_bound), G) = 0.0;
-                simd::stdx::where(simd::stdx::cvt(!i_bound), G) = greens_function.template operator()<WIDTH>(ii+lo3.x,jj+lo3.y,kk+lo3.z);
-            }
+                // The fill mirrors the scalar version below, but evaluates G on
+                // the WIDTH lanes [i.index, i.index+WIDTH) at once.
+                SIMD_T G = 0;
+                if (j != len[1] && k != len[2])
+                {
+                    SIMD_int const ii = simd::stdx::iota_v<SIMD_int> + i.index;
+                    auto const jj = (j > len[1]) ? 2*len[1]-j : j;
+                    auto const kk = (k > len[2]) ? 2*len[2]-k : k;
 
-            for (int koff = 0; koff < nimages[2]; ++koff) {
-                int k2 = (koff == 0) ?  k : 2*len[2]-k;
-                if ((k2 == 2*len[2]) || (koff == 1 && k == len[2])) {
-                    continue;
+                    // lanes on the i-boundary (ii == len[0]) stay zero
+                    auto const i_interior = ii != len[0];
+                    simd::stdx::where(simd::stdx::cvt(i_interior), G) =
+                        greens_function(ii+lo3.x, jj+lo3.y, kk+lo3.z);
                 }
-                for (int joff = 0; joff < nimages[1]; ++joff) {
-                    int j2 = (joff == 0) ?  j : 2*len[1]-j;
-                    if ((j2 == 2*len[1]) || (joff == 1 && j == len[1])) {
+
+                for (int koff = 0; koff < nimages[2]; ++koff) {
+                    int k2 = (koff == 0) ?  k : 2*len[2]-k;
+                    if ((k2 == 2*len[2]) || (koff == 1 && k == len[2])) {
                         continue;
                     }
-                    for (int ioff = 0; ioff < nimages[0]; ++ioff) {
-                        for (int iw = i.index; iw < i.index+i.width; ++iw) {
-                            int i2 = (ioff == 0) ?  iw : 2*len[0]-iw;
-                            if ((i2 == 2*len[0]) || (ioff == 1 && iw == len[0])) {
-                                continue;
+                    for (int joff = 0; joff < nimages[1]; ++joff) {
+                        int j2 = (joff == 0) ?  j : 2*len[1]-j;
+                        if ((j2 == 2*len[1]) || (joff == 1 && j == len[1])) {
+                            continue;
+                        }
+                        for (int ioff = 0; ioff < nimages[0]; ++ioff) {
+                            // the i-mirror image and boundary skips are per
+                            // lane, so scatter the WIDTH lanes individually
+                            // (lane index iw in [0, WIDTH), global i = i.index+iw)
+                            for (int iw = 0; iw < WIDTH; ++iw) {
+                                int const il = i.index + iw;
+                                int i2 = (ioff == 0) ?  il : 2*len[0]-il;
+                                if ((i2 == 2*len[0]) || (ioff == 1 && il == len[0])) {
+                                    continue;
+                                }
+                                a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G[iw];
                             }
-                            // TODO: SIMD-assign N values
-                            a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G[iw];
                         }
                     }
                 }
-            }
-        });
+            });
+        }
+        else
+#endif
+        {
+            // scalar Green's function fill (also used on GPU and non-SIMD CPU)
+            amrex::ParallelForOMP(box, [=] AMREX_GPU_DEVICE (int i, int j, int k)
+            {
+                T G;
+                if (i == len[0] || j == len[1] || k == len[2]) {
+                    G = 0;
+                } else {
+                    auto ii = i;
+                    auto jj = (j > len[1]) ? 2*len[1]-j : j;
+                    auto kk = (k > len[2]) ? 2*len[2]-k : k;
+                    G = greens_function(ii+lo3.x,jj+lo3.y,kk+lo3.z);
+                }
+                for (int koff = 0; koff < nimages[2]; ++koff) {
+                    int k2 = (koff == 0) ?  k : 2*len[2]-k;
+                    if ((k2 == 2*len[2]) || (koff == 1 && k == len[2])) {
+                        continue;
+                    }
+                    for (int joff = 0; joff < nimages[1]; ++joff) {
+                        int j2 = (joff == 0) ?  j : 2*len[1]-j;
+                        if ((j2 == 2*len[1]) || (joff == 1 && j == len[1])) {
+                            continue;
+                        }
+                        for (int ioff = 0; ioff < nimages[0]; ++ioff) {
+                            int i2 = (ioff == 0) ?  i : 2*len[0]-i;
+                            if ((i2 == 2*len[0]) || (ioff == 1 && i == len[0])) {
+                                continue;
+                            }
+                            a(i2+lo3.x,j2+lo3.y,k2+lo3.z) = G;
+                        }
+                    }
+                }
+            });
+        }
     }
 
     if (m_info.twod_mode) {

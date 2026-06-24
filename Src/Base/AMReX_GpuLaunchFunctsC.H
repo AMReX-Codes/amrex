@@ -2,28 +2,9 @@
 #define AMREX_GPU_LAUNCH_FUNCTS_C_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_SIMD.H>
-
 namespace amrex {
 
-/** Helper type to store/access the SIMD width in ParallelForSIMD lambdas
- *
- * Use instead of int as the running index i. Used to pass the
- * SIMD WIDTH as compile-time meta-data into a called function/method.
- *
- * @tparam WIDTH SIMD width in elements
- * @tparam N index type (integer)
- */
-template<int WIDTH=simd::native_simd_size_real, class N=int>
-struct SIMDindex
-{
-    /** SIMD width in elements */
-    static constexpr int width = WIDTH;
-
-    /** The linear loop index of ParallelFor(SIMD) */
-    N index = 0;
-};
-
+/// \cond DOXYGEN_IGNORE
 namespace detail {
 
     // call_f_scalar_handler
