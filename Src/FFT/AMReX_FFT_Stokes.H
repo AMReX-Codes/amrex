@@ -118,7 +118,7 @@ void Stokes<MF>::solve (MF& U,
 {
     using Real = typename MF::value_type;
 
-    auto const& dx = m_geom.CellSizeArray();
+    auto const& dxinv = m_geom.InvCellSizeArray();
     auto scaling = Real(1) / Real(m_geom.Domain().d_numPts());
 
     R2C<Real> r2c(m_geom.Domain());
@@ -178,25 +178,25 @@ void Stokes<MF>::solve (MF& U,
 
             GpuArray<Real,AMREX_SPACEDIM> kwave{AMREX_D_DECL(ik*kwx,jk*kwy,kk*kwz)};
 
-            Real delsqk = AMREX_D_TERM(Real(2)*(std::cos(kwave[0])-Real(1))/(dx[0]*dx[0]),
-                                     + Real(2)*(std::cos(kwave[1])-Real(1))/(dx[1]*dx[1]),
-                                     + Real(2)*(std::cos(kwave[2])-Real(1))/(dx[2]*dx[2]));
+            Real delsqk = AMREX_D_TERM(Real(2)*(std::cos(kwave[0])-Real(1))*(dxinv[0]*dxinv[0]),
+                                     + Real(2)*(std::cos(kwave[1])-Real(1))*(dxinv[1]*dxinv[1]),
+                                     + Real(2)*(std::cos(kwave[2])-Real(1))*(dxinv[2]*dxinv[2]));
 
             amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkp
-                {AMREX_D_DECL(amrex::GpuComplex<amrex::Real>((std::cos(kwave[0])-Real(1))/dx[0],
-                                                              std::sin(kwave[0])         /dx[0]),
-                              amrex::GpuComplex<amrex::Real>((std::cos(kwave[1])-Real(1))/dx[1],
-                                                              std::sin(kwave[1])         /dx[1]),
-                              amrex::GpuComplex<amrex::Real>((std::cos(kwave[2])-Real(1))/dx[2],
-                                                              std::sin(kwave[2])         /dx[2]))};
+                {AMREX_D_DECL(amrex::GpuComplex<amrex::Real>((std::cos(kwave[0])-Real(1))*dxinv[0],
+                                                              std::sin(kwave[0])         *dxinv[0]),
+                              amrex::GpuComplex<amrex::Real>((std::cos(kwave[1])-Real(1))*dxinv[1],
+                                                              std::sin(kwave[1])         *dxinv[1]),
+                              amrex::GpuComplex<amrex::Real>((std::cos(kwave[2])-Real(1))*dxinv[2],
+                                                              std::sin(kwave[2])         *dxinv[2]))};
 
             amrex::GpuArray<amrex::GpuComplex<amrex::Real>, AMREX_SPACEDIM> delkm
-                {AMREX_D_DECL(amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[0]))/dx[0],
-                                                                      std::sin(kwave[0]) /dx[0]),
-                              amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[1]))/dx[1],
-                                                                      std::sin(kwave[1]) /dx[1]),
-                              amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[2]))/dx[2],
-                                                                      std::sin(kwave[2]) /dx[2]))};
+                {AMREX_D_DECL(amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[0]))*dxinv[0],
+                                                                      std::sin(kwave[0]) *dxinv[0]),
+                              amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[1]))*dxinv[1],
+                                                                      std::sin(kwave[1]) *dxinv[1]),
+                              amrex::GpuComplex<amrex::Real>((Real(1)-std::cos(kwave[2]))*dxinv[2],
+                                                                      std::sin(kwave[2]) *dxinv[2]))};
 
             Complex rhsdotdp = AMREX_D_TERM(rx(i,j,k)*delkp[0],
                                            +ry(i,j,k)*delkp[1],
