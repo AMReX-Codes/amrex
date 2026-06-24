@@ -725,7 +725,7 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_PIC                    | PIC             |
    +------------------------------+-----------------+
-   | AMReX_MPI                    | MPI             |
+   | AMReX_MPI                    | MPI, NOMPI      |
    +------------------------------+-----------------+
    | AMReX_SIMD                   | SIMD            |
    +------------------------------+-----------------+
