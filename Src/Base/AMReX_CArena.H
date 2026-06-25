@@ -101,6 +101,9 @@ public:
     //! Return the amount of memory that can be freed
     [[nodiscard]] std::size_t freeableMemory () const;
 
+    //! Return the largest free memory block already held by this CArena.
+    [[nodiscard]] std::size_t largestFreeBlock () const final;
+
     /**
      * \brief Does the device have enough free memory for allocating this
      * much memory?  For CPU builds, this always return true.  This is not a
@@ -256,7 +259,7 @@ protected:
     //! The max amount of memory given out via alloc().
     std::size_t m_max_actually_used{0};
 
-    std::mutex carena_mutex;
+    mutable std::mutex carena_mutex;
 
     friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
 };
