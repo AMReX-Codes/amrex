@@ -13,6 +13,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_REAL.H>
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdio>
@@ -206,7 +207,10 @@ std::string_view parser_node_s[] =
  * parser_node_t type can be safely checked to determine their real type.
  */
 
-struct parser_node {
+static constexpr std::size_t parser_node_alignment =
+    std::max(alignof(double*), alignof(double));
+
+struct alignas(parser_node_alignment) parser_node {
     enum parser_node_t type;
     enum parser_node_t padding;
     struct parser_node* l; // NOLINT(misc-confusable-identifiers)
