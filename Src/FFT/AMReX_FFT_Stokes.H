@@ -118,7 +118,7 @@ void Stokes<MF>::solve (MF& U,
 {
     BL_PROFILE("FFT::Stokes::solve");
 
-    using Real = typename MF::value_type;
+    using T = typename MF::value_type;
 
     AMREX_ASSERT(p.ixType() == IndexType::TheCellType() &&
                  AMREX_D_TERM(U.ixType() == IndexType(IntVect::TheDimensionVector(0)) &&
@@ -183,8 +183,8 @@ void Stokes<MF>::solve (MF& U,
     r2c.forward(*rhszmf, rzhat);
 #endif
 
-    using Complex = GpuComplex<Real>;
-    Real constexpr tol = std::numeric_limits<Real>::epsilon() * Real(10);
+    using Complex = GpuComplex<T>;
+    T constexpr tol = std::numeric_limits<T>::epsilon() * T(10);
     int const nx = m_geom.Domain().length(0);
 #if (AMREX_SPACEDIM >= 2)
     int const ny = m_geom.Domain().length(1);
@@ -200,36 +200,36 @@ void Stokes<MF>::solve (MF& U,
 #if (BL_SPACEDIM == 3)
         auto const& rz = rzhat[mfi].array();
 #endif
-        AMREX_D_TERM(Real kwx = Real(2)*Math::pi<Real>()/Real(nx);,
-                     Real kwy = Real(2)*Math::pi<Real>()/Real(ny);,
-                     Real kwz = Real(2)*Math::pi<Real>()/Real(nz);)
+        AMREX_D_TERM(T kwx = T(2)*Math::pi<T>()/T(nx);,
+                     T kwy = T(2)*Math::pi<T>()/T(ny);,
+                     T kwz = T(2)*Math::pi<T>()/T(nz);)
         ParallelFor(pb, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
             AMREX_D_TERM(int ik = (i <= nx/2) ? i : i - nx;,
                          int jk = (j <= ny/2) ? j : j - ny;,
                          int kk = (k <= nz/2) ? k : k - nz);
 
-            GpuArray<Real,AMREX_SPACEDIM> kwave{AMREX_D_DECL(ik*kwx,jk*kwy,kk*kwz)};
+            GpuArray<T,AMREX_SPACEDIM> kwave{AMREX_D_DECL(ik*kwx,jk*kwy,kk*kwz)};
 
-            Real delsqk = AMREX_D_TERM(Real(2)*(std::cos(kwave[0])-Real(1))*(dxinv[0]*dxinv[0]),
-                                     + Real(2)*(std::cos(kwave[1])-Real(1))*(dxinv[1]*dxinv[1]),
-                                     + Real(2)*(std::cos(kwave[2])-Real(1))*(dxinv[2]*dxinv[2]));
+            T delsqk = AMREX_D_TERM(T(2)*(std::cos(kwave[0])-T(1))*(dxinv[0]*dxinv[0]),
+                                  + T(2)*(std::cos(kwave[1])-T(1))*(dxinv[1]*dxinv[1]),
+                                  + T(2)*(std::cos(kwave[2])-T(1))*(dxinv[2]*dxinv[2]));
 
             GpuArray<Complex, AMREX_SPACEDIM> delkp
-                {AMREX_D_DECL(Complex((std::cos(kwave[0])-Real(1))*dxinv[0],
-                                       std::sin(kwave[0])         *dxinv[0]),
-                              Complex((std::cos(kwave[1])-Real(1))*dxinv[1],
-                                       std::sin(kwave[1])         *dxinv[1]),
-                              Complex((std::cos(kwave[2])-Real(1))*dxinv[2],
-                                       std::sin(kwave[2])         *dxinv[2]))};
+                {AMREX_D_DECL(Complex((std::cos(kwave[0])-T(1))*dxinv[0],
+                                    std::sin(kwave[0])         *dxinv[0]),
+                              Complex((std::cos(kwave[1])-T(1))*dxinv[1],
+                                    std::sin(kwave[1])         *dxinv[1]),
+                              Complex((std::cos(kwave[2])-T(1))*dxinv[2],
+                                    std::sin(kwave[2])         *dxinv[2]))};
 
             GpuArray<Complex, AMREX_SPACEDIM> delkm
-                {AMREX_D_DECL(Complex((Real(1)-std::cos(kwave[0]))*dxinv[0],
-                                       std::sin(kwave[0])         *dxinv[0]),
-                              Complex((Real(1)-std::cos(kwave[1]))*dxinv[1],
-                                       std::sin(kwave[1])         *dxinv[1]),
-                              Complex((Real(1)-std::cos(kwave[2]))*dxinv[2],
-                                       std::sin(kwave[2])         *dxinv[2]))};
+                {AMREX_D_DECL(Complex((T(1)-std::cos(kwave[0]))*dxinv[0],
+                                    std::sin(kwave[0])         *dxinv[0]),
+                              Complex((T(1)-std::cos(kwave[1]))*dxinv[1],
+                                    std::sin(kwave[1])         *dxinv[1]),
+                              Complex((T(1)-std::cos(kwave[2]))*dxinv[2],
+                                    std::sin(kwave[2])         *dxinv[2]))};
 
             AMREX_D_TERM(Complex const rxk = rx(i,j,k);,
                          Complex const ryk = ry(i,j,k);,
@@ -242,10 +242,10 @@ void Stokes<MF>::solve (MF& U,
             if (std::abs(delsqk) > tol) {
                 parr(i,j,k)= rhsdotdp / delsqk;
             } else {
-                parr(i,j,k)= Real(0.);
+                parr(i,j,k)= T(0.);
             }
 
-            Real diffop = alpha - eta*delsqk;
+            T diffop = alpha - eta*delsqk;
             if (diffop > tol) {
                 rx(i,j,k) = (scaling*rxk - parr(i,j,k)*delkm[0])/diffop;
                 ry(i,j,k) = (scaling*ryk - parr(i,j,k)*delkm[1])/diffop;
@@ -253,10 +253,10 @@ void Stokes<MF>::solve (MF& U,
                 rz(i,j,k) = (scaling*rzk - parr(i,j,k)*delkm[2])/diffop;
 #endif
             } else {
-                rx(i,j,k) = Real(0.);
-                ry(i,j,k) = Real(0.);
+                rx(i,j,k) = T(0.);
+                ry(i,j,k) = T(0.);
 #if (BL_SPACEDIM == 3)
-                rz(i,j,k) = Real(0.);
+                rz(i,j,k) = T(0.);
 #endif
             }
 
