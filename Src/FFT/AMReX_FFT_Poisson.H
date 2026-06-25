@@ -19,41 +19,6 @@ template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
                   Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc);
 
-inline Geometry shift_geom (Geometry const& geom)
-{
-    auto const& dom = geom.Domain();
-    auto const& dlo = dom.smallEnd();
-    if (dlo == 0) {
-        return geom;
-    } else {
-        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
-                        geom.isPeriodic());
-    }
-}
-
-template <typename MF>
-void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
-                MF& new_mf1, MF& new_mf2)
-{
-    AMREX_ALWAYS_ASSERT(mf1.boxArray() == mf2.boxArray() &&
-                        mf1.DistributionMap() == mf2.DistributionMap());
-    BoxArray ba = mf1.boxArray();
-    ba.shift(-domain_lo);
-    new_mf1.define(ba, mf1.DistributionMap(), 1, mf1.nGrowVect(),
-                   MFInfo().SetAlloc(false));
-    new_mf2.define(ba, mf2.DistributionMap(), 1, mf2.nGrowVect(),
-                   MFInfo().SetAlloc(false));
-    for (MFIter mfi(mf1); mfi.isValid(); ++mfi) {
-        typename MF::fab_type fab1(mf1[mfi], amrex::make_alias, 0, 1);
-        fab1.shift(-domain_lo);
-        new_mf1.setFab(mfi, std::move(fab1));
-
-        typename MF::fab_type fab2(mf2[mfi], amrex::make_alias, 0, 1);
-        fab2.shift(-domain_lo);
-        new_mf2.setFab(mfi, std::move(fab2));
-    }
-}
-
 }
 /// \endcond
 

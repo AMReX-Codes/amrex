@@ -15,4 +15,11 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FFT_Poisson.H
        )
 
+    if (D GREATER_EQUAL 2)
+       target_sources(amrex_${D}d
+          PRIVATE
+          AMReX_FFT_Stokes.H
+          )
+    endif()
+
 endforeach()
