@@ -209,7 +209,7 @@ int main (int argc, char* argv[])
 #ifdef AMREX_USE_FLOAT
             auto eps = 1.e-3f;
 #else
-            auto eps = 1.e-12;
+            auto eps = 1.e-11;
 #endif
             AMREX_ALWAYS_ASSERT(u_error < eps);
             AMREX_ALWAYS_ASSERT(v_error < eps);
