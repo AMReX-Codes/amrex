@@ -172,12 +172,6 @@ void Stokes<MF>::solve (MF& U,
 
     cMF phat(cba, cdm, 1, 0);
 
-    cMF uhat(cba,cdm,1,0);
-    cMF vhat(cba,cdm,1,0);
-#if (BL_SPACEDIM == 3)
-    cMF what(cba,cdm,1,0);
-#endif
-
     cMF rxhat(cba,cdm,1,0);
     r2c.forward(*rhsxmf, rxhat);
 
@@ -201,11 +195,6 @@ void Stokes<MF>::solve (MF& U,
     for (MFIter mfi(phat); mfi.isValid(); ++mfi) {
         auto const& pb = phat[mfi].box();
         auto const& parr = phat[mfi].array();
-        auto const& u = uhat[mfi].array();
-        auto const& v = vhat[mfi].array();
-#if (BL_SPACEDIM == 3)
-        auto const& w = what[mfi].array();
-#endif
         auto const& rx = rxhat[mfi].array();
         auto const& ry = ryhat[mfi].array();
 #if (BL_SPACEDIM == 3)
@@ -242,9 +231,13 @@ void Stokes<MF>::solve (MF& U,
                               Complex((Real(1)-std::cos(kwave[2]))*dxinv[2],
                                        std::sin(kwave[2])         *dxinv[2]))};
 
-            Complex rhsdotdp = scaling * (AMREX_D_TERM(rx(i,j,k)*delkp[0],
-                                                      +ry(i,j,k)*delkp[1],
-                                                      +rz(i,j,k)*delkp[2]));
+            AMREX_D_TERM(Complex const rxk = rx(i,j,k);,
+                         Complex const ryk = ry(i,j,k);,
+                         Complex const rzk = rz(i,j,k);)
+
+            Complex rhsdotdp = scaling * (AMREX_D_TERM(rxk*delkp[0],
+                                                      +ryk*delkp[1],
+                                                      +rzk*delkp[2]));
 
             if (std::abs(delsqk) > tol) {
                 parr(i,j,k)= rhsdotdp / delsqk;
@@ -254,16 +247,16 @@ void Stokes<MF>::solve (MF& U,
 
             Real diffop = alpha - eta*delsqk;
             if (diffop > tol) {
-                u(i,j,k) = (scaling*rx(i,j,k) - parr(i,j,k)*delkm[0])/diffop;
-                v(i,j,k) = (scaling*ry(i,j,k) - parr(i,j,k)*delkm[1])/diffop;
+                rx(i,j,k) = (scaling*rxk - parr(i,j,k)*delkm[0])/diffop;
+                ry(i,j,k) = (scaling*ryk - parr(i,j,k)*delkm[1])/diffop;
 #if (BL_SPACEDIM == 3)
-                w(i,j,k) = (scaling*rz(i,j,k) - parr(i,j,k)*delkm[2])/diffop;
+                rz(i,j,k) = (scaling*rzk - parr(i,j,k)*delkm[2])/diffop;
 #endif
             } else {
-                u(i,j,k) = Real(0.);
-                v(i,j,k) = Real(0.);
+                rx(i,j,k) = Real(0.);
+                ry(i,j,k) = Real(0.);
 #if (BL_SPACEDIM == 3)
-                w(i,j,k) = Real(0.);
+                rz(i,j,k) = Real(0.);
 #endif
             }
 
@@ -271,10 +264,10 @@ void Stokes<MF>::solve (MF& U,
     }
 
     r2c.backward(phat, *pmf);
-    r2c.backward(uhat, *Umf);
-    r2c.backward(vhat, *Vmf);
+    r2c.backward(rxhat, *Umf);
+    r2c.backward(ryhat, *Vmf);
 #if (BL_SPACEDIM == 3)
-    r2c.backward(what, *Wmf);
+    r2c.backward(rzhat, *Wmf);
 #endif
 }
 
