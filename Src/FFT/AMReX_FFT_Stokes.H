@@ -180,16 +180,13 @@ void Stokes<MF>::solve (MF& U,
 
     cMF rxhat(cba,cdm,1,0);
     r2c.forward(*rhsxmf, rxhat);
-    amrex::Scale(rxhat, scaling, 0, 1, 0);
 
     cMF ryhat(cba,cdm,1,0);
     r2c.forward(*rhsymf, ryhat);
-    amrex::Scale(ryhat, scaling, 0, 1, 0);
 
 #if (BL_SPACEDIM == 3)
     cMF rzhat(cba,cdm,1,0);
     r2c.forward(*rhszmf, rzhat);
-    amrex::Scale(rzhat, scaling, 0, 1, 0);
 #endif
 
     using Complex = GpuComplex<Real>;
@@ -245,9 +242,9 @@ void Stokes<MF>::solve (MF& U,
                               Complex((Real(1)-std::cos(kwave[2]))*dxinv[2],
                                        std::sin(kwave[2])         *dxinv[2]))};
 
-            Complex rhsdotdp = AMREX_D_TERM(rx(i,j,k)*delkp[0],
-                                           +ry(i,j,k)*delkp[1],
-                                           +rz(i,j,k)*delkp[2]);
+            Complex rhsdotdp = scaling * (AMREX_D_TERM(rx(i,j,k)*delkp[0],
+                                                      +ry(i,j,k)*delkp[1],
+                                                      +rz(i,j,k)*delkp[2]));
 
             if (std::abs(delsqk) > tol) {
                 parr(i,j,k)= rhsdotdp / delsqk;
@@ -257,10 +254,10 @@ void Stokes<MF>::solve (MF& U,
 
             Real diffop = alpha - eta*delsqk;
             if (diffop > tol) {
-                u(i,j,k) = (rx(i,j,k) - parr(i,j,k)*delkm[0])/diffop;
-                v(i,j,k) = (ry(i,j,k) - parr(i,j,k)*delkm[1])/diffop;
+                u(i,j,k) = (scaling*rx(i,j,k) - parr(i,j,k)*delkm[0])/diffop;
+                v(i,j,k) = (scaling*ry(i,j,k) - parr(i,j,k)*delkm[1])/diffop;
 #if (BL_SPACEDIM == 3)
-                w(i,j,k) = (rz(i,j,k) - parr(i,j,k)*delkm[2])/diffop;
+                w(i,j,k) = (scaling*rz(i,j,k) - parr(i,j,k)*delkm[2])/diffop;
 #endif
             } else {
                 u(i,j,k) = Real(0.);
