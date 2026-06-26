@@ -1,7 +1,8 @@
-#include <AMReX.H>
+// Header under test first, to test transient includes
 #include <AMReX_GpuParallelReduce.H>
+
+#include <AMReX.H>
 #include <AMReX_Print.H>
-#include <AMReX_Vector.H>
 
 //
 // Unit test for the Gpu::DeviceVector overloads of the MPI collectives in

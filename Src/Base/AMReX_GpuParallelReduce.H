@@ -2,7 +2,7 @@
 #define AMREX_GPU_PARALLEL_REDUCE_H_
 #include <AMReX_Config.H>
 
-#include <AMReX_Gpu.H>
+#include <AMReX_GpuContainers.H>
 #include <AMReX_INT.H>
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_ParallelReduce.H>
@@ -15,8 +15,9 @@
 // These overloads complement the pointer/scalar overloads in
 // AMReX_ParallelReduce.H and AMReX_ParallelDescriptor.H. They live in a
 // separate header (rather than in those low-level headers) because they need
-// the full Gpu machinery (AMReX_Gpu.H) that would bloat the ParallelReduce.H
-// headers.
+// the Gpu container/copy machinery (AMReX_GpuContainers.H) that would bloat the
+// ParallelReduce.H headers. This header is also pulled into the AMReX_Gpu.H
+// umbrella for convenience.
 //
 // When AMReX is configured with GPU-aware MPI (ParallelDescriptor::UseGpuAwareMpi())
 // the device buffer is handed to MPI directly, otherwise the data is staged
