@@ -1704,7 +1704,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     const int lev_min = state.lev_min;
     const int lev_max = state.lev_max;
-    const int nGrow   = state.nGrow;
     const int theEffectiveFinestLevel = state.theEffectiveFinestLevel;
 
     // Complete the async handshake and exchange metadata byte-counts.
@@ -1789,7 +1788,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     Gpu::Device::streamSynchronize();
-    AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+    AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, state.nGrow) == 0);
 
     m_redistribute_state.reset();
 }
