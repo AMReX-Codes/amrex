@@ -115,6 +115,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    if (AMReX_PARTICLES)
       add_subdirectory("Particles/Redistribute")
+      add_subdirectory("Particles/RedistributeAsync")
    endif ()
 
    if (AMReX_EB)

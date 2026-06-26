@@ -513,6 +513,9 @@ public:
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
                        bool remove_negative=true);
 
+    void Redistribute (int lev_min, int lev_max, IntVect nGrow, int local=0,
+                       bool remove_negative=true);
+
 
     /**
      * \brief Reorder particles on the tile given by lev and mfi using a the permutations array.
@@ -568,6 +571,8 @@ public:
     * \param nGrow
     */
     bool OK (int lev_min = 0, int lev_max = -1, int nGrow = 0) const;
+
+    bool OK (int lev_min, int lev_max, IntVect nGrow) const;
 
     std::array<Long, 3> ByteSpread () const;
 
@@ -646,6 +651,8 @@ public:
     */
     void AddParticlesAtLevel (AoS& particles, int level, int nGrow=0);
 
+    void AddParticlesAtLevel (AoS& particles, int level, IntVect nGrow);
+
     /**
     * \brief Creates virtual particles for a given level that represent
     * in some capacity all particles at finer levels
@@ -673,6 +680,8 @@ public:
     * \param nGrow
     */
     void AddParticlesAtLevel (ParticleTileType& particles, int level, int nGrow=0);
+
+    void AddParticlesAtLevel (ParticleTileType& particles, int level, IntVect nGrow);
 
 
     /**
@@ -1279,10 +1288,10 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+    void RedistributeCPU (int lev_min = 0, int lev_max = -1, IntVect nGrow = IntVect::TheZeroVector(), int local=0,
                           bool remove_negative=true);
 
-    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, IntVect nGrow = IntVect::TheZeroVector(), int local=0,
                             bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
@@ -1455,7 +1464,7 @@ protected:
     */
     template <typename P>
     bool Where (const P& prt, ParticleLocData& pld,
-                int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
+                int lev_min = 0, int lev_max = -1, IntVect nGrow=IntVect::TheZeroVector(), int local_grid=-1) const;
 
 
     /**
@@ -1543,12 +1552,12 @@ private:
                                      int /*grid*/, const ParticleType& /*p*/) {}
 
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
-                          int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
+                          int lev_min = 0, int lev_max = 0, IntVect nGrow = IntVect::TheZeroVector(), int local=0);
 
     AMREX_FORCE_INLINE
     int hostPartitionTile (ParticleTileType& src_tile,
                            int lev, int gid, int tid,
-                           int lev_min, int lev_max, int nGrow, int local,
+                           int lev_min, int lev_max, IntVect nGrow, int local,
                            bool remove_negative, int myproc,
                            Gpu::DeviceVector<int>& boxes,
                            Gpu::DeviceVector<int>& levels,
@@ -1558,7 +1567,7 @@ private:
 
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,
-                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
+                         int lev_min, int lev_max, IntVect nGrow, int local_grid=-1) const;
 
     void Initialize ();
 
