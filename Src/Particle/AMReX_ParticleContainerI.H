@@ -1434,7 +1434,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 }
 
 //
-// Shared implementation of Redistribute
+// Shared implementation of Redistribute — implemented in terms of _start/_finish.
 //
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
@@ -1442,9 +1442,24 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Redistribute_impl (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
 {
+    Redistribute_start(lev_min, lev_max, nGrow, local, remove_negative);
+    Redistribute_finish();
+}
+
+// ---------------------------------------------------------------------------
+// Redistribute_start: partition particles and launch async handshake.
+// All containers should call _start before any calls _finish so that the
+// handshake communications can overlap across containers.
+// ---------------------------------------------------------------------------
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::Redistribute_start (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
+{
     if (local) { AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0); }
 
-    BL_PROFILE("ParticleContainer::Redistribute_impl()");
+    BL_PROFILE("ParticleContainer::Redistribute_start()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
     int theEffectiveFinestLevel = m_gdb->finestLevel();
@@ -1480,11 +1495,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     m_particle_locator.setGeometry(GetParGDB());
 #endif
 
+    m_redistribute_state = std::make_unique<RedistributeState>();
+    auto& state = *m_redistribute_state;
+    state.lev_min = lev_min;
+    state.lev_max = lev_max;
+    state.nGrow   = nGrow;
+    state.theEffectiveFinestLevel = theEffectiveFinestLevel;
+
     BL_PROFILE_VAR_START(blp_partition);
-    ParticleCopyOp op;
     int num_levels = finest_lev_particles + 1;
-    op.setNumLevels(num_levels);
-    Vector<std::map<std::pair<int, int>, int> > new_sizes(num_levels);
+    state.op.setNumLevels(num_levels);
+    state.new_sizes.resize(num_levels);
 #ifndef AMREX_USE_GPU
     const int myproc = ParallelContext::MyProcSub();
 #endif
@@ -1539,16 +1560,16 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ptile_ptrs.push_back(&(kv.second));
             plevs.push_back(lev);
             auto index = std::make_pair(kv.first.first, kv.first.second);
-            auto& new_size = new_sizes[lev][index];
+            auto& new_size = state.new_sizes[lev][index];
             new_size = 0;
             new_size_ptrs.push_back(&new_size);
 #ifndef AMREX_USE_GPU
-            op.resize(kv.first.first, kv.first.second, lev, static_cast<int>(np));
-            auto& boxes = op.m_boxes[lev][index];
-            auto& levels = op.m_levels[lev][index];
-            auto& tiles = op.m_tiles[lev][index];
-            auto& src_indices = op.m_src_indices[lev][index];
-            auto& periodic_shift = op.m_periodic_shift[lev][index];
+            state.op.resize(kv.first.first, kv.first.second, lev, static_cast<int>(np));
+            auto& boxes = state.op.m_boxes[lev][index];
+            auto& levels = state.op.m_levels[lev][index];
+            auto& tiles = state.op.m_tiles[lev][index];
+            auto& src_indices = state.op.m_src_indices[lev][index];
+            auto& periodic_shift = state.op.m_periodic_shift[lev][index];
             box_ptrs.push_back(&boxes);
             level_ptrs.push_back(&levels);
             tile_ptrs.push_back(&tiles);
@@ -1593,14 +1614,14 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
         int num_move = np - num_stay;
         *new_size_ptrs[pmap_it] = num_stay;
-        op.resize(gid, tid, lev, num_move);
+        state.op.resize(gid, tid, lev, num_move);
 
         auto index = std::make_pair(gid, tid);
-        auto* p_boxes = op.m_boxes[lev][index].dataPtr();
-        auto* p_levs = op.m_levels[lev][index].dataPtr();
-        auto* p_tiles = op.m_tiles[lev][index].dataPtr();
-        auto* p_src_indices = op.m_src_indices[lev][index].dataPtr();
-        auto* p_periodic_shift = op.m_periodic_shift[lev][index].dataPtr();
+        auto* p_boxes = state.op.m_boxes[lev][index].dataPtr();
+        auto* p_levs = state.op.m_levels[lev][index].dataPtr();
+        auto* p_tiles = state.op.m_tiles[lev][index].dataPtr();
+        auto* p_src_indices = state.op.m_src_indices[lev][index].dataPtr();
+        auto* p_periodic_shift = state.op.m_periodic_shift[lev][index].dataPtr();
         auto ptd = src_tile.getParticleTileData();
 
         amrex::ParallelFor(num_move, [=] AMREX_GPU_DEVICE (int i)
@@ -1638,15 +1659,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int gid = kv.first.first;
             int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
-            auto& new_size = new_sizes[lev][index];
+            auto& new_size = state.new_sizes[lev][index];
             new_size = 0;
 
-            op.resize(gid, tid, lev, static_cast<int>(np));
-            auto& boxes = op.m_boxes[lev][index];
-            auto& levels = op.m_levels[lev][index];
-            auto& tiles = op.m_tiles[lev][index];
-            auto& src_indices = op.m_src_indices[lev][index];
-            auto& periodic_shift = op.m_periodic_shift[lev][index];
+            state.op.resize(gid, tid, lev, static_cast<int>(np));
+            auto& boxes = state.op.m_boxes[lev][index];
+            auto& levels = state.op.m_levels[lev][index];
+            auto& tiles = state.op.m_tiles[lev][index];
+            auto& src_indices = state.op.m_src_indices[lev][index];
+            auto& periodic_shift = state.op.m_periodic_shift[lev][index];
             new_size = hostPartitionTile(src_tile,
                                          lev, gid, tid,
                                          lev_min, lev_max, nGrow, local,
@@ -1658,21 +1679,46 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 #endif
     BL_PROFILE_VAR_STOP(blp_partition);
 
-    ParticleCopyPlan plan;
+    // Set up all non-MPI plan state (bucket counts, component masks,
+    // superparticle_size), then post the async handshake and return without
+    // waiting.  buildMPIStartRest is called in Redistribute_finish, so all
+    // containers' handshakes can overlap between _start and _finish.
+    state.plan.buildNonMPI(*this, state.op, h_redistribute_int_comp,
+                           h_redistribute_real_comp, local);
+    state.plan.buildMPIStartHandshake(*this, BufferMap());
+}
 
-    plan.build(*this, op, h_redistribute_int_comp,
-               h_redistribute_real_comp, local);
+// ---------------------------------------------------------------------------
+// Redistribute_finish: complete communication and unpack received particles.
+// ---------------------------------------------------------------------------
+template <typename ParticleType, int NArrayReal, int NArrayInt,
+          template<class> class Allocator, class CellAssignor>
+void
+ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
+::Redistribute_finish ()
+{
+    BL_PROFILE("ParticleContainer::Redistribute_finish()");
 
-    // by default, this uses The_Arena();
-    amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;
-    amrex::PODVector<char, PolymorphicArenaAllocator<char> > rcv_buffer;
+    AMREX_ASSERT(m_redistribute_state != nullptr);
+    auto& state = *m_redistribute_state;
+
+    const int lev_min = state.lev_min;
+    const int lev_max = state.lev_max;
+    const int nGrow   = state.nGrow;
+    const int theEffectiveFinestLevel = state.theEffectiveFinestLevel;
+
+    // Complete the async handshake and exchange metadata byte-counts.
+    // This is where we wait on the Ireduce_scatter (or Win_fence/Irecvs) that
+    // was posted in Redistribute_start, so all containers' handshakes can
+    // overlap between _start and this call.
+    state.plan.buildMPIStartRest(*this, BufferMap(), state.plan.superParticleSize());
 
     if (use_comms_arena) {
-        snd_buffer.setArena(The_Comms_Arena());
-        rcv_buffer.setArena(The_Comms_Arena());
+        state.snd_buffer.setArena(The_Comms_Arena());
+        state.rcv_buffer.setArena(The_Comms_Arena());
     }
 
-    packBuffer(*this, op, plan, snd_buffer);
+    packBuffer(*this, state.op, state.plan, state.snd_buffer);
 
     // clear particles from container
     for (int lev = lev_min; lev <= lev_max; ++lev)
@@ -1684,7 +1730,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int tid = kv.first.second;
             auto index = std::make_pair(gid, tid);
             auto& tile = plev[index];
-            tile.resize(new_sizes[lev][index]);
+            tile.resize(state.new_sizes[lev][index]);
         }
     }
 
@@ -1706,42 +1752,46 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     if (ParallelDescriptor::UseGpuAwareMpi())
     {
-        plan.buildMPIFinish(BufferMap());
-        communicateParticlesStart(*this, plan, snd_buffer, rcv_buffer);
-        this->ReserveForRedistribute(plan);
-        unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
-        communicateParticlesFinish(plan);
-        unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
+        state.plan.buildMPIFinish(BufferMap());
+        communicateParticlesStart(*this, state.plan, state.snd_buffer, state.rcv_buffer);
+        this->ReserveForRedistribute(state.plan);
+        unpackBuffer(*this, state.plan, state.snd_buffer, RedistributeUnpackPolicy());
+        communicateParticlesFinish(state.plan);
+        unpackRemotes(*this, state.plan, state.rcv_buffer, RedistributeUnpackPolicy());
     }
     else
     {
         Gpu::Device::streamSynchronize();
-        Gpu::PinnedVector<char> pinned_snd_buffer;
-        Gpu::PinnedVector<char> pinned_rcv_buffer;
 
-        if (snd_buffer.arena()->isPinned()) {
-            plan.buildMPIFinish(BufferMap());
+        if (state.snd_buffer.arena()->isPinned()) {
+            state.plan.buildMPIFinish(BufferMap());
             Gpu::Device::streamSynchronize();
-            communicateParticlesStart(*this, plan, snd_buffer, pinned_rcv_buffer);
+            communicateParticlesStart(*this, state.plan, state.snd_buffer, state.pinned_rcv_buffer);
         } else {
-            pinned_snd_buffer.resize(snd_buffer.size());
-            Gpu::dtoh_memcpy_async(pinned_snd_buffer.dataPtr(), snd_buffer.dataPtr(), snd_buffer.size());
-            plan.buildMPIFinish(BufferMap());
+            state.pinned_snd_buffer.resize(state.snd_buffer.size());
+            Gpu::dtoh_memcpy_async(state.pinned_snd_buffer.dataPtr(),
+                                   state.snd_buffer.dataPtr(),
+                                   state.snd_buffer.size());
+            state.plan.buildMPIFinish(BufferMap());
             Gpu::Device::streamSynchronize();
-            communicateParticlesStart(*this, plan, pinned_snd_buffer, pinned_rcv_buffer);
+            communicateParticlesStart(*this, state.plan, state.pinned_snd_buffer, state.pinned_rcv_buffer);
         }
 
-        this->ReserveForRedistribute(plan);
+        this->ReserveForRedistribute(state.plan);
 
-        rcv_buffer.resize(pinned_rcv_buffer.size());
-        unpackBuffer(*this, plan, snd_buffer, RedistributeUnpackPolicy());
-        communicateParticlesFinish(plan);
-        Gpu::htod_memcpy_async(rcv_buffer.dataPtr(), pinned_rcv_buffer.dataPtr(), pinned_rcv_buffer.size());
-        unpackRemotes(*this, plan, rcv_buffer, RedistributeUnpackPolicy());
+        state.rcv_buffer.resize(state.pinned_rcv_buffer.size());
+        unpackBuffer(*this, state.plan, state.snd_buffer, RedistributeUnpackPolicy());
+        communicateParticlesFinish(state.plan);
+        Gpu::htod_memcpy_async(state.rcv_buffer.dataPtr(),
+                               state.pinned_rcv_buffer.dataPtr(),
+                               state.pinned_rcv_buffer.size());
+        unpackRemotes(*this, state.plan, state.rcv_buffer, RedistributeUnpackPolicy());
     }
 
     Gpu::Device::streamSynchronize();
     AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, nGrow) == 0);
+
+    m_redistribute_state.reset();
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,

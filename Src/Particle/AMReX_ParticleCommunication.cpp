@@ -53,6 +53,181 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_levs.clear();
 }
 
+void ParticleCopyPlan::buildMPIStartHandshake (const ParticleContainerBase& pc,
+                                               const ParticleBufferMap& map)
+{
+    BL_PROFILE("ParticleCopyPlan::buildMPIStartHandshake");
+
+#ifdef AMREX_USE_MPI
+    const int NProcs = ParallelContext::NProcsSub();
+    const int MyProc = ParallelContext::MyProcSub();
+
+    if (NProcs == 1) { return; }
+
+    m_Snds.assign(NProcs, 0);
+    m_Rcvs.assign(NProcs, 0);
+    m_snd_num_particles.assign(NProcs, 0);
+    m_rcv_num_particles.assign(NProcs, 0);
+    m_snd_data.clear();
+    m_NumSnds = 0;
+
+    for (auto i : m_neighbor_procs)
+    {
+        auto box_buffer_indices = map.allBucketsOnProc(i);
+        Long nbytes = 0;
+        for (auto bucket : box_buffer_indices)
+        {
+            int dst   = map.bucketToGrid(bucket);
+            int tid   = map.bucketToTile(bucket);
+            int lev   = map.bucketToLevel(bucket);
+            AMREX_ASSERT(m_box_counts_h[bucket] <= static_cast<unsigned int>(std::numeric_limits<int>::max()));
+            int npart = static_cast<int>(m_box_counts_h[bucket]);
+            if (npart == 0) { continue; }
+            m_snd_num_particles[i] += npart;
+            if (i == MyProc) { continue; }
+            m_snd_data[i].push_back(npart);
+            m_snd_data[i].push_back(dst);
+            m_snd_data[i].push_back(tid);
+            m_snd_data[i].push_back(lev);
+            m_snd_data[i].push_back(MyProc);
+            nbytes += 5*sizeof(int);
+        }
+        m_Snds[i] = nbytes;
+        m_NumSnds += nbytes;
+    }
+
+    doHandShakeStart(pc, m_Snds);
+#else
+    amrex::ignore_unused(pc, map);
+#endif
+}
+
+void ParticleCopyPlan::buildMPIStartRest (const ParticleContainerBase& pc,
+                                          const ParticleBufferMap& map, Long psize)
+{
+    BL_PROFILE("ParticleCopyPlan::buildMPIStartRest");
+
+#ifdef AMREX_USE_MPI
+    const int NProcs = ParallelContext::NProcsSub();
+    const int MyProc = ParallelContext::MyProcSub();
+    const auto NNeighborProcs = static_cast<int>(m_neighbor_procs.size());
+
+    if (NProcs == 1) { return; }
+
+    doHandShakeFinish(pc, m_Snds, m_Rcvs);
+
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    Long tot_snds_this_proc = 0;
+    Long tot_rcvs_this_proc = 0;
+
+    if (m_local)
+    {
+        for (int i = 0; i < NNeighborProcs; ++i)
+        {
+            tot_snds_this_proc += m_Snds[m_neighbor_procs[i]];
+            tot_rcvs_this_proc += m_Rcvs[m_neighbor_procs[i]];
+        }
+    } else {
+        for (int i = 0; i < NProcs; ++i)
+        {
+            tot_snds_this_proc += m_Snds[i];
+            tot_rcvs_this_proc += m_Rcvs[i];
+        }
+    }
+
+    if ( (tot_snds_this_proc == 0) && (tot_rcvs_this_proc == 0) )
+    {
+        m_nrcvs = 0;
+        m_NumSnds = 0;
+        return;
+    }
+
+    m_RcvProc.resize(0);
+    m_rOffset.resize(0);
+    std::size_t TotRcvBytes = 0;
+    for (auto i : m_neighbor_procs)
+    {
+        if (m_Rcvs[i] > 0)
+        {
+            m_RcvProc.push_back(i);
+            m_rOffset.push_back(TotRcvBytes/sizeof(int));
+            TotRcvBytes += m_Rcvs[i];
+        }
+    }
+
+    m_nrcvs = static_cast<int>(m_RcvProc.size());
+
+    m_build_stats.assign(m_nrcvs, MPI_Status{});
+    m_build_rreqs.assign(m_nrcvs, MPI_REQUEST_NULL);
+    m_rcv_data.resize(TotRcvBytes/sizeof(int));
+
+    for (int i = 0; i < m_nrcvs; ++i)
+    {
+        const auto Who    = m_RcvProc[i];
+        const auto offset = m_rOffset[i];
+        const auto Cnt    = m_Rcvs[Who];
+
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+        AMREX_ASSERT(Who >= 0 && Who < NProcs);
+
+        m_build_rreqs[i] = ParallelDescriptor::Arecv(
+            (char*)(m_rcv_data.dataPtr() + offset), Cnt, Who, SeqNum,
+            ParallelContext::CommunicatorSub()).req();
+    }
+
+    Vector<MPI_Request> snd_reqs;
+    Vector<MPI_Status>  snd_stats;
+    for (auto i : m_neighbor_procs)
+    {
+        if (i == MyProc) { continue; }
+        const auto Cnt = m_Snds[i];
+        if (Cnt == 0) { continue; }
+
+        AMREX_ASSERT(Cnt > 0);
+        AMREX_ASSERT(i >= 0 && i < NProcs);
+        AMREX_ASSERT(Cnt < std::numeric_limits<int>::max());
+
+        snd_reqs.push_back(ParallelDescriptor::Asend(
+            (char*) m_snd_data[i].data(), Cnt, i, SeqNum,
+            ParallelContext::CommunicatorSub()).req());
+    }
+
+    m_snd_counts.resize(0);
+    m_snd_offsets.resize(0);
+    m_snd_pad_correction_h.resize(0);
+
+    m_snd_offsets.push_back(0);
+    m_snd_pad_correction_h.push_back(0);
+    for (int i = 0; i < NProcs; ++i)
+    {
+        Long nbytes = m_snd_num_particles[i]*psize;
+        std::size_t acd = ParallelDescriptor::sizeof_selected_comm_data_type(nbytes);
+        auto Cnt = static_cast<Long>(amrex::aligned_size(acd, nbytes));
+        Long bytes_to_send = (i == MyProc) ? 0 : Cnt;
+        m_snd_counts.push_back(bytes_to_send);
+        m_snd_offsets.push_back(amrex::aligned_size(Arena::align_size,
+                                                    m_snd_offsets.back() + Cnt));
+        m_snd_pad_correction_h.push_back(m_snd_pad_correction_h.back() + nbytes);
+    }
+
+    for (int i = 0; i < NProcs; ++i)
+    {
+        m_snd_pad_correction_h[i] = m_snd_offsets[i] - m_snd_pad_correction_h[i];
+    }
+
+    m_snd_pad_correction_d.resize(m_snd_pad_correction_h.size());
+    Gpu::copy(Gpu::hostToDevice, m_snd_pad_correction_h.begin(), m_snd_pad_correction_h.end(),
+              m_snd_pad_correction_d.begin());
+
+    snd_stats.resize(snd_reqs.size());
+    ParallelDescriptor::Waitall(snd_reqs, snd_stats);
+    m_snd_data.clear();
+#else
+    amrex::ignore_unused(pc, map, psize);
+#endif
+}
+
 void ParticleCopyPlan::buildMPIStart (const ParticleContainerBase& pc, const ParticleBufferMap& map, Long psize) // NOLINT(readability-convert-member-functions-to-static)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStart");
@@ -285,6 +460,25 @@ void ParticleCopyPlan::doHandShake (const ParticleContainerBase& pc,
     }
 }
 
+void ParticleCopyPlan::doHandShakeStart (const ParticleContainerBase& pc,
+                                         const Vector<Long>& Snds)
+{
+    BL_PROFILE("ParticleCopyPlan::doHandShakeStart");
+    if (m_local) { doHandShakeLocalStart(Snds); }
+    else if (m_do_one_sided_comms) { doHandShakeOneSidedStart(pc, Snds); }
+    else { doHandShakeReduceScatterStart(Snds); }
+}
+
+void ParticleCopyPlan::doHandShakeFinish (const ParticleContainerBase& pc,
+                                          const Vector<Long>& Snds,
+                                          Vector<Long>& Rcvs)
+{
+    BL_PROFILE("ParticleCopyPlan::doHandShakeFinish");
+    if (m_local) { doHandShakeLocalFinish(Rcvs); }
+    else if (m_do_one_sided_comms) { doHandShakeOneSidedFinish(pc, Rcvs); }
+    else { doHandShakeReduceScatterFinish(Snds, Rcvs); }
+}
+
 void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>& Rcvs) const // NOLINT(readability-convert-member-functions-to-static)
 {
 #ifdef AMREX_USE_MPI
@@ -326,6 +520,55 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
     }
 #else
     amrex::ignore_unused(Snds,Rcvs);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeLocalStart (const Vector<Long>& Snds)
+{
+#ifdef AMREX_USE_MPI
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    const auto num_neighbors = static_cast<int>(m_neighbor_procs.size());
+
+    m_hs_rreqs.resize(num_neighbors);
+    m_hs_sreqs.resize(num_neighbors);
+    m_hs_rstats.resize(num_neighbors);
+    m_hs_sstats.resize(num_neighbors);
+
+    for (int i = 0; i < num_neighbors; ++i)
+    {
+        const int Who = m_neighbor_procs[i];
+        AMREX_ASSERT(Who >= 0 && Who < ParallelContext::NProcsSub());
+        // receives write directly into m_Rcvs, which is a member
+        m_hs_rreqs[i] = ParallelDescriptor::Arecv(&m_Rcvs[Who], 1, Who, SeqNum,
+                                                    ParallelContext::CommunicatorSub()).req();
+    }
+
+    for (int i = 0; i < num_neighbors; ++i)
+    {
+        const int Who = m_neighbor_procs[i];
+        AMREX_ASSERT(Who >= 0 && Who < ParallelContext::NProcsSub());
+        m_hs_sreqs[i] = ParallelDescriptor::Asend(&Snds[Who], 1, Who, SeqNum,
+                                                    ParallelContext::CommunicatorSub()).req();
+    }
+#else
+    amrex::ignore_unused(Snds);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeLocalFinish (Vector<Long>& /*Rcvs*/)
+{
+#ifdef AMREX_USE_MPI
+    // Results land directly in m_Rcvs via the Arecv in doHandShakeLocalStart;
+    // the Rcvs argument is the same vector and needs no separate copy.
+    if (!m_hs_rreqs.empty())
+    {
+        ParallelDescriptor::Waitall(m_hs_sreqs, m_hs_sstats);
+        ParallelDescriptor::Waitall(m_hs_rreqs, m_hs_rstats);
+    }
+    m_hs_rreqs.clear();
+    m_hs_sreqs.clear();
+    m_hs_rstats.clear();
+    m_hs_sstats.clear();
 #endif
 }
 
@@ -400,6 +643,71 @@ void ParticleCopyPlan::doHandShakeReduceScatter (const Vector<Long>& Snds, Vecto
 #endif
 }
 
+void ParticleCopyPlan::doHandShakeReduceScatterStart (const Vector<Long>& Snds)
+{
+#ifdef AMREX_USE_MPI
+    const int NProcs = ParallelContext::NProcsSub();
+
+    m_snd_connectivity.assign(NProcs, 0);
+    m_rcv_connectivity.assign(NProcs, 1);
+    for (int i = 0; i < NProcs; ++i) { if (Snds[i] > 0) { m_snd_connectivity[i] = 1; } }
+
+    m_num_rcvs_rs = 0;
+    BL_MPI_REQUIRE(MPI_Ireduce_scatter(
+        m_snd_connectivity.data(), &m_num_rcvs_rs,
+        m_rcv_connectivity.data(),
+        ParallelDescriptor::Mpi_typemap<Long>::type(), MPI_SUM,
+        ParallelContext::CommunicatorSub(), &m_reduce_scatter_req));
+#else
+    amrex::ignore_unused(Snds);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeReduceScatterFinish (const Vector<Long>& Snds,
+                                                       Vector<Long>& Rcvs)
+{
+#ifdef AMREX_USE_MPI
+    const int SeqNum = ParallelDescriptor::SeqNum();
+    const int NProcs = ParallelContext::NProcsSub();
+
+    BL_MPI_REQUIRE(MPI_Wait(&m_reduce_scatter_req, MPI_STATUS_IGNORE));
+    m_snd_connectivity.clear();
+    m_rcv_connectivity.clear();
+
+    Long num_rcvs = m_num_rcvs_rs;
+    Vector<Long>        num_bytes_rcv(num_rcvs);
+    Vector<MPI_Request> rreqs(num_rcvs);
+    Vector<MPI_Status>  rstats(num_rcvs);
+    Vector<MPI_Request> sreqs;
+    Vector<MPI_Status>  sstats;
+
+    for (int i = 0; i < static_cast<int>(num_rcvs); ++i)
+    {
+        BL_MPI_REQUIRE(MPI_Irecv(&num_bytes_rcv[i], 1,
+                                  ParallelDescriptor::Mpi_typemap<Long>::type(),
+                                  MPI_ANY_SOURCE, SeqNum,
+                                  ParallelContext::CommunicatorSub(), &rreqs[i]));
+    }
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (Snds[i] == 0) { continue; }
+        sreqs.push_back(ParallelDescriptor::Asend(&Snds[i], 1, i, SeqNum,
+                                                   ParallelContext::CommunicatorSub()).req());
+    }
+
+    sstats.resize(sreqs.size());
+    ParallelDescriptor::Waitall(sreqs, sstats);
+    ParallelDescriptor::Waitall(rreqs, rstats);
+
+    for (int i = 0; i < num_rcvs; ++i)
+    {
+        Rcvs[rstats[i].MPI_SOURCE] = num_bytes_rcv[i];
+    }
+#else
+    amrex::ignore_unused(Snds,Rcvs);
+#endif
+}
+
 void ParticleCopyPlan::doHandShakeOneSided (const ParticleContainerBase& pc,
                                             const Vector<Long>& Snds,
                                             Vector<Long>& Rcvs)
@@ -439,6 +747,50 @@ void ParticleCopyPlan::doHandShakeOneSided (const ParticleContainerBase& pc,
     AMREX_ASSERT(Rcvs[MyProc] == 0);
 #else
     amrex::ignore_unused(pc,Snds,Rcvs);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeOneSidedStart (const ParticleContainerBase& pc,
+                                                  const Vector<Long>& Snds)
+{
+#if defined(AMREX_USE_MPI)
+    const int MyProc = ParallelContext::MyProcSub();
+    const int NProcs = ParallelContext::NProcsSub();
+
+    pc.ensureParticleHandshakeWindow();
+    auto* handshake_buffer = pc.particleHandshakeBuffer();
+    AMREX_ALWAYS_ASSERT(handshake_buffer != nullptr);
+    std::fill_n(handshake_buffer, NProcs, Long(0));
+
+    MPI_Win win = pc.particleHandshakeWindow();
+    BL_MPI_REQUIRE(MPI_Win_fence(0, win));  // open RMA epoch
+
+    for (int i = 0; i < NProcs; ++i)
+    {
+        if (i == MyProc || Snds[i] == 0) { continue; }
+        BL_MPI_REQUIRE(MPI_Put(&Snds[i], 1,
+                                ParallelDescriptor::Mpi_typemap<Long>::type(),
+                                i, MyProc, 1,
+                                ParallelDescriptor::Mpi_typemap<Long>::type(),
+                                win));
+    }
+    // epoch left open; puts are in flight until doHandShakeOneSidedFinish closes it
+#else
+    amrex::ignore_unused(pc, Snds);
+#endif
+}
+
+void ParticleCopyPlan::doHandShakeOneSidedFinish (const ParticleContainerBase& pc,
+                                                   Vector<Long>& Rcvs)
+{
+#if defined(AMREX_USE_MPI)
+    const int NProcs = ParallelContext::NProcsSub();
+    MPI_Win win = pc.particleHandshakeWindow();
+    BL_MPI_REQUIRE(MPI_Win_fence(0, win));  // close epoch; all puts complete
+    std::copy_n(pc.particleHandshakeBuffer(), NProcs, Rcvs.begin());
+    AMREX_ASSERT(Rcvs[ParallelContext::MyProcSub()] == 0);
+#else
+    amrex::ignore_unused(pc, Rcvs);
 #endif
 }
 
