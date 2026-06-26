@@ -66,7 +66,8 @@ void Submit (std::function<void()> const& a_f);
 void Finish ();
 
 /**
- * \brief Within a submitted job, wait for this rank's turn to access the file.
+ * \brief Called inside a submitted user job function to wait for this rank's
+ *        turn to access the file.
  *
  * This is not for waiting for the job to finish; use Finish() for that.
  *
@@ -74,7 +75,8 @@ void Finish ();
  */
 void Wait ();
 /**
- * \brief Within a submitted job, notify the next rank sharing the file that it may proceed.
+ * \brief Called inside a submitted user job function to notify the next rank
+ *        sharing the file that it may proceed.
  * \ingroup amrex_io
  */
 void Notify ();

@@ -18,8 +18,8 @@ namespace amrex {
  * \brief Boundary condition record storing low/high face types per coordinate.
  *
  * `BCRec` has standard layout — this is a deliberate design constraint that
- * must be preserved to keep it safe for host/device transfers and
- * `std::memcpy`-based operations.
+ * must be preserved for compatibility with Fortran code, host/device
+ * transfers, and `std::memcpy`-based operations.
  */
 class BCRec
 {
@@ -136,7 +136,7 @@ public:
     /** \brief Return the high-end boundary code for dimension \p dir. */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     int hi (int dir) const noexcept { return bc[AMREX_SPACEDIM+dir]; }
-    /** \brief Compare two records for identical face assignments. */
+    /** \brief Compare two records for identical boundary condition values. */
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool operator== (const BCRec& rhs) const noexcept {
         bool retval = true;
