@@ -103,7 +103,7 @@ void ParticleCopyPlan::buildMPIStartHandshake (const ParticleContainerBase& pc,
 }
 
 void ParticleCopyPlan::buildMPIStartRest (const ParticleContainerBase& pc,
-                                          const ParticleBufferMap& map, Long psize)
+                                          const ParticleBufferMap& /*map*/, Long psize)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStartRest");
 
@@ -224,7 +224,7 @@ void ParticleCopyPlan::buildMPIStartRest (const ParticleContainerBase& pc,
     ParallelDescriptor::Waitall(snd_reqs, snd_stats);
     m_snd_data.clear();
 #else
-    amrex::ignore_unused(pc, map, psize);
+    amrex::ignore_unused(pc, psize);
 #endif
 }
 
