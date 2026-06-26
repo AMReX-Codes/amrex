@@ -60,9 +60,13 @@ void Sum (Gpu::DeviceVector<T>& v, int root, MPI_Comm comm)
 #if defined(AMREX_USE_MPI) && defined(AMREX_USE_GPU)
     if (!ParallelDescriptor::UseGpuAwareMpi()) {
         Gpu::PinnedVector<T> hv(v.size());
+        // every rank stages its contribution to host for the reduction
         Gpu::copy(Gpu::deviceToHost, v.begin(), v.end(), hv.begin());
         Sum(hv.data(), static_cast<int>(hv.size()), root, comm);
-        Gpu::copy(Gpu::hostToDevice, hv.begin(), hv.end(), v.begin());
+        // only the root receives the reduced result, so only it copies back
+        if (ParallelDescriptor::MyProc(comm) == root) {
+            Gpu::copy(Gpu::hostToDevice, hv.begin(), hv.end(), v.begin());
+        }
         return;
     }
 #endif
@@ -113,9 +117,16 @@ void Bcast (Gpu::DeviceVector<T>& v, int root, MPI_Comm comm)
 #ifdef AMREX_USE_GPU
     if (!UseGpuAwareMpi()) {
         Gpu::PinnedVector<T> hv(n);
-        Gpu::copy(Gpu::deviceToHost, v.begin(), v.end(), hv.begin());
+        const bool is_root = (MyProc(comm) == root);
+        // only the root needs to stage its data to host before the broadcast
+        if (is_root) {
+            Gpu::copy(Gpu::deviceToHost, v.begin(), v.end(), hv.begin());
+        }
         Bcast(hv.data(), static_cast<std::size_t>(n), root, comm);
-        Gpu::copy(Gpu::hostToDevice, hv.begin(), hv.end(), v.begin());
+        // only the receivers need to copy the broadcast result back to device
+        if (!is_root) {
+            Gpu::copy(Gpu::hostToDevice, hv.begin(), hv.end(), v.begin());
+        }
         return;
     }
 #endif
