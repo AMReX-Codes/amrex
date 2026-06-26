@@ -404,6 +404,17 @@ CArena::freeableMemory () const
 }
 
 std::size_t
+CArena::largestFreeBlock () const
+{
+    std::scoped_lock lock(carena_mutex);
+    std::size_t nbytes = 0;
+    for (auto const& free_block : m_freelist) {
+        nbytes = std::max(nbytes, free_block.size());
+    }
+    return nbytes;
+}
+
+std::size_t
 CArena::freeUnused_protected ()
 {
     std::size_t nbytes = 0;

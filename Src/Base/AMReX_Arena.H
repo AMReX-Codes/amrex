@@ -191,6 +191,13 @@ public:
     */
     virtual std::size_t freeUnused () { return 0; }
 
+    /**
+    * \brief Return the largest free memory block already held by this Arena.
+    *
+    * A return value of 0 means this query is not applicable or unknown.
+    */
+    [[nodiscard]] virtual std::size_t largestFreeBlock () const { return 0; }
+
     //! Check whether the memory is accessible on the device. Note that
     //! isDeviceAccessible and isHostAccessible can both be true.
     [[nodiscard]] virtual bool isDeviceAccessible () const;
