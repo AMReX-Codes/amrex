@@ -53,7 +53,7 @@ void ParticleCopyPlan::clear ()
     m_rcv_box_levs.clear();
 }
 
-void ParticleCopyPlan::buildMPIStartHandshake (const ParticleContainerBase& pc,
+void ParticleCopyPlan::buildMPIStartHandshake (const ParticleContainerBase& pc, // NOLINT(readability-convert-member-functions-to-static)
                                                const ParticleBufferMap& map)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStartHandshake");
@@ -102,7 +102,7 @@ void ParticleCopyPlan::buildMPIStartHandshake (const ParticleContainerBase& pc,
 #endif
 }
 
-void ParticleCopyPlan::buildMPIStartRest (const ParticleContainerBase& pc,
+void ParticleCopyPlan::buildMPIStartRest (const ParticleContainerBase& pc, // NOLINT(readability-convert-member-functions-to-static)
                                           const ParticleBufferMap& /*map*/, Long psize)
 {
     BL_PROFILE("ParticleCopyPlan::buildMPIStartRest");
@@ -523,7 +523,7 @@ void ParticleCopyPlan::doHandShakeLocal (const Vector<Long>& Snds, Vector<Long>&
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeLocalStart (const Vector<Long>& Snds)
+void ParticleCopyPlan::doHandShakeLocalStart (const Vector<Long>& Snds) // NOLINT(readability-convert-member-functions-to-static)
 {
 #ifdef AMREX_USE_MPI
     const int SeqNum = ParallelDescriptor::SeqNum();
@@ -643,7 +643,7 @@ void ParticleCopyPlan::doHandShakeReduceScatter (const Vector<Long>& Snds, Vecto
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeReduceScatterStart (const Vector<Long>& Snds)
+void ParticleCopyPlan::doHandShakeReduceScatterStart (const Vector<Long>& Snds) // NOLINT(readability-convert-member-functions-to-static)
 {
 #ifdef AMREX_USE_MPI
     const int NProcs = ParallelContext::NProcsSub();
@@ -663,7 +663,7 @@ void ParticleCopyPlan::doHandShakeReduceScatterStart (const Vector<Long>& Snds)
 #endif
 }
 
-void ParticleCopyPlan::doHandShakeReduceScatterFinish (const Vector<Long>& Snds,
+void ParticleCopyPlan::doHandShakeReduceScatterFinish (const Vector<Long>& Snds, // NOLINT(readability-convert-member-functions-to-static)
                                                        Vector<Long>& Rcvs)
 {
 #ifdef AMREX_USE_MPI
