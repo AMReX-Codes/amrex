@@ -410,7 +410,7 @@ public:
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
                 const Vector<int>& real_comp_mask,
-                int local)
+                IntVect local)
     {
         BL_PROFILE("ParticleCopyPlan::build");
 
@@ -418,8 +418,8 @@ public:
         pp.query("do_one_sided_comms", m_do_one_sided_comms);
           const int num_buckets = pc.BufferMap().numBuckets();
 
-        m_local = local;
-        if (local)
+        m_local = local.allGT(0);
+        if (m_local)
         {
             m_neighbor_procs = pc.NeighborProcs(local);
         }
@@ -505,6 +505,17 @@ public:
                               + num_int_comm_comp  * sizeof(int);
 
         buildMPIStart(pc, pc.BufferMap(), m_superparticle_size);
+    }
+
+    template <class PC>
+    requires (IsParticleContainer<PC>::value)
+    void build (const PC& pc,
+                const ParticleCopyOp& op,
+                const Vector<int>& int_comp_mask,
+                const Vector<int>& real_comp_mask,
+                int local)
+    {
+        build(pc, op, int_comp_mask, real_comp_mask, IntVect(local));
     }
 
     void clear ();

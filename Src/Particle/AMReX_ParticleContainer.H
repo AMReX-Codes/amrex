@@ -504,14 +504,21 @@ public:
     *              redistributed but are not necessarily at the same time as those on the coarse
     *              level.
     *              Default: 0
-    * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
-    *              go to any other box in the simulation. If > 0, this is the maximum number of cells
-    *              a particle can have moved since the last Redistribute() call. Knowing this number
-    *              allows an optimized MPI communication pattern to be used.
+    * \param local If all components are 0, this will be a non-local redistribute, meaning that
+    *              particles can potentially go to any other box in the simulation. Otherwise,
+    *              each component is the maximum number of cells a particle can have moved in
+    *              that direction since the last Redistribute() call. Knowing this allows an
+    *              optimized MPI communication pattern to be used.
     * \param remove_negative If true, remove particles with a negative ID. Default: true.
     */
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                       bool remove_negative=true);
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                       IntVect local=IntVect(0), bool remove_negative=true);
+
+    void Redistribute (int lev_min, int lev_max, int nGrow, int local,
+                       bool remove_negative=true)
+    {
+        Redistribute(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
+    }
 
 
     /**
@@ -1279,11 +1286,23 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                          IntVect local=IntVect(0), bool remove_negative=true);
 
-    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                            bool remove_negative=true);
+    void RedistributeCPU (int lev_min, int lev_max, int nGrow, int local,
+                          bool remove_negative=true)
+    {
+        RedistributeCPU(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
+    }
+
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                            IntVect local=IntVect(0), bool remove_negative=true);
+
+    void Redistribute_impl (int lev_min, int lev_max, int nGrow, int local,
+                            bool remove_negative=true)
+    {
+        Redistribute_impl(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
+    }
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
 
@@ -1548,13 +1567,30 @@ private:
     AMREX_FORCE_INLINE
     int hostPartitionTile (ParticleTileType& src_tile,
                            int lev, int gid, int tid,
-                           int lev_min, int lev_max, int nGrow, int local,
+                           int lev_min, int lev_max, int nGrow, IntVect local,
                            bool remove_negative, int myproc,
                            Gpu::DeviceVector<int>& boxes,
                            Gpu::DeviceVector<int>& levels,
                            Gpu::DeviceVector<int>& tiles,
                            Gpu::DeviceVector<int>& src_indices,
                            Gpu::DeviceVector<IntVect>& periodic_shift);
+
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, int nGrow, int local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift)
+    {
+        return hostPartitionTile(src_tile, lev, gid, tid,
+                                 lev_min, lev_max, nGrow, IntVect(local),
+                                 remove_negative, myproc,
+                                 boxes, levels, tiles, src_indices, periodic_shift);
+    }
 
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,

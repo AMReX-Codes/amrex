@@ -747,6 +747,8 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
 
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, IntVect ngrow);
+
 /// \cond DOXYGEN_IGNORE
 namespace particle_detail
 {

@@ -19,7 +19,7 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev)
     return ref_fac;
 }
 
-Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, IntVect ngrow)
 {
     BL_PROFILE("amrex::computeNeighborProcs");
 
@@ -63,6 +63,11 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
 
     RemoveDuplicates(neighbor_procs);
     return neighbor_procs;
+}
+
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
+{
+    return computeNeighborProcs(a_gdb, IntVect(ngrow));
 }
 }
 
