@@ -94,48 +94,51 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
+/**
+ * \brief Start the lifetime of objects in a preallocated buffer.
+ *
+ * Trivially copyable types (including arithmetic types and simple aggregates)
+ * need no construction — their lifetime begins implicitly once storage is
+ * allocated.  For non-trivially-copyable types, placement-new is called on
+ * each element via AMReX host/device loops so both CPU and GPU resident
+ * buffers are initialized correctly.
+ *
+ * \note In C++23, \c std::is_implicit_lifetime could replace
+ * \c std::is_trivially_copyable for an even more precise condition.
+ */
 template <typename T>
-requires (std::is_arithmetic_v<T>)
-void
-placementNew (T* const /*ptr*/, Long /*n*/)
-{}
-
-template <typename T>
-requires (std::is_trivially_default_constructible_v<T> && !std::is_arithmetic_v<T>)
 void
 placementNew (T* const ptr, Long n)
 {
-    for (Long i = 0; i < n; ++i) {
-        new (ptr+i) T;
+    amrex::ignore_unused(ptr,n);
+    // In C++23, we could switch to std::is_implicit_lifetime_v
+    if constexpr (!std::is_trivially_copyable_v<T>) {
+        AMREX_HOST_DEVICE_FOR_1D ( n, i,
+        {
+            new (ptr+i) T;
+        });
     }
 }
 
+/**
+ * \brief Destroy objects previously constructed via placementNew.
+ *
+ * Trivially destructible types need no destruction — their lifetime ends
+ * implicitly when storage is released.  For non-trivially-destructible types,
+ * the destructor is called on each element via AMReX host/device loops so
+ * both CPU and GPU resident buffers are finalized correctly.
+ */
 template <typename T>
-requires (!std::is_trivially_default_constructible_v<T>)
-void
-placementNew (T* const ptr, Long n)
-{
-    AMREX_HOST_DEVICE_FOR_1D ( n, i,
-    {
-        new (ptr+i) T;
-    });
-}
-
-template <typename T>
-requires (std::is_trivially_destructible_v<T>)
-void
-placementDelete (T* const /*ptr*/, Long /*n*/)
-{}
-
-template <typename T>
-requires (!std::is_trivially_destructible_v<T>)
 void
 placementDelete (T* const ptr, Long n)
 {
-    AMREX_HOST_DEVICE_FOR_1D (n, i,
-    {
-        (ptr+i)->~T();
-    });
+    amrex::ignore_unused(ptr,n);
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+        AMREX_HOST_DEVICE_FOR_1D (n, i,
+        {
+            (ptr+i)->~T();
+        });
+    }
 }
 
 /**
