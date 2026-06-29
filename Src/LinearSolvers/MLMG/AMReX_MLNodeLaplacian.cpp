@@ -86,6 +86,7 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
     m_integral.resize(m_num_amr_levels);
     m_surface_integral.resize(m_num_amr_levels);
     m_eb_vel_dot_n.resize(m_num_amr_levels);
+    m_eb_neumann_flux.resize(m_num_amr_levels);
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
         m_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
@@ -1079,6 +1080,42 @@ MLNodeLaplacian::setEBInflowVelocity (int amrlev, const MultiFab& eb_vel)
                                                     *m_factory[amrlev][0]);
     // Turn on flag for building surface integrals
     m_build_surface_integral = true;
+    m_surface_integral_built = false;
+}
+
+void
+MLNodeLaplacian::setEBInhomogNeumannFlux (int amrlev, const MultiFab& eb_neumann_flux)
+{
+#if (AMREX_SPACEDIM != 2)
+    amrex::ignore_unused(amrlev, eb_neumann_flux);
+    amrex::Abort("MLNodeLaplacian::setEBInhomogNeumannFlux is currently implemented for 2D only");
+#else
+    const int mglev = 0;
+    const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(factory != nullptr,
+        "MLNodeLaplacian::setEBInhomogNeumannFlux requires an EB factory");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(eb_neumann_flux.nComp() >= 1,
+        "MLNodeLaplacian::setEBInhomogNeumannFlux requires at least one component");
+
+    if (m_eb_neumann_flux[amrlev] == nullptr || m_eb_neumann_flux[amrlev]->nComp() != 1) {
+        m_eb_neumann_flux[amrlev] = std::make_unique<MultiFab>(
+            m_grids[amrlev][mglev], m_dmap[amrlev][mglev],
+            1, 1, MFInfo(), *m_factory[amrlev][mglev]);
+    }
+
+    m_eb_neumann_flux[amrlev]->setVal(0.0);
+    m_eb_neumann_flux[amrlev]->ParallelCopy(eb_neumann_flux, 0, 0, 1,
+                                            m_geom[amrlev][mglev].periodicity());
+    m_eb_neumann_flux[amrlev]->FillBoundary(m_geom[amrlev][mglev].periodicity());
+
+    const int ncomp_si = 3;
+    m_surface_integral[amrlev] = std::make_unique<MultiFab>(m_grids[amrlev][0],
+                                                    m_dmap[amrlev][0],
+                                                    ncomp_si, 1, MFInfo(),
+                                                    *m_factory[amrlev][0]);
+    m_build_surface_integral = true;
+    m_surface_integral_built = false;
+#endif
 }
 #endif
 

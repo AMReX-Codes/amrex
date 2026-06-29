@@ -286,7 +286,12 @@ MLNodeLaplacian::compSyncResidualCoarse (MultiFab& sync_resid, const MultiFab& a
 
                         AMREX_HOST_DEVICE_FOR_3D(stbx, i, j, k,
                         {
+#if (AMREX_SPACEDIM == 2)
+                            mlndlap_set_stencil_eb(i, j, k, stenarr, sgarr, cnarr,
+                                                   dxinv, is_rz);
+#else
                             mlndlap_set_stencil_eb(i, j, k, stenarr, sgarr, cnarr, dxinv);
+#endif
                         });
 
                         AMREX_HOST_DEVICE_PARALLEL_FOR_3D(bx, i, j, k,
@@ -627,7 +632,12 @@ MLNodeLaplacian::compSyncResidualFine (MultiFab& sync_resid, const MultiFab& phi
 
                     AMREX_HOST_DEVICE_FOR_3D(stbx, i, j, k,
                     {
+#if (AMREX_SPACEDIM == 2)
+                        mlndlap_set_stencil_eb(i, j, k, stenarr, sgarr, cnarr,
+                                               dxinv, is_rz);
+#else
                         mlndlap_set_stencil_eb(i, j, k, stenarr, sgarr, cnarr, dxinv);
+#endif
                     });
 
                     AMREX_HOST_DEVICE_FOR_3D(gbx, i, j, k,

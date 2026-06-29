@@ -31,8 +31,6 @@ MLNodeLaplacian::buildStencil ()
     const int ncomp_s = (AMREX_SPACEDIM == 2) ? 5 : 9;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM != 1,
                                      "MLNodeLaplacian::buildStencil: 1d not supported");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!m_geom[0][0].IsRZ(),
-                                     "MLNodeLaplacian::buildStencil: cylindrical not supported for RAP");
 
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev)
     {
@@ -56,6 +54,9 @@ MLNodeLaplacian::buildStencil ()
         {
             const Geometry& geom = m_geom[amrlev][0];
             const auto dxinvarr = geom.InvCellSizeArray();
+#if (AMREX_SPACEDIM == 2)
+            const bool is_rz = geom.IsRZ();
+#endif
 
 #ifdef AMREX_USE_EB
             const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
@@ -137,7 +138,13 @@ MLNodeLaplacian::buildStencil ()
 
                             AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                             {
-                                mlndlap_set_stencil_eb(i, j, k, starr, sgarr, cnarr, dxinvarr);
+#if (AMREX_SPACEDIM == 2)
+                                mlndlap_set_stencil_eb(i, j, k, starr, sgarr, cnarr,
+                                                       dxinvarr, is_rz);
+#else
+                                mlndlap_set_stencil_eb(i, j, k, starr, sgarr, cnarr,
+                                                       dxinvarr);
+#endif
                             });
 
                             if (ns_starr) {
@@ -147,7 +154,13 @@ MLNodeLaplacian::buildStencil ()
                                 });
                                 AMREX_HOST_DEVICE_FOR_3D(bx, i, j, k,
                                 {
-                                    mlndlap_set_stencil_eb(i,j,k, ns_starr, sgarr, cnarr, dxinvarr);
+#if (AMREX_SPACEDIM == 2)
+                                    mlndlap_set_stencil_eb(i, j, k, ns_starr, sgarr, cnarr,
+                                                           dxinvarr, is_rz);
+#else
+                                    mlndlap_set_stencil_eb(i, j, k, ns_starr, sgarr, cnarr,
+                                                           dxinvarr);
+#endif
                                 });
                             }
                         }
@@ -175,7 +188,11 @@ MLNodeLaplacian::buildStencil ()
 
                         AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                         {
-                            mlndlap_set_stencil(tbx,starr,sgarr,dxinvarr);
+#if (AMREX_SPACEDIM == 2)
+                            mlndlap_set_stencil(tbx, starr, sgarr, dxinvarr, is_rz);
+#else
+                            mlndlap_set_stencil(tbx, starr, sgarr, dxinvarr);
+#endif
                         });
 
                         if (ns_starr) {
@@ -186,7 +203,11 @@ MLNodeLaplacian::buildStencil ()
 
                             AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( bx, tbx,
                             {
+#if (AMREX_SPACEDIM == 2)
+                                mlndlap_set_stencil(tbx, ns_starr, sgarr, dxinvarr, is_rz);
+#else
                                 mlndlap_set_stencil(tbx, ns_starr, sgarr, dxinvarr);
+#endif
                             });
                         }
                     }

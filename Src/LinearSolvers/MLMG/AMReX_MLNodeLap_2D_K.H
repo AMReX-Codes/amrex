@@ -1414,7 +1414,8 @@ void mlndlap_res_cf_contrib_cs (int i, int j, int, Array4<Real> const& res,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
                           Array4<Real const> const& sigma,
-                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                          bool is_rz = false) noexcept
 {
     Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
@@ -1427,6 +1428,11 @@ void mlndlap_set_stencil (Box const& bx, Array4<Real> const& sten,
         sten(i,j,k,1) = f2xmy*(sigma(i,j-1,k)+sigma(i,j,k));
         sten(i,j,k,2) = fmx2y*(sigma(i-1,j,k)+sigma(i,j,k));
         sten(i,j,k,3) = fxy*sigma(i,j,k);
+        if (is_rz) {
+            Real fp = facy / static_cast<Real>(2*i+1);
+            Real fm = facy / static_cast<Real>(2*i-1);
+            sten(i,j,k,2) += fm*sigma(i-1,j,k) - fp*sigma(i,j,k);
+        }
     });
 }
 
@@ -1883,7 +1889,8 @@ void mlndlap_set_connection (int i, int j, int, Array4<Real> const& conn,
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
                              Array4<Real const> const& sig, Array4<Real const> const& conn,
-                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+                             GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                             bool is_rz = false) noexcept
 {
     Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
     Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
@@ -1893,6 +1900,12 @@ void mlndlap_set_stencil_eb (int i, int j, int, Array4<Real> const& sten,
     sten(i,j,0,2) = Real(2.)*facy*(sig(i-1,j,0)*conn(i-1,j,0,5)+sig(i,j,0)*conn(i,j,0,3))
                             -facx*(sig(i-1,j,0)*conn(i-1,j,0,1)+sig(i,j,0)*conn(i,j,0,1));
     sten(i,j,0,3) = (facx*conn(i,j,0,1)+facy*conn(i,j,0,4))*sig(i,j,0);
+    if (is_rz) {
+        Real fp = facy / static_cast<Real>(2*i+1);
+        Real fm = facy / static_cast<Real>(2*i-1);
+        sten(i,j,0,2) += fm*sig(i-1,j,0)*conn(i-1,j,0,5)
+                       - fp*sig(i  ,j,0)*conn(i  ,j,0,3);
+    }
 }
 
 
@@ -1982,6 +1995,70 @@ void add_eb_flow_contribution (int i, int j, int, Array4<Real> const& rhs,
                                       -Real(2.)*sintg(i  ,j  ,0,i_B_x )
                                       -Real(2.)*sintg(i  ,j  ,0,i_B_y )
                                       +Real(4.)*sintg(i  ,j  ,0,i_B_xy)));
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+Real eb_neumann_surface_term (int i, int j, Real weight,
+                              Array4<Real const> const& bcent,
+                              Array4<Real const> const& eb_neumann_flux,
+                              GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                              GpuArray<Real,AMREX_SPACEDIM> const& problo,
+                              bool is_rz) noexcept
+{
+    if (weight == Real(0.0)) {
+        return Real(0.0);
+    }
+
+    Real metric = Real(1.0);
+    if (is_rz) {
+        metric = problo[0] + (static_cast<Real>(i) + Real(0.5) + bcent(i,j,0,0))*dx[0];
+    }
+
+    return metric * eb_neumann_flux(i,j,0) * weight;
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void add_eb_neumann_contribution (int i, int j, int, Array4<Real> const& rhs,
+                      Array4<int const> const& msk, GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                      GpuArray<Real,AMREX_SPACEDIM> const& dx,
+                      GpuArray<Real,AMREX_SPACEDIM> const& problo,
+                      Array4<Real const> const& bareaarr,
+                      Array4<Real const> const& bcent,
+                      Array4<Real const> const& sintg,
+                      Array4<Real const> const& eb_neumann_flux,
+                      bool is_rz) noexcept
+{
+    using namespace nodelap_detail;
+
+    // eb_neumann_flux is the physical sigma*dphi/dn_EB, with n_EB pointing
+    // from valid cells toward covered cells. RZ metric weighting is applied
+    // here when needed.
+    Real fac_eb = Real(0.25) * dxinv[0];
+
+    if (!msk(i,j,0)) {
+        Real const w_im_jm =          bareaarr(i-1,j-1,0)
+                            + Real(2.)*sintg(i-1,j-1,0,i_B_x )
+                            + Real(2.)*sintg(i-1,j-1,0,i_B_y )
+                            + Real(4.)*sintg(i-1,j-1,0,i_B_xy);
+        Real const w_i_jm  =          bareaarr(i  ,j-1,0)
+                            - Real(2.)*sintg(i  ,j-1,0,i_B_x )
+                            + Real(2.)*sintg(i  ,j-1,0,i_B_y )
+                            - Real(4.)*sintg(i  ,j-1,0,i_B_xy);
+        Real const w_im_j  =          bareaarr(i-1,j  ,0)
+                            + Real(2.)*sintg(i-1,j  ,0,i_B_x )
+                            - Real(2.)*sintg(i-1,j  ,0,i_B_y )
+                            - Real(4.)*sintg(i-1,j  ,0,i_B_xy);
+        Real const w_i_j   =          bareaarr(i  ,j  ,0)
+                            - Real(2.)*sintg(i  ,j  ,0,i_B_x )
+                            - Real(2.)*sintg(i  ,j  ,0,i_B_y )
+                            + Real(4.)*sintg(i  ,j  ,0,i_B_xy);
+
+        rhs(i,j,0) -= fac_eb*(
+           eb_neumann_surface_term(i-1,j-1,w_im_jm,bcent,eb_neumann_flux,dx,problo,is_rz)
+          +eb_neumann_surface_term(i  ,j-1,w_i_jm ,bcent,eb_neumann_flux,dx,problo,is_rz)
+          +eb_neumann_surface_term(i-1,j  ,w_im_j ,bcent,eb_neumann_flux,dx,problo,is_rz)
+          +eb_neumann_surface_term(i  ,j  ,w_i_j  ,bcent,eb_neumann_flux,dx,problo,is_rz));
     }
 }
 

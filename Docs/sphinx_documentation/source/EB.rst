@@ -633,7 +633,7 @@ AMReX supports multi-level
 1) cell-centered solvers with homogeneous Neumann, homogeneous Dirichlet,
 or inhomogeneous Dirichlet boundary conditions on the EB faces, and
 2) nodal solvers with homogeneous Neumann boundary conditions,
-or inflow velocity conditions on the EB faces.
+2D inhomogeneous Neumann data, or inflow velocity conditions on the EB faces.
 
 To use a cell-centered solver with EB, one builds a linear operator
 :cpp:`MLEBABecLap` with :cpp:`EBFArrayBoxFactory` (instead of a :cpp:`MLABecLaplacian`)
@@ -652,6 +652,12 @@ The usage of this EB-specific class is essentially the same as
 :cpp:`MLABecLaplacian`.
 
 The default boundary condition on EB faces is homogeneous Neumann.
+
+For 2D node-based EB solves, :cpp:`MLNodeLaplacian` can set inhomogeneous
+Neumann data on EB faces with :cpp:`setEBInhomogNeumannFlux`. The supplied
+data is the physical flux :math:`\sigma \partial \phi / \partial n_{EB}` at the
+EB surface. In cylindrical RZ solves, the supplied data should not include the
+radial metric factor; the node-based operator applies that factor internally.
 
 To set homogeneous Dirichlet boundary conditions, call
 

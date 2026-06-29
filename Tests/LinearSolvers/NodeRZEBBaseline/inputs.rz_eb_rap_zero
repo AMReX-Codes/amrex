@@ -1,0 +1,17 @@
+mode = rz_eb_rap_zero
+
+n_cell = 32
+max_grid_size = 16
+max_coarsening_level = 100
+min_mg_levels = 4
+
+verbose = 0
+bottom_verbose = 0
+max_iter = 100
+max_fmg_iter = 0
+reltol = 1.e-11
+abstol = 0.0
+
+do_assert = 1
+max_finest_l2 = 1.e-12
+max_finest_linf = 1.e-12

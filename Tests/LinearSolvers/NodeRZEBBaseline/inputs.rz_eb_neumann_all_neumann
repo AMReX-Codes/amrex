@@ -1,0 +1,19 @@
+mode = rz_eb_neumann_all_neumann
+
+n_cell = 32 64 128
+max_grid_size = 16
+max_coarsening_level = 100
+min_mg_levels = 4
+
+verbose = 0
+bottom_verbose = 0
+max_iter = 200
+max_fmg_iter = 0
+reltol = 1.e-11
+abstol = 0.0
+
+do_assert = 1
+min_l2_order = 1.90
+min_linf_order = 1.70
+max_finest_l2 = 5.e-4
+max_finest_linf = 6.e-3
