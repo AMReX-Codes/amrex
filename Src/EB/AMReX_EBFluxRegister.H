@@ -94,6 +94,9 @@ public:
                  const Geometry& fgeom, const Geometry& cgeom,
                  const IntVect& ref_ratio, int fine_lev, int nvar);
 
+    //! Deallocate all data and reset to default-constructed state.
+    void clear ();
+
     using YAFluxRegister::CrseAdd;
     /**
      * \brief Add coarse fluxes for tiles containing cut cells (all components).
