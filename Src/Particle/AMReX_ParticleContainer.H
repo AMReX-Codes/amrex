@@ -504,21 +504,23 @@ public:
     *              redistributed but are not necessarily at the same time as those on the coarse
     *              level.
     *              Default: 0
-    * \param local If all components are 0, this will be a non-local redistribute, meaning that
-    *              particles can potentially go to any other box in the simulation. Otherwise,
-    *              each component is the maximum number of cells a particle can have moved in
-    *              that direction since the last Redistribute() call. Knowing this allows an
-    *              optimized MPI communication pattern to be used.
+    * \param local If 0, this will be a non-local redistribute, meaning that particles can
+    *              potentially go to any other box in the simulation. Otherwise, it is the
+    *              maximum number of cells a particle can have moved since the last
+    *              Redistribute() call, applied uniformly in all directions. Knowing this
+    *              allows an optimized MPI communication pattern to be used.
     * \param remove_negative If true, remove particles with a negative ID. Default: true.
     */
     void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0,
-                       IntVect local=IntVect(0), bool remove_negative=true);
-
-    void Redistribute (int lev_min, int lev_max, int nGrow, int local,
-                       bool remove_negative=true)
+                       int local = 0, bool remove_negative=true)
     {
         Redistribute(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
     }
+
+    //! Like Redistribute(int, int, int, int, bool) but allows specifying a different
+    //! local distance per direction.
+    void Redistribute (int lev_min, int lev_max, int nGrow,
+                       IntVect local, bool remove_negative=true);
 
 
     /**
@@ -1287,22 +1289,22 @@ public:
     }
 
     void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0,
-                          IntVect local=IntVect(0), bool remove_negative=true);
-
-    void RedistributeCPU (int lev_min, int lev_max, int nGrow, int local,
-                          bool remove_negative=true)
+                          int local = 0, bool remove_negative=true)
     {
         RedistributeCPU(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
     }
 
-    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0,
-                            IntVect local=IntVect(0), bool remove_negative=true);
+    void RedistributeCPU (int lev_min, int lev_max, int nGrow,
+                          IntVect local, bool remove_negative=true);
 
-    void Redistribute_impl (int lev_min, int lev_max, int nGrow, int local,
-                            bool remove_negative=true)
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                            int local = 0, bool remove_negative=true)
     {
         Redistribute_impl(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
     }
+
+    void Redistribute_impl (int lev_min, int lev_max, int nGrow,
+                            IntVect local, bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
 

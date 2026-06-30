@@ -350,16 +350,17 @@ public:
     }
 
     void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0,
-                       IntVect local=IntVect(0), bool remove_negative=true)
+                       int local=0, bool remove_negative=true)
     {
         clearNeighbors();
         ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
-    void Redistribute (int lev_min, int lev_max, int nGrow, int local,
-                       bool remove_negative=true)
+    void Redistribute (int lev_min, int lev_max, int nGrow,
+                       IntVect local, bool remove_negative=true)
     {
-        Redistribute(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
+        clearNeighbors();
+        ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
     void RedistributeLocal (bool remove_negative=true)
