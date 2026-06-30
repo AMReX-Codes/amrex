@@ -1288,15 +1288,6 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0,
-                          int local = 0, bool remove_negative=true)
-    {
-        RedistributeCPU(lev_min, lev_max, nGrow, IntVect(local), remove_negative);
-    }
-
-    void RedistributeCPU (int lev_min, int lev_max, int nGrow,
-                          IntVect local, bool remove_negative=true);
-
     void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0,
                             int local = 0, bool remove_negative=true)
     {
