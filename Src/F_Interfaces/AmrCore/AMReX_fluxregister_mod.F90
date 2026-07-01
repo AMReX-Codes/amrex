@@ -142,6 +142,7 @@ contains
     type(amrex_boxarray), intent(in) :: ba
     type(amrex_distromap), intent(in) :: dm
     integer, intent(in) :: ref_ratio, fine_lev, ncomp
+    call amrex_fluxregister_destroy(fr)
     fr%owner = .true.
     fr%flev  = fine_lev
     call amrex_fi_new_fluxregister(fr%p, ba%p, dm%p, ref_ratio, fine_lev, ncomp)
@@ -161,6 +162,7 @@ contains
   subroutine amrex_fluxregister_assign (dst, src)
     class(amrex_fluxregister), intent(inout) :: dst
     type (amrex_fluxregister), intent(in   ) :: src
+    call amrex_fluxregister_destroy(dst)
     dst%owner = .false.
     dst%flev  = src%flev
     dst%p     = src%p

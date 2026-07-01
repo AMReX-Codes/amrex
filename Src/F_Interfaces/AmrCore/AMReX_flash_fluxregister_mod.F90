@@ -173,6 +173,12 @@ module amrex_flash_fluxregister_module
      end subroutine amrex_fi_flash_fluxregister_communicate
   end interface
 
+#ifdef __NVCOMPILER
+  interface amrex_flash_fluxregister_destroy
+     module procedure amrex_flash_fluxregister_destroy
+  end interface amrex_flash_fluxregister_destroy
+#endif
+
 contains
 
   subroutine amrex_flash_fluxregister_build (fr, fba, cba, fdm, cdm, fine_lev, ncomp)
@@ -182,6 +188,7 @@ contains
     type(amrex_distromap), intent(in) :: fdm, cdm
     !
     type(amrex_geometry) :: fgm, cgm
+    call amrex_flash_fluxregister_destroy(fr)
     fr%owner = .true.
     fr%flev  = fine_lev
     fgm = amrex_get_geometry(fine_lev)
@@ -204,6 +211,7 @@ contains
   subroutine amrex_flash_fluxregister_assign (dst, src)
     class(amrex_flash_fluxregister), intent(inout) :: dst
     type (amrex_flash_fluxregister), intent(in   ) :: src
+    call amrex_flash_fluxregister_destroy(dst)
     dst%owner = .false.
     dst%flev  = src%flev
     dst%p     = src%p
