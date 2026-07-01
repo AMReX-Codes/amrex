@@ -738,7 +738,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     }
 
     if(calcMinMax) {
-      CalculateMinMax(mf,0, comm);
+      CalculateMinMax(mf, ParallelDescriptor::IOProcessorNumber(comm), comm);
     }
 }
 
