@@ -871,6 +871,8 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_leve
     // **********************************************************************
 
     auto const& f_levelset = refined_cc_level->m_levelset;
+    // Inherit fine level's distribution mapping so both use same DM
+    m_dmap = refined_cc_level->m_dmap;
     m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
 
     int mvmc_error = 0;
