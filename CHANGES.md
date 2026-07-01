@@ -1,3 +1,69 @@
+# 26.07
+
+ ## Highlights:
+
+  * Parallel Reduce Overloads for `DeviceVector` (#5516)
+    Adds a new header `AMReX_GpuParallelReduce.H` which GPU-overloaded and
+    support for MPIs with and without GPU-awareness (GPU-pointer support) in
+    a safe manner.
+
+  * Remove dual_grid path from particle restart (#5497)
+    See #5496 for more background. It is not clear to me that we need the
+    dual_grid restart option at all. The caller of the restart function
+    should not care what grids are actually stored in the restart file. The
+    restart function should always use whatever grid layout is stored in the
+    checkpoint file to read the particles, but not change the
+    ParticleContainer grids at all. Then, Redistribute() will move the
+    particles to the proper place on the actual grids used by simulation.
+
+  * Added stokes solver (#5512)
+    This new solver solves
+    (\alpha - \eta \nabla^2) \mathbf{u} + \nabla p = \mathbf{f} using FFT.
+    It currently only supports periodic boundaries.
+
+  * Add FFT fast-length helper and pad OpenBC FFT domains (#5494)
+    Add FFT::nextFastLen for choosing 2/3/5/7/11-smooth padded FFT sizes.
+    Use the helper in OpenBCSolver to pad internal doubled convolution
+    domains to fast lengths by default. Add FFT::Info controls to disable or
+    tune OpenBC padding, pass Info through PoissonOpenBC, update docs, and
+    test padded vs. unpadded OpenBC solves.
+
+  * added general divergence preserving interpolation of face centered fields (#5252)
+    The refinement ratio in each direction may be 2 or 4 (for example,
+    `IntVect(2,2,2)` or `IntVect(2,4,4)`).
+
+ ## Other major changes:
+
+  * Fix parser node alignment for 32-bit builds (#5515)
+
+  * Arena: add largest free block query (#5514)
+
+  * CMake Config: NOMPI (#5510)
+
+  * Add support for RZ + EB with sigma MF in `MLEBNodeFDLaplacian` (#5507)
+
+  * Avoid FPE in fcompare when a plot variable is all zeros (#5506)
+
+  * Clang-Tidy: modernize-use-ranges (#5369)
+
+  * MLNodeLaplacian: aniso-sigma support across coarse-fine boundaries (#5500)
+
+  * Reduce2Plane with Guards (#5498)
+
+  * FFT: support R2C on non-cell-centered MultiFabs (#5495)
+
+  * Refactor `call_device` with C++17 Fold Expressions and Fix `launch_global` Declaration Order (#5480)
+
+  * GNU Make: Add USE_LIBCXX flag (#5474)
+
+  * Linear Solver: use the same index space to make factories (#5475)
+
+  * Fix missing k-index in 2D compute_convective_difference (#5469)
+
+  * Fix radial origin in volumeWeightedSum (#5472)
+
+  * OpenMP: tolerate invalid amrex.omp_threads values (#5471)
+
 # 26.06
 
  ## Highlights:
