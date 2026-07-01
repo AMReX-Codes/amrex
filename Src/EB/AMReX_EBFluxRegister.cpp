@@ -73,6 +73,13 @@ EBFluxRegister::defineExtra (const BoxArray& fba, const DistributionMapping& fdm
 }
 
 void
+EBFluxRegister::clear ()
+{
+    m_cfp_inside_mask.clear();
+    YAFluxRegister::clear();
+}
+
+void
 EBFluxRegister::CrseAdd (const MFIter& mfi,
                          const std::array<FArrayBox const*, AMREX_SPACEDIM>& flux,
                          const Real* dx, Real dt,
