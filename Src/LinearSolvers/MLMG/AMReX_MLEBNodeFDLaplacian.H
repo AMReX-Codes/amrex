@@ -12,6 +12,13 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLEBNodeFDLaplacian.H
+ *
+ * Nodal Laplacian with optional embedded boundaries, radial metrics,
+ * and tensor-diagonal conductivity inputs; derived from `MLNodeLinOp`.
+ */
+
 // Although the class has EB in the name, it works for non-EB build too.
 //
 // del dot (sigma grad phi) = rhs, for non-RZ
@@ -23,7 +30,15 @@ namespace amrex {
 //
 // New feature: sigma can also be a single-component cell-centered multifab.
 
-/// \ingroup amrex_eb
+/**
+ * \brief Nodal finite-difference Laplacian with optional embedded boundaries.
+ *
+ * Handles both Cartesian and RZ geometries, supports tensor-diagonal conductivity
+ * (`sigma`) provided either as scalars or MultiFabs, and enforces Dirichlet EB
+ * values when factories expose geometry information.
+ *
+ * \ingroup amrex_eb
+ */
 class MLEBNodeFDLaplacian
     : public MLNodeLinOp
 {
@@ -32,6 +47,7 @@ public:
     MLEBNodeFDLaplacian () = default;
 
 #ifdef AMREX_USE_EB
+    //! Construct directly from EB-aware factories.
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
@@ -39,6 +55,7 @@ public:
                          const Vector<EBFArrayBoxFactory const*>& a_factory);
 #endif
 
+    //! Construct without EB data (works in non-EB builds as well).
     MLEBNodeFDLaplacian (const Vector<Geometry>& a_geom,
                          const Vector<BoxArray>& a_grids,
                          const Vector<DistributionMapping>& a_dmap,
@@ -51,35 +68,62 @@ public:
     MLEBNodeFDLaplacian& operator= (const MLEBNodeFDLaplacian&) = delete;
     MLEBNodeFDLaplacian& operator= (MLEBNodeFDLaplacian&&) = delete;
 
+    //! Assign constant diagonal conductivity tensor `sigma`.
     void setSigma (Array<Real,AMREX_SPACEDIM> const& a_sigma) noexcept;
 
+    //! Provide conductivity as a cell-centered MultiFab on AMR level \p amrlev.
     void setSigma (int amrlev, MultiFab const& a_sigma);
 
+    //! Enable/disable RZ corrections (radial metrics).
     void setRZ (bool flag);
 
+    //! Set the radial `alpha/r^2` term used when RZ is enabled.
     void setAlpha (Real a_alpha);
 
 #ifdef AMREX_USE_EB
 
-    // Phi on EB
+    //! Override phi on embedded boundaries (constant value).
     void setEBDirichlet (Real a_phi_eb);
-    //
+    /**
+     * \brief Override EB Dirichlet values using a coordinate-dependent callable.
+     *
+     * The callable must provide `Real operator()(Real x, Real y, Real z)` (with unused
+     * coordinates ignored in lower dimensions) and returns the desired Dirichlet value.
+     */
     template <typename F>
     requires (IsCallableR<Real,F,AMREX_D_DECL(Real,Real,Real)>::value)
     void setEBDirichlet (F const& f);
 
+    /**
+     * \brief Define the hierarchy using EB factories (captures cut-cell layout).
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    LPInfo overrides.
+     * \param a_factory EB factories per level.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info,
                  const Vector<EBFArrayBoxFactory const*>& a_factory);
 
+    //! EB-aware factory allocator for (\p amrlev,\p mglev).
     [[nodiscard]] std::unique_ptr<FabFactory<FArrayBox> > makeFactory (int amrlev, int mglev) const final;
 
     [[nodiscard]] bool scaleRHS (int amrlev, MultiFab* rhs) const final;
 
 #endif
 
+    /**
+     * \brief Define the hierarchy when embedded boundaries are absent.
+     *
+     * \param a_geom  Per-level geometries.
+     * \param a_grids Per-level grids.
+     * \param a_dmap  Distribution mappings.
+     * \param a_info  Optional LPInfo overrides.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
@@ -87,7 +131,24 @@ public:
 
     [[nodiscard]] std::string name () const override { return std::string("MLEBNodeFDLaplacian"); }
 
+    /**
+     * \brief Restrict nodal data from fine to coarse MG levels.
+     *
+     * \param amrlev AMR level index.
+     * \param cmglev Coarse MG level receiving the restricted data.
+     * \param crse   Destination MultiFab on (\p amrlev,\p cmglev).
+     * \param fine   Source MultiFab on the next finer MG level.
+     */
     void restriction (int amrlev, int cmglev, MultiFab& crse, MultiFab& fine) const final;
+    /**
+     * \brief Add the prolongation of coarse data onto the fine grid
+     * (\p fine += prolong(\p crse)).
+     *
+     * \param amrlev AMR level index.
+     * \param fmglev Fine MG level index.
+     * \param fine   Destination fine MultiFab (updated in place).
+     * \param crse   Source coarse MultiFab.
+     */
     void interpolation (int amrlev, int fmglev, MultiFab& fine, const MultiFab& crse) const final;
 
     [[nodiscard]] bool needsUpdate () const override {
@@ -95,16 +156,35 @@ public:
     }
     void update () override;
 
+    //! Finalize sigma/alpha/EB data prior to invoking MLMG.
     void prepareForSolve () final;
+    //! Apply the nodal operator to \p in and write to \p out.
     void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
+    /**
+     * \brief Perform the nodal smoother on (\p amrlev,\p mglev).
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param sol    Correction updated in place.
+     * \param rhs    Right-hand side.
+     */
     void Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs) const final;
+    //! Divide \p mf by the diagonal of the operator (used by CG-family bottom solvers).
     void normalize (int amrlev, int mglev, MultiFab& mf) const final;
 
+    //! Adjust the residual mask \p resmsk to honor EB Dirichlet nodes (not yet implemented).
     void fixUpResidualMask (int amrlev, iMultiFab& resmsk) final;
 
     [[nodiscard]] bool isSingular (int) const final { return false; }
     [[nodiscard]] bool isBottomSingular () const final { return false; }
 
+    /**
+     * \brief Compute gradients of \p sol into \p grad.
+     *
+     * \param amrlev AMR level index.
+     * \param grad   Destination gradients per direction.
+     * \param sol    Solution supplying nodal values.
+     */
     void compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>& grad,
                    MultiFab& sol, Location /*loc*/) const override;
 
@@ -122,6 +202,7 @@ public:
                   Array4<Real const> const& bfab) const override;
 #endif
 
+    //! Post-process the solution hierarchy.
     void postSolve (Vector<MultiFab*> const& sol) const override;
 
 private:

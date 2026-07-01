@@ -10,9 +10,22 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLPoisson.H
+ *
+ * Cell-centered Laplacian operator ``\nabla^2 \phi``.
+ */
+
 // del dot grad phi
 
-/// \ingroup amrex_solver_mlmg
+/**
+ * \brief Cell-centered Laplacian operator ``\nabla^2 \phi``.
+ *
+ * The class derives from MLCellABecLapT with zero `a` and unit `b`
+ * coefficients.
+ *
+ * \ingroup amrex_solver_mlmg
+ */
 template <typename MF>
 class MLPoissonT
     : public MLCellABecLapT<MF>
@@ -25,12 +38,25 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
+    //! Construct an empty operator; call define() before using it.
     MLPoissonT () = default;
+    /**
+     * \brief Convenience constructor that forwards to define().
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Per-level distribution maps.
+     * \param a_info    Optional LPInfo overrides.
+     * \param a_factory Optional factories per level.
+     */
     MLPoissonT (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
                 const LPInfo& a_info = LPInfo(),
                 const Vector<FabFactory<FAB> const*>& a_factory = {});
+    /**
+     * \brief Convenience constructor with overset-mask support (1 = unknown, 0 = known).
+     */
     MLPoissonT (const Vector<Geometry>& a_geom,
                 const Vector<BoxArray>& a_grids,
                 const Vector<DistributionMapping>& a_dmap,
@@ -44,12 +70,31 @@ public:
     MLPoissonT<MF>& operator= (const MLPoissonT<MF>&) = delete;
     MLPoissonT<MF>& operator= (MLPoissonT<MF>&&) = delete;
 
+    /**
+     * \brief Define the hierarchy for standard cell-centered data.
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    Optional LPInfo overrides.
+     * \param a_factory Optional FAB factories per level.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
+    /**
+     * \brief Define the hierarchy including overset regions.
+     *
+     * \param a_geom         Per-level geometries.
+     * \param a_grids        Per-level grids.
+     * \param a_dmap         Distribution mappings.
+     * \param a_overset_mask Overset masks per AMR level (1=unknown, 0=known).
+     * \param a_info         Optional LPInfo overrides.
+     * \param a_factory      Optional FAB factories per level.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
@@ -57,30 +102,52 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
+    //! Prepare coefficients and singularity flags before entering MLMG.
     void prepareForSolve () final;
+    //! True if the operator is singular on AMR level \p amrlev.
     [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    //! True if the coarsest level is singular (e.g., pure Neumann BCs).
     [[nodiscard]] bool isBottomSingular () const final { return m_is_singular[0]; }
+    //! Apply the discrete Laplacian to \p in at (\p amrlev,\p mglev), storing the result in \p out.
     void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    //! Perform a smoothing sweep on (\p amrlev,\p mglev).  \p redblack selects the red (0) or black (1) half of the grid.
     void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
+    /**
+     * \brief Compute per-face fluxes from \p sol on the tilebox described by
+     * \p mfi and write them to \p flux with location \p loc.
+     */
     void FFlux (int amrlev, const MFIter& mfi,
                         const Array<FAB*,AMREX_SPACEDIM>& flux,
                         const FAB& sol, Location loc, int face_only=0) const final;
 
+    //! Divide \p mf by the diagonal of the operator (used by CG-family bottom solvers).
     void normalize (int amrlev, int mglev, MF& mf) const final;
 
+    //! Return the constant `a` coefficient (identically zero for Poisson).
     [[nodiscard]] RT getAScalar () const final { return RT(0.0); }
+    //! Return the constant `b` coefficient (``-1``, cancelling the minus in the ABec form to give ``\nabla^2``).
     [[nodiscard]] RT getBScalar () const final { return RT(-1.0); }
+    //! Poisson never supplies explicit `a` coefficients, so this always returns `nullptr`.
     [[nodiscard]] MF const* getACoeffs (int /*amrlev*/, int /*mglev*/) const final { return nullptr; }
+    //! Poisson never supplies explicit `b` Multifabs, so this always returns null pointers.
     [[nodiscard]] Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final
         { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
+    //! Build the NSolve counterpart with tile size \p grid_size.
     [[nodiscard]] std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const final;
 
+    //! Report whether this operator has nodal-solve support.
     [[nodiscard]] bool supportNSolve () const final;
 
+    //! Copy an NSolve solution from \p src to \p dst.
     void copyNSolveSolution (MF& dst, MF const& src) const final;
 
-    //! Compute dphi/dn on domain faces after the solver has converged.
+    /**
+     * \brief Compute `dphi/dn` on domain faces after the solve.
+     *
+     * \param dpdn Array of face-centered MultiFabs (one per dimension) per level.
+     * \param phi  Solution from which normal derivatives are extracted.
+     */
     void get_dpdn_on_domain_faces (Array<MF*,AMREX_SPACEDIM> const& dpdn,
                                    MF const& phi);
 
