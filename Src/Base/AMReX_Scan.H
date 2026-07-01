@@ -1134,12 +1134,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
 template <std::integral N, typename T >
 T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
-#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-    // GCC's __cplusplus is not a reliable indication for C++17 support
     std::inclusive_scan(in, in+n, out);
-#else
-    std::partial_sum(in, in+n, out);
-#endif
     return (n > 0) ? out[n-1] : T(0);
 }
 
@@ -1150,13 +1145,7 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
     if (n <= 0) { return 0; }
 
     auto in_last = in[n-1];
-#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-    // GCC's __cplusplus is not a reliable indication for C++17 support
     std::exclusive_scan(in, in+n, out, 0);
-#else
-    out[0] = 0;
-    std::partial_sum(in, in+n-1, out+1);
-#endif
     return in_last + out[n-1];
 }
 
@@ -1177,11 +1166,8 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
-#elif (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-        // GCC's __cplusplus is not a reliable indication for C++17 support
-        return std::inclusive_scan(begin, end, result);
 #else
-        return std::partial_sum(begin, end, result);
+        return std::inclusive_scan(begin, end, result);
 #endif
     }
 
@@ -1196,20 +1182,8 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
-#elif (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-        // GCC's __cplusplus is not a reliable indication for C++17 support
-        return std::exclusive_scan(begin, end, result, 0);
 #else
-        if (begin == end) { return result; }
-
-        typename std::iterator_traits<InIter>::value_type sum = *begin;
-        *result++ = sum - *begin;
-
-        while (++begin != end) {
-            sum = std::move(sum) + *begin;
-            *result++ = sum - *begin;
-        }
-        return ++result;
+        return std::exclusive_scan(begin, end, result, 0);
 #endif
     }
 
