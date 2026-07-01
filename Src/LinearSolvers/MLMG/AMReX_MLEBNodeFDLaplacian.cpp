@@ -272,7 +272,7 @@ MLEBNodeFDLaplacian::prepareForSolve ()
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         for (int mglev = 0; mglev < m_num_mg_levels[amrlev]; ++mglev) {
             const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][mglev].get());
-            if (factory) {
+            if (factory && !factory->isAllRegular()) {
                 auto const& levset_mf = factory->getLevelSet();
                 auto const& levset_ar = levset_mf.const_arrays();
                 auto& dmask_mf = *m_dirichlet_mask[amrlev][mglev];
@@ -685,7 +685,7 @@ MLEBNodeFDLaplacian::compGrad (int amrlev, const Array<MultiFab*,AMREX_SPACEDIM>
                      Array4<Real> const& gpy = grad[1]->array(mfi);,
                      Array4<Real> const& gpz = grad[2]->array(mfi);)
 #ifdef AMREX_USE_EB
-        if (factory) {
+        if (factory && !factory->isAllRegular()) {
             Array4<int const> const& dmarr = dmask.const_array(mfi);
             bool cutfab = edgecent[0] && edgecent[0]->ok(mfi);
             AMREX_D_TERM(Array4<Real const> const& ecx
@@ -772,7 +772,7 @@ MLEBNodeFDLaplacian::postSolve (Vector<MultiFab*> const& sol) const
     for (int amrlev = 0; amrlev < m_num_amr_levels; ++amrlev) {
         const auto phieb = m_s_phi_eb;
         const auto *factory = dynamic_cast<EBFArrayBoxFactory const*>(m_factory[amrlev][0].get());
-        if (!factory) { return; }
+        if (!factory || factory->isAllRegular()) { return; }
         auto const& levset_mf = factory->getLevelSet();
         auto const& levset_ar = levset_mf.const_arrays();
         MultiFab& mf = *sol[amrlev];
