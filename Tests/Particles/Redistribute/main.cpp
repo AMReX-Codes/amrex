@@ -64,7 +64,7 @@ public:
     {
         const int lev_min = 0;
         const int lev_max = finestLevel();
-        const int nGrow = 0;
+        const IntVect nGrow(0);
         const bool local = true;
         const IntVect max_cells_moved(1);
         Redistribute(lev_min, lev_max, nGrow, local, max_cells_moved, remove_neg);

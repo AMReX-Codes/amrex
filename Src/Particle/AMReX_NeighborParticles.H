@@ -356,7 +356,7 @@ public:
         ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
     }
 
-    void Redistribute (int lev_min, int lev_max, int nGrow,
+    void Redistribute (int lev_min, int lev_max, IntVect nGrow,
                        bool local, IntVect max_cells_moved,
                        bool remove_negative=true)
     {
@@ -369,7 +369,7 @@ public:
     {
         const int lev_min = 0;
         const int lev_max = 0;
-        const int nGrow = 0;
+        const IntVect nGrow(0);
         const IntVect local(1);
         clearNeighbors();
         this->Redistribute(lev_min, lev_max, nGrow, true, local, remove_negative);

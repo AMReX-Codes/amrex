@@ -659,7 +659,7 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
                           const GpuArray<int ,AMREX_SPACEDIM>& is_per,
                           int lev, int gid, int tid,
-                          int lev_min, int lev_max, int nGrow, bool remove_negative)
+                          int lev_min, int lev_max, IntVect nGrow, bool remove_negative)
 {
     auto getPID = pmap.getPIDFunctor();
     int pid = ParallelContext::MyProcSub();
