@@ -357,12 +357,12 @@ public:
     }
 
     void Redistribute (int lev_min, int lev_max, int nGrow,
-                       bool local, IntVect local_redistribute_ngrow,
+                       bool local, IntVect max_cells_moved,
                        bool remove_negative=true)
     {
         clearNeighbors();
         ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local,
-                                            local_redistribute_ngrow, remove_negative);
+                                            max_cells_moved, remove_negative);
     }
 
     void RedistributeLocal (bool remove_negative=true)

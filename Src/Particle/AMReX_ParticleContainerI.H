@@ -1237,7 +1237,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Redistribute (int lev_min, int lev_max, int nGrow,
-                bool local, IntVect local_redistribute_ngrow, bool remove_negative)
+                bool local, IntVect max_cells_moved, bool remove_negative)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
 
@@ -1247,7 +1247,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         "runtime real components for positions"
     );
 
-    Redistribute_impl(lev_min, lev_max, nGrow, local, local_redistribute_ngrow,
+    Redistribute_impl(lev_min, lev_max, nGrow, local, max_cells_moved,
                       remove_negative);
 
     BL_PROFILE_SYNC_STOP();
@@ -1443,12 +1443,12 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::Redistribute_impl (int lev_min, int lev_max, int nGrow,
-                     bool local, IntVect local_redistribute_ngrow, bool remove_negative)
+                     bool local, IntVect max_cells_moved, bool remove_negative)
 {
     if (local) {
-        AMREX_ASSERT(local_redistribute_ngrow.allGE(0));
+        AMREX_ASSERT(max_cells_moved.allGE(0));
         AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max,
-                                            local_redistribute_ngrow) == 0);
+                                            max_cells_moved) == 0);
     }
 
     BL_PROFILE("ParticleContainer::Redistribute_impl()");
@@ -1481,7 +1481,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     this->defineBufferMap();
 
 #ifndef AMREX_USE_GPU
-    if (local) { BuildRedistributeMask(0, local_redistribute_ngrow); }
+    if (local) { BuildRedistributeMask(0, max_cells_moved); }
 #else
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
@@ -1668,7 +1668,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ParticleCopyPlan plan;
 
     plan.build(*this, op, h_redistribute_int_comp,
-               h_redistribute_real_comp, local, local_redistribute_ngrow);
+               h_redistribute_real_comp, local, max_cells_moved);
 
     // by default, this uses The_Arena();
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;

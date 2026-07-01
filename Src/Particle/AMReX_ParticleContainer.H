@@ -524,11 +524,11 @@ public:
     //! \param nGrow If particles are within nGrow cells of their current box,
     //!        they will not be moved.
     //! \param local If true, use the local Redistribute algorithm.
-    //! \param local_redistribute_ngrow The maximum number of cells a particle can
+    //! \param max_cells_moved The maximum number of cells a particle can
     //!        have moved since the last Redistribute() call in each direction.
     //! \param remove_negative If true, remove particles with a negative ID.
     void Redistribute (int lev_min, int lev_max, int nGrow,
-                       bool local, IntVect local_redistribute_ngrow,
+                       bool local, IntVect max_cells_moved,
                        bool remove_negative=true);
 
 
@@ -1304,7 +1304,7 @@ public:
     }
 
     void Redistribute_impl (int lev_min, int lev_max, int nGrow,
-                            bool local, IntVect local_redistribute_ngrow,
+                            bool local, IntVect max_cells_moved,
                             bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
