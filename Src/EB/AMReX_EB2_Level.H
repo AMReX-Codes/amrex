@@ -870,9 +870,11 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_leve
     // STEP3: Check multi-cut error
     // **********************************************************************
 
-    auto const& f_levelset = refined_cc_level->m_levelset;
-    // Inherit fine level's distribution mapping so both use same DM
+    // Coarsen grids from refined level to preserve DM compatibility
+    m_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
     m_dmap = refined_cc_level->m_dmap;
+
+    auto const& f_levelset = refined_cc_level->m_levelset;
     m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
 
     int mvmc_error = 0;
@@ -945,7 +947,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_leve
     }
 
     // **********************************************************************
-    // STEP3: Define FC data structures
+    // STEP4: Define FC data structures
     // **********************************************************************
 
     // FC MultiFabs
@@ -979,7 +981,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_leve
     // FillBoundary ?
 
     // **********************************************************************
-    // STEP4: Coarsen from refined CC to FC with staggered averaging
+    // STEP5: Coarsen from refined CC to FC with staggered averaging
     // **********************************************************************
 
     // Fine CC MultiFabs
