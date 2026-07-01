@@ -519,9 +519,14 @@ public:
 
     //! Like Redistribute(int, int, int, int, bool) but separates the local/global
     //! algorithm choice from the per-direction local distance.
+    //! \param lev_min The minimum level to consider.
+    //! \param lev_max The maximum level to consider.
+    //! \param nGrow If particles are within nGrow cells of their current box,
+    //!        they will not be moved.
     //! \param local If true, use the local Redistribute algorithm.
     //! \param local_redistribute_ngrow The maximum number of cells a particle can
     //!        have moved since the last Redistribute() call in each direction.
+    //! \param remove_negative If true, remove particles with a negative ID.
     void Redistribute (int lev_min, int lev_max, int nGrow,
                        bool local, IntVect local_redistribute_ngrow,
                        bool remove_negative=true);
