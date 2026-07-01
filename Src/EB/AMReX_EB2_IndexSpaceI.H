@@ -215,7 +215,7 @@ IndexSpaceImp<G>::buildAllFCData ()
             // For finest level (ilev==0), build transient refined CC
             // For coarser levels, reuse existing finer CC level from hierarchy
             Level const* fine_level = (ilev == 0) ? nullptr : &m_gslevel[ilev-1];
-            m_gslevel[ilev].buildFCData(m_gshop, face_dir, fine_level);
+            m_gslevel[ilev].buildFCData(m_gshop, face_dir, EB2::max_grid_size, fine_level);
         }
     }
 }

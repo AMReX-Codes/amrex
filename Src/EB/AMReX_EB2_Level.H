@@ -302,7 +302,7 @@ public:
     }
 
     //! Build face-centered EB data for face_dir. If fine_level provided, coarsen from it; otherwise build refined CC transiently.
-    void buildFCData (G const& gshop, int face_dir, Level const* fine_level = nullptr);
+    void buildFCData (G const& gshop, int face_dir, int max_grid_size, Level const* fine_level = nullptr);
 
 private:
 
@@ -809,7 +809,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
 
 template <typename G>
 void
-GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_level)
+GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Level const* fine_level)
 {
     BL_PROFILE("EB2::GShopLevel::buildFCData");
 
@@ -839,7 +839,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_leve
         Geometry refined_geom = amrex::refine(m_geom, 2);
         transient_level = std::make_unique<GShopLevel<G>>(
             m_parent, gshop, refined_geom,
-            EB2::max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0);
+            max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0);
 
         if (!transient_level->isOK()) {
             amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
@@ -857,10 +857,11 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, Level const* fine_leve
     const BoxArray& fine_covered_grids = refined_cc_level->m_covered_grids;
     const int coarse_ratio = 2;
     const int min_width = 8;
-    bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
-        && (fine_covered_grids.empty() || fine_covered_grids.coarsenable(coarse_ratio));
 
     // prepareForCoarsening can be called if not coarsenable.
+    // bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
+    //     && (fine_covered_grids.empty() || fine_covered_grids.coarsenable(coarse_ratio));
+    // 
     // if (!coarsenable) {
     //     Level refined_cc_level_2(is, refined_cc_level.m_geom);
     //     refined_cc_level_2.prepareForCoarsening(refined_cc_level, max_grid_size, amrex::scale(m_ngrow,2));
