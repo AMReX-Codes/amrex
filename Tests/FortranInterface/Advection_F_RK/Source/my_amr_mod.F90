@@ -24,13 +24,14 @@ module my_amr_module
   character(len=:), allocatable, save :: check_file
   character(len=:), allocatable, save :: plot_file
   character(len=:), allocatable, save :: restart
+  character(len=:), allocatable, save :: time_integrator
 
   integer, allocatable, save :: stepno(:)
   integer, allocatable, save :: nsubsteps(:)
 
   real(rt), allocatable, save :: dt(:)
 
-  integer, private, parameter :: ncomp = 1, nghost = 0
+  integer, private, parameter :: ncomp = 1, nghost = 3
 
 contains
 
@@ -53,6 +54,8 @@ contains
     allocate(character(len=3)::plot_file)
     plot_file = "plt"
     allocate(character(len=0)::restart)
+    allocate(character(len=3)::time_integrator)
+    time_integrator = "rk3"
 
     ! Read parameters
     call amrex_parmparse_build(pp)
@@ -76,7 +79,15 @@ contains
     call pp%query("verbose", verbose)
     call pp%query("cfl", cfl)
     call pp%query("do_reflux", do_reflux)
+    call pp%query("time_integrator", time_integrator)
     call amrex_parmparse_destroy(pp)
+
+    select case (time_integrator)
+    case ("rk2", "rk3", "rk4")
+       continue
+    case default
+       call amrex_abort("myamr.time_integrator must be rk2, rk3, or rk4")
+    end select
 
     if (.not. amrex_is_all_periodic()) then
        lo_bc = amrex_bc_foextrap
@@ -211,6 +222,7 @@ contains
     call amrex_multifab_destroy(phi_new(lev))
     call amrex_multifab_destroy(phi_old(lev))
     call amrex_fluxregister_destroy(flux_reg(lev))
+    call amrex_fillpatcher_destroy(fillpatcher(lev))
   end subroutine my_clear_level
 
   subroutine my_error_estimate (lev, cp, t, settag, cleartag) bind(c)
