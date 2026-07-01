@@ -410,7 +410,7 @@ public:
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
                 const Vector<int>& real_comp_mask,
-                IntVect local)
+                bool local, IntVect local_redistribute_ngrow)
     {
         BL_PROFILE("ParticleCopyPlan::build");
 
@@ -418,10 +418,11 @@ public:
         pp.query("do_one_sided_comms", m_do_one_sided_comms);
           const int num_buckets = pc.BufferMap().numBuckets();
 
-        m_local = local.allGT(0);
+        AMREX_ASSERT(!local || local_redistribute_ngrow.allGE(0));
+        m_local = local;
         if (m_local)
         {
-            m_neighbor_procs = pc.NeighborProcs(local);
+            m_neighbor_procs = pc.NeighborProcs(local_redistribute_ngrow);
         }
         else
         {
@@ -513,9 +514,21 @@ public:
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
                 const Vector<int>& real_comp_mask,
+                IntVect local_redistribute_ngrow)
+    {
+        build(pc, op, int_comp_mask, real_comp_mask,
+              local_redistribute_ngrow.allGT(0), local_redistribute_ngrow);
+    }
+
+    template <class PC>
+    requires (IsParticleContainer<PC>::value)
+    void build (const PC& pc,
+                const ParticleCopyOp& op,
+                const Vector<int>& int_comp_mask,
+                const Vector<int>& real_comp_mask,
                 int local)
     {
-        build(pc, op, int_comp_mask, real_comp_mask, IntVect(local));
+        build(pc, op, int_comp_mask, real_comp_mask, local > 0, IntVect(local));
     }
 
     void clear ();

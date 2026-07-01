@@ -1236,7 +1236,8 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::Redistribute (int lev_min, int lev_max, int nGrow, IntVect local, bool remove_negative)
+::Redistribute (int lev_min, int lev_max, int nGrow,
+                bool local, IntVect local_redistribute_ngrow, bool remove_negative)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
 
@@ -1246,7 +1247,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         "runtime real components for positions"
     );
 
-    Redistribute_impl(lev_min, lev_max, nGrow, local, remove_negative);
+    Redistribute_impl(lev_min, lev_max, nGrow, local, local_redistribute_ngrow,
+                      remove_negative);
 
     BL_PROFILE_SYNC_STOP();
 }
@@ -1353,7 +1355,7 @@ int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::hostPartitionTile (ParticleTileType& src_tile,
                      int lev, int gid, int tid,
-                     int lev_min, int lev_max, int nGrow, IntVect local,
+                     int lev_min, int lev_max, int nGrow, bool local,
                      bool remove_negative, int myproc,
                      Gpu::DeviceVector<int>& boxes,
                      Gpu::DeviceVector<int>& levels,
@@ -1395,7 +1397,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
 
         // full locate
-        locateParticle(p, pld, lev_min, lev_max, nGrow, local.allGT(0) ? gid : -1);
+        locateParticle(p, pld, lev_min, lev_max, nGrow, local ? gid : -1);
         particlePostLocate(p, pld, lev);
 
         // particle may have been invalidated, so check if we need to remove again.
@@ -1440,9 +1442,14 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::Redistribute_impl (int lev_min, int lev_max, int nGrow, IntVect local, bool remove_negative)
+::Redistribute_impl (int lev_min, int lev_max, int nGrow,
+                     bool local, IntVect local_redistribute_ngrow, bool remove_negative)
 {
-    if (local.allGT(0)) { AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0); }
+    if (local) {
+        AMREX_ASSERT(local_redistribute_ngrow.allGE(0));
+        AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max,
+                                            local_redistribute_ngrow) == 0);
+    }
 
     BL_PROFILE("ParticleContainer::Redistribute_impl()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
@@ -1474,7 +1481,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     this->defineBufferMap();
 
 #ifndef AMREX_USE_GPU
-    if (local.allGT(0)) { BuildRedistributeMask(0, local); }
+    if (local) { BuildRedistributeMask(0, local_redistribute_ngrow); }
 #else
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
@@ -1661,7 +1668,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ParticleCopyPlan plan;
 
     plan.build(*this, op, h_redistribute_int_comp,
-               h_redistribute_real_comp, local);
+               h_redistribute_real_comp, local, local_redistribute_ngrow);
 
     // by default, this uses The_Arena();
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;

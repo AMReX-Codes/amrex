@@ -65,8 +65,9 @@ public:
         const int lev_min = 0;
         const int lev_max = finestLevel();
         const int nGrow = 0;
-        const int local = 1;
-        Redistribute(lev_min, lev_max, nGrow, local, remove_neg);
+        const bool local = true;
+        const IntVect local_redistribute_ngrow(1);
+        Redistribute(lev_min, lev_max, nGrow, local, local_redistribute_ngrow, remove_neg);
     }
 
     void RedistributeGlobal (bool remove_neg=true)

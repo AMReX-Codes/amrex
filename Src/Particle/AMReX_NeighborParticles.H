@@ -357,10 +357,12 @@ public:
     }
 
     void Redistribute (int lev_min, int lev_max, int nGrow,
-                       IntVect local, bool remove_negative=true)
+                       bool local, IntVect local_redistribute_ngrow,
+                       bool remove_negative=true)
     {
         clearNeighbors();
-        ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
+        ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local,
+                                            local_redistribute_ngrow, remove_negative);
     }
 
     void RedistributeLocal (bool remove_negative=true)
@@ -370,7 +372,7 @@ public:
         const int nGrow = 0;
         const IntVect local(1);
         clearNeighbors();
-        this->Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
+        this->Redistribute(lev_min, lev_max, nGrow, true, local, remove_negative);
     }
 
 #ifdef AMREX_USE_GPU
