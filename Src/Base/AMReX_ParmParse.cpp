@@ -284,7 +284,7 @@ eat_garbage (const char*& str, bool* newline_from_comment = nullptr)
             }
             continue;
         }
-        else if ( std::isspace(*str) )
+        else if ( std::isspace(static_cast<unsigned char>(*str)) )
         {
             if (*str == '\n') { ++num_linefeeds; }
             str++;
@@ -398,7 +398,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
                 array_escape = false;
                 state = lexState::ARRAY;
             }
-            else if ( std::isalpha(ch) )
+            else if ( std::isalpha(static_cast<unsigned char>(ch)) )
             {
                 ostr += ch; str++;
                 state = lexState::IDENTIFIER;
@@ -410,11 +410,11 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             }
             break;
         case lexState::IDENTIFIER:
-            if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
+            if ( std::isalnum(static_cast<unsigned char>(ch)) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
             {
                 ostr += ch; str++;
             }
-            else if ( std::isspace(ch) || ch == '=' )
+            else if ( std::isspace(static_cast<unsigned char>(ch)) || ch == '=' )
             {
                 return PType::Defn;
             }
@@ -508,7 +508,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             break;
         }
         case lexState::STRING:
-            if ( std::isspace(ch) || ch == '=' )
+            if ( std::isspace(static_cast<unsigned char>(ch)) || ch == '=' )
             {
                 return PType::Value;
             }
@@ -553,9 +553,9 @@ std::string is_valid_table_key (std::string const& str)
 {
     if (str.size() >= 8 && str.starts_with("$$ARR[") && str.back() == ']') {
         auto key = str.substr(6, str.size()-7);
-        bool r = std::isalpha(key[0]);
+        bool r = std::isalpha(static_cast<unsigned char>(key[0]));
         for (std::size_t i = 1; i < key.size() && r; ++i) {
-            char ch = key[i];
+            auto ch = static_cast<unsigned char>(key[i]);
             r = std::isalnum(ch) || ch == '_' || ch == '.' || ch == '-' || ch == '"';
         }
         if (r) { return key; }
@@ -710,7 +710,7 @@ read_file (const char* fname, ParmParse::Table& tab)
             }
 
             auto r = std::find_if(std::begin(line), std::end(line),
-                                  [](int c) -> bool { return !std::isspace(c); });
+                                  [](unsigned char c) -> bool { return !std::isspace(c); });
             if (fortran_namelist) { // already inside fortran namelist
                 // os_fortran << line << "\n";
                 // pgi and ibm do not like `\n`.  We strip comments for them too.
