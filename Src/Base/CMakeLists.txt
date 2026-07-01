@@ -10,8 +10,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Algorithm.H
        AMReX_Any.H
        AMReX_Array.H
-       AMReX_BlockMutex.H
-       AMReX_BlockMutex.cpp
        AMReX_Enum.H
        AMReX_GpuComplex.H
        AMReX_Order.H
