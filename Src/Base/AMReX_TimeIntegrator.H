@@ -230,7 +230,7 @@ public:
                 stop = true;
             }
 
-            if (m_step_number > 0) {
+            if (m_step_number > start_step) {
                 std::swap(S_old, S_new);
             }
 
