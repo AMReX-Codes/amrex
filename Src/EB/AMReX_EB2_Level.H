@@ -961,19 +961,23 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     auto& fc_edgecent = m_fc_data[face_dir]->m_edgecent_fc;
 
     // Define FC MultiFabs
+    BoxArray fc_grids = amrex::convert(m_grids, IntVect::TheDimensionVector(face_dir));
     const int ng = 2;
-    fc_cellflag.define(m_grids, m_dmap, 1, ng);
-    fc_volfrac.define(m_grids, m_dmap, 1, ng);
-    fc_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
-    fc_bndryarea.define(m_grids, m_dmap, 1, ng);
-    fc_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
-    fc_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
+    fc_cellflag.define(fc_grids, m_dmap, 1, ng);
+    fc_volfrac.define(fc_grids, m_dmap, 1, ng);
+    fc_centroid.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
+    fc_bndryarea.define(fc_grids, m_dmap, 1, ng);
+    fc_bndrycent.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
+    fc_bndrynorm.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        BoxArray faceba = amrex::convert(m_grids, IntVect::TheDimensionVector(idim));
-        fc_areafrac[idim].define(faceba, m_dmap, 1, ng);
-        fc_facecent[idim].define(faceba, m_dmap, AMREX_SPACEDIM-1, ng);
-        IntVect edge_type{1}; edge_type[idim] = 0;
+        fc_areafrac[idim].define(m_grids, m_dmap, 1, ng);
+        fc_facecent[idim].define(m_grids, m_dmap, AMREX_SPACEDIM-1, ng);
+        IntVect edge_type{1,1,1};
+        if (idim != face_dir) {
+            edge_type[face_dir] = 0;
+            edge_type[idim] = 0;
+        }
         fc_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng);
     }
 
