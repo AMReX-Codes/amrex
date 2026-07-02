@@ -35,8 +35,6 @@ namespace amrex
 
 namespace amrex::EB2 {
 
-extern AMREX_EXPORT int max_grid_size;
-
 class IndexSpace;
 template <typename G> class GShopLevel;
 
@@ -853,10 +851,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     // STEP2: Check coarsenable
     // **********************************************************************
 
-    const BoxArray& fine_grids = refined_cc_level->m_grids;
-    const BoxArray& fine_covered_grids = refined_cc_level->m_covered_grids;
-    const int coarse_ratio = 2;
-    const int min_width = 8;
+    // const BoxArray& fine_grids = refined_cc_level->m_grids;
+    // const BoxArray& fine_covered_grids = refined_cc_level->m_covered_grids;
+    // const int coarse_ratio = 2;
+    // const int min_width = 8;
 
     // prepareForCoarsening can be called if not coarsenable.
     // bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
@@ -963,7 +961,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     auto& fc_edgecent = m_fc_data[face_dir]->m_edgecent_fc;
 
     // Define FC MultiFabs
-    const int ng = 0;  // No ghost cells for FC data
+    const int ng = 2;
     fc_cellflag.define(m_grids, m_dmap, 1, ng);
     fc_volfrac.define(m_grids, m_dmap, 1, ng);
     fc_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, ng);
