@@ -1062,6 +1062,7 @@ void
 Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
+    vfrac.setVal(1.0);
     vfrac.ParallelCopy(m_fc_data[face_dir]->m_volfrac_fc, 0, 0, 1, 0, vfrac.nGrow(), geom.periodicity());
 }
 
