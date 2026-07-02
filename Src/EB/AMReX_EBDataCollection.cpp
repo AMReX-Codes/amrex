@@ -102,12 +102,13 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
     // For FC mode, we create new MultiFabs and fill from Level's FC data
     const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
+    const BoxArray& fc_grids = amrex::convert(a_ba, IntVect::TheDimensionVector(face_dir));
 
     if (m_support >= EBSupport::basic)
     {
         AMREX_ALWAYS_ASSERT(!m_ngrow.empty());
 
-        m_cellflags = new FabArray<EBCellFlagFab>(a_ba, a_dm, 1, m_ngrow[0], MFInfo(),
+        m_cellflags = new FabArray<EBCellFlagFab>(fc_grids, a_dm, 1, m_ngrow[0], MFInfo(),
                                                   DefaultFabFactory<EBCellFlagFab>());
         a_level.fillEBCellFlagFC(*m_cellflags, face_dir, m_geom);
 
@@ -121,10 +122,10 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     {
         AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 2) && (m_ngrow[1] <= m_ngrow[0]));
 
-        m_volfrac = new MultiFab(a_ba, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
+        m_volfrac = new MultiFab(fc_grids, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
         a_level.fillVolFracFC(*m_volfrac, face_dir, m_geom);
 
-        m_centroid = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, m_ngrow[1], *m_cellflags);
+        m_centroid = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, m_ngrow[1], *m_cellflags);
         a_level.fillCentroidFC(*m_centroid, face_dir, m_geom);
     }
 
@@ -134,20 +135,23 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
 
         const int ng = m_ngrow[2];
 
-        m_bndrycent = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
+        m_bndrycent = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
         a_level.fillBndryCentFC(*m_bndrycent, face_dir, m_geom);
 
-        m_bndryarea = new MultiCutFab(a_ba, a_dm, 1, ng, *m_cellflags);
+        m_bndryarea = new MultiCutFab(fc_grids, a_dm, 1, ng, *m_cellflags);
         a_level.fillBndryAreaFC(*m_bndryarea, face_dir, m_geom);
 
-        m_bndrynorm = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
+        m_bndrynorm = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
         a_level.fillBndryNormFC(*m_bndrynorm, face_dir, m_geom);
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            const BoxArray& faceba = amrex::convert(a_ba, IntVect::TheDimensionVector(idim));
-            m_areafrac[idim] = new MultiCutFab(faceba, a_dm, 1, ng, *m_cellflags);
-            m_facecent[idim] = new MultiCutFab(faceba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
-            IntVect edge_type{1}; edge_type[idim] = 0;
+            m_areafrac[idim] = new MultiCutFab(a_ba, a_dm, 1, ng, *m_cellflags);
+            m_facecent[idim] = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
+            IntVect edge_type{1};
+            if (idim != face_dir) {
+                edge_type[face_dir] = 0;
+                edge_type[idim] = 0;
+            }
             m_edgecent[idim] = new MultiCutFab(amrex::convert(a_ba, edge_type), a_dm,
                                                1, ng, *m_cellflags);
         }
