@@ -962,7 +962,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
 
     // Define FC MultiFabs
     BoxArray fc_grids = amrex::convert(m_grids, IntVect::TheDimensionVector(face_dir));
-    const int ng = 2;
+    const int ng = 3;
     fc_cellflag.define(fc_grids, m_dmap, 1, ng);
     fc_volfrac.define(fc_grids, m_dmap, 1, ng);
     fc_centroid.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
@@ -973,7 +973,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         fc_areafrac[idim].define(m_grids, m_dmap, 1, ng);
         fc_facecent[idim].define(m_grids, m_dmap, AMREX_SPACEDIM-1, ng);
-        IntVect edge_type{1,1,1};
+        IntVect edge_type{1};
         if (idim != face_dir) {
             edge_type[face_dir] = 0;
             edge_type[idim] = 0;
