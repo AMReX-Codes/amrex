@@ -29,14 +29,14 @@ void setupMF(MultiFab& mf, const int type = 0, const BoxArray& exclude = BoxArra
         {
             Box bx = ba[bid];
 
-            amrex::ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
+            amrex::ParallelForRNG(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k, RandomEngine const& eng) noexcept
             {
                 if (type == 0)
-                    { arr(i,j,k) = amrex::Random()*10; }
+                    { arr(i,j,k) = amrex::Random(eng)*10; }
                 else if (type == 1)
-                    { arr(i,j,k) = double(i)+double(j)+double(k); }
+                    { arr(i,j,k) = Real(i)+Real(j)+Real(k); }
                 else if (type == 2)
-                    { arr(i,j,k) = double(i)*double(i)+double(j)*double(j)+double(k)*double(k); }
+                    { arr(i,j,k) = Real(i)*Real(i)+Real(j)*Real(j)+Real(k)*Real(k); }
             });
         }
     }
@@ -135,12 +135,20 @@ void main_main ()
     int f_offset = 4;
     int nghost_c = 1;
     int nghost_f = 2;
+#ifdef AMREX_USE_FLOAT
+    Real div_tol = 1.e-2f;
+#else
+    Real div_tol = 1.0e-9;
+#endif
+    bool test_pass = true;
 
     amrex::Vector<int> c_lo(AMREX_SPACEDIM,  0);
     amrex::Vector<int> c_hi(AMREX_SPACEDIM, 32);
     amrex::Vector<int> f_lo(AMREX_SPACEDIM, 28);
     amrex::Vector<int> f_hi(AMREX_SPACEDIM,  4);
     int max_grid_size = 64;
+
+    Vector<int> ref_ratio_vec(AMREX_SPACEDIM, 2);
 
     {
         ParmParse pp;
@@ -149,10 +157,28 @@ void main_main ()
         pp.query("max_grid_size", max_grid_size);
         pp.query("nghost_c", nghost_c);
         pp.query("nghost_f", nghost_f);
+        pp.query("div_tol", div_tol);
 
         pp.queryarr("c_hi",  c_hi, 0, AMREX_SPACEDIM);
         pp.queryarr("f_lo",  f_lo, 0, AMREX_SPACEDIM);
         pp.queryarr("f_hi",  f_hi, 0, AMREX_SPACEDIM);
+
+        int n_ref_ratio = pp.countval("ref_ratio");
+        if (n_ref_ratio == 1) {
+            int rr = 0;
+            pp.get("ref_ratio", rr);
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                ref_ratio_vec[i] = rr;
+            }
+        } else if (n_ref_ratio >= AMREX_SPACEDIM) {
+            Vector<int> tmp(n_ref_ratio);
+            pp.getarr("ref_ratio", tmp, 0, n_ref_ratio);
+            for (int i=0; i<AMREX_SPACEDIM; ++i) {
+                ref_ratio_vec[i] = tmp[i];
+            }
+        } else if (n_ref_ratio > 0) {
+            amrex::Abort("ref_ratio must contain either 1 value or >= AMREX_SPACEDIM values");
+        }
 
         if (n_cell != 0)
         {
@@ -165,8 +191,15 @@ void main_main ()
         }
     }
 
+    for (int i = 0; i < AMREX_SPACEDIM; ++i) {
+        if (ref_ratio_vec[i] != 2 && ref_ratio_vec[i] != 4) {
+            amrex::Abort("DivFreePatch requires ref_ratio entries of 2 or 4");
+        }
+    }
+
+    IntVect ratio(ref_ratio_vec);
+
     int ncomp = 1;
-    IntVect ratio{AMREX_D_DECL(2,2,2)};    // For this stencil (octree), always 2.
     IntVect ghost_c{AMREX_D_DECL(nghost_c, nghost_c, nghost_c)};  // For this stencil (octree), need 1 coarse ghost.
     IntVect ghost_f{AMREX_D_DECL(nghost_f, nghost_f, nghost_f)};  // For this stencil (octree), need 1 fine ghost.
     Geometry c_geom, f_geom, f_geom_wghost, f_geom_all, f_geom_partial;
@@ -211,24 +244,24 @@ void main_main ()
 
         RealBox realbox_c    ({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
         RealBox realbox_f_all({AMREX_D_DECL(0.0,0.0,0.0)}, {AMREX_D_DECL(1.0,1.0,1.0)});
-        RealBox realbox_f({AMREX_D_DECL( double(fine_lo[0])   / double(crse_hi[0]+1),
-                                         double(fine_lo[1])   / double(crse_hi[1]+1),
-                                         double(fine_lo[2])   / double(crse_hi[2]+1) )},
-                          {AMREX_D_DECL( double(fine_hi[0]+1) / double(crse_hi[0]+1),
-                                         double(fine_hi[1]+1) / double(crse_hi[1]+1),
-                                         double(fine_hi[2]+1) / double(crse_hi[2]+1) )} );
-        RealBox realbox_fg({AMREX_D_DECL( double(fine_lo[0]-ghost_f[0])   / double(crse_hi[0]+1),
-                                          double(fine_lo[1]-ghost_f[1])   / double(crse_hi[1]+1),
-                                          double(fine_lo[2]-ghost_f[2])   / double(crse_hi[2]+1) )},
-                           {AMREX_D_DECL( double(fine_hi[0]+ghost_f[0]+1) / double(crse_hi[0]+1),
-                                          double(fine_hi[1]+ghost_f[1]+1) / double(crse_hi[1]+1),
-                                          double(fine_hi[2]+ghost_f[1]+1) / double(crse_hi[2]+1) )} );
-        RealBox realbox_fp({AMREX_D_DECL( double(fine_lo_partial[0])   / double (crse_hi[0]+1),
-                                          double(fine_lo_partial[1])   / double (crse_hi[1]+1),
-                                          double(fine_lo_partial[2])   / double (crse_hi[2]+1) )},
-                           {AMREX_D_DECL( double(fine_hi_partial[0]+1) / double (crse_hi[0]+1),
-                                          double(fine_hi_partial[1]+1) / double (crse_hi[1]+1),
-                                          double(fine_hi_partial[2]+1) / double (crse_hi[2]+1) )} );
+        RealBox realbox_f({AMREX_D_DECL( Real(fine_lo[0])   / Real(crse_hi[0]+1),
+                                         Real(fine_lo[1])   / Real(crse_hi[1]+1),
+                                         Real(fine_lo[2])   / Real(crse_hi[2]+1) )},
+                          {AMREX_D_DECL( Real(fine_hi[0]+1) / Real(crse_hi[0]+1),
+                                         Real(fine_hi[1]+1) / Real(crse_hi[1]+1),
+                                         Real(fine_hi[2]+1) / Real(crse_hi[2]+1) )} );
+        RealBox realbox_fg({AMREX_D_DECL( Real(fine_lo[0]-ghost_f[0])   / Real(crse_hi[0]+1),
+                                          Real(fine_lo[1]-ghost_f[1])   / Real(crse_hi[1]+1),
+                                          Real(fine_lo[2]-ghost_f[2])   / Real(crse_hi[2]+1) )},
+                           {AMREX_D_DECL( Real(fine_hi[0]+ghost_f[0]+1) / Real(crse_hi[0]+1),
+                                          Real(fine_hi[1]+ghost_f[1]+1) / Real(crse_hi[1]+1),
+                                          Real(fine_hi[2]+ghost_f[1]+1) / Real(crse_hi[2]+1) )} );
+        RealBox realbox_fp({AMREX_D_DECL( Real(fine_lo_partial[0])   / Real (crse_hi[0]+1),
+                                          Real(fine_lo_partial[1])   / Real (crse_hi[1]+1),
+                                          Real(fine_lo_partial[2])   / Real (crse_hi[2]+1) )},
+                           {AMREX_D_DECL( Real(fine_hi_partial[0]+1) / Real (crse_hi[0]+1),
+                                          Real(fine_hi_partial[1]+1) / Real (crse_hi[1]+1),
+                                          Real(fine_hi_partial[2]+1) / Real (crse_hi[2]+1) )} );
 
         Array<int,AMREX_SPACEDIM> is_periodic{AMREX_D_DECL(0,0,0)};
 
@@ -332,7 +365,7 @@ void main_main ()
 
     amrex::Print() << " Starting InterpFromCoarse. " << '\n';
     {
-        double time = 1;
+        Real time = 1;
         Vector<Real> time_v;
         time_v.push_back(time);
 
@@ -375,11 +408,42 @@ void main_main ()
                               ratio, mapper, bcrec, 0);
     }
 
-    // Check for errors
+    bool any_ratio_ne_two = false;
+    for (int d=0; d<AMREX_SPACEDIM; ++d) {
+        if (ratio[d] != 2) { any_ratio_ne_two = true; break; }
+    }
+
+    if (any_ratio_ne_two) {
+        Array<MultiFab, AMREX_SPACEDIM> averaged_faces;
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            averaged_faces[d].define(c_mf_faces[d].boxArray(),
+                                     c_mf_faces[d].DistributionMap(),
+                                     c_mf_faces[d].nComp(), 0);
+        }
+        Array<const MultiFab*, AMREX_SPACEDIM> fine_face_ptrs
+            {AMREX_D_DECL(&f_mf_faces[0], &f_mf_faces[1], &f_mf_faces[2])};
+        Array<MultiFab*, AMREX_SPACEDIM> avg_face_ptrs
+            {AMREX_D_DECL(&averaged_faces[0], &averaged_faces[1], &averaged_faces[2])};
+        amrex::average_down_faces(fine_face_ptrs, avg_face_ptrs, ratio, 0);
+        for (int d=0; d<AMREX_SPACEDIM; ++d) {
+            MultiFab diff(averaged_faces[d].boxArray(), averaged_faces[d].DistributionMap(), 1, 0);
+            MultiFab::Copy(diff, averaged_faces[d], 0, 0, 1, 0);
+            diff.minus(c_mf_faces[d], 0, 1, 0);
+            diff.abs(0, 1);
+            Real max_face_diff = diff.max(0);
+            amrex::Print() << "Face average diff dir " << d << " = " << max_face_diff << '\n';
+        }
+    }
+
+    bool interp_nan = false;
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces[i].contains_nan()) {
             amrex::Print() << "******** Nans present in fine velocity in dimension " << i << '\n';
+            interp_nan = true;
         }
+    }
+    if (interp_nan) {
+        test_pass = false;
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces[0], std::string("pltfiles/fx"));,
@@ -396,6 +460,8 @@ void main_main ()
     div_fine_wg.ParallelCopy(div_fine, 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fine"));
     amrex::VisMF::Write(div_fine_wg, std::string("pltfiles/finewg"));
+    amrex::Print() << "   max|div_fine| = " << div_fine.norm0(0) << '\n';
+    amrex::Print() << "   max|div_refined_coarse| = " << div_refined_coarse.norm0(0) << '\n';
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
@@ -406,12 +472,19 @@ void main_main ()
                   amrex::VisMF::Write(f_mf_faces_wg[1], std::string("pltfiles/fwgy"));,
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgz"));  );
 
+    Real max_abs_interp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff");
+    Real max_rel_interp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true);
     amrex::Print() << " Max InterpFromCoarse divergence error: absolute         relative\n "
                    << "                                       "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diff")
+                   << max_abs_interp
                    << "  "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << max_rel_interp
                    << '\n';
+
+    if (max_abs_interp > div_tol) {
+        amrex::Print() << "  InterpFromCoarse abs error exceeds tolerance " << div_tol << '\n';
+        test_pass = false;
+    }
 
 // ***************************************************************
 
@@ -509,23 +582,33 @@ void main_main ()
     calcDiv(f_mf_faces, div_fine, f_geom.CellSizeArray());
     amrex::VisMF::Write(div_fine, std::string("pltfiles/fineFP"));
 
+    Real max_abs_fp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP");
+    Real max_rel_fp = MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true);
     amrex::Print() << " Max FillPatchTwoLevels divergence error:  absolute         relative\n "
                    << "                                       "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "diffFP")
+                   << max_abs_fp
                    << "  "
-                   <<MFdiff(div_fine, div_refined_coarse, 0, 1, nghost_f, "", true)
+                   << max_rel_fp
                    << '\n';
+    if (max_abs_fp > div_tol) {
+        amrex::Print() << "  FillPatch abs error exceeds tolerance " << div_tol << '\n';
+        test_pass = false;
+    }
 
     for (int i=0; i<AMREX_SPACEDIM; ++i)
     {
         f_mf_faces_wg[i].ParallelCopy(f_mf_faces[i], 0, 0, 1, ghost_f, IntVect::TheZeroVector());
     }
 
-    // Check for errors
+    bool fp_nan = false;
     for (int i=0; i<AMREX_SPACEDIM; ++i) {
         if (f_mf_faces_wg[i].contains_nan()) {
             amrex::Print() << "******** Nans present in fine velocity after FillPatch (including ghosts)  in dimension " << i << '\n';
+            fp_nan = true;
         }
+    }
+    if (fp_nan) {
+        test_pass = false;
     }
 
     AMREX_D_TERM( amrex::VisMF::Write(f_mf_faces_wg[0], std::string("pltfiles/fwgxFP"));,
@@ -533,5 +616,12 @@ void main_main ()
                   amrex::VisMF::Write(f_mf_faces_wg[2], std::string("pltfiles/fwgzFP"));  );
 
 // ***************************************************************
+
+    if (test_pass) {
+        amrex::Print() << "*** DivFreePatch: PASS (tol = " << div_tol << ")\n";
+    } else {
+        amrex::AllPrint() << "*** DivFreePatch: FAIL (tol = " << div_tol << ")\n";
+        amrex::Abort("DivFreePatch failed");
+    }
 
 }

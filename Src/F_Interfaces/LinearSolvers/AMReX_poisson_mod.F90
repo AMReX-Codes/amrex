@@ -104,6 +104,7 @@ contains
        dm_cp(ilev) = dm(ilev)%p
     end do
 
+    call amrex_poisson_destroy(poisson)
     poisson%owner = .true.
     call amrex_fi_new_poisson(poisson%p, nlevs, gm_cp, ba_cp, dm_cp, imt, iagg, icon, imcl)
   end subroutine amrex_poisson_build

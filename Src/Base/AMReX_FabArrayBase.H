@@ -117,8 +117,7 @@ public:
 
     //! Return local index in the vector of FABs.
     [[nodiscard]] int localindex (int K) const noexcept {
-        auto low
-            = std::lower_bound(indexArray.begin(), indexArray.end(), K);
+        auto low = std::ranges::lower_bound(indexArray, K);
         if (low != indexArray.end() && *low == K) {
             return static_cast<int>(low - indexArray.begin());
         }
@@ -167,7 +166,7 @@ public:
         Long        bytes_hwm{0};
         std::string name;     //!< name of the cache
         explicit CacheStats (std::string  name_)
-            : name(std::move(name_)) {;}
+            : name(std::move(name_)) {}
         void recordBuild () noexcept {
             ++size;
             ++nbuild;

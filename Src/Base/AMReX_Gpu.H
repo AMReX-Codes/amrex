@@ -30,6 +30,7 @@ namespace amrex::Cuda {}
 
 #include <AMReX_GpuAllocators.H>
 #include <AMReX_GpuContainers.H>
+#include <AMReX_GpuParallelReduce.H>
 #include <AMReX_CudaGraph.H>
 
 namespace amrex::Gpu {

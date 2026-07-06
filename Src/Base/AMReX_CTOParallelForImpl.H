@@ -6,7 +6,9 @@
 #include <AMReX_TypeList.H>
 
 #include <array>
+#include <concepts>
 #include <type_traits>
+#include <utility>
 
 /* This header is not for the users to include directly.  It's meant to be
  * included in AMReX_GpuLaunch.H, which has included the headers needed
@@ -73,8 +75,16 @@ namespace detail
         amrex::ignore_unused(found_option);
         AMREX_ASSERT(found_option);
     }
+
+    template <int Begin, int End, int... I>
+    constexpr auto MakeCTOImpl(std::integer_sequence<int, I...>)
+        -> CompileTimeOptions<Begin + I...>;
 }
 /// \endcond
+
+template <int Begin, int End>
+using CTOSeq = decltype(detail::MakeCTOImpl<Begin, End>(
+                            std::make_integer_sequence<int, End - Begin>{}));
 
 /**
  * \brief Compile time optimization of kernels with run time options.
@@ -188,9 +198,8 @@ void AnyCTO ([[maybe_unused]] TypeList<CTOs...> list_of_compile_time_options,
                            std::forward<Fs>(cto_functs)...);
 }
 
-template <int MT, typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
-ParallelFor (TypeList<CTOs...> ctos,
+template <int MT, std::integral T, class F, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              T N, F&& f)
 {
@@ -215,9 +224,8 @@ void ParallelFor (TypeList<CTOs...> ctos,
     );
 }
 
-template <int MT, typename T, class F, int dim, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
-ParallelFor (TypeList<CTOs...> ctos,
+template <int MT, std::integral T, class F, int dim, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& runtime_options,
              BoxND<dim> const& box, T ncomp, F&& f)
 {
@@ -273,9 +281,8 @@ ParallelFor (TypeList<CTOs...> ctos,
  * \param N      an integer specifying the 1D for loop's range.
  * \param f      a callable object taking an integer and working on that iteration.
  */
-template <typename T, class F, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
-ParallelFor (TypeList<CTOs...> ctos,
+template <std::integral T, class F, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              T N, F&& f)
 {
@@ -381,9 +388,8 @@ void ParallelFor (TypeList<CTOs...> ctos,
  * \param ncomp  an integer specifying the range for iteration over components.
  * \param f      a callable object taking three integers and working on the given cell.
  */
-template <typename T, class F, int dim, typename... CTOs>
-std::enable_if_t<std::is_integral_v<T>>
-ParallelFor (TypeList<CTOs...> ctos,
+template <std::integral T, class F, int dim, typename... CTOs>
+void ParallelFor (TypeList<CTOs...> ctos,
              std::array<int,sizeof...(CTOs)> const& option,
              BoxND<dim> const& box, T ncomp, F&& f)
 {

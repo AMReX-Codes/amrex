@@ -2,6 +2,11 @@
 #define AMREX_ARENA_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Arena.H
+ * \brief Memory arena base class and global arena accessors.
+ */
+
 #include <AMReX_BLassert.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_USE_GPU
@@ -27,15 +32,16 @@ namespace amrex {
 namespace amrex {
 
 /**
- * \brief Given a minimum required size in bytes, this returns the smallest
- * size greater or equal to `size` that is a multiple of `align_requirement`.
+ * \ingroup amrex_memory
+ * \brief Return the smallest multiple of \p align_requirement that is >= \p size.
  */
 inline std::size_t aligned_size (std::size_t align_requirement, std::size_t size) noexcept
 {
     return ((size + (align_requirement-1)) / align_requirement) * align_requirement;
 }
 
-//! Return whether the address `p` is aligned to `alignment` bytes.
+/// \ingroup amrex_memory
+//! Return whether the address \p p is aligned to \p alignment bytes.
 inline bool is_aligned (const void* p, std::size_t alignment) noexcept
 {
     auto* q = const_cast<void*>(p);
@@ -57,7 +63,7 @@ Arena* The_Async_Arena ();
 Arena* The_Device_Arena ();
 //! \ingroup amrex_memory
 //! Return a pointer to `The_Managed_Arena`, the GPU managed memory
-//! arena. It maby be and alias to The_Arena.
+//! arena. It may be an alias to The_Arena.
 Arena* The_Managed_Arena ();
 //! \ingroup amrex_memory
 //! Return a pointer to `The_Pinned_Arena`, the pinned memory arena.
@@ -75,39 +81,51 @@ Arena* The_Cpu_Arena ();
 //! because C++ teardown order can destroy the null arena before they run.
 Arena* The_Null_Arena ();
 
+/**
+ * \ingroup amrex_memory
+ * \brief Configuration options for constructing an Arena.
+ *
+ * Uses a builder pattern: each setter returns \c *this to allow chaining.
+ */
 struct ArenaInfo
 {
-    Long release_threshold = std::numeric_limits<Long>::max();
-    bool use_cpu_memory = false;
-    bool device_use_managed_memory = true;
-    bool device_set_readonly = false;
-    bool device_set_preferred = false;
-    bool device_use_hostalloc = false;
-    bool defragmentation = false;
+    Long release_threshold = std::numeric_limits<Long>::max(); ///< When usage would exceed this, cached unused blocks are released first.
+    bool use_cpu_memory = false;              ///< Allocate CPU (host) memory instead of GPU memory.
+    bool device_use_managed_memory = true;    ///< Use CUDA/HIP managed (unified) memory for GPU allocations.
+    bool device_set_readonly = false;         ///< Advise the runtime that the managed memory is read-only on the device.
+    bool device_set_preferred = false;        ///< Advise the runtime to prefer the device for managed memory.
+    bool device_use_hostalloc = false;        ///< Use host-pinned memory (cudaMallocHost/hipHostMalloc).
+    bool defragmentation = false;             ///< Enable defragmentation in the arena.
+    //! Set the usage threshold that triggers release of cached unused blocks before growing.
     ArenaInfo& SetReleaseThreshold (Long rt) noexcept {
         release_threshold = rt;
         return *this;
     }
+    //! Configure the arena to use non-managed GPU device memory.
     ArenaInfo& SetDeviceMemory () noexcept {
         device_use_managed_memory = false;
         device_use_hostalloc = false;
         return *this;
     }
+    //! Advise the runtime that the managed memory will be read-only on the device.
     ArenaInfo& SetReadOnly () noexcept {
         BL_ASSERT(device_use_managed_memory);
         device_set_readonly = true;
         return *this;
     }
+    //! Advise the runtime to prefer device residence for the managed memory.
     ArenaInfo& SetPreferred () noexcept {
         BL_ASSERT(device_use_managed_memory);
         device_set_preferred = true;
         return *this;
     }
+    //! Configure the arena to use host-pinned memory.
     ArenaInfo& SetHostAlloc () noexcept {
         device_use_hostalloc = true;
         device_use_managed_memory = false;
         return *this;
     }
+    //! Configure the arena to use CPU (host) memory.
     ArenaInfo& SetCpuMemory () noexcept {
         use_cpu_memory = true;
         device_use_managed_memory = false;
@@ -116,6 +134,7 @@ struct ArenaInfo
         device_use_hostalloc = false;
         return *this;
     }
+    //! Enable or disable defragmentation in the arena.
     ArenaInfo& SetDefragmentation (bool b) noexcept {
         defragmentation = b;
         return *this;
@@ -123,11 +142,13 @@ struct ArenaInfo
 };
 
 /**
-* \ingroup amrex_memory
-* \brief
-* A virtual base class for objects that manage their own dynamic
-* memory allocation.
-*/
+ * \class amrex::Arena
+ * \ingroup amrex_memory
+ * \brief Abstract base class for memory arenas.
+ *
+ * Subclasses manage a pool of memory (CPU, GPU device, managed, or pinned)
+ * and expose alloc()/free() for raw byte allocation and deallocation.
+ */
 class Arena
 {
 public:
@@ -141,55 +162,68 @@ public:
     Arena& operator= (Arena&& rhs) = delete;
 
     /**
-    * Allocate a dynamic memory arena
-    * \param sz size of the memory request
-    * \return a pointer to the allocated memory
-    */
+     * \brief Allocate \p sz bytes from this arena.
+     * \param sz Number of bytes to allocate.
+     * \return Pointer to the allocated memory.
+     */
     [[nodiscard]] virtual void* alloc (std::size_t sz) = 0;
 
     /**
-     * \brief Allocate memory in-place if possible
+     * \brief Allocate memory in-place if possible.
      *
      * In this implementation of the virtual function, a new allocation is
      * always performed, and it returns the new pointer and allocation size.
-     *
      * Note that this function does NOT free the existing allocation. So
      * it's the caller's responsibility to free the original pointer when
      * appropriate.
+     *
+     * \param pt Existing allocation to be reused when possible.
+     * \param szmin Minimum acceptable size for reusing \p pt in place.
+     * \param szmax Requested size for the returned allocation.
+     * \return Pointer/size pair describing the resulting allocation.
      */
     [[nodiscard]] virtual std::pair<void*,std::size_t>
-    alloc_in_place (void* /*pt*/, std::size_t /*szmin*/, std::size_t szmax)
+    alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
     {
+        ignore_unused(pt, szmin);
         auto* p = alloc(szmax);
         return std::make_pair(p, szmax);
     }
 
     /**
-     * \brief Shrink allocation size in-place
+     * \brief Shrink allocation size in-place.
      *
      * In this implementation of the virtual function, a new allocation is
-     * always performed, and it returns the new pointer.
+     * always performed, and it returns the new pointer. Note that this
+     * function does NOT free the existing allocation, so it's the caller's
+     * responsibility to free the original pointer when appropriate.
      *
-     * Note that this function does NOT free the existing allocation. So
-     * it's the caller's responsibility to free the original pointer when
-     * appropriate.
+     * \param pt Existing allocation to be shrunk.
+     * \param sz Target size for the new allocation.
+     * \return Pointer to the resized allocation.
      */
     [[nodiscard]] virtual void*
-    shrink_in_place (void* /*pt*/, std::size_t sz)
+    shrink_in_place (void* pt, std::size_t sz)
     {
+        ignore_unused(pt);
         return alloc(sz);
     }
 
-    /**
-    * \brief A pure virtual function for deleting the arena pointed to by pt
-    */
+    //! Free a previously allocated block pointed to by \p pt.
     virtual void free (void* pt) = 0;
 
     /**
-    * \brief Free unused memory back to the system.  Return value is the
-    * amount memory freed.
-    */
+     * \brief Release unused cached memory back to the system.
+     * \return Number of bytes freed.
+     */
     virtual std::size_t freeUnused () { return 0; }
+
+    /**
+    * \brief Return the largest free memory block already held by this Arena.
+    *
+    * A return value of 0 means this query is not applicable or unknown.
+    */
+    [[nodiscard]] virtual std::size_t largestFreeBlock () const { return 0; }
 
     //! Check whether the memory is accessible on the device. Note that
     //! isDeviceAccessible and isHostAccessible can both be true.
@@ -231,6 +265,7 @@ public:
      * much memory?  For CPU builds, this always return true.  This is not a
      * const function because it may attempt to release memory back to the
      * system.
+     * \param sz Requested allocation size in bytes.
      */
     [[nodiscard]] virtual bool hasFreeDeviceMemory (std::size_t sz);
 
@@ -253,12 +288,15 @@ public:
 #endif
 
     /**
-    * \brief Given a minimum required arena size of sz bytes, this returns
-    * the next largest arena size that will align to align_size bytes
-    */
+     * \brief Return the smallest multiple of Arena::align_size that is >= \p sz bytes.
+     */
     static std::size_t align (std::size_t sz);
 
-    static void Initialize (bool minimal); ///< Used internally by amrex
+    /**
+     * \brief Initialize the Arena subsystem (used internally by AMReX).
+     * \param minimal When true, perform only the minimal setup required.
+     */
+    static void Initialize (bool minimal);
 
     /**
      * \brief Print memory usage information of all arenas
@@ -270,7 +308,7 @@ public:
      *
      * Depending on the value of `print_max_usage`, the function prints
      * either the current memory usage (when false) or the maximum memory
-     * usage recoreded (when true).
+     * usage recorded (when true).
      *
      * \param print_max_usage whether to print the maximum usage or the
      *        current usage
@@ -338,6 +376,7 @@ protected:
     static void out_of_memory_abort (std::string const& memory_type, std::size_t nbytes,
                                      std::string const& error_msg);
 
+    /// \cond DOXYGEN_IGNORE
     struct ArenaProfiler {
         //! If this arena is profiled by TinyProfiler
         bool m_do_profiling = false;
@@ -360,6 +399,7 @@ protected:
         void profile_free (void* ptr);
 
     } m_profiler;
+    /// \endcond
 };
 
 }

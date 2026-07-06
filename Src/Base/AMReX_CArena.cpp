@@ -404,28 +404,36 @@ CArena::freeableMemory () const
 }
 
 std::size_t
+CArena::largestFreeBlock () const
+{
+    std::scoped_lock lock(carena_mutex);
+    std::size_t nbytes = 0;
+    for (auto const& free_block : m_freelist) {
+        nbytes = std::max(nbytes, free_block.size());
+    }
+    return nbytes;
+}
+
+std::size_t
 CArena::freeUnused_protected ()
 {
     std::size_t nbytes = 0;
     std::vector<std::pair<void*, std::size_t>> to_free{};
-    m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
-                                 [&nbytes,&to_free,this] (std::pair<void*,std::size_t> a)
-                                 {
-                                     // We cannot simply use std::set::erase because
-                                     // Node::operator== only compares the starting address.
-                                     auto it = m_freelist.find(Node(a.first,nullptr,0));
-                                     if (it != m_freelist.end() &&
-                                         it->owner() == a.first &&
-                                         it->size()  == a.second)
-                                     {
-                                         it = m_freelist.erase(it);
-                                         nbytes += a.second;
-                                         to_free.emplace_back(a.first, a.second);
-                                         return true;
-                                     }
-                                     return false;
-                                 }),
-                  m_alloc.end());
+    std::erase_if(m_alloc, [&nbytes,&to_free,this] (std::pair<void*,std::size_t> a) {
+        // We cannot simply use std::set::erase because
+        // Node::operator== only compares the starting address.
+        auto it = m_freelist.find(Node(a.first,nullptr,0));
+        if (it != m_freelist.end() &&
+            it->owner() == a.first &&
+            it->size()  == a.second)
+        {
+            it = m_freelist.erase(it);
+            nbytes += a.second;
+            to_free.emplace_back(a.first, a.second);
+            return true;
+        }
+        return false;
+    });
     m_used -= nbytes;
 
     // deallocate_system can call cudafree which may perform implicit synchronization

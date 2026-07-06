@@ -237,9 +237,9 @@ struct ParticleTileData
         }
     }
 
-    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
+        requires (!ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -267,9 +267,9 @@ struct ParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType, std::enable_if_t<T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
+        requires (ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -284,9 +284,9 @@ struct ParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+        requires (!ParticleType::is_soa_particle)
     {
         for (int i = 0; i < AMREX_SPACEDIM; ++i) {
             m_aos[index].pos(i) = sp.pos(i);
@@ -307,9 +307,9 @@ struct ParticleTileData
         }
     }
 
-    template <typename T = ParticleType, std::enable_if_t<T::is_soa_particle, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void setSuperParticle (const SuperParticleType& sp, int index) const noexcept
+        requires (ParticleType::is_soa_particle)
     {
         m_idcpu[index] = sp.m_idcpu;
         for (int i = 0; i < NAR; ++i) {
@@ -664,9 +664,9 @@ struct ConstParticleTileData
         }
     }
 
-    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
+        requires (!ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -694,9 +694,9 @@ struct ConstParticleTileData
         return sp;
     }
 
-    template <typename T = ParticleType, std::enable_if_t<T::is_soa_particle, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     SuperParticleType getSuperParticle (int index) const noexcept
+        requires (ParticleType::is_soa_particle)
     {
         AMREX_ASSERT(index < m_size);
         SuperParticleType sp;
@@ -1032,8 +1032,8 @@ struct ParticleTile
     ///
     /// Add one particle to this tile.
     ///
-    template <typename T = ParticleType, std::enable_if_t<!T::is_soa_particle, int> = 0>
     void push_back (const ParticleType& p)
+        requires (!ParticleType::is_soa_particle)
     {
         invalidateRuntimePtrCaches();
         m_aos_tile().push_back(p);
@@ -1042,9 +1042,8 @@ struct ParticleTile
     ///
     /// Add one particle to this tile.
     ///
-    template < int NR = NArrayReal, int NI = NArrayInt,
-               std::enable_if_t<NR != 0 || NI != 0, int> foo = 0>
     void push_back (const SuperParticleType& sp)
+        requires (NArrayReal != 0 || NArrayInt != 0)
     {
         invalidateRuntimePtrCaches();
         auto np = numParticles();
@@ -1379,19 +1378,19 @@ struct ParticleTile
                 }
             }
 
-            std::sort(pvs.begin(), pvs.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(pvs, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });
-            std::sort(ids.begin(), ids.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(ids, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });
-            std::sort(rvs.begin(), rvs.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(rvs, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });
-            std::sort(ivs.begin(), ivs.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(ivs, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });

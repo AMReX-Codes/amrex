@@ -8,7 +8,15 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLALaplacian.H
+ *
+ * Multi-component cell-centered operator ``a \phi - b \nabla^2 \phi``
+ * on an AMR hierarchy.
+ */
+
 template <typename MF>
+/// \brief Multi-component ALaplacian (`a` scalar plus optional spatial `a` coeffs).
 class MLALaplacianT
     : public MLCellABecLapT<MF>
 {
@@ -20,7 +28,18 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
+    //! Construct an empty operator; call define() before use.
     MLALaplacianT () = default;
+    /**
+     * \brief Convenience constructor that forwards to define().
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    Optional LPInfo overrides.
+     * \param a_factory Optional FAB factories per level.
+     * \param a_ncomp   Number of components handled by the operator.
+     */
     MLALaplacianT (const Vector<Geometry>& a_geom,
                    const Vector<BoxArray>& a_grids,
                    const Vector<DistributionMapping>& a_dmap,
@@ -34,13 +53,29 @@ public:
     MLALaplacianT<MF>& operator= (const MLALaplacianT<MF>&) = delete;
     MLALaplacianT<MF>& operator= (MLALaplacianT<MF>&&) = delete;
 
+    /**
+     * \brief Bind the operator to an AMR hierarchy (no overset support).
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    Optional LPInfo overrides.
+     * \param a_factory Optional FAB factories per level.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
+    /**
+     * \brief Set constant scalars `a` and `b` in ``a \phi - b \nabla^2 \phi``.
+     *
+     * \param a Coefficient scaling the zero-th order term.
+     * \param b Coefficient scaling the Laplacian term.
+     */
     void setScalars (RT a, RT b) noexcept;
+    //! Provide per-cell `a` coefficients on AMR level \p amrlev (stored directly in \p alpha).
     void setACoeffs (int amrlev, const MF& alpha);
 
     [[nodiscard]] int getNComp () const override { return m_ncomp; }
@@ -50,22 +85,37 @@ public:
     }
     void update () override;
 
+    //! Complete per-level setup (averaging, singularity flags) before solving.
     void prepareForSolve () final;
+    //! True if level \p amrlev is singular.
     [[nodiscard]] bool isSingular (int amrlev) const final { return m_is_singular[amrlev]; }
+    //! Shortcut for the coarsest level singular flag.
     [[nodiscard]] bool isBottomSingular () const final { return m_is_singular[0]; }
+    //! Apply the ALaplacian to \p in (writing \p out) on (\p amrlev,\p mglev).
     void Fapply (int amrlev, int mglev, MF& out, const MF& in) const final;
+    //! Run a smoothing sweep on (\p amrlev,\p mglev).  \p redblack selects the red (0) or black (1) half of the grid.
     void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const final;
+    /**
+     * \brief Produce face fluxes on AMR level \p amrlev for the tilebox
+     * described by \p mfi using \p sol, writing to \p flux and honoring
+     * \p face_only.
+     */
     void FFlux (int amrlev, const MFIter& mfi,
                 const Array<FAB*,AMREX_SPACEDIM>& flux,
                 const FAB& sol, Location /* loc */,
                 int face_only=0) const final;
 
+    //! Divide \p mf by the diagonal of the operator (used by CG-family bottom solvers).
     void normalize (int amrlev, int mglev, MF& mf) const final;
 
+    //! Scalar alpha applied to the `a` term.
     [[nodiscard]] RT getAScalar () const final { return m_a_scalar; }
+    //! Scalar beta applied to the Laplacian term.
     [[nodiscard]] RT getBScalar () const final { return m_b_scalar; }
+    //! Access the stored `a` coefficient MultiFab for (\p amrlev,\p mglev).
     [[nodiscard]] MF const* getACoeffs (int amrlev, int mglev) const final
         { return &(m_a_coeffs[amrlev][mglev]); }
+    //! ALaplacian has no `b` coefficients; this returns null pointers.
     [[nodiscard]] Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int /*amrlev*/, int /*mglev*/) const final
         { return {{ AMREX_D_DECL(nullptr,nullptr,nullptr)}}; }
 
@@ -74,8 +124,20 @@ public:
         return std::unique_ptr<MLLinOpT<MF>>{};
     }
 
+    /**
+     * \brief Average `a` coefficients down within a single AMR level (fine-to-coarse MG).
+     *
+     * \param amrlev AMR level.
+     * \param a      Vector of per-MG-level coefficient MultiFabs modified in place.
+     */
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a);
+    //! Average `a` coefficients down across all AMR and MG levels.
     void averageDownCoeffs ();
+    /**
+     * \brief Average `a` coefficients from fine AMR level \p flev to \p flev-1.
+     *
+     * \param flev Fine AMR level index (greater than zero).
+     */
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
 private:
@@ -217,8 +279,8 @@ MLALaplacianT<MF>::updateSingularFlag ()
 {
     m_is_singular.clear();
     m_is_singular.resize(this->m_num_amr_levels, false);
-    auto itlo = std::find(this->m_lobc[0].begin(), this->m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(this->m_hibc[0].begin(), this->m_hibc[0].end(), BCType::Dirichlet);
+    auto itlo = std::ranges::find(this->m_lobc[0], BCType::Dirichlet);
+    auto ithi = std::ranges::find(this->m_hibc[0], BCType::Dirichlet);
     if (itlo == this->m_lobc[0].end() && ithi == this->m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev)

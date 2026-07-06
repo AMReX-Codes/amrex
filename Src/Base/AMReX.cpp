@@ -419,9 +419,9 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
-            auto const cwd = FileSystem::CurrentPath();
+            auto cwd = FileSystem::CurrentPath();
             if (!cwd.empty()) {
-                system::exename = cwd;
+                system::exename = std::move(cwd);
                 system::exename += "/";
             }
         }

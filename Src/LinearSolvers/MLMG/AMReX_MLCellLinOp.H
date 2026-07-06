@@ -15,6 +15,13 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLCellLinOp.H
+ *
+ * Cell-centered base class that implements shared boundary-condition handling,
+ * flux registers, and Gauss–Seidel flags for MLMG-compatible operators.
+ */
+
 template <typename T>
 struct MLMGABCTag;
 
@@ -40,19 +47,41 @@ public:
     MLCellLinOpT<MF>& operator= (const MLCellLinOpT<MF>&) = delete;
     MLCellLinOpT<MF>& operator= (MLCellLinOpT<MF>&&) = delete;
 
+    /**
+     * \brief Bind the operator to an AMR hierarchy.
+     *
+     * \param a_geom    Geometries per level (fine to coarse).
+     * \param a_grids   Grid arrays.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    Optional operator configuration overrides.
+     * \param a_factory Optional FAB factories (defaults to FArrayBox).
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
+    /**
+     * \brief Provide per-level inhomogeneous boundary data.
+     *
+     * Robin coefficients are required (non-null) when the operator has
+     * active Robin BCs; otherwise they are optional and passing nullptr
+     * keeps any previously stored values.
+     *
+     * \param amrlev      Target AMR level.
+     * \param levelbcdata Inhomogeneous BC data (nullptr uses homogeneous BCs).
+     * \param robinbc_a   Robin `a` coefficient MultiFab.
+     * \param robinbc_b   Robin `b` coefficient MultiFab.
+     * \param robinbc_f   Robin `f` coefficient MultiFab.
+     */
     void setLevelBC (int amrlev, const MF* levelbcdata,
                              const MF* robinbc_a = nullptr,
                              const MF* robinbc_b = nullptr,
                              const MF* robinbc_f = nullptr) final;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
-                                             IsMultiFabLike_v<AMF>, int> = 0>
+    template <MultiFabLike AMF>
+    requires (!std::same_as<MF,AMF>)
     void setLevelBC (int amrlev, const AMF* levelbcdata,
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,
@@ -66,66 +95,273 @@ public:
     }
     void update () override;
 
+    /**
+     * \brief Toggle Gauss–Seidel smoothing in place of Jacobi relaxation.
+     *
+     * \param flag True selects Gauss–Seidel; false selects Jacobi.
+     *             (Gauss–Seidel is the default.)
+     */
     void setGaussSeidel (bool flag) noexcept { m_use_gauss_seidel = flag; }
 
+    //! Whether the stencil is the cross shape.
     virtual bool isCrossStencil () const { return true; }
+    //! Whether this operator is a tensor solve.
     virtual bool isTensorOp () const { return false; }
 
+    /**
+     * \brief Refresh stored solution BC data from coarse inputs.
+     *
+     * \param amrlev      AMR level index being refreshed.
+     * \param crse_bcdata Coarse BC MultiFab copied into the cache.
+     */
     void updateSolBC (int amrlev, const MF& crse_bcdata) const;
+    /**
+     * \brief Refresh stored correction BC data from coarse inputs.
+     *
+     * \param amrlev      AMR level index being refreshed.
+     * \param crse_bcdata Coarse BC MultiFab copied into the correction cache.
+     */
     void updateCorBC (int amrlev, const MF& crse_bcdata) const;
 
+    /**
+     * \brief Apply physical BCs (optionally skipping FillBoundary).
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param in     MultiFab whose boundary values are updated.
+     * \param bc_mode Boundary-condition interpretation (solution vs correction).
+     * \param s_mode State interpretation (solution or correction).
+     * \param bndry  Optional cached boundary data.
+     * \param skip_fillboundary True to assume ghost cells already filled.
+     */
     virtual void applyBC (int amrlev, int mglev, MF& in, BCMode bc_mode, StateMode s_mode,
                           const MLMGBndryT<MF>* bndry=nullptr, bool skip_fillboundary=false) const;
 
+    //! Helper that builds a BoxArray for NSolve with boxes no larger than the requested \p grid_size.
     BoxArray makeNGrids (int grid_size) const;
 
-    void restriction (int, int, MF& crse, MF& fine) const override;
+    /**
+     * \brief Restrict a fine-grid field onto its coarse counterpart.
+     *
+     * \param amrlev AMR level whose data are being restricted.
+     * \param cmglev Multigrid level index on that AMR level.
+     * \param crse   Destination MultiFab on the coarse level.
+     * \param fine   Source MultiFab on the fine level.
+     */
+    void restriction (int amrlev, int cmglev, MF& crse, MF& fine) const override;
 
+    /**
+     * \brief Add the prolongation of coarse data onto the fine grid
+     * (\p fine += prolong(\p crse)).
+     *
+     * \param amrlev AMR level index.
+     * \param fmglev Multigrid level index within that AMR level.
+     * \param fine   Destination fine-grid data (updated in place).
+     * \param crse   Source coarse-grid data.
+     */
     void interpolation (int amrlev, int fmglev, MF& fine, const MF& crse) const override;
 
+    /**
+     * \brief Overwrite fine data with the prolongation of coarse data
+     * (\p fine = prolong(\p crse)).
+     *
+     * \param amrlev AMR level index.
+     * \param fmglev Multigrid level index within that AMR level.
+     * \param fine   Destination fine-grid data (overwritten in place).
+     * \param crse   Source coarse-grid data (its ghost cells may be modified).
+     */
     void interpAssign (int amrlev, int fmglev, MF& fine, MF& crse) const override;
 
+    /**
+     * \brief Prolong AMR-level data during FMG initialization.
+     *
+     * \param famrlev Fine AMR level receiving the data.
+     * \param fine    Destination fine data.
+     * \param crse    Source coarse data.
+     * \param nghost  Requested grow cells (currently unused in this base
+     *                implementation; overrides may use it).
+     */
     void interpolationAmr (int famrlev, MF& fine, const MF& crse,
                                    IntVect const& nghost) const override;
 
+    /**
+     * \brief Average fine solution/RHS onto the next coarser AMR level.
+     *
+     * \param camrlev   Coarse AMR level to update.
+     * \param crse_sol  Destination coarse solution.
+     * \param crse_rhs  Destination coarse RHS.
+     * \param fine_sol  Source fine solution.
+     * \param fine_rhs  Source fine RHS.
+     */
     void averageDownSolutionRHS (int camrlev, MF& crse_sol, MF& crse_rhs,
                                          const MF& fine_sol, const MF& fine_rhs) override;
 
+    /**
+     * \brief Apply the linear operator with boundary conditions.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param out    Destination array for A(in).
+     * \param in     Input state.
+     * \param bc_mode Boundary-condition mode (solution vs correction).
+     * \param s_mode State interpretation (solution or correction).
+     * \param bndry  Optional cached BC data (nullptr rebuilds on the fly).
+     */
     void apply (int amrlev, int mglev, MF& out, MF& in, BCMode bc_mode,
                         StateMode s_mode, const MLMGBndryT<MF>* bndry=nullptr) const override;
+    /**
+     * \brief Perform `niter` smoothing iterations on the supplied residual equation.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param sol    Correction updated in place.
+     * \param rhs    Right-hand side for the current level.
+     * \param skip_fillboundary True to assume ghost cells are already filled.
+     * \param niter  Number of smoothing passes to execute.
+     */
     void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                  bool skip_fillboundary, int niter) const final;
 
+    /**
+     * \brief Compute the residual `resid = b - A(x)` using solution boundary data.
+     *
+     * \param amrlev      AMR level index.
+     * \param resid       Residual MultiFab (output).
+     * \param x           Solution MultiFab.
+     * \param b           Right-hand side MultiFab.
+     * \param crse_bcdata Optional coarse data used to populate coarse/fine BCs.
+     */
     void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) override;
 
+    /**
+     * \brief Ensure BC caches are ready for flux computations (e.g., getFluxes).
+     *
+     * \param amrlev      AMR level index.
+     * \param crse_bcdata Optional coarse BC data applied during setup.
+     */
     void prepareForFluxes (int amrlev, const MF* crse_bcdata = nullptr) override;
 
+    /**
+     * \brief Compute the correction residual with optional coarse data.
+     *
+     * \param amrlev      AMR level index.
+     * \param mglev       Multigrid level index.
+     * \param resid       Output residual.
+     * \param x           Current correction.
+     * \param b           Right-hand side.
+     * \param bc_mode     Boundary-condition mode (usually homogeneous).
+     * \param crse_bcdata Optional coarse data for physical BCs.
+     */
     void correctionResidual (int amrlev, int mglev, MF& resid, MF& x, const MF& b,
                                      BCMode bc_mode, const MF* crse_bcdata=nullptr) final;
 
-    // The assumption is crse_sol's boundary has been filled, but not fine_sol.
+    /**
+     * \brief Reflux fine-level fluxes into the coarse residual.
+     *
+     * The unnamed arguments are the coarse RHS, fine residual, and fine RHS
+     * required by the MLLinOp interface; they are unused for cell-centered
+     * ABec ops.  Assumes coarse solutions already have valid ghost cells
+     * while fine solutions do not.
+     *
+     * \param crse_amrlev Coarse AMR level receiving refluxed updates.
+     * \param res         Residual updated in place on the coarse level.
+     * \param crse_sol    Coarse solution whose fluxes enter the reflux.
+     * \param fine_sol    Fine solution that supplies the opposing fluxes.
+     */
     void reflux (int crse_amrlev,
                          MF& res, const MF& crse_sol, const MF&,
                          MF&, MF& fine_sol, const MF&) const final;
+    /**
+     * \brief Compute face-centered fluxes from the supplied solution.
+     *
+     * \param amrlev AMR level index.
+     * \param fluxes Destination arrays for each spatial direction.
+     * \param sol    Solution whose gradient forms the flux.
+     * \param loc    Geometric location (face centers or centroids).
+     */
     void compFlux (int amrlev, const Array<MF*,AMREX_SPACEDIM>& fluxes,
                            MF& sol, Location loc) const override;
+    /**
+     * \brief Compute directional gradients of the solution.
+     *
+     * \param amrlev AMR level index.
+     * \param grad   Destination gradient arrays per direction.
+     * \param sol    Source solution.
+     * \param loc    Location where gradients are evaluated.
+     */
     void compGrad (int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
                            MF& sol, Location loc) const override;
 
+    /**
+     * \brief Multiply the RHS by metric terms appropriate for curvilinear coordinates.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side updated in place.
+     */
     void applyMetricTerm (int amrlev, int mglev, MF& rhs) const final;
+    /**
+     * \brief Remove metric scaling previously applied to the RHS.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side updated in place.
+     */
     void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const final;
+    /**
+     * \brief Compute the average offset needed to enforce solvability constraints.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side used to evaluate the offset.
+     * \return Per-component offsets.
+     */
     Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
                                              MF const& rhs) const override;
+    /**
+     * \brief Apply solvability offsets to the RHS (subtracting the average).
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side updated in place.
+     * \param offset Offsets returned by getSolvabilityOffset().
+     */
     void fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
                                          Vector<RT> const& offset) const override;
 
+    //! Prepare multilevel metadata before MLMG iterates (coefficients, BC caches, etc.).
     void prepareForSolve () override;
 
+    /**
+     * \brief Dot product helper.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param x      First field.
+     * \param y      Second field.
+     * \param local  True to skip the MPI reduction.
+     * \return Dot product.
+     */
     RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const final;
 
+    /**
+     * \brief Dot product over the composite AMR hierarchy, excluding cells
+     * covered by finer levels (used when the operator is a preconditioner).
+     *
+     * \param x Vector of MultiFabs (one per AMR level).
+     * \param y Vector of MultiFabs (one per AMR level).
+     * \return Dot product sum.
+     */
     RT dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const final;
 
+    /**
+     * \brief L2 norm over the composite AMR hierarchy, excluding cells
+     * covered by finer levels (used when the operator is a preconditioner).
+     *
+     * \param x Vector of MultiFabs (one per AMR level).
+     * \return Resulting norm.
+     */
     RT norm2Precond (Vector<MF const*> const& x) const final;
 
     virtual void Fapply (int amrlev, int mglev, MF& out, const MF& in) const = 0;
@@ -134,18 +370,47 @@ public:
                         const Array<FAB*,AMREX_SPACEDIM>& flux,
                         const FAB& sol, Location loc, int face_only=0) const = 0;
 
+    /**
+     * \brief Optional hook for adding inhomogeneous Neumann contributions.
+     *
+     * Default implementation is a no-op; derived classes override if needed.  The
+     * interface receives the AMR level, the face-centered gradient arrays, the
+     * solution MultiFab, and a flag indicating whether beta coefficients
+     * have already been applied to those gradients.
+     */
     virtual void addInhomogNeumannFlux (int /*amrlev*/,
                                         const Array<MF*,AMREX_SPACEDIM>& /*grad*/,
                                         MF const& /*sol*/,
                                         bool /*mult_bcoef*/) const {}
 
+    /**
+     * \brief Infinity norm helper used by solvers and diagnostics.
+     *
+     * \param amrlev AMR level index.
+     * \param mf     MultiFab to measure.
+     * \param local  True to skip parallel reduction.
+     */
     RT normInf (int amrlev, MF const& mf, bool local) const override;
 
+    /**
+     * \brief Average the solution hierarchy down (fine-to-coarse) and sync.
+     *
+     * \param sol Vector of MultiFabs spanning all AMR levels.
+     */
     void averageDownAndSync (Vector<MF>& sol) const override;
 
+    /**
+     * \brief Average a residual from a fine AMR level to its coarse parent.
+     *
+     * \param clev Coarse level index to update.
+     * \param cres Destination coarse residual.
+     * \param fres Source fine residual.
+     */
     void avgDownResAmr (int clev, MF& cres, MF const& fres) const override;
 
+    //! Called when the operator starts being used as a preconditioner.
     void beginPrecondBC () override;
+    //! Called when the operator stops being used as a preconditioner.
     void endPrecondBC () override;
 
     /// \cond DOXYGEN_IGNORE
@@ -157,6 +422,11 @@ public:
 
     Vector<std::unique_ptr<MF> > m_robin_bcval;
 
+    /**
+     * \brief Control how many cells the interpolation boundary stencil spans.
+     *
+     * \param w Half-width (in cells) for the interpolation boundary stencil.
+     */
     void setInterpBndryHalfWidth (int w) { m_interpbndry_halfwidth = w; }
 
 protected:

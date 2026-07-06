@@ -4,7 +4,8 @@
 function (setup_test _dim _srcs  _inputs)
 
    cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
-      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS" "" ${ARGN} )
+      "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS"
+      "CMDLINE_PARAMS_AFTER_INPUTS" ${ARGN} )
 
    if (_BASE_NAME)
       set(_base_name ${_BASE_NAME}_${_dim}d)
@@ -71,6 +72,10 @@ function (setup_test _dim _srcs  _inputs)
       list(APPEND _cmd ${_inputs_filename})
    endif ()
 
+   if (_CMDLINE_PARAMS_AFTER_INPUTS)
+      list(APPEND _cmd ${_CMDLINE_PARAMS_AFTER_INPUTS})
+   endif ()
+
    #
    # Add the test
    #
@@ -100,6 +105,7 @@ endfunction ()
 if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Base/TrackedVector")
+   add_subdirectory("Base/RealBox")
 
    add_subdirectory("Amr/Advection_AmrCore")
 
@@ -128,8 +134,8 @@ else()
    # List of subdirectories to search for CMakeLists.
    #
    set( AMREX_TESTS_SUBDIRS Amr ArrayND AsyncOut Base CallNoinline CLZ CommType CTOParFor DeviceGlobal
-                            Enum HeatEquation MultiBlock MultiPeriod ParmParse Parser Parser2
-                            ParserUserFn Reducer ReduceToPlanePatchy Reinit RoundoffDomain SIMD
+                            Enum GpuParallelReduce HeatEquation MultiBlock MultiPeriod ParmParse Parser Parser2
+                            ParserUserFn Reducer ReduceToPlaneGuards ReduceToPlanePatchy Reinit RoundoffDomain SIMD
                             SmallMatrix SumBoundary TOML)
 
    if (AMReX_PARTICLES)

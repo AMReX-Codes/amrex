@@ -43,7 +43,8 @@ MLEBABecLap::MLEBABecLap (const Vector<Geometry>& a_geom,
 std::unique_ptr<FabFactory<FArrayBox> >
 MLEBABecLap::makeFactory (int amrlev, int mglev) const
 {
-    return makeEBFabFactory(static_cast<EBFArrayBoxFactory const*>(Factory(0,0))->getEBIndexSpace(),
+    auto const* fact0 = Factory(amrlev,0) ? Factory(amrlev, 0) : Factory(0,0);
+    return makeEBFabFactory(static_cast<EBFArrayBoxFactory const*>(fact0)->getEBIndexSpace(),
                             m_geom[amrlev][mglev],
                             m_grids[amrlev][mglev],
                             m_dmap[amrlev][mglev],
@@ -798,8 +799,8 @@ MLEBABecLap::prepareForSolve ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet); // NOLINT
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet); // NOLINT
+    auto itlo = std::ranges::find(m_lobc[0], BCType::Dirichlet);
+    auto ithi = std::ranges::find(m_hibc[0], BCType::Dirichlet);
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end() && !isEBDirichlet())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)
@@ -1436,8 +1437,8 @@ MLEBABecLap::update ()
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
-    auto itlo = std::find(m_lobc[0].begin(), m_lobc[0].end(), BCType::Dirichlet); // NOLINT
-    auto ithi = std::find(m_hibc[0].begin(), m_hibc[0].end(), BCType::Dirichlet); // NOLINT
+    auto itlo = std::ranges::find(m_lobc[0], BCType::Dirichlet);
+    auto ithi = std::ranges::find(m_hibc[0], BCType::Dirichlet);
     if (itlo == m_lobc[0].end() && ithi == m_hibc[0].end() && !isEBDirichlet())
     {  // No Dirichlet
         for (int alev = 0; alev < m_num_amr_levels; ++alev)

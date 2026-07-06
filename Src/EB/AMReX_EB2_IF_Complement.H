@@ -34,9 +34,9 @@ public:
 
 
     //! Evaluate the complement.
-    template<class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires (IsGPUable<F>::value)
     {
         return -m_f(AMREX_D_DECL(x,y,z));
     }
@@ -47,8 +47,8 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<ComplementIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value)
+struct IsGPUable<ComplementIF<F>> : std::true_type {};
 
 template <class F>
 //! Helper that constructs a complement operator.

@@ -20,8 +20,8 @@ namespace amrex
 /// \cond DOXYGEN_IGNORE
 namespace detail
 {
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::pair<std::string,T>> getNewEnumNameValuePairs ()
     {
         auto tmp = amrex::split(std::string(ET::enum_names), ",");
@@ -63,8 +63,8 @@ namespace detail
 }  // namespace detail
 /// \endcond
 
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
     {
         // cache enum value strings for the whole type T
@@ -85,8 +85,8 @@ namespace detail
      * assert(model == Model::nonlinear);
      * \endcode
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     T getEnum (std::string_view const& s)
     {
         auto const& kv = getEnumNameValuePairs<T>();
@@ -119,8 +119,8 @@ namespace detail
      * assert(model == Model::nonlinear);
      * \endcode
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     T getEnumCaseInsensitive (std::string_view const& s)
     {
         auto const& kv = getEnumNameValuePairs<T>();
@@ -152,8 +152,8 @@ namespace detail
      * assert(model_str == "linear");
      * \endcode
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::string getEnumNameString (T const& v)
     {
         auto const& kv = getEnumNameValuePairs<T>();
@@ -172,8 +172,8 @@ namespace detail
         }
     }
 
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::string> getEnumNameStrings ()
     {
         auto r = amrex::split(std::string(ET::enum_names), ",");
@@ -187,8 +187,8 @@ namespace detail
         return r;
     }
 
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::string getEnumClassName ()
     {
         return std::string(ET::class_name);
@@ -198,8 +198,8 @@ namespace detail
      *
      * Useful when building bitmasks.
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     constexpr auto toUnderlying (T v) noexcept
     {
         return static_cast<std::underlying_type_t<T>>(v);

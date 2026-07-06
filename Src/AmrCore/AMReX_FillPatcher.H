@@ -179,6 +179,7 @@ public:
      * \param RK_k   right-hand side at RK stages
      */
     template <std::size_t order>
+    requires (order == 3 || order == 4)
     void storeRKCoarseData (Real time, Real dt, MF const& S_old,
                             Array<MF,order> const& RK_k);
 
@@ -418,6 +419,7 @@ FillPatcher<MF>::fillCoarseFineBoundary (MF& mf, IntVect const& nghost, Real tim
 
 template <typename MF>
 template <std::size_t order>
+requires (order == 3 || order == 4)
 void FillPatcher<MF>::storeRKCoarseData (Real /*time*/, Real dt, MF const& S_old,
                                          Array<MF,order> const& RK_k)
 {

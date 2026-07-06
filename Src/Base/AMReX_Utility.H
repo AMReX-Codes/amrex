@@ -40,9 +40,6 @@ namespace amrex
 * \brief Useful C++ Utility Functions
 */
 
-    //! Return true if argument is a non-zero length string of digits.
-    bool is_integer (const char* str);
-
     //! Return true and store value in v if string s is type T.
     template <typename T> bool is_it (std::string const& s, T& v);
 

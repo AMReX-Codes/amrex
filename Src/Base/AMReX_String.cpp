@@ -11,15 +11,15 @@ namespace amrex {
 
 std::string toLower (std::string s)
 {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    std::ranges::transform(s, s.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
     return s;
 }
 
 std::string toUpper (std::string s)
 {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return std::toupper(c); });
+    std::ranges::transform(s, s.begin(),
+                           [](unsigned char c) { return std::toupper(c); });
     return s;
 }
 

@@ -893,6 +893,7 @@ The_Null_Arena ()
     return &the_null_arena;
 }
 
+/// \cond DOXYGEN_IGNORE
 #ifdef AMREX_TINY_PROFILING
 
 Arena::ArenaProfiler::~ArenaProfiler ()
@@ -934,5 +935,6 @@ void Arena::ArenaProfiler::profile_free ([[maybe_unused]] void* ptr) {
     }
 #endif
 }
+/// \endcond
 
 }

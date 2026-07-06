@@ -33,9 +33,9 @@ public:
 #endif
         {}
 
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires (IsGPUable<F>::value)
     {
         return m_f(AMREX_D_DECL(x*m_sfinv.x,
                                 y*m_sfinv.y,
@@ -56,8 +56,8 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<ScaleIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value)
+struct IsGPUable<ScaleIF<F>> : std::true_type {};
 
 template <class F>
 constexpr ScaleIF<std::decay_t<F>>

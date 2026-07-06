@@ -2,6 +2,11 @@
 #define AMREX_BC_TYPES_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_BC_TYPES.H
+ * \brief Enumerations describing physical and mathematical boundary types.
+ */
+
 #if 0
 ---------------------------------------------------------------------
           CONVERSIONS FROM PHYSICAL TO MATHEMATICAL BCs
@@ -58,26 +63,40 @@ REFLECT_ODD  : F(-n) = -F(n)  true reflection from interior cells
 #ifdef __cplusplus
 namespace amrex {
 
+/**
+ * \namespace amrex::PhysBCType
+ * \brief Physical boundary condition types assigned to domain faces.
+ * \ingroup amrex_utilities
+ */
 namespace PhysBCType {
 enum physicalBndryTypes : int {interior=0,inflow,outflow,symmetry,
                                slipwall,noslipwall,inflowoutflow};
 }
 
+/**
+ * \namespace amrex::BCType
+ * \brief Mathematical boundary condition types applied per face.
+ *
+ * These codes control how ghost cells are filled at domain boundaries.
+ * See the conversion table at the top of this file for mappings from
+ * physical to mathematical BCs.
+ * \ingroup amrex_utilities
+ */
 namespace BCType {
 enum mathematicalBndryTypes : int {
-    bogus               = -666,
-    reflect_odd         = -1,
-    int_dir             =  0,
-    reflect_even        =  1,
-    foextrap            =  2,
-    ext_dir             =  3,
-    hoextrap            =  4,
-    hoextrapcc          =  5,
-    ext_dir_cc          =  6,
-    direction_dependent =  7,
-    user_1              = 1001,
-    user_2              = 1002,
-    user_3              = 1003
+    bogus               = -666,  /**< Sentinel value for uninitialized BCs. */
+    reflect_odd         = -1,    /**< F(-n) = -F(n); odd reflection. */
+    int_dir             =  0,    /**< Interior / Dirichlet from interpolation. */
+    reflect_even        =  1,    /**< F(-n) = F(n); even reflection. */
+    foextrap            =  2,    /**< First-order extrapolation from last interior cell. */
+    ext_dir             =  3,    /**< External Dirichlet value on face. */
+    hoextrap            =  4,    /**< Higher-order extrapolation to face. */
+    hoextrapcc          =  5,    /**< Linear extrapolation to cell center. */
+    ext_dir_cc          =  6,    /**< External Dirichlet value at cell center. */
+    direction_dependent =  7,    /**< Direction-dependent boundary treatment. */
+    user_1              = 1001,  /**< First user-defined boundary type. */
+    user_2              = 1002,  /**< Second user-defined boundary type. */
+    user_3              = 1003   /**< Third user-defined boundary type. */
 };
 }
 

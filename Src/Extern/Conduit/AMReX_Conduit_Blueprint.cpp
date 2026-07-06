@@ -378,7 +378,7 @@ MultiLevelToBlueprint (int n_levels,
       }
       else
       {
-        box_offsets[i] = box_offsets[i-1] + mfs[i]->size();
+        box_offsets[i] = box_offsets[i-1] + mfs[i-1]->size();
       }
     }
 

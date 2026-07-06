@@ -142,7 +142,7 @@ int main_main()
 
     Vector<int> ivar_b(ncomp_a,-1); // in case the variables are not in the same order
     for (int n_a = 0; n_a < ncomp_a; ++n_a) {
-        auto r = std::find(std::begin(names_b), std::end(names_b), names_a[n_a]);
+        auto r = std::ranges::find(names_b, names_a[n_a]);
         if (r == std::end(names_b)) {
             amrex::Print() << " WARNING: variable " << names_a[n_a] << " not found in plotfile 2\n";
             all_variables_found = false;
@@ -162,7 +162,7 @@ int main_main()
     // also print out, as a diagnostic, those variables in plotfile 1 that
     // are not in plotfile 2
     for (int n_b = 0; n_b < ncomp_b; ++n_b) {
-        auto r = std::find(std::begin(names_a),std::end(names_a),names_b[n_b]);
+        auto r = std::ranges::find(names_a, names_b[n_b]);
         if (r == std::end(names_a)) {
             amrex::Print() << " WARNING: variable " << names_b[n_b] << " not found in plotfile 1\n";
             all_variables_found = false;
@@ -257,7 +257,14 @@ int main_main()
                 }
 
                 if (norm == 0) {
-                    rerror[icomp_a] /= rerror_denom[icomp_a];
+                    if (rerror_denom[icomp_a] != 0.0) {
+                        rerror[icomp_a] /= rerror_denom[icomp_a];
+                    } else {
+                        // A is identically zero; relative error is undefined.
+                        // If there is no absolute error either, report 0.
+                        rerror[icomp_a] = (rerror[icomp_a] == Real(0.0)) ? Real(0.0)
+                            : std::numeric_limits<Real>::infinity();
+                    }
                 } else {
                     const auto& dx = pf_a.cellSize(ilev);
                     Real dv = 1.0;
@@ -265,7 +272,12 @@ int main_main()
                         dv *= dx[idim];
                     }
                     aerror[icomp_a] *= std::pow(dv,Real(1.)/static_cast<Real>(norm));
-                    rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
+                    if (rerror_denom[icomp_a] != 0.0) {
+                        rerror[icomp_a] = rerror[icomp_a]/rerror_denom[icomp_a];
+                    } else {
+                        rerror[icomp_a] = (rerror[icomp_a] == Real(0.0)) ? Real(0.0)
+                            : std::numeric_limits<Real>::infinity();
+                    }
                 }
 
                 if (icomp_a == save_var_a || icomp_a == zone_info_var_a) {
@@ -332,8 +344,7 @@ int main_main()
         }
 
         global_error = std::max(global_error,
-                                *(std::max_element(aerror.begin(),
-                                                   aerror.end())));
+                                *(std::ranges::max_element(aerror)));
 
         for (int icomp_a = 0; icomp_a < ncomp_a; ++icomp_a) {
             any_nans = any_nans || has_nan_a[icomp_a] || has_nan_b[icomp_a];

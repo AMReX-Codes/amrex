@@ -120,12 +120,9 @@ void main_main()
         std::istringstream is(varnames_arg);
         var_names.assign(std::istream_iterator<std::string>{is},
                          std::istream_iterator<std::string>{  });
-        var_names.erase(std::remove_if(var_names.begin(), var_names.end(),
-                                       [&](std::string const& x) {
-                                           return var_names_pf.end() ==
-                                               std::find(var_names_pf.begin(), var_names_pf.end(), x);
-                                       }),
-                        var_names.end());
+        std::erase_if(var_names, [&](std::string const& x) {
+            return var_names_pf.end() == std::ranges::find(var_names_pf, x);
+        });
         if (var_names.empty()) {
             amrex::Abort("ERROR: no valid variable names");
         }
@@ -334,7 +331,7 @@ void main_main()
         for (int i = 0; i < pos.size(); ++i) {
             posidx.emplace_back(pos[i],i);
         }
-        std::sort(posidx.begin(), posidx.end());
+        std::ranges::sort(posidx);
 
         const std::string dirstr = (idir == 0) ? "x" : ((idir == 1) ? "y" : "z");
 

@@ -88,14 +88,27 @@ MLNodeLaplacian::averageDownCoeffsToCoarseAmrLevel (int flev)
     if (m_sigma[0][0][0] == nullptr) { return; }
 
     const int mglev = 0;
-    const int idim = 0;  // other dimensions are just aliases
-#ifdef AMREX_USE_EB
-    amrex::EB_average_down(*m_sigma[flev][mglev][idim], *m_sigma[flev-1][mglev][idim], 0, 1,
-                           m_amr_ref_ratio[flev-1]);
+    // When m_use_mapped the per-direction sigma MultiFabs at mglev=0
+    // are independent allocations (see setSigma); restrict each.  In
+    // the non-mapped / harmonic-average path idim>0 sigmas alias
+    // idim=0 (or don't exist), so only idim=0 needs restriction.
+    // In 1D this is always 1 (AMREX_SPACEDIM == 1).
+#if (AMREX_SPACEDIM == 1)
+    const int nsigma = 1;
 #else
-    amrex::average_down(*m_sigma[flev][mglev][idim], *m_sigma[flev-1][mglev][idim], 0, 1,
-                        m_amr_ref_ratio[flev-1]);
+    const int nsigma = m_use_mapped ? AMREX_SPACEDIM : 1;
 #endif
+    for (int idim = 0; idim < nsigma; ++idim) {
+        if (m_sigma[flev][mglev][idim] && m_sigma[flev-1][mglev][idim]) {
+#ifdef AMREX_USE_EB
+            amrex::EB_average_down(*m_sigma[flev][mglev][idim], *m_sigma[flev-1][mglev][idim], 0, 1,
+                                   m_amr_ref_ratio[flev-1]);
+#else
+            amrex::average_down(*m_sigma[flev][mglev][idim], *m_sigma[flev-1][mglev][idim], 0, 1,
+                                m_amr_ref_ratio[flev-1]);
+#endif
+        }
+    }
 }
 
 void

@@ -276,13 +276,13 @@ template <typename T_ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::fillNeighborsCPU () {
+::fillNeighborsCPU (amrex::Real search_radius) {
     BL_PROFILE("NeighborParticleContainer::fillNeighborsCPU");
-    if (!areMasksValid()) {
-        BuildMasks();
-        GetNeighborCommTags();
+    if (!areMasksValid(search_radius)) {
+        BuildMasks(search_radius);
+        GetNeighborCommTags(search_radius);
     }
-    cacheNeighborInfo();
+    cacheNeighborInfo(search_radius);
     updateNeighborsCPU(false);
 }
 
@@ -319,11 +319,11 @@ NeighborParticleContainer_impl<T_ParticleType, NArrayReal, NArrayInt, Allocator,
             {
                 const auto& tag = tags[i];
                 const int dst_grid = tag.src_grid;
-                const int global_rank = this->ParticleDistributionMap(lev)[dst_grid];
+                const int dst_level = tag.src_level;
+                const int global_rank = this->ParticleDistributionMap(dst_level)[dst_grid];
                 const int dst_proc = ParallelContext::global_to_local_rank(global_rank);
                 const int dst_tile = tag.src_tile;
                 const int dst_index = tag.src_index;
-                const int dst_level = tag.src_level;
 
                 if (dst_proc == MyProc)
                 {

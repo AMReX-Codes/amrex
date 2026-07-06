@@ -18,6 +18,7 @@
 #  include <oneapi/dpl/numeric>
 #endif
 
+#include <concepts>
 #include <cstdint>
 #include <numeric>
 #include <type_traits>
@@ -191,7 +192,7 @@ struct BlockStatus<T, false>
 #if defined(AMREX_USE_SYCL)
 
 #ifndef AMREX_SYCL_NO_MULTIPASS_SCAN
-template <typename T, typename N, typename FIN, typename FOUT, typename TYPE>
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
 T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 {
     if (n <= 0) { return 0; }
@@ -393,10 +394,9 @@ T PrefixSum_mp (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum)
 }
 #endif
 
-template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+requires (std::same_as<std::decay_t<TYPE>,Type::Inclusive> ||
+          std::same_as<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -636,10 +636,9 @@ T PrefixSum (N n, FIN && fin, FOUT && fout, TYPE type, RetSum a_ret_sum = retSum
 
 #elif defined(AMREX_USE_HIP)
 
-template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+requires (std::same_as<std::decay_t<TYPE>,Type::Inclusive> ||
+          std::same_as<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -805,10 +804,9 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
 
 #elif defined(AMREX_USE_CUDA)
 
-template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+requires (std::same_as<std::decay_t<TYPE>,Type::Inclusive> ||
+          std::same_as<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -966,7 +964,7 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum a_ret_sum = ret
  * \param a_ret_sum control the return value
  * \return return the total sum if `a_ret_sum` is true
  */
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <std::integral N, typename T >
 T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1038,7 +1036,7 @@ T InclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
  * \param a_ret_sum control the return value
  * \return return the total sum if `a_ret_sum` is true
  */
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <std::integral N, typename T >
 T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1113,10 +1111,9 @@ T ExclusiveSum (N n, T const* in, T * out, RetSum a_ret_sum = retSum)
 
 #else
 //  !defined(AMREX_USE_GPU)
-template <typename T, typename N, typename FIN, typename FOUT, typename TYPE,
-          typename M=std::enable_if_t<std::is_integral_v<N> &&
-                                      (std::is_same_v<std::decay_t<TYPE>,Type::Inclusive> ||
-                                       std::is_same_v<std::decay_t<TYPE>,Type::Exclusive>)> >
+template <typename T, std::integral N, typename FIN, typename FOUT, typename TYPE>
+requires (std::same_as<std::decay_t<TYPE>,Type::Inclusive> ||
+          std::same_as<std::decay_t<TYPE>,Type::Exclusive>)
 T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
 {
     if (n <= 0) { return 0; }
@@ -1134,32 +1131,21 @@ T PrefixSum (N n, FIN const& fin, FOUT const& fout, TYPE, RetSum = retSum)
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <std::integral N, typename T >
 T InclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
-#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-    // GCC's __cplusplus is not a reliable indication for C++17 support
     std::inclusive_scan(in, in+n, out);
-#else
-    std::partial_sum(in, in+n, out);
-#endif
     return (n > 0) ? out[n-1] : T(0);
 }
 
 // The return value is the total sum.
-template <typename N, typename T, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <std::integral N, typename T >
 T ExclusiveSum (N n, T const* in, T * out, RetSum /*a_ret_sum*/ = retSum)
 {
     if (n <= 0) { return 0; }
 
     auto in_last = in[n-1];
-#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-    // GCC's __cplusplus is not a reliable indication for C++17 support
     std::exclusive_scan(in, in+n, out, 0);
-#else
-    out[0] = 0;
-    std::partial_sum(in, in+n-1, out+1);
-#endif
     return in_last + out[n-1];
 }
 
@@ -1180,11 +1166,8 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
-#elif (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-        // GCC's __cplusplus is not a reliable indication for C++17 support
-        return std::inclusive_scan(begin, end, result);
 #else
-        return std::partial_sum(begin, end, result);
+        return std::inclusive_scan(begin, end, result);
 #endif
     }
 
@@ -1199,20 +1182,8 @@ namespace Gpu
         OutIter result_end = result;
         std::advance(result_end, N);
         return result_end;
-#elif (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-        // GCC's __cplusplus is not a reliable indication for C++17 support
-        return std::exclusive_scan(begin, end, result, 0);
 #else
-        if (begin == end) { return result; }
-
-        typename std::iterator_traits<InIter>::value_type sum = *begin;
-        *result++ = sum - *begin;
-
-        while (++begin != end) {
-            sum = std::move(sum) + *begin;
-            *result++ = sum - *begin;
-        }
-        return ++result;
+        return std::exclusive_scan(begin, end, result, 0);
 #endif
     }
 

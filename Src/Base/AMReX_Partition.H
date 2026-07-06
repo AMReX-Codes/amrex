@@ -87,7 +87,7 @@ int Partition (T* data, int beg, int end, F && f)
     Gpu::DeviceVector<T> v2(n);
     int tot = detail::amrex_partition_helper(data + beg, v2.dataPtr(), n, std::forward<F>(f));
     Gpu::copy(Gpu::deviceToDevice, v2.begin(), v2.end(), data + beg);
-    return tot;
+    return beg + tot;
 }
 
 /**
@@ -168,10 +168,10 @@ int Partition (Gpu::DeviceVector<T>& v, F && f)
 template <typename T, typename F>
 int StablePartition (T* data, int beg, int end, F && f)
 {
-    int n = Partition(data, beg, end, std::forward<F>(f));
-    int n2 = end - beg - n;
-    detail::amrex_stable_partition_helper(data + beg + n, n2);
-    return n;
+    int mid = Partition(data, beg, end, std::forward<F>(f));
+    int n2 = end - mid;
+    detail::amrex_stable_partition_helper(data + mid, n2);
+    return mid;
 }
 
 /**
@@ -256,7 +256,7 @@ template <typename T, typename F>
 int Partition (T* data, int beg, int end, F && f)
 {
     auto it = std::partition(data + beg, data + end, f);
-    return static_cast<int>(std::distance(data + beg, it));
+    return static_cast<int>(std::distance(data, it));
 }
 
 /**
@@ -335,7 +335,7 @@ template <typename T, typename F>
 int StablePartition (T* data, int beg, int end, F && f)
 {
     auto it = std::stable_partition(data + beg, data + end, f);
-    return static_cast<int>(std::distance(data + beg, it));
+    return static_cast<int>(std::distance(data, it));
 }
 
 /**

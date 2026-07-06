@@ -172,6 +172,7 @@ contains
   subroutine amrex_multigrid_build (mg, linop)
     type(amrex_multigrid), intent(inout) :: mg
     class(amrex_linop), intent(in) :: linop
+    call amrex_multigrid_destroy(mg)
     mg%owner = .true.
     call amrex_fi_new_multigrid(mg%p, linop%p)
   end subroutine amrex_multigrid_build

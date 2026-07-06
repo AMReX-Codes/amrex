@@ -11,6 +11,7 @@
 #endif
 
 #include <algorithm>
+#include <concepts>
 #include <climits>
 #include <type_traits>
 
@@ -105,10 +106,10 @@ struct CSR {
     void sort_on_host ();
 };
 
-template <typename C, typename T, template<typename> class AD, template<typename> class AS,
-          std::enable_if_t<std::is_same_v<C,Gpu::HostToDevice> ||
-                           std::is_same_v<C,Gpu::DeviceToHost> ||
-                           std::is_same_v<C,Gpu::DeviceToDevice>, int> = 0>
+template <typename C, typename T, template<typename> class AD, template<typename> class AS>
+requires (std::same_as<C,Gpu::HostToDevice> ||
+          std::same_as<C,Gpu::DeviceToHost> ||
+          std::same_as<C,Gpu::DeviceToDevice>)
 /**
  * \brief Copy CSR buffers between memory spaces asynchronously.
  *
@@ -366,10 +367,10 @@ void CSR<T,V>::sort_on_host ()
                     perm [i] = i;
                 }
 
-                std::sort(perm.begin(), perm.end(),
-                          [&] (int i0, int i1) {
-                              return lcols[i0] < lcols[i1];
-                          });
+                std::ranges::sort(perm,
+                                  [&] (int i0, int i1) {
+                                      return lcols[i0] < lcols[i1];
+                                  });
 
                 for (int out = 0; out < len; ++out) {
                     auto const in = perm[out];
