@@ -20,6 +20,8 @@ public:
 
     using cMF = FabArray<BaseFab<GpuComplex<typename MF::value_type>>>;
 
+    Stokes () = default;
+
     /**
      * \brief Construct a Stokes solver with explicit boundary types.
      *
@@ -31,21 +33,8 @@ public:
     Stokes (Geometry const& geom,
              Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
         requires (IsFabArray_v<MF>)
-        : m_domain_lo(geom.Domain().smallEnd()),
-          m_geom(detail::shift_geom(geom)),
-          m_bc(bc)
     {
-        bool all_periodic = true;
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            all_periodic = all_periodic
-                && (bc[idim].first == Boundary::periodic)
-                && (bc[idim].second == Boundary::periodic);
-        }
-        if (all_periodic) {
-            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
-        } else {
-            amrex::Abort("FFT::Stokes: only supports periodic BC");
-        }
+        define(geom, bc);
     }
 
     /**
@@ -55,17 +44,50 @@ public:
      */
     explicit Stokes (Geometry const& geom)
         requires (IsFabArray_v<MF>)
-        : m_domain_lo(geom.Domain().smallEnd()),
-          m_geom(detail::shift_geom(geom)),
-          m_bc{AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::periodic,Boundary::periodic),
-                            std::make_pair(Boundary::periodic,Boundary::periodic))}
     {
-        if (m_geom.isAllPeriodic()) {
-            m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
-        } else {
+        define(geom);
+    }
+
+    /**
+     * \brief Define a Stokes solver with explicit boundary types.
+     *
+     * Only periodic BCs are supported.
+     *
+     * \param geom Geometry describing the domain and metric information.
+     * \param bc   Pair of boundary descriptors (low/high) per coordinate direction.
+     */
+    void define (Geometry const& geom,
+                 Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc)
+        requires (IsFabArray_v<MF>)
+    {
+        m_domain_lo = geom.Domain().smallEnd();
+        m_geom = detail::shift_geom(geom);
+        m_bc = bc;
+
+        bool all_periodic = true;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            all_periodic = all_periodic
+                && (bc[idim].first == Boundary::periodic)
+                && (bc[idim].second == Boundary::periodic);
+        }
+        if (!all_periodic || !m_geom.isAllPeriodic()) {
             amrex::Abort("FFT::Stokes: only supports periodic BC");
         }
+
+        m_r2c = std::make_unique<R2C<typename MF::value_type>>(m_geom.Domain());
+    }
+
+    /**
+     * \brief Define a purely periodic Stokes solver.
+     *
+     * \param geom Periodic geometry (all directions must be periodic).
+     */
+    void define (Geometry const& geom)
+        requires (IsFabArray_v<MF>)
+    {
+        define(geom, {AMREX_D_DECL(std::make_pair(Boundary::periodic,Boundary::periodic),
+                                    std::make_pair(Boundary::periodic,Boundary::periodic),
+                                    std::make_pair(Boundary::periodic,Boundary::periodic))});
     }
 
     /**
@@ -119,6 +141,10 @@ void Stokes<MF>::solve (MF& U,
     BL_PROFILE("FFT::Stokes::solve");
 
     using T = typename MF::value_type;
+
+    if (!m_r2c) {
+        amrex::Abort("FFT::Stokes::solve called before define()");
+    }
 
     AMREX_ASSERT(p.ixType() == IndexType::TheCellType() &&
                  AMREX_D_TERM(U.ixType() == IndexType(IntVect::TheDimensionVector(0)) &&
