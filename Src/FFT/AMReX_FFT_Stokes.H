@@ -70,7 +70,7 @@ public:
                 && (bc[idim].first == Boundary::periodic)
                 && (bc[idim].second == Boundary::periodic);
         }
-        if (!all_periodic) {
+        if (!all_periodic || !m_geom.isAllPeriodic()) {
             amrex::Abort("FFT::Stokes: only supports periodic BC");
         }
 
