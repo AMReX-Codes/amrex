@@ -598,6 +598,11 @@ To build HYPRE, follow the next steps:
     6.- Create an environment variable with the HYPRE directory --
         HYPRE_DIR=/hypre_path/hypre/src/hypre
 
+The ``--enable-bigint`` option is for CPU builds of HYPRE.  It is not
+currently compatible with HYPRE's CUDA build, so it should not be combined with
+``--with-cuda``.  CUDA users who encounter a HYPRE 32-bit integer overflow do
+not currently have a bigint HYPRE configuration available as a fallback.
+
 To use HYPRE with CUDA, the `nvcc` compiler is needed along with all other requirements for the CPU build (e.g., `gcc`, `mpicc`). It is very important that the GPU architecture for HYPRE matches that of AMReX. By default, HYPRE assumes its architecture number to be 70, and it is best to build HYPRE for multiple architectures by specifying multiple compute capability numbers (e.g., 80 and 90). If you see a runtime error similar to
 ``terminate called after throwing an instance of 'thrust::system::system_error'``, you likely did not build for the correct architecture.
 
