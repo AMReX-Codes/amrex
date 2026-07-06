@@ -17,6 +17,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParGDB.H
        AMReX_Particle_mod_K.H
        AMReX_TracerParticles.H
+       AMReX_TracerParticle_mod_K.H
        AMReX_NeighborParticles.H
        AMReX_NeighborParticlesI.H
        AMReX_NeighborList.H
