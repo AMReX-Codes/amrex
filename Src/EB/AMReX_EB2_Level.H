@@ -159,7 +159,7 @@ public:
         Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
         Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
         Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
-        bool m_built = false;  //!< Lazy building flag
+        bool m_built = false;
     };
 
     //! Check if face-centered data is available for face_dir (0=x, 1=y, 2=z).
@@ -868,6 +868,8 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     // **********************************************************************
     // STEP3: Check multi-cut error
     // **********************************************************************
+
+    // Consider delete m_levelset construction, because FC does not provide levelset.
 
     // Coarsen grids from refined level to preserve DM compatibility
     m_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
