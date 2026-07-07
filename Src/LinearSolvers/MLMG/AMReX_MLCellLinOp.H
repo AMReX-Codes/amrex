@@ -1674,6 +1674,7 @@ MLCellLinOpT<MF>::reflux (int crse_amrlev, MF& res, const MF& crse_sol, const MF
     }
 
     fluxreg.Reflux(res);
+    this->applyOverset(crse_amrlev, res);
 }
 
 template <typename MF>
