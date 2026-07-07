@@ -1170,6 +1170,12 @@ Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const 
 {
     AMREX_ASSERT(hasFCData(face_dir));
     cellflag.ParallelCopy(m_fc_data[face_dir]->m_cellflag_fc, 0, 0, 1, 0, cellflag.nGrow(), geom.periodicity());
+
+    // Set FabType for each fab (similar to fillEBCellFlag)
+    const int ng = cellflag.nGrow();
+    for (MFIter mfi(cellflag); mfi.isValid(); ++mfi) {
+        cellflag[mfi].resetType(ng);
+    }
 }
 
 void
