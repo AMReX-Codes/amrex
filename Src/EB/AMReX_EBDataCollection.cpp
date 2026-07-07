@@ -145,7 +145,7 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
         a_level.fillBndryNormFC(*m_bndrynorm, face_dir, m_geom);
 
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            m_areafrac[idim] = new MultiCutFab(a_ba, a_dm, 1, ng, *m_cellflags);
+            m_areafrac[idim] = new MultiCutFab(a_ba, a_dm, 1, m_ngrow[1]+1, *m_cellflags);
             m_facecent[idim] = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
             IntVect edge_type{1};
             if (idim != face_dir) {
