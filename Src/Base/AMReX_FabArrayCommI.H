@@ -536,7 +536,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op, deterministic);
+            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op,
+                         deterministic && (op == FabArrayBase::ADD));
         }
         else
 #endif
@@ -638,7 +639,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, SC, DC, NC, op, deterministic);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op,
+                             deterministic && (op == FabArrayBase::ADD));
             }
             else
 #endif
