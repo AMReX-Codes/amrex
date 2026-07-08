@@ -846,7 +846,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     }
 
     // **********************************************************************
-    // STEP3: Check multi-cut error
+    // STEP2: Check multi-cut error
     // **********************************************************************
 
     // Consider delete m_levelset construction, because FC does not provide levelset.
@@ -928,7 +928,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     }
 
     // **********************************************************************
-    // STEP4: Define FC data structures
+    // STEP3: Define FC data structures
     // **********************************************************************
 
     // FC MultiFabs
@@ -964,7 +964,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     }
 
     // **********************************************************************
-    // STEP5: Coarsen from refined CC to FC with staggered averaging
+    // STEP4: Coarsen from refined CC to FC with staggered averaging
     // **********************************************************************
 
     // Fine CC MultiFabs
