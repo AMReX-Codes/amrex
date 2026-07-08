@@ -1051,7 +1051,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
             [=,&tile_error] (int i, int j, int k) noexcept
             {
                 amrex::ignore_unused(j,k);
-                int ierr = coarsen_from_fine_staggered(AMREX_D_DECL(i,j,k), bx, 2, face_dir,
+                int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k), bx, 2,
                                              cvol,ccent,cba,cbc,cbn,
                                              AMREX_D_DECL(capx,capy,capz),
                                              AMREX_D_DECL(cfcx,cfcy,cfcz),
@@ -1060,7 +1060,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
                                              AMREX_D_DECL(fapx,fapy,fapz),
                                              AMREX_D_DECL(ffcx,ffcy,ffcz),
                                              AMREX_D_DECL(fecx,fecy,fecz),
-                                             fflag);
+                                             fflag, face_dir);
                 tile_error = std::max(tile_error,ierr);
             });
 
@@ -1118,7 +1118,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
                 amrex::ignore_unused(j,k);
-                int ierr = coarsen_from_fine_staggered(AMREX_D_DECL(i,j,k), bx, 2, face_dir,
+                int ierr = coarsen_from_fine(AMREX_D_DECL(i,j,k), bx, 2,
                                              cvol,ccent,cba,cbc,cbn,
                                              AMREX_D_DECL(capx,capy,capz),
                                              AMREX_D_DECL(cfcx,cfcy,cfcz),
@@ -1127,7 +1127,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
                                              AMREX_D_DECL(fapx,fapy,fapz),
                                              AMREX_D_DECL(ffcx,ffcy,ffcz),
                                              AMREX_D_DECL(fecx[lidx],fecy[lidx],fecz[lidx]),
-                                             fflag);
+                                             fflag, face_dir);
                 return {ierr};
             });
         }
