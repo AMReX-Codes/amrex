@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 
 import argparse
+import re
+
+def pkg_version(git_version):
+    """Extract a clean MAJOR.MINOR[.PATCH] from git describe output.
+
+    git describe produces strings like 25.06, 25.06.1, 25.06-3-g1a2b3c4, or
+    25.06.1-3-g1a2b3c4-dirty.  We take the leading numeric tag as the
+    pkg-config version so that version comparisons work.
+    """
+    m = re.match(r'^(\d+\.\d+(?:\.\d+)?)', git_version)
+    return m.group(1) if m else git_version
 
 def doit(prefix, version, cflags, libs, libpriv, fflags):
+    pkg_ver = pkg_version(version)
     print("# AMReX Version: "+version)
     print("")
     print("prefix="+prefix)
@@ -14,7 +26,7 @@ def doit(prefix, version, cflags, libs, libpriv, fflags):
     print("")
     print("Name: amrex")
     print("Description: Software Framework for Block Structured AMR")
-    print("Version:")
+    print("Version: "+pkg_ver)
     print("URL: https://github.com/AMReX-Codes/amrex")
     print("Requires:")
     print("Cflags: -I${includedir}", cflags)
