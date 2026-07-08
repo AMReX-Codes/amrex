@@ -223,7 +223,7 @@ namespace amrex
                 do {
                 AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
                                 rand =  curand(random_engine.rand_state) );
-                } while (rand > (RAND_M - RAND_M % n));
+                } while (rand >= (RAND_M - RAND_M % n));
                 return rand % n;
         ))
         AMREX_IF_ON_HOST((
