@@ -262,6 +262,8 @@ DeallocateRandomSeedDevArray ()
 
 void FillRandom (Real* p, Long N)
 {
+    if (N <= 0) { return; }
+
 #ifdef AMREX_USE_CUDA
 
 #  ifdef BL_USE_FLOAT
