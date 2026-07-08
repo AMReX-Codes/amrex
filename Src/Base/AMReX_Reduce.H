@@ -1463,9 +1463,9 @@ std::pair<T,T> MinMax (N n, T const* v)
 }
 
 template <typename T, std::integral N, typename P>
-bool AnyOf (N n, T const* v, P&& pred)
+bool AnyOf (N n, T const* v, P const& pred)
 {
-    return std::any_of(v, v+n, std::forward<P>(pred));
+    return std::any_of(v, v+n, pred);
 }
 
 template <typename P, int dim>
