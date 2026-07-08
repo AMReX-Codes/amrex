@@ -843,27 +843,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
             amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
         }
         refined_cc_level = transient_level.get();
-
-        // Need FillBoundary here?
     }
-
-    // **********************************************************************
-    // STEP2: Check coarsenable
-    // **********************************************************************
-
-    // const BoxArray& fine_grids = refined_cc_level->m_grids;
-    // const BoxArray& fine_covered_grids = refined_cc_level->m_covered_grids;
-    // const int coarse_ratio = 2;
-    // const int min_width = 8;
-
-    // prepareForCoarsening can be called if not coarsenable.
-    // bool coarsenable = fine_grids.coarsenable(coarse_ratio, min_width)
-    //     && (fine_covered_grids.empty() || fine_covered_grids.coarsenable(coarse_ratio));
-    // 
-    // if (!coarsenable) {
-    //     Level refined_cc_level_2(is, refined_cc_level.m_geom);
-    //     refined_cc_level_2.prepareForCoarsening(refined_cc_level, max_grid_size, amrex::scale(m_ngrow,2));
-    // }
 
     // **********************************************************************
     // STEP3: Check multi-cut error
@@ -982,8 +962,6 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
         }
         fc_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng);
     }
-
-    // FillBoundary ?
 
     // **********************************************************************
     // STEP5: Coarsen from refined CC to FC with staggered averaging
