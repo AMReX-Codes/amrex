@@ -3,6 +3,11 @@ f_offset = 8
 
 max_grid_size = 128 
 
+# default refinement ratio (can set anisotropic values like 4 2 2)
+ref_ratio = 2 2 2
+
+# div_tol = 1e-10
+
 # For testing nested vs. non-nested InterpFromCoarse
 #nghost_f = 1
 

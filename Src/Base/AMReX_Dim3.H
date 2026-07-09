@@ -5,6 +5,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_GpuQualifiers.H>
 
+#include <concepts>
 #include <iostream>
 
 namespace amrex {
@@ -21,24 +22,23 @@ Real dot_product (XDim3 const& a, XDim3 const& b)
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 cross_product (XDim3 const& a, XDim3 const& b)
 {
-    return {a.y*b.z-a.z*b.y, a.z*b.x-a.x*b.z, a.x*b.y-a.y*b.x};
+    return XDim3{.x = a.y*b.z-a.z*b.y, .y = a.z*b.x-a.x*b.z, .z = a.x*b.y-a.y*b.x};
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 operator+ (XDim3 const& a, XDim3 const& b)
 {
-    return {a.x + b.x, a.y + b.y, a.z + b.z};
+    return XDim3{.x = a.x + b.x, .y = a.y + b.y, .z = a.z + b.z};
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 XDim3 operator- (XDim3 const& a, XDim3 const& b)
 {
-    return {a.x - b.x, a.y - b.y, a.z - b.z};
+    return XDim3{.x = a.x - b.x, .y = a.y - b.y, .z = a.z - b.z};
 }
 
-template <typename T,
-          std::enable_if_t <std::is_same_v<T,  Dim3> ||
-                                   std::is_same_v<T, XDim3>>* = nullptr>
+template <typename T>
+requires (std::same_as<T, Dim3> || std::same_as<T, XDim3>)
 std::ostream& operator<< (std::ostream& os, const T& d)
 {
     os << '(' << d.x << ',' << d.y << ',' << d.z << ')';

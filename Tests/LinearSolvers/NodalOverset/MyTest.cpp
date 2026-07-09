@@ -5,6 +5,8 @@
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <numbers>
+
 using namespace amrex;
 
 MyTest::MyTest ()
@@ -132,7 +134,7 @@ MyTest::initData ()
         {
             Real x = i*dx[0] - 0.5;
             Real y = j*dx[1] - 0.5;
-            Real theta = std::atan2(x,y) + 0.5*3.1415926535897932;
+            Real theta = std::atan2(x,y) + Real(0.5)*std::numbers::pi_v<Real>;
             Real r2 = x*x + y*y;
             pa(i,j,k) =  r2*r2*std::cos(3.0*theta);
             ra(i,j,k) = 7.0*r2*std::cos(3.0*theta);

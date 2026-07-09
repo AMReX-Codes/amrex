@@ -3,6 +3,7 @@
 #include <AMReX_Config.H>
 
 #include <AMReX_BLassert.H>
+#include <AMReX_Concepts.H>
 #include <AMReX_Extension.H>
 #include <AMReX_INT.H>
 #ifdef AMREX_SPACEDIM
@@ -31,14 +32,14 @@ public:
     using std::vector<T, Allocator>::vector;
     using typename std::vector<T, Allocator>::size_type;
 
-    [[nodiscard]] T& operator[] (size_type i) noexcept
+    [[nodiscard]] T& operator[] (size_type i)
     {
         AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
                                   "Out of bound error, index: " + std::to_string(i) + " size: " + std::to_string(size()));
         return this->std::vector<T, Allocator>::operator[](i);
     }
 
-    [[nodiscard]] const T& operator[] (size_type i) const noexcept
+    [[nodiscard]] const T& operator[] (size_type i) const
     {
         AMREX_ASSERT_WITH_MESSAGE(i < (this->std::vector<T, Allocator>::size()),
                                   "Out of bound error, index: " + std::to_string(i) + " size: " + std::to_string(size()));
@@ -166,9 +167,8 @@ namespace amrex
         return r;
     }
 
-    template <class T, std::enable_if_t<IsFabArray<T>::value ||
-                                               IsBaseFab<T>::value,
-                                               int> = 0 >
+    template <class T>
+    requires (FabArrayType<T> || BaseFabType<T>)
     [[nodiscard]] Vector<std::array<T const*,AMREX_SPACEDIM> >
     GetVecOfArrOfConstPtrs (const Vector<std::array<T,AMREX_SPACEDIM> >& a)
     {
@@ -178,9 +178,8 @@ namespace amrex
         return r;
     }
 
-    template <class T, std::enable_if_t<IsFabArray<T>::value ||
-                                               IsBaseFab<T>::value,
-                                               int> = 0 >
+    template <class T>
+    requires (FabArrayType<T> || BaseFabType<T>)
     [[nodiscard]] Vector<std::array<T*, AMREX_SPACEDIM> >
     GetVecOfArrOfPtrs(Vector<std::array<T, AMREX_SPACEDIM> >& a)
     {
@@ -196,13 +195,13 @@ namespace amrex
     template <class T>
     void FillNull (Vector<T*>& a)
     {
-        std::for_each(a.begin(), a.end(), [](T*& p) { p = nullptr; });
+        std::ranges::for_each(a, [](T*& p) { p = nullptr; });
     }
 
     template <class T>
     void FillNull (Vector<std::unique_ptr<T> >& a)
     {
-        std::for_each(a.begin(), a.end(), [](std::unique_ptr<T>& p) { p.reset(); });
+        std::ranges::for_each(a, [](std::unique_ptr<T>& p) { p.reset(); });
     }
 
     /////////////////////////////////////////////////////////////

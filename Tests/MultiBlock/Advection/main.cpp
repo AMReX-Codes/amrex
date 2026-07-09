@@ -155,7 +155,9 @@ struct OnesidedMultiBlockBoundaryFn {
   FabArrayBase::BDKey cached_src_bd_key{};
   ApplyDtosAndProjectionOnReciever<MultiBlockIndexMapping,
                                    MapComponents<Identity, SwapComponents<1, 2>>>
-      packing{PackComponents{0, 0, three_components}, dtos};
+      packing{PackComponents{.dest_component = 0,
+                             .src_component = 0,
+                             .n_components = three_components}, dtos};
 
   AMREX_NODISCARD CommHandler FillBoundary_nowait() {
     if (!cmd || cached_dest_bd_key != dest->mass.getBDKey() || cached_src_bd_key != src->mass.getBDKey()) {

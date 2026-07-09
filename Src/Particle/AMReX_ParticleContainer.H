@@ -504,13 +504,32 @@ public:
     *              redistributed but are not necessarily at the same time as those on the coarse
     *              level.
     *              Default: 0
-    * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
-    *              go to any other box in the simulation. If > 0, this is the maximum number of cells
-    *              a particle can have moved since the last Redistribute() call. Knowing this number
+    * \param local If not positive, this will be a non-local redistribute, meaning that particles
+    *              can potentially go to any other box in the simulation. Otherwise, it is the
+    *              maximum number of cells a particle can have moved since the last
+    *              Redistribute() call, applied uniformly in all directions. Knowing this
     *              allows an optimized MPI communication pattern to be used.
     * \param remove_negative If true, remove particles with a negative ID. Default: true.
     */
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                       int local = 0, bool remove_negative=true)
+    {
+        Redistribute(lev_min, lev_max, IntVect(nGrow),
+                     local > 0, IntVect(local), remove_negative);
+    }
+
+    //! Like Redistribute(int, int, int, int, bool) but separates the local/global
+    //! algorithm choice from the per-direction local distance.
+    //! \param lev_min The minimum level to consider.
+    //! \param lev_max The maximum level to consider.
+    //! \param nGrow If particles are within nGrow cells of their current box
+    //!        in each direction, they will not be moved.
+    //! \param local If true, use the local Redistribute algorithm.
+    //! \param max_cells_moved The maximum number of cells a particle can
+    //!        have moved since the last Redistribute() call in each direction.
+    //! \param remove_negative If true, remove particles with a negative ID.
+    void Redistribute (int lev_min, int lev_max, IntVect nGrow,
+                       bool local, IntVect max_cells_moved,
                        bool remove_negative=true);
 
 
@@ -592,7 +611,8 @@ public:
     /**
      * \brief Return capacity of memory for particles at specific grid
      */
-    template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
+    template <std::integral I>
+    requires (sizeof(I) >= sizeof(Long))
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
     /**
@@ -688,8 +708,8 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    template <class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    template <class PCType>
+    requires (IsParticleContainer<PCType>::value)
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -699,8 +719,8 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    template <class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    template <class PCType>
+    requires (IsParticleContainer<PCType>::value)
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -717,9 +737,8 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    template <class F, class PCType>
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -735,9 +754,8 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    template <class F, class PCType>
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
     void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
@@ -821,7 +839,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-                                  F&& f, bool is_checkpoint=false) const;
+                                  F const& f, bool is_checkpoint=false) const;
 
     void CheckpointPre ();
 
@@ -863,8 +881,8 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
-    void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
+    template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
@@ -894,7 +912,7 @@ public:
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names,
-                        const Vector<std::string>&  int_comp_names, F&& f) const;
+                        const Vector<std::string>&  int_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify
@@ -920,9 +938,9 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
+    template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
-                        const Vector<std::string>& real_comp_names, F&& f) const;
+                        const Vector<std::string>& real_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
@@ -956,7 +974,7 @@ public:
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
                         const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp, F&& f) const;
+                        const Vector<int>& write_int_comp, F const& f) const;
 
     /**
      * \brief This is the most general version of WritePlotFile, which takes component
@@ -1003,7 +1021,7 @@ public:
                         const Vector<int>& write_int_comp,
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names,
-                        F&& f) const;
+                        F const& f) const;
 
     void WritePlotFilePre ();
 
@@ -1280,11 +1298,16 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                            int local = 0, bool remove_negative=true)
+    {
+        Redistribute_impl(lev_min, lev_max, IntVect(nGrow),
+                          local > 0, IntVect(local), remove_negative);
+    }
 
-    void RedistributeGPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void Redistribute_impl (int lev_min, int lev_max, IntVect nGrow,
+                            bool local, IntVect max_cells_moved,
+                            bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
 
@@ -1293,7 +1316,7 @@ public:
     void AddRealComp (std::string const & name, int communicate=1)
     {
         // names must be unique
-        auto const it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+        auto const it = std::ranges::find(m_soa_rdata_names, name);
         if (it != m_soa_rdata_names.end()) {
             throw std::runtime_error("AddRealComp: name '" + name + "' is already present in the SoA.");
         }
@@ -1326,7 +1349,7 @@ public:
     void AddIntComp (std::string const & name, int communicate=1)
     {
         // names must be unique
-        auto const it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+        auto const it = std::ranges::find(m_soa_idata_names, name);
         if (it != m_soa_idata_names.end()) {
             throw std::runtime_error("AddIntComp: name '" + name + "' is already present in the SoA.");
         }
@@ -1444,7 +1467,7 @@ protected:
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
     * Returns false if the particle does not exist on that level.
-    * Only if lev_min == lev_max, nGrow can be \> 0 (i.e., including
+    * Only if lev_min == lev_max, nGrow can be nonzero (i.e., including
     * nGrow ghost cells).
     *
     * \param prt
@@ -1456,7 +1479,8 @@ protected:
     */
     template <typename P>
     bool Where (const P& prt, ParticleLocData& pld,
-                int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
+                int lev_min = 0, int lev_max = -1, IntVect nGrow=IntVect(0),
+                int local_grid=-1) const;
 
 
     /**
@@ -1546,9 +1570,37 @@ private:
     void RedistributeMPI (std::map<int, Vector<char> >& not_ours,
                           int lev_min = 0, int lev_max = 0, int nGrow = 0, int local=0);
 
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, IntVect nGrow, bool local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift);
+
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, int nGrow, int local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift)
+    {
+        return hostPartitionTile(src_tile, lev, gid, tid,
+                                 lev_min, lev_max, IntVect(nGrow), local > 0,
+                                 remove_negative, myproc,
+                                 boxes, levels, tiles, src_indices, periodic_shift);
+    }
+
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,
-                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
+                         int lev_min, int lev_max, IntVect nGrow, int local_grid=-1) const;
 
     void Initialize ();
 

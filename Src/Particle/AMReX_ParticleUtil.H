@@ -30,7 +30,8 @@ namespace amrex {
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator>
+requires (IsParticleIterator<Iterator>::value)
 int
 numParticlesOutOfRange (Iterator const& pti, int nGrow)
 {
@@ -48,7 +49,8 @@ numParticlesOutOfRange (Iterator const& pti, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class Iterator, std::enable_if_t<IsParticleIterator<Iterator>::value, int> foo = 0>
+template <class Iterator>
+requires (IsParticleIterator<Iterator>::value)
 int
 numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
 {
@@ -94,8 +96,9 @@ numParticlesOutOfRange (Iterator const& pti, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+template <class PC>
+requires (IsParticleContainer<PC>::value)
+Long
 numParticlesOutOfRange (PC const& pc, int nGrow)
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
@@ -113,8 +116,9 @@ numParticlesOutOfRange (PC const& pc, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+template <class PC>
+requires (IsParticleContainer<PC>::value)
+Long
 numParticlesOutOfRange (PC const& pc, IntVect nGrow)
 {
     return numParticlesOutOfRange(pc, 0, pc.finestLevel(), nGrow);
@@ -134,8 +138,9 @@ numParticlesOutOfRange (PC const& pc, IntVect nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+template <class PC>
+requires (IsParticleContainer<PC>::value)
+Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
 {
     BL_PROFILE("numParticlesOutOfRange()");
@@ -158,14 +163,15 @@ numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, int nGrow)
  * \param nGrow the number of grow cells allowed.
  *
  */
-template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
-int
+template <class PC>
+requires (IsParticleContainer<PC>::value)
+Long
 numParticlesOutOfRange (PC const& pc, int lev_min, int lev_max, IntVect nGrow)
 {
     BL_PROFILE("numParticlesOutOfRange()");
 
     using ParIter = typename PC::ParConstIterType;
-    int num_wrong = 0;
+    Long num_wrong = 0;
     for (int lev = lev_min; lev <= lev_max; ++lev)
     {
 #ifdef AMREX_USE_OMP
@@ -288,7 +294,7 @@ struct BinMapper
         int uix = amrex::min(nx-1,amrex::max(0,iv3.x));
         int uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
         int uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-        return static_cast<unsigned int>( (uix * ny + uiy) * nz + uiz + offset );
+        return static_cast<unsigned int>( (uiz * ny + uiy) * nx + uix + offset );
     }
 
 private:
@@ -550,7 +556,7 @@ partitionParticles (PTile& ptile, ParFunc const& is_left)
     // it compensates for the extra kernel launches and evaluations of is_left which this
     // algorithm needs.
 
-    ParallelFor(max_num_swaps,
+    ParallelForOMP(max_num_swaps,
         [=] AMREX_GPU_DEVICE (int i)
         {
             int left_i = p_index_left[i];
@@ -618,7 +624,7 @@ partitionParticles (PTile& ptile, int num_left, ParFunc const& is_left)
         },
         Scan::Type::exclusive, Scan::noRetSum);
 
-    ParallelFor(max_num_swaps,
+    ParallelForOMP(max_num_swaps,
         [=] AMREX_GPU_DEVICE (int i)
         {
             int left_i = p_index_left[i];
@@ -643,8 +649,6 @@ removeInvalidParticles (PTile& ptile)
     ptile.resize(new_size);
 }
 
-#if defined(AMREX_USE_GPU)
-
 template <typename PTile, typename PLocator, typename CellAssignor>
 int
 partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const& assignor,
@@ -654,8 +658,8 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rlo,
                           const GpuArray<ParticleReal,AMREX_SPACEDIM>& rhi,
                           const GpuArray<int ,AMREX_SPACEDIM>& is_per,
-                          int lev, int gid, int /*tid*/,
-                          int lev_min, int lev_max, int nGrow, bool remove_negative)
+                          int lev, int gid, int tid,
+                          int lev_min, int lev_max, IntVect nGrow, bool remove_negative)
 {
     auto getPID = pmap.getPIDFunctor();
     int pid = ParallelContext::MyProcSub();
@@ -666,15 +670,17 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
 
     // the function for determining if a particle stays on this grid is very slow,
     // so we cache it in particle_stays to avoid evaluating it multiple times.
-    ParallelFor(ptile.numParticles(),
+    ParallelForOMP(ptile.numParticles(),
         [=] AMREX_GPU_DEVICE (int i)
         {
             int assigned_grid;
+            int assigned_tile;
             int assigned_lev;
 
             if (!ptd.id(i).is_valid())
             {
                 assigned_grid = -1;
+                assigned_tile = -1;
                 assigned_lev  = -1;
             }
             else
@@ -683,7 +689,8 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                 enforcePeriodic(p_prime, plo, phi, rlo, rhi, is_per);
                 auto tup_prime = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                 assigned_grid = amrex::get<0>(tup_prime);
-                assigned_lev  = amrex::get<1>(tup_prime);
+                assigned_tile = amrex::get<1>(tup_prime);
+                assigned_lev  = amrex::get<2>(tup_prime);
                 if (assigned_grid >= 0)
                 {
                     AMREX_D_TERM(ptd.pos(0, i) = p_prime.pos(0);,
@@ -697,13 +704,15 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
                                  p_prime.pos(2) = ptd.pos(2, i););
                     auto tup = ploc(p_prime, lev_min, lev_max, nGrow, assignor);
                     assigned_grid = amrex::get<0>(tup);
-                    assigned_lev  = amrex::get<1>(tup);
+                    assigned_tile = amrex::get<1>(tup);
+                    assigned_lev  = amrex::get<2>(tup);
                 }
             }
 
             p_particle_stays[i] = uint8_t(
                 ((remove_negative == false) && (!ptd.id(i).is_valid())) ||
-                ((assigned_grid == gid) && (assigned_lev == lev) && (getPID(lev, gid) == pid)));
+                ((assigned_grid == gid) && (assigned_tile == tid) &&
+                 (assigned_lev == lev) && (getPID(lev, gid, tid) == pid)));
         });
 
     return partitionParticles(ptile,
@@ -711,8 +720,6 @@ partitionParticlesByDest (PTile& ptile, const PLocator& ploc, CellAssignor const
             return p_particle_stays[i];
         });
 }
-
-#endif
 
 template <class PC1, class PC2>
 bool SameIteratorsOK (const PC1& pc1, const PC2& pc2) {
@@ -739,6 +746,8 @@ void EnsureThreadSafeTiles(PC& pc) {
 IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev);
 
 Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow);
+
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, IntVect ngrow);
 
 /// \cond DOXYGEN_IGNORE
 namespace particle_detail
@@ -940,8 +949,8 @@ std::string getDefaultCompNameInt (const int i) {
  * \param ptile
  * \param permutations
  */
-template <class PTile, class index_type,
-          std::enable_if_t<!PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
+template <class PTile, class index_type>
+requires (!PTile::ParticleType::is_rtsoa_particle)
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {
@@ -1044,8 +1053,8 @@ ReorderParticles (PTile& ptile, const index_type* permutations)
  * \param ptile
  * \param permutations
  */
-template <class PTile, class index_type,
-          std::enable_if_t<PTile::ParticleType::is_rtsoa_particle, int> foo = 0>
+template <class PTile, class index_type>
+requires (PTile::ParticleType::is_rtsoa_particle)
 void
 ReorderParticles (PTile& ptile, const index_type* permutations)
 {

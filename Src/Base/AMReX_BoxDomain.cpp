@@ -138,9 +138,7 @@ BoxDomain::add (const Box& b)
                 cbx = Box();
             }
         }
-        check.erase(std::remove_if(check.begin(), check.end(),
-                                   [](const Box& x) { return x.isEmpty(); }),
-                    check.end());
+        std::erase_if(check, [](const Box& x) { return x.isEmpty(); });
         check.insert(std::end(check), std::begin(tmp), std::end(tmp));
     }
     join(check);

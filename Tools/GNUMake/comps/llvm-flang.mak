@@ -43,11 +43,15 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++17
+  CXXSTD := c++20
 endif
 
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c11
+
+ifeq ($(USE_LIBCXX),TRUE)
+  CXXFLAGS += -stdlib=libc++
+endif
 
 FMODULES = -J$(fmoddir) -I $(fmoddir)
 

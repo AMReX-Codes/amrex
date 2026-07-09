@@ -4,6 +4,7 @@
 
 #include <AMReX_FArrayBox.H>
 #include <AMReX_Array.H>
+#include <AMReX_LUSolver.H>
 
 namespace amrex {
 
@@ -126,11 +127,10 @@ nodebilin_interp (Box const& bx, Array4<T> const& fine, const int fcomp, const i
     }
 }
 
-
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
 facediv_face_interp (int ci, int cj, int ck,
-                     int nc, int nf, int idir,
+                     int n, int idir,
                      Array4<T const> const& crse,
                      Array4<T> const& fine,
                      Array4<int const> const& mask,
@@ -138,7 +138,7 @@ facediv_face_interp (int ci, int cj, int ck,
 {
 
     if (mask) {
-        if (!mask(ci, cj, ck, nc))
+        if (!mask(ci, cj, ck, n))
             { return; }
     }
 
@@ -149,64 +149,64 @@ facediv_face_interp (int ci, int cj, int ck,
     switch (idir) {
         case 0:
         {
-            const Real ll = crse(ci, cj-1, ck-1, nc);
-            const Real cl = crse(ci, cj-1, ck,   nc);
-            const Real rl = crse(ci, cj-1, ck+1, nc);
+            const Real slpy  = Real(0.5)* (crse(ci,cj+1,ck  ,n) - crse(ci,cj-1,ck  ,n));
+            const Real slpz  = Real(0.5)* (crse(ci,cj,  ck+1,n) - crse(ci,cj,  ck-1,n));
+            const Real slpyz = Real(0.25)*(crse(ci,cj+1,ck+1,n) - crse(ci,cj+1,ck-1,n) - crse(ci,cj-1,ck+1,n) + crse(ci,cj-1,ck-1,n));
 
-            const Real lc = crse(ci, cj  , ck-1, nc);
-            const Real cc = crse(ci, cj  , ck,   nc);
-            const Real rc = crse(ci, cj  , ck+1, nc);
+            const Real dys = Real(1.)/Real(ratio[1]);
+            const Real dzs = Real(1.)/Real(ratio[2]);
 
-            const Real lu = crse(ci, cj+1, ck-1, nc);
-            const Real cu = crse(ci, cj+1, ck,   nc);
-            const Real ru = crse(ci, cj+1, ck+1, nc);
+            for (int k=0; k<ratio[2]; ++k){
+            for (int j=0; j<ratio[1]; ++j){
 
-            fine(fi,fj  ,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-            fine(fi,fj  ,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-            fine(fi,fj+1,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-            fine(fi,fj+1,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+              Real ysloc = (Real(j)+Real(0.5))*dys - Real(0.5);
+              Real zsloc = (Real(k)+Real(0.5))*dzs - Real(0.5);
+              fine(fi,fj+j,fk+k,n) = crse(ci,cj,ck,n) +  ysloc*slpy + zsloc*slpz + ysloc*zsloc*slpyz;
+
+            }
+            }
 
             break;
         }
         case 1:
         {
-            const Real ll = crse(ci-1, cj, ck-1, nc);
-            const Real cl = crse(ci  , cj, ck-1, nc);
-            const Real rl = crse(ci+1, cj, ck-1, nc);
+            const Real slpx  = Real(0.5)* (crse(ci+1,cj,ck  ,n) - crse(ci-1,cj,ck  ,n));
+            const Real slpz  = Real(0.5)* (crse(ci  ,cj,ck+1,n) - crse(ci  ,cj,ck-1,n));
+            const Real slpxz = Real(0.25)*(crse(ci+1,cj,ck+1,n) - crse(ci+1,cj,ck-1,n) - crse(ci-1,cj,ck+1,n) + crse(ci-1,cj,ck-1,n));
 
-            const Real lc = crse(ci-1, cj, ck  , nc);
-            const Real cc = crse(ci  , cj, ck  , nc);
-            const Real rc = crse(ci+1, cj, ck  , nc);
+            const Real dxs = Real(1.)/Real(ratio[0]);
+            const Real dzs = Real(1.)/Real(ratio[2]);
 
-            const Real lu = crse(ci-1, cj, ck+1, nc);
-            const Real cu = crse(ci  , cj, ck+1, nc);
-            const Real ru = crse(ci+1, cj, ck+1, nc);
+            for (int k=0; k<ratio[2]; ++k){
+            for (int i=0; i<ratio[0]; ++i){
 
-            fine(fi  ,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-            fine(fi+1,fj,fk  ,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-            fine(fi  ,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-            fine(fi+1,fj,fk+1,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+              Real xsloc = (Real(i)+Real(0.5))*dxs - Real(0.5);
+              Real zsloc = (Real(k)+Real(0.5))*dzs - Real(0.5);
+              fine(fi+i,fj,fk+k,n) = crse(ci,cj,ck,n) + xsloc*slpx + zsloc*slpz + xsloc*zsloc*slpxz;
+
+            }
+            }
 
             break;
         }
         case 2:
         {
-            const Real ll = crse(ci-1, cj-1, ck, nc);
-            const Real cl = crse(ci  , cj-1, ck, nc);
-            const Real rl = crse(ci+1, cj-1, ck, nc);
+            const Real slpx  = Real(0.5)* (crse(ci+1,cj,  ck,n) - crse(ci-1,cj,  ck  ,n));
+            const Real slpy  = Real(0.5)* (crse(ci  ,cj+1,ck,n) - crse(ci,  cj-1,ck  ,n));
+            const Real slpxy = Real(0.25)*(crse(ci+1,cj+1,ck,n) - crse(ci+1,cj-1,ck,n) - crse(ci-1,cj+1,ck,n) + crse(ci-1,cj-1,ck,n));
 
-            const Real lc = crse(ci-1, cj  , ck, nc);
-            const Real cc = crse(ci  , cj  , ck, nc);
-            const Real rc = crse(ci+1, cj  , ck, nc);
+            const Real dxs = Real(1.)/Real(ratio[0]);
+            const Real dys = Real(1.)/Real(ratio[1]);
 
-            const Real lu = crse(ci-1, cj+1, ck, nc);
-            const Real cu = crse(ci  , cj+1, ck, nc);
-            const Real ru = crse(ci+1, cj+1, ck, nc);
+            for (int j=0; j<ratio[1]; ++j){
+            for (int i=0; i<ratio[0]; ++i){
 
-            fine(fi  ,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+lc-cu-rc) + (ll+ru-lu-rl) );
-            fine(fi+1,fj  ,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cl+rc-cu-lc) + (lu+rl-ll-ru) );
-            fine(fi  ,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+lc-cl-rc) + (lu+rl-ll-ru) );
-            fine(fi+1,fj+1,fk,nf) = Real(1.)/Real(64.)*( 64*cc + 8*(cu+rc-cl-lc) + (ll+ru-lu-rl) );
+              Real xsloc = (Real(i)+Real(0.5))*dxs - Real(0.5);
+              Real ysloc = (Real(j)+Real(0.5))*dys - Real(0.5);
+              fine(fi+i,fj+j,fk,n) = crse(ci,cj,ck,n) +  xsloc*slpx + ysloc*slpy + xsloc*ysloc*slpxy;
+
+            }
+            }
 
             break;
         }
@@ -216,7 +216,7 @@ facediv_face_interp (int ci, int cj, int ck,
 
 template<typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE void
-facediv_int (int ci, int cj, int ck, int nf,
+facediv_int (int ci, int cj, int ck, int n,
              GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
              IntVect const& ratio,
              GpuArray<Real, AMREX_SPACEDIM> const& cellSize) noexcept
@@ -226,32 +226,32 @@ facediv_int (int ci, int cj, int ck, int nf,
     const int fk = ck*ratio[2];
 
     // References to fine exterior values needed for interior calculation.
-    const Real u000 = fine[0](fi,   fj  , fk  , nf);
-    const Real u200 = fine[0](fi+2, fj  , fk  , nf);
-    const Real u010 = fine[0](fi,   fj+1, fk  , nf);
-    const Real u210 = fine[0](fi+2, fj+1, fk  , nf);
-    const Real u001 = fine[0](fi,   fj  , fk+1, nf);
-    const Real u201 = fine[0](fi+2, fj  , fk+1, nf);
-    const Real u011 = fine[0](fi,   fj+1, fk+1, nf);
-    const Real u211 = fine[0](fi+2, fj+1, fk+1, nf);
+    const Real u000 = fine[0](fi,   fj  , fk  , n);
+    const Real u200 = fine[0](fi+2, fj  , fk  , n);
+    const Real u010 = fine[0](fi,   fj+1, fk  , n);
+    const Real u210 = fine[0](fi+2, fj+1, fk  , n);
+    const Real u001 = fine[0](fi,   fj  , fk+1, n);
+    const Real u201 = fine[0](fi+2, fj  , fk+1, n);
+    const Real u011 = fine[0](fi,   fj+1, fk+1, n);
+    const Real u211 = fine[0](fi+2, fj+1, fk+1, n);
 
-    const Real v000 = fine[1](fi  , fj  , fk  , nf);
-    const Real v020 = fine[1](fi  , fj+2, fk  , nf);
-    const Real v100 = fine[1](fi+1, fj  , fk  , nf);
-    const Real v120 = fine[1](fi+1, fj+2, fk  , nf);
-    const Real v001 = fine[1](fi  , fj  , fk+1, nf);
-    const Real v021 = fine[1](fi  , fj+2, fk+1, nf);
-    const Real v101 = fine[1](fi+1, fj  , fk+1, nf);
-    const Real v121 = fine[1](fi+1, fj+2, fk+1, nf);
+    const Real v000 = fine[1](fi  , fj  , fk  , n);
+    const Real v020 = fine[1](fi  , fj+2, fk  , n);
+    const Real v100 = fine[1](fi+1, fj  , fk  , n);
+    const Real v120 = fine[1](fi+1, fj+2, fk  , n);
+    const Real v001 = fine[1](fi  , fj  , fk+1, n);
+    const Real v021 = fine[1](fi  , fj+2, fk+1, n);
+    const Real v101 = fine[1](fi+1, fj  , fk+1, n);
+    const Real v121 = fine[1](fi+1, fj+2, fk+1, n);
 
-    const Real w000 = fine[2](fi  , fj  , fk  , nf);
-    const Real w002 = fine[2](fi  , fj  , fk+2, nf);
-    const Real w100 = fine[2](fi+1, fj  , fk  , nf);
-    const Real w102 = fine[2](fi+1, fj  , fk+2, nf);
-    const Real w010 = fine[2](fi  , fj+1, fk  , nf);
-    const Real w012 = fine[2](fi  , fj+1, fk+2, nf);
-    const Real w110 = fine[2](fi+1, fj+1, fk  , nf);
-    const Real w112 = fine[2](fi+1, fj+1, fk+2, nf);
+    const Real w000 = fine[2](fi  , fj  , fk  , n);
+    const Real w002 = fine[2](fi  , fj  , fk+2, n);
+    const Real w100 = fine[2](fi+1, fj  , fk  , n);
+    const Real w102 = fine[2](fi+1, fj  , fk+2, n);
+    const Real w010 = fine[2](fi  , fj+1, fk  , n);
+    const Real w012 = fine[2](fi  , fj+1, fk+2, n);
+    const Real w110 = fine[2](fi+1, fj+1, fk  , n);
+    const Real w112 = fine[2](fi+1, fj+1, fk+2, n);
 
     const Real dx = cellSize[0];
     const Real dy = cellSize[1];
@@ -266,77 +266,344 @@ facediv_int (int ci, int cj, int ck, int nf,
     const Real yspzs = dy*dy + dz*dz;
     const Real zspxs = dz*dz + dx*dx;
 
-    fine[0](fi+1, fj  , fk  , nf) = Real(0.5)*(u000+u200)
+    fine[0](fi+1, fj  , fk  , n) = Real(0.5)*(u000+u200)
                                   + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v000+v120-v020-v100)
                                   +                dx3/(8*dy*zspxs)*(v001+v121-v021-v101)
                                   + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w000+w102-w002-w100)
                                   +                dx3/(8*dz*xspys)*(w010+w112-w012-w110);
 
-    fine[0](fi+1, fj+1, fk  , nf) = Real(0.5)*(u010+u210)
+    fine[0](fi+1, fj+1, fk  , n) = Real(0.5)*(u010+u210)
                                   + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v000+v120-v020-v100)
                                   +                dx3/(8*dy*zspxs)*(v001+v121-v021-v101)
                                   + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w010+w112-w012-w110)
                                   +                dx3/(8*dz*xspys)*(w000+w102-w100-w002);
 
-    fine[0](fi+1, fj  , fk+1, nf) = Real(0.5)*(u001+u201)
+    fine[0](fi+1, fj  , fk+1, n) = Real(0.5)*(u001+u201)
                                   + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v001+v121-v021-v101)
                                   +                dx3/(8*dy*zspxs)*(v000+v120-v020-v100)
                                   + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w000+w102-w002-w100)
                                   +                dx3/(8*dz*xspys)*(w010+w112-w012-w110);
 
-    fine[0](fi+1, fj+1, fk+1, nf) = Real(0.5)*(u011+u211)
+    fine[0](fi+1, fj+1, fk+1, n) = Real(0.5)*(u011+u211)
                                   + dx*(2*dz*dz+dx*dx)/(8*dy*zspxs)*(v001+v121-v021-v101)
                                   +                dx3/(8*dy*zspxs)*(v000+v120-v020-v100)
                                   + dx*(2*dy*dy+dx*dx)/(8*dz*xspys)*(w010+w112-w012-w110)
                                   +                dx3/(8*dz*xspys)*(w000+w102-w002-w100);
 
-    fine[1](fi  , fj+1, fk  , nf) = Real(0.5)*(v000+v020)
+    fine[1](fi  , fj+1, fk  , n) = Real(0.5)*(v000+v020)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   +                dy3/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
                                   +                dy3/(8*dz*xspys)*(w100+w112-w102-w110);
 
-    fine[1](fi+1, fj+1, fk  , nf) = Real(0.5)*(v100+v120)
+    fine[1](fi+1, fj+1, fk  , n) = Real(0.5)*(v100+v120)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   +                dy3/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w100+w112-w102-w110)
                                   +                dy3/(8*dz*xspys)*(w000+w012-w002-w010);
 
-    fine[1](fi  , fj+1, fk+1, nf) = Real(0.5)*(v001+v021)
+    fine[1](fi  , fj+1, fk+1, n) = Real(0.5)*(v001+v021)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   +                dy3/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w000+w012-w002-w010)
                                   +                dy3/(8*dz*xspys)*(w100+w112-w102-w110);
 
-    fine[1](fi+1, fj+1, fk+1, nf) = Real(0.5)*(v101+v121)
+    fine[1](fi+1, fj+1, fk+1, n) = Real(0.5)*(v101+v121)
                                   + dy*(2*dz*dz+dy*dy)/(8*dx*yspzs)*(u001+u211-u011-u201)
                                   +                dy3/(8*dx*yspzs)*(u000+u210-u010-u200)
                                   + dy*(2*dx*dx+dy*dy)/(8*dz*xspys)*(w100+w112-w102-w110)
                                   +                dy3/(8*dz*xspys)*(w000+w012-w002-w010);
 
-    fine[2](fi  , fj  , fk+1, nf) = Real(0.5)*(w000+w002)
+    fine[2](fi  , fj  , fk+1, n) = Real(0.5)*(w000+w002)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v000+v021-v001-v020)
                                   +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
 
-    fine[2](fi  , fj+1, fk+1, nf) = Real(0.5)*(w010+w012)
+    fine[2](fi  , fj+1, fk+1, n) = Real(0.5)*(w010+w012)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v000+v021-v001-v020)
                                   +                dz3/(8*dy*zspxs)*(v100+v121-v101-v120);
 
-    fine[2](fi+1, fj  , fk+1, nf) = Real(0.5)*(w100+w102)
+    fine[2](fi+1, fj  , fk+1, n) = Real(0.5)*(w100+w102)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   +                dz3/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
                                   +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
 
-    fine[2](fi+1, fj+1, fk+1, nf) = Real(0.5)*(w110+w112)
+    fine[2](fi+1, fj+1, fk+1, n) = Real(0.5)*(w110+w112)
                                   + dz*(2*dy*dy+dz*dz)/(8*dx*yspzs)*(u010+u211-u011-u210)
                                   +                dz3/(8*dx*yspzs)*(u000+u201-u001-u200)
                                   + dz*(2*dx*dx+dz*dz)/(8*dy*zspxs)*(v100+v121-v101-v120)
                                   +                dz3/(8*dy*zspxs)*(v000+v021-v001-v020);
+}
+
+
+template <int i>
+requires (i>=0 && i<8)
+constexpr IntVect facediv_get_refratio ()
+{
+    if constexpr (i == 0) {
+        return IntVect(2,2,2);
+    } else if constexpr (i == 1) {
+        return IntVect(4,2,2);
+    } else if constexpr (i == 2) {
+        return IntVect(2,4,2);
+    } else if constexpr (i == 3) {
+        return IntVect(4,4,2);
+    } else if constexpr (i == 4) {
+        return IntVect(2,2,4);
+    } else if constexpr (i == 5) {
+        return IntVect(4,2,4);
+    } else if constexpr (i == 6) {
+        return IntVect(2,4,4);
+    } else {
+        return IntVect(4,4,4);
+    }
+}
+
+template <int N>
+LUSolver<N,Real>
+facediv_init_lusolver (IntVect const& ratio,
+                       GpuArray<Real, AMREX_SPACEDIM> const& cellSize)
+{
+    //  set up matrix for local MAC projection
+    Array2D<Real,0,N-1,0,N-1,Order::C> mat;
+
+    for (int irow = 0; irow < N; irow++) {
+        for (int icol = 0; icol < N; icol++) {
+            mat(irow,icol) = Real(0.0);
+        }
+    }
+
+    Real dxinv = Real(1.)/cellSize[0];
+    Real dyinv = Real(1.)/cellSize[1];
+    Real dzinv = Real(1.)/cellSize[2];
+
+    Real ddx2 = dxinv*dxinv;
+    Real ddy2 = dyinv*dyinv;
+    Real ddz2 = dzinv*dzinv;
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+        int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+        if(i > 0){
+            mat(irow,irow) += ddx2;
+            mat(irow,irow-1) += -ddx2;
+        }
+
+        if(i < ratio[0]-1){
+            mat(irow,irow) += ddx2;
+            mat(irow,irow+1) += -ddx2;
+        }
+
+        if(j > 0){
+            mat(irow,irow) += ddy2;
+            mat(irow,irow-ratio[0]) += -ddy2;
+        }
+
+        if(j < ratio[1]-1){
+            mat(irow,irow) += ddy2;
+            mat(irow,irow+ratio[0]) += -ddy2;
+        }
+
+        if(k > 0){
+            mat(irow,irow) += ddz2;
+            mat(irow,irow-ratio[0]*ratio[1]) += -ddz2;
+        }
+
+        if(k < ratio[2]-1){
+            mat(irow,irow) += ddz2;
+            mat(irow,irow+ratio[0]*ratio[1]) += -ddz2;
+        }
+    }}}
+
+    // Hack matrix to be nonsingular. This just picks a particular gauge
+    // with the last row being zero, doesn’t change the gradients we will
+    // apply.
+    mat(N-1,N-1) +=ddx2;
+
+    return LUSolver<N,Real>{mat};
+}
+
+template<typename T, int N>
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
+facediv_int_gen (int ci, int cj, int ck, int nf,
+                 GpuArray<Array4<T>, AMREX_SPACEDIM> const& fine,
+                 IntVect const& ratio,
+                 GpuArray<Real, AMREX_SPACEDIM> const& cellSize,
+                 LUSolver<N,Real> const& lusolver) noexcept
+{
+    const int fi = ci*ratio[0];
+    const int fj = cj*ratio[1];
+    const int fk = ck*ratio[2];
+
+    const Real dx = cellSize[0];
+    const Real dy = cellSize[1];
+    const Real dz = cellSize[2];
+
+    const Real dxinv = Real(1.)/cellSize[0];
+    const Real dyinv = Real(1.)/cellSize[1];
+    const Real dzinv = Real(1.)/cellSize[2];
+
+// interpolate initial veloc
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=1; i < ratio[0]; ++i){
+
+       fine[0](fi + i, fj + j, fk + k, nf) = ((ratio[0]-i)*fine[0](fi,           fj + j, fk + k, nf)
+                                        +     i       *fine[0](fi+ratio[0], fj + j, fk + k, nf) )/ratio[0];
+
+    }
+    }
+    }
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=1; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+       fine[1](fi + i, fj + j, fk + k, nf) = ((ratio[1]-j)*fine[1](fi + i, fj,           fk + k, nf)
+                                        +     j       *fine[1](fi + i, fj+ratio[1], fk + k, nf) )/ratio[1];
+
+    }
+    }
+    }
+
+    for( int k=1; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+       fine[2](fi + i, fj + j, fk + k, nf) = ((ratio[2]-k)*fine[2](fi + i, fj + j, fk,           nf)
+                                        +     k       *fine[2](fi + i, fj + j, fk+ratio[2], nf) )/ratio[2];
+
+    }
+    }
+    }
+
+// compute target divergence
+
+    Real uplus  = 0;
+    Real uminus = 0;
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+
+         uplus  += fine[0](fi+ratio[0],fj+j,fk+k,nf);
+         uminus += fine[0](fi         ,fj+j,fk+k,nf);
+
+    }
+    }
+
+    Real vplus  = 0;
+    Real vminus = 0;
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int i=0; i < ratio[0]; ++i){
+
+         vplus  += fine[1](fi+i,fj+ratio[1],fk+k,nf);
+         vminus += fine[1](fi+i,fj,         fk+k,nf);
+
+    }
+    }
+
+    Real wplus  = 0;
+    Real wminus = 0;
+
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+         wplus  += fine[2](fi+i,fj+j,fk+ratio[2],nf);
+         wminus += fine[2](fi+i,fj+j,fk         ,nf);
+
+    }
+    }
+
+    Real target_div = (uplus-uminus)/(N*dx) + (vplus-vminus)/(N*dy) + (wplus-wminus)/(N*dz);
+
+// form rhs
+    Array1D<Real,0,N-1> rhs;
+    Array1D<Real,0,N-1> phi;
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+       int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+       rhs(irow) = ((fine[0](fi+i+1,fj+j,  fk+k,  nf)  -fine[0](fi+i,fj+j,fk+k,nf))*dxinv
+                 +  (fine[1](fi+i  ,fj+j+1,fk+k,  nf) - fine[1](fi+i,fj+j,fk+k,nf))*dyinv
+                 +  (fine[2](fi+i,  fj+j,  fk+k+1,nf) - fine[2](fi+i,fj+j,fk+k,nf))*dzinv) - target_div;
+    }
+    }
+    }
+
+//  solver the system
+
+    lusolver(phi.begin(), rhs.begin());
+
+//  this is for sanity check
+//  can be put in if needed
+
+//    Array3D<Real,0,ratio[0]-1,0,ratio[1]-1,0,ratio[2]-1> phi_reshape;
+
+//    for( int i=0; i < ratio[0]  , ++j){
+//    for( int j=0; j < ratio[1]  , ++j){
+//    for( int k=0; k < ratio[2]  , ++k){
+
+//       int irow = i + j*ratio[0] +k*ratio[0]*ratio[1];
+
+//       phi_reshape(i,j,k) = phi(irow)
+
+//    }
+//    }
+//    }
+
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=1; i < ratio[0]; ++i){
+
+       int plus  = i     + j*ratio[0] +k*ratio[0]*ratio[1];
+       int minus = i - 1 + j*ratio[0] +k*ratio[0]*ratio[1];
+//       fine[0](fi + i, fj + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i-1,j,k))*dxinv
+       fine[0](fi + i, fj + j, fk + k, nf) += ( phi(plus) - phi(minus))*dxinv;
+
+    }
+    }
+    }
+
+    for( int k=0; k < ratio[2]; ++k){
+    for( int j=1; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+       int plus  = i  +     j*ratio[0] +k*ratio[0]*ratio[1];
+       int minus = i  + (j-1)*ratio[0] +k*ratio[0]*ratio[1];
+//       fine[1](fi + i, fj + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j-1,k))*dyinv
+       fine[1](fi + i, fj + j, fk + k, nf) += ( phi(plus) - phi(minus))*dyinv;
+
+    }
+    }
+    }
+
+    for( int k=1; k < ratio[2]; ++k){
+    for( int j=0; j < ratio[1]; ++j){
+    for( int i=0; i < ratio[0]; ++i){
+
+       int plus  = i  + j*ratio[0] + k    *ratio[0]*ratio[1];
+       int minus = i  + j*ratio[0] + (k-1)*ratio[0]*ratio[1];
+//       fine[2](fi + i, fj + j, fk + k, nf) += ( phi_reshape(i,j,k) - phi_reshape(i,j,k-1))*dzinv
+       fine[2](fi + i, fj + j, fk + k, nf) += ( phi(plus) - phi(minus))*dzinv;
+
+    }
+    }
+    }
+
+
 }
 
 template<typename T>
@@ -414,7 +681,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
         for         (int k = klo; k <= khi; ++k) {
             for     (int j = jlo; j <= jhi; ++j) {
                 for (int i = ilo; i <= ihi; ++i) {
-                    if ((fine_state(i,j,k,n) + fine(i,j,k,n)) < 0.0) {
+                    if ((fine_state(i,j,k,n) + fine(i,j,k,n)) < Real(0.0)) {
                         redo_me = true;
                     }
                 }
@@ -444,14 +711,14 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
              *
              * SumP = volume-weighted sum of all positive values of fine_state
              */
-            Real crseTot = 0.0;
-            Real SumN = 0.0;
-            Real SumP = 0.0;
+            Real crseTot = Real(0.0);
+            Real SumN = Real(0.0);
+            Real SumP = Real(0.0);
             for         (int k = klo; k <= khi; ++k) {
                 for     (int j = jlo; j <= jhi; ++j) {
                     for (int i = ilo; i <= ihi; ++i) {
                         crseTot += fine(i,j,k,n);
-                        if (fine_state(i,j,k,n) <= 0.0) {
+                        if (fine_state(i,j,k,n) <= Real(0.0)) {
                             SumN += fine_state(i,j,k,n);
                         } else {
                             SumP += fine_state(i,j,k,n);
@@ -477,13 +744,13 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                         for (int i = ilo; i <= ihi; ++i) {
 
                             // Fill in negative values first.
-                            if (fine_state(i,j,k,n) < 0.0) {
+                            if (fine_state(i,j,k,n) < Real(0.0)) {
                                 fine(i,j,k,n) = -fine_state(i,j,k,n);
                             }
 
                             // Then, add the remaining positive proportionally.
-                            if (SumP > 0.0) {
-                                if (fine_state(i,j,k,n) > 0.0) {
+                            if (SumP > Real(0.0)) {
+                                if (fine_state(i,j,k,n) > Real(0.0)) {
                                     Real alpha = (crseTot - std::abs(SumN)) / SumP;
                                     fine(i,j,k,n) = alpha * fine_state(i,j,k,n);
                                 }
@@ -512,12 +779,12 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
                             Real alpha = crseTot / std::abs(SumN);
-                            if (fine_state(i,j,k,n) < 0.0) {
+                            if (fine_state(i,j,k,n) < Real(0.0)) {
                                 // Add correction to negative cells proportionally.
                                 fine(i,j,k,n) = alpha * std::abs(fine_state(i,j,k,n));
                             } else {
                                 // Don't touch the positive states.
-                                fine(i,j,k,n) = 0.0;
+                                fine(i,j,k,n) = Real(0.0);
                             }
 
                         }
@@ -548,7 +815,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
 
             } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
-                        ((SumP+SumN+crseTot) > 0.0) )  {
+                        ((SumP+SumN+crseTot) > Real(0.0)) )  {
 
                 /*
                  * Special case 4:
@@ -562,7 +829,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
 
-                            if (fine_state(i,j,k,n) < 0.0) {
+                            if (fine_state(i,j,k,n) < Real(0.0)) {
                                 // Absorb the negative correction
                                 fine(i,j,k,n) = -fine_state(i,j,k,n);
                             } else {
@@ -576,7 +843,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                 }
 
             } else if ( (crseTot < 0) && (std::abs(crseTot) < SumP) &&
-                        ((SumP+SumN+crseTot) < 0.0) )  {
+                        ((SumP+SumN+crseTot) < Real(0.0)) )  {
                 /*
                  * Special case 5:
                  *
@@ -592,7 +859,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
                     for     (int j = jlo; j <= jhi; ++j) {
                         for (int i = ilo; i <= ihi; ++i) {
 
-                            if (fine_state(i,j,k,n) > 0.0) {
+                            if (fine_state(i,j,k,n) > Real(0.0)) {
                                 // Don't touch the negatives
                                 fine(i,j,k,n) = -fine_state(i,j,k,n);
                             } else {
@@ -613,7 +880,7 @@ void ccprotect_3d (int ic, int jc, int kc, int nvar,
     for         (int k = klo; k <= khi; ++k) {
         for     (int j = jlo; j <= jhi; ++j) {
             for (int i = ilo; i <= ihi; ++i) {
-                fine(i,j,k,0) = 0.0;
+                fine(i,j,k,0) = Real(0.0);
                 for (int n = 1; n < nvar-1; ++n) {
                     fine(i,j,k,0) += fine(i,j,k,n);
                 }

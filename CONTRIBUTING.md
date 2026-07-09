@@ -247,6 +247,12 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
     ```cpp
     amrex::Real m_variable;
     ```
+  * C++20 concepts and constraints are discouraged on class templates and their member functions.
+    Compiler support for these features is still inconsistent across AMReX's target platforms
+    (e.g., MSVC, NVHPC, older Clang).
+  * Avoid `std::ranges::find_if` and `std::ranges::unique` — Clang ≤ 15
+    has bugs when compiling them with libstdc++. Use `std::find_if` and `std::unique` instead.
+
 These guidelines should be adhered to in new contributions to AMReX, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.
 

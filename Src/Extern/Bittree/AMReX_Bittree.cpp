@@ -176,7 +176,7 @@ void btUnit::btCheckRefine (BittreeAmr* const mesh, std::vector<int>& btTags,
 
     do {
         // Clear out ref_test
-        std::fill(ref_test.begin(),ref_test.end(),0);
+        std::ranges::fill(ref_test, 0);
 
         // Check neighbors - if any adjacent child of a neighbor is either a parent
         // or marked for refinement, this block needs to be refined.

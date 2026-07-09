@@ -24,14 +24,29 @@
 #include <AMReX_MultiFabUtil.H>
 
 #include <algorithm>
+#include <iterator>
 #include <string>
 
 namespace amrex {
+
+/**
+ * \file AMReX_MLLinOp.H
+ *
+ * Core abstractions shared by all multilevel linear operators: boundary
+ * metadata, coefficient management, agglomeration controls, and Hypre/PETSc
+ * interfaces exposed through `MLLinOpT`.
+ */
 
 enum class BottomSolver : int {
     Default, smoother, bicgstab, cg, bicgcg, cgbicg, hypre, petsc
 };
 
+/**
+ * \brief Configuration knobs for multilevel linear operators (grid agglomeration, metrics, etc.).
+ *
+ * The fluent setters below allow applications to toggle optional capabilities
+ * such as agglomeration, semicoarsening, and deterministic reductions.
+ */
 struct LPInfo
 {
     bool do_agglomeration = true;
@@ -48,20 +63,34 @@ struct LPInfo
     int hidden_direction = -1;
     bool deterministic = false;   //!< Enable deterministic mode for GPU operations
 
+    //! Enable or disable grid agglomeration on the coarsest MLMG levels (\p x = true enables it).
     LPInfo& setAgglomeration (bool x) noexcept { do_agglomeration = x; return *this; }
+    //! Enable or disable consolidation (MPI rank grouping) on coarse levels (\p x toggles the feature).
     LPInfo& setConsolidation (bool x) noexcept { do_consolidation = x; return *this; }
+    //! Toggle plane-wise semicoarsening instead of full coarsening (\p x = true selects semicoarsening).
     LPInfo& setSemicoarsening (bool x) noexcept { do_semicoarsening = x; return *this; }
+    //! Override the target grid size \p x used when agglomerating patches.
     LPInfo& setAgglomerationGridSize (int x) noexcept { agg_grid_size = x; return *this; }
+    //! Override the consolidation grid cutoff \p x (cells per MPI task) used to trigger grouping.
     LPInfo& setConsolidationGridSize (int x) noexcept { con_grid_size = x; return *this; }
+    //! Set the refinement ratio \p x between consolidated levels.
     LPInfo& setConsolidationRatio (int x) noexcept { con_ratio = x; return *this; }
+    //! Select the heuristic \p x used when forming consolidated grids.
     LPInfo& setConsolidationStrategy (int x) noexcept { con_strategy = x; return *this; }
+    //! Indicate whether metric terms are present so downstream code can skip metric work when absent.
     LPInfo& setMetricTerm (bool x) noexcept { has_metric_term = x; return *this; }
+    //! Cap how many coarsening steps (standard or semi-) MLMG may perform by setting \p n.
     LPInfo& setMaxCoarseningLevel (int n) noexcept { max_coarsening_level = n; return *this; }
+    //! Cap the number of semicoarsening steps (when enabled) via \p n.
     LPInfo& setMaxSemicoarseningLevel (int n) noexcept { max_semicoarsening_level = n; return *this; }
+    //! Lock the direction \p n used for semicoarsening (-1 restores the default heuristic).
     LPInfo& setSemicoarseningDirection (int n) noexcept { semicoarsening_direction = n; return *this; }
+    //! Specify a dimension \p n that should be treated as “hidden” (e.g., for thin domains).
     LPInfo& setHiddenDirection (int n) noexcept { hidden_direction = n; return *this; }
+    //! Enable deterministic reductions even on GPUs (slower but reproducible) by toggling \p x.
     LPInfo& setDeterministic (bool x) noexcept { deterministic = x; return *this; }
 
+    //! True if a hidden dimension was configured via setHiddenDirection().
     [[nodiscard]] bool hasHiddenDimension () const noexcept {
         return hidden_direction >=0 && hidden_direction < AMREX_SPACEDIM;
     }
@@ -97,6 +126,12 @@ template <typename T> class MLABecLaplacianT;
 template <typename T> class GMRESMLMGT;
 
 /// \ingroup amrex_solver_mlmg
+/**
+ * \brief Abstract base class for multilevel linear operators used by MLMG and the bottom solvers.
+ *
+ * Specializations expose domain/AMR metadata, boundary-condition wiring,
+ * and hooks for applying the operator and its coarse/fine helpers.
+ */
 template <typename MF>
 class MLLinOpT
 {
@@ -125,6 +160,17 @@ public:
     MLLinOpT<MF>& operator= (const MLLinOpT<MF>&) = delete;
     MLLinOpT<MF>& operator= (MLLinOpT<MF>&&) = delete;
 
+    /**
+     * \brief Initialize the operator hierarchy on a set of AMR levels.
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grid layouts.
+     * \param a_dmap    Per-level distribution maps.
+     * \param a_info    LPInfo describing coarsening/agglomeration limits.
+     * \param a_factory Optional EB-aware factories per level (may be null).
+     * \param eb_limit_coarsening True to forbid coarsening beyond where EB
+     *                            geometry information is available.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
@@ -160,13 +206,14 @@ public:
                       const Vector<Array<BCType,AMREX_SPACEDIM> >& hibc);
 
     /**
-     * \brief Set location of domain boundaries.
+     * \brief Set location offsets for the physical domain boundaries.
      *
-     * By default, domain BC is on the domain face.  If that's the
-     * case, this function doesn't need to be called.  However, one
-     * could use this function to set non-zero domain BC locations.
-     * Note all values should be >= 0.  If this function is called,
-     * it MUST be called before setLevelBC.
+     * By default, domain BCs sit exactly on the domain faces.  Call this when
+     * lower or upper faces are offset by a positive distance (values must be
+     * >= 0).  Must be invoked before setLevelBC().
+     *
+     * \param lo_bcloc Offsets for the lower faces in each coordinate direction.
+     * \param hi_bcloc Offsets for the upper faces in each coordinate direction.
      */
     void setDomainBCLoc (const Array<Real,AMREX_SPACEDIM>& lo_bcloc,
                          const Array<Real,AMREX_SPACEDIM>& hi_bcloc) noexcept;
@@ -207,13 +254,16 @@ public:
     void setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    template <typename AMF>
+    requires (!std::same_as<MF,AMF>)
     void setCoarseFineBC (const AMF* crse, int crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int> = 0>
+    template <typename AMF>
+    requires (!std::same_as<MF,AMF>)
     void setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                           LinOpBCType bc_type = LinOpBCType::Dirichlet) noexcept;
+
 
     /**
     * \brief Set boundary conditions for given level. For cell-centered
@@ -238,23 +288,34 @@ public:
                              const MF* /*robinbc_b*/ = nullptr,
                              const MF* /*robinbc_f*/ = nullptr) = 0;
 
-    template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
-                                             IsMultiFabLike_v<AMF>, int> = 0>
+    template <MultiFabLike AMF>
+    requires (!std::same_as<MF,AMF>)
     void setLevelBC (int amrlev, const AMF* levelbcdata,
                      const AMF* robinbc_a = nullptr,
                      const AMF* robinbc_b = nullptr,
                      const AMF* robinbc_f = nullptr);
 
-    //! Set verbosity
+    /**
+     * \brief Set verbosity.
+     *
+     * \param v Verbosity level forwarded to MLMG logs.
+     */
     void setVerbose (int v) noexcept { verbose = v; }
 
-    //! Set order of interpolation at coarse/fine boundary
+    /**
+     * \brief Set order of interpolation at coarse/fine boundary.
+     *
+     * \param o Polynomial order (2, 3, or 4).
+     */
     void setMaxOrder (int o) noexcept { maxorder = o; }
     //! Get order of interpolation at coarse/fine boundary
     [[nodiscard]] int getMaxOrder () const noexcept { return maxorder; }
 
-    //! Set the flag for whether the solver should try to make singular
-    //! problem solvable, which is on by default.
+    /**
+     * \brief Control whether the solver should try to make singular problems solvable.
+     *
+     * \param o True (default) enables solvability enforcement; false leaves RHS untouched.
+     */
     void setEnforceSingularSolvable (bool o) noexcept { enforceSingularSolvable = o; }
     //! Get the flag for whether the solver should try to make singular
     //! problem solvable.
@@ -365,7 +426,13 @@ public:
     virtual void smooth (int amrlev, int mglev, MF& sol, const MF& rhs,
                          bool skip_fillboundary, int niter) const = 0;
 
-    //! Divide mf by the diagonal component of the operator. Used by bicgstab.
+    /**
+     * \brief Divide \p mf by the diagonal component of the operator. Used by the bottom solvers.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param mf     MultiFab divided in place.
+     */
     virtual void normalize (int amrlev, int mglev, MF& mf) const {
         amrex::ignore_unused(amrlev, mglev, mf);
     }
@@ -382,7 +449,15 @@ public:
     virtual void solutionResidual (int amrlev, MF& resid, MF& x, const MF& b,
                                    const MF* crse_bcdata=nullptr) = 0;
 
-    virtual void prepareForFluxes (int /*amrlev*/, const MF* /*crse_bcdata*/ = nullptr) {}
+    /**
+     * \brief Ensure BC caches are populated before flux extraction.
+     *
+     * \param amrlev AMR level whose fluxes will be queried.
+     * \param crse_bcdata Optional coarse data used to seed boundary values.
+     */
+    virtual void prepareForFluxes (int amrlev, const MF* crse_bcdata = nullptr) {
+        amrex::ignore_unused(amrlev, crse_bcdata);
+    }
 
     /**
      * \brief Compute residual for the residual-correction form, resid = b - L(x)
@@ -448,109 +523,283 @@ public:
         amrex::Abort("AMReX_MLLinOp::compGrad::How did we get here?");
     }
 
-    //! apply metric terms if there are any
-    virtual void applyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const {}
-    //! unapply metric terms if there are any
-    virtual void unapplyMetricTerm (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/) const {}
+    /**
+     * \brief Apply metric scaling to the RHS on (\p amrlev,\p mglev).
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side updated in place.
+     */
+    virtual void applyMetricTerm (int amrlev, int mglev, MF& rhs) const {
+        amrex::ignore_unused(amrlev, mglev, rhs);
+    }
+    /**
+     * \brief Remove metric scaling previously applied via applyMetricTerm().
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side updated in place.
+     */
+    virtual void unapplyMetricTerm (int amrlev, int mglev, MF& rhs) const {
+        amrex::ignore_unused(amrlev, mglev, rhs);
+    }
 
-    //! This is needed for our nodal projection solver
-    virtual void unimposeNeumannBC (int /*amrlev*/, MF& /*rhs*/) const {}
+    /**
+     * \brief Undo Neumann contributions stored on the RHS.
+     *
+     * \param amrlev AMR level index.
+     * \param rhs    RHS MultiFab modified in place.
+     */
+    virtual void unimposeNeumannBC (int amrlev, MF& rhs) const {
+        amrex::ignore_unused(amrlev, rhs);
+    }
 
-    //! Extra terms introduced when we treat inhomogeneous Nuemann BC as homogeneous.
-    virtual void applyInhomogNeumannTerm (int /*amrlev*/, MF& /*rhs*/) const {}
+    /**
+     * \brief Add extra terms introduced when treating inhomogeneous Neumann BC as homogeneous.
+     *
+     * \param amrlev AMR level index.
+     * \param rhs    RHS MultiFab updated in place.
+     */
+    virtual void applyInhomogNeumannTerm (int amrlev, MF& rhs) const {
+        amrex::ignore_unused(amrlev, rhs);
+    }
 
-    //! for overset solver only
-    virtual void applyOverset (int /*amlev*/, MF& /*rhs*/) const {}
+    /**
+     * \brief Overset-only hook for zeroing regions covered by masks.
+     *
+     * \param amrlev AMR level index.
+     * \param rhs    RHS MultiFab whose covered regions are zeroed.
+     */
+    virtual void applyOverset (int amrlev, MF& rhs) const {
+        amrex::ignore_unused(amrlev, rhs);
+    }
 
-    //! scale RHS to fix solvability
-    [[nodiscard]] virtual bool scaleRHS (int /*amrlev*/, MF* /*rhs*/) const {
+    /**
+     * \brief Optionally scale the RHS to fix solvability.
+     *
+     * \param amrlev AMR level receiving the scaling.
+     * \param rhs    RHS pointer (may be null) scaled in place.
+     * \return True if scaling occurred, false otherwise.
+     */
+    [[nodiscard]] virtual bool scaleRHS (int amrlev, MF* rhs) const {
+        amrex::ignore_unused(amrlev, rhs);
         return false;
     }
 
-    //! get offset for fixing solvability
-    virtual Vector<RT> getSolvabilityOffset (int /*amrlev*/, int /*mglev*/,
-                                               MF const& /*rhs*/) const { return {}; }
+    /**
+     * \brief Compute offsets used to enforce solvability (per component).
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    Right-hand side examined to compute the offsets.
+     * \return Vector of offsets (one per component).
+     */
+    virtual Vector<RT> getSolvabilityOffset (int amrlev, int mglev,
+                                               MF const& rhs) const {
+        amrex::ignore_unused(amrlev, mglev, rhs);
+        return {};
+    }
 
-    //! fix solvability by subtracting offset from RHS
-    virtual void fixSolvabilityByOffset (int /*amrlev*/, int /*mglev*/, MF& /*rhs*/,
-                                         Vector<RT> const& /*offset*/) const {}
+    /**
+     * \brief Subtract previously computed offsets from the RHS.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param rhs    RHS updated in place.
+     * \param offset Offsets returned by getSolvabilityOffset().
+     */
+    virtual void fixSolvabilityByOffset (int amrlev, int mglev, MF& rhs,
+                                         Vector<RT> const& offset) const {
+        amrex::ignore_unused(amrlev, mglev, rhs, offset);
+    }
 
+    /**
+     * \brief Finalize coefficients, masks, and BC data before iterative solves.
+     */
     virtual void prepareForSolve () = 0;
 
+    /**
+     * \brief Prepare auxiliary data used when the operator acts as a
+     * preconditioner.
+     */
     virtual void preparePrecond () {}
 
-    //! For GMRES to work, this might need to be implemented to mask out
-    //! Dirichlet nodes or cells (e.g., EB covered cells or overset cells)
-    virtual void setDirichletNodesToZero (int /*amrlev*/, int /*mglev*/,
-                                          MF& /*mf*/) const
+    /**
+     * \brief Optional hook for masking out Dirichlet nodes or cells
+     * prior to GMRES solves; the default is a no-op with a warning.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param mf     MultiFab whose entries are zeroed at Dirichlet locations.
+     */
+    virtual void setDirichletNodesToZero (int amrlev, int mglev,
+                                          MF& mf) const
     {
+        amrex::ignore_unused(amrlev, mglev, mf);
         amrex::Warning("This function might need to be implemented for GMRES to work with this LinOp.");
     }
 
-    //! Is it singular on given AMR level?
+    //! Is it singular on AMR level \p amrlev?
     [[nodiscard]] virtual bool isSingular (int amrlev) const = 0;
-    //! Is the bottom of MG singular?
+    //! Is the bottom of the multigrid hierarchy singular?
     [[nodiscard]] virtual bool isBottomSingular () const = 0;
 
-    //! x dot y, used by the bottom solver
+    /**
+     * \brief Dot-product helper used by bottom solvers.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param x      First vector.
+     * \param y      Second vector.
+     * \param local  True to skip MPI reductions.
+     */
     virtual RT xdoty (int amrlev, int mglev, const MF& x, const MF& y, bool local) const = 0;
 
+    /**
+     * \brief Dot product over the composite AMR hierarchy, excluding cells
+     * covered by finer levels.  Used when the operator acts as a preconditioner.
+     *
+     * \param x Vector of pointers to fields (one per AMR level).
+     * \param y Second vector of pointers (same length as \p x).
+     * \return Summed dot product.
+     */
     virtual RT dotProductPrecond (Vector<MF const*> const& x, Vector<MF const*> const& y) const;
 
+    /**
+     * \brief L2 norm over the composite AMR hierarchy, excluding cells
+     * covered by finer levels.  Used when the operator acts as a preconditioner.
+     *
+     * \param x Vector of pointers to fields (one per AMR level).
+     * \return Resulting norm.
+     */
     virtual RT norm2Precond (Vector<MF const*> const& x) const;
 
-    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const
+    /**
+     * \brief Create the NSolve counterpart of this operator with the requested grid size.
+     *
+     * \param grid_size Target maximum grid dimension for the nodal hierarchy.
+     */
+    virtual std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int grid_size) const
     {
-        amrex::Abort("MLLinOp::makeNLinOp: N-Solve not supported");
+        amrex::ignore_unused(grid_size);
+        amrex::Abort("MLLinOp::makeNLinOp: NSolve not supported");
         return nullptr;
     }
 
-    virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/,
-                            Location /*a_loc*/) const {
+    /**
+     * \brief Extract per-direction fluxes for each AMR level.
+     *
+     * \param a_flux Destination flux arrays (per level, per direction).
+     * \param a_sol  Solution hierarchy supplying the gradients.
+     * \param a_loc  Location where fluxes are evaluated (faces/centroids).
+     */
+    virtual void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
+                            const Vector<MF*>& a_sol,
+                            Location a_loc) const {
+        amrex::ignore_unused(a_flux, a_sol, a_loc);
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
-    virtual void getFluxes (const Vector<MF*>& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/) const {
+    /**
+     * \brief Extract fluxes when the operator stores them in single MultiFabs per level.
+     *
+     * \param a_flux Destination MultiFabs (one per level).
+     * \param a_sol  Source solutions (one per level).
+     */
+    virtual void getFluxes (const Vector<MF*>& a_flux,
+                            const Vector<MF*>& a_sol) const {
+        amrex::ignore_unused(a_flux, a_sol);
         amrex::Abort("MLLinOp::getFluxes: How did we get here?");
     }
 
 #ifdef AMREX_USE_EB
-    virtual void getEBFluxes (const Vector<MF*>& /*a_flux*/,
-                              const Vector<MF*>& /*a_sol*/) const {
+    /**
+     * \brief Extract embedded-boundary fluxes.
+     *
+     * \param a_flux Destination EB flux MultiFabs (one per level).
+     * \param a_sol  Solution hierarchy sampled on EB faces.
+     */
+    virtual void getEBFluxes (const Vector<MF*>& a_flux,
+                              const Vector<MF*>& a_sol) const {
+        amrex::ignore_unused(a_flux, a_sol);
         amrex::Abort("MLLinOp::getEBFluxes: How did we get here?");
     }
 #endif
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    [[nodiscard]] virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface /*hypre_interface*/) const {
+    /**
+     * \brief Build a Hypre backend using the requested interface.
+     *
+     * \param hypre_interface Choice of Hypre interface (struct, ij, etc.).
+     */
+    [[nodiscard]] virtual std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const {
+        amrex::ignore_unused(hypre_interface);
         amrex::Abort("MLLinOp::makeHypre: How did we get here?");
         return {nullptr};
     }
+    /**
+     * \brief Build a nodal Hypre operator (for nodal solves).
+     *
+     * \param bottom_verbose Verbosity level for Hypre.
+     * \param options_namespace Hypre options namespace.
+     */
     [[nodiscard]] virtual std::unique_ptr<HypreNodeLap> makeHypreNodeLap(
-        int /*bottom_verbose*/,
-        const std::string& /* options_namespace */) const
+        int bottom_verbose,
+        const std::string& options_namespace) const
     {
+        amrex::ignore_unused(bottom_verbose, options_namespace);
         amrex::Abort("MLLinOp::makeHypreNodeLap: How did we get here?");
         return {nullptr};
     }
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+    /**
+     * \brief Build a PETSc-backed linear operator.
+     */
     [[nodiscard]] virtual std::unique_ptr<PETScABecLap> makePETSc () const {
         amrex::Abort("MLLinOp::makePETSc: How did we get here?");
         return {nullptr};
     }
 #endif
 
+    /**
+     * \brief Whether this operator supports NSolve.
+     */
     [[nodiscard]] virtual bool supportNSolve () const { return false; }
 
-    virtual void copyNSolveSolution (MF&, MF const&) const {}
+    /**
+     * \brief Copy an NSolve solution from \p src to \p dst.
+     *
+     * \param dst Destination MultiFab.
+     * \param src Source nodal solution.
+     */
+    virtual void copyNSolveSolution (MF& dst, MF const& src) const {
+        amrex::ignore_unused(dst, src);
+    }
 
-    virtual void postSolve (Vector<MF*> const& /*sol*/) const {}
+    /**
+     * \brief Optional hook invoked after the main solve completes.
+     *
+     * \param sol Solution hierarchy (one pointer per AMR level).
+     */
+    virtual void postSolve (Vector<MF*> const& sol) const {
+        amrex::ignore_unused(sol);
+    }
 
+    /**
+     * \brief Infinity norm helper used by residual reductions.
+     *
+     * \param amrlev AMR level index.
+     * \param mf     MultiFab to measure.
+     * \param local  True to skip MPI reductions.
+     */
     [[nodiscard]] virtual RT normInf (int amrlev, MF const& mf, bool local) const = 0;
 
+    /**
+     * \brief Average the solution hierarchy down (fine to coarse) and synchronize interfaces.
+     *
+     * \param sol Vector of MultiFabs spanning all AMR levels.
+     */
     virtual void averageDownAndSync (Vector<MF>& sol) const = 0;
 
     virtual void avgDownResAmr (int clev, MF& cres, MF const& fres) const
@@ -559,12 +808,31 @@ public:
         amrex::Abort("MLLinOpT::avgDownResAmr: Must be implemented for composite solves across multiple AMR levels");
     }
 
-    // This function is needed for FMG cycle, but not V-cycle.
+    /**
+     * \brief Average residuals from fine to coarse MG levels (FMG helper).
+     *
+     * \param clev Coarse MG level index.
+     * \param cres Destination coarse residual.
+     * \param fres Source fine residual.
+     */
     virtual void avgDownResMG (int clev, MF& cres, MF const& fres) const;
 
+    /**
+     * \brief Called when the operator starts being used as a preconditioner.
+     */
     virtual void beginPrecondBC () { m_precond_mode = true; }
+    /**
+     * \brief Called when the operator stops being used as a preconditioner.
+     */
     virtual void endPrecondBC () { m_precond_mode = false; }
 
+    /**
+     * \brief Check whether mixing MFIter loops for different MG levels is safe.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev1 First MG level.
+     * \param mglev2 Second MG level.
+     */
     [[nodiscard]] bool isMFIterSafe (int amrlev, int mglev1, int mglev2) const;
 
     //! Return the number of AMR levels
@@ -573,6 +841,7 @@ public:
     //! Return the number of MG levels at given AMR level
     [[nodiscard]] int NMGLevels (int amrlev) const noexcept { return m_num_mg_levels[amrlev]; }
 
+    //! Geometry accessor for (\p amr_lev,\p mglev).
     [[nodiscard]] const Geometry& Geom (int amr_lev, int mglev=0) const noexcept { return m_geom[amr_lev][mglev]; }
 
     // BC
@@ -710,8 +979,10 @@ protected:
 
     [[nodiscard]] virtual MF makeAlias (MF const& mf) const;
 
+    //! Allocate an \p MF on the next coarser MG level (\p mglev+1) with grow cells \p ng.
     [[nodiscard]] virtual MF makeCoarseMG (int amrlev, int mglev, IntVect const& ng) const;
 
+    //! Allocate an \p MF on the next coarser AMR level (\p famrlev-1) with grow cells \p ng.
     [[nodiscard]] virtual MF makeCoarseAmr (int famrlev, IntVect const& ng) const;
 
     [[nodiscard]] virtual std::unique_ptr<FabFactory<FAB> > makeFactory (int /*amrlev*/, int /*mglev*/) const {
@@ -837,7 +1108,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
 #endif
 
     m_num_amr_levels = 0;
-    for (int amrlev = 0; amrlev < a_geom.size(); amrlev++) {
+    for (int amrlev = 0; amrlev < std::ssize(a_geom); amrlev++) {
         if (!a_grids[amrlev].empty()) {
             m_num_amr_levels++;
         }
@@ -875,7 +1146,7 @@ MLLinOpT<MF>::defineGrids (const Vector<Geometry>& a_geom,
         m_geom[amrlev].push_back(a_geom[amrlev]);
         m_grids[amrlev].push_back(a_grids[amrlev]);
         m_dmap[amrlev].push_back(a_dmap[amrlev]);
-        if (amrlev < a_factory.size()) {
+        if (amrlev < std::ssize(a_factory)) {
             m_factory[amrlev].emplace_back(a_factory[amrlev]->clone());
         } else {
             m_factory[amrlev].push_back(std::make_unique<DefaultFabFactory<FAB>>());
@@ -1332,7 +1603,7 @@ MLLinOpT<MF>::makeAgglomeratedDMap (const Vector<BoxArray>& ba,
             const std::vector< std::vector<int> >& sfc = DistributionMapping::makeSFC(ba[i]);
 
             const int nprocs = ParallelContext::NProcsSub();
-            AMREX_ASSERT(static_cast<int>(sfc.size()) == nprocs);
+            AMREX_ASSERT(std::ssize(sfc) == nprocs);
 
             Vector<int> pmap(ba[i].size());
             for (int iproc = 0; iproc < nprocs; ++iproc) {
@@ -1411,7 +1682,7 @@ MLLinOpT<MF>::makeSubCommunicator (const DistributionMapping& dm)
 #ifdef BL_USE_MPI
 
     Vector<int> newgrp_ranks = dm.ProcessorMap();
-    std::sort(newgrp_ranks.begin(), newgrp_ranks.end());
+    std::ranges::sort(newgrp_ranks);
     auto last = std::unique(newgrp_ranks.begin(), newgrp_ranks.end());
     newgrp_ranks.erase(last, newgrp_ranks.end());
 
@@ -1469,7 +1740,8 @@ MLLinOpT<MF>::setCoarseFineBC (const MF* crse, IntVect const& crse_ratio,
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+template <typename AMF>
+requires (!std::same_as<MF,AMF>)
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
                                LinOpBCType bc_type) noexcept
@@ -1478,7 +1750,8 @@ MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, int crse_ratio,
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF>,int>>
+template <typename AMF>
+requires (!std::same_as<MF,AMF>)
 void
 MLLinOpT<MF>::setCoarseFineBC (const AMF* crse, IntVect const& crse_ratio,
                                LinOpBCType bc_type) noexcept
@@ -1620,8 +1893,8 @@ MLLinOpT<MF>::isMFIterSafe (int amrlev, int mglev1, int mglev2) const
 }
 
 template <typename MF>
-template <typename AMF, std::enable_if_t<!std::is_same_v<MF,AMF> &&
-                                         IsMultiFabLike_v<AMF>, int> >
+template <MultiFabLike AMF>
+requires (!std::same_as<MF,AMF>)
 void
 MLLinOpT<MF>::setLevelBC (int amrlev, const AMF* levelbcdata,
                           const AMF* robinbc_a, const AMF* robinbc_b,

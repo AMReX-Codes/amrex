@@ -1,0 +1,7 @@
+particles.do_tiling = 1
+particles.tile_size = 4 4 4
+
+nbor_parts.size = (24, 24, 24)
+nbor_parts.max_grid_size = 8
+nbor_parts.is_periodic = 1
+nbor_parts.num_ppc = 1

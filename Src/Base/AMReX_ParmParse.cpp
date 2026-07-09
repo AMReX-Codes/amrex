@@ -9,10 +9,12 @@
 #include <AMReX_Utility.H>
 
 #include <algorithm>
+#include <concepts>
 #include <cmath>
 #include <cctype>
 #include <cstdlib>
 #include <iostream>
+#include <iterator>
 #include <limits>
 #include <numeric>
 #include <unordered_map>
@@ -86,7 +88,7 @@ std::string pp_to_pretty_string (std::string const& name,
     }
     if (entry && entry->m_parsed && ! entry->m_last_vals.empty()) {
         int min_col = 36;
-        int pad = min_col - static_cast<int>(ss.str().size());
+        int pad = min_col - static_cast<int>(ss.view().size());
         if (pad > 0) {
             ss << std::string(pad, ' ');
         }
@@ -140,7 +142,7 @@ isT (const std::string& str, T& val)
     return true;
 }
 
-template <typename T, std::enable_if_t<std::is_floating_point_v<T>,int> = 0>
+template <std::floating_point T>
 bool
 is_floating_point (const std::string& str, T& val)
 {
@@ -282,7 +284,7 @@ eat_garbage (const char*& str, bool* newline_from_comment = nullptr)
             }
             continue;
         }
-        else if ( std::isspace(*str) )
+        else if ( std::isspace(static_cast<unsigned char>(*str)) )
         {
             if (*str == '\n') { ++num_linefeeds; }
             str++;
@@ -396,7 +398,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
                 array_escape = false;
                 state = lexState::ARRAY;
             }
-            else if ( std::isalpha(ch) )
+            else if ( std::isalpha(static_cast<unsigned char>(ch)) )
             {
                 ostr += ch; str++;
                 state = lexState::IDENTIFIER;
@@ -408,11 +410,11 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             }
             break;
         case lexState::IDENTIFIER:
-            if ( std::isalnum(ch) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
+            if ( std::isalnum(static_cast<unsigned char>(ch)) || ch == '_' || ch == '.' || ch == '[' || ch == ']' || ch == '+' || ch == '-' )
             {
                 ostr += ch; str++;
             }
-            else if ( std::isspace(ch) || ch == '=' )
+            else if ( std::isspace(static_cast<unsigned char>(ch)) || ch == '=' )
             {
                 return PType::Defn;
             }
@@ -506,7 +508,7 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
             break;
         }
         case lexState::STRING:
-            if ( std::isspace(ch) || ch == '=' )
+            if ( std::isspace(static_cast<unsigned char>(ch)) || ch == '=' )
             {
                 return PType::Value;
             }
@@ -549,11 +551,11 @@ getToken (const char*& str, std::string& ostr, int& num_linefeeds,
 
 std::string is_valid_table_key (std::string const& str)
 {
-    if (str.size() >= 8 && str.substr(0,6) == "$$ARR[" && str.back() == ']') {
+    if (str.size() >= 8 && str.starts_with("$$ARR[") && str.back() == ']') {
         auto key = str.substr(6, str.size()-7);
-        bool r = std::isalpha(key[0]);
+        bool r = std::isalpha(static_cast<unsigned char>(key[0]));
         for (std::size_t i = 1; i < key.size() && r; ++i) {
-            char ch = key[i];
+            auto ch = static_cast<unsigned char>(key[i]);
             r = std::isalnum(ch) || ch == '_' || ch == '.' || ch == '-' || ch == '"';
         }
         if (r) { return key; }
@@ -703,13 +705,12 @@ read_file (const char* fname, ParmParse::Table& tab)
                 continue;
             }
 
-            if (std::find(std::begin(valid_region), std::end(valid_region), false)
-                != std::end(valid_region)) {
+            if (std::ranges::find(valid_region, false) != std::end(valid_region)) {
                 continue;
             }
 
             auto r = std::find_if(std::begin(line), std::end(line),
-                                  [](int c) -> bool { return !std::isspace(c); });
+                                  [](unsigned char c) -> bool { return !std::isspace(c); });
             if (fortran_namelist) { // already inside fortran namelist
                 // os_fortran << line << "\n";
                 // pgi and ibm do not like `\n`.  We strip comments for them too.
@@ -903,7 +904,7 @@ void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, b
 #pragma omp single nowait
 #endif
     {
-        if (ival >= int(entry.m_last_vals.size())) {
+        if (ival >= std::ssize(entry.m_last_vals)) {
             entry.m_last_vals.resize(ival+1);
         }
         entry.m_last_vals[ival] = ref;
@@ -1082,7 +1083,7 @@ squeryval (const ParmParse::Table& table,
     if (!(def->empty()) && is_toml_1d_array((*def)[0])) {
         std::vector<T> toml_vals;
         read_array_1d(toml_vals, (*def)[0]);
-        if (ival >= static_cast<int>(toml_vals.size())) {
+        if (ival >= std::ssize(toml_vals)) {
             amrex::ErrorStream() << "ParmParse::queryval no value number "
                                  << ival << " for ";
             if ( occurrence ==  ParmParse::LAST ) {
@@ -1100,7 +1101,7 @@ squeryval (const ParmParse::Table& table,
     //
     // Does it have ival values?
     //
-    if ( ival >= static_cast<int>(def->size()) )
+    if (ival >= std::ssize(*def))
     {
         amrex::ErrorStream() << "ParmParse::queryval no value number"
                              << ival << " for ";
@@ -1191,7 +1192,7 @@ sgetval (const ParmParse::Table& table,
 // Checks if token matches $$ARR[...]
 bool is_toml_array (std::string const& token)
 {
-    return token.size() >= 7 && token.compare(0,6,"$$ARR[") == 0 &&
+    return token.size() >= 7 && token.starts_with("$$ARR[") &&
         token.back() == ']';
 }
 
@@ -1199,8 +1200,8 @@ bool is_toml_array (std::string const& token)
 bool is_toml_2d_array (std::string const& token)
 {
     auto sz = token.size();
-    return sz >= 9 && token.compare(0,7,"$$ARR[[") == 0 &&
-        token.compare(sz-2,2,"]]") == 0;
+    return sz >= 9 && token.starts_with("$$ARR[[") &&
+        token.ends_with("]]");
 }
 
 // Checks if token matches $$ARR[...] but not $$ARR[[...]]
@@ -1265,7 +1266,7 @@ squeryarr (const ParmParse::Table& table,
                                            std::is_same_v<T,double>);
 
     int stop_ix = start_ix + num_val - 1;
-    if ( static_cast<int>(ref.size()) <= stop_ix )
+    if ( std::ssize(ref) <= stop_ix )
     {
         ref.resize(stop_ix + 1);
     }
@@ -1455,10 +1456,10 @@ ppinit (int argc, char** argv, const char* parfile, ParmParse::Table& table)
         for (auto& [name, arg_entry] : arg_table) {
             auto& src = arg_entry.m_vals;
             auto& dst = table[name].m_vals;
-            std::move(std::begin(src), std::end(src), std::back_inserter(dst));
+            std::ranges::move(src, std::back_inserter(dst));
             auto& src_quotes = arg_entry.m_quotes;
             auto& dst_quotes = table[name].m_quotes;
-            std::move(std::begin(src_quotes), std::end(src_quotes), std::back_inserter(dst_quotes));
+            std::ranges::move(src_quotes, std::back_inserter(dst_quotes));
         }
     }
     initialized = true;
@@ -1468,16 +1469,16 @@ bool unused_table_entries_q (const ParmParse::Table& table,
                              const std::string& prefix = std::string())
 {
     if (prefix.empty()) {
-        return std::any_of(table.begin(), table.end(),
-                           [] (auto const& x) -> bool {
-                               return x.second.m_count == 0;
-                           });
+        return std::ranges::any_of(table,
+                                   [] (auto const& x) -> bool {
+                                       return x.second.m_count == 0;
+                                   });
     } else {
         auto s = prefix + '.';
-        return std::any_of(table.begin(), table.end(),
+        return std::ranges::any_of(table,
                            [&] (auto const& x) -> bool {
                                return x.second.m_count == 0
-                                   && x.first.substr(0,s.size()) == s;
+                                   && x.first.starts_with(s);
                            });
     }
 }
@@ -1491,7 +1492,7 @@ void pp_print_unused (const std::string& pfx, const ParmParse::Table& table)
             sorted_names.push_back(name);
         }
     }
-    std::sort(sorted_names.begin(), sorted_names.end());
+    std::ranges::sort(sorted_names);
 
     for (auto const& name : sorted_names) {
         auto const& entry = table.at(name);
@@ -1691,12 +1692,12 @@ ParmParse::getUnusedInputs (const std::string& prefix)
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
         if (entry.m_count == 0 &&
-            name.substr(0,prefixdot.size()) == prefixdot)
+            name.starts_with(prefixdot))
         {
             sorted_names.push_back(name);
         }
     }
-    std::sort(sorted_names.begin(), sorted_names.end());
+    std::ranges::sort(sorted_names);
 
     std::vector<std::string> r;
     for (auto const& name : sorted_names) {
@@ -1720,7 +1721,7 @@ ParmParse::getEntries (const std::string& prefix)
     std::set<std::string> r;
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
-        if (name.substr(0,prefixdot.size()) == prefixdot) {
+        if (name.starts_with(prefixdot)) {
             r.insert(name);
         }
     }
@@ -1789,7 +1790,7 @@ ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
     for (auto const& [name, entry] : g_table) {
         sorted_names.push_back(name);
     }
-    std::sort(sorted_names.begin(), sorted_names.end());
+    std::ranges::sort(sorted_names);
 
     for (auto const& name : sorted_names) {
         auto const& entry = g_table[name];
@@ -1828,7 +1829,7 @@ void pretty_print_table (std::ostream& os, PPFlag pp_flag)
         }
         if (to_print) { sorted_names.push_back(name); }
     }
-    std::sort(sorted_names.begin(), sorted_names.end());
+    std::ranges::sort(sorted_names);
 
     for (auto const& name : sorted_names) {
         auto const& entry = g_table[name];
@@ -2833,7 +2834,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
 
     auto const& entry = table.at(name);
 
-    AMREX_ALWAYS_ASSERT(int(vals.size()) == nvals);
+    AMREX_ALWAYS_ASSERT(std::ssize(vals) == nvals);
     for (int ival = 0; ival < nvals; ++ival) {
         bool r = pp_parser(table, parser_prefix, name, vals[ival], ptr[ival], true);
         if (r) {

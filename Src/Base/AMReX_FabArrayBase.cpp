@@ -1740,8 +1740,9 @@ FabArrayBase::PolarB::define (const FabArrayBase& fa)
                                                                     m_domain.length(1)+m_ngrow[1],
                                                                     0)})};
 
-    auto const convert = NonLocalBC::PolarFn{m_domain.length(0), m_domain.length(1)};
-    auto const convert_corner = NonLocalBC::PolarFn2{m_domain.length(0), m_domain.length(1)};
+    auto const convert = NonLocalBC::PolarFn{.Lx = m_domain.length(0), .Ly = m_domain.length(1)};
+    auto const convert_corner = NonLocalBC::PolarFn2{.Lx = m_domain.length(0),
+                                                     .Ly = m_domain.length(1)};
 
     Array<Box,8> const domain_src{convert(domain_dst[0]), convert(domain_dst[1]),
                                   convert(domain_dst[2]), convert(domain_dst[3]),
@@ -2403,9 +2404,9 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
         const int nworkers = ParallelDescriptor::TeamSize();
         if (nworkers > 1) {
             // reorder it so that each worker will be more likely to work on their own fabs
-            std::stable_sort(local_idxs.begin(), local_idxs.end(), [this](int i, int j)
-                             { return  this->distributionMap[this->indexArray[i]]
-                                     < this->distributionMap[this->indexArray[j]]; });
+            std::ranges::stable_sort(local_idxs, [this](int i, int j)
+                                     { return  this->distributionMap[this->indexArray[i]]
+                                             < this->distributionMap[this->indexArray[j]]; });
         }
 #endif
 

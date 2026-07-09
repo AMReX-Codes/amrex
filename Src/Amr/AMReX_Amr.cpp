@@ -42,6 +42,7 @@
 #include <cstdio>
 #include <iostream>
 #include <iomanip>
+#include <iterator>
 #include <limits>
 #include <list>
 #include <sstream>
@@ -231,13 +232,21 @@ Amr::derive (const std::string&       name,
              int                      dcomp)
 {
     BL_PROFILE("Amr::derive()");
-    AMREX_ASSERT(mf.size() == static_cast<amrex::Long>(finest_level + 1));
+    AMREX_ASSERT(std::ssize(mf) == (finest_level + 1));
+
+    int state_index, state_comp;
+    int ncomp = 1;
+    if (!AmrLevel::isStateVariable(name, state_index, state_comp)) {
+        if (const DeriveRec* rec = AmrLevel::get_derive_lst().get(name)) {
+            ncomp = rec->numDerive();
+        }
+    }
+    amrex::ignore_unused(ncomp);
 
     for (int i = 0; i <= finest_level; ++i)
     {
-        AMREX_ASSERT(mf[i] != nullptr);
-        AMREX_ASSERT(mf[i]->ok());
-        AMREX_ASSERT(mf[i]->nComp() > dcomp);
+        AMREX_ASSERT((mf[i] != nullptr) && mf[i]->ok() &&
+                     (dcomp >= 0) && (dcomp + ncomp <= mf[i]->nComp()));
     }
 
     for (int i = 0; i <= finestLevel(); ++i)
@@ -598,14 +607,14 @@ Amr::finalizeInSitu()
 bool
 Amr::isStatePlotVar (const std::string& name)
 {
-    auto it = std::find(state_plot_vars.begin(), state_plot_vars.end(), name);
+    auto it = std::ranges::find(state_plot_vars, name);
     return (it != state_plot_vars.end());
 }
 
 bool
 Amr::isStateSmallPlotVar (const std::string& name)
 {
-    auto it = std::find(state_small_plot_vars.begin(), state_small_plot_vars.end(), name);
+    auto it = std::ranges::find(state_small_plot_vars, name);
     return (it != state_small_plot_vars.end());
 }
 
@@ -676,14 +685,14 @@ Amr::deleteStatePlotVar (const std::string& name)
 bool
 Amr::isDerivePlotVar (const std::string& name) noexcept
 {
-    auto it = std::find(derive_plot_vars.begin(), derive_plot_vars.end(), name);
+    auto it = std::ranges::find(derive_plot_vars, name);
     return (it != derive_plot_vars.end());
 }
 
 bool
 Amr::isDeriveSmallPlotVar (const std::string& name) noexcept
 {
-    auto it = std::find(derive_small_plot_vars.begin(), derive_small_plot_vars.end(), name);
+    auto it = std::ranges::find(derive_small_plot_vars, name);
     return (it != derive_small_plot_vars.end());
 }
 

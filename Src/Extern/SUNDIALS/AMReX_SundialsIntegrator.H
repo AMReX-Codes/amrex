@@ -348,8 +348,8 @@ private:
                 amrex::Print() << "Fast relative tolerance: " << BaseT::fast_rel_tol << "\n";
                 amrex::Print() << "Fast absolute tolerance: " << BaseT::fast_abs_tol << "\n";
             }
-          flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
-          AMREX_ALWAYS_ASSERT(flag == 0);
+            flag = ARKStepSStolerances(arkode_fast_mem, BaseT::fast_rel_tol, BaseT::fast_abs_tol);
+            AMREX_ALWAYS_ASSERT(flag == 0);
         }
 
         // Set post stage and step function
@@ -400,7 +400,7 @@ private:
         AMREX_ALWAYS_ASSERT(flag == 0);
 
         // Set integrator tolerances
-        if (BaseT::use_adaptive_time_step || fast_type == "IM-MRI" || fast_type == "IMEX-MRI") {
+        if (BaseT::use_adaptive_time_step || type == "IM-MRI" || type == "IMEX-MRI") {
             if (amrex::Verbose()) {
                 amrex::Print() << "Relative tolerance: " << BaseT::rel_tol << "\n";
                 amrex::Print() << "Absolute tolerance: " << BaseT::abs_tol << "\n";
@@ -749,13 +749,17 @@ public:
         }
 
         // Clean up allocated memory
+        if (use_mri) {
+            MRIStepInnerStepper_Free(&fast_stepper);
+            ARKStepFree(&arkode_fast_mem);
+            MRIStepFree(&arkode_mem);
+        } else if (use_ark) {
+            ARKStepFree(&arkode_mem);
+        }
         SUNLinSolFree(LS);
         SUNLinSolFree(fast_LS);
         SUNNonlinSolFree(NLS);
         SUNNonlinSolFree(fast_NLS);
-        MRIStepInnerStepper_Free(&fast_stepper);
-        MRIStepFree(&arkode_fast_mem);
-        ARKStepFree(&arkode_mem);
     }
 
     /**

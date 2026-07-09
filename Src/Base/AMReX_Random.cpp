@@ -5,6 +5,7 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
 
+#include <iterator>
 #include <limits>
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -206,9 +207,9 @@ UniqueRandomSubset (Vector<int> &uSet, int setSize, int poolSize,
   }
   std::set<int> copySet;
   uSet.clear();
-  while(static_cast<int>(copySet.size()) < setSize) {
+  while(std::ssize(copySet) < setSize) {
     int r = static_cast<int>(Random_int(poolSize));
-    if(copySet.find(r) == copySet.end()) {
+    if(!copySet.contains(r)) {
       copySet.insert(r);
       uSet.push_back(r);
     }
@@ -261,6 +262,8 @@ DeallocateRandomSeedDevArray ()
 
 void FillRandom (Real* p, Long N)
 {
+    if (N <= 0) { return; }
+
 #ifdef AMREX_USE_CUDA
 
 #  ifdef BL_USE_FLOAT

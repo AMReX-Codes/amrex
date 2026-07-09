@@ -93,7 +93,7 @@ contains
     end do
 
     allocate(dt(0:amrex_max_level))
-    dt = huge(1._rt)
+    dt = huge(1._rt) * 0.1_rt
 
     call amr_data_init()
   end subroutine my_amr_init

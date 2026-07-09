@@ -7,6 +7,15 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLCGSolver.H
+ *
+ * CG-family solvers (BiCGStab/CG) intended as the bottom solver for MLMG.
+ */
+
+/**
+ * \brief CG-family solvers (BiCGStab or CG) for use as the bottom solver in MLMG.
+ */
 template <typename MF>
 class MLCGSolverT
 {
@@ -17,6 +26,12 @@ public:
 
     enum struct Type { BiCGStab, CG };
 
+    /**
+     * \brief Construct a solver bound to \p _lp.
+     *
+     * \param _lp  Linear operator that supplies apply/normalization hooks.
+     * \param _typ Solver flavor (BiCGStab by default).
+     */
     MLCGSolverT (MLLinOpT<MF>& _lp, Type _typ = Type::BiCGStab);
     ~MLCGSolverT ();
 
@@ -25,42 +40,114 @@ public:
     MLCGSolverT<MF>& operator= (const MLCGSolverT<MF>& rhs) = delete;
     MLCGSolverT<MF>& operator= (MLCGSolverT<MF>&& rhs) = delete;
 
+    /**
+     * \brief Switch between BiCGStab and CG after construction.
+     *
+     * \param _typ New solver flavor.
+     */
     void setSolver (Type _typ) noexcept { solver_type = _typ; }
 
     /**
-    * solve the system, Lp(solnL)=rhsL to relative err, tolerance
-    * Returns an int indicating success or failure.
-    * 0 means success
-    * 1 means failed for loss of precision
-    * 2 means iterations exceeded
-    */
+     * \brief Solve Lp(solnL)=rhsL to the requested tolerance.
+     *
+     * \param solnL   On input: initial guess; on output: solution.
+     * \param rhsL    Right-hand side.
+     * \param eps_rel Relative tolerance on the residual.
+     * \param eps_abs Absolute tolerance on the residual.
+     * \return 0 success;
+     *         1 breakdown (BiCGStab: rho = 0; CG: rho = 0 or p^T q = 0);
+     *         2 BiCGStab only: rh^T v = 0;
+     *         3 BiCGStab only: t^T t = 0 in the omega update;
+     *         4 BiCGStab only: omega = 0;
+     *         8 non-convergence (iteration limit reached);
+     *         9 non-convergence but residual improved vs. the initial guess.
+     */
     int solve (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
+    /**
+     * \brief Control how much logging is emitted (0 = silent).
+     *
+     * \param _verbose Verbosity level printed by the solver.
+     */
     void setVerbose (int _verbose) { verbose = _verbose; }
+    //! Current verbosity level.
     [[nodiscard]] int getVerbose () const { return verbose; }
 
+    /**
+     * \brief Cap the number of Krylov iterations performed.
+     *
+     * \param _maxiter Maximum number of BiCGStab/CG iterations.
+     */
     void setMaxIter (int _maxiter) { maxiter = _maxiter; }
+    //! Current iteration cap.
     [[nodiscard]] int getMaxIter () const { return maxiter; }
 
+    /**
+     * \brief Prefix printed messages (e.g., to indent per level).
+     *
+     * \param s String inserted at the beginning of each log line.
+     */
     void setPrintIdentation (std::string s) { print_ident = std::move(s); }
 
     /**
-    * Is the initial guess provided to the solver zero ?
-    * If so, set this to true.
-    * The solver will avoid a few operations if this is true.
-    * Default is false.
-    */
+     * Is the initial guess provided to the solver zero?
+     * If so, set this to true so the solver can skip extra work.
+     * Default is false.
+     *
+     * \param _sol_zeroed True if the initial guess is zero everywhere.
+     */
     void setInitSolnZeroed (bool _sol_zeroed) { initial_vec_zeroed = _sol_zeroed; }
+    //! Whether setInitSolnZeroed(true) was requested.
     [[nodiscard]] bool getInitSolnZeroed () const { return initial_vec_zeroed; }
 
+    /**
+     * \brief Set the number of grow cells used when allocating temporaries.
+     *
+     * \param _nghost Grow-cell count applied uniformly in each direction.
+     */
     void setNGhost(int _nghost) {nghost = IntVect(_nghost);}
+    //! Current grow-cell count (same in every direction).
     [[nodiscard]] int getNGhost() {return nghost[0];}
 
+    /**
+     * \brief Dot product helper; set \p local to true to skip the MPI reduction.
+     *
+     * \param r      First vector.
+     * \param z      Second vector.
+     * \param local  True to limit the operation to local data only.
+     * \return Dot product of \p r and \p z (globally reduced unless \p local is true).
+     */
     [[nodiscard]] RT dotxy (const MF& r, const MF& z, bool local = false);
+    /**
+     * \brief Infinity norm helper; set \p local to true to skip the MPI reduction.
+     *
+     * \param res    Vector whose infinity norm is measured.
+     * \param local  True to limit the operation to local data only.
+     * \return Infinity norm of \p res (globally reduced unless \p local is true).
+     */
     [[nodiscard]] RT norm_inf (const MF& res, bool local = false);
+    /**
+     * \brief Raw BiCGStab implementation mirroring the high-level solve() signature.
+     *
+     * \param solnL   Solution vector (initial guess on input).
+     * \param rhsL    Right-hand side.
+     * \param eps_rel Relative residual tolerance.
+     * \param eps_abs Absolute residual tolerance.
+     * \return Same status codes as solve().
+     */
     int solve_bicgstab (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
+    /**
+     * \brief Raw CG implementation mirroring the high-level solve() signature.
+     *
+     * \param solnL   Solution vector (initial guess on input).
+     * \param rhsL    Right-hand side.
+     * \param eps_rel Relative residual tolerance.
+     * \param eps_abs Absolute residual tolerance.
+     * \return Same status codes as solve().
+     */
     int solve_cg (MF& solnL, const MF& rhsL, RT eps_rel, RT eps_abs);
 
+    //! Iteration count from the last solve* call (or -1 if unused).
     [[nodiscard]] int getNumIters () const noexcept { return iter; }
 
 private:

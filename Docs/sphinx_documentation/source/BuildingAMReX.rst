@@ -36,8 +36,8 @@ list of important variables.
    | COMP            | gnu, cray, ibm, intel, intel-llvm,  |                    |
    |                 | intel-classic, llvm, or pgi         | none               |
    +-----------------+-------------------------------------+--------------------+
-   | CXXSTD          | C++ standard (``c++17``, ``c++20``) | compiler default,  |
-   |                 |                                     | at least ``c++17`` |
+   | CXXSTD          | C++ standard (e.g., ``c++20``)      | compiler default,  |
+   |                 |                                     | at least ``c++20`` |
    +-----------------+-------------------------------------+--------------------+
    | DEBUG           | TRUE or FALSE                       | FALSE              |
    +-----------------+-------------------------------------+--------------------+
@@ -71,6 +71,9 @@ list of important variables.
    |    or AMD_ARCH  |                                     | machine is unknown |
    +-----------------+-------------------------------------+--------------------+
    | USE_GPU_RDC     | TRUE or FALSE                       | TRUE               |
+   +-----------------+-------------------------------------+--------------------+
+   | USE_LIBCXX      | If TRUE, add -stdlib=libc++ to      | none               |
+   |                 | clang++'s CXXFLAGS.                 |                    |
    +-----------------+-------------------------------------+--------------------+
 
 
@@ -123,7 +126,6 @@ MPI with support for concurrent MPI calls from multiple threads.
 Variables ``USE_CUDA``, ``USE_HIP`` and ``USE_SYCL`` are used for
 targeting Nvidia, AMD and Intel GPUs, respectively.  At most one of
 the three can be TRUE.
-For HIP and SYCL builds, we currently test only against C++17 builds.
 
 The variable ``USE_RPATH`` controls the link mechanism to dependent libraries.
 If enabled, the library path at link time will be saved as a
@@ -239,6 +241,13 @@ following to your make file before the line that includes AMReX's
         LIBRARY_LOCATIONS += foopath/lib
         LIBRARIES += -lfoo
 
+Alternatively, you can add the following to the end of your ``GNUmakefile``,
+
+::
+
+        includes += -I"foopath/include"
+        libraries += -L"foopath/lib" -lfoo
+
 .. _sec:build:local:
 
 Specifying your own compiler
@@ -269,6 +278,39 @@ using a specific compiler (in this case ``gcc-8``) without MPI. Whenever
 
 For building with MPI, we assume ``mpicxx``, ``mpif90``, etc. provide access to
 the correct underlying compilers.
+
+
+.. _sec:build:mpicxx:
+
+MPI Wrapper
+-----------
+
+When building with MPI, users should usually use MPI compiler wrappers, such as
+``mpicxx``, ``mpicc``, and ``mpif90``. These wrappers provide the include and
+library flags needed by the MPI installation. The generic AMReX GNUmake setup
+queries these wrappers automatically when ``USE_MPI=TRUE``.
+
+If there are issues with using or querying the MPI wrappers, one can disable
+AMReX's MPI checking and provide the MPI flags explicitly. Add this before the
+line that includes AMReX's ``Make.defs``:
+
+::
+
+        NO_MPI_CHECKING = TRUE
+
+Then add the MPI include and library flags at the end of the ``GNUmakefile``:
+
+::
+
+        includes += -I/path/to/mpi/include
+        libraries += -L/path/to/mpi/lib -lmpi
+
+The exact flags can usually be obtained from the MPI C++ wrapper. For
+Open MPI-family wrappers, use ``mpicxx -showme``. For MPICH-family wrappers,
+use ``mpicxx -compile_info`` for compile and include flags, and
+``mpicxx -link_info`` for link flags. Compile and include flags belong in
+``includes``; library search paths, linker options such as ``-Xlinker`` or
+``-Wl,...``, and library flags such as ``-lmpi`` belong in ``libraries``.
 
 
 .. _sec:build:macos:
@@ -435,7 +477,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | CMAKE_CXX_FLAGS              |  User-defined C++ flags                         |                         | user-defined          |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/17             | 17, 20                |
+   | CMAKE_CXX_STANDARD           |  C++ standard                                   | compiler/20             | 20, 23                |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_SPACEDIM               |  Dimension of AMReX build                       | 3 ``;``-separated list  | "1;2;3"               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -443,7 +485,7 @@ The list of available options is reported in the :ref:`table <tab:cmakevar>` bel
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_BUILD_SHARED_LIBS      |  Build as shared C++ library                    | NO (unless xSDK)        | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
-   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)          | YES, NO              |
+   | AMReX_FASTMATH               |  Enable fast-math optimizations                 | NO (CUDA is ON)         |  YES, NO              |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
    | AMReX_FORTRAN                |  Enable Fortran language                        | NO                      | YES, NO               |
    +------------------------------+-------------------------------------------------+-------------------------+-----------------------+
@@ -683,7 +725,7 @@ A list of AMReX component names and related configure options are shown in the t
    +------------------------------+-----------------+
    | AMReX_PIC                    | PIC             |
    +------------------------------+-----------------+
-   | AMReX_MPI                    | MPI             |
+   | AMReX_MPI                    | MPI, NOMPI      |
    +------------------------------+-----------------+
    | AMReX_SIMD                   | SIMD            |
    +------------------------------+-----------------+
@@ -781,7 +823,7 @@ The AMReX team does development on Linux machines, from laptops to supercomputer
 We do not officially support AMReX on Windows, and many of us do not have access to any Windows
 machines.  However, we believe there are no fundamental issues for it to work on Windows.
 
-(1) AMReX mostly uses standard C++17.
+(1) AMReX mostly uses standard C++20.
 We run continuous integration tests on Windows with MSVC and Clang compilers.
 
 (2) We use POSIX signal handling when floating-point exceptions, segmentation faults, etc. happen.

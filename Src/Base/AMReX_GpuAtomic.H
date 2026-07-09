@@ -18,8 +18,7 @@ namespace Gpu::Atomic {
 // For LogicalOr and LogicalAnd, the data type is int.
 // For Exch and CAS, the data type is generic.
 // All these functions are non-atomic in host code!!!
-// If one needs them to be atomic in host code, use HostDevice::Atomic::*.  Currently only
-// HostDevice::Atomic::Add is supported.  We could certainly add more.
+// If one needs them to be atomic in host code, use HostDevice::Atomic::*.
 // If we add more types for atomicAdd, we also need to update HasAtomicAdd in AMReX_TypeTraits.H.
 
 /// \cond DOXYGEN_IGNORE
@@ -217,8 +216,8 @@ namespace detail {
 ////////////////////////////////////////////////////////////////////////
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP) || defined(AMREX_USE_SYCL)
-    template <typename T, typename Op, typename Cond,
-              std::enable_if_t<sizeof(T) == sizeof(unsigned int), int> foo = 0>
+    template <typename T, typename Op, typename Cond>
+    requires (sizeof(T) == sizeof(unsigned int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
     {
@@ -226,8 +225,8 @@ namespace detail {
                    std::forward<Op>(op), std::forward<Cond>(cond));
     }
 
-    template <typename T, typename Op, typename Cond,
-              std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> foo = 0>
+    template <typename T, typename Op, typename Cond>
+    requires (sizeof(T) == sizeof(unsigned long long))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     bool If_device (T* const sum, T const value, Op&& op, Cond&& cond) noexcept
     {
@@ -538,14 +537,16 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
+    template <typename T>
+    requires (sizeof(T) == sizeof(int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Multiply_device (T* const prod, T const value) noexcept
     {
         return detail::atomic_op<T, int>(prod,value,amrex::Multiplies<T>());
     }
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    template <typename T>
+    requires (sizeof(T) == sizeof(unsigned long long))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Multiply_device (T* const prod, T const value) noexcept
     {
@@ -574,14 +575,16 @@ namespace detail {
 
 #ifdef AMREX_USE_GPU
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(int), int> = 0>
+    template <typename T>
+    requires (sizeof(T) == sizeof(int))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Divide_device (T* const quot, T const value) noexcept
     {
         return detail::atomic_op<T, int>(quot,value,amrex::Divides<T>());
     }
 
-    template <typename T, std::enable_if_t<sizeof(T) == sizeof(unsigned long long), int> = 0>
+    template <typename T>
+    requires (sizeof(T) == sizeof(unsigned long long))
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     T Divide_device (T* const quot, T const value) noexcept
     {
@@ -618,11 +621,34 @@ namespace HostDevice::Atomic {
     }
 
     template <class T>
+    AMREX_FORCE_INLINE
+    T FetchAdd_Host (T* const sum, T const value) noexcept
+    {
+        T old;
+#ifdef AMREX_USE_OMP
+#pragma omp atomic capture
+#endif
+        {
+            old = *sum;
+            *sum += value;
+        }
+        return old;
+    }
+
+    template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void Add (T* const sum, T const value) noexcept
     {
         AMREX_IF_ON_DEVICE((Gpu::Atomic::AddNoRet(sum,value);))
         AMREX_IF_ON_HOST((Add_Host(sum,value);))
+    }
+
+    template <class T>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    T FetchAdd (T* const sum, T const value) noexcept
+    {
+        AMREX_IF_ON_DEVICE((return Gpu::Atomic::Add(sum,value);))
+        AMREX_IF_ON_HOST((return FetchAdd_Host(sum,value);))
     }
 
 }

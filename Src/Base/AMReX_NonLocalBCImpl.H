@@ -16,7 +16,7 @@ struct Rotate90ClockWise {
 
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{a.y, -1-a.x, a.z};
+        return Dim3{.x = a.y, .y = -1-a.x, .z = a.z};
     }
 
     Box operator() (Box const& box) const noexcept {
@@ -37,7 +37,7 @@ struct Rotate90CounterClockWise {
 
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{-1-a.y, a.x, a.z};
+        return Dim3{.x = -1-a.y, .y = a.x, .z = a.z};
     }
 
     Box operator() (Box const& box) const noexcept {
@@ -72,7 +72,7 @@ struct Rotate180Fn {
 
     AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{-1-a.x, Ly-1-a.y, a.z};
+        return Dim3{.x = -1-a.x, .y = Ly-1-a.y, .z = a.z};
     }
 
     Box operator() (Box const& box) const noexcept {
@@ -105,7 +105,7 @@ struct PolarFn {
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{i_index(a.x), j_index(a.y), a.z};
+        return Dim3{.x = i_index(a.x), .y = j_index(a.y), .z = a.z};
     }
 
     [[nodiscard]] Box operator() (Box const& box) const noexcept {
@@ -146,7 +146,7 @@ struct PolarFn2 { // for the x-y corners
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE
     Dim3 operator() (Dim3 const& a) const noexcept {
-        return Dim3{i_index(a.x), j_index(a.y), a.z};
+        return Dim3{.x = i_index(a.x), .y = j_index(a.y), .z = a.z};
     }
 
     [[nodiscard]] Box operator() (Box const& box) const noexcept {
@@ -182,11 +182,12 @@ struct PolarFn2 { // for the x-y corners
 //!
 //! \param[in]  proj  A FAB projection that might transform the data.
 //!
-//! \return Nothing.
-template <class FAB, class DTOS, class Proj>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept {
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept
+{
     const auto N_locs = static_cast<int>(local_tags.size());
     if (N_locs == 0) { return; }
 #ifdef AMREX_USE_OMP
@@ -198,7 +199,7 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
         auto const& dfab = dest.array      (tag.dstIndex);
         amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=] (int i, int j, int k, int n) noexcept
         {
-            auto const si = dtos(Dim3{i,j,k});
+            auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
             dfab(i,j,k,dcomp+n) = proj(sfab,si,scomp+n);
         });
     }
@@ -209,12 +210,14 @@ local_copy_cpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
 //! This function assumes that all destination and source boxes stored in the local copy comm tags
 //! are related by the DTOS. If this is not the case the behaviour will at best be caught as an
 //! assertion.
-template <class FAB, class DTOS, class Proj>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
                         Vector<FabArrayBase::CopyComTagsContainer const*> const& recv_cctc,
-                        DTOS const& dtos, Proj const& proj) noexcept {
+                        DTOS const& dtos, Proj const& proj) noexcept
+{
     amrex::ignore_unused(recv_size);
 
     const auto N_rcvs = static_cast<int>(recv_cctc.size());
@@ -231,7 +234,7 @@ unpack_recv_buffer_cpu (FabArray<FAB>& mf, int dcomp, int ncomp, Vector<char*> c
             auto const& dfab = mf.array(tag.dstIndex);
             auto const& sfab = amrex::makeArray4((T const*)(dptr), tag.sbox, ncomp);
             amrex::LoopConcurrentOnCpu(tag.dbox, ncomp, [=](int i, int j, int k, int n) noexcept {
-                auto const si = dtos(Dim3{i, j, k});
+                auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
                 dfab(i, j, k, dcomp + n) = proj(sfab, si, n);
             });
             dptr += tag.sbox.numPts() * ncomp * sizeof(T);
@@ -251,10 +254,12 @@ struct Array4Array4Box {
     Box const& box () const noexcept { return dbox; }
 };
 
-template <class FAB, class DTOS, class Proj>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int scomp, int ncomp,
-                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept {
+                FabArrayBase::CopyComTagsContainer const& local_tags, DTOS const& dtos, Proj const& proj) noexcept
+{
     int N_locs = local_tags.size();
     if (N_locs == 0) { return; }
 
@@ -262,19 +267,22 @@ local_copy_gpu (FabArray<FAB>& dest, const FabArray<FAB>& src, int dcomp, int sc
     Vector<Array4Array4Box<T> > loc_copy_tags;
     loc_copy_tags.reserve(N_locs);
     for (auto const& tag : local_tags) {
-        loc_copy_tags.push_back({dest.array(tag.dstIndex), src.const_array(tag.srcIndex), tag.dbox});
+        loc_copy_tags.push_back(Array4Array4Box<T>{.dfab = dest.array(tag.dstIndex),
+                                                   .sfab = src.const_array(tag.srcIndex),
+                                                   .dbox = tag.dbox});
     }
 
     ParallelFor(loc_copy_tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                             Array4Array4Box<T> const& tag) noexcept
     {
-        auto const si = dtos(Dim3{i,j,k});
+        auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
         tag.dfab(i,j,k,dcomp+n) = proj(tag.sfab, si, scomp+n);
     });
 }
 
-template <class FAB, class DTOS, class Proj>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3, DTOS, Dim3>() && IsFabProjection<Proj, FAB>()>
+template <BaseFabType FAB, class DTOS, class Proj>
+requires (IsCallableR<Dim3, DTOS, Dim3>::value && IsFabProjection<Proj, FAB>::value)
+void
 unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
                         Vector<char*> const& recv_data,
                         Vector<std::size_t> const& recv_size,
@@ -323,7 +331,7 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
     ParallelFor(tags, ncomp, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n,
                                                    Array4Array4Box<T> const& tag) noexcept
     {
-        auto const si = dtos(Dim3{i,j,k});
+        auto const si = dtos(Dim3{.x = i, .y = j, .z = k});
         tag.dfab(i,j,k,scomp+n) = proj(tag.sfab, si ,n);
     });
 
@@ -335,24 +343,29 @@ unpack_recv_buffer_gpu (FabArray<FAB>& mf, int scomp, int ncomp,
 }
 #endif
 
-template <typename DTOS, typename>
+template <typename DTOS>
+requires (IsIndexMapping<DTOS>::value)
 MultiBlockCommMetaData::MultiBlockCommMetaData (const FabArrayBase& dst, const Box& dstbox, const FabArrayBase& src,
                                                 const IntVect& ngrow, DTOS const& dtos)
     : MultiBlockCommMetaData(dst.boxArray(), dst.DistributionMap(), dstbox, src.boxArray(),
                                 src.DistributionMap(), ngrow, dtos) {}
 
-template <typename DTOS, typename>
+template <typename DTOS>
+requires (IsIndexMapping<DTOS>::value)
 MultiBlockCommMetaData::MultiBlockCommMetaData (const BoxArray& dstba, const DistributionMapping& dstdm,
                                                 const Box& dstbox, const BoxArray& srcba,
-                                                const DistributionMapping& srcdm, const IntVect& ngrow, DTOS const& dtos) {
+                                                const DistributionMapping& srcdm, const IntVect& ngrow, DTOS const& dtos)
+{
     define(dstba, dstdm, dstbox, srcba, srcdm, ngrow, dtos);
 }
 
 template <typename DTOS>
-std::enable_if_t<IsIndexMapping<DTOS>::value>
+requires (IsIndexMapping<DTOS>::value)
+void
 MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping& dstdm, const Box& dstbox,
                                 const BoxArray& srcba, const DistributionMapping& srcdm, const IntVect& ngrow,
-                                DTOS const& dtos) {
+                                DTOS const& dtos)
+{
     m_LocTags = std::make_unique<FabArrayBase::CopyComTagsContainer>();
     m_SndTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
     m_RcvTags = std::make_unique<FabArrayBase::MapOfCopyComTagContainers>();
@@ -395,7 +408,7 @@ MultiBlockCommMetaData::define (const BoxArray& dstba, const DistributionMapping
     }
 }
 
-template <class FAB, class DTOS, class Proj>
+template <BaseFabType FAB, class DTOS, class Proj>
 #ifdef AMREX_USE_MPI
 AMREX_NODISCARD
 #endif
@@ -479,7 +492,7 @@ Comm_nowait (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 }
 
 #ifdef AMREX_USE_MPI
-template <class FAB, class DTOS, class Proj>
+template <BaseFabType FAB, class DTOS, class Proj>
 void
 Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData const& cmd,
              CommHandler handler, DTOS const& dtos, Proj const& proj)
@@ -522,8 +535,8 @@ Comm_finish (FabArray<FAB>& mf, int scomp, int ncomp, FabArrayBase::CommMetaData
 }
 #endif
 
-template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+template <BaseFabType FAB>
+void
 Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
     BL_PROFILE("Rotate90");
@@ -565,15 +578,15 @@ Rotate90 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box co
 #endif
 }
 
-template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+template <BaseFabType FAB>
+void
 Rotate90 (FabArray<FAB>& mf, Box const& domain)
 {
     Rotate90(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
-template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+template <BaseFabType FAB>
+void
 Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
     BL_PROFILE("Rotate180");
@@ -600,15 +613,15 @@ Rotate180 (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
 #endif
 }
 
-template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+template <BaseFabType FAB>
+void
 Rotate180 (FabArray<FAB>& mf, Box const& domain)
 {
     Rotate180(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
-template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+template <BaseFabType FAB>
+void
 FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box const& domain)
 {
     BL_PROFILE("FillPolar");
@@ -625,29 +638,27 @@ FillPolar (FabArray<FAB>& mf, int scomp, int ncomp, IntVect const& nghost, Box c
     const FabArrayBase::PolarB& ThePolarB = mf.getPolarB(nghost, domain);
 
     auto handler = Comm_nowait(mf, scomp, ncomp, ThePolarB,
-                               PolarFn{domain.length(0), domain.length(1)},
+                               PolarFn{.Lx = domain.length(0), .Ly = domain.length(1)},
                                Identity{});
 
 #ifdef AMREX_USE_MPI
     Comm_finish(mf, scomp, ncomp, ThePolarB, std::move(handler),
-                PolarFn{domain.length(0), domain.length(1)}, Identity{});
+                PolarFn{.Lx = domain.length(0), .Ly = domain.length(1)}, Identity{});
 #else
     amrex::ignore_unused(handler);
 #endif
 }
 
-template <class FAB>
-std::enable_if_t<IsBaseFab<FAB>::value>
+template <BaseFabType FAB>
+void
 FillPolar (FabArray<FAB>& mf, Box const& domain)
 {
     FillPolar(mf, 0, mf.nComp(), mf.nGrowVect(), domain);
 }
 
-template <typename FAB, typename DTOS, typename Proj>
-std::enable_if_t<IsBaseFab<FAB>() &&
-                 IsCallableR<Dim3,DTOS,Dim3>() &&
-                 IsFabProjection<Proj,FAB>(),
-                 CommHandler>
+template <BaseFabType FAB, typename DTOS, typename Proj>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
+CommHandler
 FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos, Proj const& proj)
 {
@@ -656,10 +667,9 @@ FillBoundary_nowait (FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
     return Comm_nowait(mf, scomp, ncomp, cmd, dtos, proj);
 }
 
-template <typename FAB, typename DTOS, typename Proj>
-std::enable_if_t<IsBaseFab<FAB>() &&
-                 IsCallableR<Dim3,DTOS,Dim3>() &&
-                 IsFabProjection<Proj,FAB>()>
+template <BaseFabType FAB, typename DTOS, typename Proj>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value && IsFabProjection<Proj,FAB>::value)
+void
 FillBoundary_finish (CommHandler handler,
                      FabArray<FAB>& mf, const FabArrayBase::CommMetaData& cmd,
                      int scomp, int ncomp, DTOS const& dtos, Proj const& proj)
@@ -787,9 +797,9 @@ namespace detail {
 }
 /// \endcond
 
-template <typename FAB, typename DTOS>
-std::enable_if_t<IsBaseFab<FAB>() && IsCallableR<Dim3,DTOS,Dim3>(),
-                 FabArrayBase::CommMetaData>
+template <BaseFabType FAB, typename DTOS>
+requires (IsCallableR<Dim3,DTOS,Dim3>::value)
+FabArrayBase::CommMetaData
 makeFillBoundaryMetaData (FabArray<FAB>& mf, IntVect const& nghost,
                           Geometry const& geom, DTOS const& dtos)
 {
@@ -873,47 +883,47 @@ struct SphThetaPhiRIndexMapping
         // theta-hi/r-lo edge, and r > r-hi.
         if (ilo && jmd && kmd)
         {
-            return {-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = -1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ihi && jmd && kmd)
         {
-            return {2*nx-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = 2*nx-1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (imd && jlo && kmd)
         {
-            return {i, j+ny, k};
+            return Dim3{.x = i, .y = j+ny, .z = k};
         }
         else if (imd && jhi && kmd)
         {
-            return {i, j-ny, k};
+            return Dim3{.x = i, .y = j-ny, .z = k};
         }
         else if (imd && jmd && klo)
         {
-            return {nx-1-i, (j+ny/2)%ny, -1-k};
+            return Dim3{.x = nx-1-i, .y = (j+ny/2)%ny, .z = -1-k};
         }
         else if (ilo && jlo && kmd)
         {
-            return {-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = -1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ihi && jlo && kmd)
         {
-            return {2*nx-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = 2*nx-1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ilo && jhi && kmd)
         {
-            return {-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = -1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (ihi && jhi && kmd)
         {
-            return {2*nx-1-i, (j+ny/2)%ny, k};
+            return Dim3{.x = 2*nx-1-i, .y = (j+ny/2)%ny, .z = k};
         }
         else if (imd && jlo && klo)
         {
-            return {nx-1-i, (j+ny/2)%ny, -1-k};
+            return Dim3{.x = nx-1-i, .y = (j+ny/2)%ny, .z = -1-k};
         }
         else if (imd && jhi && klo)
         {
-            return {nx-1-i, (j+ny/2)%ny, -1-k};
+            return Dim3{.x = nx-1-i, .y = (j+ny/2)%ny, .z = -1-k};
         }
         else
         {

@@ -1,5 +1,6 @@
 #include <AMReX_FPhysBC.H>
 #include <AMReX_FillPatchUtil.H>
+#include <AMReX_FillPatcher.H>
 
 using namespace amrex;
 
@@ -83,6 +84,117 @@ namespace {
 
 extern "C"
 {
+    void amrex_fi_new_fillpatcher (FillPatcher<MultiFab>*& fillpatcher,
+                                   const BoxArray* fba, const DistributionMapping* fdm,
+                                   const Geometry* fgeom,
+                                   const BoxArray* cba, const DistributionMapping* cdm,
+                                   const Geometry* cgeom,
+                                   int nghost, int ncomp, int interp_id)
+    {
+        fillpatcher = new FillPatcher<MultiFab>
+            (*fba, *fdm, *fgeom, *cba, *cdm, *cgeom,
+             IntVect(nghost), ncomp, interp[interp_id]);
+    }
+
+    void amrex_fi_delete_fillpatcher (FillPatcher<MultiFab>* fillpatcher)
+    {
+        delete fillpatcher;
+    }
+
+    void amrex_fi_fillpatcher_fill (FillPatcher<MultiFab>* fillpatcher,
+                                    MultiFab* mf, int nghost, Real time,
+                                    MultiFab* cmf[], Real ct[], int nc,
+                                    MultiFab* fmf[], Real ft[], int nf,
+                                    int scomp, int dcomp, int ncomp,
+                                    const Geometry* cgeom, const Geometry* fgeom,
+                                    FPhysBC::fill_physbc_funptr_t cfill,
+                                    FPhysBC::fill_physbc_funptr_t ffill,
+                                    int* lo_bc[], int* hi_bc[],
+                                    INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
+    {
+        Vector<BCRec> bcs;
+        for (int i = 0; i < ncomp; ++i) {
+            bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
+        }
+
+        FPhysBC cbc(cfill, cgeom);
+        FPhysBC fbc(ffill, fgeom);
+        fillpatcher->fill(*mf, IntVect{AMREX_D_DECL(nghost,nghost,nghost)}, time,
+                          Vector<MultiFab*>{cmf, cmf+nc}, Vector<Real>{ct, ct+nc},
+                          Vector<MultiFab*>{fmf, fmf+nf}, Vector<Real>{ft, ft+nf},
+                          scomp, dcomp, ncomp,
+                          cbc, 0, fbc, 0, bcs, 0,
+                          FIInterpHook(pre_interp),
+                          FIInterpHook(post_interp));
+    }
+
+    void amrex_fi_fillpatcher_fillcf (FillPatcher<MultiFab>* fillpatcher,
+                                      MultiFab* mf, int nghost, Real time,
+                                      MultiFab* cmf[], Real ct[], int nc,
+                                      int scomp, int dcomp, int ncomp,
+                                      const Geometry* cgeom,
+                                      FPhysBC::fill_physbc_funptr_t cfill,
+                                      int* lo_bc[], int* hi_bc[],
+                                      INTERP_HOOK pre_interp, INTERP_HOOK post_interp)
+    {
+        Vector<BCRec> bcs;
+        for (int i = 0; i < ncomp; ++i) {
+            bcs.emplace_back(lo_bc[i+scomp], hi_bc[i+scomp]);
+        }
+
+        FPhysBC cbc(cfill, cgeom);
+        fillpatcher->fillCoarseFineBoundary(*mf, IntVect{AMREX_D_DECL(nghost,nghost,nghost)}, time,
+                                            Vector<MultiFab*>{cmf, cmf+nc},
+                                            Vector<Real>{ct, ct+nc},
+                                            scomp, dcomp, ncomp,
+                                            cbc, 0, bcs, 0,
+                                            FIInterpHook(pre_interp),
+                                            FIInterpHook(post_interp));
+    }
+
+    void amrex_fi_fillpatcher_store_rk3 (FillPatcher<MultiFab>* fillpatcher,
+                                         Real time, Real dt,
+                                         const MultiFab* s_old, MultiFab* rk[])
+    {
+        Array<MultiFab,3> rkk{{
+            MultiFab(*rk[0], amrex::make_alias, 0, rk[0]->nComp()),
+            MultiFab(*rk[1], amrex::make_alias, 0, rk[1]->nComp()),
+            MultiFab(*rk[2], amrex::make_alias, 0, rk[2]->nComp())
+        }};
+        fillpatcher->storeRKCoarseData(time, dt, *s_old, rkk);
+    }
+
+    void amrex_fi_fillpatcher_store_rk4 (FillPatcher<MultiFab>* fillpatcher,
+                                         Real time, Real dt,
+                                         const MultiFab* s_old, MultiFab* rk[])
+    {
+        Array<MultiFab,4> rkk{{
+            MultiFab(*rk[0], amrex::make_alias, 0, rk[0]->nComp()),
+            MultiFab(*rk[1], amrex::make_alias, 0, rk[1]->nComp()),
+            MultiFab(*rk[2], amrex::make_alias, 0, rk[2]->nComp()),
+            MultiFab(*rk[3], amrex::make_alias, 0, rk[3]->nComp())
+        }};
+        fillpatcher->storeRKCoarseData(time, dt, *s_old, rkk);
+    }
+
+    void amrex_fi_fillpatcher_fill_rk (FillPatcher<MultiFab>* fillpatcher,
+                                       int stage, int iteration, int ncycle,
+                                       MultiFab* mf, Real time,
+                                       const Geometry* cgeom, const Geometry* fgeom,
+                                       FPhysBC::fill_physbc_funptr_t cfill,
+                                       FPhysBC::fill_physbc_funptr_t ffill,
+                                       int* lo_bc[], int* hi_bc[], int ncomp)
+    {
+        Vector<BCRec> bcs;
+        for (int i = 0; i < ncomp; ++i) {
+            bcs.emplace_back(lo_bc[i], hi_bc[i]);
+        }
+
+        FPhysBC cbc(cfill, cgeom);
+        FPhysBC fbc(ffill, fgeom);
+        fillpatcher->fillRK(stage, iteration, ncycle, *mf, time, cbc, fbc, bcs);
+    }
+
     void amrex_fi_fillpatch_single (MultiFab* mf, Real time, MultiFab* smf[], Real stime[], int ns,
                                     int scomp, int dcomp, int ncomp, const Geometry* geom,
                                     FPhysBC::fill_physbc_funptr_t fill)

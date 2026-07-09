@@ -37,7 +37,7 @@ struct SIMDindex
  * @tparam N index type (integer)
  * @tparam L function/functor to call per SIMD set of elements
  */
-template <int WIDTH, typename N, typename L, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <int WIDTH, std::integral N, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForSIMD (N n, L const& f) noexcept
 {
@@ -62,7 +62,7 @@ void ParallelForSIMD (N n, L const& f) noexcept
  * @tparam N index type (integer)
  * @tparam L function/functor to call per SIMD set of elements
  */
-template <typename T, typename N, typename L, typename M=std::enable_if_t<std::is_integral_v<N>> >
+template <typename T, std::integral N, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForSIMD (N n, L && f) noexcept
 {

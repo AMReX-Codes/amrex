@@ -42,9 +42,9 @@ public:
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
     {
 #if (AMREX_SPACEDIM == 3)
-        XDim3 pos{x-m_center.x, y-m_center.y, z-m_center.z};
+        XDim3 pos{.x = x-m_center.x, .y = y-m_center.y, .z = z-m_center.z};
 #else
-        XDim3 pos{x-m_center.x, y-m_center.y, 0.0_rt};
+        XDim3 pos{.x = x-m_center.x, .y = y-m_center.y, .z = 0.0_rt};
 #endif
         Real d2 = 0.0_rt;
         Real pdir;

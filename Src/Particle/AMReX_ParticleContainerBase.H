@@ -265,9 +265,14 @@ public:
         { return m_particle_handshake_window ? m_particle_handshake_window->win : MPI_WIN_NULL; }
 #endif
 
-    Vector<int> NeighborProcs(int ngrow) const
+    Vector<int> NeighborProcs(IntVect ngrow) const
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
+    }
+
+    Vector<int> NeighborProcs(int ngrow) const
+    {
+        return NeighborProcs(IntVect(ngrow));
     }
 
     template <class MF>
@@ -297,7 +302,12 @@ public:
 
 protected:
 
-    void BuildRedistributeMask (int lev, int nghost=1) const;
+    void BuildRedistributeMask (int lev, IntVect nghost) const;
+
+    void BuildRedistributeMask (int lev, int nghost=1) const
+    {
+        BuildRedistributeMask(lev, IntVect(nghost));
+    }
     void defineBufferMap () const;
 
     int         m_verbose{0};
@@ -308,7 +318,7 @@ protected:
     Arena* m_arena = nullptr;
 
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
-    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
+    mutable IntVect redistribute_mask_nghost = IntVect(std::numeric_limits<int>::min());
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
 

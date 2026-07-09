@@ -7,6 +7,8 @@ AMReX is a software framework containing all the functionality needed to write
 massively parallel, block-structured adaptive mesh refinement (AMR)
 applications. AMReX is freely available `on GitHub
 <https://github.com/AMReX-Codes/amrex>`_.
+The `AMReX project website <https://amrex-codes.github.io/>`_ provides
+additional project information.
 
 AMReX is a project of the `High Performance Software Foundation (HPSF)
 <https://hpsf.io/>`_, which is part of the nonprofit `Linux Foundation

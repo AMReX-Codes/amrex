@@ -253,7 +253,7 @@ namespace amrex
     {
         extern AMREX_EXPORT Real growth_factor;
         inline Real GetGrowthFactor () { return growth_factor; }
-        inline void SetGrowthFactor (Real a_factor);
+        void SetGrowthFactor (Real a_factor);
 
         /// \cond DOXYGEN_IGNORE
         namespace detail

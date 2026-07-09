@@ -127,6 +127,7 @@ contains
        dm_cp(ilev) = dm(ilev)%p
     end do
 
+    call amrex_abeclaplacian_destroy(abeclap)
     abeclap%owner = .true.
     call amrex_fi_new_abeclaplacian(abeclap%p, nlevs, gm_cp, ba_cp, dm_cp, imt, iagg, icon, imcl)
   end subroutine amrex_abeclaplacian_build

@@ -6,8 +6,14 @@
 #include <amrex_parser.tab.h>
 
 #include <algorithm>
+#include <mutex>
+#include <stdexcept>
 
 namespace amrex {
+
+namespace {
+    std::mutex parser_mutex;
+}
 
 Parser::Parser (std::string const& func_body)
 {
@@ -21,11 +27,10 @@ Parser::define (std::string const& func_body)
 
     if (!func_body.empty()) {
         m_data->m_expression = func_body;
-        m_data->m_expression.erase(std::remove(m_data->m_expression.begin(),
-                                               m_data->m_expression.end(),'\n'),
-                                   m_data->m_expression.end());
+        std::erase_if(m_data->m_expression, [](char c) { return c == '\n' || c == '\r'; });
         std::string f = m_data->m_expression + "\n";
 
+        std::scoped_lock parser_lock(parser_mutex);
         YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
         try {
             amrex_parserparse();
@@ -68,6 +73,9 @@ void
 Parser::setConstant (std::string const& name, double c)
 {
     if (m_data && m_data->m_parser) {
+        if (m_data->m_host_executor != nullptr) {
+            throw std::runtime_error("amrex::Parser::setConstant: cannot modify constants after compile()");
+        }
         parser_setconst(m_data->m_parser, name.c_str(), c);
     }
 }
@@ -75,6 +83,10 @@ Parser::setConstant (std::string const& name, double c)
 void
 Parser::registerVariables (Vector<std::string> const& vars)
 {
+    if (m_data && m_data->m_host_executor != nullptr) {
+        throw std::runtime_error("amrex::Parser::registerVariables: cannot modify variables after compile()");
+    }
+
     m_vars = vars;
     if (m_data && m_data->m_parser) {
         m_data->m_nvars = static_cast<int>(vars.size());

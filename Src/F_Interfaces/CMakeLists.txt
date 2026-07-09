@@ -24,6 +24,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Base/AMReX_multifab_mod.F90
        Base/AMReX_plotfile_mod.F90
        Base/AMReX_multifabutil_mod.F90
+       Base/AMReX_rungekutta_mod.F90
        Base/AMReX_physbc_mod.F90
        Base/AMReX_fab_mod.F90
        Base/AMReX_init_fi.cpp
@@ -35,6 +36,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        Base/AMReX_vismf_fi.cpp
        Base/AMReX_plotfile_fi.cpp
        Base/AMReX_multifabutil_fi.cpp
+       Base/AMReX_rungekutta_fi.cpp
        Base/AMReX_physbc_fi.cpp
        Base/AMReX_FPhysBC.H
        Base/AMReX_FPhysBC.cpp

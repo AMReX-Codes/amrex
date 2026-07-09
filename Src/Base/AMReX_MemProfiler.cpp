@@ -25,7 +25,7 @@ void
 MemProfiler::add (const std::string& name, std::function<MemInfo()>&& f)
 {
     MemProfiler& mprofiler = getInstance();
-    auto it = std::find(mprofiler.the_names.begin(), mprofiler.the_names.end(), name);
+    auto it = std::ranges::find(mprofiler.the_names, name);
     if (it != mprofiler.the_names.end()) {
         std::string s = "MemProfiler::add (MemInfo) failed because " + name + " already existed";
         amrex::Abort(s.c_str());
@@ -38,7 +38,7 @@ void
 MemProfiler::add (const std::string& name, std::function<NBuildsInfo()>&& f)
 {
     MemProfiler& mprofiler = getInstance();
-    auto it = std::find(mprofiler.the_names_builds.begin(), mprofiler.the_names_builds.end(), name);
+    auto it = std::ranges::find(mprofiler.the_names_builds, name);
     if (it != mprofiler.the_names_builds.end()) {
         std::string s = "MemProfiler::add (NBuildsInfo) failed because " + name + " already existed";
         amrex::Abort(s.c_str());
@@ -249,16 +249,16 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
         std::vector<int> idxs(the_names.size());
         std::iota(idxs.begin(), idxs.end(), 0);
-        std::sort(idxs.begin(), idxs.end(), [&](int i, int j)
-                  { return hwm_max[i] > hwm_max[j]; });
+        std::ranges::sort(idxs, [&](int i, int j)
+                          { return hwm_max[i] > hwm_max[j]; });
 
         for (int ii = 0; ii < idxs.size(); ++ii) {
             int i = idxs[ii];
             if (hwm_max[i] > 0) {
                 memlog << ident;
                 memlog << "| " << std::setw(width_name) << std::left << the_names[i] << " | ";
-                memlog << Bytes{cur_min[i],cur_max[i]} << " | ";
-                memlog << Bytes{hwm_min[i],hwm_max[i]} << " |\n";
+                memlog << Bytes{.mn = cur_min[i], .mx = cur_max[i]} << " | ";
+                memlog << Bytes{.mn = hwm_min[i], .mx = hwm_max[i]} << " |\n";
             }
         }
 
@@ -267,7 +267,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
 
         memlog << ident;
         memlog << "| " << std::setw(width_name) << std::left << "Total" << " | ";
-        memlog << Bytes{mymin[0],mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
+        memlog << Bytes{.mn = mymin[0], .mx = mymax[0]} << " | " << std::setw(width_bytes) << " " << " |\n";
         memlog << std::setw(0);
 
         // Number of builds
@@ -286,8 +286,8 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
                 if (hwm_builds_max[i] > 0) {
                     memlog << ident;
                     memlog << "| " << std::setw(width_name) << std::left << the_names_builds[i] << " | ";
-                    memlog << Builds{num_builds_min[i],num_builds_max[i]} << " | ";
-                    memlog << Builds{hwm_builds_min[i],hwm_builds_max[i]} << " |\n";
+                    memlog << Builds{.mn = num_builds_min[i], .mx = num_builds_max[i]} << " | ";
+                    memlog << Builds{.mn = hwm_builds_min[i], .mx = hwm_builds_max[i]} << " |\n";
                 }
             }
         }
@@ -301,7 +301,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
                    << "   " << std::setw(width_bytes) << "VmRSS" << "\n";
             memlog << "  ";
             for (int i = 0; i < npstat; ++i)
-                memlog << " [" << Bytes{mymin[ipstat+i], mymax[ipstat+i]} << "]";
+                memlog << " [" << Bytes{.mn = mymin[ipstat+i], .mx = mymax[ipstat+i]} << "]";
             memlog << "\n";
         }
 
@@ -316,7 +316,7 @@ MemProfiler::report_ (const std::string& prefix, const std::string& memory_log_n
             memlog << std::setw(width_bytes) << "shared" << "\n";
             memlog << "  ";
             for (int i = 0; i < nsinfo; ++i)
-                memlog << " [" << Bytes{mymin[isinfo+i], mymax[isinfo+i]} << "]";
+                memlog << " [" << Bytes{.mn = mymin[isinfo+i], .mx = mymax[isinfo+i]} << "]";
             memlog << "\n";
         }
 #endif

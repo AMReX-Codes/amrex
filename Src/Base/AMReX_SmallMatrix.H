@@ -57,8 +57,8 @@ namespace amrex {
          * the number of argument is less than the size of the vector, the
          * rest of the vector is initialized to zero.
          */
-        template <typename... Ts, int MM=NRows, int NN=NCols,
-                  std::enable_if_t<MM==1 || NN==1, int> = 0>
+        template <typename... Ts>
+        requires (NRows==1 || NCols==1)
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr explicit SmallMatrix (Ts... vs)
             : m_mat{vs...}
@@ -128,9 +128,10 @@ namespace amrex {
         }
 
         //! Returns a const reference to element i of a vector
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator() (int i) const noexcept {
+        const T& operator() (int i) const noexcept
+            requires (NRows==1 || NCols==1)
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             if constexpr (StartIndex == 1) {
                 --i;
@@ -141,9 +142,10 @@ namespace amrex {
         }
 
         //! Returns a reference to element i of a vector
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator() (int i) noexcept {
+        T& operator() (int i) noexcept
+            requires (NRows==1 || NCols==1)
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             if constexpr (StartIndex == 1) {
                 --i;
@@ -154,9 +156,10 @@ namespace amrex {
         }
 
         //! Returns a const reference to element i of a vector
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        const T& operator[] (int i) const noexcept {
+        const T& operator[] (int i) const noexcept
+            requires (NRows==1 || NCols==1)
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             if constexpr (StartIndex == 1) {
                 --i;
@@ -167,9 +170,10 @@ namespace amrex {
         }
 
         //! Returns a reference to element i of a vector
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<(MM==1 || NN==1), int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T& operator[] (int i) noexcept {
+        T& operator[] (int i) noexcept
+            requires (NRows==1 || NCols==1)
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             if constexpr (StartIndex == 1) {
                 --i;
@@ -217,11 +221,11 @@ namespace amrex {
         }
 
         //! Returns an identity matrix
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<MM==NN, int> = 0>
         static constexpr
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
-        Identity () noexcept {
+        Identity () noexcept requires (NRows==NCols)
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             SmallMatrix<T,NRows,NCols,ORDER,StartIndex> I{};
             constexpr_for<StartIndex,NRows+StartIndex>(
@@ -237,12 +241,12 @@ namespace amrex {
          *
          * @see https://en.wikipedia.org/wiki/Symplectic_matrix
          */
-        template <int MM=NRows, int NN=NCols,
-                  std::enable_if_t<MM==NN && MM%2==0 && std::is_floating_point_v<T>, int> = 0>
         static constexpr
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         SmallMatrix<T,NRows,NCols,ORDER,StartIndex>
-        Omega () noexcept {
+        Omega () noexcept
+            requires (NRows==NCols && NRows%2==0 && std::is_floating_point_v<T>)
+        {
             static_assert(StartIndex == 0 || StartIndex == 1);
             SmallMatrix<T,NRows,NCols,ORDER,StartIndex> omega{};
             constexpr_for<0,NRows/2>(
@@ -277,10 +281,9 @@ namespace amrex {
         }
 
         //! Transposes a square matrix in-place.
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<MM==NN,int> = 0>
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         SmallMatrix<T,NRows,NCols,ORDER,StartIndex>&
-        transposeInPlace ()
+        transposeInPlace () requires (NRows==NCols)
         {
             static_assert(StartIndex == 0 || StartIndex == 1);
             for (int j = 1+StartIndex; j < NCols+StartIndex; ++j) {
@@ -314,12 +317,11 @@ namespace amrex {
         }
 
         //! Returns the trace of a square matrix
-        template <int MM=NRows, int NN=NCols, std::enable_if_t<MM==NN,int> = 0>
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-        T trace () const
+        T trace () const requires (NRows==NCols)
         {
             T t = 0;
-            constexpr_for<StartIndex,MM+StartIndex>([&] (int i) { t += (*this)(i,i); });
+            constexpr_for<StartIndex,NRows+StartIndex>([&] (int i) { t += (*this)(i,i); });
             return t;
         }
 
@@ -420,11 +422,13 @@ namespace amrex {
             return r;
         }
 
-        template <int N, std::enable_if_t<(N<NRows*NCols),int> = 0>
+        template <int N>
+        requires (N<NRows*NCols)
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T const& get () const { return m_mat[N]; }
 
-        template <int N, std::enable_if_t<(N<NRows*NCols),int> = 0>
+        template <int N>
+        requires (N<NRows*NCols)
         [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         constexpr T& get () { return m_mat[N]; }
 

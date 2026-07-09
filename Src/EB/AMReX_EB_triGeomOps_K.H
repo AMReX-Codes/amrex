@@ -121,7 +121,7 @@ namespace amrex::tri_geom_ops
         //================================================================================
         //this is only useful when v1-v2 segment intersects the triangle
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE bool find_intersection_point(const Real v1[3],const Real v2[3],
-                const Real t1[3], const Real t2[3], const Real t3[3], Real ip[3],int bisect_iters=20,Real tol=1e-6)
+                const Real t1[3], const Real t2[3], const Real t3[3], Real ip[3],int bisect_iters=20,Real tol=Real(1e-6))
         {
             Real plane_eq_mid,plane_eq1,plane_eq2;
 

@@ -7,7 +7,9 @@ module amrex_fillpatch_module
   implicit none
   private
 
+  public :: amrex_fillpatcher_destroy ! List first to avoid XL compiler bug
   public :: amrex_fillpatch, amrex_fillcoarsepatch, amrex_interp_hook_proc
+  public :: amrex_fillpatcher, amrex_fillpatcher_build
 
   interface amrex_fillpatch
      module procedure amrex_fillpatch_single
@@ -19,6 +21,22 @@ module amrex_fillpatch_module
      module procedure amrex_fillcoarsepatch_default
      module procedure amrex_fillcoarsepatch_faces
   end interface amrex_fillcoarsepatch
+
+  type, public :: amrex_fillpatcher
+     logical     :: owner = .false.
+     type(c_ptr) :: p = c_null_ptr
+     integer     :: nghost = 0
+     integer     :: ncomp = 0
+   contains
+     generic   :: assignment(=) => amrex_fillpatcher_assign ! shallow copy
+     procedure :: fill      => amrex_fillpatcher_fill
+     procedure :: fillcf    => amrex_fillpatcher_fillcf
+     procedure :: fill_rk   => amrex_fillpatcher_fill_rk
+     procedure :: store_rk3 => amrex_fillpatcher_store_rk3
+     procedure :: store_rk4 => amrex_fillpatcher_store_rk4
+     procedure, private :: amrex_fillpatcher_assign
+     final :: amrex_fillpatcher_destroy
+  end type amrex_fillpatcher
 
   interface
      subroutine amrex_interp_hook_proc (lo, hi, d, dlo, dhi, nd, icomp, ncomp) bind(c)
@@ -54,6 +72,74 @@ module amrex_fillpatch_module
   end interface
 
   interface
+     subroutine amrex_fi_new_fillpatcher(fp, fba, fdm, fgeom, cba, cdm, cgeom, &
+          nghost, ncomp, interp) bind(c)
+       import
+       implicit none
+       type(c_ptr) :: fp
+       type(c_ptr), value :: fba, fdm, fgeom, cba, cdm, cgeom
+       integer(c_int), value :: nghost, ncomp, interp
+     end subroutine amrex_fi_new_fillpatcher
+
+     subroutine amrex_fi_delete_fillpatcher(fp) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fp
+     end subroutine amrex_fi_delete_fillpatcher
+
+     subroutine amrex_fi_fillpatcher_fill(fp, mf, nghost, time, &
+          cmf, ctime, nc, fmf, ftime, nf, scomp, dcomp, ncomp, &
+          cgeom, fgeom, cfill, ffill, lo_bc, hi_bc, pre_interp, post_interp) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fp, mf, cgeom, fgeom
+       type(c_ptr), intent(in) :: cmf(*), fmf(*), lo_bc(*), hi_bc(*)
+       type(c_funptr), value :: cfill, ffill, pre_interp, post_interp
+       real(amrex_real), value :: time
+       real(amrex_real), intent(in) :: ctime(*), ftime(*)
+       integer(c_int), value :: nghost, nc, nf, scomp, dcomp, ncomp
+     end subroutine amrex_fi_fillpatcher_fill
+
+     subroutine amrex_fi_fillpatcher_fillcf(fp, mf, nghost, time, &
+          cmf, ctime, nc, scomp, dcomp, ncomp, cgeom, cfill, &
+          lo_bc, hi_bc, pre_interp, post_interp) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fp, mf, cgeom
+       type(c_ptr), intent(in) :: cmf(*), lo_bc(*), hi_bc(*)
+       type(c_funptr), value :: cfill, pre_interp, post_interp
+       real(amrex_real), value :: time
+       real(amrex_real), intent(in) :: ctime(*)
+       integer(c_int), value :: nghost, nc, scomp, dcomp, ncomp
+     end subroutine amrex_fi_fillpatcher_fillcf
+
+     subroutine amrex_fi_fillpatcher_store_rk3(fp, time, dt, s_old, rk) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fp, s_old
+       type(c_ptr), intent(in) :: rk(*)
+       real(amrex_real), value :: time, dt
+     end subroutine amrex_fi_fillpatcher_store_rk3
+
+     subroutine amrex_fi_fillpatcher_store_rk4(fp, time, dt, s_old, rk) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fp, s_old
+       type(c_ptr), intent(in) :: rk(*)
+       real(amrex_real), value :: time, dt
+     end subroutine amrex_fi_fillpatcher_store_rk4
+
+     subroutine amrex_fi_fillpatcher_fill_rk(fp, stage, iteration, ncycle, mf, time, &
+          cgeom, fgeom, cfill, ffill, lo_bc, hi_bc, ncomp) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fp, mf, cgeom, fgeom
+       type(c_funptr), value :: cfill, ffill
+       type(c_ptr), intent(in) :: lo_bc(*), hi_bc(*)
+       real(amrex_real), value :: time
+       integer(c_int), value :: stage, iteration, ncycle, ncomp
+     end subroutine amrex_fi_fillpatcher_fill_rk
+
      subroutine amrex_fi_fillpatch_single(mf, time, smf, stime, ns, scomp, dcomp, ncomp, &
           geom, fill) bind(c)
        import
@@ -123,7 +209,214 @@ module amrex_fillpatch_module
      end subroutine amrex_fi_fillcoarsepatch_faces
   end interface
 
+#ifdef __NVCOMPILER
+  interface amrex_fillpatcher_destroy
+     module procedure amrex_fillpatcher_destroy
+  end interface amrex_fillpatcher_destroy
+#endif
+
 contains
+
+  subroutine amrex_fillpatcher_build (fp, fba, fdm, fgeom, cba, cdm, cgeom, &
+       nghost, ncomp, interp)
+    type(amrex_fillpatcher), intent(inout) :: fp
+    type(amrex_boxarray), intent(in) :: fba, cba
+    type(amrex_distromap), intent(in) :: fdm, cdm
+    type(amrex_geometry), intent(in) :: fgeom, cgeom
+    integer, intent(in) :: nghost, ncomp, interp
+    call amrex_fillpatcher_destroy(fp)
+    fp%owner = .true.
+    fp%nghost = nghost
+    fp%ncomp = ncomp
+    call amrex_fi_new_fillpatcher(fp%p, fba%p, fdm%p, fgeom%p, &
+         cba%p, cdm%p, cgeom%p, nghost, ncomp, interp)
+  end subroutine amrex_fillpatcher_build
+
+  impure elemental subroutine amrex_fillpatcher_destroy (this)
+    type(amrex_fillpatcher), intent(inout) :: this
+    if (this%owner) then
+       if (c_associated(this%p)) then
+          call amrex_fi_delete_fillpatcher(this%p)
+       end if
+    end if
+    this%owner = .false.
+    this%p = c_null_ptr
+    this%nghost = 0
+    this%ncomp = 0
+  end subroutine amrex_fillpatcher_destroy
+
+  subroutine amrex_fillpatcher_assign (dst, src)
+    class(amrex_fillpatcher), intent(inout) :: dst
+    type(amrex_fillpatcher), intent(in) :: src
+    call amrex_fillpatcher_destroy(dst)
+    dst%owner = .false.
+    dst%p = src%p
+    dst%nghost = src%nghost
+    dst%ncomp = src%ncomp
+  end subroutine amrex_fillpatcher_assign
+
+  subroutine amrex_fillpatcher_make_mf_time_arrays (time, told, mfold, tnew, mfnew, mf, mf_time, nmf)
+    real(amrex_real), intent(in) :: time, told, tnew
+    type(amrex_multifab), intent(in) :: mfold, mfnew
+    type(c_ptr), intent(out) :: mf(2)
+    real(amrex_real), intent(out) :: mf_time(2)
+    integer, intent(out) :: nmf
+    real(amrex_real) :: teps
+
+    teps = 1.e-4_amrex_real * abs(tnew - told)
+    if (abs(time-tnew) .le. teps) then
+       nmf = 1
+       mf(1) = mfnew%p
+       mf_time(1) = tnew
+    else if (abs(time-told) .le. teps) then
+       nmf = 1
+       mf(1) = mfold%p
+       mf_time(1) = told
+    else
+       nmf = 2
+       mf(1) = mfold%p
+       mf(2) = mfnew%p
+       mf_time(1) = told
+       mf_time(2) = tnew
+    end if
+  end subroutine amrex_fillpatcher_make_mf_time_arrays
+
+  subroutine amrex_fillpatcher_make_bc_ptrs (scomp, ncomp, lo_bc, hi_bc, lo_bc_ptr, hi_bc_ptr)
+    integer, intent(in) :: scomp, ncomp
+    integer, dimension(amrex_spacedim,scomp+ncomp-1), target, intent(in) :: lo_bc, hi_bc
+    type(c_ptr), intent(out) :: lo_bc_ptr(scomp+ncomp-1), hi_bc_ptr(scomp+ncomp-1)
+    integer :: i
+
+    do i = 1, scomp-1
+       lo_bc_ptr(i) = c_null_ptr
+       hi_bc_ptr(i) = c_null_ptr
+    end do
+    do i = scomp, scomp+ncomp-1
+       lo_bc_ptr(i) = c_loc(lo_bc(1,i))
+       hi_bc_ptr(i) = c_loc(hi_bc(1,i))
+    end do
+  end subroutine amrex_fillpatcher_make_bc_ptrs
+
+  subroutine amrex_fillpatcher_make_hook_ptrs (pre_interp, post_interp, pre_interp_ptr, post_interp_ptr)
+    procedure(amrex_interp_hook_proc), optional :: pre_interp
+    procedure(amrex_interp_hook_proc), optional :: post_interp
+    type(c_funptr), intent(out) :: pre_interp_ptr, post_interp_ptr
+    pre_interp_ptr = c_null_funptr
+    if (present(pre_interp)) pre_interp_ptr = c_funloc(pre_interp)
+    post_interp_ptr = c_null_funptr
+    if (present(post_interp)) post_interp_ptr = c_funloc(post_interp)
+  end subroutine amrex_fillpatcher_make_hook_ptrs
+
+  subroutine amrex_fillpatcher_fill (this, mf, told_c, mfold_c, tnew_c, mfnew_c, geom_c, fill_physbc_c, &
+       &                                  told_f, mfold_f, tnew_f, mfnew_f, geom_f, fill_physbc_f, &
+       &                              time, scomp, dcomp, ncomp, lo_bc, hi_bc, &
+       &                              pre_interp, post_interp)
+    class(amrex_fillpatcher), intent(inout) :: this
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_multifab), intent(in) :: mfold_c, mfnew_c, mfold_f, mfnew_f
+    integer, intent(in) :: scomp, dcomp, ncomp
+    integer, dimension(amrex_spacedim,scomp+ncomp-1), target, intent(in) :: lo_bc, hi_bc
+    real(amrex_real), intent(in) :: told_c, tnew_c, told_f, tnew_f, time
+    type(amrex_geometry), intent(in) :: geom_c, geom_f
+    procedure(amrex_physbc_proc) :: fill_physbc_c, fill_physbc_f
+    procedure(amrex_interp_hook_proc), optional :: pre_interp
+    procedure(amrex_interp_hook_proc), optional :: post_interp
+
+    real(amrex_real) :: c_time(2), f_time(2)
+    type(c_ptr) :: c_mf(2), f_mf(2)
+    type(c_ptr) :: lo_bc_ptr(scomp+ncomp-1), hi_bc_ptr(scomp+ncomp-1)
+    type(c_funptr) :: pre_interp_ptr, post_interp_ptr
+    integer :: ncrse, nfine
+
+    call amrex_fillpatcher_make_mf_time_arrays(time, told_c, mfold_c, tnew_c, mfnew_c, &
+         c_mf, c_time, ncrse)
+    call amrex_fillpatcher_make_mf_time_arrays(time, told_f, mfold_f, tnew_f, mfnew_f, &
+         f_mf, f_time, nfine)
+    call amrex_fillpatcher_make_bc_ptrs(scomp, ncomp, lo_bc, hi_bc, lo_bc_ptr, hi_bc_ptr)
+    call amrex_fillpatcher_make_hook_ptrs(pre_interp, post_interp, pre_interp_ptr, post_interp_ptr)
+
+    call amrex_fi_fillpatcher_fill(this%p, mf%p, mf%nghost(), time, &
+         c_mf, c_time, ncrse, f_mf, f_time, nfine, &
+         scomp-1, dcomp-1, ncomp, geom_c%p, geom_f%p, &
+         c_funloc(fill_physbc_c), c_funloc(fill_physbc_f), &
+         lo_bc_ptr, hi_bc_ptr, pre_interp_ptr, post_interp_ptr)
+  end subroutine amrex_fillpatcher_fill
+
+  subroutine amrex_fillpatcher_fillcf (this, mf, told_c, mfold_c, tnew_c, mfnew_c, &
+       &                               geom_c, fill_physbc_c, time, scomp, dcomp, ncomp, &
+       &                               lo_bc, hi_bc, pre_interp, post_interp)
+    class(amrex_fillpatcher), intent(inout) :: this
+    type(amrex_multifab), intent(inout) :: mf
+    type(amrex_multifab), intent(in) :: mfold_c, mfnew_c
+    integer, intent(in) :: scomp, dcomp, ncomp
+    integer, dimension(amrex_spacedim,scomp+ncomp-1), target, intent(in) :: lo_bc, hi_bc
+    real(amrex_real), intent(in) :: told_c, tnew_c, time
+    type(amrex_geometry), intent(in) :: geom_c
+    procedure(amrex_physbc_proc) :: fill_physbc_c
+    procedure(amrex_interp_hook_proc), optional :: pre_interp
+    procedure(amrex_interp_hook_proc), optional :: post_interp
+
+    real(amrex_real) :: c_time(2)
+    type(c_ptr) :: c_mf(2)
+    type(c_ptr) :: lo_bc_ptr(scomp+ncomp-1), hi_bc_ptr(scomp+ncomp-1)
+    type(c_funptr) :: pre_interp_ptr, post_interp_ptr
+    integer :: ncrse
+
+    call amrex_fillpatcher_make_mf_time_arrays(time, told_c, mfold_c, tnew_c, mfnew_c, &
+         c_mf, c_time, ncrse)
+    call amrex_fillpatcher_make_bc_ptrs(scomp, ncomp, lo_bc, hi_bc, lo_bc_ptr, hi_bc_ptr)
+    call amrex_fillpatcher_make_hook_ptrs(pre_interp, post_interp, pre_interp_ptr, post_interp_ptr)
+
+    call amrex_fi_fillpatcher_fillcf(this%p, mf%p, mf%nghost(), time, &
+         c_mf, c_time, ncrse, scomp-1, dcomp-1, ncomp, geom_c%p, &
+         c_funloc(fill_physbc_c), lo_bc_ptr, hi_bc_ptr, pre_interp_ptr, post_interp_ptr)
+  end subroutine amrex_fillpatcher_fillcf
+
+  subroutine amrex_fillpatcher_store_rk3 (this, time, dt, s_old, rk)
+    class(amrex_fillpatcher), intent(inout) :: this
+    real(amrex_real), intent(in) :: time, dt
+    type(amrex_multifab), intent(in) :: s_old, rk(3)
+    type(c_ptr) :: rkp(3)
+    integer :: i
+    do i = 1, 3
+       rkp(i) = rk(i)%p
+    end do
+    call amrex_fi_fillpatcher_store_rk3(this%p, time, dt, s_old%p, rkp)
+  end subroutine amrex_fillpatcher_store_rk3
+
+  subroutine amrex_fillpatcher_store_rk4 (this, time, dt, s_old, rk)
+    class(amrex_fillpatcher), intent(inout) :: this
+    real(amrex_real), intent(in) :: time, dt
+    type(amrex_multifab), intent(in) :: s_old, rk(4)
+    type(c_ptr) :: rkp(4)
+    integer :: i
+    do i = 1, 4
+       rkp(i) = rk(i)%p
+    end do
+    call amrex_fi_fillpatcher_store_rk4(this%p, time, dt, s_old%p, rkp)
+  end subroutine amrex_fillpatcher_store_rk4
+
+  subroutine amrex_fillpatcher_fill_rk (this, stage, iteration, ncycle, mf, time, &
+       &                                geom_c, fill_physbc_c, geom_f, fill_physbc_f, &
+       &                                lo_bc, hi_bc)
+    class(amrex_fillpatcher), intent(inout) :: this
+    integer, intent(in) :: stage, iteration, ncycle
+    type(amrex_multifab), intent(inout) :: mf
+    real(amrex_real), intent(in) :: time
+    type(amrex_geometry), intent(in) :: geom_c, geom_f
+    procedure(amrex_physbc_proc) :: fill_physbc_c, fill_physbc_f
+    integer, target, intent(in) :: lo_bc(amrex_spacedim,*), hi_bc(amrex_spacedim,*)
+    type(c_ptr) :: lo_bc_ptr(this%ncomp), hi_bc_ptr(this%ncomp)
+    integer :: i
+
+    do i = 1, this%ncomp
+       lo_bc_ptr(i) = c_loc(lo_bc(1,i))
+       hi_bc_ptr(i) = c_loc(hi_bc(1,i))
+    end do
+    call amrex_fi_fillpatcher_fill_rk(this%p, stage, iteration, ncycle, mf%p, time, &
+         geom_c%p, geom_f%p, c_funloc(fill_physbc_c), c_funloc(fill_physbc_f), &
+         lo_bc_ptr, hi_bc_ptr, this%ncomp)
+  end subroutine amrex_fillpatcher_fill_rk
 
   subroutine amrex_fillpatch_single (mf, told, mfold, tnew, mfnew, geom, fill_physbc, &
        &                             time, scomp, dcomp, ncomp)

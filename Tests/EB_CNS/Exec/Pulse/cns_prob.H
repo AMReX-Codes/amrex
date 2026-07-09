@@ -3,6 +3,7 @@
 
 #include <AMReX_Geometry.H>
 #include <AMReX_FArrayBox.H>
+#include <numbers>
 #include "CNS_index_macros.H"
 #include "CNS_parm.H"
 #include "cns_prob_parm.H"
@@ -15,7 +16,7 @@ cns_initdata (int i, int j, int k, amrex::Array4<amrex::Real> const& state,
 {
     using amrex::Real;
 
-    constexpr Real pi = 3.1415926535897932;
+    constexpr Real pi = std::numbers::pi_v<Real>;
 
     const Real* prob_lo = geomdata.ProbLo();
     const Real* prob_hi = geomdata.ProbHi();

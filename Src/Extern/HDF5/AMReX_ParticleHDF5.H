@@ -5,6 +5,8 @@
 
 #include <AMReX_WriteBinaryParticleData.H>
 
+#include <iterator>
+
 #ifdef AMREX_USE_HDF5
 #include "hdf5.h"
 
@@ -150,8 +152,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
-    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(int_comp_names.size()) == NStructInt  + NumIntComps() );
+    AMREX_ALWAYS_ASSERT(std::ssize(real_comp_names) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(std::ssize(int_comp_names) == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
@@ -179,7 +181,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
-    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(std::ssize(real_comp_names) == NStructReal + NumRealComps() - first_rcomp);
 
     Vector<int> write_real_comp;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) write_real_comp.push_back(1);
@@ -215,8 +217,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
-    AMREX_ALWAYS_ASSERT(static_cast<int>(write_real_comp.size()) == NStructReal + NumRealComps() - first_rcomp);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(write_int_comp.size())  == NStructInt  + NumIntComps() );
+    AMREX_ALWAYS_ASSERT(std::ssize(write_real_comp) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(std::ssize(write_int_comp)  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
@@ -264,7 +266,8 @@ WritePlotFileHDF5 (const std::string& dir, const std::string& name,
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
+template <class F>
+requires (!std::same_as<F, Vector<std::string>>)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -305,8 +308,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
-    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(int_comp_names.size()) == NStructInt  + NumIntComps() );
+    AMREX_ALWAYS_ASSERT(std::ssize(real_comp_names) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(std::ssize(int_comp_names) == NStructInt  + NumIntComps() );
 
     Vector<int> write_real_comp;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
@@ -322,7 +325,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>*>
+template <class F>
+requires (!std::same_as<F, Vector<std::string>>)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::WritePlotFileHDF5 (const std::string& dir, const std::string& name,
@@ -331,7 +335,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
-    AMREX_ALWAYS_ASSERT(static_cast<int>(real_comp_names.size()) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(std::ssize(real_comp_names) == NStructReal + NumRealComps() - first_rcomp);
 
     Vector<int> write_real_comp;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i) { write_real_comp.push_back(1); }
@@ -364,8 +368,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     // skip the first spacedim comps for soa particles
     int first_rcomp = ParticleType::is_soa_particle ? AMREX_SPACEDIM : 0;
-    AMREX_ALWAYS_ASSERT(static_cast<int>(write_real_comp.size()) == NStructReal + NumRealComps() - first_rcomp);
-    AMREX_ALWAYS_ASSERT(static_cast<int>(write_int_comp.size())  == NStructInt  + NumIntComps() );
+    AMREX_ALWAYS_ASSERT(std::ssize(write_real_comp) == NStructReal + NumRealComps() - first_rcomp);
+    AMREX_ALWAYS_ASSERT(std::ssize(write_int_comp)  == NStructInt  + NumIntComps() );
 
     Vector<std::string> real_comp_names;
     for (int i = first_rcomp; i < NStructReal + NumRealComps(); ++i )
@@ -448,7 +452,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Long nparticles = 0;
     Long  maxnextid  = ParticleType::NextID();
 
-    for (int lev = 0; lev < m_particles.size();  lev++) {
+    for (int lev = 0; lev < std::ssize(m_particles);  lev++) {
         const auto& pmap = m_particles[lev];
         for (const auto& kv : pmap) {
             const auto& aos = kv.second.GetArrayOfStructs();
@@ -696,7 +700,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     // write_real_comp covers the non-position components for pure SoA)
     int real_comp_count = AMREX_SPACEDIM; // position values
 
-    for (int i = 0; i < static_cast<int>(write_real_comp.size()); ++i ) {
+    for (int i = 0; i < std::ssize(write_real_comp); ++i ) {
         if (write_real_comp[i]) { ++real_comp_count; }
     }
 
@@ -1354,7 +1358,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             }
         }
 
-        for(int igrid = 0; igrid < static_cast<int>(grids_to_read.size()); ++igrid) {
+        for(int igrid = 0; igrid < std::ssize(grids_to_read); ++igrid) {
             const int grid = grids_to_read[igrid];
 
             if (how == "single") {
@@ -1402,7 +1406,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     BL_PROFILE("ParticleContainer::ReadParticlesHDF5()");
     AMREX_ASSERT(cnt > 0);
-    AMREX_ASSERT(lev < int(m_particles.size()));
+    AMREX_ASSERT(lev < std::ssize(m_particles));
 
     hid_t int_dspace, int_fspace, real_dspace, real_fspace;
 
@@ -1505,7 +1509,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ++rptr;
         }
 
-        locateParticle(ptemp, pld, 0, finestLevel(), 0);
+        locateParticle(ptemp, pld, 0, finestLevel(), IntVect(0));
 
         std::pair<int, int> ind(grd, pld.m_tile);
 
@@ -1552,7 +1556,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
-    for (int host_lev = 0; host_lev < static_cast<int>(host_particles.size()); ++host_lev)
+    for (int host_lev = 0; host_lev < std::ssize(host_particles); ++host_lev)
     {
         for (auto& kv : host_particles[host_lev]) {
             auto grid = kv.first.first;

@@ -16,6 +16,8 @@ class LUSolver
 {
 public:
 
+    static constexpr int size = N;
+
     LUSolver () = default;
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE

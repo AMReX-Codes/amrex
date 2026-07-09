@@ -5,12 +5,13 @@
 #include <AMReX_ParallelDescriptor.H>
 
 #include <iostream>
+#include <numbers>
 
 namespace {
 #if (AMREX_SPACEDIM == 2)
-    constexpr double  TWOPI = 2.*3.14159265358979323846264338327950288;
+    constexpr double TWOPI = 2.0 * std::numbers::pi_v<double>;
 #elif (AMREX_SPACEDIM == 1)
-    constexpr double FOURPI = 4.*3.14159265358979323846264338327950288;
+    constexpr double FOURPI = 4.0 * std::numbers::pi_v<double>;
 #endif
 }
 

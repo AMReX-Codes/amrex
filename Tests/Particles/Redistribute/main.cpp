@@ -64,9 +64,10 @@ public:
     {
         const int lev_min = 0;
         const int lev_max = finestLevel();
-        const int nGrow = 0;
-        const int local = 1;
-        Redistribute(lev_min, lev_max, nGrow, local, remove_neg);
+        const IntVect nGrow(0);
+        const bool local = true;
+        const IntVect max_cells_moved(1);
+        Redistribute(lev_min, lev_max, nGrow, local, max_cells_moved, remove_neg);
     }
 
     void RedistributeGlobal (bool remove_neg=true)
@@ -90,6 +91,14 @@ public:
                                          *a_num_particles_per_cell[1],
                                          *a_num_particles_per_cell[2]);
 
+        for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
+        {
+            DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
+        }
+
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for(MFIter mfi = MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             const Box& tile_box  = mfi.tilebox();
@@ -189,6 +198,9 @@ public:
     {
         BL_PROFILE("TestParticleContainer::moveParticles");
 
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
             const auto dx = Geom(lev).CellSizeArray();
@@ -241,6 +253,9 @@ public:
     {
         BL_PROFILE("TestParticleContainer::invalidateEven");
 
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
             auto& plev  = GetParticles(lev);
@@ -272,6 +287,9 @@ public:
         int num_rr = NumRuntimeRealComps();
         int num_ii = NumRuntimeIntComps();
 
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
         for (int lev = 0; lev <= finestLevel(); ++lev)
         {
             const auto& plev  = GetParticles(lev);

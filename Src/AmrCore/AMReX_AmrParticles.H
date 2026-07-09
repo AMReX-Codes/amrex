@@ -183,7 +183,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
  * \param zero_out_input Whether to zero the MultiFabs before depositing.
  * \param vol_weight    Whether to divide by cell volume after deposition.
  */
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class F>
+requires (IsParticleContainer<PC>::value)
 void
 ParticleToMesh (PC const& pc, const Vector<MultiFab*>& mf,
                 int lev_min, int lev_max, F&& f,

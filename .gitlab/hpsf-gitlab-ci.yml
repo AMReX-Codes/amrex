@@ -25,6 +25,7 @@ Nvidia-H100-single-precision:
     - |
       cmake -S . -B build                              \
           -DCMAKE_CXX_STANDARD=20                      \
+          -DCMAKE_CUDA_STANDARD=20                     \
           -DCMAKE_VERBOSE_MAKEFILE=ON                  \
           -DAMReX_PRECISION=SINGLE                     \
           -DAMReX_PARTICLES_PRECISION=SINGLE           \
@@ -69,8 +70,7 @@ AMD-MI300A:
           -DAMReX_GPU_BACKEND=HIP                      \
           -DAMReX_AMD_ARCH=gfx942                      \
           -DCMAKE_C_COMPILER=$(which amdclang)         \
-          -DCMAKE_CXX_COMPILER=$(which amdclang++)     \
-          -DCMAKE_CXX_STANDARD=17
+          -DCMAKE_CXX_COMPILER=$(which amdclang++)
     - cmake --build build -j 16
     - export OMPI_ALLOW_RUN_AS_ROOT=1
     - export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
@@ -106,6 +106,9 @@ Intel-PVC:
 post_github_comment:
   stage: .post
   image: python:3.11-slim
+  environment:
+    name: github-status
+    action: verify
   script:
     - pip install PyJWT requests cryptography
     - |

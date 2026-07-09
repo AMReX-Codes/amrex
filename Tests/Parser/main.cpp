@@ -1,7 +1,11 @@
 #include <AMReX.H>
 #include <AMReX_Parser.H>
 #include <AMReX_IParser.H>
+#include <cmath>
 #include <map>
+#include <numbers>
+#include <thread>
+#include <vector>
 
 using namespace amrex;
 
@@ -142,6 +146,87 @@ int test4 (std::string const& f,
     }}}}
     if (nfail > 0) {
         amrex::Print() << "    failed " << nfail << " times\n";
+        return 1;
+    } else {
+        amrex::Print() << "    pass\n";
+        return 0;
+    }
+}
+
+int test_concurrent_parser_construction ()
+{
+    amrex::Print() << test_number++ << ". Testing concurrent Parser/IParser construction   ";
+
+    constexpr int nthreads = 2;
+    constexpr int niters = 64;
+    std::vector<int> nfail(nthreads, 0);
+    std::vector<std::thread> threads;
+    threads.reserve(nthreads);
+
+    for (int tid = 0; tid < nthreads; ++tid) {
+        threads.emplace_back([tid, &nfail] ()
+        {
+            int local_nfail = 0;
+            for (int iter = 0; iter < niters; ++iter) {
+                try {
+                    {
+                        Parser parser("a*x + b");
+                        auto const a = static_cast<double>(tid+1);
+                        auto const b = 0.25*static_cast<double>(iter+1);
+                        auto const x = static_cast<double>((iter % 7) - 3);
+                        parser.setConstant("a", a);
+                        parser.setConstant("b", b);
+                        parser.registerVariables({"x"});
+                        auto const exe = parser.compileHost<1>();
+                        if (std::abs(exe(x) - (a*x + b)) > 1.e-12) {
+                            ++local_nfail;
+                        }
+                    }
+                    {
+                        Parser parser("if(x > threshold, x*x + c, c-x)");
+                        auto const threshold = static_cast<double>((tid % 3) - 1);
+                        auto const c = 0.125*static_cast<double>(iter+1);
+                        auto const x = static_cast<double>((iter % 5) - 2);
+                        parser.setConstant("threshold", threshold);
+                        parser.setConstant("c", c);
+                        parser.registerVariables({"x"});
+                        auto const exe = parser.compileHost<1>();
+                        auto const expected = (x > threshold) ? x*x + c : c - x;
+                        if (std::abs(exe(x) - expected) > 1.e-12) {
+                            ++local_nfail;
+                        }
+                    }
+                    {
+                        IParser iparser("a*x + b");
+                        auto const a = static_cast<long long>(tid) + 1;
+                        auto const b = static_cast<long long>(iter) + 3;
+                        auto const x = static_cast<long long>((iter % 9) - 4);
+                        iparser.setConstant("a", a);
+                        iparser.setConstant("b", b);
+                        iparser.registerVariables({"x"});
+                        auto const exe = iparser.compileHost<1>();
+                        if (exe(x) != a*x + b) {
+                            ++local_nfail;
+                        }
+                    }
+                } catch (...) {
+                    ++local_nfail;
+                }
+            }
+            nfail[tid] = local_nfail;
+        });
+    }
+
+    int total_nfail = 0;
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    for (auto n : nfail) {
+        total_nfail += n;
+    }
+
+    if (total_nfail > 0) {
+        amrex::Print() << "    failed " << total_nfail << " times\n";
         return 1;
     } else {
         amrex::Print() << "    pass\n";
@@ -311,7 +396,7 @@ int main (int argc, char* argv[])
                         {"x","y","z"},
                         [=] (double x, double, double z) -> double {
                             double pi = 3.14;
-                            return 2.*std::sqrt(2.)+std::sqrt(-std::log(x))*std::cos(2*pi*z);
+                            return 2.*std::numbers::sqrt2+std::sqrt(-std::log(x))*std::cos(2*pi*z);
                         },
                         {0.5, 0.8, 0.3}, {16, 16, 16}, 100,
                         1.e-12, 1.e-15);
@@ -386,6 +471,46 @@ int main (int argc, char* argv[])
                         },
                         {0.e-6, 0.0, -20.e-6}, {20.e-6, 1.e-10, 20.e-6}, 100,
                         1.e-12, 1.e-15);
+        nerror += test_concurrent_parser_construction();
+
+#if !(defined(AMREX_USE_SYCL) && !(defined(__INTEL_LLVM_COMPILER) || defined(__INTEL_CLANG_COMPILER)))
+        for (int n : {-5, -2, -1, 0, 1, 2, 5}) {
+            nerror += test1("jn(" + std::to_string(n) + ",x)", {}, {"x"},
+                            [=] (double x) -> double {
+#if defined(_WIN32) && defined(__MINGW32__)
+                                int const m = n < 0 ? -n : n;
+                                double const xa = x < 0.0 ? -x : x;
+                                double r = std::cyl_bessel_j(double(m), xa);
+                                if ((m % 2 != 0) && ((n < 0) != (x < 0.0))) {
+                                    r = -r;
+                                }
+                                return r;
+#elif defined(_WIN32)
+                                return ::_jn(n, x);
+#else
+                                return ::jn(n, x);
+#endif
+                            },
+                            {-5.0}, {5.0}, 100, 1.e-12, 1.e-14);
+
+            nerror += test1("yn(" + std::to_string(n) + ",x)", {}, {"x"},
+                            [=] (double x) -> double {
+#if defined(_WIN32) && defined(__MINGW32__)
+                                int const m = n < 0 ? -n : n;
+                                double r = std::cyl_neumann(double(m), x);
+                                if ((m % 2 != 0) && (n < 0)) {
+                                    r = -r;
+                                }
+                                return r;
+#elif defined(_WIN32)
+                                return ::_yn(n, x);
+#else
+                                return ::yn(n, x);
+#endif
+                            },
+                            {0.5}, {5.0}, 100, 1.e-12, 1.e-14);
+        }
+#endif
 
         amrex::Print() << "\nMax stack size is " << max_stack_size << "\n";
         if (nerror > 0) {

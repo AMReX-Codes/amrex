@@ -12,11 +12,12 @@
 #endif
 
 #include <iostream>
-#include <map>
 #include <algorithm>
+#include <exception>
+#include <iterator>
+#include <map>
 #include <string>
 #include <unordered_set>
-#include <exception>
 
 #if defined(AMREX_USE_CUDA)
 #include <cuda_profiler_api.h>
@@ -529,7 +530,7 @@ Device::initialize_gpu (bool minimal)
     cudaDeviceGetAttribute(&memory_pools_supported, cudaDevAttrMemoryPoolsSupported, device_id);
 #endif
 
-#if (__CUDACC_VER_MAJOR__ < 12) || ((__CUDACC_VER_MAJOR__ == 12) && (__CUDACC_VER_MINOR__ < 4))
+#if defined(CUDART_VERSION) && (CUDART_VERSION < 12040)
     if ( ! minimal ) {
         if (sizeof(Real) == 8) {
             AMREX_CUDA_SAFE_CALL(cudaDeviceSetSharedMemConfig(cudaSharedMemBankSizeEightByte));
@@ -633,7 +634,7 @@ Device::initialize_gpu (bool minimal)
             }
 #endif
         }
-        auto found = std::find(sgss.begin(), sgss.end(), static_cast<decltype(sgss)::value_type>(warp_size));
+        auto found = std::ranges::find(sgss, static_cast<decltype(sgss)::value_type>(warp_size));
         if (found == sgss.end()) { amrex::Abort("Incorrect subgroup size"); }
     }
 #endif
@@ -758,7 +759,7 @@ Device::setStream (gpuStream_t s) noexcept
         }
     }
     int const idx = streamIndex(s);
-    if (idx == static_cast<int>(gpu_stream_pool.size())) {
+    if (idx == std::ssize(gpu_stream_pool)) {
         amrex::Abort("Gpu::Device::setStream: stream is not managed by AMReX.");
     }
     gpu_stream_index[tid] = idx;
@@ -1011,11 +1012,7 @@ Device::startGraphRecording(bool first_iter, void* h_ptr, void* d_ptr, size_t sz
         cudaEvent_t memcpy_event = {0};
         AMREX_CUDA_SAFE_CALL( cudaEventCreate(&memcpy_event, cudaEventDisableTiming) );
 
-#if (__CUDACC_VER_MAJOR__ == 10) && (__CUDACC_VER_MINOR__ == 0)
-        AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream));
-#else
         AMREX_CUDA_SAFE_CALL(cudaStreamBeginCapture(graph_stream, cudaStreamCaptureModeGlobal));
-#endif
 
         AMREX_CUDA_SAFE_CALL(cudaMemcpyAsync(d_ptr, h_ptr, sz, cudaMemcpyHostToDevice, graph_stream));
         AMREX_CUDA_SAFE_CALL(cudaEventRecord(memcpy_event, graph_stream));
@@ -1120,7 +1117,7 @@ Device::mem_advise_set_preferred (void* p, std::size_t sz, int device)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     {
 #if defined(AMREX_USE_CUDA)
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
         cudaMemLocation location = {};
         location.type = cudaMemLocationTypeDevice;
         location.id = device;
@@ -1152,10 +1149,9 @@ Device::mem_advise_set_readonly (void* p, std::size_t sz)
     if (device_prop.managedMemory == 1 && device_prop.concurrentManagedAccess == 1)
     {
 #if defined(AMREX_USE_CUDA)
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
         cudaMemLocation location = {};
-        location.type = cudaMemLocationTypeDevice;
-        location.id = cudaCpuDeviceId;
+        location.type = cudaMemLocationTypeHost;
 #else
         auto location = cudaCpuDeviceId;
 #endif

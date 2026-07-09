@@ -234,9 +234,17 @@ public:
     * \brief The names of derived variables to output in the
     * plotfile.  They can be set using the amr.derive_plot_vars
     * variable in a ParmParse inputs file.
+    *
+    * Multi-component derived quantities are selected by their registered
+    * derive name; component names are output names, not independent selectors.
     */
     static const std::list<std::string>& derivePlotVars () noexcept { return derive_plot_vars; }
-    //! List of derived quantities included when writing small plot files.
+    /**
+     * \brief List of derived quantities included when writing small plot files.
+     *
+     * Multi-component derived quantities are selected by their registered
+     * derive name; component names are output names, not independent selectors.
+     */
     static const std::list<std::string>& deriveSmallPlotVars () noexcept { return derive_small_plot_vars; }
     /**
      * \brief Return true if \p name is already registered for full derived-output.
