@@ -920,7 +920,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
         ParallelDescriptor::ReduceBoolOr(b);
         mvmc_error = b;
     }
-    if (mvmc_error) { 
+    if (mvmc_error) {
         amrex::Abort("GShopLevel::buildFCData: MVMC error");
     }
 
