@@ -508,29 +508,6 @@ public:
         buildMPIStart(pc, pc.BufferMap(), m_superparticle_size);
     }
 
-    template <class PC>
-    requires (IsParticleContainer<PC>::value)
-    void build (const PC& pc,
-                const ParticleCopyOp& op,
-                const Vector<int>& int_comp_mask,
-                const Vector<int>& real_comp_mask,
-                IntVect max_cells_moved)
-    {
-        build(pc, op, int_comp_mask, real_comp_mask,
-              max_cells_moved.allGT(0), max_cells_moved);
-    }
-
-    template <class PC>
-    requires (IsParticleContainer<PC>::value)
-    void build (const PC& pc,
-                const ParticleCopyOp& op,
-                const Vector<int>& int_comp_mask,
-                const Vector<int>& real_comp_mask,
-                int local)
-    {
-        build(pc, op, int_comp_mask, real_comp_mask, local > 0, IntVect(local));
-    }
-
     void clear ();
 
     void buildMPIFinish (const ParticleBufferMap& map);
