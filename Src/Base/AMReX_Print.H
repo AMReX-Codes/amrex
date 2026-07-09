@@ -73,7 +73,7 @@ namespace amrex
         ~Print () {
             if (to_print) {
                 os.flush();
-                os << ss.str();
+                os << ss.view();
                 os.flush();
             }
         }
@@ -148,7 +148,7 @@ namespace amrex
         ~PrintToFile () {
             if (to_print) {
                 ofs.flush();
-                ofs << ss.str();
+                ofs << ss.view();
                 ofs.flush();
             }
         }

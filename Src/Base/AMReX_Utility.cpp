@@ -27,27 +27,6 @@
 #include <random>
 #include <thread>
 
-//
-// Return true if argument is a non-zero length string of digits.
-//
-
-bool
-amrex::is_integer (const char* str)
-{
-    if (str == nullptr) { return false; }
-
-    int len = static_cast<int>(std::strlen(str));
-    if (len == 0) { return false; }
-
-    for (int i = 0; i < len; i++) {
-        if (!std::isdigit(str[i])) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
 namespace {
     bool tokenize_initialized = false;
     char* line = nullptr;
@@ -158,9 +137,9 @@ amrex::UniqueString()
                                    /double(MaxResSteadyClock::period::num)))));
     std::stringstream tempstring;
     tempstring << std::setprecision(n) << std::fixed << amrex::second();
-    auto const ts = tempstring.str();
+    auto const ts = tempstring.view();
     auto const tsl = ts.length();
-    return ts.substr(tsl-len,tsl); // tsl-len >= 0 because n >= len
+    return std::string(ts.substr(tsl-len,len)); // tsl-len >= 0 because n >= len
 }
 
 void

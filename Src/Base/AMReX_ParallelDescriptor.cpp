@@ -173,9 +173,9 @@ namespace amrex::ParallelDescriptor {
       std::vector<unsigned short> PMI_y_meshcoord(all_y_meshcoords, all_y_meshcoords + ParallelDescriptor::NProcs());
       std::vector<unsigned short> PMI_z_meshcoord(all_z_meshcoords, all_z_meshcoords + ParallelDescriptor::NProcs());
 
-      std::sort(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
-      std::sort(PMI_y_meshcoord.begin(), PMI_y_meshcoord.end());
-      std::sort(PMI_z_meshcoord.begin(), PMI_z_meshcoord.end());
+      std::ranges::sort(PMI_x_meshcoord);
+      std::ranges::sort(PMI_y_meshcoord);
+      std::ranges::sort(PMI_z_meshcoord);
 
       auto last = std::unique(PMI_x_meshcoord.begin(), PMI_x_meshcoord.end());
       amrex::Print() << "# of unique groups: " << std::distance(PMI_x_meshcoord.begin(), last) << '\n';

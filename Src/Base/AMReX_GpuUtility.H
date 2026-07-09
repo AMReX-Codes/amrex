@@ -46,7 +46,15 @@ namespace Gpu {
     }
 
     inline bool isManaged (void const* p) noexcept {
-#ifdef AMREX_USE_CUDA
+#if defined(AMREX_USE_HIP)
+        hipPointerAttribute_t attrib;
+        hipError_t r = hipPointerGetAttributes(&attrib, p);
+#if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
+        return r == hipSuccess && attrib.memoryType == hipMemoryTypeManaged;
+#else
+        return r == hipSuccess && attrib.type == hipMemoryTypeManaged;
+#endif
+#elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_IS_MANAGED;
         unsigned int is_managed = 0;
         void* data[] = { (void*)(&is_managed) };
@@ -111,21 +119,19 @@ namespace Gpu {
 
     inline bool isGpuPtr (void const* p) noexcept {
 #if defined(AMREX_USE_HIP)
-        if (isManaged(p)) { // We might be using CUDA/NVCC
-            return true;
-        } else {
-            hipPointerAttribute_t attrib;
-            hipError_t r = hipPointerGetAttributes(&attrib, p);
+        hipPointerAttribute_t attrib;
+        hipError_t r = hipPointerGetAttributes(&attrib, p);
+        if (r != hipSuccess) { return false; }
 #if defined(HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
-            return r == hipSuccess &&
-                (attrib.memoryType == hipMemoryTypeHost   ||
-                 attrib.memoryType == hipMemoryTypeDevice);
+        auto t = attrib.memoryType;
 #else
-            return r == hipSuccess &&
-                (attrib.type == hipMemoryTypeHost   ||
-                 attrib.type == hipMemoryTypeDevice);
-#endif // (HIP_VERSION_MAJOR) && (HIP_VERSION_MAJOR < 6)
-        }
+        auto t = attrib.type;
+#endif
+        return (t == hipMemoryTypeHost    ||
+                t == hipMemoryTypeDevice  ||
+                t == hipMemoryTypeArray   ||
+                t == hipMemoryTypeUnified ||
+                t == hipMemoryTypeManaged);
 #elif defined(AMREX_USE_CUDA)
         CUpointer_attribute attrib = CU_POINTER_ATTRIBUTE_MEMORY_TYPE;
         CUmemorytype mem_type = static_cast<CUmemorytype>(0);

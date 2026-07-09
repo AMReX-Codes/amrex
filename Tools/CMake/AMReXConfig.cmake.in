@@ -61,6 +61,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
 
 # General options
 set(AMReX_MPI_FOUND                 @AMReX_MPI@)
+if(AMReX_MPI_FOUND)  # ensure users can request a no-MPI variant
+  set(AMReX_NOMPI_FOUND             FALSE)
+else()
+  set(AMReX_NOMPI_FOUND             TRUE)
+endif()
 set(AMReX_MPI_THREAD_MULTIPLE_FOUND @AMReX_MPI_THREAD_MULTIPLE@)
 set(AMReX_SIMD_FOUND                @AMReX_SIMD@)
 set(AMReX_OMP_FOUND                 @AMReX_OMP@)

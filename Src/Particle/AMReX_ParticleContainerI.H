@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace amrex {
@@ -110,8 +111,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     std::vector<std::string> const & rdata_name, std::vector<std::string> const & idata_name
 )
 {
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(rdata_name.size() == NArrayReal, "rdata_name must be equal to NArrayReal");
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(idata_name.size() == NArrayInt, "idata_name must be equal to NArrayInt");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(rdata_name) == NArrayReal, "rdata_name must be equal to NArrayReal");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(std::ssize(idata_name) == NArrayInt, "idata_name must be equal to NArrayInt");
 
     // ensure names for components are unique
     std::set<std::string> const unique_r_names(rdata_name.begin(), rdata_name.end());
@@ -139,7 +140,7 @@ template<
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasRealComp (std::string const & name)
 {
-    return std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name) != std::end(m_soa_rdata_names);
+    return std::ranges::find(m_soa_rdata_names, name) != std::end(m_soa_rdata_names);
 }
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
@@ -147,7 +148,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 bool
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::HasIntComp (std::string const & name)
 {
-    return std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name) != std::end(m_soa_idata_names);
+    return std::ranges::find(m_soa_idata_names, name) != std::end(m_soa_idata_names);
 }
 
 template<
@@ -160,7 +161,7 @@ template<
 int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetRealCompIndex (std::string const & name)
 {
-    const auto it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+    const auto it = std::ranges::find(m_soa_rdata_names, name);
 
     if (it == m_soa_rdata_names.end())
     {
@@ -182,7 +183,7 @@ template<
 int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::GetIntCompIndex (std::string const & name)
 {
-    const auto it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+    const auto it = std::ranges::find(m_soa_idata_names, name);
 
     if (it == m_soa_idata_names.end())
     {
@@ -256,7 +257,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
           bool findfirst = (nGrow == 0) ? true : false;
           ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
-          if (nGrow > 0 && isects.size() > 1) {
+          if (nGrow > 0 && std::ssize(isects) > 1) {
              for (auto & isect : isects) {
                  Box bx = ba.getCellCenteredBox(isect.first);
                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
@@ -495,7 +496,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 Vector<Long>
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::NumberOfParticlesInGrid (int lev, bool only_valid, bool only_local) const
 {
-    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+    AMREX_ASSERT(lev >= 0 && lev < std::ssize(m_particles));
 
     LayoutData<Long> np_per_grid_local(ParticleBoxArray(lev),
                                        ParticleDistributionMap(lev));
@@ -552,7 +553,7 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 {
     Long nparticles = 0;
 
-    if (level < 0 || level >= int(m_particles.size())) { return nparticles; }
+    if (level < 0 || level >= std::ssize(m_particles)) { return nparticles; }
 
     if (only_valid) {
         ReduceOps<ReduceOpSum> reduce_op;
@@ -588,11 +589,12 @@ Long ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, Cell
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> FOO>
+template <std::integral I>
+requires (sizeof(I) >= sizeof(Long))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const
 {
-    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+    AMREX_ASSERT(lev >= 0 && lev < std::ssize(m_particles));
 
     AMREX_ASSERT(BoxArray::SameRefs(mem.boxArray(), ParticleBoxArray(lev)) &&
                  mem.DistributionMap() == ParticleDistributionMap(lev));
@@ -723,7 +725,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
     AMREX_ASSERT(OK());
     if (m_particles.empty()) { return; }
-    AMREX_ASSERT(lev >= 0 && lev < int(m_particles.size()));
+    AMREX_ASSERT(lev >= 0 && lev < std::ssize(m_particles));
     AMREX_ASSERT(numParticlesOutOfRange(*this, 0) == 0);
 
     const auto& geom = Geom(lev);
@@ -757,7 +759,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::RemoveParticlesAtLevel (int level)
 {
     BL_PROFILE("ParticleContainer::RemoveParticlesAtLevel()");
-    if (level >= int(this->m_particles.size())) { return; }
+    if (level >= std::ssize(this->m_particles)) { return; }
 
     if (!this->m_particles[level].empty())
     {
@@ -771,7 +773,7 @@ void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::RemoveParticlesNotAtFinestLevel ()
 {
   BL_PROFILE("ParticleContainer::RemoveParticlesNotAtFinestLevel()");
-  AMREX_ASSERT(this->finestLevel()+1 == int(this->m_particles.size()));
+  AMREX_ASSERT(this->finestLevel()+1 == std::ssize(this->m_particles));
 
   Long cnt = 0;
 
@@ -852,7 +854,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(level > 0);
     AMREX_ASSERT(virts.empty());
 
-    if (level >= static_cast<int>(m_particles.size())) {
+    if (level >= std::ssize(m_particles)) {
         return;
     }
 
@@ -1097,7 +1099,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     AMREX_ASSERT(ghosts.empty());
     AMREX_ASSERT(level < finestLevel());
 
-    if (level >= static_cast<int>(m_particles.size())) {
+    if (level >= std::ssize(m_particles)) {
         return;
     }
 
@@ -1129,7 +1131,7 @@ clearParticles ()
 {
     BL_PROFILE("ParticleContainer::clearParticles()");
 
-    for (int lev = 0; lev < static_cast<int>(m_particles.size()); ++lev)
+    for (int lev = 0; lev < std::ssize(m_particles); ++lev)
     {
         for (auto& kv : m_particles[lev]) { kv.second.resize(0); }
         particle_detail::clearEmptyEntries(m_particles[lev]);
@@ -1138,7 +1140,8 @@ clearParticles ()
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
+template <class PCType>
+requires (IsParticleContainer<PCType>::value)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, bool local)
@@ -1149,7 +1152,8 @@ copyParticles (const PCType& other, bool local)
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class PCType, std::enable_if_t<IsParticleContainer<PCType>::value, int> foo>
+template <class PCType>
+requires (IsParticleContainer<PCType>::value)
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, bool local)
@@ -1160,9 +1164,8 @@ addParticles (const PCType& other, bool local)
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, class PCType,
-          std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral_v<F>, int> bar>
+template <class F, class PCType>
+requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 copyParticles (const PCType& other, F&& f, bool local)
@@ -1174,9 +1177,8 @@ copyParticles (const PCType& other, F&& f, bool local)
 
 template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
-template <class F, class PCType,
-          std::enable_if_t<IsParticleContainer<PCType>::value, int> foo,
-          std::enable_if_t<! std::is_integral_v<F>, int> bar>
+template <class F, class PCType>
+requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::
 addParticles (const PCType& other, F const& f, bool local)
@@ -1191,7 +1193,7 @@ addParticles (const PCType& other, F const& f, bool local)
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            if(plevel_other.find(index) == plevel_other.end()) { continue; }
+            if(!plevel_other.contains(index)) { continue; }
 
             DefineAndReturnParticleTile(lev, mfi.index(), mfi.LocalTileIndex());
         }
@@ -1206,7 +1208,7 @@ addParticles (const PCType& other, F const& f, bool local)
         for(MFIter mfi = other.MakeMFIter(lev); mfi.isValid(); ++mfi)
         {
             auto index = std::make_pair(mfi.index(), mfi.LocalTileIndex());
-            if(plevel_other.find(index) == plevel_other.end()) { continue; }
+            if(!plevel_other.contains(index)) { continue; }
 
             // this has already had define() called above
             auto& ptile = ParticlesAt(lev, mfi.index(), mfi.LocalTileIndex());
@@ -1310,7 +1312,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             int ntiles = numTilesInBox(box, true, bin_size);
 
             m_bins.build(np, ptile.getParticleTileData(), ntiles,
-                         GetParticleBin{plo, dxi, domain, bin_size, box});
+                         GetParticleBin{.plo = plo, .dxi = dxi, .domain = domain,
+                                        .bin_size = bin_size, .box = box});
             ReorderParticles(lev, mfi, m_bins.permutationPtr());
         }
     }
@@ -1447,7 +1450,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     int theEffectiveFinestLevel = m_gdb->finestLevel();
     while (!m_gdb->LevelDefined(theEffectiveFinestLevel)) { theEffectiveFinestLevel--; }
 
-    if (int(m_particles.size()) < theEffectiveFinestLevel+1) {
+    if (std::ssize(m_particles) < theEffectiveFinestLevel+1) {
         if (Verbose()) {
             amrex::Print() << "ParticleContainer::Redistribute() resizing containers from "
                            << m_particles.size() << " to "
@@ -1690,12 +1693,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         particle_detail::clearEmptyEntries(m_particles[lev]);
     }
 
-    if (int(m_particles.size()) > theEffectiveFinestLevel+1) {
+    if (std::ssize(m_particles) > theEffectiveFinestLevel+1) {
         if (m_verbose > 0) {
             amrex::Print() << "ParticleContainer::Redistribute() resizing m_particles from "
                         << m_particles.size() << " to " << theEffectiveFinestLevel+1 << '\n';
         }
-        AMREX_ASSERT(int(m_particles.size()) >= 2);
+        AMREX_ASSERT(std::ssize(m_particles) >= 2);
 
         m_particles.resize(theEffectiveFinestLevel + 1);
         m_dummy_mf.resize(theEffectiveFinestLevel + 1);
@@ -1764,7 +1767,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     if (plan.m_nrcvs > 0) {
-        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i) {
+        for (int i = 0; i < std::ssize(plan.m_rcv_box_counts); ++i) {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];
@@ -1810,7 +1813,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 {
     BL_PROFILE("ParticleContainer::AddParticlesAtLevel()");
 
-    if (int(m_particles.size()) < level+1)
+    if (std::ssize(m_particles) < level+1)
     {
         if (Verbose())
         {

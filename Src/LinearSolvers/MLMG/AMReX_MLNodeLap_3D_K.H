@@ -1378,6 +1378,31 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
            +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
 }
 
+// Harmonic-average (anisotropic sigma) variant.  Used when the node-
+// centered Poisson operator was set up with a multi-component sigma
+// (see MLNodeLaplacian::setSigma and setMapped) so each velocity
+// component is corrected with its own sigma direction.
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                        Array4<Real const> const& sx,
+                        Array4<Real const> const& sy,
+                        Array4<Real const> const& sz,
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    Real facx = Real(0.25)*dxinv[0];
+    Real facy = Real(0.25)*dxinv[1];
+    Real facz = Real(0.25)*dxinv[2];
+    u(i,j,k,0) -= sx(i,j,k)*facx
+        * (-p(i,j,k  )+p(i+1,j,k  )-p(i,j+1,k  )+p(i+1,j+1,k  )
+           -p(i,j,k+1)+p(i+1,j,k+1)-p(i,j+1,k+1)+p(i+1,j+1,k+1));
+    u(i,j,k,1) -= sy(i,j,k)*facy
+        * (-p(i,j,k  )-p(i+1,j,k  )+p(i,j+1,k  )+p(i+1,j+1,k  )
+           -p(i,j,k+1)-p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+    u(i,j,k,2) -= sz(i,j,k)*facz
+        * (-p(i,j,k  )-p(i+1,j,k  )-p(i,j+1,k  )-p(i+1,j+1,k  )
+           +p(i,j,k+1)+p(i+1,j,k+1)+p(i,j+1,k+1)+p(i+1,j+1,k+1));
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
                        Real sig, GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
@@ -1870,6 +1895,199 @@ void mlndlap_Ax_fine_contrib_cs (int i, int j, int k, Box const& ndbx, Box const
          i,j,k,ndbx,ccbx,f,res,rhs,phi,msk,dxinv);
 }
 
+// Anisotropic-sigma 3D variants of mlndlap_sum_Ax and
+// mlndlap_Ax_fine_contrib used by the AMR-sync paths when m_use_mapped.
+// Per-axis sigma: facx-terms use sx, facy-terms use sy, facz-terms use sz.
+// Recover the scalar kernels when sx == sy == sz.
+    template <typename P, typename SX, typename SY, typename SZ>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real mlndlap_sum_Ax_ha (P const& pred, SX const& sx, SY const& sy, SZ const& sz,
+                            int i, int j, int k, Real facx, Real facy, Real facz,
+                            Array4<Real const> const& phi) noexcept
+    {
+        Real Ax = Real(0.0);
+        if (pred(i-1,j-1,k-1)) {
+            Ax += facx*sx(i-1,j-1,k-1)*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                       +Real(2.)*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  ))
+                                       +Real(2.)*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                       +         (phi(i-1,j-1,k-1)-phi(i  ,j-1,k-1)))
+                + facy*sy(i-1,j-1,k-1)*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                       +Real(2.)*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  ))
+                                       +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1))
+                                       +         (phi(i-1,j-1,k-1)-phi(i-1,j  ,k-1)))
+                + facz*sz(i-1,j-1,k-1)*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                       +Real(2.)*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  ))
+                                       +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  ))
+                                       +         (phi(i-1,j-1,k-1)-phi(i-1,j-1,k  )));
+        }
+        if (pred(i,j-1,k-1)) {
+            Ax += facx*sx(i,j-1,k-1)*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  ))
+                                     +Real(2.)*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                     +         (phi(i+1,j-1,k-1)-phi(i  ,j-1,k-1)))
+                + facy*sy(i,j-1,k-1)*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  ))
+                                     +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j  ,k-1))
+                                     +         (phi(i+1,j-1,k-1)-phi(i+1,j  ,k-1)))
+                + facz*sz(i,j-1,k-1)*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  ))
+                                     +Real(2.)*(phi(i  ,j-1,k-1)-phi(i  ,j-1,k  ))
+                                     +         (phi(i+1,j-1,k-1)-phi(i+1,j-1,k  )));
+        }
+        if (pred(i-1,j,k-1)) {
+            Ax += facx*sx(i-1,j,k-1)*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  ))
+                                     +Real(2.)*(phi(i-1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                     +         (phi(i-1,j+1,k-1)-phi(i  ,j+1,k-1)))
+                + facy*sy(i-1,j,k-1)*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  ))
+                                     +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1))
+                                     +         (phi(i-1,j+1,k-1)-phi(i-1,j  ,k-1)))
+                + facz*sz(i-1,j,k-1)*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i-1,j  ,k-1)-phi(i-1,j  ,k  ))
+                                     +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  ))
+                                     +         (phi(i-1,j+1,k-1)-phi(i-1,j+1,k  )));
+        }
+        if (pred(i,j,k-1)) {
+            Ax += facx*sx(i,j,k-1)*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  ))
+                                   +Real(2.)*(phi(i+1,j  ,k-1)-phi(i  ,j  ,k-1))
+                                   +         (phi(i+1,j+1,k-1)-phi(i  ,j+1,k-1)))
+                + facy*sy(i,j,k-1)*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  ))
+                                   +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j  ,k-1))
+                                   +         (phi(i+1,j+1,k-1)-phi(i+1,j  ,k-1)))
+                + facz*sz(i,j,k-1)*(Real(4.)*(phi(i  ,j  ,k-1)-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i+1,j  ,k-1)-phi(i+1,j  ,k  ))
+                                   +Real(2.)*(phi(i  ,j+1,k-1)-phi(i  ,j+1,k  ))
+                                   +         (phi(i+1,j+1,k-1)-phi(i+1,j+1,k  )));
+        }
+        if (pred(i-1,j-1,k)) {
+            Ax += facx*sx(i-1,j-1,k)*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i-1,j-1,k  )-phi(i  ,j-1,k  ))
+                                     +Real(2.)*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                     +         (phi(i-1,j-1,k+1)-phi(i  ,j-1,k+1)))
+                + facy*sy(i-1,j-1,k)*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i-1,j-1,k  )-phi(i-1,j  ,k  ))
+                                     +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1))
+                                     +         (phi(i-1,j-1,k+1)-phi(i-1,j  ,k+1)))
+                + facz*sz(i-1,j-1,k)*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                     +Real(2.)*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  ))
+                                     +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  ))
+                                     +         (phi(i-1,j-1,k+1)-phi(i-1,j-1,k  )));
+        }
+        if (pred(i,j-1,k)) {
+            Ax += facx*sx(i,j-1,k)*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i+1,j-1,k  )-phi(i  ,j-1,k  ))
+                                   +Real(2.)*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                   +         (phi(i+1,j-1,k+1)-phi(i  ,j-1,k+1)))
+                + facy*sy(i,j-1,k)*(Real(4.)*(phi(i  ,j-1,k  )-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i+1,j-1,k  )-phi(i+1,j  ,k  ))
+                                   +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j  ,k+1))
+                                   +         (phi(i+1,j-1,k+1)-phi(i+1,j  ,k+1)))
+                + facz*sz(i,j-1,k)*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  ))
+                                   +Real(2.)*(phi(i  ,j-1,k+1)-phi(i  ,j-1,k  ))
+                                   +         (phi(i+1,j-1,k+1)-phi(i+1,j-1,k  )));
+        }
+        if (pred(i-1,j,k)) {
+            Ax += facx*sx(i-1,j,k)*(Real(4.)*(phi(i-1,j  ,k  )-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i-1,j+1,k  )-phi(i  ,j+1,k  ))
+                                   +Real(2.)*(phi(i-1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                   +         (phi(i-1,j+1,k+1)-phi(i  ,j+1,k+1)))
+                + facy*sy(i-1,j,k)*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i-1,j+1,k  )-phi(i-1,j  ,k  ))
+                                   +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1))
+                                   +         (phi(i-1,j+1,k+1)-phi(i-1,j  ,k+1)))
+                + facz*sz(i-1,j,k)*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                   +Real(2.)*(phi(i-1,j  ,k+1)-phi(i-1,j  ,k  ))
+                                   +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
+                                   +         (phi(i-1,j+1,k+1)-phi(i-1,j+1,k  )));
+        }
+        if (pred(i,j,k)) {
+            Ax += facx*sx(i,j,k)*(Real(4.)*(phi(i+1,j  ,k  )-phi(i  ,j  ,k  ))
+                                 +Real(2.)*(phi(i+1,j+1,k  )-phi(i  ,j+1,k  ))
+                                 +Real(2.)*(phi(i+1,j  ,k+1)-phi(i  ,j  ,k+1))
+                                 +         (phi(i+1,j+1,k+1)-phi(i  ,j+1,k+1)))
+                + facy*sy(i,j,k)*(Real(4.)*(phi(i  ,j+1,k  )-phi(i  ,j  ,k  ))
+                                 +Real(2.)*(phi(i+1,j+1,k  )-phi(i+1,j  ,k  ))
+                                 +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j  ,k+1))
+                                 +         (phi(i+1,j+1,k+1)-phi(i+1,j  ,k+1)))
+                + facz*sz(i,j,k)*(Real(4.)*(phi(i  ,j  ,k+1)-phi(i  ,j  ,k  ))
+                                 +Real(2.)*(phi(i+1,j  ,k+1)-phi(i+1,j  ,k  ))
+                                 +Real(2.)*(phi(i  ,j+1,k+1)-phi(i  ,j+1,k  ))
+                                 +         (phi(i+1,j+1,k+1)-phi(i+1,j+1,k  )));
+        }
+        return Ax;
+    }
+
+    template <int rr, typename SX, typename SY, typename SZ>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void mlndlap_Ax_fine_contrib_doit_ha (SX const& sx, SY const& sy, SZ const& sz,
+                                          int i, int j, int k, Box const& ndbx, Box const& ccbx,
+                                          Array4<Real> const& f, Array4<Real const> const& res,
+                                          Array4<Real const> const& rhs,
+                                          Array4<Real const> const& phi,
+                                          Array4<int const> const& msk,
+                                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+    {
+        const int ii = rr*i;
+        const int jj = rr*j;
+        const int kk = rr*k;
+        if (msk(ii,jj,kk)) {
+            Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
+            Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
+            Real facz = Real(1./36.)*dxinv[2]*dxinv[2];
+
+            auto is_fine = [&ccbx] (int ix, int iy, int iz) -> bool {
+                return ccbx.contains(ix,iy,iz);
+            };
+
+            Real Df = Real(0.0);
+
+            const int ilo = amrex::max(ii-rr+1, ndbx.smallEnd(0));
+            const int ihi = amrex::min(ii+rr-1, ndbx.bigEnd  (0));
+            const int jlo = amrex::max(jj-rr+1, ndbx.smallEnd(1));
+            const int jhi = amrex::min(jj+rr-1, ndbx.bigEnd  (1));
+            const int klo = amrex::max(kk-rr+1, ndbx.smallEnd(2));
+            const int khi = amrex::min(kk+rr-1, ndbx.bigEnd  (2));
+
+            for (int koff = klo; koff <= khi; ++koff) {
+            for (int joff = jlo; joff <= jhi; ++joff) {
+            for (int ioff = ilo; ioff <= ihi; ++ioff) {
+                Real scale = static_cast<Real>((rr-std::abs(ii-ioff)) *
+                                               (rr-std::abs(jj-joff)) *
+                                               (rr-std::abs(kk-koff)));
+                if (ndbx.strictly_contains(ioff,joff,koff)) {
+                    Df += scale * (rhs(ioff,joff,koff)-res(ioff,joff,koff));
+                } else {
+                    Df += scale * mlndlap_sum_Ax_ha
+                        (is_fine, sx, sy, sz, ioff, joff, koff, facx, facy, facz, phi);
+                }
+            }}}
+
+            f(i,j,k) = Df * (Real(1.0)/static_cast<Real>(rr*rr*rr*rr*rr*rr));
+        } else {
+            f(i,j,k) = Real(0.0);
+        }
+    }
+
+template <int rr>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_Ax_fine_contrib_ha (int i, int j, int k, Box const& ndbx, Box const& ccbx,
+                                 Array4<Real> const& f, Array4<Real const> const& res,
+                                 Array4<Real const> const& rhs, Array4<Real const> const& phi,
+                                 Array4<Real const> const& sx, Array4<Real const> const& sy,
+                                 Array4<Real const> const& sz, Array4<int const> const& msk,
+                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    mlndlap_Ax_fine_contrib_doit_ha<rr>
+        ([&sx] (int ix, int iy, int iz) -> Real const& { return sx(ix,iy,iz); },
+         [&sy] (int ix, int iy, int iz) -> Real const& { return sy(ix,iy,iz); },
+         [&sz] (int ix, int iy, int iz) -> Real const& { return sz(ix,iy,iz); },
+         i,j,k,ndbx,ccbx,f,res,rhs,phi,msk,dxinv);
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                              Array4<Real const> const& phi, Array4<Real const> const& rhs,
@@ -1899,6 +2117,51 @@ void mlndlap_res_cf_contrib (int i, int j, int k, Array4<Real> const& res,
                                      return sig(ix,iy,iz);
                                  },
                                  i, j, k, facx, facy, facz, phi);
+        Ax += fc(i,j,k);
+        Real const ns = (neumann_doubling) ? neumann_scale(i,j,k,nddom,bclo,bchi) : Real(1.0);
+        res(i,j,k) = rhs(i,j,k) - Ax*ns;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_cf_contrib_ha (int i, int j, int k, Array4<Real> const& res,
+                                Array4<Real const> const& phi, Array4<Real const> const& rhs,
+                                Array4<Real const> const& sx, Array4<Real const> const& sy,
+                                Array4<Real const> const& sz,
+                                Array4<int const> const& dmsk,
+                                Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                                Array4<Real const> const& fc,
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                Box const& ccdom_p, Box const& nddom,
+                                GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
+                                bool neumann_doubling) noexcept
+{
+    using namespace nodelap_detail;
+
+    if (!dmsk(i,j,k) && ndmsk(i,j,k) == crse_fine_node) {
+        Real facx = Real(1./36.)*dxinv[0]*dxinv[0];
+        Real facy = Real(1./36.)*dxinv[1]*dxinv[1];
+        Real facz = Real(1./36.)*dxinv[2]*dxinv[2];
+
+        Real Ax = mlndlap_sum_Ax_ha([&ccmsk, &ccdom_p] (int ix, int iy, int iz) -> bool
+                                    {
+                                        return ccdom_p.contains(ix,iy,iz)
+                                            && (ccmsk(ix,iy,iz) == crse_cell);
+                                    },
+                                    [&sx] (int ix, int iy, int iz) -> Real const&
+                                    {
+                                        return sx(ix,iy,iz);
+                                    },
+                                    [&sy] (int ix, int iy, int iz) -> Real const&
+                                    {
+                                        return sy(ix,iy,iz);
+                                    },
+                                    [&sz] (int ix, int iy, int iz) -> Real const&
+                                    {
+                                        return sz(ix,iy,iz);
+                                    },
+                                    i, j, k, facx, facy, facz, phi);
         Ax += fc(i,j,k);
         Real const ns = (neumann_doubling) ? neumann_scale(i,j,k,nddom,bclo,bchi) : Real(1.0);
         res(i,j,k) = rhs(i,j,k) - Ax*ns;

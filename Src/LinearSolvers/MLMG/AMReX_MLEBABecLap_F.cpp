@@ -36,6 +36,7 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
     const bool is_eb_inhomog = m_is_eb_inhomog && (!this->m_precond_mode);
 
     const int ncomp = getNComp();
+    const bool has_overset = (m_overset_mask[amrlev][mglev] != nullptr);
 
     Array4<Real const> foo;
 
@@ -80,12 +81,22 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                 yfab(i,j,k,n) = 0.0;
             });
         } else if (fabtyp == FabType::regular) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-            {
-                mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
-                                AMREX_D_DECL(bxfab,byfab,bzfab),
-                                dxinvarr, ascalar, bscalar);
-            });
+            if (has_overset) {
+                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    mlabeclap_adotx_os(i,j,k,n, yfab, xfab, afab,
+                                       AMREX_D_DECL(bxfab,byfab,bzfab),
+                                       osm, dxinvarr, ascalar, bscalar);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
+                                    AMREX_D_DECL(bxfab,byfab,bzfab),
+                                    dxinvarr, ascalar, bscalar);
+                });
+            }
         } else {
             Array4<int const> const& ccmfab = ccmask.const_array(mfi);
             Array4<EBCellFlag const> const& flagfab = flags->const_array(mfi);
@@ -149,6 +160,15 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
                                      ascalar, bscalar, ncomp, beta_on_centroid, phi_on_centroid);
                });
             }
+            if (has_overset) {
+                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                {
+                    if (osm(i,j,k) == 0) {
+                        yfab(i,j,k,n) = Real(0.0);
+                    }
+                });
+            }
         }
     }
 }
@@ -205,6 +225,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
     const FabArray<EBCellFlagFab>* flags = (factory) ? &(factory->getMultiEBCellFlagFab()) : nullptr;
 
     bool is_eb_dirichlet =  isEBDirichlet();
+    const bool has_overset = (m_overset_mask[amrlev][mglev] != nullptr);
 
     Array4<Real const> foo;
 
@@ -257,17 +278,32 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
         }
         else if (fabtyp == FabType::regular)
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
-            {
-                abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
-                          AMREX_D_DECL(dhx, dhy, dhz),
-                          AMREX_D_DECL(bxfab, byfab, bzfab),
-                          AMREX_D_DECL(m0,m2,m4),
-                          AMREX_D_DECL(m1,m3,m5),
-                          AMREX_D_DECL(f0fab,f2fab,f4fab),
-                          AMREX_D_DECL(f1fab,f3fab,f5fab),
-                          vbx, redblack);
-            });
+            if (has_overset) {
+                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                {
+                    abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                                 AMREX_D_DECL(dhx, dhy, dhz),
+                                 AMREX_D_DECL(bxfab, byfab, bzfab),
+                                 AMREX_D_DECL(m0,m2,m4),
+                                 AMREX_D_DECL(m1,m3,m5),
+                                 AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                 AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                 osm, vbx, redblack);
+                });
+            } else {
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                {
+                    abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                              AMREX_D_DECL(dhx, dhy, dhz),
+                              AMREX_D_DECL(bxfab, byfab, bzfab),
+                              AMREX_D_DECL(m0,m2,m4),
+                              AMREX_D_DECL(m1,m3,m5),
+                              AMREX_D_DECL(f0fab,f2fab,f4fab),
+                              AMREX_D_DECL(f1fab,f3fab,f5fab),
+                              vbx, redblack);
+                });
+            }
         }
         else
         {
@@ -296,6 +332,15 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
                                  vbx, redblack, nc);
             });
+            if (has_overset) {
+                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                {
+                    if (((i+j+k+redblack)%2 == 0) && (osm(i,j,k) == 0)) {
+                        solnfab(i,j,k,n) = Real(0.0);
+                    }
+                });
+            }
         }
     }
 }

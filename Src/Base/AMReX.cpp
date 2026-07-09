@@ -59,6 +59,8 @@
 #include <AMReX_MemProfiler.H>
 #endif
 
+#include <iterator>
+
 #ifdef AMREX_USE_OMP
 #include <AMReX_OpenMP.H>
 #include <omp.h>
@@ -206,10 +208,9 @@ amrex::write_to_stderr_without_buffering (const char* str)
     {
         std::ostringstream procall;
         procall << ParallelDescriptor::MyProc() << "::";
-        auto tmp = procall.str();
-        const char *cprocall = tmp.c_str();
+        auto const tmp = procall.view();
         const char * const end = " !!!\n";
-        std::fwrite(cprocall, strlen(cprocall), 1, stderr);
+        std::fwrite(tmp.data(), tmp.size(), 1, stderr);
         std::fwrite(str, strlen(str), 1, stderr);
         std::fwrite(end, strlen(end), 1, stderr);
     }
@@ -418,8 +419,11 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     if (argc > 0)
     {
         if (argv[0][0] != '/') {
-            system::exename = FileSystem::CurrentPath();
-            system::exename += "/";
+            auto cwd = FileSystem::CurrentPath();
+            if (!cwd.empty()) {
+                system::exename = std::move(cwd);
+                system::exename += "/";
+            }
         }
         system::exename += argv[0];
 
@@ -754,6 +758,10 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
         hypre_HandleDefaultExecPolicy(hypre_handle()) = HYPRE_EXEC_DEVICE;
         hypre_HandleSpgemmUseCusparse(hypre_handle()) = 0;
 #endif
+#if (HYPRE_RELEASE_NUMBER >= 23100)
+        // Discussion in https://github.com/AMReX-Codes/amrex/pull/5336
+        HYPRE_DeviceInitialize();
+#endif
 #endif
 
         if (system::verbose > 0) {
@@ -979,7 +987,7 @@ amrex::command_argument_count ()
 std::string
 amrex::get_command_argument (int number)
 {
-    if (number < static_cast<int>(command_arguments.size())) {
+    if (number < std::ssize(command_arguments)) {
         return command_arguments[number];
     } else {
         return std::string();

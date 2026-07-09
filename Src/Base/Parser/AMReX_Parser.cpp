@@ -6,9 +6,14 @@
 #include <amrex_parser.tab.h>
 
 #include <algorithm>
+#include <mutex>
 #include <stdexcept>
 
 namespace amrex {
+
+namespace {
+    std::mutex parser_mutex;
+}
 
 Parser::Parser (std::string const& func_body)
 {
@@ -22,12 +27,10 @@ Parser::define (std::string const& func_body)
 
     if (!func_body.empty()) {
         m_data->m_expression = func_body;
-        m_data->m_expression.erase(
-            std::remove_if(m_data->m_expression.begin(), m_data->m_expression.end(),
-                           [](char c) { return c == '\n' || c == '\r'; }),
-            m_data->m_expression.end());
+        std::erase_if(m_data->m_expression, [](char c) { return c == '\n' || c == '\r'; });
         std::string f = m_data->m_expression + "\n";
 
+        std::scoped_lock parser_lock(parser_mutex);
         YY_BUFFER_STATE buffer = amrex_parser_scan_string(f.c_str());
         try {
             amrex_parserparse();

@@ -58,6 +58,7 @@
     }}
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
@@ -68,9 +69,11 @@
         amrex::LoopConcurrentOnCpu(box, [=] (int i, int j, int k) noexcept \
             block \
         ); \
+    } \
     }
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
@@ -81,6 +84,7 @@
         amrex::LoopConcurrentOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
             block \
         ); \
+    } \
     }
 
 #define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
@@ -98,6 +102,7 @@
     }}
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
@@ -108,9 +113,11 @@
         amrex::LoopOnCpu(box, [=] (int i, int j, int k) noexcept \
             block \
         ); \
+    } \
     }
 
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
@@ -121,6 +128,7 @@
         amrex::LoopOnCpu(box, nc, [=] (int i, int j, int k, int n) noexcept \
             block \
         ); \
+    } \
     }
 
 #if defined(AMREX_USE_CUDA) && defined(_WIN32)
@@ -192,6 +200,7 @@
     }}
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
@@ -200,9 +209,11 @@
     } \
     else { \
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
     }
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
@@ -211,6 +222,7 @@
     } \
     else { \
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
     }
 
 #define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
@@ -226,6 +238,7 @@
     }}
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept \
@@ -234,9 +247,11 @@
     } \
     else { \
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
     }
 
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    { \
     if ((where_to_run == RunOn::Device) && (Gpu::inLaunchRegion())) \
     { \
         amrex::ParallelFor(box, nc, [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) noexcept \
@@ -245,6 +260,7 @@
     } \
     else { \
         amrex::Abort("amrex:: HOST_DEVICE disabled for Intel.  It takes too long to compile"); \
+    } \
     }
 
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
@@ -292,16 +308,20 @@
     }}
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    { \
     amrex::ignore_unused(where_to_run); \
     amrex::LoopConcurrentOnCpu(box, [&] (int i, int j, int k) noexcept \
         block \
-    );
+    ); \
+    }
 
 #define AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    { \
     amrex::ignore_unused(where_to_run); \
     amrex::LoopConcurrentOnCpu(box, nc, [&] (int i, int j, int k, int n) noexcept \
         block \
-    );
+    ); \
+    }
 
 #define AMREX_HOST_DEVICE_FOR_1D_FLAG(where_to_run,n,i,block) \
     {  using amrex_i_inttype = std::remove_const_t<decltype(n)>; \
@@ -311,16 +331,20 @@
     }}
 
 #define AMREX_HOST_DEVICE_FOR_3D_FLAG(where_to_run,box,i,j,k,block) \
+    { \
     amrex::ignore_unused(where_to_run); \
     amrex::LoopOnCpu(box, [&] (int i, int j, int k) noexcept \
         block \
-    );
+    ); \
+    }
 
 #define AMREX_HOST_DEVICE_FOR_4D_FLAG(where_to_run,box,nc,i,j,k,n,block) \
+    { \
     amrex::ignore_unused(where_to_run); \
     amrex::LoopOnCpu(box, nc, [&] (int i, int j, int k, int n) noexcept \
         block \
-    );
+    ); \
+    }
 
 #define AMREX_LAUNCH_HOST_DEVICE_LAMBDA_FLAG(where_to_run,box,tbox,block) \
     amrex::ignore_unused(where_to_run); \

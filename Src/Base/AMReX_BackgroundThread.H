@@ -10,22 +10,48 @@
 #include <queue>
 #include <thread>
 
+/**
+ * \file AMReX_BackgroundThread.H
+ * \brief Simple job queue serviced by a dedicated background std::thread.
+ */
+
 namespace amrex {
 
+/**
+ * \class amrex::BackgroundThread
+ * \brief Utility class running deferred work on a single background thread.
+ * \ingroup amrex_utilities
+ */
 class BackgroundThread
 {
 public:
+    /**
+     * \brief Launch the worker thread and initialize synchronization primitives.
+     */
     BackgroundThread ();
+    /**
+     * \brief Stop the worker thread and drain any queued work.
+     */
     ~BackgroundThread ();
     BackgroundThread (BackgroundThread const&) = delete;
     BackgroundThread (BackgroundThread &&) = delete;
     BackgroundThread& operator= (BackgroundThread const&) = delete;
     BackgroundThread& operator= (BackgroundThread &&) = delete;
 
+    /**
+     * \brief Enqueue a job that will run asynchronously on the worker thread.
+     * \param a_f Functor representing the work to execute.
+     */
     void Submit (std::function<void()>&& a_f);
+    /**
+     * \overload
+     */
     void Submit (std::function<void()> const& a_f);
 
-    void Finish (); // Not required. Call this if you want all jobs to finish.
+    /**
+     * \brief Block the caller until all queued jobs have completed.
+     */
+    void Finish ();
 
 private:
     void do_job ();

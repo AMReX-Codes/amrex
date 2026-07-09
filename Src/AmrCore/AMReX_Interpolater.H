@@ -5,6 +5,11 @@
 #include <AMReX_Extension.H>
 #include <AMReX_GpuControl.H>
 #include <AMReX_InterpBase.H>
+#include <AMReX_LUSolver.H>
+#include <AMReX_Vector.H>
+
+#include <map>
+#include <variant>
 
 /**
  * \file AMReX_Interpolater.H
@@ -543,6 +548,9 @@ class FaceDivFree
     public Interpolater
 {
 public:
+
+    FaceDivFree ();
+
     /**
     * \brief Returns coarsened box given fine box and refinement ratio.
     *
@@ -622,8 +630,29 @@ public:
                      int         actual_comp,
                      int         actual_state,
                      RunOn       runon) override;
-};
 
+private:
+
+#if (AMREX_SPACEDIM == 2)
+    using Solver_t = std::variant<LUSolver< 4,Real>, // IntVect(2,2): refinement
+                                  LUSolver< 8,Real>, // IntVect(4,2)
+                                  LUSolver< 8,Real>, // IntVect(2,4)
+                                  LUSolver<16,Real>>;// IntVect(4,4)
+#elif (AMREX_SPACEDIM == 3)
+    using Solver_t = std::variant<LUSolver< 8,Real>, // IntVect(2,2,2): refinement
+                                  LUSolver<16,Real>, // IntVect(4,2,2)
+                                  LUSolver<16,Real>, // IntVect(2,4,2)
+                                  LUSolver<32,Real>, // IntVect(4,4,2)
+                                  LUSolver<16,Real>, // IntVect(2,2,4)
+                                  LUSolver<32,Real>, // IntVect(4,2,4)
+                                  LUSolver<32,Real>, // IntVect(2,4,4)
+                                  LUSolver<64,Real>>;// IntVect(4,4,4)
+#endif
+
+#if (AMREX_SPACEDIM > 1)
+    Vector<std::map<Box,Solver_t>> m_lusolver;
+#endif
+};
 
 /**
 * \brief Piecewise constant tangential interpolation / linear normal interpolation of face data.

@@ -270,20 +270,25 @@ BndryDataT<MF>::define (const BoxArray& _grids,
 
     if (m_defined) {
         if (m_ncomp == _ncomp && _geom.Domain() == geom.Domain() &&
+            amrex::AlmostEqual(_geom.ProbDomain(), geom.ProbDomain()) &&
+            _geom.Coord() == geom.Coord() &&
             _geom.periodicity() == geom.periodicity() &&
             _grids == this->boxes() && _dmap == this->DistributionMap()) {
             // We want to allow reuse of BndryDataT objects that were define()d exactly as a previous call.
             return;
         }
-        // Otherwise we'll just abort.  We could make this work but it's just as easy to start with a fresh Bndrydata object.
-        amrex::Abort("BndryDataT<MF>::define(): object already built");
+        // Parameters differ; clear and redefine.
+        BndryRegisterT<MF>::clear();
+        bcond.clear();
+        bcloc.clear();
+        masks.clear();
+        m_defined = false;
     }
     geom    = _geom;
     m_ncomp = _ncomp;
 
     BndryRegisterT<MF>::setBoxes(_grids);
 
-    masks.clear();
     masks.resize(2*AMREX_SPACEDIM);
 
     for (OrientationIter fi; fi; ++fi) {

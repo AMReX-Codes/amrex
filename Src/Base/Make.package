@@ -22,9 +22,6 @@ C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
 C$(AMREX_BASE)_sources += AMReX_PODVector.cpp
 
-C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
-C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
-
 C$(AMREX_BASE)_headers += AMReX_Stack.H
 
 C$(AMREX_BASE)_headers += AMReX_String.H
@@ -112,6 +109,7 @@ C$(AMREX_BASE)_headers += AMReX_GpuContainers.H
 C$(AMREX_BASE)_headers += AMReX_TrackedVector.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
+C$(AMREX_BASE)_headers += AMReX_GpuParallelReduce.H
 
 C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
@@ -123,6 +121,9 @@ C$(AMREX_BASE)_headers += AMReX_TagParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_CTOParallelForImpl.H
 
 C$(AMREX_BASE)_headers += AMReX_ParReduce.H
+
+C$(AMREX_BASE)_headers += AMReX_Concepts.H
+
 
 #
 # I/O stuff.

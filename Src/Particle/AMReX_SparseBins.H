@@ -141,14 +141,14 @@ public:
             index_type uix = amrex::min(nx-1,amrex::max(0,iv3.x));
             index_type uiy = amrex::min(ny-1,amrex::max(0,iv3.y));
             index_type uiz = amrex::min(nz-1,amrex::max(0,iv3.z));
-            host_cells[i] = (uix * ny + uiy) * nz + uiz;
+            host_cells[i] = (uiz * ny + uiy) * nx + uix;
             bins_map[host_cells[i]] += 1;
         }
 
         Gpu::HostVector<index_type> host_perm(nitems);
         std::iota(host_perm.begin(), host_perm.end(), 0);
-        std::sort(host_perm.begin(), host_perm.end(),
-                  [&](int i, int j) {return host_cells[i] < host_cells[j];});
+        std::ranges::sort(host_perm,
+                          [&](int i, int j) {return host_cells[i] < host_cells[j];});
 
         Gpu::HostVector<index_type> host_bins;
         Gpu::HostVector<index_type> host_offsets = {0};

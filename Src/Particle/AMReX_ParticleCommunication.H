@@ -14,6 +14,7 @@
 #include <AMReX_ParmParse.H>
 
 #include <algorithm>
+#include <iterator>
 #include <map>
 #include <numeric>
 #include <utility>
@@ -27,7 +28,7 @@ struct NeighborUnpackPolicy
     template <class PTile>
     void resizeTiles (std::vector<PTile*>& tiles, const std::vector<int>& sizes, std::vector<int>& offsets) const
     {
-        for(int i = 0; i < static_cast<int>(sizes.size()); ++i)
+        for(int i = 0; i < std::ssize(sizes); ++i)
         {
             int offset = tiles[i]->numTotalParticles();
             int nn = tiles[i]->getNumNeighbors();
@@ -403,7 +404,8 @@ public:
 
     Long superParticleSize() const { return m_superparticle_size; }
 
-    template <class PC, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+    template <class PC>
+    requires (IsParticleContainer<PC>::value)
     void build (const PC& pc,
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
@@ -485,12 +487,12 @@ public:
         if constexpr (!PC::ParticleType::is_soa_particle) {
             comm_comps_start += AMREX_SPACEDIM + NStructReal;
         }
-        for (int i = comm_comps_start; i < real_comp_mask.size(); ++i) {
+        for (int i = comm_comps_start; i < std::ssize(real_comp_mask); ++i) {
             if (real_comp_mask[i]) {++num_real_comm_comp;}
         }
 
         int num_int_comm_comp = 0;
-        for (int i = 2 + NStructInt; i < int_comp_mask.size(); ++i) {
+        for (int i = 2 + NStructInt; i < std::ssize(int_comp_mask); ++i) {
             if (int_comp_mask[i])  {++num_int_comm_comp;}
         }
 
@@ -574,10 +576,9 @@ struct GetSendBufferOffset
     }
 };
 
-template <class PC, class Buffer,
-          std::enable_if_t<IsParticleContainer<PC>::value &&
-                           std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>,
-                                           Buffer>, int> foo = 0>
+template <class PC, class Buffer>
+requires (IsParticleContainer<PC>::value &&
+          std::is_base_of_v<PolymorphicArenaAllocator<typename Buffer::value_type>, Buffer>)
 void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan& plan,
                  Buffer& snd_buffer)
 {
@@ -776,8 +777,8 @@ void packBuffer (const PC& pc, const ParticleCopyOp& op, const ParticleCopyPlan&
 #endif
 }
 
-template <class PC, class Buffer, class UnpackPolicy,
-          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class Buffer, class UnpackPolicy>
+requires (IsParticleContainer<PC>::value)
 void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffer, UnpackPolicy const& policy)
 {
     BL_PROFILE("amrex::unpackBuffer");
@@ -903,8 +904,8 @@ void unpackBuffer (PC& pc, const ParticleCopyPlan& plan, const Buffer& snd_buffe
 #endif
 }
 
-template <class PC, class SndBuffer, class RcvBuffer,
-          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class SndBuffer, class RcvBuffer>
+requires (IsParticleContainer<PC>::value)
 void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndBuffer& snd_buffer, RcvBuffer& rcv_buffer)
 {
     BL_PROFILE("amrex::communicateParticlesStart");
@@ -1003,8 +1004,8 @@ void communicateParticlesStart (const PC& pc, ParticleCopyPlan& plan, const SndB
 
 void communicateParticlesFinish (const ParticleCopyPlan& plan);
 
-template <class PC, class Buffer, class UnpackPolicy,
-          std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class Buffer, class UnpackPolicy>
+requires (IsParticleContainer<PC>::value)
 void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, UnpackPolicy const& policy)
 {
     BL_PROFILE("amrex::unpackRemotes");
@@ -1025,7 +1026,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
 
         std::vector<int> sizes;
         std::vector<PTile*> tiles;
-        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
+        for (int i = 0; i < std::ssize(plan.m_rcv_box_counts); ++i)
         {
             int copy_size = plan.m_rcv_box_counts[i];
             int lev = plan.m_rcv_box_levs[i];
@@ -1041,7 +1042,7 @@ void unpackRemotes (PC& pc, const ParticleCopyPlan& plan, Buffer& rcv_buffer, Un
         Gpu::streamSynchronize();
         int uindex = 0;
         int procindex = 0, rproc = plan.m_rcv_box_pids[0];
-        for (int i = 0, N = int(plan.m_rcv_box_counts.size()); i < N; ++i)
+        for (int i = 0; i < std::ssize(plan.m_rcv_box_counts); ++i)
         {
             int lev = plan.m_rcv_box_levs[i];
             int gid = plan.m_rcv_box_ids[i];

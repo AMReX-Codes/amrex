@@ -31,9 +31,8 @@ struct IParserExecutor
     /**
      * \brief Evaluate constant expressions (\p N == 0) and return the integer result.
      */
-    template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    long long operator() () const noexcept
+    long long operator() () const noexcept requires (N==0)
     {
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, nullptr);))
         AMREX_IF_ON_HOST((return iparser_exe_eval(m_host_executor, nullptr);))
@@ -44,11 +43,10 @@ struct IParserExecutor
      * \param var Scalar arguments supplied in registration order.
      * \return Result promoted to \c long long.
      */
-    template <typename... Ts>
+    template <std::integral... Ts>
+    requires (N > 0 && sizeof...(Ts) == N)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N && std::conjunction_v<std::is_integral<Ts>...>,
-                     long long>
-    operator() (Ts... var) const noexcept
+    long long operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<long long,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return iparser_exe_eval(m_device_executor, l_var.data());))
@@ -86,6 +84,10 @@ struct IParserExecutor
  * IParser parses expressions composed of integer literals, integer variables,
  * and integer-returning functions. It emits executors that evaluate to long long
  * on host or GPU.
+ *
+ * Different IParser objects may be constructed or defined concurrently from
+ * multiple host threads. For parallel evaluation, prefer sharing the compiled
+ * IParserExecutor across threads instead of constructing one IParser per thread.
  */
 class IParser
 {

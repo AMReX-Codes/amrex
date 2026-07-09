@@ -13,6 +13,7 @@
 #include <AMReX_VisMFBuffer.H>
 
 #include <fstream>
+#include <iterator>
 #include <iostream>
 #include <sstream>
 #include <deque>
@@ -387,8 +388,9 @@ std::istream& operator>> (std::istream& is, VisMF::Header& hd);
  * \param name is the base name for the files.
  */
 template <typename FAB>
+requires (std::same_as<FAB,IArrayBox>)
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
+void
 Write (const FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Write(FabArray)");
@@ -405,7 +407,7 @@ Write (const FabArray<FAB>& fa, const std::string& name)
         procsWithData.insert(i);
     }
     const int nOutFiles = VisMF::GetNOutFiles();
-    if (static_cast<int>(procsWithData.size()) < nOutFiles) {
+    if (std::ssize(procsWithData) < nOutFiles) {
         useSparseFPP = true;
         for (auto i : procsWithData) {
             procsWithDataVector.push_back(i);
@@ -430,9 +432,8 @@ Write (const FabArray<FAB>& fa, const std::string& name)
             {
                 std::stringstream hss;
                 fio.write_header(hss, fab, fab.nComp());
-                auto hLength = static_cast<std::streamoff>(hss.tellp());
-                auto tstr = hss.str();
-                nfi.Stream().write(tstr.c_str(), hLength);
+                auto const tstr = hss.view();
+                nfi.Stream().write(tstr.data(), static_cast<std::streamsize>(tstr.size()));
                 nfi.Stream().flush();
             }
             auto const* fabdata = fab.dataPtr();
@@ -566,8 +567,9 @@ void read_fab (FAB& fab, VisMF::FabOnDisk const& fod, std::string const& name)
  * \param name is the base name for the files.
  */
 template <typename FAB>
+requires (std::same_as<FAB,IArrayBox>)
 // This function does work for MultiFab, but let's disable it to avoid confusion.
-std::enable_if_t<std::is_same_v<FAB,IArrayBox>>
+void
 Read (FabArray<FAB>& fa, const std::string& name)
 {
     BL_PROFILE("Read(FabArray)");
@@ -668,7 +670,7 @@ Read (FabArray<FAB>& fa, const std::string& name)
                 auto whichread = allreads[fi].begin();
                 for ( ; whichread != allreads[fi].end(); ++whichread) {
                     const int tryproc = whichread->first;
-                    if (busyprocs.find(tryproc) == busyprocs.end()) { // not busy
+                    if (!busyprocs.contains(tryproc)) { // not busy
                         busyprocs.insert(tryproc);
                         Vector<int> vreads;
                         vreads.reserve(whichread->second.size());

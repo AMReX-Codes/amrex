@@ -118,7 +118,7 @@ struct StructOfArrays {
      */
     [[nodiscard]] RealVector& GetRealData (std::string const & name) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_rdata_names != nullptr, "SoA Real names were not defined.");
-        auto const pos = std::find(m_rdata_names->begin(), m_rdata_names->end(), name);
+        auto const pos = std::ranges::find(*m_rdata_names, name);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pos != m_rdata_names->end(), "Soa Real name='" + name + "' was not found components");
 
         int const index = std::distance(m_rdata_names->begin(), pos);
@@ -131,7 +131,7 @@ struct StructOfArrays {
      */
     [[nodiscard]] const RealVector& GetRealData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_rdata_names != nullptr, "SoA Real names were not defined.");
-        auto const pos = std::find(m_rdata_names->begin(), m_rdata_names->end(), name);
+        auto const pos = std::ranges::find(*m_rdata_names, name);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pos != m_rdata_names->end(), "Soa Real name='" + name + "' was not found components");
 
         int const index = std::distance(m_rdata_names->begin(), pos);
@@ -184,7 +184,7 @@ struct StructOfArrays {
      */
     [[nodiscard]] IntVector& GetIntData (std::string const & name) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_idata_names != nullptr, "SoA Int names were not defined.");
-        auto const pos = std::find(m_idata_names->begin(), m_idata_names->end(), name);
+        auto const pos = std::ranges::find(*m_idata_names, name);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pos != m_idata_names->end(), "Soa Int name='" + name + "' was not found components");
 
         int const index = std::distance(m_idata_names->begin(), pos);
@@ -198,7 +198,7 @@ struct StructOfArrays {
      */
     [[nodiscard]] const IntVector& GetIntData (std::string const & name) const {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_idata_names != nullptr, "SoA Int names were not defined.");
-        auto const pos = std::find(m_idata_names->begin(), m_idata_names->end(), name);
+        auto const pos = std::ranges::find(*m_idata_names, name);
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(pos != m_idata_names->end(), "Soa Int name='" + name + "' was not found components");
 
         int const index = std::distance(m_idata_names->begin(), pos);

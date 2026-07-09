@@ -6,6 +6,7 @@
 #include <AMReX_Array.H>
 #include <AMReX_FArrayBox.H>
 #include <cmath>
+#include <numbers>
 
 namespace amrex {
 
@@ -29,7 +30,7 @@ amrex_setvol (Box const& bx, Array4<Real> const& vol,
     }
     else if (coord == 1)
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*i;
@@ -40,7 +41,7 @@ amrex_setvol (Box const& bx, Array4<Real> const& vol,
     }
     else
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*i;
@@ -70,7 +71,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
     }
     else if (coord == 1)
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*i;
@@ -80,7 +81,7 @@ amrex_setarea (Box const& bx, Array4<Real> const& area,
     }
     else
     {
-        const Real pi = Real(3.1415926535897932);
+        const Real pi = std::numbers::pi_v<Real>;
         AMREX_PRAGMA_SIMD
         for (int i = lo.x; i <= hi.x; ++i) {
             Real ri = offset[0] + dx[0]*i;

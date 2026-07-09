@@ -29,7 +29,8 @@ namespace Gpu {
  * lifetime. Flipping the launch-region flag between construction and
  * destruction prevents the matching free and will leak memory.
  */
-template <typename T, std::enable_if_t<std::is_trivially_copyable_v<T>,int> = 0>
+template <typename T>
+requires (std::is_trivially_copyable_v<T>)
 class AsyncArray
 {
 public:
@@ -48,8 +49,9 @@ public:
 #endif
     }
 
-    template <typename U = T, std::enable_if_t<std::is_standard_layout_v<U> && std::is_trivial_v<U>,int> = 0>
     explicit AsyncArray (const std::size_t n)
+        requires (std::is_standard_layout_v<T> && std::is_trivial_v<T>)
+
     {
         if (n == 0) { return; }
 #ifdef AMREX_USE_GPU

@@ -13,6 +13,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_Vector.H>
 
+#include <concepts>
 #include <map>
 #include <memory>
 #include <string>
@@ -41,9 +42,8 @@ struct ParserExecutor
      *
      * \return Expression value as double precision.
      */
-    template <int M=N, std::enable_if_t<M==0,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    double operator() () const noexcept
+    double operator() () const noexcept requires (N==0)
     {
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, nullptr);))
         AMREX_IF_ON_HOST((return parser_exe_eval(m_host_executor, nullptr);))
@@ -56,9 +56,9 @@ struct ParserExecutor
      * \return Expression value promoted to double precision.
      */
     template <typename... Ts>
+    requires (N > 0 && sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N && !amrex::Same<float,Ts...>::value, double>
-    operator() (Ts... var) const noexcept
+    double operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return parser_exe_eval(m_device_executor, l_var.data());))
@@ -72,10 +72,10 @@ struct ParserExecutor
      *
      * \param var Scalar arguments supplied in parser variable order.
      */
-    template <typename... Ts>
+    template <std::same_as<float>... Ts>
+    requires (N > 0 && sizeof...(Ts) == N)
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<sizeof...(Ts) == N &&  amrex::Same<float,Ts...>::value, float>
-    operator() (Ts... var) const noexcept
+    float operator() (Ts... var) const noexcept
     {
         amrex::GpuArray<double,N> l_var{var...};
         AMREX_IF_ON_DEVICE((return static_cast<float>(parser_exe_eval(m_device_executor, l_var.data()));))
@@ -117,6 +117,10 @@ struct ParserExecutor
  * registered variables. After calling define(), registerVariables(), and
  * (optionally) registerUserFn*, the expression can be compiled into a
  * ParserExecutor that evaluates it efficiently on host or device.
+ *
+ * Different Parser objects may be constructed or defined concurrently from
+ * multiple host threads. For parallel evaluation, prefer sharing the compiled
+ * ParserExecutor across threads instead of constructing one Parser per thread.
  */
 class Parser
 {

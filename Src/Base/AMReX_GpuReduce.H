@@ -10,11 +10,7 @@
 #include <AMReX_Functional.H>
 #include <AMReX_TypeTraits.H>
 
-#if !defined(AMREX_USE_CUB) && defined(AMREX_USE_CUDA) && defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 11)
-#define AMREX_USE_CUB 1
-#endif
-
-#if defined(AMREX_USE_CUB)
+#if defined(AMREX_USE_CUDA)
 #include <cub/cub.cuh>
 #if defined(CCCL_MAJOR_VERSION) && defined(CCCL_MINOR_VERSION) && ((CCCL_MAJOR_VERSION >= 3) || ((CCCL_MAJOR_VERSION >= 2) && (CCCL_MINOR_VERSION >= 8)))
 #define AMREX_CUDA_CCCL_VER_GE_2_8 1
@@ -265,7 +261,8 @@ T shuffle_down (T x, int offset) noexcept
 }
 
 // If other sizeof is needed, we can implement it later.
-template <class T, std::enable_if_t<sizeof(T)%sizeof(unsigned int) == 0, int> = 0>
+template <class T>
+requires (sizeof(T)%sizeof(unsigned int) == 0)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T multi_shuffle_down (T x, int offset) noexcept
 {
@@ -286,9 +283,9 @@ template <int warpSize, typename T, typename F>
 struct warpReduce
 {
     // Not all arithmetic types can be taken by shuffle_down, but it's good enough.
-    template <class U=T, std::enable_if_t<std::is_arithmetic<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T operator() (T x) const noexcept
+    T operator()(T x) const noexcept
+    requires (std::is_arithmetic_v<T>)
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = detail::shuffle_down(x, offset);
@@ -297,9 +294,9 @@ struct warpReduce
         return x;
     }
 
-    template <class U=T, std::enable_if_t<!std::is_arithmetic<U>::value,int> = 0>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    T operator() (T x) const noexcept
+    T operator()(T x) const noexcept
+    requires (!std::is_arithmetic_v<T>)
     {
         for (int offset = warpSize/2; offset > 0; offset /= 2) {
             T y = detail::multi_shuffle_down(x, offset);
@@ -366,7 +363,7 @@ template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceSum (T source) noexcept
 {
-#if defined(AMREX_USE_CUB)
+#if defined(AMREX_USE_CUDA)
     using BlockReduce = cub::BlockReduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
@@ -416,7 +413,7 @@ template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMin (T source) noexcept
 {
-#if defined(AMREX_USE_CUB)
+#if defined(AMREX_USE_CUDA)
     using BlockReduce = cub::BlockReduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
@@ -471,7 +468,7 @@ template <int BLOCKDIMX, typename T>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 T blockReduceMax (T source) noexcept
 {
-#if defined(AMREX_USE_CUB)
+#if defined(AMREX_USE_CUDA)
     using BlockReduce = cub::BlockReduce<T,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
@@ -523,7 +520,7 @@ template <int BLOCKDIMX>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int blockReduceLogicalAnd (int source) noexcept
 {
-#if defined(AMREX_USE_CUB)
+#if defined(AMREX_USE_CUDA)
     using BlockReduce = cub::BlockReduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary
@@ -571,7 +568,7 @@ template <int BLOCKDIMX>
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 int blockReduceLogicalOr (int source) noexcept
 {
-#if defined(AMREX_USE_CUB)
+#if defined(AMREX_USE_CUDA)
     using BlockReduce = cub::BlockReduce<int,BLOCKDIMX>;
     __shared__ typename BlockReduce::TempStorage temp_storage;
     // __syncthreads() prior to writing to shared memory is necessary

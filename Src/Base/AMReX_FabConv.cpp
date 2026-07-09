@@ -770,7 +770,7 @@ PD_fconvert (void*       out,
         for (i = 0L; i < nitems; i++, rout += outbytes)
         {
             for (j = 0; j < outbytes; j++) {
-                if ((j == indxout) ? (rout[j] != mask) : rout[j]) {
+                if ((j == indxout) ? std::cmp_not_equal(rout[j], mask) : rout[j]) {
                     break;
                 }
             }

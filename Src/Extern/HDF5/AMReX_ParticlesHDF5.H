@@ -132,7 +132,8 @@ public:
      * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
+    template <class F>
+    requires (!std::same_as<F, Vector<std::string>>)
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name, const std::string& compression, F&& f) const;
 
     /**
@@ -196,7 +197,8 @@ public:
      * \param compression compression parameter (i.e. "ZFP_ACCURACY@0.001", "SZ@sz.config")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<F, Vector<std::string>>>* = nullptr>
+    template <class F>
+    requires (!std::same_as<F, Vector<std::string>>)
     void WritePlotFileHDF5 (const std::string& dir, const std::string& name,
                             const Vector<std::string>& real_comp_names,
                             const std::string& compression, F&& f) const;

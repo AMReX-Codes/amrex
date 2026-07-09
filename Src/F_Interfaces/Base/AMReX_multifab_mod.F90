@@ -636,6 +636,7 @@ contains
     integer, intent(in) :: nc, ng(*)
     logical, intent(in), optional :: nodal(*)
     integer :: inodal(3), dir
+    call amrex_multifab_destroy(mf)
     mf%owner = .true.
     mf%nc = nc
     mf%ng(1:ndims) = ng(1:ndims)
@@ -700,6 +701,7 @@ contains
   subroutine amrex_multifab_install (this, p)
     class(amrex_multifab), intent(inout) :: this
     type(c_ptr), intent(in) :: p
+    call amrex_multifab_destroy(this)
     this%owner = .false.
     this%p     = p
     this%nc    = amrex_fi_multifab_ncomp(p)
@@ -1124,6 +1126,7 @@ contains
     integer, intent(in) :: nc, ng(*)
     logical, intent(in), optional :: nodal(*)
     integer :: inodal(3), dir
+    call amrex_imultifab_destroy(imf)
     imf%owner = .true.
     imf%nc = nc
     imf%ng(1:ndims) = ng(1:ndims)

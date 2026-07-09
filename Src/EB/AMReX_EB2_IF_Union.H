@@ -64,9 +64,9 @@ public:
         return op_impl(p, std::make_index_sequence<sizeof...(Fs)>());
     }
 
-    template <class U=UnionIF<Fs...>, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires ((IsGPUable<Fs>::value && ...))
     {
         return op_impl(AMREX_D_DECL(x,y,z), std::make_index_sequence<sizeof...(Fs)>());
     }
@@ -88,12 +88,13 @@ protected:
 };
 
 template <class Head, class... Tail>
-struct IsGPUable<UnionIF<Head, Tail...>, std::enable_if_t<IsGPUable<Head>::value>>
-    : IsGPUable<UnionIF<Tail...> > {};
+requires (IsGPUable<Head>::value)
+struct IsGPUable<UnionIF<Head, Tail...>>
+    : IsGPUable<UnionIF<Tail...>> {};
 
 template <class F>
-struct IsGPUable<UnionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value)
+struct IsGPUable<UnionIF<F>> : std::true_type {};
 
 template <class... Fs>
 constexpr UnionIF<std::decay_t<Fs> ...>

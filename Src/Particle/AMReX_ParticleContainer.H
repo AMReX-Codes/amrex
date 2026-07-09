@@ -592,7 +592,8 @@ public:
     /**
      * \brief Return capacity of memory for particles at specific grid
      */
-    template <typename I, std::enable_if_t<std::is_integral_v<I> && (sizeof(I) >= sizeof(Long)), int> = 0>
+    template <std::integral I>
+    requires (sizeof(I) >= sizeof(Long))
     void CapacityOfParticlesInGrid (LayoutData<I>& mem, int lev) const;
 
     /**
@@ -688,8 +689,8 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    template <class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    template <class PCType>
+    requires (IsParticleContainer<PCType>::value)
     void copyParticles (const PCType& other, bool local=false);
 
     /**
@@ -699,8 +700,8 @@ public:
     * \param other the other pc to copy from
     * \param local whether to call redistribute after
     */
-    template <class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0>
+    template <class PCType>
+    requires (IsParticleContainer<PCType>::value)
     void addParticles (const PCType& other, bool local=false);
 
     /**
@@ -717,9 +718,8 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    template <class F, class PCType>
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
     void copyParticles (const PCType& other, F&&f, bool local=false);
 
     /**
@@ -735,9 +735,8 @@ public:
     * \param f function to apply to each particle as a filter
     * \param local whether to call redistribute after
     */
-    template <class F, class PCType,
-              std::enable_if_t<IsParticleContainer<PCType>::value, int> foo = 0,
-              std::enable_if_t<! std::is_integral_v<F>, int> bar = 0>
+    template <class F, class PCType>
+    requires ((IsParticleContainer<PCType>::value) && (!std::is_integral_v<F>))
     void addParticles (const PCType& other, F const& f, bool local=false);
 
     /**
@@ -821,7 +820,7 @@ public:
                                   const Vector<int>& write_int_comp,
                                   const Vector<std::string>& real_comp_names,
                                   const Vector<std::string>&  int_comp_names,
-                                  F&& f, bool is_checkpoint=false) const;
+                                  F const& f, bool is_checkpoint=false) const;
 
     void CheckpointPre ();
 
@@ -863,8 +862,8 @@ public:
      * \param name The name of the sub-directory for this particle type (i.e. "Tracer")
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
-    void WritePlotFile (const std::string& dir, const std::string& name, F&& f) const;
+    template <class F>
+    void WritePlotFile (const std::string& dir, const std::string& name, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify the names of the components.
@@ -894,7 +893,7 @@ public:
     template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
                         const Vector<std::string>& real_comp_names,
-                        const Vector<std::string>&  int_comp_names, F&& f) const;
+                        const Vector<std::string>&  int_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile writes all components and allows the user to specify
@@ -920,9 +919,9 @@ public:
      * \param real_comp_names for each real component, a name to label the data with
      * \param f callable that returns whether or not to write each particle
      */
-    template <class F, std::enable_if_t<!std::is_same_v<std::decay_t<F>, Vector<std::string>>>* = nullptr>
+    template <class F>
     void WritePlotFile (const std::string& dir, const std::string& name,
-                        const Vector<std::string>& real_comp_names, F&& f) const;
+                        const Vector<std::string>& real_comp_names, F const& f) const;
 
     /**
      * \brief This version of WritePlotFile assigns component names, but allows the user to pass
@@ -956,7 +955,7 @@ public:
     void WritePlotFile (const std::string& dir,
                         const std::string& name,
                         const Vector<int>& write_real_comp,
-                        const Vector<int>& write_int_comp, F&& f) const;
+                        const Vector<int>& write_int_comp, F const& f) const;
 
     /**
      * \brief This is the most general version of WritePlotFile, which takes component
@@ -1003,7 +1002,7 @@ public:
                         const Vector<int>& write_int_comp,
                         const Vector<std::string>& real_comp_names,
                         const Vector<std::string>&  int_comp_names,
-                        F&& f) const;
+                        F const& f) const;
 
     void WritePlotFilePre ();
 
@@ -1293,7 +1292,7 @@ public:
     void AddRealComp (std::string const & name, int communicate=1)
     {
         // names must be unique
-        auto const it = std::find(m_soa_rdata_names.begin(), m_soa_rdata_names.end(), name);
+        auto const it = std::ranges::find(m_soa_rdata_names, name);
         if (it != m_soa_rdata_names.end()) {
             throw std::runtime_error("AddRealComp: name '" + name + "' is already present in the SoA.");
         }
@@ -1326,7 +1325,7 @@ public:
     void AddIntComp (std::string const & name, int communicate=1)
     {
         // names must be unique
-        auto const it = std::find(m_soa_idata_names.begin(), m_soa_idata_names.end(), name);
+        auto const it = std::ranges::find(m_soa_idata_names, name);
         if (it != m_soa_idata_names.end()) {
             throw std::runtime_error("AddIntComp: name '" + name + "' is already present in the SoA.");
         }

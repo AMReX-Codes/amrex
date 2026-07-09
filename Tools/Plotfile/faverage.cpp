@@ -81,11 +81,11 @@ int main(int argc, char* argv[])
 
         // density can be call "density" in Castro or "rho" in MAESTROeX
         int dens_comp = std::distance(var_names_pf.cbegin(),
-                                  std::find(var_names_pf.cbegin(), var_names_pf.cend(), "density"));
+                                  std::ranges::find(var_names_pf, "density"));
 
         if (dens_comp == var_names_pf.size()) {
             dens_comp = std::distance(var_names_pf.cbegin(),
-                                      std::find(var_names_pf.cbegin(), var_names_pf.cend(), "rho"));
+                                      std::ranges::find(var_names_pf, "rho"));
         }
 
         if (dens_comp == var_names_pf.size() && do_favre) {
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
         }
 
         int var_comp = std::distance(var_names_pf.cbegin(),
-                                  std::find(var_names_pf.cbegin(), var_names_pf.cend(), varname));
+                                  std::ranges::find(var_names_pf, varname));
 
         if (var_comp == var_names_pf.size()) {
             amrex::Error("variable " + varname + " not found");

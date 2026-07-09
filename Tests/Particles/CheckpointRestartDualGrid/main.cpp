@@ -7,6 +7,8 @@
  *   1. Restart with fewer AMR levels than the checkpoint
  *   2. Restart with more AMR levels than the checkpoint
  *   3. Restart with the same number of levels but different BoxArrays
+ *   4. Restart with particles only on the finest level and a different
+ *      coarse-level BoxArray
  */
 #include <AMReX.H>
 #include <AMReX_Particles.H>
@@ -33,22 +35,23 @@ struct MeshData {
 /**
  * Build a nested AMR hierarchy with `nlevs` levels over a [0,1]^d domain
  * discretised by `ncells` cells in each direction. The coarse BoxArray is
- * decomposed into boxes of at most `max_grid_size` cells; the fine level
- * covers the central half of the domain.
+ * decomposed into boxes of at most `max_grid_size` cells. When `fine_cells`
+ * is left negative, the fine level covers the central half of the domain;
+ * otherwise the fine patch is a centered box with that extent in fine cells.
  */
-MeshData build_mesh (int ncells, int nlevs, int max_grid_size)
+MeshData build_mesh (int ncells, int nlevs, int max_grid_size, int fine_cells = -1)
 {
     AMREX_ALWAYS_ASSERT(nlevs >= 1 && nlevs <= 2);
 
     MeshData m;
 
     // Level-0 domain
-    IntVect lo(AMREX_D_DECL(0, 0, 0));
-    IntVect hi(AMREX_D_DECL(ncells-1, ncells-1, ncells-1));
+    IntVect domain_lo(AMREX_D_DECL(0, 0, 0));
+    IntVect domain_hi(AMREX_D_DECL(ncells-1, ncells-1, ncells-1));
 
     m.domains.resize(nlevs);
-    m.domains[0].setSmall(lo);
-    m.domains[0].setBig(hi);
+    m.domains[0].setSmall(domain_lo);
+    m.domains[0].setBig(domain_hi);
 
     m.ref_ratio.resize(nlevs > 1 ? nlevs - 1 : 0);
     for (int lev = 1; lev < nlevs; ++lev) {
@@ -61,10 +64,15 @@ MeshData build_mesh (int ncells, int nlevs, int max_grid_size)
     m.ba[0].maxSize(max_grid_size);
 
     if (nlevs > 1) {
-        // Refined region: the central 1/4 of the fine-level domain
-        int n_fine = ncells * 2; // ref_ratio == 2
-        IntVect rlo(AMREX_D_DECL(n_fine/4,   n_fine/4,   n_fine/4));
-        IntVect rhi(AMREX_D_DECL(3*n_fine/4-1, 3*n_fine/4-1, 3*n_fine/4-1));
+        int const n_fine = ncells * 2; // ref_ratio == 2
+        int const patch_cells = (fine_cells > 0) ? fine_cells : n_fine / 2;
+        AMREX_ALWAYS_ASSERT(patch_cells <= n_fine);
+
+        // Refined region: a centered patch in the fine-level domain.
+        int const patch_lo = (n_fine - patch_cells) / 2;
+        int const patch_hi = patch_lo + patch_cells - 1;
+        IntVect rlo(AMREX_D_DECL(patch_lo, patch_lo, patch_lo));
+        IntVect rhi(AMREX_D_DECL(patch_hi, patch_hi, patch_hi));
         m.ba[1].define(Box(rlo, rhi));
         m.ba[1].maxSize(max_grid_size);
     }
@@ -88,6 +96,66 @@ MeshData build_mesh (int ncells, int nlevs, int max_grid_size)
     }
 
     return m;
+}
+
+void make_component_names (Vector<std::string>& real_names,
+                           Vector<std::string>& int_names)
+{
+    real_names.clear();
+    int_names.clear();
+
+    for (int i = 0; i < NStructReal + NArrayReal; ++i) {
+        real_names.push_back("real_" + std::to_string(i));
+    }
+    for (int i = 0; i < NStructInt + NArrayInt; ++i) {
+        int_names.push_back("int_" + std::to_string(i));
+    }
+}
+
+void add_finest_level_particles (MyPC& pc, MeshData const& mesh,
+                                 MyPC::ParticleInitData const& pdata,
+                                 int particles_per_grid = 2)
+{
+    int const lev = pc.finestLevel();
+    auto const dx = mesh.geom[lev].CellSizeArray();
+    auto const problo = mesh.geom[lev].ProbLoArray();
+    auto const myproc = ParallelDescriptor::MyProc();
+
+    for (int grid = 0; grid < mesh.ba[lev].size(); ++grid) {
+        if (mesh.dmap[lev][grid] != myproc) { continue; }
+
+        auto const& bx = mesh.ba[lev][grid];
+        auto& ptile = pc.DefineAndReturnParticleTile(lev, grid, 0);
+
+        for (int ip = 0; ip < particles_per_grid; ++ip) {
+            IntVect iv = bx.smallEnd();
+            int const offset = std::min(ip, bx.length(0) - 1);
+            iv[0] += offset;
+
+            PType p;
+            for (int d = 0; d < AMREX_SPACEDIM; ++d) {
+                p.pos(d) = static_cast<ParticleReal>(problo[d] + (iv[d] + 0.5_rt) * dx[d]);
+            }
+            for (int i = 0; i < NStructReal; ++i) {
+                p.rdata(i) = static_cast<ParticleReal>(pdata.real_struct_data[i]);
+            }
+            for (int i = 0; i < NStructInt; ++i) {
+                p.idata(i) = pdata.int_struct_data[i];
+            }
+            for (int i = 0; i < NArrayReal; ++i) {
+                p.rdata(NStructReal + i) = static_cast<ParticleReal>(pdata.real_array_data[i]);
+            }
+            for (int i = 0; i < NArrayInt; ++i) {
+                p.idata(NStructInt + i) = pdata.int_array_data[i];
+            }
+            p.id() = PType::NextID();
+            p.cpu() = myproc;
+
+            ptile.push_back(p);
+        }
+    }
+
+    pc.Redistribute();
 }
 
 /**
@@ -157,12 +225,7 @@ void test_fewer_levels ()
                                     {8}};
 
     Vector<std::string> real_names, int_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) {
-        real_names.push_back("real_" + std::to_string(i));
-    }
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) {
-        int_names.push_back("int_" + std::to_string(i));
-    }
+    make_component_names(real_names, int_names);
 
     // --- write with 2 levels ---
     auto mesh2 = build_mesh(ncells, 2, max_grid_size);
@@ -214,12 +277,7 @@ void test_more_levels ()
                                     {8}};
 
     Vector<std::string> real_names, int_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) {
-        real_names.push_back("real_" + std::to_string(i));
-    }
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) {
-        int_names.push_back("int_" + std::to_string(i));
-    }
+    make_component_names(real_names, int_names);
 
     // --- write with 1 level ---
     auto mesh1 = build_mesh(ncells, 1, max_grid_size);
@@ -273,12 +331,7 @@ void test_different_boxarrays ()
                                     {8}};
 
     Vector<std::string> real_names, int_names;
-    for (int i = 0; i < NStructReal + NArrayReal; ++i) {
-        real_names.push_back("real_" + std::to_string(i));
-    }
-    for (int i = 0; i < NStructInt + NArrayInt; ++i) {
-        int_names.push_back("int_" + std::to_string(i));
-    }
+    make_component_names(real_names, int_names);
 
     // --- write: coarse decomposition (few large boxes) ---
     auto mesh_coarse = build_mesh(ncells, 1, ncells); // one box per rank at most
@@ -311,6 +364,68 @@ void test_different_boxarrays ()
     amrex::Print() << "  PASSED\n";
 }
 
+/**
+ * Test 4: Write a 2-level checkpoint with particles only on the finest
+ * level, so Level_0 has no Particle_H header. Restart into a mesh with the
+ * same fine-level BoxArray but a different coarse-level BoxArray. This
+ * should still trigger dual-grid restart because the missing coarse-level
+ * header falls back to a single-box domain layout while the restart mesh
+ * uses a split coarse decomposition.
+ */
+void test_finest_only_missing_coarse_header ()
+{
+    amrex::Print() << "Test 4: restart with finest-level particles only and different coarse BoxArray\n";
+
+    const int ncells         = 64;
+    const int write_mgs      = 64;
+    const int restart_mgs    = 32;
+    const int fine_cells     = 32;
+    const std::string chkdir = "chk_finest_only_missing_coarse_header";
+
+    MyPC::ParticleInitData pdata = {{1.0, 2.0, 3.0, 4.0},
+                                    {5},
+                                    {6.0, 7.0},
+                                    {8}};
+
+    Vector<std::string> real_names, int_names;
+    make_component_names(real_names, int_names);
+
+    auto mesh_write = build_mesh(ncells, 2, write_mgs, fine_cells);
+    auto mesh_read = build_mesh(ncells, 2, restart_mgs, fine_cells);
+
+    AMREX_ALWAYS_ASSERT(!mesh_write.ba[0].CellEqual(mesh_read.ba[0]));
+    AMREX_ALWAYS_ASSERT(mesh_write.ba[1].CellEqual(mesh_read.ba[1]));
+
+    MyPC pc_write(mesh_write.geom, mesh_write.dmap, mesh_write.ba, mesh_write.ref_ratio);
+    pc_write.SetVerbose(false);
+    add_finest_level_particles(pc_write, mesh_write, pdata);
+
+#ifdef AMREX_USE_HDF5
+    pc_write.CheckpointHDF5(chkdir, "particles", true, real_names, int_names);
+#else
+    pc_write.Checkpoint(chkdir, "particles", real_names, int_names);
+#endif
+
+    ParallelDescriptor::Barrier();
+
+#ifndef AMREX_USE_HDF5
+    AMREX_ALWAYS_ASSERT(!amrex::FileExists(chkdir + "/particles/Level_0/Particle_H"));
+    AMREX_ALWAYS_ASSERT(amrex::FileExists(chkdir + "/particles/Level_1/Particle_H"));
+#endif
+
+    MyPC pc_read(mesh_read.geom, mesh_read.dmap, mesh_read.ba, mesh_read.ref_ratio);
+    pc_read.SetVerbose(false);
+#ifdef AMREX_USE_HDF5
+    pc_read.RestartHDF5(chkdir + "/particles", "particles");
+#else
+    pc_read.Restart(chkdir, "particles");
+#endif
+
+    verify_same(pc_write, pc_read);
+
+    amrex::Print() << "  PASSED\n";
+}
+
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc, argv);
@@ -318,6 +433,7 @@ int main (int argc, char* argv[])
     test_fewer_levels();
     test_more_levels();
     test_different_boxarrays();
+    test_finest_only_missing_coarse_header();
 
     amrex::Print() << "All dual-grid restart tests PASSED\n";
 
