@@ -143,11 +143,8 @@ public:
      */
     void setShift (int direction, int ncells);
 
-/**
+    /**
      * \brief Face-centered EB data storage structure.
-     *
-     * Stores EB data for a specific face direction (x, y, or z).
-     * Data is derived from refined (2x finer) cell-centered grids.
      */
     struct FCData {
         FabArray<EBCellFlagFab> m_cellflag_fc;
