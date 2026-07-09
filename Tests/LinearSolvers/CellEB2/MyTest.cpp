@@ -113,6 +113,9 @@ MyTest::solve ()
         const Real tol_rel = reltol;
         const Real tol_abs = 0.0;
         mlmg.solve(amrex::GetVecOfPtrs(phi), amrex::GetVecOfConstPtrs(rhs), tol_rel, tol_abs);
+
+        // Test getEBFluxes
+        mleb.getEBFluxes(amrex::GetVecOfPtrs(fluxeb_sol), amrex::GetVecOfPtrs(phi));
     }
     else
     {
@@ -155,6 +158,9 @@ MyTest::solve ()
             const Real tol_rel = reltol;
             const Real tol_abs = 0.0;
             mlmg.solve({&phi[ilev]}, {&rhs[ilev]}, tol_rel, tol_abs);
+
+            // Test getEBFluxes
+            mleb.getEBFluxes({&fluxeb_sol[ilev]}, {&phi[ilev]});
         }
     }
 
@@ -173,6 +179,23 @@ MyTest::solve ()
             Real norm1 = mf.norm1()*AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
             amrex::Print() << "Level " << ilev << ": weighted max and 1 norms " << norminf << ", " << norm1 << '\n';
         }
+        for (int ilev = 0; ilev <= max_level; ++ilev)
+        {
+            const MultiFab& barea = factory[ilev]->getBndryArea().ToMultiFab(0.0, 0.0);
+            const Real nxyzi = AMREX_D_TERM((1.0/n_cell), *(1.0/n_cell), *(1.0/n_cell));
+
+            MultiFab mf_feb_err(fluxeb_sol[ilev].boxArray(), fluxeb_sol[ilev].DistributionMap(), 1, 0);
+            MultiFab::Copy(mf_feb_err, fluxeb_sol[ilev], 0, 0, 1, 0);
+            MultiFab::Subtract(mf_feb_err, fluxeb_exact[ilev], 0, 0, 1, 0);
+
+            amrex::Print() << "Level " << ilev << ": EB flux error norms "
+                << mf_feb_err.norm0() << ", " << mf_feb_err.norm1()*nxyzi << '\n';
+
+            MultiFab::Multiply(mf_feb_err, barea, 0, 0, 1, 0);
+
+            amrex::Print() << "Level " << ilev << ": EB flux error weighted norms "
+                << mf_feb_err.norm0() << ", " << mf_feb_err.norm1()*nxyzi << '\n';
+        }
     }
 }
 
@@ -188,20 +211,25 @@ MyTest::writePlotfile ()
     if (gpu_regtest) {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
-            plotmf[ilev].define(grids[ilev],dmap[ilev],3,0);
+            const MultiFab& barea = factory[ilev]->getBndryArea().ToMultiFab(0.0, 0.0);
+            plotmf[ilev].define(grids[ilev],dmap[ilev], 6, 0);
             MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
             MultiFab::Copy(plotmf[ilev], phiexact[ilev], 0, 1, 1, 0);
             MultiFab::Copy(plotmf[ilev], vfrc, 0, 2, 1, 0);
+            MultiFab::Copy(plotmf[ilev], fluxeb_sol[ilev], 0, 3, 1, 0);
+            MultiFab::Copy(plotmf[ilev], fluxeb_exact[ilev], 0, 4, 1, 0);
+            MultiFab::Copy(plotmf[ilev], barea, 0, 5, 1, 0);
         }
         WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                                 amrex::GetVecOfConstPtrs(plotmf),
-                                {"phi","exact","vfrac"},
+                                {"phi","exact","vfrac","eb flux","eb flux exact","barea"},
                                 geom, 0.0, Vector<int>(max_level+1,0),
                                 Vector<IntVect>(max_level,IntVect{2}));
     } else {
         for (int ilev = 0; ilev <= max_level; ++ilev) {
             const MultiFab& vfrc = factory[ilev]->getVolFrac();
-            plotmf[ilev].define(grids[ilev],dmap[ilev],5,0);
+            const MultiFab& barea = factory[ilev]->getBndryArea().ToMultiFab(0.0, 0.0);
+            plotmf[ilev].define(grids[ilev],dmap[ilev], 10, 0);
 
             MultiFab::Copy(plotmf[ilev], phi[ilev], 0, 0, 1, 0);
 
@@ -215,10 +243,27 @@ MyTest::writePlotfile ()
             MultiFab::Multiply(plotmf[ilev], vfrc, 0, 3, 1, 0);
 
             MultiFab::Copy(plotmf[ilev], vfrc, 0, 4, 1, 0);
+
+            // EB fluxes
+            MultiFab::Copy(plotmf[ilev], fluxeb_sol[ilev], 0, 5, 1, 0);
+
+            MultiFab::Copy(plotmf[ilev], fluxeb_exact[ilev], 0, 6, 1, 0);
+
+            MultiFab::Copy(    plotmf[ilev], fluxeb_sol[ilev], 0, 7, 1, 0);
+            MultiFab::Subtract(plotmf[ilev], fluxeb_exact[ilev], 0, 7, 1, 0);
+
+            MultiFab::Copy(    plotmf[ilev], fluxeb_sol[ilev], 0, 8, 1, 0);
+            MultiFab::Subtract(plotmf[ilev], fluxeb_exact[ilev], 0, 8, 1, 0);
+            MultiFab::Multiply(plotmf[ilev], barea, 0, 8, 1, 0);
+
+            MultiFab::Copy(plotmf[ilev], barea, 0, 9, 1, 0);
         }
         WriteMultiLevelPlotfile(plot_file_name, max_level+1,
                                 amrex::GetVecOfConstPtrs(plotmf),
-                                {"phi","exact","error","error*vfrac","vfrac"},
+                                {
+                                    "phi", "exact", "error", "error*vfrac", "vfrac",
+                                    "eb flux", "eb flux exact", "flux error", "(flux error)*barea", "barea"
+                                },
                                 geom, 0.0, Vector<int>(max_level+1,0),
                                 Vector<IntVect>(max_level,IntVect{2}));
     }
@@ -318,6 +363,8 @@ MyTest::initData ()
     acoef.resize(nlevels);
     bcoef.resize(nlevels);
     bcoef_eb.resize(nlevels);
+    fluxeb_sol.resize(nlevels);
+    fluxeb_exact.resize(nlevels);
 
     for (int ilev = 0; ilev < nlevels; ++ilev)
     {
@@ -338,6 +385,8 @@ MyTest::initData ()
         }
         bcoef_eb[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
         bcoef_eb[ilev].setVal(1.0);
+        fluxeb_sol[ilev].define(grids[ilev], dmap[ilev], 1, 1, MFInfo(), *factory[ilev]);
+        fluxeb_exact[ilev].define(grids[ilev], dmap[ilev], 1, 0, MFInfo(), *factory[ilev]);
 
         phi[ilev].setVal(0.0);
         rhs[ilev].setVal(0.0);
@@ -345,6 +394,7 @@ MyTest::initData ()
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             bcoef[ilev][idim].setVal(1.0);
         }
+        fluxeb_sol[ilev].setVal(0.0);
 
         const auto dx = geom[ilev].CellSizeArray();
         const Box& domainbox = geom[ilev].Domain();
@@ -359,6 +409,7 @@ MyTest::initData ()
 #endif
         for (MFIter mfi(phiexact[ilev]); mfi.isValid(); ++mfi)
         {
+            const amrex::EBData& ebdata = factory[ilev]->getEBData(mfi);
             const Box& bx = mfi.validbox();
             const Box& nbx = amrex::surroundingNodes(bx);
             Array4<Real> const& phi_arr = phi[ilev].array(mfi);
@@ -368,6 +419,7 @@ MyTest::initData ()
             AMREX_D_TERM(Array4<Real> const& bx_arr = bcoef[ilev][0].array(mfi);,
                          Array4<Real> const& by_arr = bcoef[ilev][1].array(mfi);,
                          Array4<Real> const& bz_arr = bcoef[ilev][2].array(mfi););
+            Array4<Real> const& feb_ex_arr = fluxeb_exact[ilev].array(mfi);
 
             auto fabtyp = flags[mfi].getType(bx);
             if (FabType::covered == fabtyp) {
@@ -375,6 +427,7 @@ MyTest::initData ()
                 {
                     phi_ex_arr(i,j,k) = 0.0;
                     phi_eb_arr(i,j,k) = 0.0;
+                    feb_ex_arr(i,j,k) = 0.0;
                 });
             } else if (FabType::regular == fabtyp) {
                 amrex::ParallelFor(nbx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
@@ -382,6 +435,9 @@ MyTest::initData ()
                     mytest_set_phi_reg(i,j,k,phi_ex_arr,rhs_arr,
                                        AMREX_D_DECL(bx_arr,by_arr,bz_arr),
                                        dx, lprob_type, bx);
+                    if (bx.contains(IntVect(AMREX_D_DECL(i,j,k)))) {
+                        feb_ex_arr(i,j,k) = 0.0;
+                    }
                 });
             } else {
                 Array4<Real> const& beb_arr = bcoef_eb[ilev].array(mfi);
@@ -394,6 +450,7 @@ MyTest::initData ()
                                       AMREX_D_DECL(bx_arr,by_arr,bz_arr),
                                       beb_arr,flag_arr,cent_arr,bcent_arr,
                                       dx, lprob_type, bx);
+                    mytest_set_fluxeb_exact(i,j,k,feb_ex_arr,flag_arr,ebdata,dx,lprob_type,bx);
                 });
             }
 
