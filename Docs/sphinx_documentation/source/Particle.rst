@@ -259,6 +259,14 @@ be moved to their proper places in the container, and all invalid particles
 (particles with id set to :cpp:`-1`) will be removed. All the MPI communication
 needed to do this happens automatically.
 
+For short-range particle motion, :cpp:`Redistribute` can use a local communication
+algorithm. The overload with a boolean local flag accepts :cpp:`IntVect` values
+for both :cpp:`nGrow` and the maximum number of cells a particle may have moved.
+Set the local flag to :cpp:`true` only when every particle has moved no more than
+the supplied cell count in each direction since the last :cpp:`Redistribute()`
+call. Use the global algorithm after initialization, regridding, load balancing,
+or any update that may send particles arbitrarily far.
+
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the

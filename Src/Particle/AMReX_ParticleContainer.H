@@ -504,13 +504,32 @@ public:
     *              redistributed but are not necessarily at the same time as those on the coarse
     *              level.
     *              Default: 0
-    * \param local If 0, this will be a non-local redistribute, meaning that particle can potentially
-    *              go to any other box in the simulation. If > 0, this is the maximum number of cells
-    *              a particle can have moved since the last Redistribute() call. Knowing this number
+    * \param local If not positive, this will be a non-local redistribute, meaning that particles
+    *              can potentially go to any other box in the simulation. Otherwise, it is the
+    *              maximum number of cells a particle can have moved since the last
+    *              Redistribute() call, applied uniformly in all directions. Knowing this
     *              allows an optimized MPI communication pattern to be used.
     * \param remove_negative If true, remove particles with a negative ID. Default: true.
     */
-    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+    void Redistribute (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                       int local = 0, bool remove_negative=true)
+    {
+        Redistribute(lev_min, lev_max, IntVect(nGrow),
+                     local > 0, IntVect(local), remove_negative);
+    }
+
+    //! Like Redistribute(int, int, int, int, bool) but separates the local/global
+    //! algorithm choice from the per-direction local distance.
+    //! \param lev_min The minimum level to consider.
+    //! \param lev_max The maximum level to consider.
+    //! \param nGrow If particles are within nGrow cells of their current box
+    //!        in each direction, they will not be moved.
+    //! \param local If true, use the local Redistribute algorithm.
+    //! \param max_cells_moved The maximum number of cells a particle can
+    //!        have moved since the last Redistribute() call in each direction.
+    //! \param remove_negative If true, remove particles with a negative ID.
+    void Redistribute (int lev_min, int lev_max, IntVect nGrow,
+                       bool local, IntVect max_cells_moved,
                        bool remove_negative=true);
 
 
@@ -1279,10 +1298,15 @@ public:
       return doUnlink;
     }
 
-    void RedistributeCPU (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
-                          bool remove_negative=true);
+    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0,
+                            int local = 0, bool remove_negative=true)
+    {
+        Redistribute_impl(lev_min, lev_max, IntVect(nGrow),
+                          local > 0, IntVect(local), remove_negative);
+    }
 
-    void Redistribute_impl (int lev_min = 0, int lev_max = -1, int nGrow = 0, int local=0,
+    void Redistribute_impl (int lev_min, int lev_max, IntVect nGrow,
+                            bool local, IntVect max_cells_moved,
                             bool remove_negative=true);
 
     void ReserveForRedistribute (ParticleCopyPlan const& plan);
@@ -1443,7 +1467,7 @@ protected:
     /**
     * \brief Checks a particle's location on levels lev_min and higher.
     * Returns false if the particle does not exist on that level.
-    * Only if lev_min == lev_max, nGrow can be \> 0 (i.e., including
+    * Only if lev_min == lev_max, nGrow can be nonzero (i.e., including
     * nGrow ghost cells).
     *
     * \param prt
@@ -1455,7 +1479,8 @@ protected:
     */
     template <typename P>
     bool Where (const P& prt, ParticleLocData& pld,
-                int lev_min = 0, int lev_max = -1, int nGrow=0, int local_grid=-1) const;
+                int lev_min = 0, int lev_max = -1, IntVect nGrow=IntVect(0),
+                int local_grid=-1) const;
 
 
     /**
@@ -1548,7 +1573,7 @@ private:
     AMREX_FORCE_INLINE
     int hostPartitionTile (ParticleTileType& src_tile,
                            int lev, int gid, int tid,
-                           int lev_min, int lev_max, int nGrow, int local,
+                           int lev_min, int lev_max, IntVect nGrow, bool local,
                            bool remove_negative, int myproc,
                            Gpu::DeviceVector<int>& boxes,
                            Gpu::DeviceVector<int>& levels,
@@ -1556,9 +1581,26 @@ private:
                            Gpu::DeviceVector<int>& src_indices,
                            Gpu::DeviceVector<IntVect>& periodic_shift);
 
+    AMREX_FORCE_INLINE
+    int hostPartitionTile (ParticleTileType& src_tile,
+                           int lev, int gid, int tid,
+                           int lev_min, int lev_max, int nGrow, int local,
+                           bool remove_negative, int myproc,
+                           Gpu::DeviceVector<int>& boxes,
+                           Gpu::DeviceVector<int>& levels,
+                           Gpu::DeviceVector<int>& tiles,
+                           Gpu::DeviceVector<int>& src_indices,
+                           Gpu::DeviceVector<IntVect>& periodic_shift)
+    {
+        return hostPartitionTile(src_tile, lev, gid, tid,
+                                 lev_min, lev_max, IntVect(nGrow), local > 0,
+                                 remove_negative, myproc,
+                                 boxes, levels, tiles, src_indices, periodic_shift);
+    }
+
     template <typename P>
     void locateParticle (P& p, ParticleLocData& pld,
-                         int lev_min, int lev_max, int nGrow, int local_grid=-1) const;
+                         int lev_min, int lev_max, IntVect nGrow, int local_grid=-1) const;
 
     void Initialize ();
 

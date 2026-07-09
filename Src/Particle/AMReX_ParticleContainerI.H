@@ -218,7 +218,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
          ParticleLocData&    pld,
          int                 lev_min,
          int                 lev_max,
-         int                 nGrow,
+         IntVect             nGrow,
          int                 local_grid) const
 {
 
@@ -230,7 +230,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
   AMREX_ASSERT(lev_max <= finestLevel());
 
-  AMREX_ASSERT(nGrow == 0 || (nGrow >= 0 && lev_min == lev_max));
+  AMREX_ASSERT(nGrow == 0 || (nGrow.allGE(0) && lev_min == lev_max));
 
   std::vector< std::pair<int, Box> > isects;
 
@@ -257,13 +257,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
           bool findfirst = (nGrow == 0) ? true : false;
           ba.intersections(Box(iv, iv), isects, findfirst, nGrow);
           grid = isects.empty() ? -1 : isects[0].first;
-          if (nGrow > 0 && std::ssize(isects) > 1) {
+          if (nGrow != 0 && std::ssize(isects) > 1) {
              for (auto & isect : isects) {
                  Box bx = ba.getCellCenteredBox(isect.first);
                  for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                      Box gbx = bx;
                      IntVect gr(IntVect::TheZeroVector());
-                     gr[dir] = nGrow;
+                     gr[dir] = nGrow[dir];
                      gbx.grow(gr);
                      if (gbx.contains(iv)) {
                         grid = isect.first;
@@ -445,7 +445,7 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
 template <typename P>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>::locateParticle (P& p, ParticleLocData& pld,
-                                                                                        int lev_min, int lev_max, int nGrow, int local_grid) const
+                                                                                        int lev_min, int lev_max, IntVect nGrow, int local_grid) const
 {
     bool success;
     if (Geom(0).outsideRoundoffDomain(AMREX_D_DECL(p.pos(0), p.pos(1), p.pos(2))))
@@ -461,12 +461,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
     else
     {
-        success = Where(p, pld, lev_min, lev_max, 0, local_grid);
+        success = Where(p, pld, lev_min, lev_max, IntVect(0), local_grid);
     }
 
     if (!success)
     {
-        success = (nGrow > 0) && Where(p, pld, lev_min, lev_min, nGrow);
+        success = (nGrow != 0) && Where(p, pld, lev_min, lev_min, nGrow);
         pld.m_grown_gridbox = pld.m_gridbox; // reset grown box for subsequent calls.
     }
 
@@ -1236,7 +1236,8 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::Redistribute (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
+::Redistribute (int lev_min, int lev_max, IntVect nGrow,
+                bool local, IntVect max_cells_moved, bool remove_negative)
 {
     BL_PROFILE_SYNC_START_TIMED("SyncBeforeComms: Redist");
 
@@ -1246,7 +1247,8 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         "runtime real components for positions"
     );
 
-    Redistribute_impl(lev_min, lev_max, nGrow, local, remove_negative);
+    Redistribute_impl(lev_min, lev_max, nGrow, local, max_cells_moved,
+                      remove_negative);
 
     BL_PROFILE_SYNC_STOP();
 }
@@ -1353,7 +1355,7 @@ int
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
 ::hostPartitionTile (ParticleTileType& src_tile,
                      int lev, int gid, int tid,
-                     int lev_min, int lev_max, int nGrow, int local,
+                     int lev_min, int lev_max, IntVect nGrow, bool local,
                      bool remove_negative, int myproc,
                      Gpu::DeviceVector<int>& boxes,
                      Gpu::DeviceVector<int>& levels,
@@ -1440,9 +1442,14 @@ template <typename ParticleType, int NArrayReal, int NArrayInt,
           template<class> class Allocator, class CellAssignor>
 void
 ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssignor>
-::Redistribute_impl (int lev_min, int lev_max, int nGrow, int local, bool remove_negative)
+::Redistribute_impl (int lev_min, int lev_max, IntVect nGrow,
+                     bool local, IntVect max_cells_moved, bool remove_negative)
 {
-    if (local) { AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max, local) == 0); }
+    if (local) {
+        AMREX_ASSERT(max_cells_moved.allGE(0));
+        AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max,
+                                            max_cells_moved) == 0);
+    }
 
     BL_PROFILE("ParticleContainer::Redistribute_impl()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
@@ -1474,7 +1481,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     this->defineBufferMap();
 
 #ifndef AMREX_USE_GPU
-    if (local > 0) { BuildRedistributeMask(0, local); }
+    if (local) { BuildRedistributeMask(0, max_cells_moved); }
 #else
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
@@ -1661,7 +1668,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     ParticleCopyPlan plan;
 
     plan.build(*this, op, h_redistribute_int_comp,
-               h_redistribute_real_comp, local);
+               h_redistribute_real_comp, local, max_cells_moved);
 
     // by default, this uses The_Arena();
     amrex::PODVector<char, PolymorphicArenaAllocator<char> > snd_buffer;

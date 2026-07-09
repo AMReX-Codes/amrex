@@ -410,7 +410,7 @@ public:
                 const ParticleCopyOp& op,
                 const Vector<int>& int_comp_mask,
                 const Vector<int>& real_comp_mask,
-                int local)
+                bool local, IntVect max_cells_moved)
     {
         BL_PROFILE("ParticleCopyPlan::build");
 
@@ -418,10 +418,11 @@ public:
         pp.query("do_one_sided_comms", m_do_one_sided_comms);
           const int num_buckets = pc.BufferMap().numBuckets();
 
+        AMREX_ASSERT(!local || max_cells_moved.allGE(0));
         m_local = local;
-        if (local)
+        if (m_local)
         {
-            m_neighbor_procs = pc.NeighborProcs(local);
+            m_neighbor_procs = pc.NeighborProcs(max_cells_moved);
         }
         else
         {
