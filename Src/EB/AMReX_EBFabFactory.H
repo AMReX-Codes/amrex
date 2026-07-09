@@ -47,7 +47,7 @@ public:
                         const Vector<int>& a_ngrow, EBSupport a_support);
 
     /**
-     * \brief Build an EB-aware factory for face-centered grids.
+     * \brief Build an EB factory for face-centered grids.
      *
      * \param face_dir  Face direction (0=x, 1=y, 2=z).
      */
@@ -180,15 +180,6 @@ std::unique_ptr<EBFArrayBoxFactory>
 makeEBFabFactory (const EB2::IndexSpace*, const Geometry& a_geom,
                   const BoxArray& a_ba,
                   const DistributionMapping& a_dm,
-                  const Vector<int>& a_ngrow, EBSupport a_support);
-
-/// \ingroup amrex_eb
-//! Convenience overload for face-centered grids with explicit level.
-std::unique_ptr<EBFArrayBoxFactory>
-makeEBFabFactory (const EB2::Level*,
-                  const BoxArray& a_ba,
-                  const DistributionMapping& a_dm,
-                  int face_dir,
                   const Vector<int>& a_ngrow, EBSupport a_support);
 
 }
