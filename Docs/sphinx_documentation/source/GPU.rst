@@ -241,7 +241,7 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | Variable Name                | Description                                     | Default     | Possible values |
    +==============================+=================================================+=============+=================+
-   | AMReX_CUDA_ARCH              |  CUDA target architecture                       | Auto        | User-defined    |
+   | CMAKE_CUDA_ARCHITECTURES     |  Target CUDA architecture(s) (standard CMake)   | native      | See below       |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_FASTMATH          |  Enable CUDA fastmath library                   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -277,26 +277,39 @@ check the :ref:`table <tab:cmakecudavar>` below.
    \end{center}
 
 
-The target architecture to build for can be specified via the configuration option
-``-DAMReX_CUDA_ARCH=<target-architecture>``, where ``<target-architecture>`` can be either
-the name of the NVIDIA GPU generation, e.g., ``Turing``, ``Volta``, or ``Ampere``, or its
-`compute capability <https://developer.nvidia.com/cuda-gpus>`_, e.g., ``10.0`` or ``9.0``.
-For example, on Cori GPUs you can specify the architecture as follows:
+The target architecture(s) to build for are selected via the standard CMake option
+``-DCMAKE_CUDA_ARCHITECTURES=<arch>`` (or the ``CUDAARCHS`` environment variable), where
+``<arch>`` is one or more `CUDA compute capabilities <https://developer.nvidia.com/cuda-gpus>`_
+given as integers without the dot, e.g., ``80`` for compute capability 8.0. Multiple
+architectures can be set as a semicolon-separated list, e.g.,
+``-DCMAKE_CUDA_ARCHITECTURES="80;90"``; building for multiple architectures generally
+results in a larger library and longer build times. The special values ``native`` (the
+default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and ``<NN>a``
+suffixes documented for CMake's
+`CUDA_ARCHITECTURES <https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html>`__
+target property, are supported.
 
 .. highlight:: console
 
 ::
 
-   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DAMReX_CUDA_ARCH=Volta /path/to/amrex/source
+   cmake [options] -DAMReX_GPU_BACKEND=CUDA -DCMAKE_CUDA_ARCHITECTURES=80 /path/to/amrex/source
 
 
-If no architecture is specified, CMake will default to the architecture defined in the
-*environment variable* ``AMREX_CUDA_ARCH`` (note: all caps).
-If the latter is not defined, CMake will try to determine which GPU architecture is supported by the system.
-If more than one is found, CMake will build for all of them.
-If autodetection fails, a list of "common" architectures is assumed.
-`Multiple CUDA architectures <https://cmake.org/cmake/help/latest/module/FindCUDA.html#commands>`__ can also be set manually as a semicolon-separated list, e.g., ``-DAMReX_CUDA_ARCH=7.0;8.0``.
-Building for multiple CUDA architectures will generally result in a larger library and longer build times.
+If no architecture is specified, AMReX defaults to ``native``, which builds for the GPU(s)
+installed in the machine running CMake. This requires a GPU to be visible at configuration
+time; on GPU-less machines (e.g., HPC login nodes or CI runners) an explicit architecture
+must be provided.
+
+.. note::
+
+   The legacy ``-DAMReX_CUDA_ARCH`` option and the ``AMREX_CUDA_ARCH`` environment variable
+   are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
+   and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
+   precedence. Please migrate to the standard CMake variables.
+
+Setting ``-DAMReX_CUDA_LTO=ON`` enables CUDA device link-time optimization. This requires
+relocatable device code (``AMReX_GPU_RDC=ON``, the default) and CMake 3.25 or newer.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
@@ -313,8 +326,7 @@ the following code into the appropriate CMakeLists.txt file:
 
 
 If instead of using an external installation of AMReX you prefer to include AMReX as a subproject
-in your CMake setup, we strongly encourage you to use the ``AMReX_SetupCUDA`` module as shown below
-if the CMake version is less than 3.20:
+in your CMake setup, simply enable the CUDA language before adding the AMReX source directory:
 
 .. highlight:: console
 
@@ -323,12 +335,7 @@ if the CMake version is less than 3.20:
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
-   # Include the AMReX-provided CUDA setup module -- OBSOLETE with CMake >= 3.20
-   if(CMAKE_VERSION VERSION_LESS 3.20)
-       include(AMReX_SetupCUDA)
-   endif()
-
-   # Include AMReX source directory ONLY AFTER the two steps above
+   # Include AMReX source directory ONLY AFTER enabling the CUDA language
    add_subdirectory(/path/to/amrex/source/dir)
 
 

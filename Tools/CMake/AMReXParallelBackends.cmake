@@ -70,9 +70,7 @@ endif ()
 #
 #
 #
-if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
-      AND
-      CMAKE_VERSION VERSION_GREATER_EQUAL 3.20 )
+if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
 
    find_package(CUDAToolkit REQUIRED)
    foreach(D IN LISTS AMReX_SPACEDIM)
@@ -109,20 +107,38 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
           )
   endforeach()
 
-   # default to building for the architecture of the available GPU
-   set(AMREX_CUDA_ARCHS native)
+   # The target architecture(s) were resolved into CMAKE_CUDA_ARCHITECTURES before
+   # enable_language(CUDA) (see AMReXCUDAArchs). Record them for export to downstream
+   # projects (AMReXConfig.cmake.in) and for dependent test/tutorial targets
+   # (setup_target_for_cuda_compilation).
+   set(AMREX_CUDA_ARCHS "${CMAKE_CUDA_ARCHITECTURES}" CACHE INTERNAL "CUDA archs AMReX is built for")
 
-   # but, if the user specifies architectures explicitly then use that instead
-   if (DEFINED CMAKE_CUDA_ARCHITECTURES)
-      set(AMREX_CUDA_ARCHS ${CMAKE_CUDA_ARCHITECTURES})
-   endif()
+   # Device link-time optimization (LTO). Requires relocatable device code
+   # (separable compilation); CMake >= 3.25 emits -dlto for CUDA when IPO is on.
+   if (AMReX_CUDA_LTO)
+      include(CheckIPOSupported)
+      check_ipo_supported(LANGUAGES CUDA RESULT _amrex_cuda_ipo OUTPUT _amrex_cuda_ipo_msg)
+      if (NOT _amrex_cuda_ipo)
+         message(WARNING "AMReX_CUDA_LTO is ON but device LTO is not supported by this "
+            "toolchain; disabling it.\n${_amrex_cuda_ipo_msg}")
+      endif ()
+      unset(_amrex_cuda_ipo_msg)
+   endif ()
 
    foreach(D IN LISTS AMReX_SPACEDIM)
        set_target_properties(amrex_${D}d
           PROPERTIES
           CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
           )
+       if (AMReX_CUDA_LTO AND _amrex_cuda_ipo)
+          set_target_properties(amrex_${D}d
+             PROPERTIES
+             CUDA_SEPARABLE_COMPILATION ON
+             INTERPROCEDURAL_OPTIMIZATION ON
+             )
+       endif ()
    endforeach()
+   unset(_amrex_cuda_ipo)
 
    #
    # CUDA specific warnings
@@ -138,13 +154,6 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    endif()
    if (AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
       list(APPEND _cuda_flags "SHELL:--Werror cross-execution-space-call")
-   endif()
-
-   #
-   # Forward unknown NVCC flags to the host compiler
-   #
-   if (CUDA_FORWARD_UNKNOWN_FLAGS_HOST)
-      list(APPEND _cuda_flags --forward-unknown-to-host-compiler)
    endif()
 
    # fast math
@@ -203,7 +212,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    # Flags to make it an error to write a device variable in
    # a host function.
    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.2)
-      list(APPEND _cuda_flag --display-error-number "SHELL:--diag-error 20092")
+      list(APPEND _cuda_flags --display-error-number "SHELL:--diag-error 20092")
    endif ()
 
    foreach(D IN LISTS AMReX_SPACEDIM)
@@ -384,14 +393,9 @@ if (AMReX_HIP)
        foreach(D IN LISTS AMReX_SPACEDIM)
            target_compile_options(amrex_${D}d PUBLIC
               $<$<COMPILE_LANGUAGE:CXX>:-fgpu-rdc> )
-           if(CMAKE_VERSION VERSION_LESS 3.18)
-               target_link_options(amrex_${D}d PUBLIC
-                  -fgpu-rdc)
-           else()
-               target_link_options(amrex_${D}d PUBLIC
-                  "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
-                  "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
-           endif()
+           target_link_options(amrex_${D}d PUBLIC
+              "$<$<LINK_LANGUAGE:HIP>:-fgpu-rdc>"
+              "$<$<LINK_LANGUAGE:CXX>:-fgpu-rdc>")
        endforeach()
    endif()
 endif ()

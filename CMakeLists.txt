@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.25)
 
 #
 # Setting a cmake_policy to OLD is deprecated by definition and will raise a
@@ -95,10 +95,11 @@ include( AMReXOptions )
 # Enable CUDA if requested
 #
 if (AMReX_CUDA)
+    # Resolve the target CUDA architecture(s) into the standard CMAKE_CUDA_ARCHITECTURES
+    # before enabling the CUDA language, so that CMP0104 does not substitute a
+    # compiler-default architecture and our "native" default / hint precedence is honored.
+    include(AMReXCUDAArchs)
     enable_language(CUDA)
-    if(CMAKE_VERSION VERSION_LESS 3.20)
-        include(AMReX_SetupCUDA)
-    endif()
 endif ()
 
 #

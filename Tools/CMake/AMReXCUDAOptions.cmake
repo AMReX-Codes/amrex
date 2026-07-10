@@ -17,14 +17,9 @@ endmacro ()
 #
 message(STATUS "Enabled CUDA options:")
 
-set(AMReX_CUDA_ARCH_DEFAULT "Auto")
-if(DEFINED CMAKE_CUDA_ARCHITECTURES)
-   set(AMReX_CUDA_ARCH_DEFAULT "${CMAKE_CUDA_ARCHITECTURES}")
-endif ()
-if(DEFINED ENV{AMREX_CUDA_ARCH})
-   set(AMReX_CUDA_ARCH_DEFAULT "$ENV{AMREX_CUDA_ARCH}")
-endif()
-set(AMReX_CUDA_ARCH ${AMReX_CUDA_ARCH_DEFAULT} CACHE STRING "CUDA architecture (Use 'Auto' for automatic detection)")
+# Note: the target CUDA architecture(s) are resolved into the standard
+# CMAKE_CUDA_ARCHITECTURES cache variable in AMReXCUDAArchs.cmake, which runs
+# before enable_language(CUDA). See that module for the honored hints and precedence.
 
 option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)  # Note: inconsistent with AMReX_FASTMATH defaults
 cuda_print_option( AMReX_CUDA_FASTMATH )
@@ -52,13 +47,6 @@ cuda_print_option(AMReX_CUDA_ERROR_CAPTURE_THIS)
 option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL
        "Error if a CUDA host function is called from a host device function" OFF)
 cuda_print_option(AMReX_CUDA_ERROR_CROSS_EXECUTION_SPACE_CALL)
-
-# makes things more robust for -Xcompiler pre-fixing unknown nvcc flags
-# note: available with NVCC 10.2.89+; default in CMake 3.17.0+ for supporting NVCCs
-#       https://gitlab.kitware.com/cmake/cmake/-/blob/v3.17.0/Modules/Compiler/NVIDIA-CUDA.cmake
-cmake_dependent_option(CUDA_FORWARD_UNKNOWN_FLAGS_HOST
-   "Forward unknown NVCC flags to the host compiler" ON
-   "CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 10.2.89;CMAKE_VERSION VERSION_LESS 3.17" OFF)
 
 option(AMReX_CUDA_PTX_VERBOSE "Verbose code generation statistics in ptxas" OFF)
 cuda_print_option(AMReX_CUDA_PTX_VERBOSE)

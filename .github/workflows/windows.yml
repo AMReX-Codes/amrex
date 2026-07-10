@@ -181,7 +181,7 @@ jobs:
               -DCMAKE_VERBOSE_MAKEFILE=ON         `
               -DCMAKE_BUILD_TYPE=Release          `
               -DAMReX_GPU_BACKEND=CUDA            `
-              -DAMReX_CUDA_ARCH="8.0"             `
+              -DCMAKE_CUDA_ARCHITECTURES=80        `
               -DAMReX_ENABLE_TESTS=ON             `
               -DAMReX_EB=ON                       `
               -DAMReX_FFT=ON                      `
