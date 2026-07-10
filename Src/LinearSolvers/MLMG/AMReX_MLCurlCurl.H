@@ -18,8 +18,8 @@ namespace amrex {
  * \brief curl (alpha curl E) + beta E = rhs
  *
  * Here E is an Array of 3 MultiFabs on the staggered grid.  The coefficient
- * \f$\alpha\f$ can be supplied either as a positive scalar (via setScalars)
- * or as a nodal MultiFab (via setAlpha), and \f$\beta\f$ can be either a
+ * \c alpha can be supplied either as a positive scalar (via setScalars)
+ * or as a nodal MultiFab (via setAlpha), and \c beta can be either a
  * non-negative scalar or an edge-centered MultiFab (via setBeta).
  *
  * It's the caller's responsibility to make sure rhs has consistent nodal

@@ -87,7 +87,7 @@ public:
     static void assign (VEC& lhs, VEC const& rhs);
 
     /**
-     * \brief Accumulate \f$\text{lhs} \mathrel{+}= a\,\text{rhs}\f$.
+     * \brief Accumulate `lhs += a * rhs`.
      *
      * \param lhs Accumulation target.
      * \param rhs Source vector.
@@ -96,7 +96,7 @@ public:
     static void increment (VEC& lhs, VEC const& rhs, T a);
 
     /**
-     * \brief Form the linear combination \f$\text{lhs} = a\,\text{rhs}_a + b\,\text{rhs}_b\f$.
+     * \brief Form the linear combination `lhs = a * rhs_a + b * rhs_b`.
      *
      * \param lhs    Destination vector.
      * \param a      Scalar applied to \p rhs_a.

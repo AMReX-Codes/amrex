@@ -93,7 +93,7 @@ public:
     /**
      * \brief Solve the generalized Stokes problem in spectral space.
      *
-     * Solves \f$(\alpha - \eta \nabla^2) \mathbf{u} + \nabla p = \mathbf{f}\f$
+     * Solves `(alpha - eta * nabla^2) u + nabla p = f`
      * with the divergence-free constraint enforced in Fourier space.
      * This solver is for 2D and 3D only.
      *
