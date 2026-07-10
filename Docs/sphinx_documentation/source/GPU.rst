@@ -309,7 +309,7 @@ must be provided.
    precedence. Please migrate to the standard CMake variables.
 
 Setting ``-DAMReX_CUDA_LTO=ON`` enables CUDA device link-time optimization. This requires
-relocatable device code (``AMReX_GPU_RDC=ON``, the default) and CMake 3.25 or newer.
+relocatable device code (``AMReX_GPU_RDC=ON``, the default).
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
