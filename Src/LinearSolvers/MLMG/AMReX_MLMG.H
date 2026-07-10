@@ -1611,6 +1611,17 @@ MLMGT<MF>::prepareLinOp ()
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
+
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+        hypre_solver.reset();
+        hypre_bndry.reset();
+        hypre_node_solver.reset();
+#endif
+
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+        petsc_solver.reset();
+        petsc_bndry.reset();
+#endif
     }
 }
 
