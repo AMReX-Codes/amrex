@@ -94,6 +94,12 @@ public:
      * \param ratio     refinement ratio
      * \param max_order interpolation order
      * \param max_width max width of the interpolation stencil
+     *
+     * \note Order-3 interpolation reads the boundary mask at tangential offsets
+     *       of `±ratio`, and the masks are allocated with a fixed tangential
+     *       half-width (see `BndryDataT::NTangHalfWidth`).  Consequently
+     *       `max_order == 3` requires `ratio <= 4` in every dimension; this is
+     *       enforced at runtime.  `max_order == 1` has no such restriction.
      */
     void setBndryValues (BndryRegisterT<MF> const& crse, int c_start, const MF& fine, int f_start,
                          int bnd_start, int num_comp, const IntVect& ratio,
@@ -172,6 +178,15 @@ InterpBndryDataT<MF>::setBndryValues (BndryRegisterT<MF> const& crse, int c_star
     AMREX_ASSERT(this->grids == fine.boxArray());
 
     const Box& fine_domain = this->geom.Domain();
+
+    // Order-3 interpolation reads the boundary mask at tangential offsets of
+    // ±ratio.  The masks are built with a fixed tangential half-width
+    // (BndryDataT::NTangHalfWidth == 5, i.e. ref_ratio + 1), so ratios above 4
+    // would walk past the allocated mask halo.  Order-1 does not touch the mask.
+    if (max_order == 3) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ratio.allLE(4),
+            "InterpBndryDataT<MF>::setBndryValues: max_order=3 requires refinement ratio <= 4");
+    }
 
     if (max_order==3 || max_order==1)
     {
