@@ -827,7 +827,7 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    /** \brief Mark cells with value \f$\le\f$ \p val. */
+    /** \brief Mark cells with value \c <= \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 

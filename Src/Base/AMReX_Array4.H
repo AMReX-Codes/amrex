@@ -750,14 +750,14 @@ namespace amrex {
         /**
          * \brief Create a single-cell component accessor.
          *
-         * Returns a \c CellData<T> view for the cell \f$(i,j,k)\f$ in an
+         * Returns a \c CellData<T> view for the cell \c (i,j,k) in an
          * Array4. The returned object provides access to all components
          * without recomputing full \c (i,j,k,n) indexing.
          *
          * \param i Cell index in x.
          * \param j Cell index in y.
          * \param k Cell index in z.
-         * \return A \c CellData<T> accessor for cell \f$(i,j,k)\f$.
+         * \return A \c CellData<T> accessor for cell \c (i,j,k).
          *
          * \note This overload is enabled only for Array4.
          *
