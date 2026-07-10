@@ -282,7 +282,7 @@ The target architecture(s) to build for are selected via the standard CMake opti
 ``<arch>`` is one or more `CUDA compute capabilities <https://developer.nvidia.com/cuda-gpus>`_
 given as integers without the dot, e.g., ``80`` for compute capability 8.0. Multiple
 architectures can be set as a semicolon-separated list, e.g.,
-``-DCMAKE_CUDA_ARCHITECTURES="80;90"``; building for multiple architectures generally
+``-DCMAKE_CUDA_ARCHITECTURES="80;90"``. Building for multiple architectures generally
 results in a larger library and longer build times. The special values ``native`` (the
 default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and ``<NN>a``
 suffixes documented for CMake's
@@ -298,7 +298,7 @@ target property, are supported.
 
 If no architecture is specified, AMReX defaults to ``native``, which builds for the GPU(s)
 installed in the machine running CMake. This requires a GPU to be visible at configuration
-time; on GPU-less machines (e.g., HPC login nodes or CI runners) an explicit architecture
+time. On machines without GPUs (e.g., HPC login nodes or CI runners) an explicit architecture
 must be provided.
 
 .. note::
