@@ -10,57 +10,85 @@
 
 #include <iosfwd>
 
+/**
+ * \file AMReX_BoxDomain.H
+ * \brief Disjoint-list representation of boxes and associated utilities.
+ */
+
 namespace amrex
 {
     class BoxDomain;
     class BoxArray;
 
-    //! Returns the complement of BoxDomain bl in Box b.
+    /**
+     * \brief Returns the complement of BoxDomain \p bl in Box \p b.
+     *
+     * \param b Bounding box that defines the full region.
+     * \param bl BoxDomain describing the portion to remove.
+     * \return A BoxDomain covering the indices of \p b not present in \p bl.
+     */
     BoxDomain complementIn (const Box& b, const BoxDomain& bl);
 
     /**
-    * \brief Coarsen all Boxes in the domain by the refinement ratio.
-    *           The result is placed into a new BoxDomain.
-    */
+     * \brief Coarsen all Boxes in the domain by the refinement ratio.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain to coarsen.
+     * \param ratio Uniform coarsening factor.
+     */
     void coarsen (BoxDomain& dest, const BoxDomain& fin, int ratio);
 
     /**
-    * \brief Refine all Boxes in the domain by the refinement ratio
-    *           and return the result in dest.
-    */
+     * \brief Refine all Boxes in the domain by the refinement ratio.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain to refine.
+     * \param ratio Uniform refinement factor.
+     */
     void refine (BoxDomain&       dest,
                  const BoxDomain& fin,
                  int              ratio);
 
     /**
-    * \brief Compute the intersection of BoxDomain fin with Box b
-    *           and place the result into BoxDomain dest.
-    */
+     * \brief Compute the intersection of BoxDomain fin with Box b.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain.
+     * \param b Clipping box.
+     */
     void intersect (BoxDomain&       dest,
                     const BoxDomain& fin,
                     const Box&       b);
 
     /**
-    * \brief Grow each Box in BoxDomain fin by size sz and place
-    *           the result into BoxDomain dest.
-    */
+     * \brief Grow each Box in BoxDomain fin by size sz.
+     *
+     * \param dest Destination domain to populate.
+     * \param fin Source domain.
+     * \param sz Number of cells to grow on all sides.
+     */
     void accrete (BoxDomain&       dest,
                   const BoxDomain& fin,
                   int              sz = 1);
 
 
-//! Output a BoxDomain to an ostream is ASCII format.
+/**
+ * \brief Output a BoxDomain to an ostream in ASCII format.
+ *
+ * \param os Stream receiving the textual representation.
+ * \param bd Domain to print.
+ * \return Reference to \p os to enable chaining.
+ */
 std::ostream& operator<< (std::ostream& os, const BoxDomain& bd);
 
 
 /**
-* \brief A List of Disjoint Boxes.
-*
-* A BoxDomain is a BoxList with the restriction that Boxes in the list
-* are disjoint.
-* Note that a BoxDomain is NOT a BoxList due to the protected inheritance.
-* This is a concrete class, not a polymorphic one.
-*/
+ * \class amrex::BoxDomain
+ * \ingroup amrex_domain_decomposition
+ * \brief A list of disjoint boxes built on top of `BoxList`.
+ *
+ * The underlying `BoxList` is exposed selectively through promoted members.
+ */
 class BoxDomain
     :
     protected BoxList
@@ -73,25 +101,34 @@ public:
     //! Construct an empty BoxDomain of IndexType::TheCellType().
     BoxDomain ();
 
-    //! A Box Domain out of single Box
+    //! Make a BoxDomain out of a single Box.
     BoxDomain (const Box& bx);
 
     //! Construct an empty BoxDomain of IndexType itype.
     explicit BoxDomain (IndexType itype);
 
-    //! Add a Box to the domain.
+    /**
+     * \brief Insert a box into the domain, clipping it so the stored boxes remain disjoint.
+     * \param b Box (matching the domain index type) to merge into the domain.
+     */
     void add (const Box& b);
 
-    //! Add all Boxes in the BoxList to the domain.
+    /**
+     * \brief Insert every box from \p bl, clipping to enforce disjointedness.
+     * \param bl List of boxes (matching the domain index type) to merge.
+     */
     void add (const BoxList& bl);
 
-    //! Remove a box from the domain.
+    /**
+     * \brief Erase the intersection between this domain and \p b.
+     * \param b Box to subtract.
+     * \return Reference to this domain for chaining.
+     */
     BoxDomain& rmBox (const Box& b);
 
     /**
-    * Returns True if this BoxDomain is valid.  Checks for
-    * disjointedness. Returns true if the BoxDomain is empty.
-    */
+     * \brief Returns true if this BoxDomain is valid (disjoint or empty).
+     */
     [[nodiscard]] bool ok () const;
 
     //! Promoted from BoxList.
@@ -133,30 +170,41 @@ public:
     //! Return a const reference to the underlying BoxList of this BoxDomain.
     [[nodiscard]] const BoxList& boxList () const;
 
-    //! Are the BoxDomains equal?
+    //! Return true if both domains cover identical regions.
     bool operator== (const BoxDomain& rhs) const;
 
-    //! Are the BoxDomains not equal?
+    //! Logical negation of operator==.
     bool operator!= (const BoxDomain& rhs) const;
 
-    //! Refine all Boxes in the domain by the refinement ratio.
+    /**
+     * \brief Refine every box by the supplied ratio.
+     * \param ratio Uniform refinement factor applied in each dimension.
+     */
     BoxDomain& refine (int ratio);
 
-    //! Coarsen all Boxes in the domain by the refinement ratio.
+    /**
+     * \brief Coarsen every box by the supplied ratio.
+     * \param ratio Uniform coarsening factor applied in each dimension.
+     */
     BoxDomain& coarsen (int ratio);
 
-    //! Intersect this BoxDomain with Box b.
+    //! Restrict the domain to the overlap with box \p b.
     BoxDomain& intersect (const Box& b);
 
-    //! Grow each Box by size sz.
+    //! Grow each stored box by \p sz cells on all sides.
     BoxDomain& accrete (int sz);
 
-    //! Creates the complement of BoxDomain bl in Box b.
+    /**
+     * \brief Replace this domain with the indices in \p b that are not present in \p bl.
+     * \param b Bounding box that defines the superset region.
+     * \param bl Domain of indices to subtract.
+     * \return Reference to this domain for chaining.
+     */
     BoxDomain& complementIn (const Box&       b,
                              const BoxDomain& bl);
 
 private:
-    //! Construct from a BoxList that has no overlap
+    //! Construct from a BoxList that has no overlap.
     explicit BoxDomain (BoxList&& bl);
 };
 

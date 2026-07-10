@@ -156,7 +156,7 @@ namespace amrex
     void average_down_edges (const MultiFab& fine, MultiFab& crse,
                              const IntVect& ratio, int ngcrse=0);
 
-    //! Average fine node-based MultiFab onto crse node-centered MultiFab.
+    //! Average fine nodal MultiFab onto coarse nodal MultiFab.
     template <BaseFabType FAB>
     void average_down_nodal (const FabArray<FAB>& S_fine,
                              FabArray<FAB>& S_crse,

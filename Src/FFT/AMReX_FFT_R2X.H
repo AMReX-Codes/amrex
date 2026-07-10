@@ -41,7 +41,7 @@ public:
     /**
      * \brief Build an FFT plan for the given domain and boundary types.
      *
-     * \param domain Cell- or node-centered domain describing the real data layout.
+     * \param domain Cell-centered or nodal domain describing the real data layout.
      * \param bc     Boundary pair for each direction (periodic/even/odd).
      * \param info   Optional tuning flags (domain strategy, batching, etc.).
      */
