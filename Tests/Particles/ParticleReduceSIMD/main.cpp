@@ -48,10 +48,10 @@ using ConstPTDType = typename PC::ConstPTDType;
 using SPType = typename PC::SuperParticleType;
 
 // 34 sums + 6 mins + 6 maxes, exactly as in ImpactX ReducedBeamCharacteristics
-static constexpr std::size_t num_sum = 34;
-static constexpr std::size_t num_min = 6;
-static constexpr std::size_t num_max = 6;
-static constexpr std::size_t num_red = num_sum + num_min + num_max;
+static constexpr int num_sum = 34;
+static constexpr int num_min = 6;
+static constexpr int num_max = 6;
+static constexpr int num_red = num_sum + num_min + num_max;
 
 using ReduceOpsT = TypeMultiplier<ReduceOps,
     ReduceOpSum[num_sum], ReduceOpMin[num_min], ReduceOpMax[num_max]>;
@@ -200,18 +200,45 @@ ReduceTupleT run_variant_a (PC const& pc, Shifts const& s)
         }, reduce_ops);
 }
 
-ReduceTupleT run_variant_b (PC const& pc, Shifts const& s)
-{
-    ReduceOpsT reduce_ops;
-    return ParticleReduce<ReduceDataT>(pc,
-        [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
-        {
-            return beam_moments(ptd.rdata(RealSoA::w)[i],
-                                ptd.rdata(RealSoA::x)[i], ptd.rdata(RealSoA::y)[i], ptd.rdata(RealSoA::t)[i],
-                                ptd.rdata(RealSoA::px)[i], ptd.rdata(RealSoA::py)[i], ptd.rdata(RealSoA::pt)[i],
-                                ptd.rdata(RealSoA::sx)[i], ptd.rdata(RealSoA::sy)[i], ptd.rdata(RealSoA::sz)[i],
-                                s);
-        }, reduce_ops);
+//! reads each component into a local value upfront, like variant C does via
+//! load_1d (like-for-like comparison)
+ReduceTupleT run_variant_b(PC const &pc, Shifts const &s) {
+  ReduceOpsT reduce_ops;
+  return ParticleReduce<ReduceDataT>(
+      pc,
+      [=] AMREX_GPU_DEVICE(const ConstPTDType &ptd, const int i) noexcept {
+        auto const p_w = ptd.rdata(RealSoA::w)[i];
+        auto const p_x = ptd.rdata(RealSoA::x)[i];
+        auto const p_y = ptd.rdata(RealSoA::y)[i];
+        auto const p_t = ptd.rdata(RealSoA::t)[i];
+        auto const p_px = ptd.rdata(RealSoA::px)[i];
+        auto const p_py = ptd.rdata(RealSoA::py)[i];
+        auto const p_pt = ptd.rdata(RealSoA::pt)[i];
+        auto const p_sx = ptd.rdata(RealSoA::sx)[i];
+        auto const p_sy = ptd.rdata(RealSoA::sy)[i];
+        auto const p_sz = ptd.rdata(RealSoA::sz)[i];
+
+        return beam_moments(p_w, p_x, p_y, p_t, p_px, p_py, p_pt, p_sx, p_sy,
+                            p_sz, s);
+      },
+      reduce_ops);
+}
+
+//! like run_variant_b, but binds the components by reference into the SoA
+//! arrays instead of copying them into locals (measures whether that matters)
+ReduceTupleT run_variant_b2(PC const &pc, Shifts const &s) {
+  ReduceOpsT reduce_ops;
+  return ParticleReduce<ReduceDataT>(
+      pc,
+      [=] AMREX_GPU_DEVICE(const ConstPTDType &ptd, const int i) noexcept {
+        return beam_moments(
+            ptd.rdata(RealSoA::w)[i], ptd.rdata(RealSoA::x)[i],
+            ptd.rdata(RealSoA::y)[i], ptd.rdata(RealSoA::t)[i],
+            ptd.rdata(RealSoA::px)[i], ptd.rdata(RealSoA::py)[i],
+            ptd.rdata(RealSoA::pt)[i], ptd.rdata(RealSoA::sx)[i],
+            ptd.rdata(RealSoA::sy)[i], ptd.rdata(RealSoA::sz)[i], s);
+      },
+      reduce_ops);
 }
 
 ReduceTupleT run_variant_c (PC const& pc, Shifts const& s)
@@ -245,15 +272,15 @@ void compare_results (ReduceTupleT const& a, ReduceTupleT const& b,
         * std::numeric_limits<ParticleReal>::epsilon()
         * static_cast<ParticleReal>(std::max(np, 1));
 
-    for (int k = 0; k < static_cast<int>(num_red); ++k) {
-        const bool is_sum = (k < static_cast<int>(num_sum));
-        const auto diff = std::abs(ta[k] - tb[k]);
-        if ((is_sum && diff > tol) || (!is_sum && diff != ParticleReal(0.))) {
-            amrex::AllPrint() << "  mismatch (" << what << "): np=" << np
-                              << " comp=" << k << " a=" << ta[k] << " b=" << tb[k]
-                              << " diff=" << diff << " tol=" << tol << "\n";
-            amrex::Abort("ParticleReduceSIMD result mismatch: " + what);
-        }
+    for (int k = 0; k < num_red; ++k) {
+      const bool is_sum = (k < num_sum);
+      const auto diff = std::abs(ta[k] - tb[k]);
+      if ((is_sum && diff > tol) || (!is_sum && diff != ParticleReal(0.))) {
+        amrex::AllPrint() << "  mismatch (" << what << "): np=" << np
+                          << " comp=" << k << " a=" << ta[k] << " b=" << tb[k]
+                          << " diff=" << diff << " tol=" << tol << "\n";
+        amrex::Abort("ParticleReduceSIMD result mismatch: " + what);
+      }
     }
 }
 
@@ -273,8 +300,11 @@ void correctness_tests (Geometry const& geom, DistributionMapping const& dm,
         auto const rb = run_variant_b(pc, shifts);
         auto const rc = run_variant_c(pc, shifts);
 
-        // A and B evaluate identical arithmetic in identical order
+        // A, B and B2 evaluate identical arithmetic in identical order
         compare_results(ra, rb, np, Real(0.), "A (SuperParticle) vs B (ptd,i)");
+        auto const rb2 = run_variant_b2(pc, shifts);
+        compare_results(rb2, rb, np, Real(0.),
+                        "B2 (ptd,i by-ref) vs B (ptd,i)");
         // C reassociates the sums across SIMD lanes
         compare_results(rc, rb, np, Real(100.), "C (SIMD) vs B (ptd,i)");
         // non-native (2x) SIMD width
@@ -283,9 +313,10 @@ void correctness_tests (Geometry const& geom, DistributionMapping const& dm,
 
         // value helpers vs the established scalar entry points
         auto sum_simd = ReduceSumSIMD(pc, LoadCompKernel<RealSoA::w>{});
-        auto sum_ref = ReduceSum(pc,
-            [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
-            { return ptd.rdata(RealSoA::w)[i]; });
+        auto sum_ref =
+            ReduceSum(pc, [=] AMREX_GPU_HOST_DEVICE(const ConstPTDType &ptd,
+                                                    const int i) noexcept { return ptd.rdata(RealSoA::w)[i];
+            });
         const auto sum_tol = ParticleReal(100.)
             * std::numeric_limits<ParticleReal>::epsilon()
             * static_cast<ParticleReal>(std::max(np, 1));
@@ -293,16 +324,18 @@ void correctness_tests (Geometry const& geom, DistributionMapping const& dm,
             "ReduceSumSIMD does not match ReduceSum");
 
         auto min_simd = ReduceMinSIMD(pc, LoadCompKernel<RealSoA::x>{});
-        auto min_ref = ReduceMin(pc,
-            [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
-            { return ptd.rdata(RealSoA::x)[i]; });
+        auto min_ref =
+            ReduceMin(pc, [=] AMREX_GPU_HOST_DEVICE(const ConstPTDType &ptd,
+                                                    const int i) noexcept { return ptd.rdata(RealSoA::x)[i];
+            });
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(min_simd == min_ref,
             "ReduceMinSIMD does not match ReduceMin");
 
         auto max_simd = ReduceMaxSIMD(pc, LoadCompKernel<RealSoA::x>{});
-        auto max_ref = ReduceMax(pc,
-            [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
-            { return ptd.rdata(RealSoA::x)[i]; });
+        auto max_ref =
+            ReduceMax(pc, [=] AMREX_GPU_HOST_DEVICE(const ConstPTDType &ptd,
+                                                    const int i) noexcept { return ptd.rdata(RealSoA::x)[i];
+            });
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_simd == max_ref,
             "ReduceMaxSIMD does not match ReduceMax");
 
@@ -380,6 +413,9 @@ void run_benchmark (Geometry const& geom, DistributionMapping const& dm,
                       [&] () { return run_variant_a(pc, shifts); }, checksum);
         bench_variant("B(ptd,i)        ", np, reps_per_batch, nbatch, warmup_reps,
                       [&] () { return run_variant_b(pc, shifts); }, checksum);
+        bench_variant(
+            "B2(ptd,i by-ref)", np, reps_per_batch, nbatch, warmup_reps,
+            [&]() { return run_variant_b2(pc, shifts); }, checksum);
         bench_variant("C(SIMD)         ", np, reps_per_batch, nbatch, warmup_reps,
                       [&] () { return run_variant_c(pc, shifts); }, checksum);
         bench_variant("C2(SIMD 2x)     ", np, reps_per_batch, nbatch, warmup_reps,
@@ -410,10 +446,15 @@ int main (int argc, char* argv[])
         ba.maxSize(64);  // one box, one tile
         DistributionMapping dm(ba);
 
-        const Shifts shifts{
-            ParticleReal(0.1), ParticleReal(-0.2), ParticleReal(0.05),
-            ParticleReal(0.3), ParticleReal(-0.15), ParticleReal(0.25),
-            ParticleReal(0.01), ParticleReal(-0.02), ParticleReal(0.03)};
+        const Shifts shifts{.x = ParticleReal(0.1),
+                            .y = ParticleReal(-0.2),
+                            .t = ParticleReal(0.05),
+                            .px = ParticleReal(0.3),
+                            .py = ParticleReal(-0.15),
+                            .pt = ParticleReal(0.25),
+                            .sx = ParticleReal(0.01),
+                            .sy = ParticleReal(-0.02),
+                            .sz = ParticleReal(0.03)};
 
         correctness_tests(geom, dm, ba, shifts);
         Print() << "\nAll ParticleReduceSIMD tests PASSED.\n";

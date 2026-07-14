@@ -35,7 +35,8 @@ namespace particle_detail {
 
 /**
  * \brief A general SIMD-vectorized reduction method for the particles in a
- * ParticleContainer. This version operates from the specified lev_min to lev_max.
+ * ParticleContainer. This version operates from the specified lev_min to
+ * lev_max.
  *
  * This is the SIMD counterpart of amrex::ParticleReduce. When AMReX is compiled
  * with SIMD support (\c AMReX_SIMD=ON), the reduction runs vectorized over
@@ -53,9 +54,11 @@ namespace particle_detail {
  *    \code{.cpp}
  *       using ConstPTDType = typename PC::ConstPTDType;
  *       amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpMin> reduce_ops;
- *       auto r = amrex::ParticleReduceSIMD<amrex::ReduceData<amrex::ParticleReal, amrex::ParticleReal>>(
- *                    pc, lev_min, lev_max,
- *                    [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, auto si) noexcept
+ *       auto r =
+ * amrex::ParticleReduceSIMD<amrex::ReduceData<amrex::ParticleReal,
+ * amrex::ParticleReal>>( pc, lev_min, lev_max,
+ *                    [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, auto si)
+ * noexcept
  *                {
  *                    auto const a = amrex::simd::load_1d(ptd.rdata(1), si);
  *                    auto const w = amrex::simd::load_1d(ptd.rdata(2), si);
@@ -63,9 +66,9 @@ namespace particle_detail {
  *                }, reduce_ops);
  *    \endcode
  *
- * For CUDA builds, note that extended device lambdas have compiler-version
- * dependent restrictions on generic (auto) parameters; a small functor with a
- * templated \c operator() is the most portable form of the kernel.
+ * For CUDA builds, note that extended device lambdas have nvcc-version
+ * dependent restrictions on generic (auto) parameters and a small functor with
+ * a templated \c operator() is the most portable form of the kernel.
  *
  * Only \c ReduceOpSum, \c ReduceOpMin and \c ReduceOpMax are supported
  * (compile-time enforced). Note that there is no MPI reduction performed at
@@ -81,7 +84,7 @@ namespace particle_detail {
  *         width for amrex::ParticleReal (1 without SIMD support)
  * \tparam PC the ParticleContainer type
  * \tparam F a function object
- * \tparam ReduceOps_t the ReduceOps type
+ * \tparam Ps the reduce operations of the ReduceOps
  *
  * \param pc the ParticleContainer to operate on
  * \param lev_min the minimum level to include
@@ -89,24 +92,31 @@ namespace particle_detail {
  * \param f a callable that operates on WIDTH particles at a time, see above
  * \param reduce_ops the reduction operations, one per component of RD
  */
-template <class RD, int WIDTH = static_cast<int>(simd::native_simd_size_particlereal),
-          class PC, class F, class ReduceOps_t>
-requires (IsParticleContainer<PC>::value)
-typename RD::Type
-ParticleReduceSIMD (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOps_t& reduce_ops)
-{
-    RD reduce_data(reduce_ops);
-    for (int lev = lev_min; lev <= lev_max; ++lev) {
-        const auto& plev = pc.GetParticles(lev);
-        Vector<std::pair<int, int> > grid_tile_ids;
-        Vector<const typename PC::ParticleTileType*> ptile_ptrs;
-        for (auto& kv : plev)
-        {
-            grid_tile_ids.push_back(kv.first);
-            ptile_ptrs.push_back(&(kv.second));
-        }
+template <class RD,
+          int WIDTH = static_cast<int>(simd::native_simd_size_particlereal),
+          class PC, class F, typename... Ps>
+  requires(IsParticleContainer<PC>::value)
+typename RD::Type ParticleReduceSIMD(PC const &pc, int lev_min, int lev_max,
+                                     F const &f, ReduceOps<Ps...> &reduce_ops) {
+  // enforce the documented contract in every configuration (CPU with and
+  // without SIMD support, GPU), not just where evalReduceSIMD is called
+  static_assert(WIDTH >= 1, "ParticleReduceSIMD: WIDTH must be at least 1");
+  static_assert((Reduce::detail::is_simd_reduce_op<Ps> && ...),
+                "ParticleReduceSIMD supports only ReduceOpSum, ReduceOpMin and "
+                "ReduceOpMax");
 
-        // We avoid ParIter here to allow reductions after grids change but prior to calling Redistribute()
+  RD reduce_data(reduce_ops);
+  for (int lev = lev_min; lev <= lev_max; ++lev) {
+    const auto &plev = pc.GetParticles(lev);
+    Vector<std::pair<int, int>> grid_tile_ids;
+    Vector<const typename PC::ParticleTileType *> ptile_ptrs;
+    for (auto &kv : plev) {
+      grid_tile_ids.push_back(kv.first);
+      ptile_ptrs.push_back(&(kv.second));
+    }
+
+    // We avoid ParIter here to allow reductions after grids change but prior to
+    // calling Redistribute()
 #if !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP)
 #pragma omp parallel for
 #endif
@@ -150,13 +160,13 @@ ParticleReduceSIMD (PC const& pc, int lev_min, int lev_max, F const& f, ReduceOp
  * \param f a callable that operates on WIDTH particles at a time
  * \param reduce_ops the reduction operations, one per component of RD
  */
-template <class RD, int WIDTH = static_cast<int>(simd::native_simd_size_particlereal),
-          class PC, class F, class ReduceOps_t>
-requires (IsParticleContainer<PC>::value)
-typename RD::Type
-ParticleReduceSIMD (PC const& pc, int lev, F const& f, ReduceOps_t& reduce_ops)
-{
-    return ParticleReduceSIMD<RD, WIDTH>(pc, lev, lev, f, reduce_ops);
+template <class RD,
+          int WIDTH = static_cast<int>(simd::native_simd_size_particlereal),
+          class PC, class F, typename... Ps>
+  requires(IsParticleContainer<PC>::value)
+typename RD::Type ParticleReduceSIMD(PC const &pc, int lev, F const &f,
+                                     ReduceOps<Ps...> &reduce_ops) {
+  return ParticleReduceSIMD<RD, WIDTH>(pc, lev, lev, f, reduce_ops);
 }
 
 /**
@@ -170,13 +180,13 @@ ParticleReduceSIMD (PC const& pc, int lev, F const& f, ReduceOps_t& reduce_ops)
  * \param f a callable that operates on WIDTH particles at a time
  * \param reduce_ops the reduction operations, one per component of RD
  */
-template <class RD, int WIDTH = static_cast<int>(simd::native_simd_size_particlereal),
-          class PC, class F, class ReduceOps_t>
-requires (IsParticleContainer<PC>::value)
-typename RD::Type
-ParticleReduceSIMD (PC const& pc, F const& f, ReduceOps_t& reduce_ops)
-{
-    return ParticleReduceSIMD<RD, WIDTH>(pc, 0, pc.finestLevel(), f, reduce_ops);
+template <class RD,
+          int WIDTH = static_cast<int>(simd::native_simd_size_particlereal),
+          class PC, class F, typename... Ps>
+  requires(IsParticleContainer<PC>::value)
+typename RD::Type ParticleReduceSIMD(PC const &pc, F const &f,
+                                     ReduceOps<Ps...> &reduce_ops) {
+  return ParticleReduceSIMD<RD, WIDTH>(pc, 0, pc.finestLevel(), f, reduce_ops);
 }
 
 /**
