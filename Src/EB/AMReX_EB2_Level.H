@@ -826,21 +826,17 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Lev
     Level const* refined_cc_level = nullptr;
     std::unique_ptr<GShopLevel<G>> transient_level;
 
-    if (fine_level != nullptr) {
-        // Reuse existing finer CC level from hierarchy
-        refined_cc_level = fine_level;
-    } else {
-        // Finest FC level: build transient refined CC level (2x finer)
-        Geometry refined_geom = amrex::refine(m_geom, 2);
-        transient_level = std::make_unique<GShopLevel<G>>(
-            m_parent, gshop, refined_geom,
-            max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0);
+    // Always create transient refined CC level to avoid grid mismatch
+    // with application-defined BoxArrays (ERF EB-FC development)
+    Geometry refined_geom = amrex::refine(m_geom, 2);
+    transient_level = std::make_unique<GShopLevel<G>>(
+        m_parent, gshop, refined_geom,
+        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0);
 
-        if (!transient_level->isOK()) {
-            amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
-        }
-        refined_cc_level = transient_level.get();
+    if (!transient_level->isOK()) {
+        amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
     }
+    refined_cc_level = transient_level.get();
 
     // **********************************************************************
     // STEP2: Check multi-cut error
