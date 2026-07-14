@@ -41,6 +41,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParticleCommunication.cpp
        AMReX_ParticleInterpolators.H
        AMReX_ParticleReduce.H
+       AMReX_ParticleReduceSIMD.H
        AMReX_ParticleMesh.H
        AMReX_ParticleLocator.H
        AMReX_ParticleIO.H

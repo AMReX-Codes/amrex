@@ -41,6 +41,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FileSystem.cpp
        AMReX_ValLocPair.H
        AMReX_Reduce.H
+       AMReX_ReduceSIMD.H
        AMReX_Scan.H
        AMReX_Partition.H
        AMReX_Morton.H
