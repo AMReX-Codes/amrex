@@ -296,8 +296,8 @@ public:
         return r;
     }
 
-    //! Build face-centered EB data for face_dir. If fine_level provided, coarsen from it; otherwise build refined CC transiently.
-    void buildFCData (G const& gshop, int face_dir, int max_grid_size, Level const* fine_level = nullptr);
+    //! Build face-centered EB data for face_dir. Builds refined CC transiently.
+    void buildFCData (G const& gshop, int face_dir, int max_grid_size);
 
 private:
 
@@ -804,7 +804,7 @@ GShopLevel<G>::GShopLevel (IndexSpace const* is, int /*ilev*/, int max_grid_size
 
 template <typename G>
 void
-GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size, Level const* fine_level)
+GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 {
     BL_PROFILE("EB2::GShopLevel::buildFCData");
 
