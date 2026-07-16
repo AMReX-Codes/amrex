@@ -1,6 +1,11 @@
 #ifndef AMREX_ENUM_H_
 #define AMREX_ENUM_H_
 
+/**
+ * \file AMReX_Enum.H
+ * \brief Enum reflection utilities and the AMREX_ENUM macro.
+ */
+
 #include <AMReX_String.H>
 
 #include <algorithm>
@@ -63,6 +68,14 @@ namespace detail
 }  // namespace detail
 /// \endcond
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return all (name, value) pairs for an AMREX_ENUM-declared enum type.
+     *
+     * The result is cached the first time it is called for a given type \p T.
+     *
+     * \tparam T An enum type declared with AMREX_ENUM.
+     */
     template <typename T, typename ET = amrex_enum_traits<T>>
     requires (ET::value)
     std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
@@ -72,7 +85,11 @@ namespace detail
         return r;
     }
 
-    /** Convert a string to an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Convert a string to an enum value.
+     *
+     * Throws `std::runtime_error` if \p s does not match any enumerator name.
      *
      * Example:
      * \code{.cpp}
@@ -104,9 +121,11 @@ namespace detail
         }
     }
 
-    /** Convert a string case insensitive to an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Convert a string case-insensitively to an enum value.
      *
-     * Same as getEnum<T>, but case insensitive match to enum value.
+     * Same as getEnum<T>, but uses a case-insensitive match.
      *
      * Example:
      * \code{.cpp}
@@ -139,7 +158,11 @@ namespace detail
         }
     }
 
-    /** Get a string from an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Get the name string of an enum value.
+     *
+     * Throws `std::runtime_error` if \p v has no matching enumerator name.
      *
      * Example:
      * \code{.cpp}
@@ -163,7 +186,7 @@ namespace detail
         if (it != kv.end()) {
             return it->first;
         } else {
-            std::string error_msg("amrex::getEnum: Unknown enum value: ");
+            std::string error_msg("amrex::getEnumNameString: Unknown enum value: ");
             error_msg.append(std::to_string(static_cast<int>(v)))
                 .append(" in AMREX_ENUM(").append(ET::class_name).append(", ")
                 .append(ET::enum_names).append(").");
@@ -172,6 +195,12 @@ namespace detail
         }
     }
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return a list of all enumerator name strings for an AMREX_ENUM-declared type.
+     *
+     * \tparam T An enum type declared with AMREX_ENUM.
+     */
     template <typename T, typename ET = amrex_enum_traits<T>>
     requires (ET::value)
     std::vector<std::string> getEnumNameStrings ()
@@ -187,6 +216,12 @@ namespace detail
         return r;
     }
 
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return the class name string of an AMREX_ENUM-declared enum type.
+     *
+     * \tparam T An enum type declared with AMREX_ENUM.
+     */
     template <typename T, typename ET = amrex_enum_traits<T>>
     requires (ET::value)
     std::string getEnumClassName ()
@@ -194,7 +229,9 @@ namespace detail
         return std::string(ET::class_name);
     }
 
-    /** Return the underlying (u)int of an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return the underlying integer value of an enum enumerator.
      *
      * Useful when building bitmasks.
      */
@@ -206,6 +243,20 @@ namespace detail
     }
 }
 
+/**
+ * \ingroup amrex_utilities
+ * \brief Declare a scoped enum with reflection support.
+ *
+ * Defines `enum class CLASS : int` and registers its enumerator names so that
+ * amrex::getEnum, amrex::getEnumCaseInsensitive, amrex::getEnumNameString,
+ * and related utilities can convert between strings and values at run time.
+ *
+ * Example:
+ * \code{.cpp}
+ * AMREX_ENUM(Color, red, green, blue);
+ * Color c = amrex::getEnum<Color>("green");
+ * \endcode
+ */
 #define AMREX_ENUM(CLASS, ...) \
     enum class CLASS : int { __VA_ARGS__ }; \
     /** \cond DOXYGEN_IGNORE */ \

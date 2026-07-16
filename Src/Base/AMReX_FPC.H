@@ -5,6 +5,11 @@
 
 #include <AMReX_FabConv.H>
 
+/**
+ * \file AMReX_FPC.H
+ * \brief Floating-point layout descriptors used by FAB I/O.
+ */
+
 namespace amrex {
 
 /**
