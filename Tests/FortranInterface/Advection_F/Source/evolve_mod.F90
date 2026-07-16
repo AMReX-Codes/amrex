@@ -182,7 +182,12 @@ contains
        call uface(idim)%reset_omp_private()
        call flux(idim)%reset_omp_private()
     end do
-    call amrex_mfiter_build(mfi, phi_new(lev), tiling=.true.)
+    ! MFIter tiling must match the ParticleContainer's tiling.  Particle
+    ! containers are un-tiled by default (particles.do_tiling = false), so we
+    ! disable MFIter tiling here to stay consistent.  Because it is hard-coded
+    ! off here, do NOT enable particle tiling via the particles.do_tiling
+    ! ParmParse parameter -- the two must stay consistent.
+    call amrex_mfiter_build(mfi, phi_new(lev), tiling=.false.)
     do while(mfi%next())
        bx = mfi%tilebox()
 

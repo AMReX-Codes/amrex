@@ -18,19 +18,19 @@ use amrex_base_module
   implicit none
 
   !integer, intent(in) :: level
-  double precision, intent(in) :: time
+  real(amrex_real), intent(in) :: time
   integer, intent(in) :: vxlo(3),vxhi(3)
   integer, intent(in) :: vylo(3),vyhi(3)
   integer, intent(in) :: vzlo(3),vzhi(3)
-  double precision, intent(out) :: vx(vxlo(1):vxhi(1),vxlo(2):vxhi(2),vxlo(3):vxhi(3))
-  double precision, intent(out) :: vy(vylo(1):vyhi(1),vylo(2):vyhi(2),vylo(3):vyhi(3))
-  double precision, intent(out) :: vz(vzlo(1):vzhi(1),vzlo(2):vzhi(2),vzlo(3):vzhi(3))
-  double precision, intent(in) :: dx(3), prob_lo(3)
+  real(amrex_real), intent(out) :: vx(vxlo(1):vxhi(1),vxlo(2):vxhi(2),vxlo(3):vxhi(3))
+  real(amrex_real), intent(out) :: vy(vylo(1):vyhi(1),vylo(2):vyhi(2),vylo(3):vyhi(3))
+  real(amrex_real), intent(out) :: vz(vzlo(1):vzhi(1),vzlo(2):vzhi(2),vzlo(3):vzhi(3))
+  real(amrex_real), intent(in) :: dx(3), prob_lo(3)
 
   integer :: i, j, k, plo(2), phi(2)
-  double precision :: x, y, z
-  double precision, pointer, contiguous :: psi(:,:)
-  double precision, parameter :: M_PI = 3.141592653589793238462643383279502884197d0
+  real(amrex_real) :: x, y, z
+  real(amrex_real), pointer, contiguous :: psi(:,:)
+  real(amrex_real), parameter :: M_PI = 3.141592653589793238462643383279502884197_amrex_real
   integer :: vx_l1,vx_l2,vx_l3,vy_l1,vy_l2,vy_l3,vz_l1,vz_l2,vz_l3
   integer :: vx_h1,vx_h2,vx_h3,vy_h1,vy_h2,vy_h3,vz_h1,vz_h2,vz_h3
 
@@ -50,20 +50,20 @@ use amrex_base_module
 
   ! streamfunction psi
   do j = plo(2), phi(2)
-     y = (dble(j)+0.5d0)*dx(2) + prob_lo(2)
+     y = (real(j,amrex_real)+0.5_amrex_real)*dx(2) + prob_lo(2)
      do i = plo(1), phi(1)
-        x = (dble(i)+0.5d0)*dx(1) + prob_lo(1)
-        psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.d0) * (1.d0 / M_PI)
+        x = (real(i,amrex_real)+0.5_amrex_real)*dx(1) + prob_lo(1)
+        psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.0_amrex_real) * (1.0_amrex_real / M_PI)
      end do
   end do
 
   ! x velocity
   do k = vx_l3, vx_h3
   do j = vx_l2, vx_h2
-     y = (dble(j)+0.5d0) * dx(2) + prob_lo(2)
+     y = (real(j,amrex_real)+0.5_amrex_real) * dx(2) + prob_lo(2)
      do i = vx_l1, vx_h1
-        x = dble(i) * dx(1) + prob_lo(1)
-        vx(i,j,k) =  -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) * (0.25d0/dx(2))
+        x = real(i,amrex_real) * dx(1) + prob_lo(1)
+        vx(i,j,k) =  -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) * (0.25_amrex_real/dx(2))
      end do
   end do
   end do
@@ -71,15 +71,15 @@ use amrex_base_module
   ! y velocity
   do k = vy_l3, vy_h3
   do j = vy_l2, vy_h2
-     y = dble(j) * dx(2) + prob_lo(2)
+     y = real(j,amrex_real) * dx(2) + prob_lo(2)
      do i = vy_l1, vy_h1
-        x = (dble(i)+0.5d0) * dx(1) + prob_lo(1)
-        vy(i,j,k) = ( (psi(i+1,j)+psi(i+1,j-1)) - (psi(i-1,j)+psi(i-1,j-1)) ) * (0.25d0/dx(1))
+        x = (real(i,amrex_real)+0.5_amrex_real) * dx(1) + prob_lo(1)
+        vy(i,j,k) = ( (psi(i+1,j)+psi(i+1,j-1)) - (psi(i-1,j)+psi(i-1,j-1)) ) * (0.25_amrex_real/dx(1))
      end do
   end do
   end do
 
-  vz = 1.d0
+  vz = 1.0_amrex_real
 
   call bl_deallocate(psi)
 

@@ -48,10 +48,10 @@ contains
     do    j = lo(2)-1, hi(2)+1
        do i = lo(1)  , hi(1)+1
 
-          if (umac(i,j) .lt. 0.d0) then
-             phix_1d(i,j) = phi(i  ,j) - (0.5d0 + hdtdx(1)*umac(i,j))*slope(i  ,j)
+          if (umac(i,j) .lt. 0.0_amrex_real) then
+             phix_1d(i,j) = phi(i  ,j) - (0.5_amrex_real + hdtdx(1)*umac(i,j))*slope(i  ,j)
           else
-             phix_1d(i,j) = phi(i-1,j) + (0.5d0 - hdtdx(1)*umac(i,j))*slope(i-1,j)
+             phix_1d(i,j) = phi(i-1,j) + (0.5_amrex_real - hdtdx(1)*umac(i,j))*slope(i-1,j)
           end if
 
        end do
@@ -65,10 +65,10 @@ contains
     do    j = lo(2)  , hi(2)+1
        do i = lo(1)-1, hi(1)+1
 
-          if (vmac(i,j) .lt. 0.d0) then
-             phiy_1d(i,j) = phi(i,j  ) - (0.5d0 + hdtdx(2)*vmac(i,j))*slope(i,j  )
+          if (vmac(i,j) .lt. 0.0_amrex_real) then
+             phiy_1d(i,j) = phi(i,j  ) - (0.5_amrex_real + hdtdx(2)*vmac(i,j))*slope(i,j  )
           else
-             phiy_1d(i,j) = phi(i,j-1) + (0.5d0 - hdtdx(2)*vmac(i,j))*slope(i,j-1)
+             phiy_1d(i,j) = phi(i,j-1) + (0.5_amrex_real - hdtdx(2)*vmac(i,j))*slope(i,j-1)
           end if
 
        end do
@@ -78,12 +78,12 @@ contains
     do    j = lo(2), hi(2)
        do i = lo(1), hi(1)+1
 
-          if (umac(i,j) .lt. 0.d0) then
+          if (umac(i,j) .lt. 0.0_amrex_real) then
              phix(i,j) = phix_1d(i,j) &
-                  - hdtdx(2)*( 0.5d0*(vmac(i  ,j+1)+vmac(i  ,j)) * (phiy_1d(i  ,j+1)-phiy_1d(i  ,j)) )
+                  - hdtdx(2)*( 0.5_amrex_real*(vmac(i  ,j+1)+vmac(i  ,j)) * (phiy_1d(i  ,j+1)-phiy_1d(i  ,j)) )
           else
              phix(i,j) = phix_1d(i,j) &
-                  - hdtdx(2)*( 0.5d0*(vmac(i-1,j+1)+vmac(i-1,j)) * (phiy_1d(i-1,j+1)-phiy_1d(i-1,j)) )
+                  - hdtdx(2)*( 0.5_amrex_real*(vmac(i-1,j+1)+vmac(i-1,j)) * (phiy_1d(i-1,j+1)-phiy_1d(i-1,j)) )
           end if
 
           ! compute final x-fluxes
@@ -96,12 +96,12 @@ contains
     do    j = lo(2), hi(2)+1
        do i = lo(1), hi(1)
 
-          if (vmac(i,j) .lt. 0.d0) then
+          if (vmac(i,j) .lt. 0.0_amrex_real) then
              phiy(i,j) = phiy_1d(i,j) &
-                  - hdtdx(1)*( 0.5d0*(umac(i+1,j  )+umac(i,j  )) * (phix_1d(i+1,j  )-phix_1d(i,j  )) )
+                  - hdtdx(1)*( 0.5_amrex_real*(umac(i+1,j  )+umac(i,j  )) * (phix_1d(i+1,j  )-phix_1d(i,j  )) )
           else
              phiy(i,j) = phiy_1d(i,j) &
-                  - hdtdx(1)*( 0.5d0*(umac(i+1,j-1)+umac(i,j-1)) * (phix_1d(i+1,j-1)-phix_1d(i,j-1)) )
+                  - hdtdx(1)*( 0.5_amrex_real*(umac(i+1,j-1)+umac(i,j-1)) * (phix_1d(i+1,j-1)-phix_1d(i,j-1)) )
           end if
 
           ! compute final y-fluxes
