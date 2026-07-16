@@ -30,6 +30,27 @@ namespace particle_detail {
             return amrex::makeTuple(m_f(ptd, si));
         }
     };
+
+    /** Binds the tile data as the first argument of a reduction kernel.
+     *
+     * The force-inlined \c operator() makes the kernel invocation fold into
+     * the evalReduceSIMD accumulation loop instead of remaining an
+     * out-of-line call, which would spill all SIMD accumulator registers
+     * (caller-saved) around it on every iteration.
+     */
+    template <typename F, typename PTD>
+    struct SIMDKernelBinder
+    {
+        F const& m_f;
+        PTD m_ptd;
+
+        template <typename SI>
+        AMREX_FORCE_INLINE
+        auto operator() (SI const si) const noexcept
+        {
+            return m_f(m_ptd, si);
+        }
+    };
 }
 /// \endcond
 
@@ -137,11 +158,10 @@ typename RD::Type ParticleReduceSIMD(PC const &pc, int lev_min, int lev_max,
 #else
             constexpr int EffWidth = 1;  // explicit WIDTH > 1 still compiles, scalar
 #endif
+            using PTDType = std::decay_t<decltype(ptd)>;
             evalReduceSIMD<EffWidth>(np, reduce_data,
-                            [=] (auto si) noexcept
-                            {
-                                return f(ptd, si);
-                            }, reduce_ops);
+                            particle_detail::SIMDKernelBinder<F, PTDType>{f, ptd},
+                            reduce_ops);
 #endif
         }
     }
