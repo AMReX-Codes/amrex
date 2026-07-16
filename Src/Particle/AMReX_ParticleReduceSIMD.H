@@ -41,7 +41,7 @@ namespace particle_detail {
     template <typename F, typename PTD>
     struct SIMDKernelBinder
     {
-        F const& m_f;
+        F m_f;
         PTD m_ptd;
 
         template <typename SI>
