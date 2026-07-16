@@ -26,7 +26,7 @@ contains
     t_new = 0.0_rt
 
     allocate(t_old(0:amrex_max_level))
-    t_old = -1.0e100_rt
+    t_old = -1.0e30_rt
 
     allocate(phi_new(0:amrex_max_level))
     allocate(phi_old(0:amrex_max_level))
