@@ -1575,9 +1575,10 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
 
     LeastUsedCPUs(nprocs,ord);
 
-    // Distribute boxes using roundrobin
+    // Distribute boxes using round-robin
     for (int i = 0; i < nboxes; ++i) {
-        m_ref->m_pmap[i] = ParallelContext::local_to_global_rank(ord[i%nprocs]);
+        m_ref->m_pmap[tokens[i].m_box] =
+            ParallelContext::local_to_global_rank(ord[i%nprocs]);
     }
 }
 
