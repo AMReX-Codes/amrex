@@ -26,6 +26,7 @@ public:
 private:
 
     void readParameters ();
+    void testSigmaUpdate ();
 
     int max_level = 1;
     int ref_ratio = 2;
@@ -55,6 +56,7 @@ private:
     bool use_hypre = false;
     bool do_plots = true;
     int num_trials = 1;
+    bool test_sigma_update = false;
 
 #ifdef AMREX_USE_HYPRE
     int hypre_interface_i = 1;  // 1. structed, 2. semi-structed, 3. ij

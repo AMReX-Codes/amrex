@@ -6,6 +6,8 @@
 #include <AMReX_FillPatchUtil.H>
 #include <AMReX_PlotFileUtil.H>
 
+#include <algorithm>
+#include <cmath>
 #include <numbers>
 
 using namespace amrex;
@@ -20,6 +22,12 @@ void
 MyTest::solve ()
 {
     BL_PROFILE("NodalPoisson::solve()");
+
+    if (test_sigma_update) {
+        testSigmaUpdate();
+        return;
+    }
+
     LPInfo info;
     info.setAgglomeration(agglomeration);
     info.setConsolidation(consolidation);
@@ -135,6 +143,8 @@ MyTest::solve ()
 void
 MyTest::compute_norms () const
 {
+    if (test_sigma_update) { return; }
+
     for (int ilev = 0; ilev <= max_level; ++ilev) {
         amrex::Print() << "Level " << ilev << "\n";
         MultiFab error(solution[ilev].boxArray(), solution[ilev].DistributionMap(), 1, 0);
@@ -183,6 +193,8 @@ MyTest::readParameters ()
 
     pp.query("do_plots", do_plots);
     pp.query("num_trials", num_trials);
+    pp.query("test_sigma_update", test_sigma_update);
+    if (test_sigma_update) { do_plots = false; }
 
 #ifdef AMREX_USE_HYPRE
     pp.query("use_hypre", use_hypre);
@@ -280,4 +292,63 @@ MyTest::initData ()
 
         sigma[ilev].setVal(1.0);
     }
+}
+
+void
+MyTest::testSigmaUpdate ()
+{
+#if (AMREX_SPACEDIM == 1)
+    amrex::Abort("NodalPoisson::testSigmaUpdate: RAP coarsening is not supported in 1D");
+#else
+    LPInfo info;
+    info.setAgglomeration(agglomeration);
+    info.setConsolidation(consolidation);
+    info.setSemicoarsening(semicoarsening);
+    info.setMaxCoarseningLevel(max_coarsening_level);
+    info.setMaxSemicoarseningLevel(max_semicoarsening_level);
+
+    MLNodeLaplacian linop({geom[0]}, {grids[0]}, {dmap[0]}, info);
+    linop.setDomainBC({AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet)},
+                      {AMREX_D_DECL(LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet,
+                                    LinOpBCType::Dirichlet)});
+    linop.setCoarseningStrategy(MLNodeLaplacian::CoarseningStrategy::RAP);
+
+    sigma[0].setVal(Real(1.0));
+    linop.setSigma(0, sigma[0]);
+
+    MLMG mlmg(linop);
+    mlmg.setVerbose(verbose);
+    mlmg.setBottomVerbose(bottom_verbose);
+
+    MultiFab lhs1(exact_solution[0].boxArray(), exact_solution[0].DistributionMap(), 1, 0);
+    MultiFab lhs2(exact_solution[0].boxArray(), exact_solution[0].DistributionMap(), 1, 0);
+    mlmg.apply({&lhs1}, {exact_solution.data()});
+
+    sigma[0].setVal(Real(2.0));
+    linop.setSigma(0, sigma[0]);
+    mlmg.apply({&lhs2}, {exact_solution.data()});
+
+    MultiFab diff(exact_solution[0].boxArray(), exact_solution[0].DistributionMap(), 1, 0);
+    MultiFab::LinComb(diff, Real(1.0), lhs2, 0, Real(-2.0), lhs1, 0, 0, 1, 0);
+
+    auto mask = diff.OwnerMask(geom[0].periodicity());
+    const Real err = diff.norm0(*mask, 0, 0);
+    const Real scale = std::max(Real(1.0), lhs2.norm0(*mask, 0, 0));
+#ifdef AMREX_USE_FLOAT
+    constexpr Real reltol_update = Real(1.e-4);
+#else
+    constexpr Real reltol_update = Real(1.e-12);
+#endif
+    const Real tol = reltol_update * scale;
+
+    amrex::Print() << "NodalPoisson sigma update check: max error = "
+                   << err << ", tolerance = " << tol << "\n";
+
+    if (err > tol || std::isnan(err)) {
+        amrex::Abort("NodalPoisson sigma update check failed");
+    }
+#endif
 }

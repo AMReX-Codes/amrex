@@ -98,6 +98,8 @@ MLNodeLaplacian::define (const Vector<Geometry>& a_geom,
 #if (AMREX_SPACEDIM == 2)
     m_is_rz = m_geom[0][0].IsRZ();
 #endif
+
+    m_needs_update = true;
 }
 
 #ifdef AMREX_USE_EB
@@ -399,6 +401,8 @@ MLNodeLaplacian::setSigma (int amrlev, const MultiFab& a_sigma)
     } else {
         MultiFab::Copy(*m_sigma[amrlev][0][0], a_sigma, 0, 0, 1, 0);
     }
+
+    m_needs_update = true;
 }
 
 void
@@ -466,6 +470,19 @@ MLNodeLaplacian::prepareForSolve ()
 #endif
 
     buildStencil();
+
+    m_needs_update = false;
+}
+
+void
+MLNodeLaplacian::update ()
+{
+    BL_PROFILE("MLNodeLaplacian::update()");
+    // prepareForSolve rebuilds the sigma-dependent masks, averaged coefficients,
+    // and stencil.  The EB integrals are not rebuilt: buildIntegral() and
+    // buildSurfaceIntegral() self-guard (m_integral_built / m_surface_integral_built)
+    // and are no-ops once they have already been built.
+    prepareForSolve();
 }
 
 void
