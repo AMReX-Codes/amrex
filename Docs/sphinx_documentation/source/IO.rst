@@ -230,6 +230,11 @@ options include:
     * ``ZFP_ACCURACY@accuracy``
     * ``ZFP_REVERSIBLE@reversible``
 
+AMReX also provides the ``fconvert`` tool in ``Tools/Plotfile`` for converting
+existing native plotfiles to HDF5 plotfiles after a simulation has completed.
+It accepts the same compression descriptor string and can therefore be used for
+post-processing workflows that want HDF5 output with ZLIB or ZFP compression.
+
 Using compression requires data to be stored in a chunked format. The size of these
 chunks can (and generally should) be configured by changing the ``HDF5_CHUNK_SIZE``
 environment variable, with a default value of 1024 elements provided.

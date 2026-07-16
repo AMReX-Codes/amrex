@@ -15,6 +15,7 @@ programs ?=
 ifeq ($(strip $(programs)),)
   programs += fboxinfo
   programs += fcompare
+  programs += fconvert
   programs += fextract
   programs += fextrema
   programs += fgradient
