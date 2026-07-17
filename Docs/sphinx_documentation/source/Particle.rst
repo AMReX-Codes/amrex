@@ -507,6 +507,113 @@ In this way, code can be written that is agnostic as to the data layout. For mor
 of pure SoA particles, please see the SOA tests in :cpp:`amrex/Tests/Particles/`, or refer
 to `WarpX <https://github.com/BLAST-WarpX/warpx>`_, `Hipace++ <https://github.com/Hi-PACE/hipace>`_, or `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_, which use this type of particle container.
 
+.. _sec:Particles:Reductions:
+
+Particle Reductions
+===================
+
+AMReX provides functions to compute reductions (sums, minima, maxima, and
+logical and/or) over the particles in a :cpp:`ParticleContainer`, on CPUs and
+GPUs alike. The simple entry points :cpp:`amrex::ReduceSum`,
+:cpp:`amrex::ReduceMin`, :cpp:`amrex::ReduceMax`,
+:cpp:`amrex::ReduceLogicalAnd` and :cpp:`amrex::ReduceLogicalOr` reduce a
+single quantity computed per particle by a user-provided callable. The general
+:cpp:`amrex::ParticleReduce` computes many reductions in a single pass over
+the particles, combining :cpp:`amrex::ReduceOps` (e.g., several sums, minima
+and maxima at once) into one :cpp:`amrex::ReduceData` result tuple.
+
+The per-particle callable can take the particle in several forms: the most
+efficient one takes a :cpp:`ConstParticleTileData` and the particle index,
+which reads the particle components directly from the underlying (SoA) arrays:
+
+.. highlight:: c++
+
+::
+
+    using ConstPTDType = typename PC::ConstPTDType;
+    amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpMin, amrex::ReduceOpMax> reduce_ops;
+    auto r = amrex::ParticleReduce<amrex::ReduceData<amrex::Real, amrex::Real, int>> (
+                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
+                               -> amrex::GpuTuple<amrex::Real, amrex::Real, int>
+             {
+                 const amrex::Real a = ptd.rdata(1)[i];
+                 const amrex::Real b = ptd.rdata(2)[i];
+                 const int c = ptd.idata(1)[i];
+                 return {a, b, c};
+             }, reduce_ops);
+
+Note that no MPI reduction is performed at the end of these operations. Call
+the reductions in :cpp:`ParallelDescriptor` manually if you want that behavior.
+
+.. _sec:Particles:SIMDReductions:
+
+SIMD-Vectorized Particle Reductions
+-----------------------------------
+
+When AMReX is compiled with SIMD support (CMake option ``AMReX_SIMD=ON``, see
+:ref:`sec:build:cmake`), the entry points :cpp:`amrex::ParticleReduceSIMD`,
+:cpp:`amrex::ReduceSumSIMD`, :cpp:`amrex::ReduceMinSIMD` and
+:cpp:`amrex::ReduceMaxSIMD` evaluate the reduction vectorized over ``WIDTH``
+particles at a time, using SIMD registers as accumulators. The same user code
+compiles and runs unchanged in every configuration:
+
+* ``AMReX_SIMD=ON`` (CPU): vectorized main loop plus a scalar remainder loop,
+* ``AMReX_SIMD=OFF`` (CPU): a scalar loop, semantically identical to
+  :cpp:`amrex::ParticleReduce`,
+* GPU builds: the regular device reduction.
+
+The callable is invoked as :cpp:`f(ptd, si)` where ``si`` is an
+:cpp:`amrex::SIMDindex`. Write it generically over the index type and load
+particle components with :cpp:`amrex::simd::load_1d`, which returns a SIMD
+register in the vectorized main loop and a scalar value otherwise:
+
+.. highlight:: c++
+
+::
+
+    #include <AMReX_ParticleReduceSIMD.H>
+
+    using ConstPTDType = typename PC::ConstPTDType;
+    amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpMin> reduce_ops;
+    auto r = amrex::ParticleReduceSIMD<amrex::ReduceData<amrex::ParticleReal, amrex::ParticleReal>> (
+                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, auto si) noexcept
+             {
+                 auto const a = amrex::simd::load_1d(ptd.rdata(1), si);
+                 auto const w = amrex::simd::load_1d(ptd.rdata(2), si);
+                 return amrex::makeTuple(a * w, a);
+             }, reduce_ops);
+
+For CUDA builds, note that extended device lambdas have nvcc-version
+dependent restrictions on generic (``auto``) parameters and a small functor with
+a templated :cpp:`operator()` is the most portable form of the kernel.
+
+The SIMD width can be chosen explicitly via the ``WIDTH`` template parameter
+(e.g., :cpp:`ParticleReduceSIMD<RD, 8>`). It defaults to the native SIMD
+register width for :cpp:`amrex::ParticleReal`, which is a good default in
+practice, in particular for kernels with many reduction components.
+
+Two differences from :cpp:`amrex::ParticleReduce` to be aware of:
+
+* Only :cpp:`ReduceOpSum`, :cpp:`ReduceOpMin` and :cpp:`ReduceOpMax` are
+  supported (enforced at compile time).
+* SIMD sum reductions reassociate floating-point additions (per-lane partial
+  sums plus a final horizontal fold), so results can differ from the scalar
+  evaluation order by rounding. In particular,
+  :cpp:`amrex::system::regtest_reduction` is not honored by the SIMD path,
+  use the scalar entry points when bitwise reproducible regression data is
+  required.
+
+Under the hood, :cpp:`amrex::ParticleReduceSIMD` evaluates each particle tile
+with :cpp:`amrex::evalReduceSIMD<WIDTH>(n, reduce_data, f, reduce_ops)`, the
+SIMD analogue of the element loop in :cpp:`ReduceOps::eval`. This engine is
+not particle-specific: it can be used directly to reduce over any indexed
+range on the host, with the same single-source callable contract (``f(si)``
+with an :cpp:`amrex::SIMDindex`, provided by ``AMReX_ReduceSIMD.H``). See
+``Tests/SIMD`` for a small stand-alone example with a mixed-type tuple.
+
+For a complete example, including a benchmark against the scalar entry
+points, see ``Tests/Particles/ParticleReduceSIMD``.
+
 .. _sec:Particles:Interacting:
 
 Interacting with Mesh Data

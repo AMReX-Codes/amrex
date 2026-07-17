@@ -1,0 +1,7 @@
+# defaults keep CI/ctest runs fast; override on the command line for real
+# benchmark runs, e.g.:
+#   benchmark.sizes="1000 10000 100000 1000000 10000000" benchmark.target_evals=200000000
+benchmark.enabled = 1
+benchmark.sizes = 1000
+benchmark.target_evals = 2000000
+benchmark.warmup_reps = 3
