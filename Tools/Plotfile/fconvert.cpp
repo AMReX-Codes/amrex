@@ -11,7 +11,6 @@
 
 using namespace amrex;
 
-#ifdef AMREX_USE_HDF5
 namespace
 {
     void PrintUsage ()
@@ -35,6 +34,7 @@ namespace
             << '\n';
     }
 
+#ifdef AMREX_USE_HDF5
     [[nodiscard]] std::string BaseName (std::string const& path)
     {
         auto pos = path.find_last_of("/\\");
@@ -63,8 +63,8 @@ namespace
             return output + "_" + BaseName(input);
         }
     }
-}
 #endif
+}
 
 void main_main ()
 {
