@@ -11,6 +11,7 @@
 
 using namespace amrex;
 
+#ifdef AMREX_USE_HDF5
 namespace
 {
     void PrintUsage ()
@@ -44,7 +45,6 @@ namespace
         }
     }
 
-#ifdef AMREX_USE_HDF5
     [[nodiscard]] std::string OutputName (std::string const& input,
                                           std::string const& output,
                                           bool multiple_inputs)
@@ -63,8 +63,8 @@ namespace
             return output + "_" + BaseName(input);
         }
     }
-#endif
 }
+#endif
 
 void main_main ()
 {
