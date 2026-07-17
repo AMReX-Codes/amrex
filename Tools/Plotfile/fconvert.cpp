@@ -44,6 +44,7 @@ namespace
         }
     }
 
+#ifdef AMREX_USE_HDF5
     [[nodiscard]] std::string OutputName (std::string const& input,
                                           std::string const& output,
                                           bool multiple_inputs)
@@ -62,6 +63,7 @@ namespace
             return output + "_" + BaseName(input);
         }
     }
+#endif
 }
 
 void main_main ()
@@ -105,7 +107,7 @@ void main_main ()
 
 #ifndef AMREX_USE_HDF5
     amrex::Abort("fconvert requires AMReX to be built with AMReX_HDF5=ON. "
-                 "Build with AMReX_HDF5_ZFP=ON as well when using ZFP_* "
+                 "Build with AMReX_HDF5_ZFP=ON as well to use ZFP_* "
                  "compression descriptors.");
 #else
     Vector<std::string> infiles;
