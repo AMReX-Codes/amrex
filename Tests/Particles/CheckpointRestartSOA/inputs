@@ -24,3 +24,6 @@ nparticlefile = 1
 restart_check = 1
 
 directory=.
+
+# Exercise the pre/post checkpoint path for pure-SoA particles.
+particles.use_prepost = 1
