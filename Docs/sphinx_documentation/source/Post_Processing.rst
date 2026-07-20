@@ -304,9 +304,9 @@ and ``ZFP_ACCURACY@0.001``.
 
 **How to build and run**
 
-In ``amrex/Tools/Plotfile``, type ``make programs=fconvert`` and then
-``./fconvert.gnu.ex`` to run. Typing ``./fconvert.gnu.ex`` without inputs will
-bring up usage and options.
+In ``amrex/Tools/Plotfile``, type ``make programs=fconvert USE_HDF5=TRUE HDF5_HOME=/path/to/hdf5``
+and then ``./fconvert.gnu.ex`` to run. Typing ``./fconvert.gnu.ex`` without
+inputs will bring up usage and options.
 
 **Example**
 

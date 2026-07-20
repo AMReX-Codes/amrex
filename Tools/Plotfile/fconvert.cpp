@@ -35,6 +35,15 @@ namespace
     }
 
 #ifdef AMREX_USE_HDF5
+    [[nodiscard]] std::string StripTrailingSlashes (std::string path)
+    {
+        while (path.size() > 1 &&
+               (path.back() == '/' || path.back() == '\\')) {
+            path.pop_back();
+        }
+        return path;
+    }
+
     [[nodiscard]] std::string BaseName (std::string const& path)
     {
         auto pos = path.find_last_of("/\\");
@@ -106,14 +115,14 @@ void main_main ()
     }
 
 #ifndef AMREX_USE_HDF5
-    amrex::Abort("fconvert requires AMReX to be built with AMReX_HDF5=ON. "
-                 "Build with AMReX_HDF5_ZFP=ON as well to use ZFP_* "
+    amrex::Abort("fconvert requires AMReX to be built with HDF5 enabled. "
+                 "Build with ZFP enabled as well to use ZFP_* "
                  "compression descriptors.");
 #else
     Vector<std::string> infiles;
     infiles.reserve(narg-farg+1);
     for (int i = farg; i <= narg; ++i) {
-        infiles.push_back(amrex::get_command_argument(i));
+        infiles.push_back(StripTrailingSlashes(amrex::get_command_argument(i)));
     }
 
     bool const multiple_inputs = infiles.size() > 1;
