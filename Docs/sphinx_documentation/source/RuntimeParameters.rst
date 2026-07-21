@@ -1178,6 +1178,28 @@ Particles
    container when writing checkpoint and plot files for particles. The
    special value of ``-1`` indicates one file per process.
 
+.. py:data:: particles.redistribute_use_mask
+   :type: bool
+   :value: true
+
+   On CPU builds, this controls whether local ``Redistribute()`` may use a
+   level-0 mask for particle-to-grid lookup when the call is otherwise eligible.
+
+.. py:data:: particles.redistribute_mask_max_ratio
+   :type: real
+   :value: 8.0
+
+   This is the maximum ratio of grown mask cells to valid cells for using the
+   CPU local ``Redistribute()`` lookup mask. Non-positive values disable this
+   ratio limit.
+
+.. py:data:: particles.redistribute_mask_max_bytes
+   :type: int
+   :value: 268435456
+
+   This is the maximum estimated per-rank storage, in bytes, for using the CPU
+   local ``Redistribute()`` lookup mask. Negative values disable this byte limit.
+
 Tiling
 ------
 

@@ -302,6 +302,8 @@ public:
 
 protected:
 
+    bool RedistributeMaskLooksCheap (int lev, IntVect nghost) const;
+
     void BuildRedistributeMask (int lev, IntVect nghost) const;
 
     void BuildRedistributeMask (int lev, int nghost=1) const

@@ -329,6 +329,55 @@ int ParticleContainerBase::AggregationBuffer ()
     return aggregation_buffer;
 }
 
+bool ParticleContainerBase::RedistributeMaskLooksCheap (int lev, IntVect nghost) const
+{
+    BL_PROFILE("ParticleContainer::RedistributeMaskLooksCheap");
+
+    AMREX_ASSERT(lev == 0);
+
+    int use_mask = 1;
+    Real max_ratio = 8.0;
+    Long max_bytes = 256L * 1024L * 1024L;
+
+    ParmParse pp("particles");
+    pp.query("redistribute_use_mask", use_mask);
+    pp.query("redistribute_mask_max_ratio", max_ratio);
+    pp.query("redistribute_mask_max_bytes", max_bytes);
+
+    if (!use_mask) { return false; }
+
+    Long valid_cells = 0;
+    Long grown_cells = 0;
+    const BoxArray& ba = this->ParticleBoxArray(lev);
+    const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
+
+    for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.validbox();
+        valid_cells += box.numPts();
+        grown_cells += amrex::grow(box, nghost).numPts();
+    }
+
+    if (grown_cells == 0) { return true; }
+
+    if (max_bytes >= 0) {
+        const auto estimated_bytes = static_cast<long double>(grown_cells)
+            * static_cast<long double>(2 * sizeof(int));
+        if (estimated_bytes > static_cast<long double>(max_bytes)) {
+            return false;
+        }
+    }
+
+    if (max_ratio > 0.0 && valid_cells > 0) {
+        const auto ratio = static_cast<Real>(grown_cells) / static_cast<Real>(valid_cells);
+        if (ratio > max_ratio) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void ParticleContainerBase::BuildRedistributeMask (int lev, IntVect nghost) const
 {
     BL_PROFILE("ParticleContainer::BuildRedistributeMask");
