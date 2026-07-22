@@ -392,6 +392,32 @@ public:
     //! parallel copy or add
     enum CpOp { COPY = 0, ADD = 1 };
 
+    /**
+    * \brief Return the cached tile decomposition used by MFIter.
+    *
+    * The cache is keyed by this FabArrayBase BDKey plus the pair of
+    * requested tile size and BoxArray coarsening ratio. If no entry exists,
+    * this builds it lazily with buildTileArray() and records the use before
+    * returning.
+    *
+    * It is not guaranteed that the all the tiles in the decomposition will be
+    * have exactly the input tile_size. Some of the tiles may be slightly larger.
+    * It is guaranteed, however, that the tiles associated with a given box
+    * will be non-overlapping.
+    *
+    * `IntVect::TheZeroVector()` means untiled iteration: the TileArray has
+    * one tile per owned local FAB. Otherwise each owned local valid box is
+    * split by the requested tile size. The parallel vectors in TileArray
+    * provide the global FAB index, local FAB index, local tile index, number
+    * of tiles in that FAB, and the cell-centered tile boxes consumed by
+    * MFIter.
+    *
+    * TileArray::tileArray always stores cell-centered boxes; MFIter converts
+    * them to the requested IndexType for tilebox(), growntilebox(), and
+    * related accessors. The returned pointer is owned by the static tile-array
+    * cache; treat it as immutable and do not keep it after the cache entry can
+    * be flushed.
+    */
     const TileArray* getTileArray (const IntVect& tilesize) const;
 
     // Memory Usage Tags
