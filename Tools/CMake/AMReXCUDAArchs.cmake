@@ -42,19 +42,42 @@ endif ()
 #
 # Back-compatibility normalization for the legacy hints:
 #   - "Auto" (the historical default) -> "native"
+#   - legacy NVIDIA generation names their compute capability (e.g. Volta -> 70),
+#     as the deprecated FindCUDA helper used to accept via AMReX_CUDA_ARCH.
+#     GPU SASS code is forward-compatible
+#     across minor revisions of the same generation, so the major base value covers
+#     the whole family (e.g. 80 runs on 86/87). "Blackwell" is the exception: it
+#     spans two binary-incompatible families (data-center sm_100 and consumer
+#     sm_120), so it expands to both.
 #   - strip the decimal dot per entry ("8.0" -> "80", "7.5" -> "75")
 # Everything the modern CUDA_ARCHITECTURES property understands is passed through unchanged:
 #   native / all / all-major / integers / <NN>a / -real / -virtual suffixes.
 #
 set(_amrex_cuda_archs_norm)
 foreach (_arch IN LISTS _amrex_cuda_archs)
-   if (_arch STREQUAL "Auto")
+   string(TOLOWER "${_arch}" _arch_lower)
+   if (_arch_lower STREQUAL "auto")
       set(_arch "native")
+   elseif (_arch_lower STREQUAL "pascal")
+      set(_arch "60")
+   elseif (_arch_lower STREQUAL "volta")
+      set(_arch "70")
+   elseif (_arch_lower STREQUAL "turing")
+      set(_arch "75")
+   elseif (_arch_lower STREQUAL "ampere")
+      set(_arch "80")
+   elseif (_arch_lower STREQUAL "ada")
+      set(_arch "89")
+   elseif (_arch_lower STREQUAL "hopper")
+      set(_arch "90")
+   elseif (_arch_lower STREQUAL "blackwell")
+      set(_arch "100;120")
    else ()
       string(REPLACE "." "" _arch "${_arch}")
    endif ()
    list(APPEND _amrex_cuda_archs_norm "${_arch}")
 endforeach ()
+unset(_arch_lower)
 
 set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs_norm}" CACHE STRING
    "CUDA architectures: 'native', 'all-major', or e.g. 80;90a (see CMake CUDA_ARCHITECTURES)" FORCE)
