@@ -114,7 +114,7 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
    set(AMREX_CUDA_ARCHS "${CMAKE_CUDA_ARCHITECTURES}" CACHE INTERNAL "CUDA archs AMReX is built for")
 
    # Device link-time optimization (LTO). Requires relocatable device code
-   # (separable compilation); CMake >= 3.25 emits -dlto for CUDA when IPO is on.
+   # (separable compilation)
    if (AMReX_CUDA_LTO)
       include(CheckIPOSupported)
       check_ipo_supported(LANGUAGES CUDA RESULT _amrex_cuda_ipo OUTPUT _amrex_cuda_ipo_msg)
@@ -136,8 +136,12 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
              CUDA_SEPARABLE_COMPILATION ON
              INTERPROCEDURAL_OPTIMIZATION ON
           )
-          # For a static AMReX, the CUDA device link happens in the user's target.
-          target_link_options(amrex_${D}d INTERFACE "$<DEVICE_LINK:-dlto>")
+          # For a static AMReX, the CUDA device link happens in the user's target,
+          # so export the device-LTO flag as an interface requirement. -dlto is
+          # nvcc's flag, currently `clang -x cuda` or NVHPC do not take it
+          # and CMake check_ipo_supported reports device LTO unsupported for them.
+          target_link_options(amrex_${D}d INTERFACE
+             "$<DEVICE_LINK:$<$<CUDA_COMPILER_ID:NVIDIA>:-dlto>>")
        endif ()
    endforeach()
    unset(_amrex_cuda_ipo)
