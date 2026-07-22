@@ -129,13 +129,15 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
        set_target_properties(amrex_${D}d
           PROPERTIES
           CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
-          )
+       )
        if (AMReX_CUDA_LTO AND _amrex_cuda_ipo)
           set_target_properties(amrex_${D}d
              PROPERTIES
              CUDA_SEPARABLE_COMPILATION ON
              INTERPROCEDURAL_OPTIMIZATION ON
-             )
+          )
+          # For a static AMReX, the CUDA device link happens in the user's target.
+          target_link_options(amrex_${D}d INTERFACE "$<DEVICE_LINK:-dlto>")
        endif ()
    endforeach()
    unset(_amrex_cuda_ipo)
