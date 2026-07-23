@@ -397,8 +397,8 @@ public:
     *
     * The cache is keyed by this FabArrayBase BDKey plus the pair of
     * requested tile size and BoxArray coarsening ratio. If no entry exists,
-    * this builds it lazily with buildTileArray() and records the use before
-    * returning.
+    * this builds it on first use with buildTileArray() and records the use
+    * before returning.
     *
     * It is not guaranteed that the all the tiles in the decomposition will be
     * have exactly the input tile_size. Some of the tiles may be slightly larger.
