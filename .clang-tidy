@@ -58,6 +58,7 @@ Checks: >
        -readability-magic-numbers,
        -readability-math-missing-parentheses,
        -readability-named-parameter,
+       -readability-qualified-auto,
        -readability-redundant-casting,
        -readability-redundant-member-init,
        -readability-static-accessed-through-instance,
@@ -73,6 +74,10 @@ HeaderFilterRegex: '([^n].....|[^o]....|[^l]...|[^i]..|[^n].|[^t])\.H$'
 # Only available in clang-tidy >= 17
 HeaderFileExtensions: ['', "H", 'h', 'hh', 'hpp', 'hxx']
 
-# modernize-use-constraints and modernize-use-ranges are disabled.
+# modernize-use-constraints is not a required check:
 # C++20 concepts/constraints have too many compiler-specific issues
 # (MSVC, NVHPC, CUDA-on-Windows, etc.) to be used in AMReX.
+
+# modernize-use-ranges is not a required check:
+# (1) Clang <= 15 has bugs with std::ranges.
+# (2) std::ranges::sort requires std::sortable, which is stricter than operator<.

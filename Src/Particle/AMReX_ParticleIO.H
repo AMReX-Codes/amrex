@@ -706,17 +706,12 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     const int finest_level_in_file = header.finest_level;
     AMREX_ASSERT(finest_level_in_file >= 0);
 
-    // Determine whether this is a dual-grid restart or not.
-    // Size the vectors to cover both the levels present in the checkpoint
-    // file and the levels present in the current container, since the
-    // loops below iterate up to finestLevel()
-    int const max_level = std::max(finest_level_in_file, finestLevel());
-    Vector<DistributionMapping> old_dms(max_level + 1);
-    Vector<BoxArray> old_bas(max_level + 1);
-    Vector<BoxArray> particle_box_arrays(max_level + 1);
-    bool dual_grid = false;
-
-    bool have_pheaders = false;
+    // Read the BoxArrays stored in the checkpoint for each level so we can
+    // drive the read using the file's layout.  The container's own grids are
+    // never modified: Redistribute() will move every particle to the correct
+    // tile on whatever grids the container currently uses.
+    Vector<BoxArray>            file_bas(finest_level_in_file + 1);
+    Vector<DistributionMapping> file_dms(finest_level_in_file + 1);
     for (int lev = 0; lev <= finest_level_in_file; lev++)
     {
         std::string phdr_name = fullname;
@@ -725,56 +720,23 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         phdr_name += "/Particle_H";
 
         if (amrex::FileExists(phdr_name)) {
-            have_pheaders = true;
-            break;
-        }
-    }
-
-    if (have_pheaders)
-    {
-        for (int lev = 0; lev <= finestLevel(); lev++)
-        {
-            old_dms[lev] = ParticleDistributionMap(lev);
-            old_bas[lev] = ParticleBoxArray(lev);
-            std::string phdr_name = fullname;
-            phdr_name += "/Level_";
-            phdr_name = amrex::Concatenate(phdr_name, lev, 1);
-            phdr_name += "/Particle_H";
-
-            if (! amrex::FileExists(phdr_name)) {
-                // No particles were checkpointed at this level. Dual-grid
-                // restart will use a single-box domain BoxArray as the
-                // temporary layout for this level, so detect that mismatch
-                // here as well.
-                particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
-                if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) {
-                    dual_grid = true;
-                }
-                continue;
-            }
-
             Vector<char> phdr_chars;
             ParallelDescriptor::ReadAndBcastFile(phdr_name, phdr_chars);
             std::string phdr_string(phdr_chars.dataPtr());
             std::istringstream phdr_file(phdr_string, std::istringstream::in);
-
-            particle_box_arrays[lev].readFrom(phdr_file);
-            if (! particle_box_arrays[lev].CellEqual(ParticleBoxArray(lev))) { dual_grid = true; }
+            file_bas[lev].readFrom(phdr_file);
+        } else {
+            // No particles were written at this level; use a single-box BA as
+            // a placeholder so that MFIter below works uniformly.
+            file_bas[lev] = BoxArray(Geom(lev).Domain());
         }
-    } else // if no particle box array information exists in the file, we assume a single grid restart
-    {
-        dual_grid = false;
-    }
-
-    if (dual_grid) {
-        for (int lev = 0; lev <= finestLevel(); lev++) {
-            // this can happen if there are no particles at a given level in the checkpoint
-            if (particle_box_arrays[lev].empty()) {
-                particle_box_arrays[lev] = BoxArray(Geom(lev).Domain());
-            }
-            SetParticleBoxArray(lev, particle_box_arrays[lev]);
-            DistributionMapping pdm(particle_box_arrays[lev]);
-            SetParticleDistributionMap(lev, pdm);
+        const int NReaders = MaxReaders();
+        if (ParallelDescriptor::NProcs() <= NReaders) {
+            file_dms[lev] = DistributionMapping(file_bas[lev]);
+        } else {
+            Vector<int> pmap(file_bas[lev].size());
+            for (int i = 0; i < (int)pmap.size(); ++i) { pmap[i] = i % NReaders; }
+            file_dms[lev] = DistributionMapping(pmap);
         }
     }
 
@@ -798,36 +760,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             HdrFile >> which[i] >> count[i] >> where[i];
         }
 
+        // Use the file's own layout to distribute reading across ranks.
+        MFInfo info;
+        info.SetAlloc(false);
+        MultiFab file_mf(file_bas[lev], file_dms[lev], 1, 0, info);
         Vector<int> grids_to_read;
-        if (lev <= finestLevel()) {
-            for (MFIter mfi(*m_dummy_mf[lev]); mfi.isValid(); ++mfi) {
-                grids_to_read.push_back(mfi.index());
-            }
-        } else {
-
-            // we lost a level on restart. we still need to read in particles
-            // on finer levels, and put them in the right place via Redistribute()
-
-            const int rank = ParallelDescriptor::MyProc();
-            const int NReaders = MaxReaders();
-            if (rank >= NReaders) { continue; }
-
-            const int Navg = ngrids[lev] / NReaders;
-            const int Nleft = ngrids[lev] - Navg * NReaders;
-
-            int lo, hi;
-            if (rank < Nleft) {
-                lo = rank*(Navg + 1);
-                hi = lo + Navg + 1;
-            }
-            else {
-                lo = rank * Navg + Nleft;
-                hi = lo + Navg;
-            }
-
-            for (int i = lo; i < hi; ++i) {
-                grids_to_read.push_back(i);
-            }
+        for (MFIter mfi(file_mf); mfi.isValid(); ++mfi) {
+            grids_to_read.push_back(mfi.index());
         }
 
         for(int grid : grids_to_read) {
@@ -884,13 +823,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             if (!ParticleFile.good()) {
                 amrex::Abort("ParticleContainer::Restart(): problem reading particles");
             }
-        }
-    }
-
-    if (dual_grid) {
-        for (int lev = 0; lev <= finestLevel(); lev++) {
-            SetParticleBoxArray(lev, old_bas[lev]);
-            SetParticleDistributionMap(lev, old_dms[lev]);
         }
     }
 
@@ -992,7 +924,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ++rptr;
         }
 
-        locateParticle(ptemp, pld, 0, finestLevel(), 0);
+        locateParticle(ptemp, pld, 0, finestLevel(), IntVect(0));
 
         std::pair<int, int> ind(grd, pld.m_tile);
 

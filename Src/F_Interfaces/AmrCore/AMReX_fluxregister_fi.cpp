@@ -24,6 +24,13 @@ extern "C"
         }
     }
 
+    void amrex_fi_fluxregister_fineadd_1mf_1dir (FluxRegister* flux_reg, MultiFab* flx,
+                                                 int dir, Real scale)
+    {
+        BL_ASSERT(flux_reg->nComp() == flx->nComp());
+        flux_reg->FineAdd(*flx, dir, 0, 0, flux_reg->nComp(), scale);
+    }
+
   void amrex_fi_fluxregister_fineadd_1fab_1dir (FluxRegister* flux_reg, const Real* fabdata,  const int* flo, const int* fhi, int dir, int boxno, int zeroFirst, int nfluxes, Real scale)
     {
         Box bx;
@@ -43,6 +50,27 @@ extern "C"
         for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
             BL_ASSERT(flux_reg->nComp() == flxs[dir]->nComp());
             flux_reg->CrseInit(*flxs[dir], dir, 0, 0, flux_reg->nComp(), scale);
+        }
+    }
+
+    void amrex_fi_fluxregister_crseinit_add (FluxRegister* flux_reg, MultiFab* flxs[], Real scale)
+    {
+        for (int dir = 0; dir < BL_SPACEDIM; ++dir) {
+            BL_ASSERT(flux_reg->nComp() == flxs[dir]->nComp());
+            flux_reg->CrseInit(*flxs[dir], dir, 0, 0, flux_reg->nComp(),
+                               scale, FluxRegister::ADD);
+        }
+    }
+
+    void amrex_fi_fluxregister_crseinit_1mf_1dir (FluxRegister* flux_reg, MultiFab* flx,
+                                                  int dir, Real scale, int add)
+    {
+        BL_ASSERT(flux_reg->nComp() == flx->nComp());
+        if (add) {
+            flux_reg->CrseInit(*flx, dir, 0, 0, flux_reg->nComp(),
+                               scale, FluxRegister::ADD);
+        } else {
+            flux_reg->CrseInit(*flx, dir, 0, 0, flux_reg->nComp(), scale);
         }
     }
 

@@ -66,6 +66,18 @@ object. Therefore, one should cache it for reuse if possible. Although
 :cpp:`FFT::R2C` does not have a default constructor, one could always use
 :cpp:`std::unique_ptr<FFT::R2C<Real>>` to store an object in one's class.
 
+Choosing FFT lengths
+--------------------
+
+:cpp:`FFT::nextFastLen(target, nfactors)` returns the smallest FFT length
+greater than or equal to :cpp:`target` whose prime factors are limited to the
+first :cpp:`nfactors` values from :cpp:`{2, 3, 5, 7, 11, 13}`. If
+:cpp:`nfactors` is omitted, :cpp:`FFT::FastNumPrimeFactors()` provides the
+platform-dependent default. It currently returns 5 for CUDA and 6 for other
+backends. This default is a performance tuning policy and may change in the
+future. This helper can be used to choose a padded FFT domain size that is
+expected to perform well with common FFT backends.
+
 
 Class template `FFT::R2C` also supports batched FFTs. The batch size is set
 in an :cpp:`FFT::Info` object passed to the constructor of
@@ -177,7 +189,14 @@ boundaries.
 
 :cpp:`FFT::OpenBCSolver` currently supports one right-hand-side component per
 solve. It does not support :cpp:`FFT::Info::setBatchSize` values greater than
-one.
+one. The solver uses an internal doubled convolution domain in each transformed
+direction. By default, the one-sided length is rounded up with
+:cpp:`FFT::nextFastLen(n)` before doubling, using the platform-dependent
+:cpp:`FFT::FastNumPrimeFactors()` default described above. This extra padding
+changes only the internal FFT work arrays, not the user-provided
+:cpp:`MultiFab` domains. Users can disable it with
+:cpp:`FFT::Info::setOpenBCPadding(false)` or tune the factor count with
+:cpp:`FFT::Info::setOpenBCPaddingNumPrimeFactors(nfactors)`.
 
 .. highlight:: c++
 
@@ -200,6 +219,47 @@ z-direction. For most applications, :cpp:`FFT::Poisson` should be used.
 Similar to :cpp:`FFT::R2C`, the Poisson solvers should be cached for reuse,
 and one might need to use :cpp:`std::unique_ptr<FFT::Poisson<MultiFab>>`
 because there is no default constructor.
+
+Stokes Solver
+=============
+
+AMReX provides an FFT-based Stokes solver for periodic domains in 2D and 3D.
+The generalized Stokes problem is
+
+.. math::
+
+  (\alpha - \eta \nabla^2) \mathbf{u} + \nabla p = \mathbf{f},
+
+with the divergence-free constraint enforced in Fourier space.
+Here, :math:`\mathbf{u}` is the velocity, :math:`p` is the pressure,
+:math:`\mathbf{f}` is the right-hand side, and :math:`\alpha` and
+:math:`\eta` are scalar coefficients.
+
+The solver uses a MAC staggered grid. The velocity components and their
+corresponding right-hand side components must be at x-face, y-face, and
+z-face centers, while the pressure is cell-centered. It currently only
+supports periodic boundary conditions.
+
+Below is an example of using the solver.
+
+.. highlight:: c++
+
+::
+
+    Geometry geom(...);
+    MultiFab pres(...);        // cell-centered
+    MultiFab u(...);           // at x-face centers
+    MultiFab v(...);           // at y-face centers
+    MultiFab w(...);           // at z-face centers
+    MultiFab rhsx(...);        // at x-face centers
+    MultiFab rhsy(...);        // at y-face centers
+    MultiFab rhsz(...);        // at z-face centers
+
+    FFT::Stokes stokes(geom);
+    stokes.solve(u, v, w, pres,                 // outputs
+                 rhsx, rhsy, rhsz, alpha, eta); // inputs
+
+Similar to the other FFT classes, the solver should be cached for reuse.
 
 .. _sec:FFT:rawptr:
 

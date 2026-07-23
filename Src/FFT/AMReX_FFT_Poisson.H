@@ -19,41 +19,6 @@ template <typename MF>
 void fill_physbc (MF& mf, Geometry const& geom,
                   Array<std::pair<Boundary,Boundary>,AMREX_SPACEDIM> const& bc);
 
-inline Geometry shift_geom (Geometry const& geom)
-{
-    auto const& dom = geom.Domain();
-    auto const& dlo = dom.smallEnd();
-    if (dlo == 0) {
-        return geom;
-    } else {
-        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
-                        geom.isPeriodic());
-    }
-}
-
-template <typename MF>
-void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
-                MF& new_mf1, MF& new_mf2)
-{
-    AMREX_ALWAYS_ASSERT(mf1.boxArray() == mf2.boxArray() &&
-                        mf1.DistributionMap() == mf2.DistributionMap());
-    BoxArray ba = mf1.boxArray();
-    ba.shift(-domain_lo);
-    new_mf1.define(ba, mf1.DistributionMap(), 1, mf1.nGrowVect(),
-                   MFInfo().SetAlloc(false));
-    new_mf2.define(ba, mf2.DistributionMap(), 1, mf2.nGrowVect(),
-                   MFInfo().SetAlloc(false));
-    for (MFIter mfi(mf1); mfi.isValid(); ++mfi) {
-        typename MF::fab_type fab1(mf1[mfi], amrex::make_alias, 0, 1);
-        fab1.shift(-domain_lo);
-        new_mf1.setFab(mfi, std::move(fab1));
-
-        typename MF::fab_type fab2(mf2[mfi], amrex::make_alias, 0, 1);
-        fab2.shift(-domain_lo);
-        new_mf2.setFab(mfi, std::move(fab2));
-    }
-}
-
 }
 /// \endcond
 
@@ -149,17 +114,19 @@ public:
      * \param geom    Geometry describing the problem domain.
      * \param ixtype  Index type (cell vs. node) for the working arrays.
      * \param ngrow   Number of grow cells applied prior to solving.
+     * \param info    OpenBC solver options.
      */
     template <typename FA=MF>
     requires (IsFabArray_v<FA>)
     explicit PoissonOpenBC (Geometry const& geom,
                             IndexType ixtype = IndexType::TheCellType(),
-                            IntVect const& ngrow = IntVect(0));
+                            IntVect const& ngrow = IntVect(0),
+                            Info const& info = Info{});
 
     /**
      * \brief Solve the open-boundary Poisson problem.
      *
-     * \param soln Solution MultiFab (cell- or node-centered to match constructor).
+     * \param soln Solution MultiFab (cell-centered or nodal to match constructor).
      * \param rhs  Right-hand-side MultiFab.
      */
     void solve (MF& soln, MF const& rhs);
@@ -169,7 +136,16 @@ public:
      */
     void define_doit (); // has to be public for cuda
 
+    /**
+     * \brief Access the one-sided padded length used by the internal OpenBC solver.
+     *
+     * \return Padded length before the open-boundary convolution domain is doubled.
+     */
+    [[nodiscard]] IntVect const& PaddedLength () const { return m_solver.PaddedLength(); }
+
 private:
+    static Info make_solver_info (Info const& info);
+
     Geometry m_geom;
     Box m_grown_domain;
     IntVect m_ngrow;
@@ -398,13 +374,22 @@ template <typename MF>
 template <typename FA>
 requires (IsFabArray_v<FA>)
 PoissonOpenBC<MF>::PoissonOpenBC (Geometry const& geom, IndexType ixtype,
-                                  IntVect const& ngrow)
+                                  IntVect const& ngrow, Info const& info)
     : m_geom(geom),
       m_grown_domain(amrex::grow(amrex::convert(geom.Domain(),ixtype),ngrow)),
       m_ngrow(ngrow),
-      m_solver(m_grown_domain)
+      m_solver(m_grown_domain, make_solver_info(info))
 {
     define_doit();
+}
+
+template <typename MF>
+Info PoissonOpenBC<MF>::make_solver_info (Info const& info)
+{
+    Info solver_info;
+    solver_info.openbc_padding = info.openbc_padding;
+    solver_info.openbc_padding_nfactors = info.openbc_padding_nfactors;
+    return solver_info;
 }
 
 template <typename MF>

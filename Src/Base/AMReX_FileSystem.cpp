@@ -90,6 +90,21 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
         return true;
     }
 
+    // Create directory \p d.  If it already exists, treat that as success
+    // only when the existing entry is a directory (not a regular file or
+    // other non-directory type); otherwise return false.  On return, errno
+    // reflects the last failing syscall so the caller can log it.
+    auto mkdir_or_verify = [mode](const char* d) -> bool {
+        if (mkdir(d, mode) < 0) {
+            if (errno == EEXIST) {
+                struct stat sb;
+                return (stat(d, &sb) == 0) && S_ISDIR(sb.st_mode);
+            }
+            return false;
+        }
+        return true;
+    };
+
     errno = 0;
 
     if(std::strchr(path.c_str(), *path_sep_str) == nullptr) {
@@ -97,11 +112,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
         // No slashes in the path.
         //
         errno = 0;
-        if(mkdir(path.c_str(), mode) < 0 && errno != EEXIST) {
-            retVal = false;
-        } else {
-            retVal = true;
-        }
+        retVal = mkdir_or_verify(path.c_str());
         pathError.push_back(std::make_pair(path, errno));
     } else {
         //
@@ -121,11 +132,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
                     *slash = 0;
                 }
                 errno = 0;
-                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-                    retVal = false;
-                } else {
-                    retVal = true;
-                }
+                retVal = mkdir_or_verify(dir);
                 pathError.push_back(std::make_pair(dir, errno));
                 if(slash) {
                     *slash = *path_sep_str;
@@ -137,19 +144,17 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
             do {
                 *slash = 0;
                 errno = 0;
-                if(mkdir(dir, mode) < 0 && errno != EEXIST) {
-                    retVal = false;
-                } else {
-                    retVal = true;
-                }
+                retVal = mkdir_or_verify(dir);
                 pathError.push_back(std::make_pair(dir, errno));
                 *slash = *path_sep_str;
             } while((slash = std::strchr(slash+1, *path_sep_str)) != nullptr); // NOLINT(bugprone-assignment-in-if-condition)
 
             errno = 0;
-            if(mkdir(dir, mode) < 0 && errno != EEXIST) {
+            // No `else`: retVal was set in the do-while loop above and must be
+            // preserved when the final directory already exists as a directory.
+            if (!mkdir_or_verify(dir)) {
                 retVal = false;
-            } // No `else` because the retVal has been set in the do-while loop above.
+            }
             pathError.push_back(std::make_pair(dir, errno));
         }
 

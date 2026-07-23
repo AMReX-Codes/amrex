@@ -182,10 +182,10 @@ DistributionMapping::Sort (std::vector<LIpair>& vec,
     if (std::ssize(vec) > 1)
     {
         if (reverse) {
-            std::stable_sort(vec.begin(), vec.end(), LIpairGT());
+            std::ranges::stable_sort(vec, LIpairGT());
         }
         else {
-            std::stable_sort(vec.begin(), vec.end(), LIpairLT());
+            std::ranges::stable_sort(vec, LIpairLT());
         }
     }
 }
@@ -1057,8 +1057,8 @@ DistributionMapping::KnapSackProcessorMap (const DistributionMapping& olddm,
                 }
             }
 
-            AMREX_ASSERT(std::none_of(m_ref->m_pmap.cbegin(), m_ref->m_pmap.cend(),
-                                      [] (int i) { return i < 0; }));
+            AMREX_ASSERT(std::ranges::none_of(m_ref->m_pmap,
+                                              [] (int i) { return i < 0; }));
         }
     }
 }
@@ -1324,7 +1324,7 @@ DistributionMapping::SFCProcessorMapDoIt (const BoxArray&          boxes,
     //
     // Put'm in Morton space filling curve order.
     //
-    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
+    std::ranges::sort(tokens, SFCToken::Compare());
     //
     // Split'm up as equitably as possible per team.
     //
@@ -1569,15 +1569,16 @@ DistributionMapping::RRSFCDoIt (const BoxArray&          boxes,
     //
     // Put'm in Morton space filling curve order.
     //
-    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
+    std::ranges::sort(tokens, SFCToken::Compare());
 
     Vector<int> ord;
 
     LeastUsedCPUs(nprocs,ord);
 
-    // Distribute boxes using roundrobin
+    // Distribute boxes using round-robin
     for (int i = 0; i < nboxes; ++i) {
-        m_ref->m_pmap[i] = ParallelContext::local_to_global_rank(ord[i%nprocs]);
+        m_ref->m_pmap[tokens[i].m_box] =
+            ParallelContext::local_to_global_rank(ord[i%nprocs]);
     }
 }
 
@@ -1600,7 +1601,7 @@ DistributionMapping::ConvertCostRealToLong (const Vector<Real>& rcost)
 
     if (rcost.empty()) { return cost; }
 
-    Real wmax = *std::max_element(rcost.begin(), rcost.end());
+    Real wmax = *std::ranges::max_element(rcost);
     Real scale = (wmax == 0) ? 1.e9_rt : 1.e9_rt/wmax;
 
     for (Long i = 0; i < rcost.size(); ++i) {
@@ -1897,7 +1898,7 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, int nprocs)
     //
     // Put'm in Morton space filling curve order.
     //
-    std::sort(tokens.begin(), tokens.end(), SFCToken::Compare());
+    std::ranges::sort(tokens, SFCToken::Compare());
 
     Real volper = static_cast<Real>(vol_sum) / static_cast<Real>(nprocs);
 

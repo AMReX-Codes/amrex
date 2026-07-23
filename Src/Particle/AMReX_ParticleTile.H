@@ -1378,19 +1378,19 @@ struct ParticleTile
                 }
             }
 
-            std::sort(pvs.begin(), pvs.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(pvs, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });
-            std::sort(ids.begin(), ids.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(ids, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });
-            std::sort(rvs.begin(), rvs.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(rvs, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });
-            std::sort(ivs.begin(), ivs.end(), [] (auto const& a, auto const& b) {
+            std::ranges::sort(ivs, [] (auto const& a, auto const& b) {
                 return (a.first->size() + a.second) >
                        (b.first->size() + b.second);
             });

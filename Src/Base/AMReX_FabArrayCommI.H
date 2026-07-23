@@ -242,7 +242,7 @@ FabArray<FAB>::FillBoundary_finish ()
             }
         }
 
-        int actual_n_rcvs = N_rcvs - std::count(fbd->recv_data.begin(), fbd->recv_data.end(), nullptr);
+        int actual_n_rcvs = N_rcvs - std::ranges::count(fbd->recv_data, nullptr);
 
         if (actual_n_rcvs > 0) {
             ParallelDescriptor::Waitall(fbd->recv_reqs, fbd->recv_stat);
@@ -536,7 +536,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
         if (Gpu::inLaunchRegion())
         {
-            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op, deterministic);
+            PC_local_gpu(thecpc, src, scomp, dcomp, ncomp, op,
+                         deterministic && (op == FabArrayBase::ADD));
         }
         else
 #endif
@@ -599,7 +600,7 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
         if (N_rcvs > 0) {
             PostRcvs(*thecpc.m_RcvTags, pcd->the_recv_data,
                      pcd->recv_data, pcd->recv_size, pcd->recv_from, pcd->recv_reqs, NC, pcd->tag);
-            pcd->actual_n_rcvs = N_rcvs - std::count(pcd->recv_size.begin(), pcd->recv_size.end(), 0);
+            pcd->actual_n_rcvs = N_rcvs - std::ranges::count(pcd->recv_size, 0);
         }
 
         //
@@ -638,7 +639,8 @@ FabArray<FAB>::ParallelCopy_nowait (const FabArray<FAB>& src,
 #ifdef AMREX_USE_GPU
             if (Gpu::inLaunchRegion())
             {
-                PC_local_gpu(thecpc, src, SC, DC, NC, op, deterministic);
+                PC_local_gpu(thecpc, src, SC, DC, NC, op,
+                             deterministic && (op == FabArrayBase::ADD));
             }
             else
 #endif

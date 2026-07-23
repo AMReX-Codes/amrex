@@ -17,15 +17,19 @@ module amrex_fluxregister_module
      integer     :: flev  = -1
    contains
      generic   :: assignment(=) => amrex_fluxregister_assign   ! shallow copy
-     generic   :: fineadd       => amrex_fluxregister_fineadd, amrex_fluxregister_fineadd_1fab
-     procedure :: crseinit      => amrex_fluxregister_crseinit
+     generic   :: fineadd       => amrex_fluxregister_fineadd, amrex_fluxregister_fineadd_1mf, &
+                                   amrex_fluxregister_fineadd_1fab
+     generic   :: crseinit      => amrex_fluxregister_crseinit, amrex_fluxregister_crseinit_1mf
      procedure :: crseadd       => amrex_fluxregister_crseadd
      procedure :: setval        => amrex_fluxregister_setval
      procedure :: reflux        => amrex_fluxregister_reflux
      procedure :: overwrite     => amrex_fluxregister_overwrite
      procedure, private :: amrex_fluxregister_assign
      procedure, private :: amrex_fluxregister_fineadd
+     procedure, private :: amrex_fluxregister_fineadd_1mf
      procedure, private :: amrex_fluxregister_fineadd_1fab
+     procedure, private :: amrex_fluxregister_crseinit
+     procedure, private :: amrex_fluxregister_crseinit_1mf
      final :: amrex_fluxregister_destroy
   end type amrex_fluxregister
 
@@ -52,6 +56,14 @@ module amrex_fluxregister_module
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_fineadd
 
+     subroutine amrex_fi_fluxregister_fineadd_1mf_1dir (fr, flx, dir, scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr, flx
+       integer(c_int), value :: dir
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_fineadd_1mf_1dir
+
      subroutine amrex_fi_fluxregister_fineadd_1fab_1dir (fr, fabdata, flo,fhi, dir, boxno, zeroFirst, nfluxes, scale) bind(c)
        import
        implicit none
@@ -69,6 +81,22 @@ module amrex_fluxregister_module
        type(c_ptr), intent(in) :: flxs(*)
        real(amrex_real), value :: scale
      end subroutine amrex_fi_fluxregister_crseinit
+
+     subroutine amrex_fi_fluxregister_crseinit_add (fr, flxs, scale) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr
+       type(c_ptr), intent(in) :: flxs(*)
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_crseinit_add
+
+     subroutine amrex_fi_fluxregister_crseinit_1mf_1dir (fr, flx, dir, scale, add) bind(c)
+       import
+       implicit none
+       type(c_ptr), value :: fr, flx
+       integer(c_int), value :: dir, add
+       real(amrex_real), value :: scale
+     end subroutine amrex_fi_fluxregister_crseinit_1mf_1dir
 
      subroutine amrex_fi_fluxregister_crseadd (fr, flxs, scale, geom) bind(c)
        import
@@ -114,6 +142,7 @@ contains
     type(amrex_boxarray), intent(in) :: ba
     type(amrex_distromap), intent(in) :: dm
     integer, intent(in) :: ref_ratio, fine_lev, ncomp
+    call amrex_fluxregister_destroy(fr)
     fr%owner = .true.
     fr%flev  = fine_lev
     call amrex_fi_new_fluxregister(fr%p, ba%p, dm%p, ref_ratio, fine_lev, ncomp)
@@ -133,6 +162,7 @@ contains
   subroutine amrex_fluxregister_assign (dst, src)
     class(amrex_fluxregister), intent(inout) :: dst
     type (amrex_fluxregister), intent(in   ) :: src
+    call amrex_fluxregister_destroy(dst)
     dst%owner = .false.
     dst%flev  = src%flev
     dst%p     = src%p
@@ -149,6 +179,14 @@ contains
     end do
     call amrex_fi_fluxregister_fineadd(this%p, mf, scale)
   end subroutine amrex_fluxregister_fineadd
+
+  subroutine amrex_fluxregister_fineadd_1mf (this, flux, dir, scale)
+    class(amrex_fluxregister), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: flux
+    integer, intent(in) :: dir
+    real(amrex_real), intent(in) :: scale
+    call amrex_fi_fluxregister_fineadd_1mf_1dir(this%p, flux%p, dir-1, scale)
+  end subroutine amrex_fluxregister_fineadd_1mf
 
   subroutine amrex_fluxregister_fineadd_1fab (this, fluxfabs, gridIdx, scale, zeroFirst)
     class(amrex_fluxregister), intent(inout) :: this
@@ -176,17 +214,42 @@ contains
     end do
   end subroutine amrex_fluxregister_fineadd_1fab
 
-  subroutine amrex_fluxregister_crseinit (this, fluxes, scale)
+  subroutine amrex_fluxregister_crseinit (this, fluxes, scale, add)
     class(amrex_fluxregister), intent(inout) :: this
     type(amrex_multifab), intent(in) :: fluxes(amrex_spacedim)
     real(amrex_real), intent(in) :: scale
+    logical, intent(in), optional :: add
     integer :: dim
     type(c_ptr) :: mf(amrex_spacedim)
     do dim = 1, amrex_spacedim
        mf(dim) = fluxes(dim)%p
     end do
-    call amrex_fi_fluxregister_crseinit(this%p, mf, scale)
+    if (present(add)) then
+       if (add) then
+          call amrex_fi_fluxregister_crseinit_add(this%p, mf, scale)
+       else
+          call amrex_fi_fluxregister_crseinit(this%p, mf, scale)
+       end if
+    else
+       call amrex_fi_fluxregister_crseinit(this%p, mf, scale)
+    end if
   end subroutine amrex_fluxregister_crseinit
+
+  subroutine amrex_fluxregister_crseinit_1mf (this, flux, dir, scale, add)
+    class(amrex_fluxregister), intent(inout) :: this
+    type(amrex_multifab), intent(in) :: flux
+    integer, intent(in) :: dir
+    real(amrex_real), intent(in) :: scale
+    logical, intent(in), optional :: add
+    integer(c_int) :: iadd
+
+    iadd = 0
+    if (present(add)) then
+       if (add) iadd = 1
+    end if
+
+    call amrex_fi_fluxregister_crseinit_1mf_1dir(this%p, flux%p, dir-1, scale, iadd)
+  end subroutine amrex_fluxregister_crseinit_1mf
 
   subroutine amrex_fluxregister_crseadd (this, fluxes, scale)
     use amrex_amrcore_module, only : amrex_geom
@@ -229,4 +292,3 @@ contains
   end subroutine amrex_fluxregister_overwrite
 
 end module amrex_fluxregister_module
-

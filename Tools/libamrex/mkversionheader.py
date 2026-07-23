@@ -14,7 +14,7 @@ def doit(code, defines):
     for d in defs:
         dd = d.strip()
         if dd:
-            v = dd.split("=")
+            v = dd.split("=", 1)
             print("#ifndef",v[0])
             if len(v) == 2:
                 print("#define",v[0],v[1])

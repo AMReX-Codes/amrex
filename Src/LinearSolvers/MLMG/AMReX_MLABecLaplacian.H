@@ -7,6 +7,13 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLABecLaplacian.H
+ *
+ * Cell-centered multi-level operator for ``alpha a - beta div(b grad phi)``,
+ * templated on the MultiFab-like container in use.
+ */
+
 /// \ingroup amrex_solver_mlmg
 /// (alpha * a - beta * (del dot b grad)) phi
 template <typename MF>
@@ -21,7 +28,9 @@ public:
     using BCType = LinOpBCType;
     using Location  = typename MLLinOpT<MF>::Location;
 
+    //! Construct an empty operator; call define() before solving.
     MLABecLaplacianT () = default;
+    //! Convenience constructor for cell-based solves without overset regions.
     MLABecLaplacianT (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
@@ -29,6 +38,7 @@ public:
                       const Vector<FabFactory<FAB> const*>& a_factory = {},
                       int a_ncomp = 1);
 
+    //! Convenience constructor that includes overset-mask handling (1 = unknown, 0 = known).
     MLABecLaplacianT (const Vector<Geometry>& a_geom,
                       const Vector<BoxArray>& a_grids,
                       const Vector<DistributionMapping>& a_dmap,
@@ -44,6 +54,16 @@ public:
     MLABecLaplacianT<MF>& operator= (const MLABecLaplacianT<MF>&) = delete;
     MLABecLaplacianT<MF>& operator= (MLABecLaplacianT<MF>&&) = delete;
 
+    /**
+     * \brief Define coefficients/layouts for a standard cell-centered solve.
+     *
+     * \param a_geom    Per-level geometries.
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    Optional LPInfo overrides.
+     * \param a_factory Optional FAB factories.
+     * \param a_ncomp   Number of components handled by the operator.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
@@ -51,6 +71,17 @@ public:
                  const Vector<FabFactory<FAB> const*>& a_factory = {},
                  int a_ncomp = 1);
 
+    /**
+     * \brief Define coefficients/layouts plus overset-mask information.
+     *
+     * \param a_geom        Per-level geometries.
+     * \param a_grids       Per-level grids.
+     * \param a_dmap        Distribution mappings.
+     * \param a_overset_mask Overset masks (1 unknown, 0 known).
+     * \param a_info        Optional LPInfo overrides.
+     * \param a_factory     Optional FAB factories.
+     * \param a_ncomp       Number of components handled.
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
@@ -135,45 +166,89 @@ public:
 
     [[nodiscard]] int getNComp () const override { return m_ncomp; }
 
+    //! True if coefficients need to be averaged down before the next apply().
     [[nodiscard]] bool needsUpdate () const override {
         return (m_needs_update || MLCellABecLapT<MF>::needsUpdate());
     }
+    //! Average coefficients and enforce boundary-provided adjustments when needed.
     void update () override;
 
+    //! Finalize singular flags and metric/Robin adjustments prior to calling MLMG.
     void prepareForSolve () override;
+    //! Query whether AMR level \p amrlev is singular (null space present).
     [[nodiscard]] bool isSingular (int amrlev) const override { return m_is_singular[amrlev]; }
+    //! Convenience helper for the coarsest level singularity flag.
     [[nodiscard]] bool isBottomSingular () const override { return m_is_singular[0]; }
+    /**
+     * \brief Apply the operator on (\p amrlev,\p mglev),
+     * storing L(\p in) in \p out.
+     */
     void Fapply (int amrlev, int mglev, MF& out, const MF& in) const override;
+    /**
+     * \brief Perform one smoothing pass on (\p amrlev,\p mglev) updating
+     * \p sol against \p rhs.  \p redblack selects the red (0) or black (1)
+     * half of the grid.
+     */
     void Fsmooth (int amrlev, int mglev, MF& sol, const MF& rhs, int redblack) const override;
+    /**
+     * \brief Compute fluxes on AMR level \p amrlev for the tilebox
+     * described by \p mfi using \p sol, writing to \p flux and honoring
+     * \p face_only.
+     */
     void FFlux (int amrlev, const MFIter& mfi,
                 const Array<FAB*,AMREX_SPACEDIM>& flux,
                 const FAB& sol, Location /* loc */,
                 int face_only=0) const override;
 
+    //! Divide \p mf by the diagonal of the operator (used by CG-family bottom solvers).
     void normalize (int amrlev, int mglev, MF& mf) const override;
 
+    //! Scalar alpha applied to the a-coefficient term.
     [[nodiscard]] RT getAScalar () const final { return m_a_scalar; }
+    //! Scalar beta applied to the b-coefficient term.
     [[nodiscard]] RT getBScalar () const final { return m_b_scalar; }
+    //! Access the stored `a` coefficient on AMR level \p amrlev and MG level \p mglev.
     [[nodiscard]] MF const* getACoeffs (int amrlev, int mglev) const final
         { return &(m_a_coeffs[amrlev][mglev]); }
+    //! Access the stored `b` coefficients on AMR level \p amrlev and MG level \p mglev.
     [[nodiscard]] Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const final
         { return amrex::GetArrOfConstPtrs(m_b_coeffs[amrlev][mglev]); }
 
+    //! Build the NSolve counterpart of this operator.
     [[nodiscard]] std::unique_ptr<MLLinOpT<MF>> makeNLinOp (int /*grid_size*/) const final;
 
+    //! Whether this operator supports NSolve.
     [[nodiscard]] bool supportNSolve () const override;
 
+    //! Copy an NSolve solution from \p src to \p dst.
     void copyNSolveSolution (MF& dst, MF const& src) const final;
 
+    //! Average coefficients down within AMR level \p amrlev (fine-to-coarse multigrid) updating \p a and \p b.
     void averageDownCoeffsSameAmrLevel (int amrlev, Vector<MF>& a,
                                         Vector<Array<MF,AMREX_SPACEDIM> >& b);
+    //! Average `a` and `b` coefficients down across all AMR and MG levels.
     void averageDownCoeffs ();
+    //! Average coefficients from fine AMR level \p flev to coarse AMR level \p flev-1.
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 
+    //! Apply metric factors to the stored coefficients when solving in mapped space.
     void applyMetricTermsCoeffs ();
 
+    //! Modify coefficients to honor Robin BC terms introduced at level boundaries.
     void applyRobinBCTermsCoeffs ();
 
+    /**
+     * \brief Helper that computes face fluxes for a single tilebox.
+     *
+     * \param box       Tilebox region whose faces receive fluxes.
+     * \param dxinv     Metric factors (1/dx per dimension).
+     * \param bscalar   Scalar multiplier applied to each `b` coefficient.
+     * \param bcoef     Face-centered `b` coefficients per direction.
+     * \param flux      Output flux arrays per direction.
+     * \param sol       Cell-centered solution supplying gradients.
+     * \param face_only Non-zero to fill faces only (skip centroids).
+     * \param ncomp     Number of components to process.
+     */
     static void FFlux (Box const& box, Real const* dxinv, RT bscalar,
                        Array<FAB const*, AMREX_SPACEDIM> const& bcoef,
                        Array<FAB*,AMREX_SPACEDIM> const& flux,
@@ -725,8 +800,8 @@ MLABecLaplacianT<MF>::update_singular_flags ()
 {
     m_is_singular.clear();
     m_is_singular.resize(this->m_num_amr_levels, false);
-    auto itlo = std::find(this->m_lobc[0].begin(), this->m_lobc[0].end(), BCType::Dirichlet);
-    auto ithi = std::find(this->m_hibc[0].begin(), this->m_hibc[0].end(), BCType::Dirichlet);
+    auto itlo = std::ranges::find(this->m_lobc[0], BCType::Dirichlet);
+    auto ithi = std::ranges::find(this->m_hibc[0], BCType::Dirichlet);
     if (itlo == this->m_lobc[0].end() && ithi == this->m_hibc[0].end())
     {  // No Dirichlet
         for (int alev = 0; alev < this->m_num_amr_levels; ++alev)

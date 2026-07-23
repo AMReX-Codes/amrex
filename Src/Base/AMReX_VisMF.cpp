@@ -738,7 +738,7 @@ VisMF::Header::Header (const FabArray<FArrayBox>& mf,
     }
 
     if(calcMinMax) {
-      CalculateMinMax(mf,0, comm);
+      CalculateMinMax(mf, ParallelDescriptor::IOProcessorNumber(comm), comm);
     }
 }
 
@@ -1679,7 +1679,7 @@ VisMF::Read (FabArray<FArrayBox> &mf,
       const std::string &fileName = frcIter->first;
       Vector<FabReadLink> &frc = frcIter->second;
       // ---- sort by offset
-      std::sort(frc.begin(), frc.end(), [] (const FabReadLink &a, const FabReadLink &b)
+      std::ranges::sort(frc, [] (const FabReadLink &a, const FabReadLink &b)
                                               { return a.fileOffset < b.fileOffset; } );
 
       Vector<int> nBoxesPerRank(nRanksPerFile[currentFileIndex]);

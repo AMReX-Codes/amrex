@@ -66,6 +66,9 @@ public:
     //! Reset stored fluxes and flags before a coarse advance.
     void reset ();
 
+    //! Deallocate all data and reset to default-constructed state.
+    void clear ();
+
     /**
      * \brief Add coarse-level fluxes for the tile indicated by \p mfi.
      *
@@ -205,6 +208,7 @@ YAFluxRegisterT<MF>::define (const BoxArray& fba, const BoxArray& cba,
                              const Geometry& fgeom, const Geometry& cgeom,
                              const IntVect& ref_ratio, int fine_lev, int nvar)
 {
+    clear();
     m_fine_geom = fgeom;
     m_crse_geom = cgeom;
     m_ratio = ref_ratio;
@@ -414,6 +418,32 @@ YAFluxRegisterT<MF>::reset ()
 {
     m_crse_data.setVal(T(0.0));
     m_cfpatch.setVal(T(0.0));
+}
+
+template <typename MF>
+void
+YAFluxRegisterT<MF>::clear ()
+{
+    // Keep m_deterministic — it is a behavioral preference (how GPU
+    // reductions are done), not tied to the geometry or BoxArrays being
+    // defined.  Preserving it avoids surprising the user who set it once.
+    //
+    // m_deterministic is not reset here.
+
+    m_cvol = nullptr;
+    m_ncomp = 0;
+    m_fine_level = 0;
+    m_ratio = IntVect(1);
+    m_crse_geom = Geometry();
+    m_fine_geom = Geometry();
+
+    m_cfp_localindex.clear();
+    m_cfp_fab.clear();
+    m_cfp_mask.clear();
+    m_cfpatch.clear();
+    m_crse_fab_flag.clear();
+    m_crse_flag.clear();
+    m_crse_data.clear();
 }
 
 template <typename MF>

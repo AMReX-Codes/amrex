@@ -109,7 +109,7 @@ public:
     static void assign (VEC& lhs, VEC const& rhs);
 
     /**
-     * \brief Add a scaled vector: \f$ \text{lhs} \mathrel{+}= a\,\text{rhs}\f$.
+     * \brief Add a scaled vector: `lhs += a * rhs`.
      *
      * \param lhs Accumulation target.
      * \param rhs Source vector.
@@ -118,7 +118,7 @@ public:
     static void increment (VEC& lhs, VEC const& rhs, RT a);
 
     /**
-     * \brief Form a linear combination: \f$ \text{lhs} = a\,\text{rhs}_a + b\,\text{rhs}_b\f$.
+     * \brief Form a linear combination: `lhs = a * rhs_a + b * rhs_b`.
      *
      * \param lhs    Destination vector written in place.
      * \param a      Scalar applied to \p rhs_a.
@@ -131,13 +131,13 @@ public:
     /**
      * \brief Apply the operator supplied to the constructor.
      *
-     * \param lhs Destination vector receiving \f$L(\text{rhs})\f$.
+     * \param lhs Destination vector receiving `L(rhs)`.
      * \param rhs Source vector.
      */
     void apply (VEC& lhs, VEC const& rhs) const;
 
     /**
-     * \brief Apply the MLMG-based preconditioner: \f$\text{lhs} = P^{-1}(\text{rhs})\f$.
+     * \brief Apply the MLMG-based preconditioner: `lhs = P^{-1}(rhs)`.
      *
      * \param lhs Destination vector, zeroed before solving when the preconditioner is enabled.
      * \param rhs Source vector passed to the preconditioner.

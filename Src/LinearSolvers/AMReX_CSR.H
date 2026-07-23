@@ -367,10 +367,10 @@ void CSR<T,V>::sort_on_host ()
                     perm [i] = i;
                 }
 
-                std::sort(perm.begin(), perm.end(),
-                          [&] (int i0, int i1) {
-                              return lcols[i0] < lcols[i1];
-                          });
+                std::ranges::sort(perm,
+                                  [&] (int i0, int i1) {
+                                      return lcols[i0] < lcols[i1];
+                                  });
 
                 for (int out = 0; out < len; ++out) {
                     auto const in = perm[out];

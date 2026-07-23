@@ -133,6 +133,63 @@ namespace amrex::simd
         {
             return mask ? true_val : false_val;
         }
+
+        /** Horizontal reduction over all elements (scalar identity fallback for simd reduce)
+         *
+         * For a scalar, the reduction over its single "element" is the value itself,
+         * independent of the (associative) binary operation.
+         *
+         * Example:
+         * ```cpp
+         * // Works for both simd<T> and scalar T:
+         * auto total = amrex::simd::stdx::reduce(v);  // sum of all elements
+         * ```
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/reduce
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T reduce (T const& v) { return v; }
+
+        /** Horizontal reduction with an explicit binary operation (scalar identity fallback)
+         *
+         * @see reduce above
+         */
+        template <typename T, typename BinaryOperation>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T reduce (T const& v, BinaryOperation const&) { return v; }
+
+        /** Smallest element (scalar identity fallback for simd hmin)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/reduce_min_max
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T hmin (T const& v) { return v; }
+
+        /** Largest element (scalar identity fallback for simd hmax)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/reduce_min_max
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T hmax (T const& v) { return v; }
+
+        /** Element-wise minimum (scalar fallback for simd min)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/min
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T min (T const& a, T const& b) { return (b < a) ? b : a; }
+
+        /** Element-wise maximum (scalar fallback for simd max)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/max
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T max (T const& a, T const& b) { return (a < b) ? b : a; }
 #endif
     }
 

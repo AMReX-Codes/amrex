@@ -186,11 +186,14 @@ RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old)
         const int NProcs = ParallelDescriptor::NProcs();
         const int MyProc = ParallelDescriptor::MyProc();
         for (int i = nthreads_old; i < nthreads; i++) {
-            ULong seed = MyProc+1 + i*NProcs;
+            ULong seed = static_cast<ULong>(MyProc+1)
+                       + static_cast<ULong>(i)*static_cast<ULong>(NProcs);
             if (std::numeric_limits<ULong>::max()/static_cast<ULong>(nstep_old+1)
                 > static_cast<ULong>(nthreads)*static_cast<ULong>(NProcs)) // avoid overflow
             {
-                seed += nstep_old*nthreads*NProcs;
+                seed += static_cast<ULong>(nstep_old)
+                      * static_cast<ULong>(nthreads)
+                      * static_cast<ULong>(NProcs);
             }
 
             generators[i].seed(seed);
@@ -262,6 +265,8 @@ DeallocateRandomSeedDevArray ()
 
 void FillRandom (Real* p, Long N)
 {
+    if (N <= 0) { return; }
+
 #ifdef AMREX_USE_CUDA
 
 #  ifdef BL_USE_FLOAT

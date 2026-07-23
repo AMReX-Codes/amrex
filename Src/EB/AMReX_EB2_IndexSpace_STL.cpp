@@ -74,7 +74,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
 const Level&
 IndexSpaceSTL::getLevel (const Geometry& geom) const
 {
-    auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
+    auto it = std::ranges::find(m_domain, geom.Domain());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
                                      "IndexSpaceSTL::getLevel: Geometry not found");
     auto i = std::distance(m_domain.begin(), it);
@@ -84,7 +84,7 @@ IndexSpaceSTL::getLevel (const Geometry& geom) const
 const Geometry&
 IndexSpaceSTL::getGeometry (const Box& dom) const
 {
-    auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
+    auto it = std::ranges::find(m_domain, dom);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
                                      "IndexSpaceSTL::getLevel: domain not found");
     auto i = std::distance(m_domain.begin(), it);

@@ -61,7 +61,14 @@ struct AssignGrid
 
     template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::pair<int, int> operator() (const P& p, int nGrow=0, Assignor const& assignor = Assignor{}) const noexcept
+    std::pair<int, int> operator() (const P& p, int nGrow, Assignor const& assignor = Assignor{}) const noexcept
+    {
+        return this->operator()(p, IntVect(nGrow), assignor);
+    }
+
+    template <typename P, typename Assignor = DefaultAssignor>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::pair<int, int> operator() (const P& p, IntVect nGrow=IntVect(0), Assignor const& assignor = Assignor{}) const noexcept
     {
         const auto iv = assignor(p, m_plo, m_dxi, m_domain);
         return this->operator()(iv, nGrow);
@@ -70,17 +77,24 @@ struct AssignGrid
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     std::pair<int, int> operator() (const IntVect& iv, int nGrow=0) const noexcept
     {
+        return this->operator()(iv, IntVect(nGrow));
+    }
+
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    std::pair<int, int> operator() (const IntVect& iv, IntVect nGrow) const noexcept
+    {
         if (AMREX_D_TERM((m_num_bins.x == 0), && (m_num_bins.y == 0), && (m_num_bins.z == 0))) {
             return {-1, -1};
         }
         const auto lo = iv.dim3();
-        int ix_lo = amrex::max((lo.x - nGrow - m_lo.x) / m_bin_size.x - 1, 0);
-        int iy_lo = amrex::max((lo.y - nGrow - m_lo.y) / m_bin_size.y - 1, 0);
-        int iz_lo = amrex::max((lo.z - nGrow - m_lo.z) / m_bin_size.z - 1, 0);
+        const auto ng = nGrow.dim3(0);
+        int ix_lo = amrex::max((lo.x - ng.x - m_lo.x) / m_bin_size.x - 1, 0);
+        int iy_lo = amrex::max((lo.y - ng.y - m_lo.y) / m_bin_size.y - 1, 0);
+        int iz_lo = amrex::max((lo.z - ng.z - m_lo.z) / m_bin_size.z - 1, 0);
 
-        int ix_hi = amrex::min((lo.x + nGrow - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
-        int iy_hi = amrex::min((lo.y + nGrow - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
-        int iz_hi = amrex::min((lo.z + nGrow - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
+        int ix_hi = amrex::min((lo.x + ng.x - m_lo.x) / m_bin_size.x, m_num_bins.x-1);
+        int iy_hi = amrex::min((lo.y + ng.y - m_lo.y) / m_bin_size.y, m_num_bins.y-1);
+        int iz_hi = amrex::min((lo.z + ng.z - m_lo.z) / m_bin_size.z, m_num_bins.z-1);
         int loc_gid = -1;
         int loc_tid = -1;
         for (int kk = iz_lo; kk <= iz_hi; ++kk) {
@@ -103,7 +117,7 @@ struct AssignGrid
                             // Prefer particle not in corner ghost cells
                             for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
                                 Box gdbx = bx;
-                                gdbx.grow(dir, nGrow);
+                                gdbx.grow(dir, nGrow[dir]);
                                 if (gdbx.contains(iv)) {
                                     loc_gid = nbor.first;
                                     loc_tid = tile;
@@ -256,6 +270,14 @@ struct AmrAssignGrid
     template <typename P, typename Assignor = DefaultAssignor>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     GpuTuple<int, int, int> operator() (const P& p, int lev_min=-1, int lev_max=-1, int nGrow=0,
+                                        Assignor const& assignor = {}) const noexcept
+    {
+        return this->operator()(p, lev_min, lev_max, IntVect(nGrow), assignor);
+    }
+
+    template <typename P, typename Assignor = DefaultAssignor>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    GpuTuple<int, int, int> operator() (const P& p, int lev_min, int lev_max, IntVect nGrow,
                                         Assignor const& assignor = {}) const noexcept
     {
         lev_min = (lev_min == -1) ? 0 : lev_min;

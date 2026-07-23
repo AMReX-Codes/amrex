@@ -92,9 +92,7 @@ BoxList::catenate (BoxList& blist)
 BoxList&
 BoxList::removeEmpty()
 {
-    m_lbox.erase(std::remove_if(m_lbox.begin(), m_lbox.end(),
-                                [](const Box& x) { return x.isEmpty(); }),
-                 m_lbox.end());
+    std::erase_if(m_lbox, [](const Box& x) { return x.isEmpty(); });
     return *this;
 }
 
@@ -236,8 +234,8 @@ BoxList::BoxList (const Box& bx, int nboxes, Direction dir)
 bool
 BoxList::ok () const noexcept
 {
-    return std::all_of(this->cbegin(), this->cend(),
-                       [] (Box const& b) { return b.ok(); });
+    return std::ranges::all_of(*this,
+                               [] (Box const& b) { return b.ok(); });
 }
 
 bool
@@ -259,8 +257,8 @@ BoxList::contains (const BoxList& bl) const
 
     BoxArray ba(*this);
 
-    return std::all_of(bl.cbegin(), bl.cend(),
-                       [&ba] (Box const& b) { return ba.contains(b); });
+    return std::ranges::all_of(bl,
+                               [&ba] (Box const& b) { return ba.contains(b); });
 }
 
 BoxList&
@@ -653,7 +651,7 @@ boxDiff (BoxList& bl_diff, const Box& b1in, const Box& b2)
 int
 BoxList::simplify (bool best)
 {
-    std::sort(m_lbox.begin(), m_lbox.end(), [](const Box& l, const Box& r) {
+    std::ranges::sort(m_lbox, [](const Box& l, const Box& r) {
             return l.smallEnd() < r.smallEnd(); });
 
     //

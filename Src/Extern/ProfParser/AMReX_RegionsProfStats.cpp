@@ -98,8 +98,7 @@ RegionsProfStats::~RegionsProfStats() {
 
 // ----------------------------------------------------------------------
 void RegionsProfStats::AddCStatsHeaderFileName(const string &hfn) {
-  if(std::find(regHeaderFileNames.begin(),
-     regHeaderFileNames.end(), hfn) == regHeaderFileNames.end())
+  if(std::ranges::find(regHeaderFileNames, hfn) == regHeaderFileNames.end())
   {
     regHeaderFileNames.push_back(hfn);
   }

@@ -334,7 +334,7 @@ fillNeighborsGPU ()
     neighbor_copy_plan.clear();
     buildNeighborCopyOp();
     neighbor_copy_plan.build(*this, neighbor_copy_op, ghost_int_comp,
-                             ghost_real_comp, true);
+                             ghost_real_comp, true, IntVect(m_num_neighbor_cells));
     updateNeighborsGPU(false);
 }
 
@@ -351,7 +351,7 @@ updateNeighborsGPU (bool boundary_neighbors_only)
         neighbor_copy_plan.clear();
         buildNeighborCopyOp(true);
         neighbor_copy_plan.build(*this, neighbor_copy_op, ghost_int_comp,
-                                 ghost_real_comp, true);
+                                 ghost_real_comp, true, IntVect(m_num_neighbor_cells));
     }
 
     clearNeighbors();

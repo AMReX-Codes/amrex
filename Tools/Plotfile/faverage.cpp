@@ -62,18 +62,17 @@ int main(int argc, char* argv[])
         Box domain = pf.probDomain(fine_level);
         auto dx_fine = pf.cellSize(fine_level);
         auto problo = pf.probLo();
-        auto probhi = pf.probHi();
 
         // compute the size of the radially-binned array -- we'll take the
         // vertical direction to be the dimensionality
 
-        int nbins = static_cast<int>(std::abs(probhi[dim-1] - problo[dim-1]) / dx_fine[dim-1]);
+        int nbins = domain.length(dim-1);
 
         // height coordinate
         Vector<Real> h(nbins);
 
         for (auto i = 0; i < nbins; i++) {
-            h[i] = (i + 0.5) * dx_fine[dim-1];
+            h[i] = problo[dim-1] + (i + 0.5) * dx_fine[dim-1];
         }
 
         // find variable indices
@@ -81,11 +80,11 @@ int main(int argc, char* argv[])
 
         // density can be call "density" in Castro or "rho" in MAESTROeX
         int dens_comp = std::distance(var_names_pf.cbegin(),
-                                  std::find(var_names_pf.cbegin(), var_names_pf.cend(), "density"));
+                                  std::ranges::find(var_names_pf, "density"));
 
         if (dens_comp == var_names_pf.size()) {
             dens_comp = std::distance(var_names_pf.cbegin(),
-                                      std::find(var_names_pf.cbegin(), var_names_pf.cend(), "rho"));
+                                      std::ranges::find(var_names_pf, "rho"));
         }
 
         if (dens_comp == var_names_pf.size() && do_favre) {
@@ -93,7 +92,7 @@ int main(int argc, char* argv[])
         }
 
         int var_comp = std::distance(var_names_pf.cbegin(),
-                                  std::find(var_names_pf.cbegin(), var_names_pf.cend(), varname));
+                                  std::ranges::find(var_names_pf, varname));
 
         if (var_comp == var_names_pf.size()) {
             amrex::Error("variable " + varname + " not found");
@@ -150,7 +149,9 @@ int main(int argc, char* argv[])
                                             height = problo[2] + static_cast<Real>(k+0.5)*dx_level[2];
                                         }
 
-                                        int index = static_cast<int>(height / dx_fine[dim-1]);
+                                        int index = static_cast<int>((height - problo[dim-1]) /
+                                                                     dx_fine[dim-1]);
+                                        AMREX_ASSERT(index >= 0 && index < nbins);
 
                                         // add to the bin, weighting by the size
 
@@ -197,7 +198,9 @@ int main(int argc, char* argv[])
                                         height = problo[2] + static_cast<Real>(k+0.5)*dx_level[2];
                                     }
 
-                                    int index = static_cast<int>(height / dx_fine[dim-1]);
+                                    int index = static_cast<int>((height - problo[dim-1]) /
+                                                                 dx_fine[dim-1]);
+                                    AMREX_ASSERT(index >= 0 && index < nbins);
 
                                     // add to the bin, weighting by the size
 

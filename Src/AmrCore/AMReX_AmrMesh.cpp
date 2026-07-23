@@ -485,7 +485,7 @@ AmrMesh::ChopGrids (int lev, BoxArray& ba, int target_size) const
             chunk_dir{AMREX_D_DECL(std::make_pair(chunk[0],int(0)),
                                    std::make_pair(chunk[1],int(1)),
                                    std::make_pair(chunk[2],int(2)))};
-        std::sort(chunk_dir.begin(), chunk_dir.end());
+        std::ranges::sort(chunk_dir);
 
         for (int idx = AMREX_SPACEDIM-1; idx >= 0; idx--) {
             int idim = chunk_dir[idx].second;

@@ -17,9 +17,9 @@ void Initialize(int nthreads)
     // Initialize the sundials context
     if (initialized.empty()) {
         initialized.resize(nthreads);
-        std::fill(initialized.begin(), initialized.end(), 0);
+        std::ranges::fill(initialized, 0);
         the_sundials_context.resize(nthreads);
-        std::fill(the_sundials_context.begin(), the_sundials_context.end(), nullptr);
+        std::ranges::fill(the_sundials_context, nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
         if (initialized[i]) { continue; }

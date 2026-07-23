@@ -952,6 +952,15 @@ void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
     }
 }
 
+// Store coarse AMR level RK stage data into the FillPatcher on the next
+// finer level.  The fine level will use this data during RK substeps to
+// fill its ghost cells at the coarse/fine boundary (via FillRKPatch →
+// FillPatcher::fillRK).
+//
+// A fresh FillPatcher is always constructed here — not built lazily like
+// FillPatcherFill does — because this function is the *only* place the
+// FillPatcher for the next finer level is created.  It is destroyed later
+// in post_timestep/resetFillPatcher after the fine level catches up.
 template <std::size_t order>
 void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
                                   MultiFab const& S_old,

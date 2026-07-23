@@ -661,8 +661,8 @@ TagBoxArray::collate (Gpu::PinnedVector<IntVect>& TheGlobalCollateSpace) const
     auto countvec_int = std::vector<int>(countvec.size());
     auto offset_int = std::vector<int>(offset.size());
     const auto mul_funct = [](const auto el){return el*AMREX_SPACEDIM;};
-    std::transform(countvec.begin(), countvec.end(), countvec_int.begin(), mul_funct);
-    std::transform(offset.begin(), offset.end(), offset_int.begin(), mul_funct);
+    std::ranges::transform(countvec, countvec_int.begin(), mul_funct);
+    std::ranges::transform(offset, offset_int.begin(), mul_funct);
     ParallelDescriptor::Gatherv(
         psend_int, count_int, precv_int, countvec_int, offset_int, IOProcNumber);
 #endif

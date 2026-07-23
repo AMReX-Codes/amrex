@@ -146,6 +146,7 @@ contains
   subroutine amrex_boxarray_build_bx (ba, bx)
     type(amrex_boxarray) :: ba
     type(amrex_box), intent(in ) :: bx
+    call amrex_boxarray_destroy(ba)
     ba%owner = .true.
     call amrex_fi_new_boxarray(ba%p, bx%lo, bx%hi)
   end subroutine amrex_boxarray_build_bx
@@ -153,6 +154,7 @@ contains
   subroutine amrex_boxarray_build_bxs (ba, bxs)
     type(amrex_boxarray) :: ba
     integer,intent(in) :: bxs(:,:,:) ! (lo:hi,dim,#ofboxs)
+    call amrex_boxarray_destroy(ba)
     ba%owner = .true.
     call amrex_fi_new_boxarray_from_bxfarr(ba%p, bxs, size(bxs,1), size(bxs,2), size(bxs,3))
   end subroutine amrex_boxarray_build_bxs
@@ -179,6 +181,7 @@ contains
   subroutine amrex_boxarray_install (this, p)
     class(amrex_boxarray), intent(inout) :: this
     type(c_ptr), intent(in) :: p
+    call amrex_boxarray_destroy(this)
     this%owner = .false.
     this%p     = p
   end subroutine amrex_boxarray_install
@@ -186,6 +189,7 @@ contains
   subroutine amrex_boxarray_clone (dst, src)
     class(amrex_boxarray), intent(inout) :: dst
     type (amrex_boxarray), intent(in   ) :: src
+    call amrex_boxarray_destroy(dst)
     dst%owner = .true.
     call amrex_fi_clone_boxarray(dst%p, src%p)
   end subroutine amrex_boxarray_clone

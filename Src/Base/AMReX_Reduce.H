@@ -1463,9 +1463,9 @@ std::pair<T,T> MinMax (N n, T const* v)
 }
 
 template <typename T, std::integral N, typename P>
-bool AnyOf (N n, T const* v, P&& pred)
+bool AnyOf (N n, T const* v, P const& pred)
 {
-    return std::any_of(v, v+n, std::forward<P>(pred));
+    return std::any_of(v, v+n, pred);
 }
 
 template <typename P, int dim>
@@ -1677,7 +1677,7 @@ public:
      * \param nghost number of ghost-cell layers included in the iteration space.
      * \param f callable object returning \c Result_t for reduction. Its signature is
      *          \c Result_t(int,int,int,int), where the arguments correspond to the
-     *          local box index in \c mf and the \f$(i,j,k)\f$ cell indices.
+     *          local box index in \c mf and the \c (i,j,k) cell indices.
      */
     template <FabArrayType MF, typename F>
     requires (IsCallable<F, int, int, int, int>::value)
@@ -1705,7 +1705,7 @@ public:
      * \param ncomp number of components.
      * \param f callable object returning \c Result_t for reduction. Its signature is
      *          \c Result_t(int,int,int,int,int), where the arguments correspond to the
-     *          local box index in \c mf, the \f$(i,j,k)\f$ cell indices, and the
+     *          local box index in \c mf, the \c (i,j,k) cell indices, and the
      *          component index.
      */
     template <FabArrayType MF, typename F>

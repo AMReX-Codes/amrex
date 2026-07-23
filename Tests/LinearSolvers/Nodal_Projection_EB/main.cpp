@@ -209,7 +209,7 @@ int main (int argc, char* argv[])
         MultiFab S_cc(grids, dmap, 1, 1, MFInfo(), factory);
         S_cc.setVal(0.0); // Set it to zero for this example
 
-       // Node-centered contributions to RHS
+       // Nodal contributions to RHS
         MultiFab S_nd(nd_grids, dmap, 1, 1, MFInfo(), factory);
         S_nd.setVal(0.0); // Set it to zero for this example
 
@@ -226,7 +226,7 @@ int main (int argc, char* argv[])
         matrix.setSigma(0, sigma);
 
         //
-        // Create node-centered phi
+        // Create nodal phi
         //
         MultiFab phi(nd_grids, dmap, 1, 1, MFInfo(), factory);
         phi.setVal(0.0);

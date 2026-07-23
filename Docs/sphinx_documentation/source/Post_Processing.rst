@@ -295,6 +295,31 @@ Typing ``./fextrema.gnu.ex`` without inputs will bring up usage and options.
                        0.03                       1          2.349724636         8.277319027e-17          1.157052145         8.277319027e-17          1.156713078           0.03595941273                    1         8.277319027e-17         0.4924203149         8.277319027e-17         0.4922760141           0.01530367099                    1         -0.005172583789       0.005172583789         -0.005172583789       0.005172583789         -0.005287367803       0.005287367803         -0.005287367803       0.005287367803         -0.004924487345        0.05687549245
 
 
+fconvert
+--------
+
+Converts one or more native AMReX plotfiles to HDF5 plotfiles. The tool passes
+through AMReX HDF5 compression descriptors such as ``None@0``, ``ZLIB@5``,
+and ``ZFP_ACCURACY@0.001``.
+
+**How to build and run**
+
+In ``amrex/Tools/Plotfile``, type ``make programs=fconvert USE_HDF5=TRUE HDF5_HOME=/path/to/hdf5``
+and then ``./fconvert.gnu.ex`` to run. Typing ``./fconvert.gnu.ex`` without
+inputs will bring up usage and options.
+
+**Example**
+
+.. code-block:: console
+
+    user@machine:~/AMReX/amrex/Tools/Plotfile$ ./fconvert.gnu.ex \
+    > --compression ZFP_ACCURACY@0.001 \
+    > --output converted \
+    > ~/AMReX/FHDeX/exec/multispec/Reg_DetBubble_2d_Bench/plt0000000
+    fconvert: converting /home/user/AMReX/FHDeX/exec/multispec/Reg_DetBubble_2d_Bench/plt0000000 -> converted.h5 with compression ZFP_ACCURACY@0.001
+    fconvert: finished converted.h5 in 0.123456 seconds
+
+
 faverage
 --------
 

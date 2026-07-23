@@ -10,8 +10,6 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_Algorithm.H
        AMReX_Any.H
        AMReX_Array.H
-       AMReX_BlockMutex.H
-       AMReX_BlockMutex.cpp
        AMReX_Enum.H
        AMReX_GpuComplex.H
        AMReX_Order.H
@@ -43,6 +41,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FileSystem.cpp
        AMReX_ValLocPair.H
        AMReX_Reduce.H
+       AMReX_ReduceSIMD.H
        AMReX_Scan.H
        AMReX_Partition.H
        AMReX_Morton.H
@@ -62,6 +61,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_OpenMP.H
        AMReX_OpenMP.cpp
        AMReX_ParallelReduce.H
+       AMReX_GpuParallelReduce.H
        AMReX_ForkJoin.H
        AMReX_ForkJoin.cpp
        AMReX_ParallelContext.H

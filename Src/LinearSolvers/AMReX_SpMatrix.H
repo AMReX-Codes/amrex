@@ -1066,8 +1066,8 @@ void SpMatrix<T,Allocator>::startComm_mv (AlgVector<T,AllocT> const& x)
     this->prepare_comm_mv(x.partition());
 
     auto const mpi_tag = ParallelDescriptor::SeqNum();
-    auto const mpi_t_type = ParallelDescriptor::Mpi_typemap<T>::type(); // NOLINT(readability-qualified-auto)
-    auto const mpi_comm = ParallelContext::CommunicatorSub(); // NOLINT(readability-qualified-auto)
+    auto const mpi_t_type = ParallelDescriptor::Mpi_typemap<T>::type();
+    auto const mpi_comm = ParallelContext::CommunicatorSub();
 
     auto const nrecvs = int(m_comm_mv.recv_from.size());
     if (nrecvs > 0) {
@@ -1148,9 +1148,9 @@ void SpMatrix<T,Allocator>::startComm_tr (AlgPartition const& col_partition)
 
     int const nprocs = ParallelContext::NProcsSub();
     auto const mpi_tag = ParallelDescriptor::SeqNum();
-    auto const mpi_long = ParallelDescriptor::Mpi_typemap<Long>::type(); // NOLINT(readability-qualified-auto)
-    auto const mpi_t = ParallelDescriptor::Mpi_typemap<T>::type(); // NOLINT(readability-qualified-auto)
-    auto const mpi_comm = ParallelContext::CommunicatorSub(); // NOLINT(readability-qualified-auto)
+    auto const mpi_long = ParallelDescriptor::Mpi_typemap<Long>::type();
+    auto const mpi_t = ParallelDescriptor::Mpi_typemap<T>::type();
+    auto const mpi_comm = ParallelContext::CommunicatorSub();
 
     // transpose the off-diagonal part
     if (m_csr_remote.nnz > 0) {
@@ -1664,8 +1664,8 @@ void SpMatrix<T,Allocator>::set_num_neighbors ()
     if (m_num_neighbors >= 0) { return; }
 
     int const nprocs = ParallelContext::NProcsSub();
-    auto const mpi_int = ParallelDescriptor::Mpi_typemap<int>::type(); // NOLINT(readability-qualified-auto)
-    auto const mpi_comm = ParallelContext::CommunicatorSub(); // NOLINT(readability-qualified-auto)
+    auto const mpi_int = ParallelDescriptor::Mpi_typemap<int>::type();
+    auto const mpi_comm = ParallelContext::CommunicatorSub();
 
     amrex::Vector<int> connection(nprocs);
     for (int iproc = 0; iproc < nprocs; ++iproc) {
@@ -1689,8 +1689,8 @@ void SpMatrix<T,Allocator>::prepare_comm_mv (AlgPartition const& col_partition)
 
     int const nprocs = ParallelContext::NProcsSub();
     auto const mpi_tag = ParallelDescriptor::SeqNum();
-    auto const mpi_long = ParallelDescriptor::Mpi_typemap<Long>::type(); // NOLINT(readability-qualified-auto)
-    auto const mpi_comm = ParallelContext::CommunicatorSub(); // NOLINT(readability-qualified-auto)
+    auto const mpi_long = ParallelDescriptor::Mpi_typemap<Long>::type();
+    auto const mpi_comm = ParallelContext::CommunicatorSub();
 
     if (m_num_neighbors < 0) { set_num_neighbors(); }
 

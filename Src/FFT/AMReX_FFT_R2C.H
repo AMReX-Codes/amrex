@@ -5,6 +5,7 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_FFT_Helper.H>
 #include <algorithm>
+#include <map>
 #include <numeric>
 #include <tuple>
 
@@ -379,6 +380,11 @@ private:
 
     std::pair<Plan<T>,Plan<T>> make_c2c_plans (cMF& inout, int ndims) const;
 
+    [[nodiscard]] MF& make_m_rx_alias (IndexType const& ix_type);
+
+    [[nodiscard]] Periodicity make_m_rx_alias_periodicity (IndexType const& ix_type,
+                                                           Periodicity const& period) const;
+
     static Box make_domain_x (Box const& domain)
     {
         if constexpr (C) {
@@ -466,6 +472,8 @@ private:
 
     mutable MF m_raw_mf;
     mutable cMF m_raw_cmf;
+
+    std::map<IntVect,MF> m_rx_aliases;
 
     std::unique_ptr<char,DataDeleter> m_data_1;
     std::unique_ptr<char,DataDeleter> m_data_2;
@@ -774,9 +782,7 @@ R2C<T,D,C>::make_layout_from_local_domain (std::array<int,AMREX_SPACEDIM> const&
             pmap.push_back(ParallelContext::local_to_global_rank(i));
         }
     }
-    allboxes.erase(std::remove_if(allboxes.begin(), allboxes.end(),
-                                  [=] (Box const& b) { return b.isEmpty(); }),
-                   allboxes.end());
+    std::erase_if(allboxes, [=] (Box const& b) { return b.isEmpty(); });
     BoxList bl(std::move(allboxes));
     return std::make_pair(BoxArray(std::move(bl)), DistributionMapping(std::move(pmap)));
 #else
@@ -894,6 +900,49 @@ void R2C<T,D,C>::prepare_openbc ()
 }
 
 template <typename T, Direction D, bool C>
+typename R2C<T,D,C>::MF&
+R2C<T,D,C>::make_m_rx_alias (IndexType const& ix_type)
+{
+    auto const key = ix_type.ixType();
+    auto it = m_rx_aliases.find(key);
+    if (it != m_rx_aliases.end()) {
+        return it->second;
+    }
+
+    BoxList bl(ix_type);
+    for (auto b : m_rx.boxArray().boxList()) {
+        b.setType(ix_type);
+        bl.push_back(b);
+    }
+
+    MF alias(BoxArray(std::move(bl)), m_rx.DistributionMap(), m_rx.nComp(),
+             m_rx.nGrowVect(), MFInfo{}.SetAlloc(false));
+
+    using FAB = typename MF::fab_type;
+    for (MFIter mfi(alias, MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
+        alias.setFab(mfi, FAB(mfi.fabbox(), m_rx.nComp(), m_rx[mfi.index()].dataPtr()));
+    }
+
+    auto [alias_it, inserted] = m_rx_aliases.emplace(key, std::move(alias));
+    amrex::ignore_unused(inserted);
+    return alias_it->second;
+}
+
+template <typename T, Direction D, bool C>
+Periodicity
+R2C<T,D,C>::make_m_rx_alias_periodicity (IndexType const& ix_type,
+                                         Periodicity const& period) const
+{
+    IntVect per = period.intVect();
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        if (ix_type.nodeCentered(idim) && per[idim] == 0) {
+            per[idim] = m_real_domain.length(idim);
+        }
+    }
+    return Periodicity(per);
+}
+
+template <typename T, Direction D, bool C>
 template <Direction DIR>
 requires ((DIR == Direction::forward) || (DIR == Direction::both))
 void R2C<T,D,C>::forward (MF const& inmf, int incomp)
@@ -914,7 +963,12 @@ void R2C<T,D,C>::forward (MF const& inmf, int incomp)
     }
 
     if (&m_rx != &inmf) {
-        m_rx.ParallelCopy(inmf, incomp, 0, ncomp);
+        if (m_rx.boxArray().ixType() == inmf.boxArray().ixType()) {
+            m_rx.ParallelCopy(inmf, incomp, 0, ncomp);
+        } else {
+            MF& rx_alias = make_m_rx_alias(inmf.boxArray().ixType());
+            rx_alias.ParallelCopy(inmf, incomp, 0, ncomp);
+        }
     }
 
     if (m_do_alld_fft) {
@@ -1063,8 +1117,16 @@ void R2C<T,D,C>::backward_doit (MF& outmf, IntVect const& ngout,
         } else {
             m_fft_bwd_x.template compute_r2c<Direction::backward>();
         }
-        outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
-                           amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
+        auto const dst_nghost = amrex::elemwiseMin(ngout,outmf.nGrowVect());
+        if (m_rx.boxArray().ixType() == outmf.boxArray().ixType()) {
+            outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
+                               dst_nghost, period);
+        } else {
+            MF& rx_alias = make_m_rx_alias(outmf.boxArray().ixType());
+            auto const copy_period = make_m_rx_alias_periodicity(outmf.boxArray().ixType(), period);
+            outmf.ParallelCopy(rx_alias, 0, outcomp, ncomp, IntVect(0),
+                               dst_nghost, copy_period);
+        }
         return;
     }
 
@@ -1090,8 +1152,16 @@ void R2C<T,D,C>::backward_doit (MF& outmf, IntVect const& ngout,
     } else {
         fft_x.template compute_r2c<Direction::backward>();
     }
-    outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
-                       amrex::elemwiseMin(ngout,outmf.nGrowVect()), period);
+    auto const dst_nghost = amrex::elemwiseMin(ngout,outmf.nGrowVect());
+    if (m_rx.boxArray().ixType() == outmf.boxArray().ixType()) {
+        outmf.ParallelCopy(m_rx, 0, outcomp, ncomp, IntVect(0),
+                           dst_nghost, period);
+    } else {
+        MF& rx_alias = make_m_rx_alias(outmf.boxArray().ixType());
+        auto const copy_period = make_m_rx_alias_periodicity(outmf.boxArray().ixType(), period);
+        outmf.ParallelCopy(rx_alias, 0, outcomp, ncomp, IntVect(0),
+                           dst_nghost, copy_period);
+    }
 }
 
 template <typename T, Direction D, bool C>

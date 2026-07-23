@@ -64,6 +64,10 @@ namespace {
     constexpr char mainregion[] = "main";
     bool finalized = false;
     bool memprof_finalized = false;
+    // Whether tiny_profiler.output_file has been read this Initialize/Finalize
+    // cycle. Re-armed in Initialize() so processes that cycle AMReX init/finalize
+    // multiple times (e.g. Jupyter notebooks) pick up an updated value each cycle.
+    bool output_file_read = false;
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
@@ -327,6 +331,12 @@ TinyProfiler::Initialize ()
 
         pp.queryAdd("enabled", enabled);
     }
+
+    // Re-arm the output-file read for this cycle and reset the cached value, so
+    // a new tiny_profiler.output_file is picked up across init/finalize cycles
+    // and a cycle that sets nothing falls back to the default out stream.
+    output_file_read = false;
+    output_file.clear();
 
     if (!enabled) { return; }
 
@@ -954,7 +964,7 @@ TinyProfiler::StartRegion (std::string regname) noexcept
     if (!enabled) { return; }
 
     bool pushed = false;
-    if (std::find(regionstack.begin(), regionstack.end(), regname) == regionstack.end()) {
+    if (std::ranges::find(regionstack, regname) == regionstack.end()) {
         regionstack.emplace_back(regname);
         pushed = true;
     }
@@ -1029,11 +1039,12 @@ TinyProfiler::PrintMemoryUsage (std::ostream* os, bool only_local) noexcept
 std::string const&
 TinyProfiler::get_output_file ()
 {
-    // Instead of reading it only once, we could try to read the parameter
-    // every time. But I am not sure how useful that might be.
-    static bool first = true;
-    if (first) {
-        first = false;
+    // Read the parameter once per Initialize/Finalize cycle. The guard is
+    // re-armed in Initialize(), so a value updated between cycles is honored.
+    // The guard also ensures the pre-existing file is removed at most once, so
+    // the timer and memory reports (both opened in append mode) coexist.
+    if (!output_file_read) {
+        output_file_read = true;
 
         amrex::ParmParse pp("tiny_profiler");
         pp.query("output_file", output_file);

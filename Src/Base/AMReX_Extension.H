@@ -2,6 +2,11 @@
 #define AMREX_EXTENSION_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Extension.H
+ * \brief Compiler- and backend-specific extension macros (e.g., restrict, SIMD, inline).
+ */
+
 #if defined(__INTEL_COMPILER) || (defined(__INTEL_LLVM_COMPILER) && !defined(SYCL_LANGUAGE_VERSION))
 #define AMREX_CXX_INTEL
 #elif defined(_CRAYC) || defined(__cray__)
@@ -269,13 +274,6 @@
 #else
 #   define AMREX_IF_CONSTEXPR if
 #endif
-
-#if !defined(AMREX_NO_BUILTIN_CLZ)
-#   if defined(__clang__) || defined(__GNUC__)
-#      define AMREX_HAS_BUILTIN_CLZ 1
-#   endif
-#endif
-
 
 #endif /* !BL_LANG_FORT */
 

@@ -1509,7 +1509,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             ++rptr;
         }
 
-        locateParticle(ptemp, pld, 0, finestLevel(), 0);
+        locateParticle(ptemp, pld, 0, finestLevel(), IntVect(0));
 
         std::pair<int, int> ind(grd, pld.m_tile);
 
