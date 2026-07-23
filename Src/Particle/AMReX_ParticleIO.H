@@ -786,22 +786,15 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             ParticleFile.seekg(grid_table[grid].where, std::ios::beg);
 
-            // Use if constexpr to avoid instantiating the mis-matched
-            // type case and triggering the static_assert on the
-            // underlying copy calls
+            // The file's precision does not need to match this build's
+            // ParticleReal: values are read in the file's precision and
+            // converted. Note that reading double-precision data into a
+            // single-precision build narrows the values.
             if (how == "single") {
-                if constexpr (std::is_same_v<ParticleReal, float>) {
-                    ReadParticles<float>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
-                } else {
-                    amrex::Error("File contains single-precision data, while AMReX is compiled with ParticleReal==double");
-                }
+                ReadParticles<float>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
             }
             else if (how == "double") {
-                if constexpr (std::is_same_v<ParticleReal, double>) {
-                    ReadParticles<double>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
-                } else {
-                    amrex::Error("File contains double-precision data, while AMReX is compiled with ParticleReal==float");
-                }
+                ReadParticles<double>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
             }
             else {
                 std::string msg("ParticleContainer::Restart(): bad parameter: ");
@@ -848,10 +841,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     Vector<int> istuff(std::size_t(cnt)*iChunkSize);
     readIntData(istuff.dataPtr(), istuff.size(), ifs, FPC::NativeIntDescriptor());
 
-    // Then the real data in binary.
+    // Then the real data in binary.  Read in the file's precision (RTYPE),
+    // which may differ from this build's ParticleReal, with the matching
+    // descriptor: the file was written with the writing code's
+    // ParticleRealDescriptor, i.e. the native descriptor of its precision.
     const int rChunkSize = ParticleType::is_soa_particle ? NStructReal + NumRealComps() : AMREX_SPACEDIM + NStructReal + NumRealComps();
     Vector<RTYPE> rstuff(std::size_t(cnt)*rChunkSize);
-    ReadParticleRealData(rstuff.dataPtr(), rstuff.size(), ifs);
+    if constexpr (sizeof(RTYPE) == 4) {
+        readFloatData(rstuff.dataPtr(), rstuff.size(), ifs, FPC::Native32RealDescriptor());
+    } else {
+        readDoubleData(rstuff.dataPtr(), rstuff.size(), ifs, FPC::Native64RealDescriptor());
+    }
 
     // Now reassemble the particles.
     int*   iptr = istuff.dataPtr();
@@ -864,8 +864,11 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     host_particles.reserve(15);
     host_particles.resize(finest_level_in_file+1);
 
+    // Buffered in ParticleReal (not RTYPE): the file's precision may differ
+    // from the build's ParticleReal, so convert each value on insertion. This
+    // also keeps the value types of the Gpu::copyAsync calls below identical.
     Vector<std::map<std::pair<int, int>,
-                    std::vector<Gpu::HostVector<RTYPE> > > > host_real_attribs;
+                    std::vector<Gpu::HostVector<ParticleReal> > > > host_real_attribs;
     host_real_attribs.reserve(15);
     host_real_attribs.resize(finest_level_in_file+1);
 
@@ -929,7 +932,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 
             // add the real...
             for (int icomp = 0; icomp < NumRealComps(); icomp++) {
-                host_real_attribs[lev][ind][icomp].push_back(*rptr);
+                host_real_attribs[lev][ind][icomp].push_back(ParticleReal(*rptr));
                 ++rptr;
             }
 
@@ -950,7 +953,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             // read all other SoA
             // add the real...
             for (int icomp = AMREX_SPACEDIM; icomp < NumRealComps(); icomp++) {
-                host_real_attribs[lev][ind][icomp].push_back(*rptr);
+                host_real_attribs[lev][ind][icomp].push_back(ParticleReal(*rptr));
                 ++rptr;
             }
 
