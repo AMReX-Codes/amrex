@@ -28,6 +28,11 @@ namespace amrex {
  * The component counts follow the same convention as the on-disk format: for
  * pure Struct-of-Arrays particles the AMREX_SPACEDIM position components are
  * implicit and \p num_real counts only the remaining (runtime) real components.
+ *
+ * After the metadata prefix, the "Header" file contains a per-level grid
+ * table that locates each grid's binary particle data on disk. It can be
+ * parsed with parse_grid_table(); read() returns a fully parsed header
+ * including the table.
  */
 struct ParticleHeader
 {
@@ -57,21 +62,58 @@ struct ParticleHeader
     int finest_level = 0;
 
     /**
+     * \brief One entry of the per-level grid table.
+     *
+     * Locates the binary particle data of a single grid: the particles of a
+     * grid are stored contiguously in the data file "DATA_XXXXX" (with XXXXX
+     * = \p which), starting \p where bytes into that file.
+     */
+    struct GridEntry
+    {
+        //! index of the binary data file (DATA_XXXXX) holding this grid's particles
+        int which = 0;
+        //! number of particles stored for this grid
+        int count = 0;
+        //! byte offset of this grid's particle data within the data file
+        Long where = 0;
+    };
+
+    /**
+     * \brief Per level and grid: where each grid's particle data is stored.
+     *
+     * Filled by parse_grid_table(); grids.size() == finest_level + 1 and
+     * grids[lev].size() is the number of grids of level \p lev. Grids without
+     * particles have a zero \p count.
+     */
+    Vector<Vector<GridEntry>> grids;
+
+    /**
      * \brief Parse the metadata prefix from an input stream.
      *
      * Consumes exactly the leading metadata block (version through finest
      * level), leaving the stream positioned right after the finest-level entry
-     * and before the per-level grid table. This lets ParticleContainer::Restart
-     * continue reading the grid offsets from the same stream.
+     * and before the per-level grid table. The table can then be parsed from
+     * the same stream with parse_grid_table().
      *
      * \param is input stream positioned at the start of a particle Header
      */
     void parse (std::istream& is);
 
     /**
+     * \brief Parse the per-level grid table into \p grids.
+     *
+     * Must be called on a stream positioned right after the metadata prefix,
+     * i.e. directly following a call to parse().
+     *
+     * \param is input stream positioned at the start of the grid table
+     */
+    void parse_grid_table (std::istream& is);
+
+    /**
      * \brief Read and parse the "Header" file of a particle plotfile/checkpoint.
      *
-     * Collective: the file is read on the I/O process and broadcast.
+     * Parses the complete header: the metadata prefix and the per-level grid
+     * table. Collective: the file is read on the I/O process and broadcast.
      *
      * \param dir   plotfile/checkpoint directory
      * \param file  particle sub-directory name (e.g. "particle0")
