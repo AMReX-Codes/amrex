@@ -107,7 +107,8 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                        Array4<Real const> const& fbn, Array4<Real const> const& fapx,
                        Array4<Real const> const& fapy, Array4<Real const> const& ffcx,
                        Array4<Real const> const& ffcy, Array4<Real const> const& fecx,
-                       Array4<Real const> const& fecy, Array4<EBCellFlag const> const& fflag)
+                       Array4<Real const> const& fecy, Array4<EBCellFlag const> const& fflag,
+                       int face_dir = -1)
 {
     const Box& gbx = amrex::grow(bx,ngrow);
     const Box& xbx = amrex::surroundingNodes(bx,0);
@@ -119,6 +120,9 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
     constexpr int k = 0;
     int ii = i*2;
     int jj = j*2;
+    // Apply staggered offset if face_dir is specified
+    if (face_dir == 0) {ii-=1};
+    if (face_dir == 1) {jj-=1};
 
     if (bx.contains(i,j,k))
     {
