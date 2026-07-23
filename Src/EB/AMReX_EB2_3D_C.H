@@ -348,9 +348,9 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     int jj = j*2;
     int kk = k*2;
     // Apply staggered offset if face_dir is specified
-    if (face_dir == 0) ii-=1;
-    if (face_dir == 1) jj-=1;
-    if (face_dir == 2) kk-=1;
+    if (face_dir == 0) {ii-=1};
+    if (face_dir == 1) {jj-=1};
+    if (face_dir == 2) {kk-=1};
 
     if (bx.contains(i,j,k))
     {
