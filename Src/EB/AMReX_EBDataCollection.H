@@ -49,6 +49,9 @@ public:
      * \param a_level   EB2 level providing FC data.
      * \param a_geom    Geometry used for filling.
      * \param a_ba      Face-centered grid layout.
+     * \param a_dm      Distribution mapping for data ownership.
+     * \param a_ngrow   Grow cells per component (basic/volume/full).
+     * \param a_support Requested EBSupport tier (basic/volume/full).
      * \param face_dir  Face direction (0=x, 1=y, 2=z).
      */
     EBDataCollection (const EB2::Level& a_level, const Geometry& a_geom,
