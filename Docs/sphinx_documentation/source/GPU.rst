@@ -318,21 +318,23 @@ CUDA Toolkit version 12.2 or higher.**
 
 **Environment hints.** All of AMReX's CMake configuration can also be driven through standard
 CMake and compiler environment variables. These are especially handy on HPC systems and in CI,
-where they are typically exported in a job or module script before invoking ``cmake``:
+where they are typically exported in a job or module script before invoking ``cmake``.
+Example on a Cray/HPE machine:
 
 .. code-block:: bash
 
    # For Cray/HPE machines: necessary to use CUDA-Aware MPI and run a job
+   # Note: also sometimes already set by a loaded module.
    export CRAY_ACCEL_TARGET=nvidia80
 
-   # example: overwrite the auto-detection to optimize CUDA compilation for A100
+   # overwrite the auto-detection to optimize CUDA compilation for A100
    export CUDAARCHS=80
 
-   # example: optimize CPU microarchitecture for AMD EPYC 3rd Gen (Milan/Zen3)
+   # optimize CPU (host) microarchitecture for AMD EPYC 3rd Gen (Milan/Zen3)
    export CXXFLAGS="-march=znver3"
    export CFLAGS="-march=znver3"
 
-   # CMake compiler environment hints
+   # CMake compiler selection
    export CC=$(which gcc)       # or $(which cc) for Cray/HPE
    export CXX=$(which g++)      # or $(which CC) for Cray/HPE
    export FC=$(which gfortran)  # or $(which ftn) for Cray/HPE
