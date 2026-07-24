@@ -17,9 +17,15 @@ endmacro ()
 #
 message(STATUS "Enabled CUDA options:")
 
-# Note: the target CUDA architecture(s) are resolved into the standard
-# CMAKE_CUDA_ARCHITECTURES cache variable in AMReXCUDAArchs.cmake, which runs
-# before enable_language(CUDA). See that module for the honored hints and precedence.
+# Report the resolved target CUDA architecture(s). CMAKE_CUDA_ARCHITECTURES was set in
+# AMReXCUDAArchs.cmake (before enable_language, honoring the user's hints); the special
+# value "native" is resolved by CMake during compiler detection and exposed via
+# CMAKE_CUDA_ARCHITECTURES_NATIVE.
+if (CMAKE_CUDA_ARCHITECTURES STREQUAL "native" AND CMAKE_CUDA_ARCHITECTURES_NATIVE)
+   message(STATUS "   CUDA architectures: native -> ${CMAKE_CUDA_ARCHITECTURES_NATIVE}")
+else ()
+   message(STATUS "   CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+endif ()
 
 option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)  # Note: inconsistent with AMReX_FASTMATH defaults
 cuda_print_option( AMReX_CUDA_FASTMATH )

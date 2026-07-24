@@ -316,6 +316,29 @@ gracefully disabled with a warning.
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
 
+**Environment hints.** All of AMReX's CMake configuration can also be driven through standard
+CMake and compiler environment variables. These are especially handy on HPC systems and in CI,
+where they are typically exported in a job or module script before invoking ``cmake``:
+
+.. code-block:: bash
+
+   # For Cray/HPE machines: necessary to use CUDA-Aware MPI and run a job
+   export CRAY_ACCEL_TARGET=nvidia80
+
+   # example: overwrite the auto-detection to optimize CUDA compilation for A100
+   export CUDAARCHS=80
+
+   # example: optimize CPU microarchitecture for AMD EPYC 3rd Gen (Milan/Zen3)
+   export CXXFLAGS="-march=znver3"
+   export CFLAGS="-march=znver3"
+
+   # CMake compiler environment hints
+   export CC=$(which gcc)       # or $(which cc) for Cray/HPE
+   export CXX=$(which g++)      # or $(which CC) for Cray/HPE
+   export FC=$(which gfortran)  # or $(which ftn) for Cray/HPE
+   export CUDACXX=$(which nvcc)
+   export CUDAHOSTCXX=${CXX}
+
 In order to import the CUDA-enabled AMReX library into your CMake project, you need to include
 the following code into the appropriate CMakeLists.txt file:
 
