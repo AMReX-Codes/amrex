@@ -412,9 +412,133 @@ void OpenBCSolver::compute_moments (Gpu::DeviceVector<openbc::Moments>& moments)
         std::size_t shared_mem_bytes = m_nthreads_momtag * sizeof(openbc::Moments::array_type);
 
 #ifdef AMREX_USE_SYCL
-        amrex::ignore_unused(problo,probhi,dx,crse_ratio,ntags,pm,ptag,pnblks,
-                             shared_mem_bytes);
-        amrex::Abort("xxxx SYCL todo: openbc compute_moments");
+        amrex::launch(m_ngpublocks_h.back(), m_nthreads_momtag, shared_mem_bytes, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
+        {
+            auto* const shared = static_cast<openbc::Moments::array_type*>(handler.sharedMemory());
+            openbc::Moments::array_type& tmom = shared[handler.threadIdx()];
+            for (int i = 0; i < (openbc::M+1)*(openbc::M+2)/2; ++i) {
+                tmom[i] = Real(0.);
+            }
+
+            int tag_id = amrex::bisect(pnblks, 0, ntags, static_cast<int>(handler.blockIdx()));
+            int iblock = handler.blockIdx() - pnblks[tag_id]; // iblock'th gpublock on this box.
+            auto const& tag = ptag[tag_id];
+            openbc::Moments& mom = pm[tag.offset+iblock];
+            if (tag.face.coordDir() == 0) {
+                int const nby = tag.b2d.length(1) / crse_ratio;
+                int const kb = iblock / nby;
+                int const jb = iblock - kb*nby;
+                int const i = tag.b2d.smallEnd(0);
+                int const jlo = tag.b2d.smallEnd(1) + jb*crse_ratio;
+                int const klo = tag.b2d.smallEnd(2) + kb*crse_ratio;
+                Real const fac = dx[1]*dx[2];
+                Real const xc = tag.face.isLow() ? problo[0] : probhi[0];
+                for (int icell = handler.threadIdx(); icell < crse_ratio*crse_ratio; icell += handler.blockDim()) {
+                    int k = icell/crse_ratio;
+                    int j = icell - k*crse_ratio;
+                    Real const yy = (j-crse_ratio/2+Real(0.5))*dx[1];
+                    Real const zz = (k-crse_ratio/2+Real(0.5))*dx[2];
+                    j += jlo;
+                    k += klo;
+                    Real const charge = tag.gp(i,j,k) * fac;
+                    Real zpow = Real(1.);
+                    int m = 0;
+                    for (int q = 0; q <= openbc::M; ++q) {
+                        Real ypow = Real(1.);
+                        for (int p = 0; p <= openbc::M-q; ++p) {
+                            tmom[m++] += charge*ypow*zpow;
+                            ypow *= yy;
+                        }
+                        zpow *= zz;
+                    }
+                }
+                if (handler.threadIdx() == 0) {
+                    mom.x = xc;
+                    mom.y = problo[1] + dx[1]*(jlo + crse_ratio/2);
+                    mom.z = problo[2] + dx[2]*(klo + crse_ratio/2);
+                    mom.face = tag.face;
+                }
+            } else if (tag.face.coordDir() == 1) {
+                int const nbx = tag.b2d.length(0) / crse_ratio;
+                int const kb = iblock / nbx;
+                int const ib = iblock - kb*nbx;
+                int const j = tag.b2d.smallEnd(1);
+                int const ilo = tag.b2d.smallEnd(0) + ib*crse_ratio;
+                int const klo = tag.b2d.smallEnd(2) + kb*crse_ratio;
+                Real const fac = dx[0]*dx[2];
+                Real const yc = tag.face.isLow() ? problo[1] : probhi[1];
+                for (int icell = handler.threadIdx(); icell < crse_ratio*crse_ratio; icell += handler.blockDim()) {
+                    int k = icell/crse_ratio;
+                    int i = icell - k*crse_ratio;
+                    Real const xx = (i-crse_ratio/2+Real(0.5))*dx[0];
+                    Real const zz = (k-crse_ratio/2+Real(0.5))*dx[2];
+                    i += ilo;
+                    k += klo;
+                    Real const charge = tag.gp(i,j,k) * fac;
+                    Real zpow = Real(1.);
+                    int m = 0;
+                    for (int q = 0; q <= openbc::M; ++q) {
+                        Real xpow = Real(1.);
+                        for (int p = 0; p <= openbc::M-q; ++p) {
+                            tmom[m++] += charge*xpow*zpow;
+                            xpow *= xx;
+                        }
+                        zpow *= zz;
+                    }
+                }
+                if (handler.threadIdx() == 0) {
+                    mom.x = problo[0] + dx[0]*(ilo + crse_ratio/2);
+                    mom.y = yc;
+                    mom.z = problo[2] + dx[2]*(klo + crse_ratio/2);
+                    mom.face = tag.face;
+                }
+            } else {
+                int const nbx = tag.b2d.length(0) / crse_ratio;
+                int const jb = iblock / nbx;
+                int const ib = iblock - jb*nbx;
+                int const k = tag.b2d.smallEnd(2);
+                int const ilo = tag.b2d.smallEnd(0) + ib*crse_ratio;
+                int const jlo = tag.b2d.smallEnd(1) + jb*crse_ratio;
+                Real const fac = dx[0]*dx[1];
+                Real const zc = tag.face.isLow() ? problo[2] : probhi[2];
+                for (int icell = handler.threadIdx(); icell < crse_ratio*crse_ratio; icell += handler.blockDim()) {
+                    int j = icell/crse_ratio;
+                    int i = icell - j*crse_ratio;
+                    Real const xx = (i-crse_ratio/2+Real(0.5))*dx[0];
+                    Real const yy = (j-crse_ratio/2+Real(0.5))*dx[1];
+                    i += ilo;
+                    j += jlo;
+                    Real const charge = tag.gp(i,j,k) * fac;
+                    Real ypow = Real(1.);
+                    int m = 0;
+                    for (int q=0; q <= openbc::M; ++q) {
+                        Real xpow = Real(1.);
+                        for (int p = 0; p <= openbc::M-q; ++p) {
+                            tmom[m++] += charge*xpow*ypow;
+                            xpow *= xx;
+                        }
+                        ypow *= yy;
+                    }
+                }
+                if (handler.threadIdx() == 0) {
+                    mom.x = problo[0] + dx[0]*(ilo + crse_ratio/2);
+                    mom.y = problo[1] + dx[1]*(jlo + crse_ratio/2);
+                    mom.z = zc;
+                    mom.face = tag.face;
+                }
+            }
+            openbc::scale_moments(tmom);
+
+            handler.sharedBarrier();
+
+            if (handler.threadIdx() < (openbc::M+1)*(openbc::M+2)/2) {
+                mom.mom[handler.threadIdx()] = Real(0.);
+                for (unsigned int i = 0; i < handler.blockDim(); ++i) {
+                    mom.mom[handler.threadIdx()] += shared[i][handler.threadIdx()];
+                }
+            }
+        });
 #else
         amrex::launch(m_ngpublocks_h.back(), m_nthreads_momtag, shared_mem_bytes, Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
@@ -754,9 +878,39 @@ void OpenBCSolver::compute_potential (Gpu::DeviceVector<openbc::Moments> const& 
         const auto lenxy = len.x*len.y;
         const auto lenx = len.x;
 #ifdef AMREX_USE_SYCL
-        amrex::ignore_unused(problo,dx,crse_ratio,nblocks,pmom,b,phi_arr,lo,
-                             lenxy,lenx);
-        amrex::Abort("xxxxx SYCL todo: openbc compute_potential");
+        constexpr int nthreads = AMREX_GPU_MAX_THREADS;
+        std::size_t const shared_mem_bytes = nthreads * sizeof(Real);
+        amrex::launch<nthreads>(b.numPts(), shared_mem_bytes, Gpu::gpuStream(),
+        [=] AMREX_GPU_DEVICE (Gpu::Handler const& handler) noexcept
+        {
+            int icell = handler.blockIdx();
+            int k =  icell /   lenxy;
+            int j = (icell - k*lenxy) /   lenx;
+            int i = (icell - k*lenxy) - j*lenx;
+            i += lo.x;
+            j += lo.y;
+            k += lo.z;
+            Real xb = problo[0] + i*crse_ratio*dx[0];
+            Real yb = problo[1] + j*crse_ratio*dx[1];
+            Real zb = problo[2] + k*crse_ratio*dx[2];
+            Real phi = Real(0.);
+            for (int iblock = handler.threadIdx(); iblock < nblocks;
+                 iblock += handler.blockDim()) {
+                phi += openbc::block_potential(pmom[iblock], xb, yb, zb);
+            }
+
+            auto* const shared = static_cast<Real*>(handler.sharedMemory());
+            shared[handler.threadIdx()] = phi;
+            handler.sharedBarrier();
+
+            if (handler.threadIdx() == 0) {
+                Real phitot = Real(0.);
+                for (int ithread = 0; ithread < nthreads; ++ithread) {
+                    phitot += shared[ithread];
+                }
+                phi_arr(i,j,k) = phitot;
+            }
+        });
 #else
         amrex::launch<AMREX_GPU_MAX_THREADS>(b.numPts(), Gpu::gpuStream(),
         [=] AMREX_GPU_DEVICE () noexcept
