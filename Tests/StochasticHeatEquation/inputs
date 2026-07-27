@@ -1,0 +1,39 @@
+amrex.throw_exception = 1
+amrex.signal_handling = 0
+
+npts = 32
+max_grid_size = 16
+xlen = 32.e-9
+
+lambda = 70.e0
+rho = 7870.e0
+cv = 450.e0
+crossA = 4.e-18
+iopt = 2
+
+dt = 1.e-12
+cfl = 0.1e0
+nstep = 20
+ntherm = 5
+nout = 20
+nstat = 5
+icor = 1
+ensout = 1
+
+seed = 1022349098
+
+uinit = 300.
+jmidl = 26
+jmidr = 75
+midfact = 1.0e0
+is_hybrid = 0
+iresr = 0
+iresl = 0
+iper = 1
+uleft = 300.
+uright = 300.
+ensemble = 2
+
+ipdf = 0
+write_ascii = 1
+plot_int = -1
