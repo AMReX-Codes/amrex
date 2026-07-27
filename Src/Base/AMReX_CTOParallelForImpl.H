@@ -441,10 +441,7 @@ void For (TypeList<CTOs...> ctos,
  * Like the ParallelFor overload taking a TypeList of CompileTimeOptions, but
  * without the implied promise that loop iterations are independent.  On CPU,
  * ParallelFor marks the loop with AMREX_PRAGMA_SIMD, which licenses the
- * compiler to vectorize across iterations; that is invalid for kernels whose
- * iterations may touch the same memory location (e.g., particle-to-mesh
- * scatter with Gpu::Atomic adds, which are plain updates on host).  Use this
- * overload for such kernels.  On GPU, For and ParallelFor are identical.
+ * compiler to vectorize across iterations. On GPU, For and ParallelFor are identical.
  *
  * \param ctos   list of all possible values of the parameters.
  * \param option the run time parameters.
