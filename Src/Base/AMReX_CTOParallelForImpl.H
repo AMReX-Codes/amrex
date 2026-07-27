@@ -396,6 +396,110 @@ void ParallelFor (TypeList<CTOs...> ctos,
     ParallelFor<AMREX_GPU_MAX_THREADS>(ctos, option, box, ncomp, std::forward<F>(f));
 }
 
+template <int MT, std::integral T, class F, typename... CTOs>
+void For (TypeList<CTOs...> ctos,
+          std::array<int,sizeof...(CTOs)> const& runtime_options,
+          T N, F&& f)
+{
+    AnyCTO(ctos, runtime_options,
+        [&](auto cto_func){
+            For<MT>(N, cto_func);
+        },
+        std::forward<F>(f)
+    );
+}
+
+template <int MT, class F, int dim, typename... CTOs>
+void For (TypeList<CTOs...> ctos,
+          std::array<int,sizeof...(CTOs)> const& runtime_options,
+          BoxND<dim> const& box, F&& f)
+{
+    AnyCTO(ctos, runtime_options,
+        [&](auto cto_func){
+            For<MT>(box, cto_func);
+        },
+        std::forward<F>(f)
+    );
+}
+
+template <int MT, std::integral T, class F, int dim, typename... CTOs>
+void For (TypeList<CTOs...> ctos,
+          std::array<int,sizeof...(CTOs)> const& runtime_options,
+          BoxND<dim> const& box, T ncomp, F&& f)
+{
+    AnyCTO(ctos, runtime_options,
+        [&](auto cto_func){
+            For<MT>(box, ncomp, cto_func);
+        },
+        std::forward<F>(f)
+    );
+}
+
+/**
+ * \brief For with compile time optimization of kernels with run time options.
+ *
+ * Like the ParallelFor overload taking a TypeList of CompileTimeOptions, but
+ * without the implied promise that loop iterations are independent.  On CPU,
+ * ParallelFor marks the loop with AMREX_PRAGMA_SIMD, which licenses the
+ * compiler to vectorize across iterations; that is invalid for kernels whose
+ * iterations may touch the same memory location (e.g., particle-to-mesh
+ * scatter with Gpu::Atomic adds, which are plain updates on host).  Use this
+ * overload for such kernels.  On GPU, For and ParallelFor are identical.
+ *
+ * \param ctos   list of all possible values of the parameters.
+ * \param option the run time parameters.
+ * \param N      an integer specifying the 1D for loop's range.
+ * \param f      a callable object taking an integer and working on that iteration.
+ */
+template <std::integral T, class F, typename... CTOs>
+void For (TypeList<CTOs...> ctos,
+          std::array<int,sizeof...(CTOs)> const& option,
+          T N, F&& f)
+{
+    For<AMREX_GPU_MAX_THREADS>(ctos, option, N, std::forward<F>(f));
+}
+
+/**
+ * \brief For with compile time optimization of kernels with run time options.
+ *
+ * Like the ParallelFor overload taking a TypeList of CompileTimeOptions, but
+ * without the SIMD pragma on CPU.  See the 1D-range For overload above for
+ * when this is required.
+ *
+ * \param ctos   list of all possible values of the parameters.
+ * \param option the run time parameters.
+ * \param box    a Box specifying the 3D for loop's range.
+ * \param f      a callable object taking three integers and working on the given cell.
+ */
+template <class F, int dim, typename... CTOs>
+void For (TypeList<CTOs...> ctos,
+          std::array<int,sizeof...(CTOs)> const& option,
+          BoxND<dim> const& box, F&& f)
+{
+    For<AMREX_GPU_MAX_THREADS>(ctos, option, box, std::forward<F>(f));
+}
+
+/**
+ * \brief For with compile time optimization of kernels with run time options.
+ *
+ * Like the ParallelFor overload taking a TypeList of CompileTimeOptions, but
+ * without the SIMD pragma on CPU.  See the 1D-range For overload above for
+ * when this is required.
+ *
+ * \param ctos   list of all possible values of the parameters.
+ * \param option the run time parameters.
+ * \param box    a Box specifying the iteration in 3D space.
+ * \param ncomp  an integer specifying the range for iteration over components.
+ * \param f      a callable object taking four integers and working on the given cell and component.
+ */
+template <std::integral T, class F, int dim, typename... CTOs>
+void For (TypeList<CTOs...> ctos,
+          std::array<int,sizeof...(CTOs)> const& option,
+          BoxND<dim> const& box, T ncomp, F&& f)
+{
+    For<AMREX_GPU_MAX_THREADS>(ctos, option, box, ncomp, std::forward<F>(f));
+}
+
 }
 
 #endif
