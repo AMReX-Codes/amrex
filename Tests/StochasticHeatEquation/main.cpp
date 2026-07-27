@@ -1,5 +1,6 @@
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
+#include <AMReX_CompensatedSum.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_MultiFab.H>
@@ -172,32 +173,6 @@ double local_random_normal (double mean, double stddev, RandomEngine const& engi
 {
     return mean + stddev * inverse_standard_normal(precision_independent_uniform(engine));
 }
-
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void kahan_add (Array4<Real> const& sum, Array4<Real> const& comp,
-                int i, int j, int k, int n, Real value) noexcept
-{
-    Real const y = value - comp(i,j,k,n);
-    Real const t = sum(i,j,k,n) + y;
-    comp(i,j,k,n) = (t - sum(i,j,k,n)) - y;
-    sum(i,j,k,n) = t;
-}
-
-struct KahanSum
-{
-    Real sum = Real(0.0);
-    Real comp = Real(0.0);
-
-    void add (Real value) noexcept
-    {
-        Real const y = value - comp;
-        Real const t = sum + y;
-        comp = (t - sum) - y;
-        sum = t;
-    }
-
-    Real value () const noexcept { return sum; }
-};
 
 Inputs read_inputs ()
 {
@@ -483,8 +458,8 @@ void print_state (MultiFab const& u, Geometry const& geom, int step, Real time, 
     }
 }
 
-void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
-                       Inputs const& p, Real uicor)
+void accumulate_stats (CompensatedMultiFab& stats, MultiFab const& u, Inputs const& p,
+                       Real uicor)
 {
     Real const uinit = p.uinit;
     Real const midfact = p.midfact;
@@ -495,11 +470,10 @@ void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
     Real const x2 = x * x;
     Real const x3 = x2 * x;
 
-    for (MFIter mfi(stats); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(stats.value()); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.validbox();
         Array4<Real const> const ua = u.const_array(mfi);
-        Array4<Real> const sa = stats.array(mfi);
-        Array4<Real> const ca = stats_comp.array(mfi);
+        auto const sa = stats.array(mfi);
 
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -508,16 +482,16 @@ void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
             Real const y3 = y2 * y;
             Real const y4 = y2 * y2;
 
-            kahan_add(sa, ca, i, j, k, MeanAcc, y);
-            kahan_add(sa, ca, i, j, k, SqrAcc, y2);
-            kahan_add(sa, ca, i, j, k, CubAcc, y3);
-            kahan_add(sa, ca, i, j, k, FourthAcc, y4);
-            kahan_add(sa, ca, i, j, k, Cor11Acc, x * y);
-            kahan_add(sa, ca, i, j, k, Cor12Acc, x * y2);
-            kahan_add(sa, ca, i, j, k, Cor13Acc, x * y3);
-            kahan_add(sa, ca, i, j, k, Cor21Acc, x2 * y);
-            kahan_add(sa, ca, i, j, k, Cor31Acc, x3 * y);
-            kahan_add(sa, ca, i, j, k, Cor22Acc, x2 * y2);
+            sa.add(i, j, k, MeanAcc, y);
+            sa.add(i, j, k, SqrAcc, y2);
+            sa.add(i, j, k, CubAcc, y3);
+            sa.add(i, j, k, FourthAcc, y4);
+            sa.add(i, j, k, Cor11Acc, x * y);
+            sa.add(i, j, k, Cor12Acc, x * y2);
+            sa.add(i, j, k, Cor13Acc, x * y3);
+            sa.add(i, j, k, Cor21Acc, x2 * y);
+            sa.add(i, j, k, Cor31Acc, x3 * y);
+            sa.add(i, j, k, Cor22Acc, x2 * y2);
         });
     }
 }
@@ -668,31 +642,31 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
     int const npts = geom.Domain().length(0);
     Real const dx = geom.CellSize(0);
 
-    KahanSum av_mean_sum;
-    KahanSum av_var_sum;
-    KahanSum av_skew_sum;
-    KahanSum av_kur_sum;
-    KahanSum av_mom3_sum;
-    KahanSum av_mom4_sum;
-    KahanSum var_mean_sum;
-    KahanSum var_var_sum;
-    KahanSum var_skew_sum;
-    KahanSum var_kur_sum;
-    KahanSum var_mom3_sum;
-    KahanSum var_mom4_sum;
+    CompensatedSum<Real> av_mean_sum;
+    CompensatedSum<Real> av_var_sum;
+    CompensatedSum<Real> av_skew_sum;
+    CompensatedSum<Real> av_kur_sum;
+    CompensatedSum<Real> av_mom3_sum;
+    CompensatedSum<Real> av_mom4_sum;
+    CompensatedSum<Real> var_mean_sum;
+    CompensatedSum<Real> var_var_sum;
+    CompensatedSum<Real> var_skew_sum;
+    CompensatedSum<Real> var_kur_sum;
+    CompensatedSum<Real> var_mom3_sum;
+    CompensatedSum<Real> var_mom4_sum;
 
-    KahanSum c11_m_sum;
-    KahanSum c12_m_sum;
-    KahanSum c13_m_sum;
-    KahanSum c21_m_sum;
-    KahanSum c31_m_sum;
-    KahanSum c22_m_sum;
-    KahanSum c11_v_sum;
-    KahanSum c12_v_sum;
-    KahanSum c13_v_sum;
-    KahanSum c21_v_sum;
-    KahanSum c31_v_sum;
-    KahanSum c22_v_sum;
+    CompensatedSum<Real> c11_m_sum;
+    CompensatedSum<Real> c12_m_sum;
+    CompensatedSum<Real> c13_m_sum;
+    CompensatedSum<Real> c21_m_sum;
+    CompensatedSum<Real> c31_m_sum;
+    CompensatedSum<Real> c22_m_sum;
+    CompensatedSum<Real> c11_v_sum;
+    CompensatedSum<Real> c12_v_sum;
+    CompensatedSum<Real> c13_v_sum;
+    CompensatedSum<Real> c21_v_sum;
+    CompensatedSum<Real> c31_v_sum;
+    CompensatedSum<Real> c22_v_sum;
 
     for (int i = 0; i < npts; ++i) {
         Real const mean = line[Mean + NumDiagComps*i];
@@ -882,11 +856,9 @@ int main (int argc, char* argv[])
         MultiFab unew(ba, dm, ncoef, 0);
         MultiFab flux(fba, dm, ncoef, 0);
         MultiFab ranflux(fba, dm, 1, 0);
-        MultiFab stats(ba, dm, NumStatComps, 0);
-        MultiFab stats_comp(ba, dm, NumStatComps, 0);
+        CompensatedMultiFab stats(ba, dm, NumStatComps, 0);
         MultiFab diag(ba, dm, NumDiagComps, 0);
         stats.setVal(Real(0.0));
-        stats_comp.setVal(Real(0.0));
 
         Vector<Long> pdf(inputs.nbins+2, Long(0));
         Long total_pdf_points = 0;
@@ -922,7 +894,7 @@ int main (int argc, char* argv[])
                     Box const icor_box(IntVect(inputs.icor-1), IntVect(inputs.icor-1));
                     Real const uicor = u.sum(icor_box, 0);
                     ++istat;
-                    accumulate_stats(stats, stats_comp, u, inputs, uicor);
+                    accumulate_stats(stats, u, inputs, uicor);
                     accumulate_pdf(pdf, total_pdf_points, u, geom, inputs);
                     tout = 0;
                 }
@@ -931,7 +903,7 @@ int main (int argc, char* argv[])
                     ens % inputs.ensout == 0) {
                     print_state(u, geom, step, time, ens);
                     if (istat > 0) {
-                        build_diagnostics(diag, stats, inputs, istat);
+                        build_diagnostics(diag, stats.value(), inputs, istat);
                         print_and_write_diagnostics(diag, geom, inputs, istat, ens, step,
                                                     tag, pdf, total_pdf_points);
                     }
