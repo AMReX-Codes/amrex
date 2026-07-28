@@ -1148,6 +1148,18 @@ CPU and they should only be used for ``simd``-capable nested loops.
 Calculations that cannot vectorize should be rewritten wherever
 possible to allow efficient utilization of GPU hardware.
 
+For loops whose iterations are *not* independent, AMReX provides
+:cpp:`amrex::For`.  It supports the same set of signatures as
+:cpp:`amrex::ParallelFor` (including the variants taking a
+:cpp:`TypeList` of :cpp:`CompileTimeOptions`) and generates identical
+code on GPU, but omits ``AMREX_PRAGMA_SIMD`` on CPU.  A common case
+requiring :cpp:`amrex::For` is scatter-style accumulation with
+:cpp:`Gpu::Atomic` operations: on the host these compile to plain
+(non-atomic) updates, so different iterations may update the same
+memory location.  Using :cpp:`amrex::ParallelFor` for such a loop
+licenses the compiler to vectorize it anyway, which can silently drop
+updates from vector lanes that touch the same address.
+
 However, it is important for applications to use these launches whenever appropriate
 because they contain optimizations for both CPU and GPU variations of nested
 loops.  For example, on the GPU the spatial coordinate loops are reduced to a single
