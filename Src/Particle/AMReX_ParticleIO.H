@@ -676,11 +676,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     std::string fileCharPtrString(fileCharPtr.dataPtr());
     std::istringstream HdrFile(fileCharPtrString, std::istringstream::in);
 
-    // The metadata prefix (version through finest level) is parsed by the
-    // shared ParticleHeader, which leaves HdrFile positioned at the per-level
-    // grid table read below. See AMReX_ParticleHeader.{H,cpp}.
+    // The metadata prefix (version through finest level) and the per-level
+    // grid table (data file index, particle count and byte offset per grid)
+    // are parsed by the shared ParticleHeader.
+    // See AMReX_ParticleHeader.{H,cpp}.
     ParticleHeader header;
     header.parse(HdrFile);
+    header.parse_grid_table(HdrFile);
 
     const std::string& how = header.how;
     const bool convert_ids = header.convert_ids;
@@ -740,12 +742,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
     }
 
-    Vector<int> ngrids(finest_level_in_file+1);
-    for (int lev = 0; lev <= finest_level_in_file; lev++) {
-        HdrFile >> ngrids[lev];
-        AMREX_ASSERT(ngrids[lev] > 0);
-    }
-
     resizeData();
 
     if (finest_level_in_file > finestLevel()) {
@@ -753,12 +749,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
 
     for (int lev = 0; lev <= finest_level_in_file; lev++) {
-        Vector<int>  which(ngrids[lev]);
-        Vector<int>  count(ngrids[lev]);
-        Vector<Long> where(ngrids[lev]);
-        for (int i = 0; i < ngrids[lev]; i++) {
-            HdrFile >> which[i] >> count[i] >> where[i];
-        }
+        auto const& grid_table = header.grids[lev];
 
         // Use the file's own layout to distribute reading across ranks.
         MFInfo info;
@@ -770,7 +761,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         }
 
         for(int grid : grids_to_read) {
-            if (count[grid] <= 0) { continue; }
+            if (grid_table[grid].count <= 0) { continue; }
 
             // The file names in the header file are relative.
             std::string name = fullname;
@@ -783,7 +774,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             name += amrex::Concatenate("", lev, 1);
             name += '/';
             name += DataPrefix();
-            name += amrex::Concatenate("", which[grid], DATA_Digits_Read);
+            name += amrex::Concatenate("", grid_table[grid].which, DATA_Digits_Read);
 
             std::ifstream ParticleFile;
 
@@ -793,21 +784,21 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
                 amrex::FileOpenFailed(name);
             }
 
-            ParticleFile.seekg(where[grid], std::ios::beg);
+            ParticleFile.seekg(grid_table[grid].where, std::ios::beg);
 
             // Use if constexpr to avoid instantiating the mis-matched
             // type case and triggering the static_assert on the
             // underlying copy calls
             if (how == "single") {
                 if constexpr (std::is_same_v<ParticleReal, float>) {
-                    ReadParticles<float>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                    ReadParticles<float>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
                 } else {
                     amrex::Error("File contains single-precision data, while AMReX is compiled with ParticleReal==double");
                 }
             }
             else if (how == "double") {
                 if constexpr (std::is_same_v<ParticleReal, double>) {
-                    ReadParticles<double>(count[grid], grid, lev, ParticleFile, finest_level_in_file, convert_ids);
+                    ReadParticles<double>(grid_table[grid].count, grid, lev, ParticleFile, finest_level_in_file, convert_ids);
                 } else {
                     amrex::Error("File contains double-precision data, while AMReX is compiled with ParticleReal==float");
                 }
