@@ -15,6 +15,8 @@ namespace amrex {
 void
 ParticleHeader::parse (std::istream& is)
 {
+    grids.clear();
+
     is >> version;
     AMREX_ASSERT(!version.empty());
 
