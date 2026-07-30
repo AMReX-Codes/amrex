@@ -10,6 +10,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 
+#include <array>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
@@ -460,8 +461,8 @@ void print_state (MultiFab const& u, Geometry const& geom, int step, Real time, 
     }
 }
 
-void accumulate_stats (CompensatedMultiFab& stats, MultiFab const& u, Inputs const& p,
-                       Real uicor)
+void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
+                       Inputs const& p, Real uicor)
 {
     Real const uinit = p.uinit;
     Real const midfact = p.midfact;
@@ -472,10 +473,11 @@ void accumulate_stats (CompensatedMultiFab& stats, MultiFab const& u, Inputs con
     Real const x2 = x * x;
     Real const x3 = x2 * x;
 
-    for (MFIter mfi(stats.value()); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(stats); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.validbox();
         Array4<Real const> const ua = u.const_array(mfi);
-        auto const sa = stats.array(mfi);
+        Array4<Real> const sa = stats.array(mfi);
+        Array4<Real> const ca = stats_comp.array(mfi);
 
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -484,16 +486,16 @@ void accumulate_stats (CompensatedMultiFab& stats, MultiFab const& u, Inputs con
             Real const y3 = y2 * y;
             Real const y4 = y2 * y2;
 
-            sa.add(i, j, k, MeanAcc, y);
-            sa.add(i, j, k, SqrAcc, y2);
-            sa.add(i, j, k, CubAcc, y3);
-            sa.add(i, j, k, FourthAcc, y4);
-            sa.add(i, j, k, Cor11Acc, x * y);
-            sa.add(i, j, k, Cor12Acc, x * y2);
-            sa.add(i, j, k, Cor13Acc, x * y3);
-            sa.add(i, j, k, Cor21Acc, x2 * y);
-            sa.add(i, j, k, Cor31Acc, x3 * y);
-            sa.add(i, j, k, Cor22Acc, x2 * y2);
+            amrex::compensatedAdd(sa(i,j,k,MeanAcc), ca(i,j,k,MeanAcc), y);
+            amrex::compensatedAdd(sa(i,j,k,SqrAcc), ca(i,j,k,SqrAcc), y2);
+            amrex::compensatedAdd(sa(i,j,k,CubAcc), ca(i,j,k,CubAcc), y3);
+            amrex::compensatedAdd(sa(i,j,k,FourthAcc), ca(i,j,k,FourthAcc), y4);
+            amrex::compensatedAdd(sa(i,j,k,Cor11Acc), ca(i,j,k,Cor11Acc), x * y);
+            amrex::compensatedAdd(sa(i,j,k,Cor12Acc), ca(i,j,k,Cor12Acc), x * y2);
+            amrex::compensatedAdd(sa(i,j,k,Cor13Acc), ca(i,j,k,Cor13Acc), x * y3);
+            amrex::compensatedAdd(sa(i,j,k,Cor21Acc), ca(i,j,k,Cor21Acc), x2 * y);
+            amrex::compensatedAdd(sa(i,j,k,Cor31Acc), ca(i,j,k,Cor31Acc), x3 * y);
+            amrex::compensatedAdd(sa(i,j,k,Cor22Acc), ca(i,j,k,Cor22Acc), x2 * y2);
         });
     }
 }
@@ -644,31 +646,38 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
     int const npts = geom.Domain().length(0);
     Real const dx = geom.CellSize(0);
 
-    CompensatedSum<Real> av_mean_sum;
-    CompensatedSum<Real> av_var_sum;
-    CompensatedSum<Real> av_skew_sum;
-    CompensatedSum<Real> av_kur_sum;
-    CompensatedSum<Real> av_mom3_sum;
-    CompensatedSum<Real> av_mom4_sum;
-    CompensatedSum<Real> var_mean_sum;
-    CompensatedSum<Real> var_var_sum;
-    CompensatedSum<Real> var_skew_sum;
-    CompensatedSum<Real> var_kur_sum;
-    CompensatedSum<Real> var_mom3_sum;
-    CompensatedSum<Real> var_mom4_sum;
-
-    CompensatedSum<Real> c11_m_sum;
-    CompensatedSum<Real> c12_m_sum;
-    CompensatedSum<Real> c13_m_sum;
-    CompensatedSum<Real> c21_m_sum;
-    CompensatedSum<Real> c31_m_sum;
-    CompensatedSum<Real> c22_m_sum;
-    CompensatedSum<Real> c11_v_sum;
-    CompensatedSum<Real> c12_v_sum;
-    CompensatedSum<Real> c13_v_sum;
-    CompensatedSum<Real> c21_v_sum;
-    CompensatedSum<Real> c31_v_sum;
-    CompensatedSum<Real> c22_v_sum;
+    enum LocalSum : int {
+        AvMeanSum = 0,
+        AvVarSum,
+        AvSkewSum,
+        AvKurSum,
+        AvMom3Sum,
+        AvMom4Sum,
+        VarMeanSum,
+        VarVarSum,
+        VarSkewSum,
+        VarKurSum,
+        VarMom3Sum,
+        VarMom4Sum,
+        C11MeanSum,
+        C12MeanSum,
+        C13MeanSum,
+        C21MeanSum,
+        C31MeanSum,
+        C22MeanSum,
+        C11VarSum,
+        C12VarSum,
+        C13VarSum,
+        C21VarSum,
+        C31VarSum,
+        C22VarSum,
+        NumLocalSums
+    };
+    std::array<Real, NumLocalSums> sums{};
+    std::array<Real, NumLocalSums> comps{};
+    auto add_sum = [&] (LocalSum n, Real value) noexcept {
+        amrex::compensatedAdd(sums[n], comps[n], value);
+    };
 
     for (int i = 0; i < npts; ++i) {
         Real const mean = line[Mean + NumDiagComps*i];
@@ -678,18 +687,18 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
         Real const mom3 = line[Mom3 + NumDiagComps*i];
         Real const mom4 = line[Mom4 + NumDiagComps*i];
 
-        av_mean_sum.add(mean);
-        av_var_sum.add(var);
-        av_skew_sum.add(skew);
-        av_kur_sum.add(kur);
-        av_mom3_sum.add(mom3);
-        av_mom4_sum.add(mom4);
-        var_mean_sum.add(mean*mean);
-        var_var_sum.add(var*var);
-        var_skew_sum.add(skew*skew);
-        var_kur_sum.add(kur*kur);
-        var_mom3_sum.add(mom3*mom3);
-        var_mom4_sum.add(mom4*mom4);
+        add_sum(AvMeanSum, mean);
+        add_sum(AvVarSum, var);
+        add_sum(AvSkewSum, skew);
+        add_sum(AvKurSum, kur);
+        add_sum(AvMom3Sum, mom3);
+        add_sum(AvMom4Sum, mom4);
+        add_sum(VarMeanSum, mean*mean);
+        add_sum(VarVarSum, var*var);
+        add_sum(VarSkewSum, skew*skew);
+        add_sum(VarKurSum, kur*kur);
+        add_sum(VarMom3Sum, mom3*mom3);
+        add_sum(VarMom4Sum, mom4*mom4);
 
         if (i != p.icor-1) {
             Real const c11 = line[Cor11 + NumDiagComps*i];
@@ -698,34 +707,34 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
             Real const c21 = line[Cor21 + NumDiagComps*i];
             Real const c31 = line[Cor31 + NumDiagComps*i];
             Real const c22 = line[Cor22 + NumDiagComps*i];
-            c11_m_sum.add(c11);
-            c12_m_sum.add(c12);
-            c13_m_sum.add(c13);
-            c21_m_sum.add(c21);
-            c31_m_sum.add(c31);
-            c22_m_sum.add(c22);
-            c11_v_sum.add(c11*c11);
-            c12_v_sum.add(c12*c12);
-            c13_v_sum.add(c13*c13);
-            c21_v_sum.add(c21*c21);
-            c31_v_sum.add(c31*c31);
-            c22_v_sum.add(c22*c22);
+            add_sum(C11MeanSum, c11);
+            add_sum(C12MeanSum, c12);
+            add_sum(C13MeanSum, c13);
+            add_sum(C21MeanSum, c21);
+            add_sum(C31MeanSum, c31);
+            add_sum(C22MeanSum, c22);
+            add_sum(C11VarSum, c11*c11);
+            add_sum(C12VarSum, c12*c12);
+            add_sum(C13VarSum, c13*c13);
+            add_sum(C21VarSum, c21*c21);
+            add_sum(C31VarSum, c31*c31);
+            add_sum(C22VarSum, c22*c22);
         }
     }
 
     Real const inv_npts = Real(1.0) / Real(npts);
-    Real const av_mean = av_mean_sum.value() * inv_npts;
-    Real const av_var = av_var_sum.value() * inv_npts;
-    Real const av_skew = av_skew_sum.value() * inv_npts;
-    Real const av_kur = av_kur_sum.value() * inv_npts;
-    Real const av_mom3 = av_mom3_sum.value() * inv_npts;
-    Real const av_mom4 = av_mom4_sum.value() * inv_npts;
-    Real const var_mean = var_mean_sum.value()*inv_npts - av_mean*av_mean;
-    Real const var_var = var_var_sum.value()*inv_npts - av_var*av_var;
-    Real const var_skew = var_skew_sum.value()*inv_npts - av_skew*av_skew;
-    Real const var_kur = var_kur_sum.value()*inv_npts - av_kur*av_kur;
-    Real const var_mom3 = var_mom3_sum.value()*inv_npts - av_mom3*av_mom3;
-    Real const var_mom4 = var_mom4_sum.value()*inv_npts - av_mom4*av_mom4;
+    Real const av_mean = sums[AvMeanSum] * inv_npts;
+    Real const av_var = sums[AvVarSum] * inv_npts;
+    Real const av_skew = sums[AvSkewSum] * inv_npts;
+    Real const av_kur = sums[AvKurSum] * inv_npts;
+    Real const av_mom3 = sums[AvMom3Sum] * inv_npts;
+    Real const av_mom4 = sums[AvMom4Sum] * inv_npts;
+    Real const var_mean = sums[VarMeanSum]*inv_npts - av_mean*av_mean;
+    Real const var_var = sums[VarVarSum]*inv_npts - av_var*av_var;
+    Real const var_skew = sums[VarSkewSum]*inv_npts - av_skew*av_skew;
+    Real const var_kur = sums[VarKurSum]*inv_npts - av_kur*av_kur;
+    Real const var_mom3 = sums[VarMom3Sum]*inv_npts - av_mom3*av_mom3;
+    Real const var_mom4 = sums[VarMom4Sum]*inv_npts - av_mom4*av_mom4;
     amrex::ignore_unused(var_mean, var_var, var_skew, var_kur, var_mom3, var_mom4);
 
     amrex::Print() << "istats " << istat << " " << npts << "\n";
@@ -734,18 +743,18 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
 
     if (npts > 1) {
         Real const inv_cov = Real(1.0) / Real(npts-1);
-        Real const c11_m = c11_m_sum.value() * inv_cov;
-        Real const c12_m = c12_m_sum.value() * inv_cov;
-        Real const c13_m = c13_m_sum.value() * inv_cov;
-        Real const c21_m = c21_m_sum.value() * inv_cov;
-        Real const c31_m = c31_m_sum.value() * inv_cov;
-        Real const c22_m = c22_m_sum.value() * inv_cov;
-        Real const c11_v = c11_v_sum.value()*inv_cov - c11_m*c11_m;
-        Real const c12_v = c12_v_sum.value()*inv_cov - c12_m*c12_m;
-        Real const c13_v = c13_v_sum.value()*inv_cov - c13_m*c13_m;
-        Real const c21_v = c21_v_sum.value()*inv_cov - c21_m*c21_m;
-        Real const c31_v = c31_v_sum.value()*inv_cov - c31_m*c31_m;
-        Real const c22_v = c22_v_sum.value()*inv_cov - c22_m*c22_m;
+        Real const c11_m = sums[C11MeanSum] * inv_cov;
+        Real const c12_m = sums[C12MeanSum] * inv_cov;
+        Real const c13_m = sums[C13MeanSum] * inv_cov;
+        Real const c21_m = sums[C21MeanSum] * inv_cov;
+        Real const c31_m = sums[C31MeanSum] * inv_cov;
+        Real const c22_m = sums[C22MeanSum] * inv_cov;
+        Real const c11_v = sums[C11VarSum]*inv_cov - c11_m*c11_m;
+        Real const c12_v = sums[C12VarSum]*inv_cov - c12_m*c12_m;
+        Real const c13_v = sums[C13VarSum]*inv_cov - c13_m*c13_m;
+        Real const c21_v = sums[C21VarSum]*inv_cov - c21_m*c21_m;
+        Real const c31_v = sums[C31VarSum]*inv_cov - c31_m*c31_m;
+        Real const c22_v = sums[C22VarSum]*inv_cov - c22_m*c22_m;
         amrex::ignore_unused(c11_v, c12_v, c13_v, c21_v, c31_v, c22_v);
         amrex::Print() << "cov stats " << c11_m << " " << c12_m << " " << c13_m << " "
                        << c21_m << " " << c31_m << " " << c22_m << "\n";
@@ -858,9 +867,11 @@ int main (int argc, char* argv[])
         MultiFab unew(ba, dm, ncoef, 0);
         MultiFab flux(fba, dm, ncoef, 0);
         MultiFab ranflux(fba, dm, 1, 0);
-        CompensatedMultiFab stats(ba, dm, NumStatComps, 0);
+        MultiFab stats(ba, dm, NumStatComps, 0);
+        MultiFab stats_comp(ba, dm, NumStatComps, 0);
         MultiFab diag(ba, dm, NumDiagComps, 0);
         stats.setVal(Real(0.0));
+        stats_comp.setVal(Real(0.0));
 
         Vector<Long> pdf(inputs.nbins+2, Long(0));
         Long total_pdf_points = 0;
@@ -896,7 +907,7 @@ int main (int argc, char* argv[])
                     Box const icor_box(IntVect(inputs.icor-1), IntVect(inputs.icor-1));
                     Real const uicor = u.sum(icor_box, 0);
                     ++istat;
-                    accumulate_stats(stats, u, inputs, uicor);
+                    accumulate_stats(stats, stats_comp, u, inputs, uicor);
                     accumulate_pdf(pdf, total_pdf_points, u, geom, inputs);
                     tout = 0;
                 }
@@ -905,7 +916,7 @@ int main (int argc, char* argv[])
                     ens % inputs.ensout == 0) {
                     print_state(u, geom, step, time, ens);
                     if (istat > 0) {
-                        build_diagnostics(diag, stats.value(), inputs, istat);
+                        build_diagnostics(diag, stats, inputs, istat);
                         print_and_write_diagnostics(diag, geom, inputs, istat, ens, step,
                                                     tag, pdf, total_pdf_points);
                     }
