@@ -168,10 +168,12 @@ double inverse_standard_normal (double p) noexcept
         (((((b0*r + b1)*r + b2)*r + b3)*r + b4)*r + 1.0);
 }
 
+template <typename T>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-double local_random_normal (double mean, double stddev, RandomEngine const& engine) noexcept
+T local_random_normal (T mean, T stddev, RandomEngine const& engine) noexcept
 {
-    return mean + stddev * inverse_standard_normal(precision_independent_uniform(engine));
+    return mean + stddev *
+        static_cast<T>(inverse_standard_normal(precision_independent_uniform(engine)));
 }
 
 Inputs read_inputs ()
@@ -343,7 +345,7 @@ void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry cons
         ParallelForRNG(fbx, [=] AMREX_GPU_DEVICE (int i, int j, int k,
                                                   RandomEngine const& engine) noexcept
         {
-            double const normal = local_random_normal(0.0, 1.0, engine);
+            double const normal = local_random_normal<double>(0.0, 1.0, engine);
             ra(i,j,k) = (normal >= 0.5) ? Real(1.0) : Real(-1.0);
         });
     }
