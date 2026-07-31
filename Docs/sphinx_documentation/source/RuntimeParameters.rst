@@ -1600,12 +1600,17 @@ enabled.
 
 .. py:data:: tiny_profiler.output_file
    :type: string
-   :value: [empty]
+   :value: stdout
 
    .. versionadded:: 24.09
       Runtime parameter ``tiny_profiler.output_file``.
 
-   If this parameter is empty, the output of tiny profiling is dumped to the
-   default output stream of AMReX. If it is not empty, it specifies the file
-   name for the output. Note that ``/dev/null`` is a special name that means
-   no output.
+   .. versionchanged:: 26.08
+      Special names ``stdout`` and ``stderr``; the default value is now
+      ``stdout`` (same behavior as the previous default, the empty string).
+
+   This parameter specifies the destination of the tiny profiling output.
+   Note that ``stdout``, ``stderr`` and ``/dev/null`` are special names that
+   mean the default output stream, the default error stream, and no output,
+   respectively. An empty value is treated the same as ``stdout``. Any other
+   value specifies the file name for the output.
