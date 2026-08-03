@@ -1605,7 +1605,7 @@ enabled.
    .. versionadded:: 24.09
       Runtime parameter ``tiny_profiler.output_file``.
 
-   .. versionchanged:: 26.08
+   .. versionchanged:: 26.09
       Special names ``stdout`` and ``stderr``; the default value is now
       ``stdout`` (same behavior as the previous default, the empty string).
 
