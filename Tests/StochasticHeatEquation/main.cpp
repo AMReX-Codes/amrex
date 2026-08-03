@@ -40,12 +40,8 @@ struct Inputs
     int icor = 1;
     int jmidl = -5;
     int jmidr = -5;
-    int jpartl = -5;
-    int jpartr = -5;
-    int is_hybrid = 0;
     int ensemble = 1;
     int is_gaussian = 0;
-    int irestart = 0;
     int ipdf = 0;
     int nbins = 150;
     int ensout = 1;
@@ -220,12 +216,8 @@ Inputs read_inputs ()
     pp.query("jmidl", p.jmidl);
     pp.query("jmidr", p.jmidr);
     pp.query("midfact", p.midfact);
-    pp.query("jpartl", p.jpartl);
-    pp.query("jpartr", p.jpartr);
-    pp.query("is_hybrid", p.is_hybrid);
     pp.query("ensemble", p.ensemble);
     pp.query("is_gaussian", p.is_gaussian);
-    pp.query("irestart", p.irestart);
     pp.query("ipdf", p.ipdf);
     pp.query("binlo", p.binlo);
     pp.query("nbins", p.nbins);
@@ -255,12 +247,6 @@ Inputs read_inputs ()
     }
     if (p.icor < 1 || p.icor > p.npts) {
         amrex::Abort("icor must be in [1,npts]");
-    }
-    if (p.is_hybrid != 0) {
-        amrex::Abort("The AMReX C++ port implements the finite-volume solver path; is_hybrid must be 0");
-    }
-    if (p.irestart != 0) {
-        amrex::Abort("Restart input is not implemented in the AMReX C++ port");
     }
     if (p.lambda <= Real(0.0) || p.rho <= Real(0.0) || p.cv <= Real(0.0) ||
         p.crossA <= Real(0.0)) {

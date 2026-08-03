@@ -12,11 +12,12 @@ crossA = 4.e-18      # cross-sectional area for stochastic flux scaling
 iopt = 2             # reservoir-face noise state: 1 boundary, 2 interior
 
 dt = 1.e-12          # time step used when cfl <= 0
-cfl = 0.1e0          # if positive, set dt from cfl*dx*dx/kappa
-nstep = 20           # number of production steps after thermalization
-ntherm = 5           # number of initial steps skipped by diagnostics
-nout = 20            # diagnostic output interval after thermalization
-nstat = 5            # statistics accumulation interval after thermalization
+cfl = 0.1e0          # if positive, set dt from cfl*dx*dx/(2*kappa)
+dorand = 1.0e0       # scale factor on the stochastic flux noise; 0 disables fluctuations
+nstep = 20000000     # number of production steps after thermalization
+ntherm = 2000000     # number of initial steps skipped by diagnostics
+nout = 20000000      # diagnostic output interval after thermalization
+nstat = 100          # statistics accumulation interval after thermalization
 icor = 1             # 1-based reference cell index for correlations
 ensout = 1           # output every ensout ensemble realizations
 
@@ -26,7 +27,6 @@ uinit = 300.         # initial state outside the middle region
 jmidl = 26           # 1-based first cell in the middle region
 jmidr = 75           # 1-based last cell in the middle region
 midfact = 1.0e0      # multiplier applied to uinit in the middle region
-is_hybrid = 0        # solver path selector; must be 0 for finite volume
 iresr = 0            # right reservoir flag when non-periodic: 0 off, 1 on
 iresl = 0            # left reservoir flag when non-periodic: 0 off, 1 on
 iper = 1             # x-boundary periodicity flag: 1 periodic, 0 physical
@@ -35,5 +35,5 @@ uright = 300.        # right reservoir state for non-periodic boundaries
 ensemble = 2         # number of ensemble realizations
 
 ipdf = 0             # enable PDF histogram output when nonzero
-write_ascii = 1      # write ASCII diagnostic data files when nonzero
+write_ascii = 0      # write ASCII diagnostic data files when nonzero
 plot_int = -1        # plotfile output interval; <= 0 disables plotfiles
