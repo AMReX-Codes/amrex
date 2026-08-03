@@ -1,6 +1,5 @@
 #include <AMReX.H>
 #include <AMReX_BoxArray.H>
-#include <AMReX_CompensatedSum.H>
 #include <AMReX_Geometry.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_MultiFab.H>
@@ -461,8 +460,7 @@ void print_state (MultiFab const& u, Geometry const& geom, int step, Real time, 
     }
 }
 
-void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
-                       Inputs const& p, Real uicor)
+void accumulate_stats (MultiFab& stats, MultiFab const& u, Inputs const& p, Real uicor)
 {
     Real const uinit = p.uinit;
     Real const midfact = p.midfact;
@@ -477,7 +475,6 @@ void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
         Box const& bx = mfi.validbox();
         Array4<Real const> const ua = u.const_array(mfi);
         Array4<Real> const sa = stats.array(mfi);
-        Array4<Real> const ca = stats_comp.array(mfi);
 
         ParallelFor(bx, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
@@ -486,16 +483,16 @@ void accumulate_stats (MultiFab& stats, MultiFab& stats_comp, MultiFab const& u,
             Real const y3 = y2 * y;
             Real const y4 = y2 * y2;
 
-            amrex::compensatedAdd(sa(i,j,k,MeanAcc), ca(i,j,k,MeanAcc), y);
-            amrex::compensatedAdd(sa(i,j,k,SqrAcc), ca(i,j,k,SqrAcc), y2);
-            amrex::compensatedAdd(sa(i,j,k,CubAcc), ca(i,j,k,CubAcc), y3);
-            amrex::compensatedAdd(sa(i,j,k,FourthAcc), ca(i,j,k,FourthAcc), y4);
-            amrex::compensatedAdd(sa(i,j,k,Cor11Acc), ca(i,j,k,Cor11Acc), x * y);
-            amrex::compensatedAdd(sa(i,j,k,Cor12Acc), ca(i,j,k,Cor12Acc), x * y2);
-            amrex::compensatedAdd(sa(i,j,k,Cor13Acc), ca(i,j,k,Cor13Acc), x * y3);
-            amrex::compensatedAdd(sa(i,j,k,Cor21Acc), ca(i,j,k,Cor21Acc), x2 * y);
-            amrex::compensatedAdd(sa(i,j,k,Cor31Acc), ca(i,j,k,Cor31Acc), x3 * y);
-            amrex::compensatedAdd(sa(i,j,k,Cor22Acc), ca(i,j,k,Cor22Acc), x2 * y2);
+            sa(i,j,k,MeanAcc) += y;
+            sa(i,j,k,SqrAcc) += y2;
+            sa(i,j,k,CubAcc) += y3;
+            sa(i,j,k,FourthAcc) += y4;
+            sa(i,j,k,Cor11Acc) += x * y;
+            sa(i,j,k,Cor12Acc) += x * y2;
+            sa(i,j,k,Cor13Acc) += x * y3;
+            sa(i,j,k,Cor21Acc) += x2 * y;
+            sa(i,j,k,Cor31Acc) += x3 * y;
+            sa(i,j,k,Cor22Acc) += x2 * y2;
         });
     }
 }
@@ -674,9 +671,8 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
         NumLocalSums
     };
     std::array<Real, NumLocalSums> sums{};
-    std::array<Real, NumLocalSums> comps{};
     auto add_sum = [&] (LocalSum n, Real value) noexcept {
-        amrex::compensatedAdd(sums[n], comps[n], value);
+        sums[n] += value;
     };
 
     for (int i = 0; i < npts; ++i) {
@@ -868,10 +864,8 @@ int main (int argc, char* argv[])
         MultiFab flux(fba, dm, ncoef, 0);
         MultiFab ranflux(fba, dm, 1, 0);
         MultiFab stats(ba, dm, NumStatComps, 0);
-        MultiFab stats_comp(ba, dm, NumStatComps, 0);
         MultiFab diag(ba, dm, NumDiagComps, 0);
         stats.setVal(Real(0.0));
-        stats_comp.setVal(Real(0.0));
 
         Vector<Long> pdf(inputs.nbins+2, Long(0));
         Long total_pdf_points = 0;
@@ -907,7 +901,7 @@ int main (int argc, char* argv[])
                     Box const icor_box(IntVect(inputs.icor-1), IntVect(inputs.icor-1));
                     Real const uicor = u.sum(icor_box, 0);
                     ++istat;
-                    accumulate_stats(stats, stats_comp, u, inputs, uicor);
+                    accumulate_stats(stats, u, inputs, uicor);
                     accumulate_pdf(pdf, total_pdf_points, u, geom, inputs);
                     tout = 0;
                 }
