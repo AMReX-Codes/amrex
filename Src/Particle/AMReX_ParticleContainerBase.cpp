@@ -74,11 +74,65 @@ ParticleContainerBase::defineBufferMap () const
 {
     BL_PROFILE("ParticleContainer::defineBufferMap");
 
-    if (! m_buffer_map.isValid(GetParGDB()))
+    if (! m_buffer_map.isValid(GetParGDB(), do_tiling, tile_size))
     {
-        m_buffer_map.define(GetParGDB());
+        m_buffer_map.define(GetParGDB(), do_tiling, tile_size);
     }
 }
+
+#if defined(AMREX_USE_MPI)
+ParticleHandshakeWindow::~ParticleHandshakeWindow ()
+{
+    if (win != MPI_WIN_NULL) {
+        BL_MPI_REQUIRE(MPI_Win_free(&win));
+    }
+    if (comm != MPI_COMM_NULL) {
+        BL_MPI_REQUIRE(MPI_Comm_free(&comm));
+    }
+    ptr = nullptr;
+    nprocs = 0;
+}
+
+void ParticleContainerBase::ensureParticleHandshakeWindow () const
+{
+    const int nprocs = ParallelContext::NProcsSub();
+    MPI_Comm comm = ParallelContext::CommunicatorSub();
+
+    auto const* handshake_window = m_particle_handshake_window.get();
+    bool needs_rebuild = (handshake_window == nullptr)
+        || (handshake_window->win == MPI_WIN_NULL)
+        || (handshake_window->nprocs != nprocs)
+        || (handshake_window->comm == MPI_COMM_NULL);
+
+    if (!needs_rebuild)
+    {
+        int cmp = MPI_UNEQUAL;
+        BL_MPI_REQUIRE(MPI_Comm_compare(comm, handshake_window->comm, &cmp));
+        needs_rebuild = (cmp != MPI_IDENT && cmp != MPI_CONGRUENT);
+    }
+
+    if (needs_rebuild)
+    {
+        Long* baseptr = nullptr;
+        MPI_Win win = MPI_WIN_NULL;
+        BL_MPI_REQUIRE(MPI_Win_allocate(static_cast<MPI_Aint>(nprocs*sizeof(Long)),
+                                        sizeof(Long),
+                                        MPI_INFO_NULL,
+                                        comm,
+                                        &baseptr,
+                                        &win));
+
+        MPI_Comm dup_comm = MPI_COMM_NULL;
+        BL_MPI_REQUIRE(MPI_Comm_dup(comm, &dup_comm));
+
+        m_particle_handshake_window = std::make_unique<ParticleHandshakeWindow>();
+        m_particle_handshake_window->ptr = baseptr;
+        m_particle_handshake_window->win = win;
+        m_particle_handshake_window->nprocs = nprocs;
+        m_particle_handshake_window->comm = dup_comm;
+    }
+}
+#endif
 
 void ParticleContainerBase::SetParGDB (const Geometry            & geom,
                                        const DistributionMapping & dmap,
@@ -275,13 +329,13 @@ int ParticleContainerBase::AggregationBuffer ()
     return aggregation_buffer;
 }
 
-void ParticleContainerBase::BuildRedistributeMask (int lev, int nghost) const
+void ParticleContainerBase::BuildRedistributeMask (int lev, IntVect nghost) const
 {
     BL_PROFILE("ParticleContainer::BuildRedistributeMask");
     AMREX_ASSERT(lev == 0);
 
     if (redistribute_mask_ptr == nullptr ||
-        redistribute_mask_nghost < nghost ||
+        ! redistribute_mask_nghost.allGE(nghost) ||
         ! BoxArray::SameRefs(redistribute_mask_ptr->boxArray(), this->ParticleBoxArray(lev)) ||
         ! DistributionMapping::SameRefs(redistribute_mask_ptr->DistributionMap(), this->ParticleDistributionMap(lev)))
     {

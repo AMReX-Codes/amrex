@@ -23,7 +23,7 @@ MakeITracker ( Box const& bx,
     int debug_verbose = 0;
 #endif
 
-    const Real small_norm_diff = 1.e-8;
+    const Real small_norm_diff = Real(1e-8);
 
     const Box domain = lev_geom.Domain();
 
@@ -69,7 +69,7 @@ MakeITracker ( Box const& bx,
            const Real dapx = apx(i+1,j  ,k  ) - apx(i,j,k);
            const Real dapy = apy(i  ,j+1,k  ) - apy(i,j,k);
            apnorm = std::sqrt(dapx*dapx+dapy*dapy);
-           apnorm_inv = 1.0/apnorm;
+           apnorm_inv = Real(1)/apnorm;
            Real nx = dapx * apnorm_inv;
            Real ny = dapy * apnorm_inv;
 

@@ -1,0 +1,70 @@
+module prob_module
+
+  implicit none
+
+  private
+
+  public :: init_prob_data
+
+contains
+
+subroutine amrex_probinit (init,name,namlen,problo,probhi) bind(c)
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+
+  integer, intent(in) :: init, namlen
+  integer, intent(in) :: name(namlen)
+  real(amrex_real), intent(in) :: problo(*), probhi(*)
+
+  ! nothing needs to be done here
+
+end subroutine amrex_probinit
+
+
+subroutine init_prob_data(level, time, lo, hi, &
+     phi, phi_lo, phi_hi, &
+     dx, prob_lo) bind(C, name="initdata")
+
+  use amrex_fort_module, only : amrex_real
+  implicit none
+  integer, intent(in) :: level, lo(3), hi(3), phi_lo(3), phi_hi(3)
+  real(amrex_real), intent(in) :: time
+  real(amrex_real), intent(inout) :: phi(phi_lo(1):phi_hi(1), &
+       &                                 phi_lo(2):phi_hi(2), &
+       &                                 phi_lo(3):phi_hi(3))
+  real(amrex_real), intent(in) :: dx(3), prob_lo(3)
+
+  integer          :: dm
+  integer          :: i,j,k
+  real(amrex_real) :: x,y,z,r2
+
+  if (phi_lo(3) .eq. 0 .and. phi_hi(3) .eq. 0) then
+     dm = 2
+  else
+     dm = 3
+  end if
+
+  !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
+  do k=lo(3),hi(3)
+     do j=lo(2),hi(2)
+        z = prob_lo(3) + (real(k,amrex_real)+0.5_amrex_real) * dx(3)
+        y = prob_lo(2) + (real(j,amrex_real)+0.5_amrex_real) * dx(2)
+        do i=lo(1),hi(1)
+           x = prob_lo(1) + (real(i,amrex_real)+0.5_amrex_real) * dx(1)
+
+           if ( dm.eq. 2) then
+              r2 = ((x-0.5_amrex_real)**2 + (y-0.75_amrex_real)**2) / 0.01_amrex_real
+              phi(i,j,k) = 1.0_amrex_real + exp(-r2)
+           else
+              r2 = ((x-0.5_amrex_real)**2 + (y-0.75_amrex_real)**2 + (z-0.5_amrex_real)**2) / 0.01_amrex_real
+              phi(i,j,k) = 1.0_amrex_real + exp(-r2)
+           end if
+        end do
+     end do
+  end do
+  !$omp end parallel do
+
+end subroutine init_prob_data
+
+end module prob_module

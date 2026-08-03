@@ -1,3 +1,577 @@
+# 26.08
+
+ ## Highlights:
+
+  * Add For overloads with compile time options (#5581)
+    `ParallelFor` with `CompileTimeOptions` had no `For` counterpart, so
+    kernels with non-independent iterations (e.g., particle-to-mesh scatter
+    through `Gpu::Atomic` adds, which are plain updates on host) had no way
+    to opt out of `AMREX_PRAGMA_SIMD` while keeping the compile-time-option
+    dispatch. Under the pragma (GCC `ivdep`), GCC 15 vectorizes such
+    accumulation loops and silently drops updates from SIMD lanes that hit
+    the same address, observed in the WarpX charge/current deposition:
+    https://github.com/BLAST-WarpX/warpx/issues/7097.
+    Add the six `For(TypeList<CompileTimeOptions<...>>, ...)` overloads (1D
+    range, Box, Box + ncomp, each with and without the MT template
+    parameter), dispatching via `AnyCTO` to the pragma-free For. On GPU,
+    `For` and `ParallelFor` are identical.
+
+  * Add fconvert plotfile tool for native-to-HDF5 conversion (#5569)
+    This adds `Tools/Plotfile/fconvert`, a native AMReX plotfile
+    postprocessing tool that rewrites one or more native plotfiles as HDF5
+    plotfiles using AMReX’s existing HDF5 writer and compression
+    descriptors. It follows the existing `f*` tool conventions and is wired
+    into both CMake and GNUmake builds.
+
+  * SIMD: Vectorized Particle Reductions (ParticleReduceSIMD) (#5562)
+    Add a SIMD-vectorized CPU path for particle reductions, following the
+    single-source SIMD design (`SIMDindex`, `load_1d`, `AMReX_SIMD=ON`):
+
+  * Make the "local" and "nGrow" arguments IntVects instead of ints for Redistribute (#5520)
+    This could be useful for cases where the particle motion is anisotropic.
+
+  * Overset mask for MLEBABecLap (#5439)
+    This PR adds `overset_mask` for `MLEBABecLap`, which already exists for
+    the non-EB version.
+
+  * Add clear() to YAFluxRegister and EBFluxRegister; call it in define() (#5531)
+    YAFluxRegisterT::define() and EBFluxRegister::define() did not clear
+    existing data before reinitializing. While the internal MultiFab members
+    handle redefinition safely via their own define() calls, two Vector
+    members (m_cfp_localindex and the inner vectors of m_cfp_fab) are
+    populated using push_back without being cleared first. Calling define()
+    on an already-defined object would accumulate stale entries, with
+    m_cfp_fab holding dangling FAB* pointers into the old m_cfpatch.
+    Add a clear() method to both classes that releases all memory and resets
+    geometry/ratio/level/ncomp to defaults. call clear() at the start of
+    YAFluxRegisterT::define() so redefinition is always safe. preserve
+    m_deterministic across clear() since it is a behavioral GPU flag, not
+    geometry-dependent state.
+
+ ## Other major changes:
+
+  * ParticleHeader: Parse Grid Table (#5577)
+
+  * Fix mesh refinement bug in computeNeighborProcs (#5573)
+
+  * TinyProfiler: re-read output_file each init/finalize cycle (#5572)
+
+  * MLNodeLaplacian: update cached state after setSigma (#5564)
+
+  * Fix WriteMLMF: refinement ratio computed from bigEnd instead of length (#5558)
+
+  * PC_local_gpu: fix narrowing conversion, brittle init, and deterministic handling (#5559)
+
+  * Fix two mkconfig/mkversionheader argument-parsing bugs (#5560)
+
+  * CMake: Fix typo in host-device diags (#5555)
+
+  * CMake: ROCm/HIP `find_dependency()` (#5554)
+
+  * Add alignas to IParser node structs mirroring floating-point Parser (#5552)
+
+  * Fix CreateDirectories: check S_ISDIR on EEXIST (#5544)
+
+  * Make LayoutData::define() safe for repeated calls; fix BndryDataT redefine (#5549)
+
+  * Remove amrex::clz (#5539)
+
+  * Fix modulo bias in device Random_int rejection sampling (#5545)
+
+  * Fix AnyOf CPU signature mismatch with declaration (#5543)
+
+  * Add N <= 0 guard to FillRandom for consistency with FillRandomNormal (#5546)
+
+  * Fix latent ODR violation: drop inline from SetGrowthFactor declaration (#5547)
+
+  * define function for amrex::FFT::Stokes (#5541)
+
+  * GNUMake: add VERBOSE=QUIET option to suppress per-file build messages (#5529)
+
+  * Scan: drop C++17 feature-detection guards and std::partial_sum fallbacks (#5537)
+
+  * Remove amrex::is_integer(const char*) (#5534)
+
+  * TimeIntegrator::integrate: fix swap guard for start_step != 0 (#5536)
+
+  * Fix UB in ParmParse (#5535)
+
+  * Fortran: Add amrex_write_hdf5plotfile (#5488)
+
+  * Make memory management safer in Fortran APIs (#5487)
+
+  * fix bug in MLEBNodeFDLaplacian when all cells are regular (#5530)
+
+  * Remove BlockMutex (#5521)
+
+# 26.07
+
+ ## Highlights:
+
+  * Parallel Reduce Overloads for `DeviceVector` (#5516)
+    Adds a new header `AMReX_GpuParallelReduce.H` which GPU-overloaded and
+    support for MPIs with and without GPU-awareness (GPU-pointer support) in
+    a safe manner.
+
+  * Remove dual_grid path from particle restart (#5497)
+    See #5496 for more background. It is not clear to me that we need the
+    dual_grid restart option at all. The caller of the restart function
+    should not care what grids are actually stored in the restart file. The
+    restart function should always use whatever grid layout is stored in the
+    checkpoint file to read the particles, but not change the
+    ParticleContainer grids at all. Then, Redistribute() will move the
+    particles to the proper place on the actual grids used by simulation.
+
+  * Added stokes solver (#5512)
+    This new solver solves
+    (\alpha - \eta \nabla^2) \mathbf{u} + \nabla p = \mathbf{f} using FFT.
+    It currently only supports periodic boundaries.
+
+  * Add FFT fast-length helper and pad OpenBC FFT domains (#5494)
+    Add FFT::nextFastLen for choosing 2/3/5/7/11-smooth padded FFT sizes.
+    Use the helper in OpenBCSolver to pad internal doubled convolution
+    domains to fast lengths by default. Add FFT::Info controls to disable or
+    tune OpenBC padding, pass Info through PoissonOpenBC, update docs, and
+    test padded vs. unpadded OpenBC solves.
+
+  * added general divergence preserving interpolation of face centered fields (#5252)
+    The refinement ratio in each direction may be 2 or 4 (for example,
+    `IntVect(2,2,2)` or `IntVect(2,4,4)`).
+
+ ## Other major changes:
+
+  * Fix parser node alignment for 32-bit builds (#5515)
+
+  * Arena: add largest free block query (#5514)
+
+  * CMake Config: NOMPI (#5510)
+
+  * Add support for RZ + EB with sigma MF in `MLEBNodeFDLaplacian` (#5507)
+
+  * Avoid FPE in fcompare when a plot variable is all zeros (#5506)
+
+  * Clang-Tidy: modernize-use-ranges (#5369)
+
+  * MLNodeLaplacian: aniso-sigma support across coarse-fine boundaries (#5500)
+
+  * Reduce2Plane with Guards (#5498)
+
+  * FFT: support R2C on non-cell-centered MultiFabs (#5495)
+
+  * Refactor `call_device` with C++17 Fold Expressions and Fix `launch_global` Declaration Order (#5480)
+
+  * GNU Make: Add USE_LIBCXX flag (#5474)
+
+  * Linear Solver: use the same index space to make factories (#5475)
+
+  * Fix missing k-index in 2D compute_convective_difference (#5469)
+
+  * Fix radial origin in volumeWeightedSum (#5472)
+
+  * OpenMP: tolerate invalid amrex.omp_threads values (#5471)
+
+# 26.06
+
+ ## Highlights:
+
+  * Add physical search radius to NeighborParticleContainer (#5262)
+    Add fillNeighbors(Real search_radius) and buildNeighborList(check_pair,
+    Real bin_size) overloads for efficient short-range particle interactions
+    when the interaction radius is much smaller than the mesh cell size.
+
+  * Concepts trial (#5434)
+    We now have amrex::BaseFabType and FabArrayType concepts.
+
+  * Runtime `amrex::Math::powi` (#5446)
+    A call to `std::pow(float, int)` promotes to `std::pow(double, double)`
+    and there are no `int` overloads at all after C++17. amrex::Math::powi
+    can be used to avoid the promotion.
+
+  * SIMD: Add where and ternary operator (#5095)
+    To write more portable code, add a scalar fallback for
+    `std::simd::where` for non-SIMD code. Expose both as
+    `amrex::simd::stdx`.
+
+  * FileSystem: Use std::filesystem (#5393)
+    Use std::filesystem for Exists, CurrentPath, Remove, and RemoveAll. Keep
+    the POSIX CreateDirectories implementation so mode_t continues to be
+    honored for newly-created directories.
+
+ ## Other major changes:
+
+  * Fix cross-level rank lookup in sumNeighborsCPU (#5462)
+
+  * Fix index ordering convention in DenseBins and SparseBins. (#5441)
+
+  * Make RealBox::contains use a closed interval (#5445)
+
+  * Make behavior of Partition and stablePartition consistent with docs (#5443)
+
+  * gfx12xx (RDNA4) regex update (#5429)
+    GNU Make: Fix AMD wavefron size for gfx12?? (#5455)
+
+  * generalize constants with Real() or _rt (#5451)
+
+  * fix box_offsets calculation in MultiLevelToBlueprint (#5452)
+
+  * Remove UB from three swapBytes overloads (#5444)
+
+  * Fix dual grid restart when particles only on finest level (#5440)
+
+  * SIMD: `store_1d` Add `ForceWriteback` (#5437)
+
+  * add dummy argument to CreateLike for particle containers to match the
+    signature for MultiFabs(#5442)
+
+  * Parser: Update jn and yn (#5433)
+
+  * Add HDF5 option to configure script and add environment variables for
+    configuring HDF5 (#5392)
+
+  * Make Parser construction thread-safe (#5414)
+
+  * HIP: Finally implement isManaged and isGpuPtr (#5331)
+
+  * Fix SUNDIALS integrator cleanup (#5395)
+
+  * fsnapshot: Abort when no palette is found (#5399)
+
+  * PETScABecLap: add a missing streamSynchronize (#5400)
+
+  * HDF5: Match SZ plotfile metadata to output precision (#5401)
+
+  * Fix GPU version of FirstOrderExtrap with multiple layers of ghost cells (#5410)
+
+  * Use classic locale in Concatenate (#5412)
+
+  * Fix recursive TinyProfiler BL_PROFILE_REGION's (#5413)
+
+  * AMRErrorTag: keep thresholds in sync with info to improve robustness (#5419)
+
+  * Preserve keep-ratio mapping on small knapsack fallback (#5423)
+
+  * Fix host-device flag macro wrapping (#5426)
+
+  * MPMD: Guard missing MPI_APPNUM attribute (#5427)
+
+  * CSR: Fix const CSR view return type (#5383)
+
+  * Fix deterministic GPU copy masks for non-atomic types (#5396)
+
+  * CUDA: Prefer CUDART_VERSION for runtime API guards (#5402)
+
+  * Fix multiple calls of `ReduceOps::eval_mf` (#5323)
+
+  * DistributionMapping: add early return to avoid undefined behavior (#5422)
+
+  * MLNodeLaplacian: route mknewu through anisotropic sigma path (#5380)
+
+# 26.05
+
+ ## Highlights:
+
+  * C++20
+    AMReX now requires C++20. The supported compilers are:
+    - GCC 11 or newer (for both host builds and CUDA host compilers).
+    - LLVM Clang 14 or newer, including AppleClang 14 on macOS.
+    - Microsoft Visual Studio 2022 (MSVC 19.34 / 17.4) or newer.
+    - NVIDIA CUDA Toolkit 12.2 or newer.
+    - AMD ROCm/HIP 6.0 or newer.
+    - Intel oneAPI DPC++ 2025.2 or newer.
+
+  * Fix OpenMP race conditions.
+    - Fix for race condition when using getConstParticleTileData in threaded region.
+    - Fix race condition in building hash map BoxArray-Box intersection.
+
+  * Support pure SoA for Neighbor particles.
+    Adds a pure SoA version of NeighborParticleContainer, allowing that
+    layout to be used in MFiX-Exa, FHDeX, etc.
+
+  * Add in-class AMREX enum registration macro AMREX_ENUM_IN_CLASS.
+    Add AMREX_ENUM_IN_CLASS for declaring reflected enum classes inside
+    class definitions, including class templates.
+
+  * Curl Curl: Add support for variable alpha.
+    Add support for solving `∇ × α ∇ × E + β E = f`, where `α` can be a
+    nodal MultiFab.
+
+  * Merge RedistributeCPU and RedistributeGPU into one implementation.
+    This merges RedistributeCPU and RedistributeGPU into one shared
+    implementation that works for both, improving the maintainability of the
+    code base. It also restructures the way OpenMP parallelism works in
+    Redistribute on the CPU, resulting in better OpenMP performance and
+    scaling. Another consequence is that particle tiling is now supported on
+    GPU (although probably not desirable in most cases).
+
+  * Fix a 2D bug in EB.
+    Fix set_eb_data that gave incorrect vcent and vfrac for anisotropic
+    cells (dx =/= dy).
+
+  * Align Arena allocations to 256 bytes.
+    This increases the alignment of Arena allocations from 16 to 256 bytes.
+
+  * Refactor AmrMesh::MakeNewGrids.
+    The refactor addresses two issues. First, there was a bug when
+    projecting grids during regrid. TagBoxArray might not have enough ghost
+    cells to guarantee proper nesting when the new fine level grows by a
+    lot. Second, it could be very inefficient to use the previous approach
+    of adding extra ghost cells to TagBoxArray for proper nesting. In some
+    users' cases, it may need more than 30 ghost cells.
+
+ ## Other major changes:
+
+  * Fix MLABecLaplacian::setBCoeffs(int,Vector) (#5382)
+
+  * HIP: Add amrex:: to robustify the AMREX_LAUNCH_KERNEL macro (#5328)
+
+  * Avoid stream string copies with view() (#5388)
+
+  * Align capacity to 256 bytes in ParticleTileRT (#5335)
+
+  * Call HYPRE_DeviceInitialize after HYPRE_Init if using GPUs (#5336)
+
+  * Fix eb_add_divergence_from_flow for anisotropic cells (#5385)
+
+  * Print: str() -> view() (#5377)
+
+  * Long in `numParticlesOutOfRange` (#5379)
+
+  * FaceDivFree interpolater: Fix component (#5361)
+
+  * TagParallelFor: Return early in case the number of warps is 0 (#5351)
+
+  * Scan: Handle empty range (#5348)
+
+  * Add option to fill ghost cells in `average_cellcenter_to_face` (#5345)
+
+  * Edge cases for boundary normal vector in coarsen_from_fine (#5352)
+
+  * Fix typo in amrex_avgdown_edges (#5340)
+
+  * EdgeFluxRegister: add plus() member function (#5329)
+
+  * `SmallMatrix`: `Omega` (#5330)
+
+  * MFIter Tiling: Set a default tile size in MFItInfo::SetTiling(bool) (#5334)
+
+  * RK2: pass time+dt as stage 2 time to the RHS function (#5326)
+
+  * Fix CPU implementation of `Reduce::MinMax(n, ptr)` (#5322)
+
+  * SYCL: Fix potential resource leak in the large kernel path (#5317)
+
+  * Fix bug in AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3 (#5316)
+
+  * Hypre 1D bug: Forgot to initialized diag_inv. (#5312)
+
+  * Hypre 3D: Fix index bug (#5313)
+
+  * Fix Hypre bug in 2D (#5314)
+
+  * PlotFileData: Add refRatioVect (#5300)
+
+  * FillPatchNLevels: Fix component bugs (#5288)
+
+  * SUNDIALS: Fix bug in N_VMaxNorm_MultiFab (#5301)
+
+  * SUNDIALS: Fix bug in N_VConstrMask_MultiFab (#5302)
+
+  * MFInterp quadratic slope: Fix index bugs (#5287)
+
+  * Fix bug in InterpCrseFineBndryEMfield (#5289)
+
+  * Amr::regrid used wrong `n_cycle` index for new levels (#5291)
+
+  * EB: Fix index bug in eb_interp_centroid2facecent_y (#5296)
+
+  * PhysBCFunct: Fix box index type (#5298)
+
+  * Add an implementation of ParticleCopyPlan::doHandShake that uses one-sided communication from MPI-3 (#5227)
+
+  * Fix out-of-bounds access in amrex::bisect (#5284)
+
+  * TrackedVector (#5253)
+
+  * Create symbolic link during install (#5277)
+
+  * Reduce memory usage in ReduceToPlaneMF2Patchy (#5258)
+
+  * Fix `PolymorphicArenaWrapper` Use-After-Free (#5270)
+
+  * Remove un-needed streamSynchronize from unpackRemotes (#5260)
+
+  * Update to new rocsparse (#5207)
+
+  * Add unset capability for ParmParse (#5263)
+
+  * Add version of ParticleTile using runtime-only 2D array (#4404)
+
+  * AmrMesh: Recompute roundoff domain for fine Geometry objects (#5248)
+
+  * AMREX_ENUM: Allow non-decimal base (#5251)
+
+  * SUNDIALS: Fix N_VInvTest_MultiFab (#5236)
+
+  * SUNDIALS: Use ParallelContext's communicator (#5237)
+
+  * FABio_8bit reader: Fix overflow (#5244)
+
+  * FabArray::copyTo(FAB): Fix a memory leak (#5246)
+
+  * ParallelAdd: Buffer unpacking should respect the deterministic flag (#5247)
+
+  * Fix DistributionMapping::SFC_Threshold (#5250)
+
+# 26.04
+
+ ## Highlights:
+
+  * Fix a number of bugs found by AIs.
+    - Fix facediv_int z indexing (#5239)
+    - FilFC: Fix a copy-paste typo (#5240)
+    - ParReduce: Fix comments (#5238)
+    - Fix assertions in particle IO to include runtime int comps (#5205)
+    - Filter transform fix (#5192)
+    - Fix empty vector dereference in HDF5 particle IO (#5195)
+    - Fix Dual Grid restart with HDF5 format (#5137)
+    - Make sure number of neighbor particles is preserved on swap (#5186)
+    - Fix HDF5 handle leaks in early exits (#5187)
+    - Fix InitFromBinary for the case that NP % NReaders != 0 (#5184)
+    - Fix resource leaks in ParticleContainer::RestartHDF5 (#5185)
+    - SUNDIALS: remove MemoryHelper's move operator= (#5178)
+    - SUNDIALS: Fix a memory leak in N_VDestroy_MultiFab (#5176)
+    - SUNDIALS: Fix memory leak in N_VWL2Norm_MultiFab (#5177)
+    - Fix typo in N_VConstrMask_MultiFab (#5175)
+    - HDF5: Fix missing GPU device-to-host_copy in writing plotfile (#5174)
+    - Fix BaseFab::contains (#5171)
+    - Fix assertion in bisect (#5169)
+    - Fix bug in `bisect` (#5167)
+    - Fix restart where you lose a level and NReaders > NProcs() (#5074)
+    - Fix caching mechanism for neighbor particle mask (#5080)
+    - FileSystem::Remove: Fix return value (#5136)
+    - Mask: Fix writeOn/readFrom for multiple components (#5117)
+    - BndryRegister: Make sure assertion does not access out-of-bound memory (#5112)
+    - FillPatcher: Robustify assertions (#5120)
+    - VisMF: Avoid UB-prone assertions on potentially empty strings (#5133)
+    - AmrLevel::FillPatch: Fix assertion (#5127)
+
+  * Implement pure-SoA HDF5 particle IO (#5204)
+
+  * Add external GPU stream override support (#5199)
+    Expose APIs to install and reset a user-managed GPU stream, document the
+    new behavior, and add a GPU test covering the external-stream execution
+    path.
+
+  * Parser: fix self assignment of locals (#5189)
+    When a local variable appeared on both sides of an assignment (e.g., `r
+    = x*x + y*y; r = sqrt(r);`), the parser would compile the RHS while the
+    new `r` slot was already active, so the RHS saw the uninitialized
+    version of `r`. We now compile the RHS first and only add/update the
+    local slot after, so self-referential assignments evaluate correctly.
+
+  * Add FillBoundaryAndSync(Vector) (#5138)
+    This is similar to FillBoundary(Vector). It can reduce latency when
+    FillBoundaryAndSync is needed for multiple FabArrays/MultiFabs. In the
+    future, we could further optimize it by more aggressive GPU kernel
+    fusion and MPI aggregation.
+    Also add FillBoundary_nowait(Vector), FillBoundary_finish(Vector),
+    FillBoundaryAndSync_nowait(Vector), and
+    FillBoundaryAndSync_finish(Vector).
+
+  * ParmParse: Add TOML-like features (#4950)
+    Add new TOML-like features:
+      - Multi-line string using `"""`.
+      - Array using square brackets.
+      - Table using [table] as header.
+
+ ## Other major changes:
+
+  * FFT: Fix one-d mode in 2D & 3D builds (#5225)
+
+  * Avoid invalid in AMReX_MFInterp_3D_C.H (#5215)
+
+  * Geometry: Exceptions (#5219)
+
+  * Add section on using LLMs to CONTRIBUTING.md (#5211)
+
+  * Avoid undefined behavior in Random_int by having it always return 0 for n = 0. (#5206)
+
+  * Clean up RedistributeCPU (#4529)
+
+  * ParmParse::add: Improve TOML compatibility (#5196)
+
+  * Fix tracer particle Timestamp to respect indices argument (#5194)
+
+  * Managed Arena: Do not pre-allocate if managed memory is not supported. (#5183)
+
+  * ParmParse: Preserve quotes when printing strings (#5188)
+
+  * Fix hidden direction support for multilevel composite solves (#5141)
+
+  * ParmParse: accept true/false t/f for int keys (#5150)
+
+  * ParmParse: Fix printing TOML array (#5180)
+
+  * BLBackTrace: Fix null terminator (#5173)
+
+  * ParmParse: Support query/get a specific element from TOML array. (#5149)
+
+  * Parser optimization by Claude (#5146)
+
+  * Add Gpu::isStreamActive function (#5139)
+
+  * ParmParse: Refactor countval for TOML arrays (#5143)
+
+  * Move PETSc Initialize and Finalize to amrex::Initialize and Finalize (#5098)
+
+  * Hypre: No need to call hypre if local row count is zero (#5104)
+
+  * HypOptParse: Remove operator()(key, func) (#5105)
+
+  * LineDistFcnElement2d::single_seg_cpdist: Fix degenerate case (#5106)
+
+  * COMM_PROFILING: Fix size bug (#5135)
+
+  * Boundary: Fix forward declarations (#5114)
+
+  * EB: Assert there is no int overflow (#5111)
+
+  * Marching Cubes: Fix GPU memcpy (#5110)
+
+  * Update Fortran BC type module (#5113)
+
+  * BndryData: Robustify reuse check (#5116)
+
+  * StateDescriptor: Remove deprecated functions (#5126)
+
+  * MultiMask: Fix initval for multiple components (#5118)
+
+  * Fujitsu MPI: Fix potential null-dereference (#5122)
+
+  * AmrMesh: Validate input (#5119)
+
+  * Hypre: Remove unimplemented 1d functions to avoid confusion (#5103)
+
+  * Rename the `NonManagedVector` to `NonManagedDeviceVector` (#5124)
+
+  * ParallelDescriptor: Avoid the non-standard variable-length array (#5130)
+
+  * ReadAndBcastFile: Use the correct I/O process when sub-communicator is used. (#5131)
+
+  * OpenBCSolver: Make `define` safer (#5129)
+
+  * EB: Validate lookup status in getLevel/getGeometry (#5107)
+
+  * Nosync broadly (#4957)
+
+  * FFT: Use ParallelContext's communicator (#5088)
+
+  * FFT::Clear: Clear the map after the stored plans are destroyed (#5089)
+
+  * PETSc: Use PetscInt (#5090)
+
+  * PETSc: Fix potential memory leak (#5097)
+
 # 26.03
 
  ## Highlights:

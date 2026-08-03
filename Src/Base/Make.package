@@ -22,9 +22,6 @@ C$(AMREX_BASE)_headers += AMReX_GpuComplex.H
 C$(AMREX_BASE)_headers += AMReX_PODVector.H
 C$(AMREX_BASE)_sources += AMReX_PODVector.cpp
 
-C$(AMREX_BASE)_headers += AMReX_BlockMutex.H
-C$(AMREX_BASE)_sources += AMReX_BlockMutex.cpp
-
 C$(AMREX_BASE)_headers += AMReX_Stack.H
 
 C$(AMREX_BASE)_headers += AMReX_String.H
@@ -32,7 +29,7 @@ C$(AMREX_BASE)_sources += AMReX_String.cpp
 
 C$(AMREX_BASE)_sources += AMReX_ParmParse.cpp AMReX_parmparse_fi.cpp AMReX_Utility.cpp
 C$(AMREX_BASE)_headers += AMReX_ParmParse.H AMReX_Utility.H AMReX_BLassert.H AMReX_ArrayLim.H
-C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_Scan.H AMReX_Partition.H
+C$(AMREX_BASE)_headers += AMReX_Functional.H AMReX_Reduce.H AMReX_ReduceSIMD.H AMReX_Scan.H AMReX_Partition.H
 C$(AMREX_BASE)_headers += AMReX_ValLocPair.H
 
 C$(AMREX_BASE)_headers += AMReX_FileSystem.H
@@ -107,9 +104,12 @@ C$(AMREX_BASE)_sources += AMReX_GpuElixir.cpp
 
 C$(AMREX_BASE)_headers += AMReX_GpuReduce.H
 
-C$(AMREX_BASE)_headers += AMReX_CudaGraph.H AMReX_GpuContainers.H
+C$(AMREX_BASE)_headers += AMReX_CudaGraph.H
+C$(AMREX_BASE)_headers += AMReX_GpuContainers.H
+C$(AMREX_BASE)_headers += AMReX_TrackedVector.H
 
 C$(AMREX_BASE)_headers += AMReX_GpuAllocators.H
+C$(AMREX_BASE)_headers += AMReX_GpuParallelReduce.H
 
 C$(AMREX_BASE)_headers += AMReX_MFParallelFor.H
 C$(AMREX_BASE)_headers += AMReX_MFParallelForC.H
@@ -122,6 +122,9 @@ C$(AMREX_BASE)_headers += AMReX_CTOParallelForImpl.H
 
 C$(AMREX_BASE)_headers += AMReX_ParReduce.H
 
+C$(AMREX_BASE)_headers += AMReX_Concepts.H
+
+
 #
 # I/O stuff.
 #
@@ -132,7 +135,7 @@ C${AMREX_BASE}_headers += AMReX_IOFormat.H
 #
 # Index space.
 #
-C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_IntVect.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
+C$(AMREX_BASE)_sources += AMReX_Box.cpp AMReX_IndexType.cpp AMReX_Orientation.cpp AMReX_Periodicity.cpp
 C$(AMREX_BASE)_headers += AMReX_Box.H AMReX_BoxIterator.H AMReX_IntVect.H AMReX_IndexType.H AMReX_Orientation.H AMReX_Periodicity.H
 
 C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H AMReX_Loop.nolint.H
@@ -140,7 +143,7 @@ C$(AMREX_BASE)_headers += AMReX_Dim3.H AMReX_Loop.H AMReX_Loop.nolint.H
 #
 # Real space.
 #
-C$(AMREX_BASE)_sources += AMReX_RealBox.cpp AMReX_RealVect.cpp
+C$(AMREX_BASE)_sources += AMReX_RealBox.cpp
 C$(AMREX_BASE)_headers += AMReX_RealBox.H   AMReX_RealVect.H
 
 #

@@ -3,9 +3,9 @@
 Building AMReX
 ===================
 
-In this chapter, we discuss AMReX's build systems. Additionally, it
-is also possible to install AMReX using Spack (https://spack.io/).
-For more information see the :ref:`sec:build:spack` section.
+In this chapter, we discuss AMReX's build systems. It is also possible to
+install AMReX using Spack (https://spack.io/). For more information, see the
+:ref:`sec:build:spack` section.
 
 There are three ways to use AMReX's build systems. Most AMReX
 developers use GNU Make. With this approach, there is no installation
@@ -13,20 +13,29 @@ step; application codes adopt AMReX's build system and compile AMReX
 while compiling their own codes. This will be discussed in more detail
 in the section on :ref:`sec:build:make`.
 
-The second approach is to build and install AMReX as a library using GNU make (:ref:`sec:build:lib`);
+The second approach is to build and install AMReX as a library using GNU Make (:ref:`sec:build:lib`);
 an application code then uses its own build system and links to AMReX as an external library.
 
 Finally, AMReX can also be built with CMake, as detailed in the section on :ref:`sec:build:cmake`.
 
-AMReX requires a C++ compiler that supports the C++17 standard, a
+AMReX requires a C++ compiler that supports the C++20 standard, a
 Fortran compiler that supports the Fortran 2003 standard, and a C
 compiler that supports the C99 standard.  Prerequisites for building
 with GNU Make include Python (>= 2.7, including 3) and standard tools
-available in any Unix-like environments (e.g., Perl and sed).  For
+available in any Unix-like environment (e.g., Perl and sed).  For
 building with CMake, the minimal requirement is version 3.18.
 
+The minimum toolchain versions we target for C++20 builds are:
+
+* GCC 11 or newer (for both host builds and CUDA host compilers).
+* LLVM Clang 14 or newer, including AppleClang 14 on macOS.
+* Microsoft Visual Studio 2022 (MSVC 19.34 / 17.4) or newer.
+* NVIDIA CUDA Toolkit 12.2 or newer.
+* AMD ROCm/HIP 6.0 or newer.
+* Intel oneAPI DPC++ 2025.2 or newer.
+
 Please note that we fully support AMReX for Linux systems in general and on the
-DOE supercomputers (e.g. Cori, Summit) in particular.  Many of our users do build
+DOE supercomputers (e.g., Perlmutter, Frontier) in particular.  Many of our users do build
 and use AMReX on Macs but we do not have the resources to fully support Mac users.
 
 .. toctree::

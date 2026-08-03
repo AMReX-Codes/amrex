@@ -34,6 +34,15 @@ commands include:
 * `make file_locations` shows the path of each file.
 * `make tags` and `make TAGS` generate tag files using `ctags` and `etags`, respectively.
 
+Build output verbosity is controlled by the `VERBOSE` make variable:
+
+* `VERBOSE=TRUE` (the default) echoes each compiler and linker command in full.
+* `VERBOSE=FALSE` (or `VERBOSE=OFF`) hides the full command lines but keeps the
+  per-file `Compiling foo.cpp ...` and `Depending ...` progress lines.
+* `VERBOSE=QUIET` additionally suppresses the per-file progress lines, leaving
+  only build milestones (e.g. `Linking`) and any warnings or errors.  This is
+  useful for continuous integration logs.
+
 The `Make.defs` includes the following files in the listed order:
 
 * `Make.machines`: This file defines three variables, `which_site`,

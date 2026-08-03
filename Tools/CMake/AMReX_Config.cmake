@@ -39,24 +39,18 @@ function (configure_amrex AMREX_TARGET)
    #
    # Setup compilers
    #
-   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++17" for GNU
+   # Set C++ standard and disable compiler-specific extensions, like "-std=gnu++20" for GNU
    # This will also enforce the same standard with the CUDA compiler
    # Moreover, it will also enforce such standard on all the consuming targets
    #
    set_target_properties(${AMREX_TARGET} PROPERTIES CXX_EXTENSIONS OFF)
-   # minimum: C++17
-   target_compile_features(${AMREX_TARGET} PUBLIC cxx_std_17)
-
-   # vir::cvt
-   # https://github.com/mattkretz/vir-simd/issues/45
-   if (AMReX_SIMD)
-       target_compile_features(${AMREX_TARGET} PUBLIC cxx_std_20)
-   endif()
+   # minimum: C++20
+   target_compile_features(${AMREX_TARGET} PUBLIC cxx_std_20)
 
    if (AMReX_CUDA)
       set_target_properties(${AMREX_TARGET} PROPERTIES CUDA_EXTENSIONS OFF)
-      # minimum: C++17
-      target_compile_features(${AMREX_TARGET} PUBLIC cuda_std_17)
+      # minimum: C++20
+      target_compile_features(${AMREX_TARGET} PUBLIC cuda_std_20)
    endif()
 
    #

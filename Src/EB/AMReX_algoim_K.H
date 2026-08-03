@@ -275,7 +275,7 @@ struct ImplicitIntegral
     bool prune () noexcept
     {
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-        static constexpr Real almostone = 1.0-10.*eps;
+        static constexpr Real almostone = Real(1)-Real(10)*eps;
 
         for (int i = 0; i < psiCount; )
         {
@@ -288,7 +288,7 @@ struct ImplicitIntegral
                     mid[dim] = xrange(psi[i].side(dim),dim);
                 }
             }
-            dphi_max *= 0.5*almostone;
+            dphi_max *= 0.5_rt*almostone;
             const Real phi_0 = (*phi)(mid);
             bool uniform_sign = (phi_0 > dphi_max) || (phi_0 < -dphi_max);
             if (uniform_sign)
@@ -439,7 +439,7 @@ struct ImplicitIntegral
 
         // In rare cases, degenerate segments can be found, filter out with a tolerance
         static constexpr Real eps = std::numeric_limits<Real>::epsilon();
-        constexpr Real tol = 50.0*eps;
+        constexpr auto tol = Real(50.0*eps);
 
         // Loop over segments of divided interval
         for (int i = 0; i < nroots - 1; ++i)
@@ -448,7 +448,7 @@ struct ImplicitIntegral
 
             // Evaluate sign of phi within segment and check for consistency with psi
             bool okay = true;
-            x[e0] = (roots[i] + roots[i+1])*0.5;
+            x[e0] = (roots[i] + roots[i+1])*0.5_rt;
             for (int j = 0; j < psiCount && okay; ++j)
             {
                 for (int dim = 0; dim < N; ++dim) {
@@ -472,11 +472,10 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    template <int K = M, std::enable_if_t<K==1,int> = 0>
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
-                      int psiCount_) noexcept
+                      int psiCount_) noexcept requires (M==1)
         : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {
@@ -492,11 +491,10 @@ struct ImplicitIntegral
 
     // Main calling engine; parameters with underscores are copied
     // upon entry but modified internally in the ctor
-    template <int K = M, std::enable_if_t<(K>1),int> = 0>
     AMREX_GPU_HOST_DEVICE
     ImplicitIntegral (const Phi& phi_, F& f_, const GpuArray<bool,N>& free_,
                       const GpuArray<PsiCode<N>,1 << (N-1)>& psi_,
-                      int psiCount_) noexcept
+                      int psiCount_) noexcept requires (M>1)
         : phi(&phi_), f(&f_), free(free_), psi(psi_), psiCount(psiCount_),
           xrange()
     {

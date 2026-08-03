@@ -443,13 +443,13 @@ public:
                                               Real               time,
                                               int                ngrow);
     /**
-    * \brief This version of derive() fills the dcomp'th component of \p mf
-    * with the derived quantity.
+    * \brief This version of derive() fills the component range of \p mf
+    * starting at \p dcomp with the derived quantity.
     *
     * \param name Derived quantity identifier.
     * \param time Physical time at which to evaluate the quantity.
     * \param mf   Destination MultiFab.
-    * \param dcomp Destination component index.
+    * \param dcomp Starting destination component index.
     */
     virtual void derive (const std::string& name,
                          Real               time,
@@ -504,7 +504,7 @@ public:
      * \param time       Target physical time.
      * \return Reference to either the old or new MultiFab, whichever brackets \p time.
      */
-    MultiFab& get_data (int  state_indx, Real time) noexcept;
+    MultiFab& get_data (int  state_indx, Real time);
     /**
      * \brief Hook to override fillpatched boundary values before applying physical BCs (default no-op).
      *
@@ -952,6 +952,15 @@ void AmrLevel::RK (int order, int state_type, Real time, Real dt, int iteration,
     }
 }
 
+// Store coarse AMR level RK stage data into the FillPatcher on the next
+// finer level.  The fine level will use this data during RK substeps to
+// fill its ghost cells at the coarse/fine boundary (via FillRKPatch →
+// FillPatcher::fillRK).
+//
+// A fresh FillPatcher is always constructed here — not built lazily like
+// FillPatcherFill does — because this function is the *only* place the
+// FillPatcher for the next finer level is created.  It is destroyed later
+// in post_timestep/resetFillPatcher after the fine level catches up.
 template <std::size_t order>
 void AmrLevel::storeRKCoarseData (int state_type, Real time, Real dt,
                                   MultiFab const& S_old,

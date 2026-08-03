@@ -1,0 +1,4 @@
+
+F90EXE_sources += fmain.F90 my_amr_mod.F90 initdata.F90 tagging_mod.F90 plotfile_mod.F90
+F90EXE_sources += averagedown_mod.F90 evolve_mod.F90 compute_dt_mod.F90 fillpatch_mod.F90
+F90EXE_sources += amr_data_mod.F90 bc_mod.F90

@@ -2,7 +2,7 @@
 
 Development generally follows the following ideas:
 
-  * New features are merged into to the `development` branch using
+  * New features are merged into the `development` branch using
     Pull Requests (PRs).
 
     Nightly regression testing is used to ensure that no answers
@@ -156,7 +156,7 @@ your fork, with your `<branch_name>`.
 - It is time to communicate your changes: write a title and a description for
 your PR. People who review your PR are happy to know
   * what feature/fix you propose, and why
-  * how you made it (created a new class than inherits from...)
+  * how you made it (created a new class that inherits from...)
   * and anything relevant to your PR (performance tests, images, *etc.*)
 - Press `Create pull request`. Now you can navigate through your PR, which
 highlights the changes you made.
@@ -164,7 +164,7 @@ highlights the changes you made.
 Please DO NOT write large Pull Requests, as they are very difficult and
 time-consuming to review. As much as possible, split them into small,
 targeted PRs.
-For example, if find typos in the documentation open a pull request that only fixes typos.
+For example, if you find typos in the documentation open a pull request that only fixes typos.
 If you want to fix a bug, make a small pull request that only fixes a bug.
 If you want to implement a large feature, write helper functionality first, test it and submit those as a first pull request.
 If you want to implement a feature and are not too sure how to split it,
@@ -247,10 +247,16 @@ parenthesis of the parameter list (but not when simply calling the function). Fo
     ```cpp
     amrex::Real m_variable;
     ```
+  * C++20 concepts and constraints are discouraged on class templates and their member functions.
+    Compiler support for these features is still inconsistent across AMReX's target platforms
+    (e.g., MSVC, NVHPC, older Clang).
+  * Avoid `std::ranges::find_if` and `std::ranges::unique` — Clang ≤ 15
+    has bugs when compiling them with libstdc++. Use `std::find_if` and `std::unique` instead.
+
 These guidelines should be adhered to in new contributions to AMReX, but
 please refrain from making stylistic changes to unrelated sections of code in your PRs.
 
-To help developers follow the idententation and whitespace guidelines, an
+To help developers follow the indentation and whitespace guidelines, an
 [EditorConfig](https://editorconfig.org/) file is provided at
 [.editorconfig](.editorconfig).
 
@@ -258,7 +264,7 @@ To help developers follow the idententation and whitespace guidelines, an
 
 The Doxygen documentation is designed for advanced user-developers. It aims
 to maximize the efficiency of a search-and-find style of locating information.
-Doxygen style comment blocks should proceed the namespace, class, function, etc.
+Doxygen style comment blocks should precede the namespace, class, function, etc.
 to be documented where appropriate. For example:
 ```cpp
 /**
@@ -276,3 +282,49 @@ void MyFunction (int variable, MultiFab& data)
 ```
 Additional information regarding Doxygen comment formatting can be found
 in the [Doxygen Manual](https://www.doxygen.nl/manual/).
+
+## LLM-assisted workflows
+
+Large Language Models (LLMs) can assist with AMReX development by helping to understand the existing
+codebase, writing new code, reviewing pull requests, finding bugs, and adding tests and documentation.
+This section of the developer's guide documents how the AMReX repository is configured for LLM-based coding assistants
+and how to get the most out of them.
+
+> **_NOTE:_**  LLMs can hallucinate and sometimes produce code that compiles and runs but is incorrect. LLM-written code should
+be manually reviewed with care before opening a pull request. Please respect the AMReX maintainers' time by making sure you understand
+any bot-generated code before requesting a review.
+
+### Best Practices
+
+When working with LLM coding assistants, keep in mind that *"most best practices are based on one constraint: [the] context window fills up fast, and performance degrades as it fills"* ([Claude Code Best Practices](https://code.claude.com/docs/en/best-practices)).
+Starting from examples and iterating incrementally — as described below — helps keep sessions focused and productive.
+
+1. **Start small and iterate incrementally.**
+   Run your coding assistant inside the AMReX source directory.
+   Point the assistant to an existing function, Test, or example code and ask it modify it, gradually adding complexity and verifying along the way.
+
+2. **Write a test.**
+   Give the agent a way to verify its work. Often, the agent itself can write tests first, then implement functionality.
+
+3. **Be specific in your prompts.**
+   Reference specific files, tell the agent where to look for code patterns, and describe specific cases to test.
+
+### Connecting to a documentation Context through an MCP Server
+
+A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server is a standardized way to provide external context, such as library documentation, to LLM-based coding assistants.
+When an MCP server is configured, the assistant can query up-to-date AMReX documentation on demand, rather than relying solely on its training data. This is helpful because agents might otherwise rely on out-of-date information from their training data and/or have to read too many files into their contexts to perform development tasks.
+
+### Setting Up Context7 as an MCP Server
+
+[Context7](https://context7.com) is a service that indexes open-source project documentation and serves it through the MCP protocol.
+AMReX documentation is available at:
+
+- **AMReX**: [context7.com/amrex-codes/amrex](https://context7.com/amrex-codes/amrex)
+
+Once connected, a coding assistant (Claude Code, Cursor, VS Code Copilot, Windsurf, etc.) can retrieve relevant sections of the AMReX documentation in real time when helping you develop applications and inputs files.
+
+pyAMReX documentation is also available at:
+
+- **pyAMReX**: [context7.com/amrex-codes/pyamrex](https://context7.com/amrex-codes/pyamrex)
+
+For popular coding assistants, see the [Context7 documentation](https://context7.com/docs/resources/all-clients) to configure [AMReX](https://context7.com/amrex-codes/amrex).

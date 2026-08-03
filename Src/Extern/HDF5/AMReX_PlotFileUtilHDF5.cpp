@@ -117,10 +117,23 @@ static void SetHDF5fapl(hid_t fapl)
     H5Pset_fapl_mpio(fapl, comm, MPI_INFO_NULL);
 
     // Alignment and metadata block size
-    int alignment = 16 * 1024 * 1024;
-    int blocksize =  4 * 1024 * 1024;
+    const char *alignment_env = getenv("HDF5_ALIGNMENT_SIZE");
+    const char *block_env     = getenv("HDF5_BLOCK_SIZE");
+
+    hsize_t alignment = 16 * 1024 * 1024;  // 16 MiB
+    hsize_t block     = 4  * 1024 * 1024;  // 4 MiB
+
+    if (alignment_env != NULL) {
+        alignment = (hsize_t)strtoull(alignment_env, NULL, 10);
+    }
+    if (block_env != NULL) {
+        block = (hsize_t)strtoull(block_env, NULL, 10);
+    }
+
+    // Threshold = alignment value: only allocations >= alignment bytes
+    // get aligned. Avoids padding small allocations up to 16 MiB.
     H5Pset_alignment(fapl, alignment, alignment);
-    H5Pset_meta_block_size(fapl, blocksize);
+    H5Pset_meta_block_size(fapl, block);
 
     // Collective metadata ops
     H5Pset_coll_metadata_write(fapl, true);
@@ -726,7 +739,8 @@ void WriteMultiLevelPlotfileHDF5SingleDset (const std::string& plotfilename,
             size_t cd_nelmts;
             unsigned int* cd_values = NULL;
             unsigned filter_config;
-            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
+            int const sz_type = (whichRDBytes == 4) ? SZ_FLOAT : SZ_DOUBLE;
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, sz_type, 0, 0, 0, 0, hs_allprocsize[0]);
             H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif
@@ -1171,7 +1185,8 @@ void WriteMultiLevelPlotfileHDF5MultiDset (const std::string& plotfilename,
             size_t cd_nelmts;
             unsigned int* cd_values = NULL;
             unsigned filter_config;
-            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, SZ_DOUBLE, 0, 0, 0, 0, hs_allprocsize[0]);
+            int const sz_type = (whichRDBytes == 4) ? SZ_FLOAT : SZ_DOUBLE;
+            SZ_metaDataToCdArray(&cd_nelmts, &cd_values, sz_type, 0, 0, 0, 0, hs_allprocsize[0]);
             H5Pset_filter(lev_dcpl_id, H5Z_FILTER_SZ, H5Z_FLAG_MANDATORY, cd_nelmts, cd_values);
         }
 #endif

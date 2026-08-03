@@ -25,7 +25,7 @@ namespace {
 template <typename T>
 int num_unique_elements (std::vector<T>& v)
 {
-    std::sort(v.begin(), v.end());
+    std::ranges::sort(v);
     auto last = std::unique(v.begin(), v.end());
     return last - v.begin();
 }
@@ -54,9 +54,9 @@ void Initialize_without_split (int argc, char* argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &myproc);
     MPI_Comm_size(MPI_COMM_WORLD, &nprocs);
 
-    int* p;
+    int* p = nullptr;
     MPI_Comm_get_attr(MPI_COMM_WORLD, MPI_APPNUM, &p, &flag);
-    appnum = *p;
+    appnum = (flag && p) ? *p : -1;
 
     std::vector<int> all_appnum(nprocs);
     MPI_Allgather(&appnum, 1, MPI_INT, all_appnum.data(), 1, MPI_INT, MPI_COMM_WORLD);

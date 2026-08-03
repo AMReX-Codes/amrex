@@ -38,7 +38,7 @@ components, and two extra integer flags. Our particle struct would be declared l
 
       Particle<4, 2> p;
 
-and the order of the particle components in would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
+and the order of the particle components would be (assuming :cpp:`AMREX_SPACEDIM` is 3):
 :cpp:`x y z m vx vy vz idcpu flag1 flag2`.  [2]_
 
 The `idcpu` variable stores a combination of the MPI process a particle was generated on
@@ -49,7 +49,7 @@ identifying numbers, 39 bits are devoted to the `id`, allowing approximately 550
 possible *local* `id` numbers, and 24 bits are used to store the `cpu`, allowing about 16.8 million
 unique (MPI) processes.
 
-One bit is devoted to mark a particle valid or invalid. This is often used to remove particles from a
+One bit is devoted to marking a particle valid or invalid. This is often used to remove particles from a
 simulation. During :cpp:`Redistribute()`, particles with
 invalid ids are removed from the simulation by default, although this behavior is customizable. Particles
 with invalid ids are also not written out during plotfile writes or checkpoint / restart operations.
@@ -147,10 +147,10 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
    In this case, each tile in the particle container has five arrays: one with
    the particle struct data, two additional real arrays, and two additional
    integer arrays.  In the tile shown, there are only 2 particles. We have
-   labelled the extra real data member of the particle struct to be
+   labeled the extra real data member of the particle struct to be
    ``mass``, while the extra integer members of the particle struct are
    labeled ``p``, and ``s``, for "phase" and "state". The variables in
-   the real and integer arrays are labelled ``foo``, ``bar``, ``l``,
+   the real and integer arrays are labeled ``foo``, ``bar``, ``l``,
    and ``n``, respectively. We have assumed that the particles are double
    precision.
 
@@ -166,7 +166,7 @@ See the figure :ref:`below<fig:particles:particle_arrays>` for an illustration.
    Additionally, starting in AMReX version 23.05, the ability to store *all* particle
    data, including the particle positions and `idcpu` numbers, is provided via the
    :cpp:`amrex::ParticleContainerPureSoA` class. Details on using pure SoA particles
-   are provided in the Section on :ref:`sec:Particles:PureSoA`.
+   are provided in the section on :ref:`sec:Particles:PureSoA`.
 
 Constructing ParticleContainers
 -------------------------------
@@ -221,7 +221,7 @@ The :cpp:`ParticleContainer` stores the particle data in a manner prescribed by
 the set of AMR grids used to define it. Local particle data is always stored in
 a data structure called a :cpp:`ParticleTile`, which contains a mixture of AoS
 and SoA components as described above. The tiling behavior of :cpp:`ParticleTile`
-is determined by the parameter, ``particle.do_tiling``:
+is determined by the parameter ``particles.do_tiling``:
 
 -  If ``particles.do_tiling=0``, then there is always exactly one
    :cpp:`ParticleTile` per grid. This is equivalent to setting a very large
@@ -231,7 +231,7 @@ is determined by the parameter, ``particle.do_tiling``:
    :cpp:`ParticleTile` objects associated with it based on the
    ``particles.tile_size`` parameter.
 
-The AMR grid to which a particle is assigned, is determined by examining its
+The AMR grid to which a particle is assigned is determined by examining its
 position and binning it, using the domain left edge as an offset. By default,
 a particle is assigned to
 the finest level that contains its position, although this behavior can be
@@ -241,7 +241,7 @@ tweaked if desired.
 .. note::
 
    :cpp:`ParticleTile` data tiling with :ref:`MFIter<sec:basics:mfiter>` behaves differently than mesh
-   data. With mesh data, the tiling is strictly logical --the data is laid out in
+   data. With mesh data, the tiling is strictly logical; the data is laid out in
    memory the same way whether tiling is turned on or off.
    With particle data, however, the particles are actually stored in different
    arrays when tiling is enabled. As with mesh data, the particle tile size can be
@@ -258,6 +258,14 @@ of :cpp:`ParticleContainer`.  After calling this method, all the particles will
 be moved to their proper places in the container, and all invalid particles
 (particles with id set to :cpp:`-1`) will be removed. All the MPI communication
 needed to do this happens automatically.
+
+For short-range particle motion, :cpp:`Redistribute` can use a local communication
+algorithm. The overload with a boolean local flag accepts :cpp:`IntVect` values
+for both :cpp:`nGrow` and the maximum number of cells a particle may have moved.
+Set the local flag to :cpp:`true` only when every particle has moved no more than
+the supplied cell count in each direction since the last :cpp:`Redistribute()`
+call. Use the global algorithm after initialization, regridding, load balancing,
+or any update that may send particles arbitrarily far.
 
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
@@ -368,7 +376,7 @@ particles to the container, you call the :cpp:`DefineAndReturnParticleTile` meth
 for each tile prior to adding any particles. This will make sure the space
 for the new components has been allocated. For example, in the above section
 on :ref:`initializing particle data <sec:Particles:Initializing>`, we accessed
-the particle tile data using the :cpp:`GetParticles` method. If we runtime components
+the particle tile data using the :cpp:`GetParticles` method. If runtime components
 are used, :cpp:`DefineAndReturnParticleTile` should be used instead:
 
 .. highlight:: c++
@@ -478,7 +486,7 @@ particle coordinates to grids and cells.
 For the most part, functions that work on the standard :cpp:`ParticleContainer` will
 also work on :cpp:`ParticleContainerPureSoA`. :cpp:`ParticleTile` can be used to access
 the underlying :cpp:`StructOfArrays`, which can be used as before. However, it is
-particlularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
+particularly convenient to use the :cpp:`[]` operator of :cpp:`ParticleTileData`, which
 allows the same code to work with both AoS and pure SoA particles. For example, within
 a ``ParIter`` loop, one can do:
 
@@ -498,6 +506,113 @@ a ``ParIter`` loop, one can do:
 In this way, code can be written that is agnostic as to the data layout. For more examples
 of pure SoA particles, please see the SOA tests in :cpp:`amrex/Tests/Particles/`, or refer
 to `WarpX <https://github.com/BLAST-WarpX/warpx>`_, `Hipace++ <https://github.com/Hi-PACE/hipace>`_, or `ImpactX <https://github.com/BLAST-ImpactX/impactx>`_, which use this type of particle container.
+
+.. _sec:Particles:Reductions:
+
+Particle Reductions
+===================
+
+AMReX provides functions to compute reductions (sums, minima, maxima, and
+logical and/or) over the particles in a :cpp:`ParticleContainer`, on CPUs and
+GPUs alike. The simple entry points :cpp:`amrex::ReduceSum`,
+:cpp:`amrex::ReduceMin`, :cpp:`amrex::ReduceMax`,
+:cpp:`amrex::ReduceLogicalAnd` and :cpp:`amrex::ReduceLogicalOr` reduce a
+single quantity computed per particle by a user-provided callable. The general
+:cpp:`amrex::ParticleReduce` computes many reductions in a single pass over
+the particles, combining :cpp:`amrex::ReduceOps` (e.g., several sums, minima
+and maxima at once) into one :cpp:`amrex::ReduceData` result tuple.
+
+The per-particle callable can take the particle in several forms: the most
+efficient one takes a :cpp:`ConstParticleTileData` and the particle index,
+which reads the particle components directly from the underlying (SoA) arrays:
+
+.. highlight:: c++
+
+::
+
+    using ConstPTDType = typename PC::ConstPTDType;
+    amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpMin, amrex::ReduceOpMax> reduce_ops;
+    auto r = amrex::ParticleReduce<amrex::ReduceData<amrex::Real, amrex::Real, int>> (
+                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, const int i) noexcept
+                               -> amrex::GpuTuple<amrex::Real, amrex::Real, int>
+             {
+                 const amrex::Real a = ptd.rdata(1)[i];
+                 const amrex::Real b = ptd.rdata(2)[i];
+                 const int c = ptd.idata(1)[i];
+                 return {a, b, c};
+             }, reduce_ops);
+
+Note that no MPI reduction is performed at the end of these operations. Call
+the reductions in :cpp:`ParallelDescriptor` manually if you want that behavior.
+
+.. _sec:Particles:SIMDReductions:
+
+SIMD-Vectorized Particle Reductions
+-----------------------------------
+
+When AMReX is compiled with SIMD support (CMake option ``AMReX_SIMD=ON``, see
+:ref:`sec:build:cmake`), the entry points :cpp:`amrex::ParticleReduceSIMD`,
+:cpp:`amrex::ReduceSumSIMD`, :cpp:`amrex::ReduceMinSIMD` and
+:cpp:`amrex::ReduceMaxSIMD` evaluate the reduction vectorized over ``WIDTH``
+particles at a time, using SIMD registers as accumulators. The same user code
+compiles and runs unchanged in every configuration:
+
+* ``AMReX_SIMD=ON`` (CPU): vectorized main loop plus a scalar remainder loop,
+* ``AMReX_SIMD=OFF`` (CPU): a scalar loop, semantically identical to
+  :cpp:`amrex::ParticleReduce`,
+* GPU builds: the regular device reduction.
+
+The callable is invoked as :cpp:`f(ptd, si)` where ``si`` is an
+:cpp:`amrex::SIMDindex`. Write it generically over the index type and load
+particle components with :cpp:`amrex::simd::load_1d`, which returns a SIMD
+register in the vectorized main loop and a scalar value otherwise:
+
+.. highlight:: c++
+
+::
+
+    #include <AMReX_ParticleReduceSIMD.H>
+
+    using ConstPTDType = typename PC::ConstPTDType;
+    amrex::ReduceOps<amrex::ReduceOpSum, amrex::ReduceOpMin> reduce_ops;
+    auto r = amrex::ParticleReduceSIMD<amrex::ReduceData<amrex::ParticleReal, amrex::ParticleReal>> (
+                 pc, [=] AMREX_GPU_DEVICE (const ConstPTDType& ptd, auto si) noexcept
+             {
+                 auto const a = amrex::simd::load_1d(ptd.rdata(1), si);
+                 auto const w = amrex::simd::load_1d(ptd.rdata(2), si);
+                 return amrex::makeTuple(a * w, a);
+             }, reduce_ops);
+
+For CUDA builds, note that extended device lambdas have nvcc-version
+dependent restrictions on generic (``auto``) parameters and a small functor with
+a templated :cpp:`operator()` is the most portable form of the kernel.
+
+The SIMD width can be chosen explicitly via the ``WIDTH`` template parameter
+(e.g., :cpp:`ParticleReduceSIMD<RD, 8>`). It defaults to the native SIMD
+register width for :cpp:`amrex::ParticleReal`, which is a good default in
+practice, in particular for kernels with many reduction components.
+
+Two differences from :cpp:`amrex::ParticleReduce` to be aware of:
+
+* Only :cpp:`ReduceOpSum`, :cpp:`ReduceOpMin` and :cpp:`ReduceOpMax` are
+  supported (enforced at compile time).
+* SIMD sum reductions reassociate floating-point additions (per-lane partial
+  sums plus a final horizontal fold), so results can differ from the scalar
+  evaluation order by rounding. In particular,
+  :cpp:`amrex::system::regtest_reduction` is not honored by the SIMD path,
+  use the scalar entry points when bitwise reproducible regression data is
+  required.
+
+Under the hood, :cpp:`amrex::ParticleReduceSIMD` evaluates each particle tile
+with :cpp:`amrex::evalReduceSIMD<WIDTH>(n, reduce_data, f, reduce_ops)`, the
+SIMD analogue of the element loop in :cpp:`ReduceOps::eval`. This engine is
+not particle-specific: it can be used directly to reduce over any indexed
+range on the host, with the same single-source callable contract (``f(si)``
+with an :cpp:`amrex::SIMDindex`, provided by ``AMReX_ReduceSIMD.H``). See
+``Tests/SIMD`` for a small stand-alone example with a mixed-type tuple.
+
+For a complete example, including a benchmark against the scalar entry
+points, see ``Tests/Particles/ParticleReduceSIMD``.
 
 .. _sec:Particles:Interacting:
 
@@ -521,7 +636,7 @@ is performed internally. Additionally, these methods support both a single-grid
 the needed parallel communication is also performed internally.
 
 We show examples of these types of operations below. The first snippet shows
-how to deposit a particle quantiy from the first real component of the particle
+how to deposit a particle quantity from the first real component of the particle
 data to the first component of a :cpp:`MultiFab` using linear interpolation.
 
 .. highlight:: c++
@@ -632,15 +747,15 @@ of each other using a variety of methods.
 .. figure:: ./Particle/neighbor_particles.png
    :width: 75.0%
 
-   : An illustration of filling neighbor particles for short-range force
+   An illustration of filling neighbor particles for short-range force
    calculations. Here, we have a domain consisting of one :math:`32 \times 32`
    grid, broken up into :math:`8 \times 8` tiles. The number of ghost cells is
    taken to be :math:`1`.  For the tile in green, particles on other tiles in
-   the entire shaded region will copied and packed into the green tile's
+   the entire shaded region will be copied and packed into the green tile's
    neighbor buffer. These particles can then be included in the force
    calculation. If the domain is periodic, particles in the grown region for
    the blue tile that lie on the other side of the domain will also be copied,
-   and their positions will modified so that a naive distance calculation
+   and their positions will be modified so that a naive distance calculation
    between valid particles and neighbors will be correct.
 
 .. raw:: latex
@@ -752,8 +867,8 @@ that have their own collision criteria by overloading the virtual
 
 .. _sec:Particles:IO:
 
-Particle IO
-===========
+Particle I/O
+============
 
 AMReX provides routines for writing particle data to disk for analysis,
 visualization, and for checkpoint / restart. The most important methods are the
@@ -761,7 +876,7 @@ visualization, and for checkpoint / restart. The most important methods are the
 :cpp:`ParticleContainer`, which all use a parallel-aware binary file format for
 reading and writing particle data on a grid-by-grid basis. These methods are
 designed to complement the functions in AMReX_PlotFileUtil.H for performing
-mesh data IO. For example:
+mesh data I/O. For example:
 
 .. highlight:: c++
 
@@ -772,12 +887,12 @@ mesh data IO. For example:
     pc.Checkpoint("plt00000", "particle0");
 
 
-will create a plot file called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
+will create a plotfile called "plt00000" and write the mesh data in :cpp:`output` to it, and then write the particle data in a subdirectory called "particle0". There is also the :cpp:`WriteAsciiFile` method, which writes the particles in a human-readable text format. This is mainly useful for testing and debugging.
 
-The binary file format is readable by either :cpp:`yt` or :cpp:`Paraview`. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
+The binary file format is readable by either :cpp:`yt` or :cpp:`ParaView`. See the chapter on :ref:`Chap:Visualization` for more information on visualizing AMReX datasets, including those with particles.
 
-Inputs parameters
-=================
+Input parameters
+================
 
 .. _sec:Particles:parameters:
 
@@ -794,14 +909,14 @@ with OpenMP, the first thing to look at is whether there are enough tiles availa
 | do_tiling         | Whether to use tiling for particles. Should be on when using OpenMP,  | Bool        | false       |
 |                   | and off when running on GPUs.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| tile_size         | If tiling is on, the maximum tile_size to in each direction           | Ints        | 1024000,8,8 |
+| tile_size         | If tiling is on, the maximum tile_size in each direction              | Ints        | 1024000,8,8 |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
-The next set concerns runtime parameters that control the particle IO. Parallel file systems tend not to like it when
+The next set concerns runtime parameters that control particle I/O. Parallel file systems tend not to like it when
 too many MPI tasks touch the disk at once. Additionally, performance can degrade if all MPI tasks try writing to the
 same file, or if too many small files are created. In general, the "correct" values of these parameters will depend on the
 size of your problem (i.e., number of boxes, number of MPI tasks), as well as the system you are using. If you are experiencing
-problems with particle IO, you could try varying some / all of these parameters.
+problems with particle I/O, you could try varying some or all of these parameters.
 
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 |                   | Description                                                           |   Type      | Default     |
@@ -814,12 +929,12 @@ problems with particle IO, you could try varying some / all of these parameters.
 | nparts_per_read   | How many particles each task should read from said files before       | Ints        | 100000      |
 |                   | calling Redistribute                                                  |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| datadigits_read   | This for backwards compatibility, don't use unless you need to read   | Int         | 5           |
-|                   | and old (pre mid 2017) AMReX dataset.                                 |             |             |
+| datadigits_read   | This is for backward compatibility; do not use it unless you need     | Int         | 5           |
+|                   | to read an old (pre-mid-2017) AMReX dataset.                          |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 | use_prepost       | This is an optimization for large particle datasets that groups MPI   | Bool        | false       |
-|                   | calls needed during the IO together. Try it seeing poor IO speeds     |             |             |
-|                   | on large problems.                                                    |             |             |
+|                   | calls needed during the I/O together. Try it if you are seeing poor   |             |             |
+|                   | I/O speeds on large problems.                                         |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 
 The following runtime parameters affect the behavior of virtual particles in Nyx.
@@ -833,7 +948,7 @@ The following runtime parameters affect the behavior of virtual particles in Nyx
 |                   | "Cell" - when creating virtuals, combine all particles that are       |             |             |
 |                   | in the same cell.                                                     |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
-| aggregation_buffer| If aggregation on, the number of cells around the coarse/fine         | Int         | 2           |
+| aggregation_buffer| If aggregation is on, the number of cells around the coarse/fine      | Int         | 2           |
 |                   | boundary in which no aggregation should be performed.                 |             |             |
 +-------------------+-----------------------------------------------------------------------+-------------+-------------+
 

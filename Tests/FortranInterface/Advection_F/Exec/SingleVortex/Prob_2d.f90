@@ -28,17 +28,17 @@ contains
     !$omp parallel do private(i,j,k,x,y,z,r2) collapse(2)
     do k=lo(3),hi(3)
        do j=lo(2),hi(2)
-          z = prob_lo(3) + (dble(k)+0.5d0) * dx(3)
-          y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+          z = prob_lo(3) + (real(k,amrex_real)+0.5_amrex_real) * dx(3)
+          y = prob_lo(2) + (real(j,amrex_real)+0.5_amrex_real) * dx(2)
           do i=lo(1),hi(1)
-             x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+             x = prob_lo(1) + (real(i,amrex_real)+0.5_amrex_real) * dx(1)
 
              if ( amrex_spacedim .eq. 2) then
-                r2 = ((x-0.5d0)**2 + (y-0.75d0)**2) / 0.01d0
-                phi(i,j,k) = 1.d0 + exp(-r2)
+                r2 = ((x-0.5_amrex_real)**2 + (y-0.75_amrex_real)**2) / 0.01_amrex_real
+                phi(i,j,k) = 1.0_amrex_real + exp(-r2)
              else
-                r2 = ((x-0.5d0)**2 + (y-0.75d0)**2 + (z-0.5d0)**2) / 0.01d0
-                phi(i,j,k) = 1.d0 + exp(-r2)
+                r2 = ((x-0.5_amrex_real)**2 + (y-0.75_amrex_real)**2 + (z-0.5_amrex_real)**2) / 0.01_amrex_real
+                phi(i,j,k) = 1.0_amrex_real + exp(-r2)
              end if
           end do
        end do
@@ -49,7 +49,7 @@ contains
 
   subroutine init_part_data(pc, lev, mfi, lo, hi, dx, prob_lo)
 
-    use amrex_fort_module, only : amrex_spacedim, amrex_real
+    use amrex_fort_module, only : amrex_spacedim, amrex_real, amrex_particle_real
     use amrex_particlecontainer_module, only: amrex_particlecontainer, amrex_particle, &
          amrex_get_next_particle_id, amrex_get_cpu, amrex_set_particle_id, amrex_set_particle_cpu
     use amrex_multifab_module, only : amrex_mfiter
@@ -61,19 +61,19 @@ contains
     integer, intent(in) :: lo(2), hi(2)
     real(amrex_real), intent(in) :: dx(2), prob_lo(2)
 
-    integer          :: i,j
-    real(amrex_real) :: x,y
+    integer                  :: i,j
+    real(amrex_particle_real) :: x,y
     type(amrex_particle) :: p
 
     do j=lo(2),hi(2)
-       y = prob_lo(2) + (dble(j)+0.5d0) * dx(2)
+       y = prob_lo(2) + (real(j,amrex_real)+0.5_amrex_real) * dx(2)
        do i=lo(1),hi(1)
-          x = prob_lo(1) + (dble(i)+0.5d0) * dx(1)
+          x = prob_lo(1) + (real(i,amrex_real)+0.5_amrex_real) * dx(1)
 
           p%pos(1) = x
           p%pos(2) = y
 
-          p%vel = 0.d0
+          p%vel = 0.0_amrex_particle_real
 
           call amrex_set_particle_id(amrex_get_next_particle_id(), p)
           call amrex_set_particle_cpu(amrex_get_cpu(), p)

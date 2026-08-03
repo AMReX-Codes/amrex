@@ -10,6 +10,7 @@
 #include <AMReX_FabArray.H>
 #include <AMReX_Gpu.H>
 #include <AMReX_GpuComplex.H>
+#include <AMReX_Geometry.H>
 #include <AMReX_Math.H>
 #include <AMReX_Periodicity.H>
 
@@ -60,6 +61,24 @@ AMREX_ENUM( Boundary, periodic, even, odd );
 enum struct Kind { none, r2c_f, r2c_b, c2c_f, c2c_b, r2r_ee_f, r2r_ee_b,
                    r2r_oo_f, r2r_oo_b, r2r_eo, r2r_oe };
 
+/**
+ * \brief Return the default factor count used for selecting fast FFT lengths.
+ *
+ * The default is platform dependent. CUDA currently uses 5; other backends
+ * currently use 6. This tuning default may change in the future.
+ *
+ * \return Default number of prime factors used by FFT::nextFastLen.
+ */
+[[nodiscard]] constexpr int
+FastNumPrimeFactors () noexcept
+{
+#if defined(AMREX_USE_CUDA)
+    return 5;
+#else
+    return 6;
+#endif
+}
+
 struct Info
 {
     //! Domain composition strategy.
@@ -74,7 +93,13 @@ struct Info
     //! batch size.
     bool twod_mode = false;
 
-    //! We might have a special twod_mode: nx or ny == 1 && nz > 1.
+    //! - 2D builds: oned_mode=true means we FFT in x only and treat y as the
+    //!   batch size.
+    //! - 3D builds with twod_mode=false: same behavior as the 2D case, but the
+    //!   z-dimension also participates in the batch.
+    //! - 3D builds with twod_mode=true: setting oned_mode=true further signals
+    //!   that exactly one of {nx, ny} is 1, so only the non-degenerate
+    //!   direction needs FFT work while the other stays batched.
     bool oned_mode = false;
 
     //! Batched FFT size. Only support in R2C, not R2X.
@@ -82,6 +107,13 @@ struct Info
 
     //! Max number of processes to use
     int nprocs = std::numeric_limits<int>::max();
+
+    //! Whether OpenBCSolver pads internal FFT lengths for better performance.
+    bool openbc_padding = true;
+
+    //! Number of prime factors used by FFT::nextFastLen for OpenBCSolver padding.
+    //! Defaults to FFT::FastNumPrimeFactors().
+    int openbc_padding_nfactors = FastNumPrimeFactors();
 
     /**
      * \brief Select how the domain is decomposed across MPI ranks.
@@ -129,7 +161,147 @@ struct Info
      * \return Reference to this Info.
      */
     Info& setNumProcs (int n) { nprocs = n; return *this; }
+    /**
+     * \brief Enable or disable OpenBCSolver internal FFT padding.
+     *
+     * \param x True to pad OpenBCSolver FFT lengths to fast sizes.
+     * \return Reference to this Info.
+     */
+    Info& setOpenBCPadding (bool x) { openbc_padding = x; return *this; }
+    /**
+     * \brief Set the factor count used for OpenBCSolver FFT padding.
+     *
+     * \param n Number of prime factors passed to FFT::nextFastLen. It must be between 3 and 6.
+     * \return Reference to this Info.
+     */
+    Info& setOpenBCPaddingNumPrimeFactors (int n)
+    {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            3 <= n && 6 >= n,
+            "amrex::FFT::Info::setOpenBCPaddingNumPrimeFactors: nfactors must be between 3 and 6");
+        openbc_padding_nfactors = n;
+        return *this;
+    }
 };
+
+/// \cond DOXYGEN_IGNORE
+namespace detail
+{
+inline Geometry shift_geom (Geometry const& geom)
+{
+    auto const& dom = geom.Domain();
+    auto const& dlo = dom.smallEnd();
+    if (dlo == 0) {
+        return geom;
+    } else {
+        return Geometry(amrex::shift(dom,-dlo), geom.ProbDomain(), geom.CoordInt(),
+                        geom.isPeriodic());
+    }
+}
+
+template <typename MF>
+void shift_mf (IntVect const& domain_lo, MF const& mf, MF& new_mf)
+{
+    BoxArray ba = mf.boxArray();
+    ba.shift(-domain_lo);
+    new_mf.define(ba, mf.DistributionMap(), mf.nComp(), mf.nGrowVect(),
+                  MFInfo().SetAlloc(false));
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        typename MF::fab_type fab(mf[mfi], amrex::make_alias, 0, mf.nComp());
+        fab.shift(-domain_lo);
+        new_mf.setFab(mfi, std::move(fab));
+    }
+}
+
+template <typename MF>
+void shift_mfs (IntVect const& domain_lo, MF const& mf1, MF const& mf2,
+                MF& new_mf1, MF& new_mf2)
+{
+    AMREX_ALWAYS_ASSERT(mf1.boxArray() == mf2.boxArray() &&
+                        mf1.DistributionMap() == mf2.DistributionMap());
+    detail::shift_mf(domain_lo, mf1, new_mf1);
+    detail::shift_mf(domain_lo, mf2, new_mf2);
+}
+
+inline void next_fast_len_doit (Long target, Long n, int const* factors,
+                                int nfactors, int ifactor, Long& best)
+{
+    if (n >= target) {
+        best = std::min(best, n);
+        return;
+    }
+
+    if (ifactor == nfactors) {
+        // Factors 2 and 3 are handled here: try each n * 3^b, multiply it
+        // by the smallest power of 2 that reaches target, and keep the best.
+        Long const max_m3 = std::numeric_limits<int>::max() / 3;
+        Long const max_m2 = std::numeric_limits<int>::max() / 2;
+        for (Long m3 = n; m3 < best; ) {
+            Long k = m3;
+            bool overflow = false;
+            while (k < target) {
+                if (k > max_m2) {
+                    overflow = true;
+                    break;
+                }
+                k *= 2;
+            }
+            if (!overflow && k < best) {
+                best = k;
+            }
+            if (m3 > max_m3) {
+                break;
+            }
+            m3 *= 3;
+        }
+        return;
+    }
+
+    int const factor = factors[ifactor];
+    Long const max_len = std::numeric_limits<int>::max();
+    Long const max_m = max_len / factor;
+    for (Long m = n; m < best; ) {
+        next_fast_len_doit(target, m, factors, nfactors, ifactor+1, best);
+        if (m > max_m) {
+            break;
+        }
+        m *= factor;
+    }
+}
+}
+/// \endcond
+
+/**
+ * \brief Return the smallest fast FFT length greater than or equal to \p target.
+ *
+ * The allowed factors are the first \p nfactors values from {2, 3, 5, 7, 11, 13}.
+ * When \p nfactors is omitted, FFT::FastNumPrimeFactors() provides a
+ * platform-dependent default.
+ *
+ * \param target Minimum requested FFT length. It must be positive.
+ * \param nfactors Number of supported prime factors. It must be between 3 and 6.
+ * \return A fast FFT length no smaller than \p target.
+ */
+[[nodiscard]] inline int
+nextFastLen (int target, int nfactors = FastNumPrimeFactors())
+{
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(target > 0,
+                                     "amrex::FFT::nextFastLen: target must be positive");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(3 <= nfactors && 6 >= nfactors,
+                                     "amrex::FFT::nextFastLen: nfactors must be between 3 and 6");
+
+    int constexpr factors[] = {5, 7, 11, 13, 17}; // The extra '17' is to make the buggy GCC -Warray-bounds quiet.
+
+    Long const max_len = std::numeric_limits<int>::max();
+    Long best = max_len + Long(1);
+
+    // Factors 2 and 3 are handled directly in the base case.
+    detail::next_fast_len_doit(target, Long(1), factors, nfactors-2, 0, best);
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(best <= max_len,
+                                     "amrex::FFT::nextFastLen: result exceeds int range");
+    return static_cast<int>(best);
+}
 
 #ifdef AMREX_USE_HIP
 /// \cond DOXYGEN_IGNORE
@@ -1596,12 +1768,12 @@ struct Swap01
 {
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.y, i.x, i.z};
+        return Dim3{.x = i.y, .y = i.x, .z = i.z};
     }
 
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.y, i.x, i.z};
+        return Dim3{.x = i.y, .y = i.x, .z = i.z};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
@@ -1619,12 +1791,12 @@ struct Swap02
 {
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.z, i.y, i.x};
+        return Dim3{.x = i.z, .y = i.y, .z = i.x};
     }
 
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.z, i.y, i.x};
+        return Dim3{.x = i.z, .y = i.y, .z = i.x};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
@@ -1643,13 +1815,13 @@ struct RotateFwd
     // dest -> src: (x,y,z) -> (y,z,x)
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.y, i.z, i.x};
+        return Dim3{.x = i.y, .y = i.z, .z = i.x};
     }
 
     // src -> dest: (x,y,z) -> (z,x,y)
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.z, i.x, i.y};
+        return Dim3{.x = i.z, .y = i.x, .z = i.y};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept
@@ -1668,13 +1840,13 @@ struct RotateBwd
     // dest -> src: (x,y,z) -> (z,x,y)
     [[nodiscard]] constexpr Dim3 operator() (Dim3 i) const noexcept
     {
-        return {i.z, i.x, i.y};
+        return Dim3{.x = i.z, .y = i.x, .z = i.y};
     }
 
     // src -> dest: (x,y,z) -> (y,z,x)
     static constexpr Dim3 Inverse (Dim3 i)
     {
-        return {i.y, i.z, i.x};
+        return Dim3{.x = i.y, .y = i.z, .z = i.x};
     }
 
     [[nodiscard]] constexpr IndexType operator() (IndexType it) const noexcept

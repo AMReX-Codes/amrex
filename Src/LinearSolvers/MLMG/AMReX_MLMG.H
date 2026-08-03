@@ -8,7 +8,14 @@
 
 namespace amrex {
 
-// Norm used to evaluate the target convergece criteria
+/**
+ * \file AMReX_MLMG.H
+ *
+ * High-level geometric multigrid driver (MLMG) that orchestrates smoothing,
+ * restriction/prolongation, and coarse solves for `MLLinOpT` instances.
+ */
+
+// Norm used to evaluate the target convergence criteria
 AMREX_ENUM(MLMGNormType, greater, bnorm, resnorm);
 
 /// \ingroup amrex_solver_mlmg
@@ -45,72 +52,178 @@ public:
     MLMGT<MF>& operator= (MLMGT<MF> const&) = delete;
     MLMGT<MF>& operator= (MLMGT<MF> &&) = delete;
 
-    // Optional argument checkpoint_file is for debugging only.
+    /**
+     * \brief Solve the multilevel system; optional \p checkpoint_file is for debugging only.
+     *
+     * \param a_sol          Per-level solution \p MF s (overwritten with the answer).
+     * \param a_rhs          Per-level right-hand sides.
+     * \param a_tol_rel      Relative residual tolerance.
+     * \param a_tol_abs      Absolute residual tolerance.
+     * \param checkpoint_file Optional checkpoint basename for dumping MLMG state (debug).
+     * \return Composite infinity norm of the residual at the end of solve.
+     */
     template <typename AMF>
     RT solve (const Vector<AMF*>& a_sol, const Vector<AMF const*>& a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
 
+    /**
+     * \brief Convenience initializer-list overload that forwards to the Vector-based solve.
+     *
+     * \param a_sol          Initializer list converted to a temporary Vector.
+     * \param a_rhs          Initializer list converted to a temporary Vector.
+     * \param a_tol_rel      Relative residual tolerance.
+     * \param a_tol_abs      Absolute residual tolerance.
+     * \param checkpoint_file Optional checkpoint basename for dumping MLMG state (debug).
+     * \return Composite infinity norm of the residual at the end of solve.
+     */
     template <typename AMF>
     RT solve (std::initializer_list<AMF*> a_sol,
               std::initializer_list<AMF const*> a_rhs,
               RT a_tol_rel, RT a_tol_abs, const char* checkpoint_file = nullptr);
 
+    /**
+     * \brief Apply MLMG as a right-preconditioner with relaxed tolerances.
+     *
+     * \param a_sol     Destination (acts like the correction).
+     * \param a_rhs     Source residual that should be smoothed.
+     * \param a_tol_rel Relative tolerance passed to the inner solve.
+     * \param a_tol_abs Absolute tolerance passed to the inner solve.
+     * \return Residual norm reported by the inner V-cycle.
+     */
     RT precond (Vector<MF*> const& a_sol, Vector<MF const*> const& a_rhs,
                 RT a_tol_rel, RT a_tol_abs);
 
+    /**
+     * \brief Populate gradient components of the converged solution.
+     *
+     * \param a_grad_sol Output gradient arrays (per level and direction) updated in place.
+     * \param a_loc      Location to sample the gradient (face center by default).
+     */
     template <typename AMF>
     void getGradSolution (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_grad_sol,
                           Location a_loc = Location::FaceCenter);
 
+    /**
+     * \brief Initializer-list convenience overload for getGradSolution.
+     *
+     * \param a_grad_sol Initializer list converted to a temporary Vector.
+     * \param a_loc      Location to sample the gradient (face center by default).
+     */
     template <typename AMF>
     void getGradSolution (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_grad_sol,
                           Location a_loc = Location::FaceCenter);
 
     /**
-    * \brief For ``(alpha * a - beta * (del dot b grad)) phi = rhs``, flux means ``-b grad phi``
-    */
+     * \brief Face-centered flux helper (``-b grad(phi)`` for ``alpha a - beta div(b grad)``).
+     *
+     * \param a_flux Destination arrays for per-face fluxes (per level).
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
                     Location a_loc = Location::FaceCenter);
 
+    /**
+     * \brief Initializer-list convenience overload for getFluxes (face-centered).
+     *
+     * \param a_flux Initializer list converted to a temporary Vector.
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
                     Location a_loc = Location::FaceCenter);
 
+    /**
+     * \brief Face-centered flux helper that accepts an explicit solution vector.
+     *
+     * \param a_flux Destination arrays for per-face fluxes (per level).
+     * \param a_sol  Explicit solution vectors per level.
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (const Vector<Array<AMF*,AMREX_SPACEDIM> >& a_flux,
                     const Vector<AMF*> & a_sol,
                     Location a_loc = Location::FaceCenter);
 
+    /**
+     * \brief Initializer-list convenience overload for the face-centered flux helper above.
+     *
+     * \param a_flux Initializer list converted to a temporary Vector.
+     * \param a_sol  Initializer list of solution pointers converted to a Vector.
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (std::initializer_list<Array<AMF*,AMREX_SPACEDIM>> a_flux,
                     std::initializer_list<AMF*>  a_sol,
                     Location a_loc = Location::FaceCenter);
 
+    /**
+     * \brief Cell-centered flux helper.
+     *
+     * \param a_flux Destination \p MF s (one per level).
+     * \param a_loc  Location at which fluxes are evaluated (cell centers by default).
+     */
     template <typename AMF>
     void getFluxes (const Vector<AMF*> & a_flux,
                     Location a_loc = Location::CellCenter);
 
+    /**
+     * \brief Initializer-list convenience overload for cell-centered fluxes.
+     *
+     * \param a_flux Initializer list of destination \p MF s.
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (std::initializer_list<AMF*> a_flux,
                     Location a_loc = Location::CellCenter);
 
+    /**
+     * \brief Cell-centered flux helper that accepts an explicit solution vector.
+     *
+     * \param a_flux Destination \p MF s (one per level).
+     * \param a_sol  Explicit solution \p MF s.
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (const Vector<AMF*> & a_flux,
                     const Vector<AMF*> & a_sol,
                     Location a_loc = Location::CellCenter);
 
+    /**
+     * \brief Initializer-list convenience overload for the cell-centered flux helper above.
+     *
+     * \param a_flux Initializer list of destination \p MF s.
+     * \param a_sol  Initializer list of solution \p MF s.
+     * \param a_loc  Location at which fluxes are evaluated.
+     */
     template <typename AMF>
     void getFluxes (std::initializer_list<AMF*> a_flux,
                     std::initializer_list<AMF*> a_sol,
                     Location a_loc = Location::CellCenter);
 
+    /**
+     * \brief Compute multilevel residuals `a_rhs - L(a_sol)` on each AMR level.
+     *
+     * \param a_res Residual \p MF s per level (output).
+     * \param a_sol Solution \p MF s per level.
+     * \param a_rhs Right-hand sides per level.
+     */
     void compResidual (const Vector<MF*>& a_res, const Vector<MF*>& a_sol,
                        const Vector<MF const*>& a_rhs);
 
 #ifdef AMREX_USE_EB
-    // Flux into the EB wall
+    /**
+     * \brief Flux into the EB wall using the internally stored solution.
+     *
+     * \param a_eb_flux Per-level \p MF s that receive wall fluxes.
+     */
     void getEBFluxes (const Vector<MF*>& a_eb_flux);
+    /**
+     * \brief Flux into the EB wall using an explicit solution vector.
+     *
+     * \param a_eb_flux Per-level \p MF s that receive wall fluxes.
+     * \param a_sol     Explicit solution \p MF s per level.
+     */
     void getEBFluxes (const Vector<MF*>& a_eb_flux, const Vector<MF*> & a_sol);
 #endif
 
@@ -121,51 +234,177 @@ public:
     */
     void apply (const Vector<MF*>& out, const Vector<MF*>& in);
 
-    //! out = L(in) as a preconditioner
+    /**
+     * \brief Apply the linear operator as a preconditioner (`out = L(in)`).
+     *
+     * \param out Destination vectors (per level).
+     * \param in  Source vectors (per level).
+     */
     void applyPrecond (const Vector<MF*>& out, const Vector<MF*>& in);
 
     [[nodiscard]] int getVerbose () const { return verbose; }
     [[nodiscard]] int getBottomVerbose () const { return bottom_verbose; }
 
+    //! Increase the indentation used when printing solver logs.
     void incPrintIdentation ();
+    //! Decrease the indentation used when printing solver logs.
     void decPrintIdentation ();
 
+    /**
+     * \brief Control behavior when the solve fails to converge or blows up.
+     *
+     * \param t True to throw \p MLMGT::error on failure; false to call
+     *          \c Abort.  \p solve() always returns the composite residual
+     *          norm regardless of this setting.
+     */
     void setThrowException (bool t) noexcept { throw_exception = t; }
+    /**
+     * \brief Set the main solver verbosity (0 silent).
+     *
+     * \param v Verbosity level forwarded to MLMG.
+     */
     void setVerbose (int v) noexcept { verbose = v; }
+    /**
+     * \brief Cap the number of MLMG iterations executed.
+     *
+     * \param n Maximum iterations per solve (may include FMG cycles).
+     */
     void setMaxIter (int n) noexcept { max_iters = n; }
+    /**
+     * \brief Cap the number of FMG cycles executed.
+     *
+     * \param n Maximum FMG cycles per solve.
+     */
     void setMaxFmgIter (int n) noexcept { max_fmg_iters = n; }
+    /**
+     * \brief Set the number of fixed MLMG iterations (convergence
+     * may still exit early if the residual is already small).
+     *
+     * \param nit Target number of iterations.
+     */
     void setFixedIter (int nit) noexcept { do_fixed_number_of_iters = nit; }
+    /**
+     * \brief Set how many MLMG iterations the preconditioner executes
+     * per Krylov call (still subject to early-convergence checks).
+     *
+     * \param nit Target number of inner iterations.
+     */
     void setPrecondIter (int nit) noexcept { max_precond_iters = nit; }
 
+    /**
+     * \brief Number of pre-smoothing passes per V-cycle.
+     *
+     * \param n Pre-smoothing iterations.
+     */
     void setPreSmooth (int n) noexcept { nu1 = n; }
+    /**
+     * \brief Number of post-smoothing passes per V-cycle.
+     *
+     * \param n Post-smoothing iterations.
+     */
     void setPostSmooth (int n) noexcept { nu2 = n; }
+    /**
+     * \brief Number of smoothing passes when MLMG is used standalone (final smooth).
+     *
+     * \param n Final smoothing iterations.
+     */
     void setFinalSmooth (int n) noexcept { nuf = n; }
+    /**
+     * \brief Additional smoothing passes executed after the bottom solver.
+     *
+     * \param n Bottom smoother iterations.
+     */
     void setBottomSmooth (int n) noexcept { nub = n; }
 
+    /**
+     * \brief Select the bottom solver type (e.g., CG, BiCGStab, Hypre, PETSc).
+     *
+     * \param s Bottom solver enum.
+     */
     void setBottomSolver (BottomSolver s) noexcept { bottom_solver = s; }
     [[nodiscard]] BottomSolver getBottomSolver () const noexcept { return bottom_solver; }
+    /**
+     * \brief Select the coarse-fine synchronization strategy.
+     *
+     * \param a_cf_strategy Strategy enum governing CF handling.
+     */
     void setCFStrategy (CFStrategy a_cf_strategy) noexcept {cf_strategy = a_cf_strategy;}
+    /**
+     * \brief Verbosity for the bottom solver (0 silent).
+     *
+     * \param v Bottom-solver verbosity level.
+     */
     void setBottomVerbose (int v) noexcept { bottom_verbose = v; }
+    /**
+     * \brief Cap the number of iterations inside the bottom solver.
+     *
+     * \param n Maximum iterations for the bottom solve.
+     */
     void setBottomMaxIter (int n) noexcept { bottom_maxiter = n; }
+    /**
+     * \brief Relative tolerance for the bottom solver.
+     *
+     * \param t Relative tolerance.
+     */
     void setBottomTolerance (RT t) noexcept { bottom_reltol = t; }
+    /**
+     * \brief Absolute tolerance for the bottom solver.
+     *
+     * \param t Absolute tolerance.
+     */
     void setBottomToleranceAbs (RT t) noexcept { bottom_abstol = t;}
     [[nodiscard]] RT getBottomToleranceAbs () const noexcept{ return bottom_abstol; }
 
     [[deprecated("Use MLMG::setConvergenceNormType() instead.")]]
+    /**
+     * \brief Deprecated flag for forcing B-norm convergence checks.
+     *
+     * \param flag Nonzero to always use the B-norm.
+     */
     void setAlwaysUseBNorm (int flag) noexcept;
 
+    /**
+     * \brief Choose the norm used for convergence tests.
+     *
+     * \param norm Norm type (residual, RHS, etc.).
+     */
     void setConvergenceNormType (MLMGNormType norm) noexcept { norm_type = norm; }
 
+    /**
+     * \brief Force a FillBoundary at the end of the solve (nonzero enables).
+     *
+     * \param flag Nonzero to fill BCs after convergence.
+     */
     void setFinalFillBC (int flag) noexcept { final_fill_bc = flag; }
 
     [[nodiscard]] int numAMRLevels () const noexcept { return namrlevs; }
 
+    /**
+     * \brief Enable (`flag!=0`) or disable the N-solve path.
+     *
+     * \param flag Nonzero enables N-solve support.
+     */
     void setNSolve (int flag) noexcept { do_nsolve = flag; }
+    /**
+     * \brief Set the tile size used for N-solve builds.
+     *
+     * \param s Grid size hint for N-solve.
+     */
     void setNSolveGridSize (int s) noexcept { nsolve_grid_size = s; }
 
+    /**
+     * \brief Disable global GPU syncs before returning to the app.
+     *
+     * \param do_not_sync True skips the sync.
+     */
     void setNoGpuSync (bool do_not_sync) noexcept { do_no_sync_gpu = do_not_sync; }
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+    /**
+     * \brief Select which Hypre interface to use (IJ, Struct, etc.).
+     *
+     * \param f Hypre interface enum.
+     */
     void setHypreInterface (Hypre::Interface f) noexcept {
         // must use ij interface for EB
 #ifndef AMREX_USE_EB
@@ -175,68 +414,210 @@ public:
 #endif
     }
 
-    //! Set the namespace in input file for parsing HYPRE specific options
+    /**
+     * \brief Set the namespace in the input file for parsing HYPRE-specific options.
+     *
+     * \param prefix ParmParse prefix used to read Hypre options.
+     */
     void setHypreOptionsNamespace(const std::string& prefix) noexcept
     {
         hypre_options_namespace = prefix;
     }
 
+    //! Use legacy Hypre defaults when \p l is true.
     void setHypreOldDefault (bool l) noexcept {hypre_old_default = l;}
+    //! Set Hypre relax type \p n (see Hypre docs).
     void setHypreRelaxType (int n) noexcept {hypre_relax_type = n;}
+    //! Set Hypre relax order \p n.
     void setHypreRelaxOrder (int n) noexcept {hypre_relax_order = n;}
+    //! Set the number of Hypre relaxation sweeps \p n.
     void setHypreNumSweeps (int n) noexcept {hypre_num_sweeps = n;}
+    //! Set the Hypre strength-of-connection threshold \p t.
     void setHypreStrongThreshold (Real t) noexcept {hypre_strong_threshold = t;}
 #endif
 
+    /**
+     * \brief Build boundary caches needed by getFluxes()/compFluxes.
+     *
+     * \param a_sol Solution \p MF s per level (const pointers).
+     */
     void prepareForFluxes (Vector<MF const*> const& a_sol);
 
+    /**
+     * \brief Prepare linear operators, coefficients, and RHS data prior to solving.
+     *
+     * \param a_sol Initial guesses per level (updated in place as needed).
+     * \param a_rhs Right-hand sides per level.
+     */
     template <typename AMF>
     void prepareForSolve (Vector<AMF*> const& a_sol, Vector<AMF const*> const& a_rhs);
 
+    //! Prepare the NSolve path.
     void prepareForNSolve ();
 
+    //! Finalize operator-dependent metadata before iterating.
     void prepareLinOp ();
 
+    //! Prepare preconditioner-specific caches (e.g., boundary data).
     void preparePrecond ();
 
+    /**
+     * \brief Execute a single multigrid iteration (FMG or V-cycle).
+     *
+     * \param iter Iteration index (starting at zero).
+     */
     void oneIter (int iter);
 
+    /**
+     * \brief Execute a per-level mini cycle.
+     *
+     * \param amrlev AMR level that triggers the synchronization.
+     */
     void miniCycle (int amrlev);
 
+    /**
+     * \brief Run a multigrid V-cycle on (\p amrlev,\p mglev).
+     *
+     * \param amrlev AMR level index whose V-cycle is executed.
+     * \param mglev  Multigrid level index that seeds the descent.
+     */
     void mgVcycle (int amrlev, int mglev);
+    //! Run an FMG cycle starting from the coarsest grid.
     void mgFcycle ();
 
+    //! Execute the configured bottom solver (Hypre, PETSc, CG, etc.).
     void bottomSolve ();
+    /**
+     * \brief Perform an NSolve using an MLMGT wrapper.
+     *
+     * \param a_solver Helper solver object.
+     * \param a_sol    Nodal solution updated in place.
+     * \param a_rhs    Nodal RHS.
+     */
     void NSolve (MLMGT<MF>& a_solver, MF& a_sol, MF& a_rhs);
+    //! Execute the actual bottom solve after pre-smoothing and restriction.
     void actualBottomSolve ();
 
+    /**
+     * \brief Compute the composite residual norm up to AMR level \p amrlevmax.
+     *
+     * \param amrlevmax Finest AMR level included in the composite norm.
+     */
     void computeMLResidual (int amrlevmax);
+    /**
+     * \brief Compute the residual on AMR level \p alev.
+     *
+     * \param alev AMR level whose residual is refreshed.
+     */
     void computeResidual (int alev);
+    /**
+     * \brief Residual update using coarse solution / fine correction.
+     *
+     * \param calev Coarse AMR level index.
+     * \param falev Fine AMR level index.
+     */
     void computeResWithCrseSolFineCor (int calev, int falev);
+    /**
+     * \brief Residual update using coarse correction / fine correction.
+     *
+     * \param falev Fine AMR level index supplying the correction.
+     */
     void computeResWithCrseCorFineCor (int falev);
+    /**
+     * \brief Interpolate corrections onto AMR level \p alev.
+     *
+     * \param alev AMR level receiving the correction.
+     */
     void interpCorrection (int alev);
+    /**
+     * \brief Interpolate corrections on (\p alev,\p mglev).
+     *
+     * \param alev AMR level index.
+     * \param mglev Multigrid level index.
+     */
     void interpCorrection (int alev, int mglev);
+    /**
+     * \brief Add interpolated corrections to (\p alev,\p mglev) data.
+     *
+     * \param alev AMR level index.
+     * \param mglev Multigrid level index.
+     */
     void addInterpCorrection (int alev, int mglev);
 
+    /**
+     * \brief Compute the residual of the correction equation on (\p amrlev,\p mglev).
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     */
     void computeResOfCorrection (int amrlev, int mglev);
 
+    /**
+     * \brief Infinity norm of the residual on level \p alev.
+     *
+     * \param alev  AMR level index.
+     * \param local True to skip MPI reductions.
+     */
     RT ResNormInf (int alev, bool local = false);
+    /**
+     * \brief Composite infinity norm of the residual up to level \p alevmax.
+     *
+     * \param alevmax Finest AMR level included.
+     * \param local   True to skip MPI reductions.
+     */
     RT MLResNormInf (int alevmax, bool local = false);
+    /**
+     * \brief Composite infinity norm of the RHS.
+     *
+     * \param local True to skip MPI reductions.
+     */
     RT MLRhsNormInf (bool local = false);
 
+    //! Adjust RHS/solution to satisfy null-space constraints.
     void makeSolvable ();
+    /**
+     * \brief Adjust a field on (\p amrlev,\p mglev) to satisfy null-space constraints.
+     *
+     * \param amrlev AMR level index.
+     * \param mglev  Multigrid level index.
+     * \param mf     \p MF updated in place.
+     */
     void makeSolvable (int amrlev, int mglev, MF& mf);
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
-    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
+    /**
+     * \brief Hypre-based bottom solver (enabled for MultiFab,
+     * single-component solves only).
+     *
+     * \param x Solution vector updated in place.
+     * \param b Right-hand side.
+     */
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
     void bottomSolveWithHypre (MF& x, const MF& b);
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
-    template <class TMF=MF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int> = 0>
+    /**
+     * \brief PETSc-based bottom solver (MultiFab only,
+     * single-component solves only).
+     *
+     * \param x Solution vector updated in place.
+     * \param b Right-hand side.
+     */
+    template <class TMF=MF>
+    requires (std::same_as<TMF,MultiFab>)
     void bottomSolveWithPETSc (MF& x, const MF& b);
 #endif
 
+    /**
+     * \brief Bottom solve using CG/BiCGStab implemented in MLCGSolverT.
+     *
+     * \param x    Solution vector updated in place.
+     * \param b    Right-hand side.
+     * \param type Krylov flavor (CG or BiCGStab).
+     * \return Status code from the Krylov solver.
+     */
     int bottomSolveWithCG (MF& x, const MF& b, typename MLCGSolverT<MF>::Type type);
 
     [[nodiscard]] RT getInitRHS () const noexcept { return m_rhsnorm0; }
@@ -299,7 +680,7 @@ private:
 
     bool do_no_sync_gpu = false;
 
-    //! Hypre
+    //! HYPRE
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
     // Hypre::Interface hypre_interface = Hypre::Interface::structed;
     // Hypre::Interface hypre_interface = Hypre::Interface::semi_structed;
@@ -314,7 +695,7 @@ private:
     int hypre_relax_type = 6;  // G-S/Jacobi hybrid relaxation
     int hypre_relax_order = 1; // uses C/F relaxation
     int hypre_num_sweeps = 2;  // Sweeps on each level
-    Real hypre_strong_threshold = 0.25; // Hypre default is 0.25
+    Real hypre_strong_threshold = 0.25; // HYPRE default is 0.25
 #endif
 
     //! PETSc
@@ -352,6 +733,15 @@ private:
     Vector<int> m_niters_cg;
     Vector<RT> m_iter_fine_resnorm0; // Residual for each iteration at the finest level
 
+    /**
+     * \brief Write a checkpoint of the current MLMG state (sol, rhs, tolerances).
+     *
+     * \param a_sol      Solution \p MF s (one per level).
+     * \param a_rhs      Right-hand sides (one per level).
+     * \param a_tol_rel  Relative tolerance used for the solve.
+     * \param a_tol_abs  Absolute tolerance used for the solve.
+     * \param a_file_name Output basename for the checkpoint files.
+     */
     void checkPoint (const Vector<MultiFab*>& a_sol,
                      const Vector<MultiFab const*>& a_rhs,
                      RT a_tol_rel, RT a_tol_abs, const char* a_file_name) const;
@@ -1221,6 +1611,17 @@ MLMGT<MF>::prepareLinOp ()
         linop_prepared = true;
     } else if (linop.needsUpdate()) {
         linop.update();
+
+#if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+        hypre_solver.reset();
+        hypre_bndry.reset();
+        hypre_node_solver.reset();
+#endif
+
+#if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+        petsc_solver.reset();
+        petsc_bndry.reset();
+#endif
     }
 }
 
@@ -1919,7 +2320,8 @@ MLMGT<MF>::makeSolvable (int amrlev, int mglev, MF& mf)
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
 template <typename MF>
-template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
 void
 MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 {
@@ -1960,7 +2362,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
                                          linop.m_coarse_fine_bc_type);
         }
 
-        // IJ interface understands absolute tolerance API of hypre
+        // IJ interface understands absolute tolerance API of HYPRE
         amrex::Real hypre_abstol =
             (hypre_interface == amrex::Hypre::Interface::ij)
             ? bottom_abstol : Real(-1.0);
@@ -1979,7 +2381,7 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
     }
 
     // For singular problems there may be a large constant added to all values of the solution
-    // For precision reasons we enforce that the average of the correction from hypre is 0
+    // For precision reasons we enforce that the average of the correction from HYPRE is 0
     if (linop.isSingular(amrlev) && linop.getEnforceSingularSolvable())
     {
         makeSolvable(amrlev, mglev, x);
@@ -1989,7 +2391,8 @@ MLMGT<MF>::bottomSolveWithHypre (MF& x, const MF& b)
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
 template <typename MF>
-template <class TMF,std::enable_if_t<std::is_same_v<TMF,MultiFab>,int>>
+template <class TMF>
+requires (std::same_as<TMF,MultiFab>)
 void
 MLMGT<MF>::bottomSolveWithPETSc (MF& x, const MF& b)
 {

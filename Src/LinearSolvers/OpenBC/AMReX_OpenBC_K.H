@@ -3,6 +3,7 @@
 
 #include <AMReX_OpenBC.H>
 #include <AMReX_LOUtil_K.H>
+#include <numbers>
 
 namespace amrex::openbc {
 
@@ -46,7 +47,7 @@ void scale_moments (openbc::Moments::array_type& mom)
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 Real block_potential (openbc::Moments const& mom, Real xb, Real yb, Real zb)
 {
-    constexpr Real oneover4pi = Real(1.)/Real(4.*3.1415926535897932);
+    constexpr Real oneover4pi = Real(1.) / (Real(4.) * std::numbers::pi_v<Real>);
 
     xb -= mom.x;
     yb -= mom.y;

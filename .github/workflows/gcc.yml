@@ -20,19 +20,19 @@ jobs:
   # Build and install libamrex as AMReX CMake project
   # Note: this is an intentional "minimal" build that does not enable (many) options
   library:
-    name: GNU@14 C++17 Release [lib]
+    name: GNU@11 Release [lib]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
-        .github/workflows/dependencies/dependencies_gcc.sh 14
+        .github/workflows/dependencies/dependencies_gcc.sh 11
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -51,14 +51,16 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DCMAKE_CXX_STANDARD=20               \
             -DAMReX_FFT=ON                        \
             -DAMReX_FORTRAN=ON                    \
+            -DAMReX_FORTRAN_INTERFACES=ON         \
             -DAMReX_PLOTFILE_TOOLS=ON             \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DCMAKE_INSTALL_PREFIX=/tmp/my-amrex  \
-            -DCMAKE_C_COMPILER=$(which gcc-14)     \
-            -DCMAKE_CXX_COMPILER=$(which g++-14)   \
-            -DCMAKE_Fortran_COMPILER=$(which gfortran-14) \
+            -DCMAKE_C_COMPILER=$(which gcc-11)     \
+            -DCMAKE_CXX_COMPILER=$(which g++-11)   \
+            -DCMAKE_Fortran_COMPILER=$(which gfortran-11) \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install
@@ -79,19 +81,19 @@ jobs:
 
   # Build libamrex and all tests
   tests_build_3D:
-    name: GNU@13 C++17 3D Debug Fortran [tests]
+    name: GNU@13 3D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -109,12 +111,14 @@ jobs:
         ccache -z
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_FFT=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_SPACEDIM=3          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
@@ -130,19 +134,19 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_build_2D:
-    name: GNU@13 C++17 2D Debug Fortran [tests]
+    name: GNU@13 2D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -160,12 +164,14 @@ jobs:
         ccache -z
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_FFT=ON              \
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_SPACEDIM=2          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
@@ -181,19 +187,19 @@ jobs:
         du -hs ~/.cache/ccache
 
   tests_build_1D:
-    name: GNU@13 C++17 1D Debug Fortran [tests]
+    name: GNU@13 1D Debug Fortran [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -212,12 +218,14 @@ jobs:
         ccache -z
 
         cmake -S . -B build             \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Debug    \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_FFT=ON              \
             -DAMReX_EB=OFF              \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_SPACEDIM=1          \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         cmake --build build -j 4
@@ -234,12 +242,12 @@ jobs:
 
   # Build libamrex and all tests
   tests_cxx20:
-    name: GNU@14 C++20 OMP SIMD [tests]
+    name: GNU@14 OMP SIMD [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 14
@@ -253,7 +261,7 @@ jobs:
         cmake -S vir-simd-0.4.4 -B vir-simd-build
         sudo cmake --build vir-simd-build --target install
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -277,6 +285,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ASSERTIONS=ON       \
@@ -287,9 +296,9 @@ jobs:
             -DAMReX_BOUND_CHECK=ON      \
             -DAMReX_FPE=ON              \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_OMP=ON              \
             -DAMReX_SIMD=ON             \
-            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_C_COMPILER=$(which gcc-14)              \
             -DCMAKE_CXX_COMPILER=$(which g++-14)            \
             -DCMAKE_Fortran_COMPILER=$(which gfortran-14)   \
@@ -308,26 +317,26 @@ jobs:
 
   # Build libamrex and all tests w/o MPI
   tests-nonmpi:
-    name: GNU@14 C++17 NOMPI [tests]
+    name: GNU@14 NOMPI [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 14
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
         restore-keys: |
              ccache-${{ github.workflow }}-${{ github.job }}-git-
     - name: Build & Install
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-maybe-uninitialized"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -339,6 +348,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=Release  \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_FLATTEN_FOR=OFF     \
@@ -350,6 +360,7 @@ jobs:
             -DAMReX_EB=ON               \
             -DAMReX_ENABLE_TESTS=ON     \
             -DAMReX_FORTRAN=ON          \
+            -DAMReX_FORTRAN_INTERFACES=ON \
             -DAMReX_MPI=OFF             \
             -DCMAKE_C_COMPILER=$(which gcc-14)     \
             -DCMAKE_CXX_COMPILER=$(which g++-14)   \
@@ -369,12 +380,12 @@ jobs:
 
   # Build libamrex and all tests
   tests-nofortran:
-    name: GNU@12 C++17 w/o Fortran [tests]
+    name: GNU@12 w/o Fortran [tests]
     runs-on: ubuntu-22.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/ubuntu_free_disk_space.sh
@@ -382,7 +393,7 @@ jobs:
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -397,7 +408,7 @@ jobs:
       # /home/runner/work/amrex/amrex/Src/Particle/AMReX_ParticleContainerI.H:2652:26: note: ‘p’ declared here
       # auto p = ptd[i];
       #
-      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds -Wno-maybe-uninitialized"}
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wunreachable-code -Wnon-virtual-dtor -Wlogical-op -Wmisleading-indentation -Wduplicated-cond -Wduplicated-branches -Wmissing-include-dirs -Wno-array-bounds"}
       run: |
         export CCACHE_COMPRESS=1
         export CCACHE_COMPRESSLEVEL=10
@@ -409,6 +420,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_BUILD_TYPE=RelWithDebINfo \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ASSERTIONS=ON       \
@@ -421,7 +433,7 @@ jobs:
             -DAMReX_FORTRAN=OFF         \
             -DCMAKE_C_COMPILER=$(which gcc-12)     \
             -DCMAKE_CXX_COMPILER=$(which g++-12)   \
-            -DCMAKE_CXX_STANDARD=17     \
+            -DCMAKE_CXX_STANDARD=20     \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
 
@@ -442,14 +454,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -466,7 +478,7 @@ jobs:
 
         ./configure --dim 1
         make -j4 XTRA_CXXFLAGS=-fno-operator-names \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
@@ -484,14 +496,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -508,7 +520,7 @@ jobs:
 
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --enable-fft yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
@@ -526,14 +538,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -551,7 +563,7 @@ jobs:
         ./configure --dim 3 --enable-eb no --enable-xsdk-defaults no --single-precision yes \
                     --single-precision-particles yes --enable-tiny-profile yes --enable-fft yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
@@ -569,14 +581,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -593,7 +605,7 @@ jobs:
 
         ./configure --dim 3 --enable-eb yes --enable-xsdk-defaults yes --with-omp yes --debug yes
         make -j4 WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
         make install
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
@@ -611,14 +623,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -635,7 +647,7 @@ jobs:
 
         cd Tools/Plotfile
         make -j4 USE_MPI=FALSE USE_OMP=FALSE WARN_ALL=TRUE WARN_ERROR=TRUE XTRA_CXXFLAGS=-fno-operator-names \
-            CCACHE=ccache
+            CCACHE=ccache CXXSTD=c++20
 
         ${{github.workspace}}/Tools/C_scripts/mmclt.py --input ${{github.workspace}}/ccache.log.txt
         make -j4 -k -f clang-tidy-ccache-misses.mak \
@@ -647,19 +659,19 @@ jobs:
 
   # Build libamrex and run all tests
   tests_run:
-    name: GNU@13 C++17 [tests]
+    name: GNU@13 [tests]
     runs-on: ubuntu-24.04
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies_gcc.sh 13
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -678,6 +690,7 @@ jobs:
         mkdir build
         cd build
         cmake ..                        \
+            -DCMAKE_CXX_STANDARD=20     \
             -DAMReX_OMP=ON              \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DAMReX_ENABLE_TESTS=ON     \
@@ -707,7 +720,7 @@ jobs:
       CXX: h5pcc
       CC: h5cc
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
@@ -717,7 +730,7 @@ jobs:
       run: |
         cd Tests/HDF5Benchmark
         export OLCF_HDF5_ROOT=/usr/lib/x86_64-linux-gnu/hdf5/openmpi
-        make -j 4
+        make -j 4 CXXSTD=c++20
         mpirun -np 2 ./main3d.gnu.TPROF.MPI.ex ./inputs
         h5dump -d "level_0/data:offsets=0"  -s "1" -c "1" ./plt00000.h5
         h5dump -d "level_0/data:datatype=1" -s "1" -c "1" ./plt00000/particle0/particle0.h5

@@ -14,7 +14,7 @@ def doit(defines, undefines, comp, allow_diff_comp):
     for d in defs:
         dd = d.strip()
         if dd:
-            v = dd.split("=")
+            v = dd.split("=", 1)
             print("#ifndef",v[0])
             if len(v) == 2:
                 print("#define",v[0],v[1])
@@ -22,7 +22,7 @@ def doit(defines, undefines, comp, allow_diff_comp):
                 print("#define",v[0],1)
             print("#endif")
 
-    for ud in undefines:
+    for ud in undefines.split():
         print("#undef",ud)
 
     print("#ifdef __cplusplus");

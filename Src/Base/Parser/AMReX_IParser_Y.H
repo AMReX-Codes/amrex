@@ -2,11 +2,17 @@
 #define AMREX_IPARSER_Y_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_IParser_Y.H
+ * \brief Symbol-table definitions shared by the integer parser lexer/parser.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_GpuPrint.H>
 #include <AMReX_Math.H>
 #include <AMReX_Print.H>
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -80,7 +86,10 @@ union iparser_nvp {
     int ip;
 };
 
-struct iparser_node {
+static constexpr std::size_t iparser_node_alignment =
+    std::max(alignof(long long*), alignof(long long));
+
+struct alignas(iparser_node_alignment) iparser_node {
     enum iparser_node_t type;
     struct iparser_node* l;
     struct iparser_node* r;
@@ -88,31 +97,31 @@ struct iparser_node {
     int rip;               //                     this may store right      pointer offset.
 };
 
-struct iparser_number {
+struct alignas(iparser_node) iparser_number {
     enum iparser_node_t type;
     long long value;
 };
 
-struct iparser_symbol {
+struct alignas(iparser_node) iparser_symbol {
     enum iparser_node_t type;
     char* name;
     int ip;
 };
 
-struct iparser_f1 {  /* Builtin functions with one argument */
+struct alignas(iparser_node) iparser_f1 {  /* Builtin functions with one argument */
     enum iparser_node_t type;
     struct iparser_node* l;
     enum iparser_f1_t ftype;
 };
 
-struct iparser_f2 {  /* Builtin functions with two arguments */
+struct alignas(iparser_node) iparser_f2 {  /* Builtin functions with two arguments */
     enum iparser_node_t type;
     struct iparser_node* l;
     struct iparser_node* r;
     enum iparser_f2_t ftype;
 };
 
-struct iparser_f3 { /* Builtin functions with three arguments */
+struct alignas(iparser_node) iparser_f3 { /* Builtin functions with three arguments */
     enum iparser_node_t type;
     struct iparser_node* n1;
     struct iparser_node* n2;
@@ -120,7 +129,7 @@ struct iparser_f3 { /* Builtin functions with three arguments */
     enum iparser_f3_t ftype;
 };
 
-struct iparser_assign {
+struct alignas(iparser_node) iparser_assign {
     enum iparser_node_t type;
     struct iparser_symbol* s;
     struct iparser_node* v;

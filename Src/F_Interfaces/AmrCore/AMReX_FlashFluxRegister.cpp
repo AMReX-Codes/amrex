@@ -55,10 +55,9 @@ void FlashFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
                     fndba.intersections(ndbx+shift, isects);
                     for (auto const& isect : isects) {
                         Box const& b = isect.second-shift;
-                        faces.erase(std::remove_if(faces.begin(), faces.end(),
-                                                   [&] (std::pair<Orientation,Box> const& x)
-                                                   { return x.second == b; }),
-                                    faces.end());
+                        std::erase_if(faces, [&] (std::pair<Orientation,Box> const& x) {
+                            return x.second == b;
+                        });
                     }
                 }
             }

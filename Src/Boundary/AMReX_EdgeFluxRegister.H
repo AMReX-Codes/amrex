@@ -31,7 +31,7 @@ namespace amrex {
  * level.
  *
  * \code{.cpp}
- *     template <typename MF, std::enable_if_t<IsFabArray<MF>::value,int>>
+ *     template <FabArrayType MF>
  *     void average_down_faces (const Array<const MF*,AMREX_SPACEDIM>& fine,
  *                              const Array<MF*,AMREX_SPACEDIM>& crse,
  *                              const IntVect& ratio, const Geometry& crse_geom)
@@ -86,6 +86,9 @@ public:
 
     //! Reset accumulated state at the start of a coarse step.
     void reset ();
+
+    //! Accumulate another register with identical layout into this one.
+    EdgeFluxRegister& plus (EdgeFluxRegister const& rhs);
 
 #if (AMREX_SPACEDIM == 3)
 

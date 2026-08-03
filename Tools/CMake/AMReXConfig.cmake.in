@@ -61,6 +61,11 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${AMReX_MODULE_PATH})
 
 # General options
 set(AMReX_MPI_FOUND                 @AMReX_MPI@)
+if(AMReX_MPI_FOUND)  # ensure users can request a no-MPI variant
+  set(AMReX_NOMPI_FOUND             FALSE)
+else()
+  set(AMReX_NOMPI_FOUND             TRUE)
+endif()
 set(AMReX_MPI_THREAD_MULTIPLE_FOUND @AMReX_MPI_THREAD_MULTIPLE@)
 set(AMReX_SIMD_FOUND                @AMReX_SIMD@)
 set(AMReX_OMP_FOUND                 @AMReX_OMP@)
@@ -260,6 +265,25 @@ if (@AMReX_CUDA@)
         include(AMReX_SetupCUDA)
     else ()
         find_dependency(CUDAToolkit REQUIRED)
+    endif ()
+endif ()
+
+#
+# HIP
+#
+if (@AMReX_HIP@)
+    find_dependency(hip REQUIRED CONFIG)
+    find_dependency(hiprand REQUIRED CONFIG)
+    find_dependency(rocrand REQUIRED CONFIG)
+    find_dependency(rocprim REQUIRED CONFIG)
+    if (@AMReX_LINEAR_SOLVERS@)
+        find_dependency(rocsparse REQUIRED CONFIG)
+    endif ()
+    if (@AMReX_FFT@)
+        find_dependency(rocfft REQUIRED CONFIG)
+    endif ()
+    if (@AMReX_ROCTX@)
+        find_dependency(rocprofiler-sdk-roctx REQUIRED CONFIG)
     endif ()
 endif ()
 

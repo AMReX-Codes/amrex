@@ -18,7 +18,7 @@ For multi-level calculations, the same principles for load balancing apply as in
 but there is additional complexity in how to tag cells for refinement and how to create the
 union of grids at levels > 0 where that union most likely does not cover the computational domain.
 
-See :ref:`sec:grid_creation` for grids are created, i.e. how the :cpp:`BoxArray` on which
+See :ref:`sec:grid_creation` for how grids are created, i.e. how the :cpp:`BoxArray` on which
 :cpp:`MultiFabs` will be built is defined at each level.
 
 See :ref:`sec:load_balancing` for the strategies AMReX supports for distributing

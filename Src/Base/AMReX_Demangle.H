@@ -2,6 +2,11 @@
 #define AMREX_DEMANGLE_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Demangle.H
+ * \brief Helper for converting compiler-mangled type names to readable strings.
+ */
+
 #include <string>
 
 #if __has_include(<cxxabi.h>)
@@ -21,6 +26,7 @@ namespace amrex {
  *     std::cout << amrex::demangle(typeid(box).name());
  * \endcode
  * Demangling turns "N5amrex3BoxE" into "amrex::Box".
+ * \param name Mangled identifier returned by \c typeid or similar APIs.
  */
 inline std::string demangle (const char* name)
 {

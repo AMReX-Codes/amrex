@@ -7,8 +7,16 @@
 
 namespace amrex {
 
+/**
+ * \file AMReX_MLCellABecLap.H
+ *
+ * Base class for cell-centered ABec Laplacian operators; manages overset masks,
+ * flux extraction, and Robin adjustments shared by concrete solvers.
+ */
+
 /// \ingroup amrex_solver_mlmg
 template <typename MF>
+/// \brief Cell-centered operator that exposes ABec Laplacian helpers to derived classes.
 class MLCellABecLapT  // NOLINT(cppcoreguidelines-virtual-class-destructor)
     : public MLCellLinOpT<MF>
 {
@@ -27,12 +35,31 @@ public:
     MLCellABecLapT<MF>& operator= (const MLCellABecLapT<MF>&) = delete;
     MLCellABecLapT<MF>& operator= (MLCellABecLapT<MF>&&) = delete;
 
+    /**
+     * \brief Describe the AMR hierarchy when overset masks are not required.
+     *
+     * \param a_geom    Per-level geometries (fine to coarse).
+     * \param a_grids   Per-level grids.
+     * \param a_dmap    Distribution mappings.
+     * \param a_info    Optional operator configuration overrides.
+     * \param a_factory Optional FAB factories (defaults to FArrayBox).
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
+    /**
+     * \brief Describe the AMR hierarchy when overset masks participate.
+     *
+     * \param a_geom         Per-level geometries (fine to coarse).
+     * \param a_grids        Per-level grids.
+     * \param a_dmap         Distribution mappings.
+     * \param a_overset_mask Per-level overset masks (1 unknown, 0 known).
+     * \param a_info         Optional operator configuration overrides.
+     * \param a_factory      Optional FAB factories (defaults to FArrayBox).
+     */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
                  const Vector<DistributionMapping>& a_dmap,
@@ -40,6 +67,7 @@ public:
                  const LPInfo& a_info = LPInfo(),
                  const Vector<FabFactory<FAB> const*>& a_factory = {});
 
+    //! Overset mask for (\p amrlev,\p mglev); returns `nullptr` when not defined.
     [[nodiscard]] iMultiFab const* getOversetMask (int amrlev, int mglev) const {
         return m_overset_mask[amrlev][mglev].get();
     }
@@ -47,38 +75,65 @@ public:
     [[nodiscard]] bool needsUpdate () const override {
         return MLCellLinOpT<MF>::needsUpdate();
     }
+    //! Average coefficients/metrics when marked dirty.
     void update () override;
 
+    //! Standard hook called before MLMG iterates (fixes BC data, etc.).
     void prepareForSolve () override;
 
+    /**
+     * \brief Zero out Dirichlet nodes on (\p amrlev,\p mglev) so that
+     * GMRES can treat them as known.
+     */
     void setDirichletNodesToZero (int amrlev, int mglev, MF& mf) const override;
 
+    /**
+     * \brief Fill per-face fluxes using the supplied solution hierarchy.
+     *
+     * \param a_flux Flux destinations per AMR level/direction.
+     * \param a_sol  Solution pointers per AMR level.
+     * \param a_loc  Location (face center vs centroid).
+     */
     void getFluxes (const Vector<Array<MF*,AMREX_SPACEDIM> >& a_flux,
                             const Vector<MF*>& a_sol,
                             Location a_loc) const final;
-    void getFluxes (const Vector<MF*>& /*a_flux*/,
-                            const Vector<MF*>& /*a_sol*/) const final {
+    /**
+     * \brief Guard overload that aborts if called (cell-centered flux
+     * extraction requires per-direction face arrays).
+     */
+    void getFluxes (const Vector<MF*>& a_flux,
+                            const Vector<MF*>& a_sol) const final {
+        amrex::ignore_unused(a_flux, a_sol);
         amrex::Abort("MLCellABecLap::getFluxes: How did we get here?");
     }
 
+    //! Scalar applied to `a` on the current operator.
     virtual RT getAScalar () const = 0;
+    //! Scalar applied to `b` on the current operator.
     virtual RT getBScalar () const = 0;
+    //! Cell-centered `a` coefficient MultiFab for AMR level \p amrlev and MG level \p mglev.
     virtual MF const* getACoeffs (int amrlev, int mglev) const = 0;
+    //! Face-centered `b` coefficients for AMR level \p amrlev and MG level \p mglev.
     virtual Array<MF const*,AMREX_SPACEDIM> getBCoeffs (int amrlev, int mglev) const = 0;
 
+    //! Apply stored Neumann data to the RHS \p rhs on AMR level \p amrlev.
     void applyInhomogNeumannTerm (int amrlev, MF& rhs) const final;
 
+    //! Add inhomogeneous Neumann/Robin flux contributions into \p grad from \p sol (include \p b when \p mult_bcoef is true).
     void addInhomogNeumannFlux (
         int amrlev, const Array<MF*,AMREX_SPACEDIM>& grad,
         MF const& sol, bool mult_bcoef) const final;
 
+    //! Zero RHS entries in \p rhs that are covered by overset masks on level \p amrlev.
     void applyOverset (int amrlev, MF& rhs) const override;
 
 #if defined(AMREX_USE_HYPRE) && (AMREX_SPACEDIM > 1)
+    //! Instantiate a Hypre backend using the current coefficient data and interface \p hypre_interface.
     [[nodiscard]] std::unique_ptr<Hypre> makeHypre (Hypre::Interface hypre_interface) const override;
 #endif
 
 #if defined(AMREX_USE_PETSC) && (AMREX_SPACEDIM > 1)
+    //! Instantiate a PETSc backend using the current coefficient data.
     [[nodiscard]] std::unique_ptr<PETScABecLap> makePETSc () const override;
 #endif
 

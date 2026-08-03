@@ -11,11 +11,25 @@
 #endif
 
 #include <algorithm>
+#include <concepts>
 #include <climits>
 #include <type_traits>
 
 namespace amrex {
 
+/**
+ * \file AMReX_CSR.H
+ *
+ * CSR containers and helper utilities shared by sparse solvers that rely on
+ * compressed-sparse-row storage.
+ */
+
+/**
+ * \brief Lightweight non-owning CSR view that can point to host or device buffers.
+ *
+ * The template parameter \p T controls constness of the value array; the
+ * column/row arrays follow suit.
+ */
 template <typename T>
 struct CsrView {
     using U = std::conditional_t<std::is_const_v<T>, Long const, Long>;
@@ -26,6 +40,12 @@ struct CsrView {
     Long nrows = 0;
 };
 
+/**
+ * \brief Owning CSR container backed by AMReX resizable vectors.
+ *
+ * @tparam T Value type stored in the matrix.
+ * @tparam V Vector-like container template (e.g., PODVector, Gpu::DeviceVector).
+ */
 template <typename T, template <typename> class V>
 struct CSR {
     V<T> mat;
@@ -33,10 +53,20 @@ struct CSR {
     V<Long> row_offset;
     Long nnz = 0;
 
+    //! Number of logical rows represented by the CSR offset array.
     [[nodiscard]] Long nrows () const {
         return row_offset.empty() ? Long(0) : Long(row_offset.size())-1;
     }
 
+    /**
+     * \brief Resize the storage to accommodate \p num_rows and \p num_non_zeros entries.
+     *
+     * Existing data are discarded; value/column arrays are resized to the
+     * specified nonzero count and row offsets to `num_rows+1`.
+     *
+     * \param num_rows       Row count.
+     * \param num_non_zeros  Number of nonzeros.
+     */
     void resize (Long num_rows, Long num_non_zeros) {
         mat.resize(num_non_zeros);
         col_index.resize(num_non_zeros);
@@ -44,30 +74,49 @@ struct CSR {
         nnz = num_non_zeros;
     }
 
+    //! Mutable view of the underlying buffers.
     CsrView<T> view () {
         return CsrView<T>{mat.data(), col_index.data(), row_offset.data(),
                           nnz, Long(row_offset.size())-1};
     }
 
+    //! Const view of the underlying buffers.
     [[nodiscard]] CsrView<T const> view () const {
-        return CsrView<T>{mat.data(), col_index.data(), row_offset.data(),
-                          nnz, Long(row_offset.size())-1};
+        return CsrView<T const>{.mat = mat.data(),
+                                .col_index = col_index.data(),
+                                .row_offset = row_offset.data(),
+                                .nnz = nnz,
+                                .nrows = Long(row_offset.size())-1};
     }
 
+    //! Convenience alias for view() const.
     [[nodiscard]] CsrView<T const> const_view () const {
         return CsrView<T const>{mat.data(), col_index.data(), row_offset.data(),
                                 nnz, Long(row_offset.size())-1};
     }
 
+    /**
+     * \brief Sort each row by column index. Uses GPU acceleration when possible.
+     */
     void sort ();
 
+    /**
+     * \brief Host-only fallback that sorts column indices row by row.
+     */
     void sort_on_host ();
 };
 
-template <typename C, typename T, template<typename> class AD, template<typename> class AS,
-          std::enable_if_t<std::is_same_v<C,Gpu::HostToDevice> ||
-                           std::is_same_v<C,Gpu::DeviceToHost> ||
-                           std::is_same_v<C,Gpu::DeviceToDevice>, int> = 0>
+template <typename C, typename T, template<typename> class AD, template<typename> class AS>
+requires (std::same_as<C,Gpu::HostToDevice> ||
+          std::same_as<C,Gpu::DeviceToHost> ||
+          std::same_as<C,Gpu::DeviceToDevice>)
+/**
+ * \brief Copy CSR buffers between memory spaces asynchronously.
+ *
+ * \param c   Copy policy describing the direction (HostToDevice, etc.).
+ * \param dst Destination CSR that will be resized and filled.
+ * \param src Source CSR whose buffers are copied verbatim.
+ */
 void duplicateCSR (C c, CSR<T,AD>& dst, CSR<T,AS> const& src)
 {
     dst.mat.resize(src.mat.size());
@@ -318,10 +367,10 @@ void CSR<T,V>::sort_on_host ()
                     perm [i] = i;
                 }
 
-                std::sort(perm.begin(), perm.end(),
-                          [&] (int i0, int i1) {
-                              return lcols[i0] < lcols[i1];
-                          });
+                std::ranges::sort(perm,
+                                  [&] (int i0, int i1) {
+                                      return lcols[i0] < lcols[i1];
+                                  });
 
                 for (int out = 0; out < len; ++out) {
                     auto const in = perm[out];

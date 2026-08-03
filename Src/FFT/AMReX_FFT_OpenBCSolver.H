@@ -18,6 +18,8 @@ namespace amrex::FFT
  *
  * The class wraps an internal `R2C` plan and multiplies spectral data by a user-provided
  * Green's function to solve Laplace/Poisson problems on a rectangular domain.
+ * It currently solves one right-hand-side component per call; the supplied
+ * `FFT::Info` must have `batch_size == 1`.
  */
 template <typename T = Real>
 class OpenBCSolver
@@ -30,7 +32,7 @@ public:
      * \brief Build a solver over \p domain using the FFT Info settings in \p info.
      *
      * \param domain Physical domain (cell or nodal indexing).
-     * \param info   Optional FFT configuration (domain strategy, batching, etc.).
+     * \param info   Optional FFT configuration. Batched solves are not supported.
      */
     explicit OpenBCSolver (Box const& domain, Info const& info = Info{});
 
@@ -58,38 +60,78 @@ public:
      */
     [[nodiscard]] Box const& Domain () const { return m_domain; }
 
+    /**
+     * \brief Access the one-sided padded length used to build the internal FFT domain.
+     *
+     * \return Padded length before the open-boundary convolution domain is doubled.
+     */
+    [[nodiscard]] IntVect const& PaddedLength () const { return m_padded_length; }
+
 private:
-    static Box make_grown_domain (Box const& domain, Info const& info);
+    static IntVect make_padded_length (Box const& domain, Info const& info);
+    static Box make_grown_domain (Box const& domain, IntVect const& padded_len,
+                                  Info const& info);
 
     Box m_domain;
     Info m_info;
+    IntVect m_padded_length;
     R2C<T> m_r2c;
     cMF m_G_fft;
     std::unique_ptr<R2C<T>> m_r2c_green;
 };
 
 template <typename T>
-Box OpenBCSolver<T>::make_grown_domain (Box const& domain, Info const& info)
+IntVect OpenBCSolver<T>::make_padded_length (Box const& domain, Info const& info)
 {
     IntVect len = domain.length();
+    int ndims = AMREX_SPACEDIM;
 #if (AMREX_SPACEDIM == 3)
-    if (info.twod_mode) { len[2] = 0; }
+    if (info.twod_mode) { ndims = 2; }
 #else
     amrex::ignore_unused(info);
 #endif
-    return Box(domain.smallEnd(), domain.bigEnd()+len, domain.ixType());
+    if (info.openbc_padding) {
+        for (int idim = 0; idim < ndims; ++idim) {
+            len[idim] = FFT::nextFastLen(len[idim], info.openbc_padding_nfactors);
+        }
+    }
+    return len;
+}
+
+template <typename T>
+Box OpenBCSolver<T>::make_grown_domain (Box const& domain, IntVect const& padded_len,
+                                        Info const& info)
+{
+    IntVect len = padded_len;
+    int ndims = AMREX_SPACEDIM;
+#if (AMREX_SPACEDIM == 3)
+    if (info.twod_mode) { ndims = 2; }
+#else
+    amrex::ignore_unused(info);
+#endif
+    for (int idim = 0; idim < ndims; ++idim) {
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+            len[idim] <= std::numeric_limits<int>::max()/2,
+            "FFT::OpenBCSolver: padded domain length exceeds int range");
+        len[idim] *= 2;
+    }
+    return Box(domain.smallEnd(), domain.smallEnd()+len-IntVect(1), domain.ixType());
 }
 
 template <typename T>
 OpenBCSolver<T>::OpenBCSolver (Box const& domain, Info const& info)
     : m_domain(domain),
       m_info(info),
-      m_r2c(OpenBCSolver<T>::make_grown_domain(domain,info),
+      m_padded_length(OpenBCSolver<T>::make_padded_length(domain, info)),
+      m_r2c(OpenBCSolver<T>::make_grown_domain(domain, m_padded_length, info),
             m_info.setDomainStrategy(FFT::DomainStrategy::slab))
 {
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(m_info.batch_size == 1,
+        "FFT::OpenBCSolver does not support FFT::Info::batch_size > 1");
+
 #if (AMREX_SPACEDIM == 3)
     if (m_info.twod_mode) {
-        auto gdom = make_grown_domain(domain,m_info);
+        auto gdom = make_grown_domain(domain, m_padded_length, m_info);
         gdom.enclosedCells(2);
         gdom.setSmall(2, 0);
         int nprocs = std::min({ParallelContext::NProcsSub(),
@@ -119,7 +161,8 @@ void OpenBCSolver<T>::setGreensFunction (F const& greens_function)
         :                             detail::get_fab(m_r2c.m_rx);
     auto const& lo = m_domain.smallEnd();
     auto const& lo3 = lo.dim3();
-    auto const& len = m_domain.length3d();
+    auto const len3d = m_padded_length.dim3();
+    GpuArray<int,3> len{len3d.x, len3d.y, len3d.z};
     if (infab) {
         auto const& a = infab->array();
         auto box = infab->box();

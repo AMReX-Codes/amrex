@@ -10,8 +10,10 @@
 #include <AMReX_IParser.H>
 #include <AMReX_Parser.H>
 #include <AMReX_TypeTraits.H>
+#include <AMReX_Vector.H>
 
 #include <array>
+#include <concepts>
 #include <iosfwd>
 #include <optional>
 #include <set>
@@ -40,15 +42,16 @@ namespace ppdetail {
     struct ArithmeticOptional_TT : std::false_type {};
 
     template <class T>
-    struct ArithmeticOptional_TT<T, std::enable_if_t<std::is_arithmetic_v<T>>>
+    requires (std::is_arithmetic_v<T>)
+    struct ArithmeticOptional_TT<T>
         : std::true_type
     {
         using value_type = T;
     };
 
     template <class T>
-    struct ArithmeticOptional_TT<std::optional<T>,
-                                 std::enable_if_t<std::is_arithmetic_v<T>>>
+    requires (std::is_arithmetic_v<T>)
+    struct ArithmeticOptional_TT<std::optional<T>>
         : std::true_type
     {
         using value_type = T;
@@ -1040,7 +1043,7 @@ public:
      * added to the ParmParse database.  The return value indicates if it
      * existed previously.
      */
-    template <typename T, std::enable_if_t<!IsStdVector<T>::value, int> = 0>
+    template <typename T>
     int queryAdd (std::string_view name, T& ref) {
         int exist = this->query(name, ref);
         if (!exist) {
@@ -1077,6 +1080,11 @@ public:
             this->addarr(name, ref);
         }
         return exist;
+    }
+
+    template <typename T>
+    int queryAdd (std::string_view name, Vector<T>& ref) {
+        return this->queryAdd(name, static_cast<std::vector<T>&>(ref));
     }
 
     /**
@@ -1144,12 +1152,13 @@ public:
     int queryarrWithParser (std::string_view name, int nvals, long long* ptr) const;
     int queryarrWithParser (std::string_view name, int nvals, float* ptr) const;
     int queryarrWithParser (std::string_view name, int nvals, double* ptr) const;
-    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
-                                           std::is_same_v<T,int> ||
-                                           std::is_same_v<T,long> ||
-                                           std::is_same_v<T,long long> ||
-                                           std::is_same_v<T,float> ||
-                                           std::is_same_v<T,double>,int> = 0>
+    template <typename T>
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     int queryarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         if (this->contains(name)) {
@@ -1166,12 +1175,13 @@ public:
      * scalar. If not, the value in `ref` will be added to the ParmParse
      * database. The return value indicates whether it's found.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
-                                           std::is_same_v<T,int> ||
-                                           std::is_same_v<T,long> ||
-                                           std::is_same_v<T,long long> ||
-                                           std::is_same_v<T,float> ||
-                                           std::is_same_v<T,double>,int> = 0>
+    template <typename T>
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     int queryAddWithParser (std::string_view name, T& ref)
     {
         int exist = this->queryWithParser(name, ref);
@@ -1186,12 +1196,13 @@ public:
      * to parse the entire list of empty space separated values as a single
      * scalar. If not, it's a runtime error.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
-                                           std::is_same_v<T,int> ||
-                                           std::is_same_v<T,long> ||
-                                           std::is_same_v<T,long long> ||
-                                           std::is_same_v<T,float> ||
-                                           std::is_same_v<T,double>,int> = 0>
+    template <typename T>
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     void getWithParser (std::string_view name, T& ref) const
     {
         int exist = this->queryWithParser(name, ref);
@@ -1205,12 +1216,13 @@ public:
      * error. If the number of elements does not equal to `nvals`, it's also
      * a runtime error.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
-                                           std::is_same_v<T,int> ||
-                                           std::is_same_v<T,long> ||
-                                           std::is_same_v<T,long long> ||
-                                           std::is_same_v<T,float> ||
-                                           std::is_same_v<T,double>,int> = 0>
+    template <typename T>
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     void getarrWithParser (std::string_view name, int nvals, T* ptr) const
     {
         int exist = this->queryarrWithParser(name, nvals, ptr);
@@ -1224,12 +1236,13 @@ public:
      * error. If the number of elements does not equal to `nvals`, it's also
      * a runtime error.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
-                                           std::is_same_v<T,int> ||
-                                           std::is_same_v<T,long> ||
-                                           std::is_same_v<T,long long> ||
-                                           std::is_same_v<T,float> ||
-                                           std::is_same_v<T,double>,int> = 0>
+    template <typename T>
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     void getarrWithParser (std::string_view name, int nvals, std::vector<T>& ref) const
     {
         int exist = this->queryarrWithParser(name, nvals, ref);
@@ -1243,12 +1256,13 @@ public:
      *
      * For unknown symbols, ParmParse database will be queried.
      */
-    template <typename T, std::enable_if_t<std::is_same_v<T,bool> ||
-                                           std::is_same_v<T,int> ||
-                                           std::is_same_v<T,long> ||
-                                           std::is_same_v<T,long long> ||
-                                           std::is_same_v<T,float> ||
-                                           std::is_same_v<T,double>,int> = 0>
+    template <typename T>
+    requires (std::same_as<T,bool> ||
+              std::same_as<T,int> ||
+              std::same_as<T,long> ||
+              std::same_as<T,long long> ||
+              std::same_as<T,float> ||
+              std::same_as<T,double>)
     T eval (std::string const& expr) const
     {
         if constexpr (std::is_integral_v<T>) {
@@ -1302,8 +1316,8 @@ public:
      * string associated with the name cannot be converted to an enumerator
      * (i.e., the string does not match any names in the definition of T).
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     int query (std::string_view name, T& ref, int ival = FIRST) const
     {
         std::string s;
@@ -1325,8 +1339,8 @@ public:
 
     //! Add a key 'name' with value 'val' to the end of the ParmParse
     //! database. Here T is an AMREX_ENUM type.
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     void add (std::string_view name, T const& val)
     {
         this->add(name, amrex::getEnumNameString(val));
@@ -1340,8 +1354,8 @@ public:
      * associated with the name cannot be converted to an enumerator (i.e.,
      * the string does not match any names in the definition of T).
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     void get (std::string_view name, T& ref, int ival = FIRST) const
     {
         std::string s;
@@ -1358,8 +1372,8 @@ public:
     }
 
     //! Query an array of enum values using given name.
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     int queryarr (std::string_view name,
                   std::vector<T>& ref,
                   int start_ix = FIRST,
@@ -1385,8 +1399,8 @@ public:
     }
 
     //! Get an array of enum values using given name.
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     void getarr (std::string_view name,
                  std::vector<T>& ref,
                  int start_ix = FIRST,
@@ -1418,8 +1432,8 @@ public:
      * not case-insensitively match any names in the definition of T). If
      * there are multiple matches, the first one is used.
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     int query_enum_case_insensitive (std::string_view name, T& ref, int ival = FIRST) const
     {
         std::string s;
@@ -1448,8 +1462,8 @@ public:
      * case-insensitively match any names in the definition of T). If there
      * are multiple matches, the first one is used.
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     void get_enum_case_insensitive (std::string_view name, T& ref, int ival = FIRST) const
     {
         int exist = this->query_enum_case_insensitive(name, ref, ival);
@@ -1473,8 +1487,8 @@ public:
      * `ignores` will be ignored as if they don't exist in the value part of
      * ParamParse entries (e.g., `name = value`).
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     int query_enum_sloppy (std::string_view name, T& ref, std::string_view const& ignores,
                            int ival = FIRST) const
     {
@@ -1482,10 +1496,9 @@ public:
         int exist = this->query(name, s, ival);
         if (exist) {
             try {
-                s.erase(std::remove_if(s.begin(), s.end(),
-                                       [&] (auto const& c) {
-                                           return ignores.find(c) != std::string_view::npos; }),
-                        s.end());
+                std::erase_if(s, [&] (auto const& c) {
+                    return ignores.find(c) != std::string_view::npos;
+                });
                 ref = amrex::getEnumCaseInsensitive<T>(s);
             } catch (...) {
                 if (amrex::Verbose() > 0) {
@@ -1510,8 +1523,8 @@ public:
      * will be ignored as if they don't exist in the value part of
      * ParamParse entries (e.g., `name = value`).
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     void get_enum_sloppy (std::string_view name, T& ref, std::string_view const& ignores,
                           int ival = FIRST) const
     {
@@ -1532,7 +1545,8 @@ public:
      * the conversion is not safe. T is either arithmetic type or
      * std::optional of arithmetic type.
      */
-    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    template <typename T>
+    requires (ppdetail::IsArithmeticOptional_v<T>)
     int queryAsDouble (std::string_view name, T& ref) const
     {
         using value_type = ppdetail::underlying_type_t<T>;
@@ -1561,7 +1575,8 @@ public:
      * the conversion is not safe. T is either arithmetic type or
      * std::optional of arithmetic type.
      */
-    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    template <typename T>
+    requires (ppdetail::IsArithmeticOptional_v<T>)
     int queryarrAsDouble (std::string_view name, int nvals, T* ptr) const
     {
         using value_type = ppdetail::underlying_type_t<T>;
@@ -1592,7 +1607,8 @@ public:
      * the conversion is not safe. T is either arithmetic type or
      * std::optional of arithmetic type.
      */
-    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    template <typename T>
+    requires (ppdetail::IsArithmeticOptional_v<T>)
     void getAsDouble (std::string_view name, T& ref) const
     {
         int exist = this->queryAsDouble(name, ref);
@@ -1609,7 +1625,8 @@ public:
      * the conversion is not safe. T is either arithmetic type or
      * std::optional of arithmetic type.
      */
-    template <typename T, std::enable_if_t<ppdetail::IsArithmeticOptional_v<T>, int> = 0>
+    template <typename T>
+    requires (ppdetail::IsArithmeticOptional_v<T>)
     void getarrAsDouble (std::string_view name, int nvals, T* ptr) const
     {
         int exist = this->queryarrAsDouble(name, nvals, ptr);
@@ -1724,7 +1741,9 @@ public:
     //! duplicates, only the last one is printed.
     static void prettyPrintUsedInputs (std::ostream& os);
 
-    //! Add keys and values from a file to the end of the PP table.
+    //! Add keys and values from a file to the end of the PP table.  This
+    //! function must be called on all MPI processes because it contains a
+    //! call to MPI_Bcast.
     static void addfile (std::string const& filename);
 
     static bool QueryUnusedInputs ();
@@ -1772,6 +1791,9 @@ public:
 
     //! keyword for files to load
     static std::string const FileKeyword;
+
+    //! keyword for removing entries from the table
+    static std::string const UnsetKeyword;
 
     static std::string ParserPrefix;
 

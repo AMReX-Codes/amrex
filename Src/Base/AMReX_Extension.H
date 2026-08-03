@@ -2,6 +2,11 @@
 #define AMREX_EXTENSION_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Extension.H
+ * \brief Compiler- and backend-specific extension macros (e.g., restrict, SIMD, inline).
+ */
+
 #if defined(__INTEL_COMPILER) || (defined(__INTEL_LLVM_COMPILER) && !defined(SYCL_LANGUAGE_VERSION))
 #define AMREX_CXX_INTEL
 #elif defined(_CRAYC) || defined(__cray__)
@@ -231,14 +236,15 @@
 #if defined(__has_cpp_attribute) && __has_cpp_attribute(assume)
 #   define AMREX_ASSUME(ASSUMPTION) [[assume(ASSUMPTION)]]
 #else
-#   if defined(__CUDA_ARCH__) && defined(__CUDACC__) && ( (__CUDACC_VER_MAJOR__ > 11) || ((__CUDACC_VER_MAJOR__ == 11) && (__CUDACC_VER_MINOR__ >= 2)) )
+#   if defined(__CUDA_ARCH__) && defined(__CUDACC__)
 #       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
 #   elif defined(AMREX_CXX_INTEL) || defined(__clang__)
 #       define AMREX_ASSUME(ASSUMPTION) __builtin_assume(ASSUMPTION)
 #   elif defined(_MSC_VER)
 #       define AMREX_ASSUME(ASSUMPTION) __assume(ASSUMPTION)
 #   elif defined(__GNUC__)
-#       define AMREX_ASSUME(ASSUMPTION) if (ASSUMPTION) {} else { __builtin_unreachable(); }
+#       define AMREX_ASSUME(ASSUMPTION) \
+            do { if (!(ASSUMPTION)) { __builtin_unreachable(); } } while (0)
 #   else
 #       define AMREX_ASSUME(ASSUMPTION)
 #   endif
@@ -268,13 +274,6 @@
 #else
 #   define AMREX_IF_CONSTEXPR if
 #endif
-
-#if !defined(AMREX_NO_BUILTIN_CLZ)
-#   if defined(__clang__) || defined(__GNUC__)
-#      define AMREX_HAS_BUILTIN_CLZ 1
-#   endif
-#endif
-
 
 #endif /* !BL_LANG_FORT */
 

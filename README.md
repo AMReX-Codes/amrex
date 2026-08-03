@@ -98,7 +98,7 @@ Any level of changes are welcomed: documentation, bug fixes, new test problems,
 new solvers, etc. For more details on how to contribute to AMReX, please see
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
-💡 If you're using AMReX in your own GitHub projects, consider adding `amrex`
+If you're using AMReX in your own GitHub projects, consider adding `amrex`
 as a [repository topic](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/classifying-your-repository-with-topics)!
 This helps others discover related work and strengthens the AMReX ecosystem.
 

@@ -389,6 +389,7 @@ struct SoAParticleBase
     static constexpr int NReal=0;
     static constexpr int NInt=0;
     static constexpr bool is_soa_particle = true;
+    static constexpr bool is_rtsoa_particle = false;
 };
 
 /**
@@ -403,6 +404,7 @@ struct alignas(sizeof(double)) Particle
     : ParticleBase<ParticleReal,T_NReal,T_NInt>
 {
     static constexpr bool is_soa_particle = false;
+    static constexpr bool is_rtsoa_particle = false;
     using StorageParticleType = Particle;
     using ConstType = Particle const;
 
@@ -467,33 +469,29 @@ struct alignas(sizeof(double)) Particle
         return this->m_pos[index];
     }
 
-    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealType& rdata (int index) &
+    RealType& rdata (int index) & requires (NReal != 0)
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
-    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealType& rdata (int /*index*/) &
+    RealType& rdata (int /*index*/) & requires (NReal == 0)
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // bc we must return something
     }
 
-    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const RealType& rdata (int index) const &
+    const RealType& rdata (int index) const & requires (NReal != 0)
     {
         AMREX_ASSERT(index < NReal);
         return this->m_rdata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
-    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealType rdata (int /*index*/) const &
+    RealType rdata (int /*index*/) const & requires (NReal == 0)
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->pos(0);  // because we must return something
@@ -502,9 +500,9 @@ struct alignas(sizeof(double)) Particle
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealType rdata (int /*index*/) && = delete;
 
-    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (AMREX_D_DECL(int indx, int indy, int indz)) const &
+        requires (NReal != 0)
     {
         AMREX_ASSERT(AMREX_D_TERM(indx < NReal, && indy < NReal, && indz < NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indx],
@@ -512,17 +510,16 @@ struct alignas(sizeof(double)) Particle
                                      this->m_rdata[indz]));
     }
 
-    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     RealVect rvec (AMREX_D_DECL(int /*indx*/, int /*indy*/, int /*indz*/)) const &
+        requires (NReal == 0)
     {
         AMREX_ALWAYS_ASSERT(false);
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
-    template <int U = T_NReal, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealVect rvec (const IntVect& indices) const &
+    RealVect rvec (const IntVect& indices) const & requires (NReal != 0)
     {
         AMREX_ASSERT(indices.allLT(NReal));
         return RealVect(AMREX_D_DECL(this->m_rdata[indices[0]],
@@ -530,41 +527,36 @@ struct alignas(sizeof(double)) Particle
                                      this->m_rdata[indices[2]]));
     }
 
-    template <int U = T_NReal, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    RealVect rvec (const IntVect& /*indices*/) const &
+    RealVect rvec (const IntVect& /*indices*/) const & requires (NReal == 0)
     {
         AMREX_ALWAYS_ASSERT(false);
         return RealVect(AMREX_D_DECL(0.0, 0.0, 0.0)); // bc we must return something
     }
 
-    template <int U = T_NInt, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int& idata (int index) &
+    int& idata (int index) & requires (NInt != 0)
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
-    template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    uint64_t& idata (int /*index*/) &
+    uint64_t& idata (int /*index*/) & requires (NInt == 0)
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something
     }
 
-    template <int U = T_NInt, std::enable_if_t<U != 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    const int& idata (int index) const &
+    const int& idata (int index) const & requires (NInt != 0)
     {
         AMREX_ASSERT(index < NInt);
         return this->m_idata[index]; // NOLINT(clang-analyzer-security.ArrayBound)
     }
 
-    template <int U = T_NInt, std::enable_if_t<U == 0, int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    int idata (int /*index*/) const &
+    int idata (int /*index*/) const & requires (NInt == 0)
     {
         AMREX_ALWAYS_ASSERT(false);
         return this->m_idcpu;  //bc we must return something

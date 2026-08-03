@@ -7,15 +7,23 @@
 #include <type_traits>
 #include <cmath>
 
+/**
+ * \file AMReX_EB2_IF_Rotation.H
+ *
+ * Helper that rotates an implicit function by a fixed angle about a coordinate axis.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Rotate an implicit surface around one of the coordinate axes.
 class RotationIF
 {
 public:
 
+    //! Store the child implicit function and rotation parameters.
     RotationIF (F a_f, Real angle, int dir)
         : m_f(std::move(a_f)),
           m_cos_angle(std::cos(angle)),
@@ -32,9 +40,9 @@ public:
         return m_f({x, y});
     }
 
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (Real x, Real y) const noexcept
+        requires (IsGPUable<F>::value)
     {
         return m_f( x*m_cos_angle + y*m_sin_angle,
                    -x*m_sin_angle + y*m_cos_angle);
@@ -66,9 +74,9 @@ public:
         }
     }
 
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (Real x, Real y, Real z) const noexcept
+        requires (IsGPUable<F>::value)
     {
         switch(m_dir) {
         case(0):
@@ -102,8 +110,8 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<RotationIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value)
+struct IsGPUable<RotationIF<F>> : std::true_type {};
 
 template <class F>
 constexpr RotationIF<std::decay_t<F>>

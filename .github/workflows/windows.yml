@@ -16,12 +16,12 @@ jobs:
 
   # Build libamrex and all tests
   tests_msvc:
-    name: MSVC C++17 w/o Fortran w/o MPI
+    name: MSVC w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     # If we add ccache back, don't forget to update cleanup-cache.yml
     #- name: Set Up Cache
     #  uses: actions/cache@v3
@@ -47,6 +47,7 @@ jobs:
         #ccache -z
 
         cmake -S . -B build   `
+              -DCMAKE_CXX_STANDARD=20       `
               -DBUILD_SHARED_LIBS=ON        `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DAMReX_EB=OFF                `
@@ -54,23 +55,24 @@ jobs:
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build --config Debug -j 4
+        cmake --build build --config RelWithDebInfo -j 4
 
-        cmake --build build --config Debug --target install
+        cmake --build build --config RelWithDebInfo --target install
 
         $Env:PATH += ";D:\\a\amrex\amrex\installdir\bin"
-        cmake --build build --config Debug --target test_install
+        cmake --build build --config RelWithDebInfo --target test_install
+        ctest --test-dir build -C RelWithDebInfo --output-on-failure
 
         #ccache -s
 
   # Build libamrex and all test (static)
   test_msvc_static:
-    name: MSVC C++17 w/o Fortran w/o MPI static
+    name: MSVC w/o Fortran w/o MPI static
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     # If we add ccache back, don't forget to update cleanup-cache.yml
     #- name: Set Up Cache
     #  uses: actions/cache@v3
@@ -94,70 +96,66 @@ jobs:
         #$Env:CCACHE_MAXSIZE='135M'
         #ccache -z
 
-        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
-        # is a workaround github windows runner 20240603.1.0.
-        # https://github.com/actions/runner-images/issues/10004
-
         cmake -S . -B build   `
+              -DCMAKE_CXX_STANDARD=20       `
               -DCMAKE_VERBOSE_MAKEFILE=ON   `
               -DCMAKE_BUILD_TYPE=RelWithDebInfo `
-              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
               -DAMReX_EB=ON                 `
               -DAMReX_ENABLE_TESTS=ON       `
               -DAMReX_FORTRAN=OFF           `
               -DAMReX_MPI=OFF
               #-DCMAKE_CXX_COMPILER_LAUNCHER=ccache
-        cmake --build build -j 4
+        cmake --build build --config RelWithDebInfo -j 4
 
-        cmake --build build --target install
-        cmake --build build --target test_install
+        cmake --build build --config RelWithDebInfo --target install
+        cmake --build build --config RelWithDebInfo --target test_install
+        ctest --test-dir build -C RelWithDebInfo --output-on-failure
 
         #ccache -s
 
   # Build libamrex and all tests
   tests_clang:
-    name: MSVC Clang C++17 w/o Fortran w/o MPI
+    name: MSVC Clang w/o Fortran w/o MPI
     runs-on: windows-latest
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - uses: seanmiddleditch/gha-setup-ninja@master
+    - name: Set Up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
     - name: Build & Install
       shell: cmd
-      env:
-        CMAKE_GENERATOR_TOOLSET: "ClangCl"
-        CMAKE_GENERATOR: "Visual Studio 17 2022"
       run: |
-        # -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" `
-        # is a workaround github windows runner 20240603.1.0.
-        # https://github.com/actions/runner-images/issues/10004
-
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\vc\Auxiliary\build\vcvarsall.bat" x64
         cmake -S . -B build   ^
+              -G Ninja                  ^
+              -DCMAKE_C_COMPILER=clang-cl ^
+              -DCMAKE_CXX_COMPILER=clang-cl ^
+              -DCMAKE_CXX_STANDARD=20       ^
+              -DCMAKE_BUILD_TYPE=Release    ^
               -DBUILD_SHARED_LIBS=ON        ^
               -DCMAKE_VERBOSE_MAKEFILE=ON   ^
-              -DCMAKE_CXX_FLAGS=" /D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR" ^
               -DAMReX_EB=ON                 ^
               -DAMReX_ENABLE_TESTS=ON       ^
               -DAMReX_FORTRAN=OFF           ^
               -DAMReX_MPI=OFF               ^
               -DAMReX_OMP=ON
-        cmake --build build --config Release -j 4
+        cmake --build build -j 4
 
-        cmake --build build --config Release --target install
+        cmake --build build --target install
 
         set "PATH=%PATH%;D:\\a\amrex\amrex\installdir\bin"
-        cmake --build build --config Release --target test_install
+        cmake --build build --target test_install
+        ctest --test-dir build --output-on-failure
 
   tests_cuda:
     name: CUDA on Windows
-    runs-on: windows-latest
+    runs-on: windows-2022
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
-    - uses: Jimver/cuda-toolkit@v0.2.30
+    - uses: actions/checkout@v7
+    - uses: Jimver/cuda-toolkit@v0.2.35
       id: cuda-toolkit
       with:
         cuda: '12.6.1'
@@ -179,6 +177,7 @@ jobs:
       run: |
         cmake -S . -B build                       `
               -G "Ninja"                          `
+              -DCMAKE_CXX_STANDARD=20             `
               -DCMAKE_VERBOSE_MAKEFILE=ON         `
               -DCMAKE_BUILD_TYPE=Release          `
               -DAMReX_GPU_BACKEND=CUDA            `

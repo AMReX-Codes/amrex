@@ -107,6 +107,7 @@ contains
   subroutine amrex_distromap_build_ba (dm, ba)
     type(amrex_distromap) :: dm
     type(amrex_boxarray), intent(in) :: ba
+    call amrex_distromap_destroy(dm)
     dm%owner = .true.
     call amrex_fi_new_distromap(dm%p, ba%p)
   end subroutine amrex_distromap_build_ba
@@ -114,6 +115,7 @@ contains
   subroutine amrex_distromap_build_pmap (dm, pmap)
     type(amrex_distromap) :: dm
     integer, intent(in) :: pmap(:)
+    call amrex_distromap_destroy(dm)
     dm%owner = .true.
     call amrex_fi_new_distromap_from_pmap(dm%p,pmap, size(pmap))
   end subroutine amrex_distromap_build_pmap
@@ -132,6 +134,7 @@ contains
   subroutine amrex_distromap_assign (dst, src)
     class(amrex_distromap), intent(inout) :: dst
     type (amrex_distromap), intent(in   ) :: src
+    call amrex_distromap_destroy(dst)
     dst%owner = .false.
     dst%p = src%p
   end subroutine amrex_distromap_assign
@@ -139,6 +142,7 @@ contains
   subroutine amrex_distromap_install (this, p)
     class(amrex_distromap), intent(inout) :: this
     type(c_ptr), intent(in) :: p
+    call amrex_distromap_destroy(this)
     this%owner = .false.
     this%p     = p
   end subroutine amrex_distromap_install
@@ -146,12 +150,14 @@ contains
   subroutine amrex_distromap_clone (dst, src)
     class(amrex_distromap), intent(inout) :: dst
     type (amrex_distromap), intent(in   ) :: src
+    call amrex_distromap_destroy(dst)
     dst%owner = .true.
     call amrex_fi_clone_distromap(dst%p, src%p)
   end subroutine amrex_distromap_clone
 
   subroutine amrex_distromap_move (dst, src)
     class(amrex_distromap) :: dst, src
+    call amrex_distromap_destroy(dst)
     dst%owner = src%owner
     dst%p = src%p
     src%owner = .false.

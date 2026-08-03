@@ -192,7 +192,7 @@ BARef::resize (Long n) {
 #endif
     m_abox.resize(n);
     hash.clear();
-    has_hashmap = false;
+    has_hashmap.store(false, std::memory_order_release);
 #ifdef AMREX_MEM_PROFILING
     updateMemoryUsage_box(1);
 #endif
@@ -1445,7 +1445,7 @@ BoxArray::clear_hash_bin () const
         m_ref->updateMemoryUsage_hash(-1);
 #endif
         m_ref->hash.clear();
-        m_ref->has_hashmap = false;
+        m_ref->has_hashmap.store(false, std::memory_order_release);
     }
 }
 
@@ -1569,7 +1569,7 @@ BoxArray::getHashMap () const
 #pragma omp critical(intersections_lock)
 #endif
     {
-        if (BoxHashMap.empty() && size() > 0)
+        if (!m_ref->HasHashMap() && size() > 0)
         {
             //
             // Calculate the bounding box & maximum extent of the boxes.
@@ -1601,11 +1601,7 @@ BoxArray::getHashMap () const
             m_ref->updateMemoryUsage_hash(1);
 #endif
 
-#ifdef AMREX_USE_OMP
-#pragma omp flush
-#pragma omp atomic write
-#endif
-            m_ref->has_hashmap = true;
+            m_ref->has_hashmap.store(true, std::memory_order_release);
         }
     }
 
@@ -1947,7 +1943,7 @@ bool match (const BoxArray& x, const BoxArray& y)
 BoxArray decompose (Box const& domain, int nboxes,
                     Array<bool,AMREX_SPACEDIM> const& decomp, bool no_overlap)
 {
-    auto ndecomp = std::count(decomp.begin(), decomp.end(), true);
+    auto ndecomp = std::ranges::count(decomp, true);
 
     if (nboxes <= 1 || ndecomp == 0) {
         return BoxArray(domain);
@@ -2021,7 +2017,7 @@ BoxArray decompose (Box const& domain, int nboxes,
 
         int nprocs_tot = 1;
         while (!factors.empty()) {
-            std::sort(procdim.begin(), procdim.end(), comp);
+            std::ranges::sort(procdim, comp);
             auto f = factors.back();
             factors.pop_back();
             procdim.back().nproc *= f;
@@ -2035,7 +2031,7 @@ BoxArray decompose (Box const& domain, int nboxes,
         // swap to see if the decomposition can be improved.
         while (true)
         {
-            std::sort(procdim.begin(), procdim.end(), comp);
+            std::ranges::sort(procdim, comp);
             auto fit = std::find_if(procdim.begin(),procdim.end(),
                                     [] (ProcDim const& x) { return x.nproc > 1; });
             if (fit == procdim.end()) { break; } // This should not actually happen.

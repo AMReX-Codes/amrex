@@ -60,7 +60,7 @@ void EdgeFluxRegister::define (const BoxArray& fba, const BoxArray& cba,
             if (direction != idim) {
                 // For x-direction, we store Ey and then Ez in m_E_fine.
                 // For y-direction, we store Ex and then Ez in m_E_fine.
-                // For z-direction, we store Ey and then Ez in m_E_fine.
+                // For z-direction, we store Ex and then Ey in m_E_fine.
                 const int m = (idim < direction) ? idim : idim-1;
                 fmf[count++] = & m_E_fine[face][m];
             }
@@ -182,6 +182,31 @@ void EdgeFluxRegister::reset ()
     Gpu::synchronize();
 }
 
+EdgeFluxRegister&
+EdgeFluxRegister::plus (EdgeFluxRegister const& rhs)
+{
+    AMREX_ALWAYS_ASSERT(m_ratio == rhs.m_ratio);
+    AMREX_ALWAYS_ASSERT(m_ncomp == rhs.m_ncomp);
+
+#if (AMREX_SPACEDIM == 3)
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        MultiFab::Add(m_E_crse[idim], rhs.m_E_crse[idim], 0, 0, m_ncomp, 0);
+    }
+    for (int iface = 0; iface < AMREX_SPACEDIM*2; ++iface) {
+        for (int icomp = 0; icomp < 2; ++icomp) {
+            MultiFab::Add(m_E_fine[iface][icomp], rhs.m_E_fine[iface][icomp], 0, 0, m_ncomp, 0);
+        }
+    }
+#else
+    MultiFab::Add(m_E_crse, rhs.m_E_crse, 0, 0, m_ncomp, 0);
+    for (int iface = 0; iface < AMREX_SPACEDIM*2; ++iface) {
+        MultiFab::Add(m_E_fine[iface], rhs.m_E_fine[iface], 0, 0, m_ncomp, 0);
+    }
+#endif
+
+    return *this;
+}
+
 #if (AMREX_SPACEDIM == 3)
 
 void EdgeFluxRegister::CrseAdd (MFIter const& mfi, const Array<FArrayBox const*,3>& E_crse,
@@ -227,7 +252,7 @@ void EdgeFluxRegister::FineAdd (MFIter const& mfi, const Array<FArrayBox const*,
             if (direction != idim) {
                 // For x-direction, we store Ey and then Ez in m_E_fine.
                 // For y-direction, we store Ex and then Ez in m_E_fine.
-                // For z-direction, we store Ey and then Ez in m_E_fine.
+                // For z-direction, we store Ex and then Ey in m_E_fine.
                 const int m = (idim < direction) ? idim : idim-1;
                 auto const& dst = m_E_fine[face][m].array(mfi);
                 AMREX_ASSERT(E_fine[idim]->box().ixType() == m_E_fine[face][m].ixType());
@@ -297,7 +322,7 @@ void EdgeFluxRegister::Reflux (Array<MultiFab*,AMREX_SPACEDIM> const& B_crse) co
             if (direction != idim) {
                 // For x-direction, we store Ey and then Ez in m_E_fine.
                 // For y-direction, we store Ex and then Ez in m_E_fine.
-                // For z-direction, we store Ey and then Ez in m_E_fine.
+                // For z-direction, we store Ex and then Ey in m_E_fine.
                 const int m = (idim < direction) ? idim : idim-1;
                 E_cfine[idim].ParallelCopy(m_E_fine[face][m], m_crse_geom.periodicity());
             }

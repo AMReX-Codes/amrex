@@ -8,15 +8,23 @@
 #include <type_traits>
 #include <cmath>
 
+/**
+ * \file AMReX_EB2_IF_Lathe.H
+ *
+ * Helper that revolves a 2-D implicit function around the z-axis.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F>
+//! Lathe an implicit curve around the z axis to build a surface of revolution.
 class LatheIF
 {
 public:
 
+    //! Store the curve implicit function prior to rotation.
     LatheIF (F a_f) : m_f(std::move(a_f)) {}
 
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
@@ -29,9 +37,9 @@ public:
 #endif
     }
 
-    template <class U=F, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires (IsGPUable<F>::value)
     {
         Real r = std::hypot(x,y);
 #if (AMREX_SPACEDIM == 2)
@@ -47,8 +55,8 @@ protected:
 };
 
 template <class F>
-struct IsGPUable<LatheIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value)
+struct IsGPUable<LatheIF<F>> : std::true_type {};
 
 template <class F>
 constexpr LatheIF<std::decay_t<F>>

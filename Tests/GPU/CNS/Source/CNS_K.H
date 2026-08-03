@@ -28,7 +28,7 @@ cns_estdt (amrex::Box const& bx, amrex::Array4<Real const> const& state,
                 Real rho = state(i,j,k,URHO);
                 Real mx  = state(i,j,k,UMX);
                 Real my  = state(i,j,k,UMY);
-                Real mz  = state(i,j,k,UMY);
+                Real mz  = state(i,j,k,UMZ);
                 Real ei  = state(i,j,k,UEINT);
                 Real rhoinv = Real(1.0)/amrex::max(rho,parm.smallr);
                 Real vx = mx*rhoinv;

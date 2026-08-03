@@ -1,8 +1,19 @@
 #ifndef AMREX_FBI_H_
 #define AMREX_FBI_H_
 
+/**
+ * \file AMReX_FBI.H
+ * \brief Internal Fab copy tags and GPU helpers used by FabArray transfers.
+ */
+
 namespace amrex {
 
+/**
+ * \brief Describes a source FAB region participating in a copy.
+ *
+ * Contains the source FAB pointer, destination box, and the offset between
+ * source/destination boxes so kernels can translate coordinates quickly.
+ */
 template <class FAB>
 struct FabCopyTag {
     FAB const* sfab;
@@ -10,6 +21,7 @@ struct FabCopyTag {
     IntVect offset; // sbox.smallEnd() - dbox.smallEnd()
 };
 
+/** \brief Lightweight tag describing raw pointer copies (used for pack/unpack). */
 struct VoidCopyTag {
     char const* p;
     Box dbox;
@@ -43,7 +55,8 @@ struct CellAdd
 template <class T0, class T1>
 struct CellAtomicAdd
 {
-    template<class U0=T0, std::enable_if_t<amrex::HasAtomicAdd<U0>::value,int> = 0>
+    template<class U0=T0>
+    requires (amrex::HasAtomicAdd<U0>::value)
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE void
     operator() (U0* d, T1 s) const noexcept
     {
@@ -164,8 +177,9 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
     const int N = copy_tags.size();
     tags.reserve(N);
     for (int i = 0; i < N; ++i) {
-        tags.push_back(TagType{copy_tags[i].dfab, copy_tags[i].sfab, masks[i].dfab,
-                               copy_tags[i].dbox, copy_tags[i].offset});
+        tags.push_back(TagType{.dfab = copy_tags[i].dfab, .sfab = copy_tags[i].sfab,
+                               .mask = masks[i].dfab, .dbox = copy_tags[i].dbox,
+                               .offset = copy_tags[i].offset});
     }
 
     if constexpr (std::is_same_v<F, CellStore<T0,T1>>)
@@ -179,8 +193,8 @@ fab_to_fab (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp, int dcom
     // Note that Tag ParalleFor has a stream sync call in the end.
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<amrex::IsStoreAtomic<T0>::value,int> = 0>
+template <typename T0, typename T1>
+requires (amrex::IsStoreAtomic<T0>::value)
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const&)
@@ -188,8 +202,8 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab<T0, T1>(copy_tags, scomp, dcomp, ncomp, CellStore<T0, T1>());
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<!amrex::IsStoreAtomic<T0>::value,int> = 0>
+template <typename T0, typename T1>
+requires (!amrex::IsStoreAtomic<T0>::value)
 void
 fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const& masks)
@@ -197,8 +211,8 @@ fab_to_fab_atomic_cpy (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellStore<T0, T1>(), masks);
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<amrex::HasAtomicAdd<T0>::value,int> = 0>
+template <typename T0, typename T1>
+requires (amrex::HasAtomicAdd<T0>::value)
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const&)
@@ -206,8 +220,8 @@ fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scom
     fab_to_fab(copy_tags, scomp, dcomp, ncomp, CellAtomicAdd<T0, T1>());
 }
 
-template <typename T0, typename T1,
-          std::enable_if_t<!amrex::HasAtomicAdd<T0>::value,int> = 0>
+template <typename T0, typename T1>
+requires (!amrex::HasAtomicAdd<T0>::value)
 void
 fab_to_fab_atomic_add (Vector<Array4CopyTag<T0, T1> > const& copy_tags, int scomp,
                        int dcomp, int ncomp, Vector<Array4Tag<int> > const& masks)
@@ -261,8 +275,10 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
                     IntVect lo(AMREX_D_DECL(it*tile_size,
                                             jt*tile_size,
                                             kt*tile_size));
-                    tiled_tags.push_back(TiledTag{itag, std::make_pair
-                            (tag.dindex, Box(lo, lo+(tile_size-1), ixtype))});
+                    tiled_tags.push_back(TiledTag{
+                        .tag_index = itag,
+                        .dindex_tilebox = std::make_pair(tag.dindex, Box(lo, lo+(tile_size-1), ixtype))
+                    });
                 }
             }
         }
@@ -282,8 +298,9 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
         }
         auto const& ttag = tiled_tags[itag];
         auto const& btag = a_tags[ttag.tag_index];
-        h_tags.push_back({btag.dfab, btag.dindex, btag.sfab,
-                          btag.dbox & ttag.dindex_tilebox.second, btag.offset});
+        h_tags.push_back(TagType{.dfab = btag.dfab, .dindex = btag.dindex, .sfab = btag.sfab,
+                                 .dbox = btag.dbox & ttag.dindex_tilebox.second,
+                                 .offset = btag.offset});
     }
     h_ntags.push_back((unsigned int)tiled_tags.size());
 
@@ -340,8 +357,8 @@ void deterministic_fab_to_fab (Vector<Array4CopyTag<T0,T1>> const& a_tags, int s
     Gpu::streamSynchronize();
 }
 
-template <typename B, typename V, typename TT,
-          std::enable_if_t<amrex::HasAtomicAdd<V>::value,int> FOO = 0>
+template <typename B, typename V, typename TT>
+requires (amrex::HasAtomicAdd<V>::value)
 void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
                                         int dcomp, int ncomp)
 {
@@ -360,8 +377,8 @@ void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
         });
 }
 
-template <typename B, typename V, typename TT,
-          std::enable_if_t<!amrex::HasAtomicAdd<V>::value,int> FOO = 0>
+template <typename B, typename V, typename TT>
+requires (!amrex::HasAtomicAdd<V>::value)
 void unpack_recv_buffer_gpu_atomic_add (char* pbuffer, TagVector<TT> const& tv,
                                         int dcomp, int ncomp)
 {
@@ -509,10 +526,11 @@ auto FabArray<FAB>::FB_get_local_copy_tag_vector (const FB& TheFB)
 
             int li = this->localindex(tag.dstIndex);
             loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(), tag.dstIndex,
-                  this->fabPtr(tag.srcIndex)->const_array(),
-                  tag.dbox,
-                  (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+                (TagType{.dfab = this->atLocalIdx(li).array(),
+                         .dindex = tag.dstIndex,
+                         .sfab = this->fabPtr(tag.srcIndex)->const_array(),
+                         .dbox = tag.dbox,
+                         .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
         }
 
         auto utv = std::make_unique<TagVector<TagType>>(loc_copy_tags);
@@ -571,16 +589,17 @@ FabArray<FAB>::FB_local_copy_gpu (const FB& TheFB, int scomp, int ncomp)
 
             int li = this->localindex(tag.dstIndex);
             loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(), tag.dstIndex,
-                  this->fabPtr(tag.srcIndex)->const_array(),
-                  tag.dbox,
-                  (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+                (TagType{.dfab = this->atLocalIdx(li).array(),
+                         .dindex = tag.dstIndex,
+                         .sfab = this->fabPtr(tag.srcIndex)->const_array(),
+                         .dbox = tag.dbox,
+                         .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
 
             if (!maskfabs[li].isAllocated()) {
                 maskfabs[li].resize(this->atLocalIdx(li).box());
-                masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                masks_unique.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
             }
-            masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+            masks.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
         }
 
         amrex::ParallelFor(masks_unique,
@@ -613,13 +632,13 @@ FabArray<FAB>::FB_local_add_gpu (const FB& TheFB, int scomp, int ncomp, bool det
         const CopyComTag& tag = LocTags[itag];
         src_fabs[itag].resize(tag.sbox,ncomp);
         loc_copy_tags_1.push_back(
-            TagType{src_fabs[itag].array(), -1,
-                    this->const_array(tag.srcIndex,scomp), tag.sbox,
-                    Dim3{0,0,0}});
+            TagType{.dfab = src_fabs[itag].array(), .dindex = -1,
+                    .sfab = this->const_array(tag.srcIndex,scomp), .dbox = tag.sbox,
+                    .offset = Dim3{.x = 0, .y = 0, .z = 0}});
         loc_copy_tags_2.push_back(
-            TagType{this->array(tag.dstIndex,scomp), tag.dstIndex,
-                    src_fabs[itag].const_array(), tag.dbox,
-                    (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+            TagType{.dfab = this->array(tag.dstIndex,scomp), .dindex = tag.dstIndex,
+                    .sfab = src_fabs[itag].const_array(), .dbox = tag.dbox,
+                    .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
     }
 
     // Note that we have shifted the starting component to zero in the code above.
@@ -662,7 +681,7 @@ FabArray<FAB>::CMD_local_setVal_gpu (typename FabArray<FAB>::value_type x,
     {
         const CopyComTag& tag = LocTags[i];
         BL_ASSERT(distributionMap[tag.dstIndex] == ParallelDescriptor::MyProc());
-        loc_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
+        loc_setval_tags.push_back(TagType{.dfab = this->array(tag.dstIndex), .dbox = tag.dbox});
     }
 
     amrex::ParallelFor(loc_setval_tags, ncomp,
@@ -685,7 +704,7 @@ FabArray<FAB>::CMD_remote_setVal_gpu (typename FabArray<FAB>::value_type x,
 
     for (auto it = RcvTags.begin(); it != RcvTags.end(); ++it) {
         for (auto const& tag: it->second) {
-            rcv_setval_tags.push_back({this->array(tag.dstIndex), tag.dbox});
+            rcv_setval_tags.push_back(TagType{.dfab = this->array(tag.dstIndex), .dbox = tag.dbox});
         }
     }
 
@@ -975,7 +994,7 @@ FabArray<FAB>::FB_unpack_recv_buffer_cuda_graph (const FB& TheFB, int dcomp, int
             auto const& cctc = *recv_cctc[k];
             for (auto const& tag : cctc)
             {
-                recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
+                recv_copy_tags[tag.dstIndex].push_back(VoidCopyTag{.p = dptr, .dbox = tag.dbox});
                 dptr += tag.dbox.numPts() * ncomp * sizeof(value_type);
                 launches++;
             }
@@ -1070,7 +1089,7 @@ FabArray<FAB>::get_send_copy_tag_vector (Vector<char*> const& send_data,
                 for (auto const& tag : cctc)
                 {
                     snd_copy_tags.emplace_back
-                        (TagType{this->const_array(tag.srcIndex), dptr-pbuf, tag.sbox});
+                        (TagType{.sfab = this->const_array(tag.srcIndex), .poff = dptr-pbuf, .bx = tag.sbox});
                     dptr += (tag.sbox.numPts() * ncomp * sizeof(BUF));
                 }
             }
@@ -1168,7 +1187,7 @@ FabArray<FAB>::get_recv_copy_tag_vector (Vector<char*> const& recv_data,
                 {
                     const int li = this->localindex(tag.dstIndex);
                     recv_copy_tags.emplace_back
-                        (TagType{this->atLocalIdx(li).array(), dptr-pbuf, tag.dbox});
+                        (TagType{.dfab = this->atLocalIdx(li).array(), .poff = dptr-pbuf, .bx = tag.dbox});
                     dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
                 }
             }
@@ -1233,11 +1252,12 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 auto const& cctc = *recv_cctc[k];
                 for (auto const& tag : cctc) {
                     tags.emplace_back(
-                        TagType{dst.array(tag.dstIndex), tag.dstIndex,
-                                Array4<BUF const>((BUF const*)dptr,
-                                                  amrex::begin(tag.dbox),
-                                                  amrex::end(tag.dbox), ncomp),
-                                tag.dbox, Dim3{0,0,0}});
+                        TagType{.dfab = dst.array(tag.dstIndex), .dindex = tag.dstIndex,
+                                .sfab = Array4<BUF const>((BUF const*)dptr,
+                                                          amrex::begin(tag.dbox),
+                                                          amrex::end(tag.dbox), ncomp),
+                                .dbox = tag.dbox,
+                                .offset = Dim3{.x = 0, .y = 0, .z = 0}});
                     dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
                 }
             }
@@ -1319,18 +1339,18 @@ FabArray<FAB>::unpack_recv_buffer_gpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 {
                     const int li = dst.localindex(tag.dstIndex);
                     recv_copy_tags.emplace_back(TagType{
-                            dst.atLocalIdx(li).array(), tag.dstIndex,
-                            amrex::makeArray4((BUF const*)(dptr), tag.dbox, ncomp),
-                            tag.dbox,
-                            Dim3{0,0,0}
+                            .dfab = dst.atLocalIdx(li).array(), .dindex = tag.dstIndex,
+                            .sfab = amrex::makeArray4((BUF const*)(dptr), tag.dbox, ncomp),
+                            .dbox = tag.dbox,
+                            .offset = Dim3{.x = 0, .y = 0, .z = 0}
                         });
                     dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
 
                     if (!maskfabs[li].isAllocated()) {
                         maskfabs[li].resize(dst.atLocalIdx(li).box());
-                        masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                        masks_unique.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
                     }
-                    masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                    masks.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
                 }
                 BL_ASSERT(dptr <= pbuffer + offset + recv_size[k]);
             }
@@ -1453,7 +1473,7 @@ FabArray<FAB>::unpack_recv_buffer_cpu (FabArray<FAB>& dst, int dcomp, int ncomp,
                 auto const& cctc = *recv_cctc[k];
                 for (auto const& tag : cctc)
                 {
-                    recv_copy_tags[tag.dstIndex].push_back({dptr,tag.dbox});
+                    recv_copy_tags[tag.dstIndex].push_back(VoidCopyTag{.p = dptr, .dbox = tag.dbox});
                     dptr += tag.dbox.numPts() * ncomp * sizeof(BUF);
                 }
                 BL_ASSERT(dptr <= recv_data[k] + recv_size[k]);

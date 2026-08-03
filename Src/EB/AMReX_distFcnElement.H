@@ -6,8 +6,15 @@
 #include <AMReX.H>
 #include <AMReX_Vector.H>
 
+/**
+ * \file AMReX_distFcnElement.H
+ *
+ * Spline/line elements that evaluate distances to 2-D curves (used by EB splines).
+ */
+
 namespace amrex {
 
+//! Abstract base for 2-D distance-function elements.
 class distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
  public:
   //! Constructor
@@ -26,6 +33,7 @@ class distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
 };
 
 
+//! Distance function defined by a polyline.
 class LineDistFcnElement2d: public distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
  public:
   LineDistFcnElement2d() = default;
@@ -55,6 +63,7 @@ class LineDistFcnElement2d: public distFcnElement2d { // NOLINT(cppcoreguideline
 };
 
 
+//! Distance function defined by a cubic spline.
 class SplineDistFcnElement2d: public distFcnElement2d { // NOLINT(cppcoreguidelines-special-member-functions)
  public:
   SplineDistFcnElement2d() = default;

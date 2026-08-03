@@ -9,12 +9,14 @@
 #include <AMReX_NeighborList.H>
 #include <AMReX_OpenMP.H>
 #include <AMReX_ParticleTile.H>
+#include <AMReX_ParticleTileRT.H>
 
 namespace amrex {
 
   struct NeighborCode
   {
       int grid_id;
+      Box grid_box;
       IntVect periodic_shift;
   };
 
@@ -29,15 +31,20 @@ namespace amrex {
 /// in AMR subcycling to keep track of coarse level particles that may move on to fine
 /// levels during a fine level time step.
 ///
-template <int NStructReal, int NStructInt, int NArrayReal=0, int NArrayInt=0>
-class NeighborParticleContainer // NOLINT(cppcoreguidelines-virtual-class-destructor) // clang-tidy seems wrong.
-    : public ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
+template <typename T_ParticleType, int T_NArrayReal=0, int T_NArrayInt=0,
+          template<class> class Allocator=DefaultAllocator,
+          class CellAssignor=DefaultAssignor>
+class NeighborParticleContainer_impl // NOLINT(cppcoreguidelines-virtual-class-destructor) // clang-tidy seems wrong.
+    : public ParticleContainer_impl<T_ParticleType, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>
 {
 public:
-    using ParticleContainerType = ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    using ParticleContainerType =
+        ParticleContainer_impl<T_ParticleType, T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
     using ParticleType = typename ParticleContainerType::ParticleType;
     using SuperParticleType = typename ParticleContainerType::SuperParticleType;
-    using NeighborListContainerType = Vector<std::map<std::pair<int, int>, amrex::NeighborList<ParticleType> > >;
+    using NeighborListContainerType =
+        Vector<std::map<std::pair<int, int>,
+            amrex::NeighborList<ParticleType> > >;
 private:
     struct MaskComps
     {
@@ -192,34 +199,43 @@ private:
 
 public:
 
-    using MyParIter = ParIter<NStructReal, NStructInt, NArrayReal, NArrayInt>;
+    static constexpr int NArrayReal = ParticleContainerType::NArrayReal;
+    static constexpr int NArrayInt = ParticleContainerType::NArrayInt;
+    static constexpr int NStructReal = ParticleContainerType::NStructReal;
+    static constexpr int NStructInt = ParticleContainerType::NStructInt;
+    static constexpr int RealCommCompStart = ParticleType::is_soa_particle ? 0 : AMREX_SPACEDIM + NStructReal;
+    static constexpr int IntCommCompStart = 2 + NStructInt;
+
+    using MyParIter = typename ParticleContainerType::ParIterType;
     using PairIndex = std::pair<int, int>;
     using NeighborCommMap = std::map<NeighborCommTag, Vector<char> >;
-    using AoS = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::AoS;
-    using ParticleVector = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleVector;
-    using ParticleTile = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::ParticleTileType;
-    using IntVector  = typename ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::IntVector;
+    using AoS = typename ParticleContainerType::AoS;
+    using ParticleVector = typename ParticleContainerType::ParticleVector;
+    using ParticleTile = typename ParticleContainerType::ParticleTileType;
+    using IntVector  = typename ParticleContainerType::IntVector;
+    using PTDType = typename ParticleContainerType::PTDType;
+    using ConstPTDType = typename ParticleContainerType::ConstPTDType;
 
-    NeighborParticleContainer (ParGDBBase* gdb, int ncells);
+    NeighborParticleContainer_impl (ParGDBBase* gdb, int ncells);
 
-    NeighborParticleContainer (const Geometry            & geom,
-                               const DistributionMapping & dmap,
-                               const BoxArray            & ba,
-                               int                         nneighbor);
+    NeighborParticleContainer_impl (const Geometry            & geom,
+                                    const DistributionMapping & dmap,
+                                    const BoxArray            & ba,
+                                    int                         nneighbor);
 
-    NeighborParticleContainer (const Vector<Geometry>            & geom,
-                               const Vector<DistributionMapping> & dmap,
-                               const Vector<BoxArray>            & ba,
-                               const Vector<int>                 & rr,
-                               int                               nneighbor);
+    NeighborParticleContainer_impl (const Vector<Geometry>            & geom,
+                                    const Vector<DistributionMapping> & dmap,
+                                    const Vector<BoxArray>            & ba,
+                                    const Vector<int>                 & rr,
+                                    int                               nneighbor);
 
-    ~NeighborParticleContainer () override = default;
+    ~NeighborParticleContainer_impl () override = default;
 
-    NeighborParticleContainer ( const NeighborParticleContainer &) = delete;
-    NeighborParticleContainer& operator= ( const NeighborParticleContainer & ) = delete;
+    NeighborParticleContainer_impl ( const NeighborParticleContainer_impl &) = delete;
+    NeighborParticleContainer_impl& operator= ( const NeighborParticleContainer_impl & ) = delete;
 
-    NeighborParticleContainer ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
-    NeighborParticleContainer& operator= ( NeighborParticleContainer && ) = default; // NOLINT(performance-noexcept-move-constructor)
+    NeighborParticleContainer_impl ( NeighborParticleContainer_impl && ) = default; // NOLINT(performance-noexcept-move-constructor)
+    NeighborParticleContainer_impl& operator= ( NeighborParticleContainer_impl && ) = default; // NOLINT(performance-noexcept-move-constructor)
 
     ///
     /// Regrid functions
@@ -232,6 +248,14 @@ public:
     /// This fills the neighbor buffers for each tile with the proper data
     ///
     void fillNeighbors ();
+
+    ///
+    /// Fill neighbor buffers, but only communicate particles within
+    /// physical distance search_radius of tile boundaries.
+    /// Reduces communication volume when search_radius << cell size.
+    /// CPU build only; the GPU path is not yet implemented.
+    ///
+    void fillNeighbors (amrex::Real search_radius);
 
     ///
     /// This does an "inverse" fillNeighbors operation, meaning that it adds
@@ -257,12 +281,32 @@ public:
     void buildNeighborList (CheckPair const& check_pair, bool sort=false);
 
     ///
+    /// Build a Neighbor List for each tile, using custom bin_size
+    /// instead of the mesh cell size. Useful when the interaction
+    /// radius is much smaller than dx.
+    ///
+    template <class CheckPair>
+    void buildNeighborList (CheckPair const& check_pair, amrex::Real bin_size, bool sort=false);
+
+    ///
     /// Build a Neighbor List for each tile
     ///
     template <class CheckPair, class OtherPCType>
     void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
-                            Vector<std::map<std::pair<int, int>, amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            Vector<std::map<std::pair<int, int>,
+                                amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
                             bool sort=false);
+
+    ///
+    /// Build a cross-container Neighbor List for each tile, using custom
+    /// bin_size instead of the mesh cell size. Useful when the interaction
+    /// radius is much smaller than dx.
+    ///
+    template <class CheckPair, class OtherPCType>
+    void buildNeighborList (CheckPair const& check_pair, OtherPCType& other,
+                            Vector<std::map<std::pair<int, int>,
+                                amrex::NeighborList<typename OtherPCType::ParticleType> > >& neighbor_lists,
+                            amrex::Real bin_size, bool sort=false);
 
     ///
     /// Build a Neighbor List for each tile
@@ -289,42 +333,46 @@ public:
         return neighbors[lev][std::make_pair(grid,tile)];
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
+    template <std::same_as<bool> T>
     void AddRealComp (T communicate=true)
     {
-        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-            AddRealComp(communicate);
+        ParticleContainerType::AddRealComp(communicate);
         ghost_real_comp.push_back(communicate);
         calcCommSize();
     }
 
-    template <typename T,
-              std::enable_if_t<std::is_same_v<T,bool>,int> = 0>
+    template <std::same_as<bool> T>
     void AddIntComp (T communicate=true)
     {
-        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>::
-            AddIntComp(communicate);
+        ParticleContainerType::AddIntComp(communicate);
         ghost_int_comp.push_back(communicate);
         calcCommSize();
     }
 
-    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0, int local=0,
+    void Redistribute (int lev_min=0, int lev_max=-1, int nGrow=0,
+                       int local=0, bool remove_negative=true)
+    {
+        clearNeighbors();
+        ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
+    }
+
+    void Redistribute (int lev_min, int lev_max, IntVect nGrow,
+                       bool local, IntVect max_cells_moved,
                        bool remove_negative=true)
     {
         clearNeighbors();
-        ParticleContainer<NStructReal, NStructInt, NArrayReal, NArrayInt>
-            ::Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
+        ParticleContainerType::Redistribute(lev_min, lev_max, nGrow, local,
+                                            max_cells_moved, remove_negative);
     }
 
     void RedistributeLocal (bool remove_negative=true)
     {
         const int lev_min = 0;
         const int lev_max = 0;
-        const int nGrow = 0;
-        const int local = 1;
+        const IntVect nGrow(0);
+        const IntVect local(1);
         clearNeighbors();
-        this->Redistribute(lev_min, lev_max, nGrow, local, remove_negative);
+        this->Redistribute(lev_min, lev_max, nGrow, true, local, remove_negative);
     }
 
 #ifdef AMREX_USE_GPU
@@ -332,7 +380,7 @@ public:
     void updateNeighborsGPU (bool boundary_neighbors_only=false);
     void clearNeighborsGPU ();
 #else
-    void fillNeighborsCPU ();
+    void fillNeighborsCPU (amrex::Real search_radius = amrex::Real(0));
     void sumNeighborsCPU (int real_start_comp, int real_num_comp,
                           int int_start_comp, int int_num_comp);
     void updateNeighborsCPU (bool reuse_rcv_counts=true);
@@ -353,21 +401,30 @@ public:
 
 protected:
 
-    void cacheNeighborInfo ();
+    [[nodiscard]] int numRealCommComps () const { return RealCommCompStart + this->NumRealComps(); }
+    [[nodiscard]] int numIntCommComps () const { return IntCommCompStart + this->NumIntComps(); }
+
+    void cacheNeighborInfo (amrex::Real search_radius = amrex::Real(0));
 
     ///
-    /// This builds the internal mask data structure used for looking up neighbors
+    /// This builds the internal mask data structure used for looking up neighbors.
+    /// When search_radius > 0, the mask grow is sized to cover that physical
+    /// distance per level; otherwise the constructor's m_num_neighbor_cells
+    /// is used.
     ///
-    void BuildMasks ();
+    void BuildMasks (amrex::Real search_radius = amrex::Real(0));
 
     ///
     /// Are the masks computed by the above function still valid?
+    /// When search_radius > 0, masks are additionally invalid if their
+    /// per-level grow is smaller than ceil(search_radius / min(dx_lev)).
     ///
-    bool areMasksValid ();
+    bool areMasksValid (amrex::Real search_radius = amrex::Real(0));
 
-    void GetNeighborCommTags ();
+    void GetNeighborCommTags (amrex::Real search_radius = amrex::Real(0));
 
-    void GetCommTagsBox (Vector<NeighborCommTag>& tags, int lev, const Box& in_box);
+    void GetCommTagsBox (Vector<NeighborCommTag>& tags, int lev, const Box& in_box,
+                         amrex::Real search_radius = amrex::Real(0));
 
     void resizeContainers (int num_levels);
 
@@ -389,13 +446,17 @@ protected:
     ///
     void getRcvCountsMPI ();
 
+    template <typename P>
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
-                         const ParticleType& p,
-                          int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          const P& p,
+                          int nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti,
+                          amrex::Real search_radius = amrex::Real(0));
 
+    template <typename P>
     void getNeighborTags (Vector<NeighborCopyTag>& tags,
-                         const ParticleType& p,
-                         const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti);
+                          const P& p,
+                          const IntVect& nGrow, const NeighborCopyTag& src_tag, const MyParIter& pti,
+                          amrex::Real search_radius = amrex::Real(0));
 
     IntVect computeRefFac (int src_lev, int lev);
 
@@ -484,6 +545,17 @@ protected:
 
     bool m_has_neighbors = false;
 };
+
+template <int T_NStructReal, int T_NStructInt, int T_NArrayReal=0, int T_NArrayInt=0>
+using NeighborParticleContainer =
+    NeighborParticleContainer_impl<Particle<T_NStructReal, T_NStructInt>, T_NArrayReal, T_NArrayInt>;
+
+template <int T_NArrayReal, int T_NArrayInt,
+          template<class> class Allocator=DefaultAllocator,
+          class CellAssignor=DefaultAssignor>
+using NeighborParticleContainerPureSoA =
+    NeighborParticleContainer_impl<SoAParticle<T_NArrayReal, T_NArrayInt>,
+                                   T_NArrayReal, T_NArrayInt, Allocator, CellAssignor>;
 
 }
 

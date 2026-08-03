@@ -49,7 +49,7 @@ void cic_interpolate_cc (const P& p,
 }
 
 /**
- \brief Linearly interpolates the mesh data to the particle position from node-centered data.
+ \brief Linearly interpolates the mesh data to the particle position from nodal data.
 */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -196,7 +196,7 @@ void cic_interpolate_cc_mapped_z (const P& p,
 }
 
 /**
- \brief Linearly interpolates the mesh data to the particle position from node-centered data.
+ \brief Linearly interpolates the mesh data to the particle position from nodal data.
         on a terrain-fitted grid.
 */
 template <typename P>
@@ -545,7 +545,7 @@ void particle_interp_solve (Array2D<Real,1,7,1,7>& a, Array1D<Real,1,7>& b, Arra
 
 
 /**
- \brief Linearly interpolates the mesh data to the particle position from node-centered data on a general mapped grid.
+ \brief Linearly interpolates the mesh data to the particle position from nodal data on a general mapped grid.
 */
 template <typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -564,7 +564,7 @@ void cic_interpolate_nd_mapped (const P& p,
 
 /**
  \brief Linearly interpolates the mesh data to the particle position on a general mapped grid.
-        Note that currently only node-centered data interpolation is supported in 2D and 3D.
+        Note that currently only nodal data interpolation is supported in 2D and 3D.
 */
 
 template <typename P>
@@ -586,10 +586,10 @@ void linear_interpolate_to_particle_mapped (const P& p,
     for (int d = 0; d < num_arrays; d++)
     {
         // Assertion to ensure that only nodal data is supported
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][0] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][1] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][0] == 1),"For general mapped coordinates, interpolation is supported only for nodal data");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][1] == 1),"For general mapped coordinates, interpolation is supported only for nodal data");
 #if (AMREX_SPACEDIM == 3)
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][2] == 1),"For general mapped coordinates, interpolation is supported only for node-centered data");
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE((is_nodal[d][2] == 1),"For general mapped coordinates, interpolation is supported only for nodal data");
 #endif
     }
     int n_of_data = 0;

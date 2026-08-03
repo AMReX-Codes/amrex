@@ -7,10 +7,12 @@
 #include <AMReX.H>
 #include <AMReX_GpuLaunch.H>
 #include <AMReX_Print.H>
+#include <AMReX_ReduceSIMD.H>
 #include <AMReX_SIMD.H>
 #include <AMReX_Vector.H>
 
 #include <cmath>
+#include <cstddef>
 #include <numeric>
 #include <type_traits>
 
@@ -265,7 +267,7 @@ int main (int argc, char* argv[])
             Gpu::ManagedVector<ParticleReal> x_data(n);
             Gpu::ManagedVector<ParticleReal> y_data(n);
             std::iota(x_data.begin(), x_data.end(), ParticleReal(0));
-            std::fill(y_data.begin(), y_data.end(), ParticleReal(100));
+            std::ranges::fill(y_data, ParticleReal(100));
 
             auto* x_ptr = x_data.data();
             auto* y_ptr = y_data.data();
@@ -321,7 +323,7 @@ int main (int argc, char* argv[])
             Gpu::ManagedVector<ParticleReal> x_data(n);
             Gpu::ManagedVector<ParticleReal> y_data(n);
             std::iota(x_data.begin(), x_data.end(), ParticleReal(0));
-            std::fill(y_data.begin(), y_data.end(), ParticleReal(10));
+            std::ranges::fill(y_data, ParticleReal(10));
 
             auto* x_ptr = x_data.data();
             auto* y_ptr = y_data.data();
@@ -424,6 +426,93 @@ int main (int argc, char* argv[])
             Print() << "Position-dependent load_1d+store_1d: "
                     << (err == 0 ? "PASSED" : "FAILED") << "\n";
         }
+
+        // ================================================================
+        // Test 14: any_of, where, select — portable single-source
+        //   Uses SIMDParticleReal<>, which is a SIMD vector when AMREX_USE_SIMD=ON
+        //   and a plain scalar when OFF.  The same code path exercises
+        //   both the real SIMD and the scalar fallback implementations.
+        // ================================================================
+        {
+            using PReal_t = simd::SIMDParticleReal<>;
+
+            // safe reciprocal: 1/b where b != 0, else 0
+            auto b = PReal_t(2);
+            auto mask = b != PReal_t(0);
+            auto safe_b = simd::stdx::select(mask, b, PReal_t(1));
+            auto recip  = simd::stdx::select(mask,
+                              PReal_t(1) / safe_b,
+                              PReal_t(0));
+
+            // any_of: at least one lane should be nonzero
+            AMREX_ALWAYS_ASSERT(simd::stdx::any_of(mask));
+
+            // where: masked assignment
+            auto acc = PReal_t(0);
+            simd::stdx::where(mask, acc) = recip;
+
+            // verify: b=2 everywhere → recip=0.5, acc=0.5
+            int err = 0;
+            auto check = [&] (ParticleReal got, ParticleReal expected) {
+                if (std::abs(got - expected) > ParticleReal(1.e-10)) { ++err; }
+            };
+#ifdef AMREX_USE_SIMD
+            for (std::size_t lane = 0; lane < PReal_t::size(); ++lane) {
+                check(recip[lane], ParticleReal(0.5));
+                check(acc[lane],   ParticleReal(0.5));
+            }
+#else
+            check(recip, ParticleReal(0.5));
+            check(acc,   ParticleReal(0.5));
+#endif
+
+            nerrors += err;
+            Print() << "any_of + where + select (portable): "
+                    << (err == 0 ? "PASSED" : "FAILED") << "\n";
+        }
+
+#ifndef AMREX_USE_GPU
+        // ================================================================
+        // Test 15: evalReduceSIMD with a mixed-type tuple
+        //   Sum(Real), Min(int), Max(Real) over the same index range.
+        //   With AMReX_SIMD=ON the main loop runs vectorized (native width);
+        //   without, the same code runs the scalar loop.
+        // ================================================================
+        {
+            constexpr int n = 67;  // prime, stresses SIMD remainder handling
+            Vector<Real> rdata(n);
+            Vector<int> idata(n);
+            for (int i = 0; i < n; ++i) {
+                rdata[i] = static_cast<Real>(i + 1);  // 1 .. n
+                idata[i] = (i * 7) % 23 + 1;          // in [1, 23]
+            }
+            auto const* rp = rdata.data();
+            auto const* ip = idata.data();
+
+            ReduceOps<ReduceOpSum, ReduceOpMin, ReduceOpMax> reduce_ops;
+            ReduceData<Real, int, Real> reduce_data(reduce_ops);
+            constexpr int W = static_cast<int>(simd::native_simd_size_real);
+
+            evalReduceSIMD<W>(n, reduce_data,
+                [=] (auto si)
+                {
+                    auto const a = simd::load_1d(rp, si);
+                    auto const b = simd::load_1d(ip, si);
+                    return amrex::makeTuple(a, b, a);
+                }, reduce_ops);
+            auto const r = reduce_data.value(reduce_ops);
+
+            int err = 0;
+            constexpr int expected_sum = n*(n+1)/2;  // sum 1..n
+            if (amrex::get<0>(r) != static_cast<Real>(expected_sum)) { ++err; }
+            if (amrex::get<1>(r) != 1) { ++err; }
+            if (amrex::get<2>(r) != static_cast<Real>(n)) { ++err; }
+
+            nerrors += err;
+            Print() << "evalReduceSIMD (mixed-type tuple): "
+                    << (err == 0 ? "PASSED" : "FAILED") << "\n";
+        }
+#endif // !AMREX_USE_GPU
 
         // ================================================================
         // Final report

@@ -629,13 +629,13 @@ void eb_interp_centroid2facecent_x (Box const& ubx,
                                     Array4<Real> const& phi_x,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) noexcept
+                                    const BCRec* bc)
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcx   holds (  y,z) of the x-face centroid as components ( /0/1)
-  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(ubx, ncomp, [=] (int i, int j, int k, int n)
     {
       if (apx(i,j,k) == 0)
       {
@@ -850,13 +850,13 @@ void eb_interp_centroid2facecent_y (Box const& vbx,
                                     Array4<Real> const& phi_y,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) noexcept
+                                    const BCRec* bc)
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcy   holds (x,  z) of the y-face centroid as components (0/ /1)
-  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(vbx, ncomp, [=] (int i, int j, int k, int n)
     {
         if (apy(i,j,k) == 0)
         {
@@ -1068,13 +1068,13 @@ void eb_interp_centroid2facecent_z (Box const& wbx,
                                     Array4<Real> const& phi_z,
                                     int ncomp,
                                     const Box& domain,
-                                    const BCRec* bc) noexcept
+                                    const BCRec* bc)
 {
   const Dim3 domlo = amrex::lbound(domain);
   const Dim3 domhi = amrex::ubound(domain);
   // Note that ccent holds (x,y,z) of the cell centroids  as components (0/1/2)
   //           fcz   holds (x,y  ) of the z-face centroid as components (0/1  )
-  amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n) noexcept
+  amrex::Loop(wbx, ncomp, [=] (int i, int j, int k, int n)
     {
         if (apz(i,j,k) == 0)
         {
@@ -1368,7 +1368,13 @@ void eb_add_divergence_from_flow (int i, int j, int k, int n, Array4<Real> const
                        + vel_eb(i,j,k,1)*bnorm(i,j,k,1)
                        + vel_eb(i,j,k,2)*bnorm(i,j,k,2);
 
-        divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dxinv[0] / vfrc(i,j,k);
+        Real nx_dxinv = bnorm(i,j,k,0) * dxinv[0];
+        Real ny_dyinv = bnorm(i,j,k,1) * dxinv[1];
+        Real nz_dzinv = bnorm(i,j,k,2) * dxinv[2];
+
+        Real dl_eb_inv = std::sqrt(nx_dxinv*nx_dxinv + ny_dyinv*ny_dyinv + nz_dzinv*nz_dzinv);
+
+        divu(i,j,k,n) += Ueb_dot_n * barea(i,j,k) * dl_eb_inv / vfrc(i,j,k);
     }
 }
 

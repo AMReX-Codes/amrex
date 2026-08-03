@@ -2,6 +2,12 @@
 #define AMREX_ANY_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Any.H
+ * \brief Type-erased container that supports move-only types.
+ */
+
+#include <concepts>
 #include <memory>
 #include <typeinfo>
 #include <type_traits>
@@ -9,9 +15,13 @@
 namespace amrex {
 
 /**
- * This class is similar to std::any.  However, amrex::Any can store
- * move-only types (e.g., amrex::MultiFab), whereas std::any is for copy
- * constructible types only.  An object of this class is non-copyable.
+ * \class amrex::Any
+ * \ingroup amrex_utilities
+ * \brief Type-erased container similar to \c std::any, but supports move-only types.
+ *
+ * Unlike \c std::any, which requires the stored type to be copy-constructible,
+ * \c amrex::Any can store move-only types such as \c amrex::MultiFab.
+ * An object of this class is itself non-copyable.
  */
 class Any
 {
@@ -27,16 +37,19 @@ public:
     Any& operator= (Any && rhs) = default;
 
     //! Constructs by moving the given object.
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
+    //! \param mf Value forwarded into the internal storage.
+    template <typename MF>
+    requires (!std::same_as<Any,std::remove_cvref_t<MF>>)
     Any (MF && mf) // NOLINT(bugprone-forwarding-reference-overload)
         : m_ptr(std::make_unique<innards<MF> >(std::forward<MF>(mf)))
         {}
 
     //! Assigns by moving the given object.
-    template <typename MF,
-              std::enable_if_t<!std::is_same_v<Any,std::decay_t<MF>>,int> = 0>
-    Any& operator= (MF && mf) {
+    //! \param mf Value forwarded into the internal storage.
+    template <typename MF>
+    requires (!std::same_as<Any,std::remove_cvref_t<MF>>)
+    Any& operator= (MF && mf)
+    {
         m_ptr = std::make_unique<innards<MF> >(std::forward<MF>(mf));
         return *this;
     }

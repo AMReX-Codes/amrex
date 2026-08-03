@@ -430,7 +430,7 @@ void mlndlap_gauss_seidel_c (Box const& bx, Array4<Real> const& sol,
 AMREX_FORCE_INLINE
 void tridiagonal_solve (Array1D<Real,0,31>& a_ls, Array1D<Real,0,31>& b_ls, Array1D<Real,0,31>& c_ls,
                         Array1D<Real,0,31>& r_ls, Array1D<Real,0,31>& u_ls, Array1D<Real,0,31>& gam,
-                        int ilen ) noexcept
+                        int ilen )
 {
     Real bet = b_ls(0);
     u_ls(0) = r_ls(0) / bet;
@@ -451,7 +451,7 @@ void mlndlap_gauss_seidel_with_line_solve_aa (Box const& bx, Array4<Real> const&
                               Array4<Real const> const& rhs, Array4<Real const> const& sig,
                               Array4<int const> const& msk,
                               GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                              bool is_rz) noexcept
+                              bool is_rz)
 {
     Real facx = Real(1.0/6.0)*dxinv[0]*dxinv[0];
     Real facy = Real(1.0/6.0)*dxinv[1]*dxinv[1];
@@ -824,6 +824,29 @@ void mlndlap_mknewu (int i, int j, int k, Array4<Real> const& u, Array4<Real con
     }
 }
 
+// Harmonic-average (anisotropic sigma) variant.  Used when the node-
+// centered Poisson operator was set up with a multi-component sigma
+// (see MLNodeLaplacian::setSigma and setMapped) so each velocity
+// component is corrected with its own sigma direction.  Under RZ the
+// axial correction is applied to the y-component (which is the axial
+// direction in AMReX's 2D RZ convention).
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_mknewu_ha (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
+                        Array4<Real const> const& sx,
+                        Array4<Real const> const& sy,
+                        GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                        bool is_rz) noexcept
+{
+    Real facx = Real(0.5)*dxinv[0];
+    Real facy = Real(0.5)*dxinv[1];
+    u(i,j,k,0) -= sx(i,j,k)*facx*(-p(i,j,k)+p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    u(i,j,k,1) -= sy(i,j,k)*facy*(-p(i,j,k)-p(i+1,j,k)+p(i,j+1,k)+p(i+1,j+1,k));
+    if (is_rz) {
+        Real frz = sy(i,j,k)*facy / static_cast<Real>(6*i+3);
+        u(i,j,k,1) += frz*(p(i,j,k)-p(i+1,j,k)-p(i,j+1,k)+p(i+1,j+1,k));
+    }
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_mknewu_c (int i, int j, int k, Array4<Real> const& u, Array4<Real const> const& p,
                        Real sig,  GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
@@ -1166,6 +1189,114 @@ void mlndlap_Ax_fine_contrib_cs (int i, int j, int /*k*/, Box const& ndbx, Box c
          i,j,ndbx,ccbx,f,res,rhs,phi,msk,is_rz,dxinv);
 }
 
+// Anisotropic-sigma variants of mlndlap_sum_Ax, mlndlap_Ax_fine_contrib,
+// and mlndlap_res_cf_contrib used by the AMR-sync paths when m_use_mapped.
+// Per-axis sigma: facx-terms use sx, facy-terms (including RZ fp/fm) use sy.
+// Recover the scalar kernels when sx == sy.
+    template <typename P, typename SX, typename SY>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    Real mlndlap_sum_Ax_ha (P const& pred, SX const& sx, SY const& sy,
+                            int i, int j, Real facx, Real facy,
+                            Array4<Real const> const& phi, bool is_rz) noexcept
+    {
+        Real Ax = Real(0.0);
+        Real fp = Real(0.0), fm = Real(0.0);
+        if (is_rz) {
+            fp = facy / static_cast<Real>(2*i+1);
+            fm = facy / static_cast<Real>(2*i-1);
+        }
+        if (pred(i-1,j-1)) {
+            Ax += facx*sx(i-1,j-1,0)*(Real(2.)*(phi(i-1,j  ,0)-phi(i  ,j  ,0))
+                                          +    (phi(i-1,j-1,0)-phi(i  ,j-1,0)))
+                + facy*sy(i-1,j-1,0)*(Real(2.)*(phi(i  ,j-1,0)-phi(i  ,j  ,0))
+                                          +    (phi(i-1,j-1,0)-phi(i-1,j  ,0)))
+                + fm  *sy(i-1,j-1,0)*          (phi(i  ,j-1,0)-phi(i  ,j  ,0));
+        }
+        if (pred(i,j-1)) {
+            Ax += facx*sx(i,j-1,0)*(Real(2.)*(phi(i+1,j  ,0)-phi(i  ,j  ,0))
+                                        +    (phi(i+1,j-1,0)-phi(i  ,j-1,0)))
+                + facy*sy(i,j-1,0)*(Real(2.)*(phi(i  ,j-1,0)-phi(i  ,j  ,0))
+                                        +    (phi(i+1,j-1,0)-phi(i+1,j  ,0)))
+                - fp  *sy(i,j-1,0)*          (phi(i  ,j-1,0)-phi(i  ,j  ,0));
+        }
+        if (pred(i-1,j)) {
+            Ax += facx*sx(i-1,j,0)*(Real(2.)*(phi(i-1,j  ,0)-phi(i  ,j  ,0))
+                                        +    (phi(i-1,j+1,0)-phi(i  ,j+1,0)))
+                + facy*sy(i-1,j,0)*(Real(2.)*(phi(i  ,j+1,0)-phi(i  ,j  ,0))
+                                        +    (phi(i-1,j+1,0)-phi(i-1,j  ,0)))
+                + fm  *sy(i-1,j,0)*          (phi(i  ,j+1,0)-phi(i  ,j  ,0));
+        }
+        if (pred(i,j)) {
+            Ax += facx*sx(i,j,0)*(Real(2.)*(phi(i+1,j  ,0)-phi(i  ,j  ,0))
+                                     +     (phi(i+1,j+1,0)-phi(i  ,j+1,0)))
+                + facy*sy(i,j,0)*(Real(2.)*(phi(i  ,j+1,0)-phi(i  ,j  ,0))
+                                     +     (phi(i+1,j+1,0)-phi(i+1,j  ,0)))
+                - fp  *sy(i,j,0)*          (phi(i  ,j+1,0)-phi(i  ,j  ,0));
+        }
+        return Ax;
+    }
+
+    template <int rr, typename SX, typename SY>
+    AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+    void mlndlap_Ax_fine_contrib_doit_ha (SX const& sx, SY const& sy,
+                                          int i, int j, Box const& ndbx, Box const& ccbx,
+                                          Array4<Real> const& f, Array4<Real const> const& res,
+                                          Array4<Real const> const& rhs,
+                                          Array4<Real const> const& phi,
+                                          Array4<int const> const& msk, bool is_rz,
+                                          GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+    {
+        const int ii = rr*i;
+        const int jj = rr*j;
+        if (msk(ii,jj,0)) {
+            Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
+            Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
+
+            auto is_fine = [&ccbx] (int ix, int iy) -> bool {
+                return ccbx.contains(ix,iy,0);
+            };
+
+            Real Df = Real(0.0);
+
+            const int ilo = amrex::max(ii-rr+1, ndbx.smallEnd(0));
+            const int ihi = amrex::min(ii+rr-1, ndbx.bigEnd  (0));
+            const int jlo = amrex::max(jj-rr+1, ndbx.smallEnd(1));
+            const int jhi = amrex::min(jj+rr-1, ndbx.bigEnd  (1));
+
+            for (int joff = jlo; joff <= jhi; ++joff) {
+            for (int ioff = ilo; ioff <= ihi; ++ioff) {
+                Real scale = static_cast<Real>((rr-std::abs(ii-ioff)) *
+                                               (rr-std::abs(jj-joff)));
+                if (ndbx.strictly_contains(ioff,joff,0)) {
+                    Df += scale * (rhs(ioff,joff,0)-res(ioff,joff,0));
+                } else {
+                    Df += scale * mlndlap_sum_Ax_ha
+                        (is_fine, sx, sy, ioff, joff, facx, facy, phi, is_rz);
+                }
+            }}
+
+            f(i,j,0) = Df * (Real(1.0)/static_cast<Real>(rr*rr*rr*rr));
+        } else {
+            f(i,j,0) = Real(0.0);
+        }
+    }
+
+template <int rr>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_Ax_fine_contrib_ha (int i, int j, int /*k*/, Box const& ndbx, Box const& ccbx,
+                                 Array4<Real> const& f, Array4<Real const> const& res,
+                                 Array4<Real const> const& rhs, Array4<Real const> const& phi,
+                                 Array4<Real const> const& sx, Array4<Real const> const& sy,
+                                 Array4<int const> const& msk,
+                                 bool is_rz,
+                                 GpuArray<Real,AMREX_SPACEDIM> const& dxinv) noexcept
+{
+    mlndlap_Ax_fine_contrib_doit_ha<rr>
+        ([&sx] (int ix, int iy, int) -> Real const& { return sx(ix,iy,0); },
+         [&sy] (int ix, int iy, int) -> Real const& { return sy(ix,iy,0); },
+         i,j,ndbx,ccbx,f,res,rhs,phi,msk,is_rz,dxinv);
+}
+
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_res_cf_contrib (int i, int j, int, Array4<Real> const& res,
                              Array4<Real const> const& phi, Array4<Real const> const& rhs,
@@ -1195,6 +1326,46 @@ void mlndlap_res_cf_contrib (int i, int j, int, Array4<Real> const& res,
                                      return sig(ix,iy,0);
                                  },
                                  i, j, facx, facy, phi, is_rz);
+        Ax += fc(i,j,0);
+        Real const ns = (neumann_doubling) ? neumann_scale(i,j,nddom,bclo,bchi) : Real(1.0);
+        res(i,j,0) = rhs(i,j,0) - Ax*ns;
+    }
+}
+
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+void mlndlap_res_cf_contrib_ha (int i, int j, int, Array4<Real> const& res,
+                                Array4<Real const> const& phi, Array4<Real const> const& rhs,
+                                Array4<Real const> const& sx, Array4<Real const> const& sy,
+                                Array4<int const> const& dmsk,
+                                Array4<int const> const& ndmsk, Array4<int const> const& ccmsk,
+                                Array4<Real const> const& fc,
+                                GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
+                                Box const& ccdom_p, Box const& nddom,
+                                bool is_rz,
+                                GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bclo,
+                                GpuArray<LinOpBCType, AMREX_SPACEDIM> const& bchi,
+                                bool neumann_doubling) noexcept
+{
+    using namespace nodelap_detail;
+
+    if (!dmsk(i,j,0) && ndmsk(i,j,0) == crse_fine_node) {
+        Real facx = Real(1./6.)*dxinv[0]*dxinv[0];
+        Real facy = Real(1./6.)*dxinv[1]*dxinv[1];
+
+        Real Ax = mlndlap_sum_Ax_ha([&ccmsk, &ccdom_p] (int ix, int iy) -> bool
+                                    {
+                                        return ccdom_p.contains(ix,iy,0)
+                                            && (ccmsk(ix,iy,0) == crse_cell);
+                                    },
+                                    [&sx] (int ix, int iy, int) -> Real const&
+                                    {
+                                        return sx(ix,iy,0);
+                                    },
+                                    [&sy] (int ix, int iy, int) -> Real const&
+                                    {
+                                        return sy(ix,iy,0);
+                                    },
+                                    i, j, facx, facy, phi, is_rz);
         Ax += fc(i,j,0);
         Real const ns = (neumann_doubling) ? neumann_scale(i,j,nddom,bclo,bchi) : Real(1.0);
         res(i,j,0) = rhs(i,j,0) - Ax*ns;
@@ -1894,7 +2065,7 @@ AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 void mlndlap_set_integral_eb (int i, int j, int, Array4<Real> const& intg,
                               Array4<EBCellFlag const> const& flag, Array4<Real const> const& vol,
                               Array4<Real const> const& ax, Array4<Real const> const& ay,
-                              Array4<Real const> const& bcen) noexcept
+                              Array4<Real const> const& bcen)
 {
     using namespace nodelap_detail;
 

@@ -10,7 +10,7 @@
 #include <AMReX_MFInterpolater.H>
 #include <AMReX_Array.H>
 #include <AMReX_Utility.H>
-
+#include <AMReX_Concepts.H>
 /**
  * \file AMReX_FillPatchUtil.H
  * \brief High-level FillPatch helpers for AMR coarse-to-fine synchronization.
@@ -37,14 +37,17 @@ namespace amrex
     template <typename MFFAB>
     struct NullInterpHook
     {
-        template <class F=MFFAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-        void operator() (MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator()(MFFAB& /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
+        requires (BaseFabType<MFFAB>)
+        {}
 
-        template <class F=MFFAB, std::enable_if_t<IsBaseFab<F>::value,int> = 0>
-        void operator() (Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator()(Array<MFFAB*, AMREX_SPACEDIM> /*fab*/, const Box& /*bx*/, int /*icomp*/, int /*ncomp*/) const
+        requires (BaseFabType<MFFAB>)
+        {}
 
-        template <class F=MFFAB, std::enable_if_t<IsFabArray<F>::value,int> = 0>
-        void operator() (MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const {}
+        void operator()(MFFAB& /*mf*/, int /*icomp*/, int /*ncomp*/) const
+        requires (FabArrayType<MFFAB>)
+        {}
     };
 
     /**
@@ -87,8 +90,8 @@ namespace amrex
      * \param physbcf functor for physical boundaries
      * \param bcfcomp starting component for physbcf
      */
-    template <typename MF, typename BC>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename BC>
+    void
     FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
@@ -118,8 +121,8 @@ namespace amrex
      * \param physbcf functor for physical boundaries
      * \param bcfcomp starting component for physbcf
      */
-    template <typename MF, typename BC>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename BC>
+    void
     FillPatchSingleLevel (MF& mf, Real time,
                           const Vector<MF*>& smf, const Vector<Real>& stime,
                           int scomp, int dcomp, int ncomp,
@@ -164,10 +167,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -218,10 +221,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (MF& mf, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
                         const Vector<MF*>& fmf, const Vector<Real>& ft,
@@ -276,10 +279,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
@@ -334,10 +337,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
@@ -391,10 +394,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     FillPatchTwoLevels (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& cmf, const Vector<Real>& ct,
                         const Vector<Array<MF*, AMREX_SPACEDIM> >& fmf, const Vector<Real>& ft,
@@ -448,8 +451,8 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
@@ -502,8 +505,8 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename BC, typename Interp, typename PreInterpHook, typename PostInterpHook>
+    void
     FillPatchTwoLevels (MF& mf, Real time,
                         const EB2::IndexSpace& index_space,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
@@ -549,10 +552,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -593,10 +596,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -638,10 +641,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost, Real time,
                            const EB2::IndexSpace* index_space,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
@@ -684,10 +687,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, Real time,
                            const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -730,10 +733,10 @@ namespace amrex
      * \param pre_interp pre-interpolation hook
      * \param post_interp post-interpolation hook
      */
-    template <typename MF, typename BC, typename Interp,
+    template <FabArrayType MF, typename BC, typename Interp,
               typename PreInterpHook=NullInterpHook<typename MF::FABType::value_type>,
               typename PostInterpHook=NullInterpHook<typename MF::FABType::value_type> >
-    std::enable_if_t<IsFabArray<MF>::value>
+    void
     InterpFromCoarseLevel (Array<MF*, AMREX_SPACEDIM> const& mf, IntVect const& nghost, Real time,
                            const Array<MF*, AMREX_SPACEDIM>& cmf, int scomp, int dcomp, int ncomp,
                            const Geometry& cgeom, const Geometry& fgeom,
@@ -771,8 +774,8 @@ namespace amrex
      * \param bcs boundar types for each component
      * \param bcscomp starting component for bcs
      */
-    template <typename MF, typename Interp>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename Interp>
+    void
     InterpFromCoarseLevel (MF& mf, IntVect const& nghost,
                            IntVect const& nghost_outside_domain,
                            const MF& cmf, int scomp, int dcomp, int ncomp,
@@ -802,8 +805,8 @@ namespace amrex
      * \param ncomp number of components
      * \param geom Geometry for this level
      */
-    template <typename MF>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF>
+    void
     FillPatchSingleLevel (MF& mf, IntVect const& nghost, Real time,
                           const Vector<MF*>& smf, IntVect const& snghost,
                           const Vector<Real>& stime, int scomp, int dcomp, int ncomp,
@@ -839,8 +842,8 @@ namespace amrex
      * \param bcs boundary types for each component.
      * \param bcscomp starting component for bcs
      */
-    template <typename MF, typename Interp>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename Interp>
+    void
     FillPatchTwoLevels (MF& mf, IntVect const& nghost,
                         IntVect const& nghost_outside_domain, Real time,
                         const Vector<MF*>& cmf, const Vector<Real>& ct,
@@ -904,8 +907,8 @@ namespace amrex
      * \param bcr boundary types for each component. We need this because some interpolaters need it.
      * \param bcrcomp starting component for bcr
      */
-    template <typename MF, typename BC, typename Interp>
-    std::enable_if_t<IsFabArray<MF>::value>
+    template <FabArrayType MF, typename BC, typename Interp>
+    void
     FillPatchNLevels (MF& mf, int level, const IntVect& nghost, Real time,
                       const Vector<Vector<MF*>>& smf, const Vector<Vector<Real>>& st,
                       int scomp, int dcomp, int ncomp,

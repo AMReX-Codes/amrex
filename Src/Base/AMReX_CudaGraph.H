@@ -14,10 +14,10 @@ struct CopyMemory
 {
     void* src = nullptr;
     void* dst = nullptr;
-    Dim3 src_begin = {0,0,0};
-    Dim3 src_end = {0,0,0};
-    Dim3 dst_begin = {0,0,0};
-    Dim3 dst_end = {0,0,0};
+    Dim3 src_begin{.x = 0, .y = 0, .z = 0};
+    Dim3 src_end{.x = 0, .y = 0, .z = 0};
+    Dim3 dst_begin{.x = 0, .y = 0, .z = 0};
+    Dim3 dst_end{.x = 0, .y = 0, .z = 0};
     int scomp = 0;
     int ncomp = 0;
 

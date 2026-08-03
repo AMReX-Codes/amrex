@@ -64,7 +64,7 @@ IndexSpaceChkptFile::IndexSpaceChkptFile (const ChkptFile& chkpt_file,
 const Level&
 IndexSpaceChkptFile::getLevel (const Geometry& geom) const
 {
-    auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
+    auto it = std::ranges::find(m_domain, geom.Domain());
     auto i = std::distance(m_domain.begin(), it);
     return m_chkpt_file_level[i];
 }
@@ -72,7 +72,7 @@ IndexSpaceChkptFile::getLevel (const Geometry& geom) const
 const Geometry&
 IndexSpaceChkptFile::getGeometry (const Box& dom) const
 {
-    auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
+    auto it = std::ranges::find(m_domain, dom);
     auto i = std::distance(m_domain.begin(), it);
     return m_geom[i];
 }

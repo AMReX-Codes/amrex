@@ -354,12 +354,6 @@ else
   WARN_ERROR := FALSE
 endif
 
-ifdef GPU_ERROR_CHECK
-  GPU_ERROR_CHECK := $(strip $(GPU_ERROR_CHECK))
-else
-  GPU_ERROR_CHECK := TRUE
-endif
-
 ifdef FIX_NVCC_PTHREAD
   FIX_NVCC_PTHREAD := $(strip $(FIX_NVCC_PTHREAD))
 else
@@ -865,9 +859,6 @@ endif
 
 ifeq ($(USE_GPU),TRUE)
     DEFINES += -DAMREX_USE_GPU -DBL_COALESCE_FABS -DAMREX_GPU_MAX_THREADS=$(GPU_MAX_THREADS)
-    ifeq ($(GPU_ERROR_CHECK),FALSE)
-        DEFINES += -DAMREX_GPU_NO_ERROR_CHECK
-    endif
     ifeq ($(USE_GPU_RDC),TRUE)
         DEFINES += -DAMREX_USE_GPU_RDC
     endif
@@ -1149,8 +1140,8 @@ else ifeq ($(USE_HIP),TRUE)
       AMD_ARCH = $(AMREX_AMD_ARCH)
     endif
 
-    # For AMD GPUs, the wavefront is 64 except for gfx10?? and gfx11??.
-    ifeq ($(filter gfx10% gfx11%,$(AMD_ARCH)),)
+    # For AMD GPUs, the wavefront is 64 except for RDNA (gfx10??, gfx11??, gfx12??, etc.).
+    ifeq ($(filter gfx1%,$(AMD_ARCH)),)
        DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=64
     else
        DEFINES += -DAMREX_AMDGCN_WAVEFRONT_SIZE=32

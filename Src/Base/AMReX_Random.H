@@ -200,7 +200,8 @@ namespace amrex
     /**
     * \ingroup amrex_utilities
     * \brief Generates one pseudorandom unsigned integer which is
-    *  uniformly distributed on [0,n-1]-interval for each call.
+    *  uniformly distributed on [0,n-1]-interval for each call. For
+    *  the special case of n = 0, it returns 0.
     *
     * The CPU version of this function uses C++11's mt19937.
     * The GPU version uses CURAND's XORWOW generator.
@@ -211,6 +212,7 @@ namespace amrex
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     unsigned int Random_int (unsigned int n, RandomEngine const& random_engine)
     {
+    if (n == 0) { return 0;}
 #if defined(__SYCL_DEVICE_ONLY__)
         mkl::rng::device::uniform<unsigned int> distr(0,n);
         return mkl::rng::device::generate(distr, *random_engine.engine);
@@ -221,7 +223,7 @@ namespace amrex
                 do {
                 AMREX_HIP_OR_CUDA( rand = hiprand(random_engine.rand_state);,
                                 rand =  curand(random_engine.rand_state) );
-                } while (rand > (RAND_M - RAND_M % n));
+                } while (rand >= (RAND_M - RAND_M % n));
                 return rand % n;
         ))
         AMREX_IF_ON_HOST((
@@ -234,7 +236,8 @@ namespace amrex
     /**
     * \ingroup amrex_utilities
     * \brief Generates one pseudorandom unsigned long which is
-    *  uniformly distributed on [0,n-1]-interval for each call.
+    *  uniformly distributed on [0,n-1]-interval for each call. For
+    *  the special case of n = 0, it returns 0.
     *
     * The CPU version of this function uses C++11's mt19937.
     * There is no GPU version.
@@ -279,12 +282,21 @@ namespace amrex
 
     /**
     * \ingroup amrex_utilities
-    * \brief Save and restore random state.
+    * \brief Save host random state.
     *
+    * This function only serializes the host-side random number generators used
+    * by the host random-number APIs. It does not save GPU random state used by
+    * ParallelForRNG or GPU FillRandom/FillRandomNormal calls.
     */
     void SaveRandomState (std::ostream& os);
 
-    /// \ingroup amrex_utilities
+    /**
+    * \ingroup amrex_utilities
+    * \brief Restore host random state saved by SaveRandomState.
+    *
+    * This does not restore GPU random state used by ParallelForRNG or GPU
+    * FillRandom/FillRandomNormal calls.
+    */
     void RestoreRandomState (std::istream& is, int nthreads_old, int nstep_old);
 
     /**

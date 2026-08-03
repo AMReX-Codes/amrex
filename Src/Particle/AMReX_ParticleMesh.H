@@ -37,10 +37,26 @@ auto call_f (F const& f,
         return f(p, i, fabarr);
     }
 }
+
+template <typename F, typename T, template<class, class> class PTDType, class RType, class IType>
+AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+auto call_f (F const& f,
+             const PTDType<RType, IType>& p,
+             const int i, Array4<T> const& fabarr,
+             GpuArray<Real,AMREX_SPACEDIM> const& plo,
+             GpuArray<Real,AMREX_SPACEDIM> const& dxi) noexcept
+{
+    if constexpr (IsCallable<F, decltype(p), int, decltype(fabarr), decltype(plo), decltype(dxi)>::value) {
+        return f(p, i, fabarr, plo, dxi);
+    } else {
+        return f(p, i, fabarr);
+    }
+}
 }
 /// \endcond
 
-template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class MF, class F>
+requires (IsParticleContainer<PC>::value)
 void
 ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=true)
 {
@@ -125,7 +141,8 @@ ParticleToMesh (PC const& pc, MF& mf, int lev, F const& f, bool zero_out_input=t
     }
 }
 
-template <class PC, class MF, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+template <class PC, class MF, class F>
+requires (IsParticleContainer<PC>::value)
 void
 MeshToParticle (PC& pc, MF const& mf, int lev, F const& f)
 {

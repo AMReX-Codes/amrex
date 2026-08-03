@@ -65,19 +65,22 @@ ifeq ($(USE_COMPILE_PIC),TRUE)
 endif
 
 # disable some warnings
-CXXFLAGS += -Wno-c++17-extensions
+# CXXFLAGS += -Wno-c++20-extensions # Do we need it?
 
 ########################################################################
 
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++17
+  CXXSTD := c++20
 endif
 
 CXXFLAGS += -std=$(CXXSTD)
 CFLAGS   += -std=c11
 
+ifeq ($(USE_LIBCXX),TRUE)
+  CXXFLAGS += -stdlib=libc++
+endif
 
 ifeq ($(USE_COMPILE_PIC),TRUE)
 

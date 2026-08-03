@@ -10,7 +10,17 @@
 namespace amrex {
 
 /**
- * \brief Preconditioned conjugate gradient solver
+ * \file AMReX_PCGSolver.H
+ *
+ * Lightweight device-friendly preconditioned conjugate-gradient routine.
+ */
+
+/**
+ * \brief Fixed-size preconditioned conjugate-gradient solver.
+ *
+ * Functors \p mat and \p precond must conform to
+ * `void(mat_out, vec_in)` and `void(prec_out, res_in)` style call
+ * operators that take `N`-element arrays and fill the first argument in place.
  *
  * \param x       initial guess
  * \param r       initial residual
@@ -18,6 +28,7 @@ namespace amrex {
  * \param precond preconditioner
  * \param maxiter max number of iterations
  * \param rel_tol relative tolerance
+ * \return Number of iterations executed (converged or not).
  */
 template <int N, typename T, typename M, typename P>
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -34,7 +45,7 @@ int pcg_solve (T* AMREX_RESTRICT x, T* AMREX_RESTRICT r,
 
     int iter = 0;
     T rho_prev = T(1.0); // initialized to quiet gcc warning
-    T p[N];
+    T p[N] = {}; // initialized to quiet gcc warning
     for (iter = 1; iter <= maxiter; ++iter) {
         T z[N];
         precond(z, r);

@@ -22,11 +22,12 @@ jobs:
     container:
       image: alpinedav/ascent:0.9.3
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Configure
       run: |
         . /ascent_docker_setup_env.sh
         cmake -S . -B build          \
+            -DCMAKE_CXX_STANDARD=20  \
             -DCMAKE_BUILD_TYPE=Debug \
             -DAMReX_ENABLE_TESTS=ON  \
             -DAMReX_FORTRAN=OFF      \

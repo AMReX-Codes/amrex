@@ -114,7 +114,7 @@ WriteGenericPlotfileHeader (std::ostream &HeaderFile,
         }
         HeaderFile << '\n';
         for (int i = 0; i < finest_level; ++i) {
-            HeaderFile << ref_ratio[i][0] << ' ';
+            HeaderFile << ref_ratio[i][0] << ' '; // For backward compatibility, ref_ratio is saved as a scalar.
         }
         HeaderFile << '\n';
         for (int i = 0; i <= finest_level; ++i) {
@@ -268,7 +268,7 @@ void WriteMLMF (const std::string &plotfilename,
     Vector<IntVect> ref_ratio(nlevs-1);
     for (int i = 0; i < nlevs-1; ++i) {
         for (int d = 0; d < AMREX_SPACEDIM; ++d) {
-            int rr = (geom[i+1].Domain()).bigEnd(d)/(geom[i].Domain()).bigEnd(d);
+            int rr = (geom[i+1].Domain()).length(d)/(geom[i].Domain()).length(d);
             ref_ratio[i][d] = rr;
         }
     }

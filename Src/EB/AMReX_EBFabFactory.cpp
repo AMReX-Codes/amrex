@@ -195,7 +195,8 @@ EBFArrayBoxFactory::getEBData (MFIter const& mfi) const noexcept
 #else
     auto const* pebflag = ebflags_ma.hp + li;
 #endif
-    return EBData{pebflag, m_eb_data.data()+EBData::real_data_size*li};
+    return EBData{.m_cell_flag = pebflag,
+                  .m_real_data = m_eb_data.data()+EBData::real_data_size*li};
 }
 
 EBDataArrays
@@ -207,7 +208,8 @@ EBFArrayBoxFactory::getEBDataArrays () const noexcept
 #else
     auto const* pebflag = ebflags_ma.hp;
 #endif
-    return EBDataArrays{pebflag, m_eb_data.data()};
+    return EBDataArrays{.m_cell_flag = pebflag,
+                        .m_real_data = m_eb_data.data()};
 }
 
 

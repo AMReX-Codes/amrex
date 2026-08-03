@@ -91,9 +91,12 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
                              int scomp, int dcomp, int ncomp, CpOp op,
                              bool deterministic)
 {
-    int N_locs = thecpc.m_LocTags->size();
+    auto const N_locs = static_cast<int>(thecpc.m_LocTags->size());
     if (N_locs == 0) { return; }
     bool is_thread_safe = thecpc.m_threadsafe_loc;
+
+    // Deterministic handling is only implemented for ADD.
+    if (deterministic) { AMREX_ALWAYS_ASSERT(op == FabArrayBase::ADD); }
 
     using TagType = Array4CopyTag<value_type>;
     Vector<TagType> loc_copy_tags;
@@ -102,10 +105,11 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     Vector<BaseFab<int> > maskfabs;
     Vector<Array4Tag<int> > masks_unique;
     Vector<Array4Tag<int> > masks;
-    if (!is_thread_safe && !deterministic)
+    if (!is_thread_safe)
     {
         if ((op == FabArrayBase::COPY && !amrex::IsStoreAtomic<value_type>::value) ||
-            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value))
+            (op == FabArrayBase::ADD  && !amrex::HasAtomicAdd <value_type>::value &&
+             !deterministic))
         {
             maskfabs.resize(this->local_size());
             masks_unique.reserve(this->local_size());
@@ -118,18 +122,19 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
         const CopyComTag& tag = (*thecpc.m_LocTags)[i];
         if (this != &src || tag.dstIndex != tag.srcIndex || tag.sbox != tag.dbox) {
             int li = this->localindex(tag.dstIndex);
-            loc_copy_tags.push_back
-                ({this->atLocalIdx(li).array(), tag.dstIndex,
-                  src.fabPtr(tag.srcIndex)->const_array(),
-                  tag.dbox,
-                  (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
+            loc_copy_tags.push_back(
+                TagType{.dfab   = this->atLocalIdx(li).array(),
+                        .dindex = tag.dstIndex,
+                        .sfab   = src.fabPtr(tag.srcIndex)->const_array(),
+                        .dbox   = tag.dbox,
+                        .offset = (tag.sbox.smallEnd()-tag.dbox.smallEnd()).dim3()});
 
             if (maskfabs.size() > 0) {
                 if (!maskfabs[li].isAllocated()) {
                     maskfabs[li].resize(this->atLocalIdx(li).box());
-                    masks_unique.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                    masks_unique.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
                 }
-                masks.emplace_back(Array4Tag<int>{maskfabs[li].array()});
+                masks.emplace_back(Array4Tag<int>{.dfab = maskfabs[li].array()});
             }
         }
     }
@@ -154,15 +159,17 @@ FabArray<FAB>::PC_local_gpu (const CPC& thecpc, FabArray<FAB> const& src,
     }
     else
     {
-        if (deterministic) {
+        if (is_thread_safe) {
+            // Non-overlapping destinations: a plain add is already bitwise
+            // reproducible, so no need for the heavier deterministic kernel.
+            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
+                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
+        } else if (deterministic) {
             // Use deterministic_fab_to_fab for ADD operations to ensure bitwise
             // reproducibility. The atomic add operations (fab_to_fab_atomic_add) are
             // non-deterministic because the order of atomic additions is not guaranteed.
             detail::deterministic_fab_to_fab<value_type, value_type>(
                 loc_copy_tags, scomp, dcomp, ncomp, detail::CellAdd<value_type, value_type>());
-        } else if (is_thread_safe) {
-            detail::fab_to_fab<value_type, value_type>(loc_copy_tags, scomp,
-                dcomp, ncomp, detail::CellAdd<value_type, value_type>());
         } else {
             detail::fab_to_fab_atomic_add<value_type, value_type>(
                 loc_copy_tags, scomp, dcomp, ncomp, masks);

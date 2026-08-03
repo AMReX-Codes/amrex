@@ -12,12 +12,32 @@
 #include <AMReX_Vector.H>
 #include <AMReX_ParticleUtil.H>
 #include <AMReX_MultiFab.H>
+#include <AMReX_iMultiFab.H>
 #include <AMReX_ParticleLocator.H>
 #include <AMReX_DenseBins.H>
 
 #include <string>
 
 namespace amrex {
+
+#if defined(AMREX_USE_MPI)
+struct ParticleHandshakeWindow
+{
+    ParticleHandshakeWindow () = default;
+
+    ParticleHandshakeWindow (const ParticleHandshakeWindow&) = delete;
+    ParticleHandshakeWindow& operator= (const ParticleHandshakeWindow&) = delete;
+    ParticleHandshakeWindow (ParticleHandshakeWindow&&) = delete;
+    ParticleHandshakeWindow& operator= (ParticleHandshakeWindow&&) = delete;
+
+    ~ParticleHandshakeWindow ();
+
+    MPI_Win win = MPI_WIN_NULL;
+    Long* ptr = nullptr;
+    int nprocs = 0;
+    MPI_Comm comm = MPI_COMM_NULL;
+};
+#endif
 
 class ParticleContainerBase
 {
@@ -77,8 +97,8 @@ public:
     ParticleContainerBase ( const ParticleContainerBase &) = delete;
     ParticleContainerBase& operator= ( const ParticleContainerBase & ) = delete;
 
-    ParticleContainerBase ( ParticleContainerBase && ) = default;
-    ParticleContainerBase& operator= ( ParticleContainerBase && ) = default;
+    ParticleContainerBase ( ParticleContainerBase && ) noexcept = default;
+    ParticleContainerBase& operator= ( ParticleContainerBase && ) noexcept = default;
 
     void Define (ParGDBBase* gdb) { m_gdb = gdb;}
 
@@ -237,9 +257,22 @@ public:
 
     const ParticleBufferMap& BufferMap () const {return m_buffer_map;}
 
-    Vector<int> NeighborProcs(int ngrow) const
+#if defined(AMREX_USE_MPI)
+    void ensureParticleHandshakeWindow () const;
+    [[nodiscard]] Long* particleHandshakeBuffer () const
+        { return m_particle_handshake_window ? m_particle_handshake_window->ptr : nullptr; }
+    [[nodiscard]] MPI_Win particleHandshakeWindow () const
+        { return m_particle_handshake_window ? m_particle_handshake_window->win : MPI_WIN_NULL; }
+#endif
+
+    Vector<int> NeighborProcs(IntVect ngrow) const
     {
         return computeNeighborProcs(this->GetParGDB(), ngrow);
+    }
+
+    Vector<int> NeighborProcs(int ngrow) const
+    {
+        return NeighborProcs(IntVect(ngrow));
     }
 
     template <class MF>
@@ -269,7 +302,12 @@ public:
 
 protected:
 
-    void BuildRedistributeMask (int lev, int nghost=1) const;
+    void BuildRedistributeMask (int lev, IntVect nghost) const;
+
+    void BuildRedistributeMask (int lev, int nghost=1) const
+    {
+        BuildRedistributeMask(lev, IntVect(nghost));
+    }
     void defineBufferMap () const;
 
     int         m_verbose{0};
@@ -280,9 +318,13 @@ protected:
     Arena* m_arena = nullptr;
 
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
-    mutable int redistribute_mask_nghost = std::numeric_limits<int>::min();
+    mutable IntVect redistribute_mask_nghost = IntVect(std::numeric_limits<int>::min());
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
+
+#if defined(AMREX_USE_MPI)
+    mutable std::unique_ptr<ParticleHandshakeWindow> m_particle_handshake_window;
+#endif
 
 };
 

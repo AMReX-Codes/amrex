@@ -19,7 +19,7 @@ IntVect computeRefFac (const ParGDBBase* a_gdb, int src_lev, int lev)
     return ref_fac;
 }
 
-Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, IntVect ngrow)
 {
     BL_PROFILE("amrex::computeNeighborProcs");
 
@@ -38,7 +38,7 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
                 const IntVect& ref_fac = computeRefFac(a_gdb, src_lev, lev);
                 if (ref_fac < IntVect::TheZeroVector()) { box.coarsen(-1*ref_fac); }
                 else if (ref_fac > IntVect::TheZeroVector()) { box.refine(ref_fac); }
-                box.grow(computeRefFac(a_gdb, 0, src_lev)*ngrow);
+                box.grow(computeRefFac(a_gdb, 0, lev)*ngrow);
 
                 const Periodicity& periodicity = a_gdb->Geom(lev).periodicity();
                 const std::vector<IntVect>& pshifts = periodicity.shiftIntVect();
@@ -63,6 +63,11 @@ Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
 
     RemoveDuplicates(neighbor_procs);
     return neighbor_procs;
+}
+
+Vector<int> computeNeighborProcs (const ParGDBBase* a_gdb, int ngrow)
+{
+    return computeNeighborProcs(a_gdb, IntVect(ngrow));
 }
 }
 

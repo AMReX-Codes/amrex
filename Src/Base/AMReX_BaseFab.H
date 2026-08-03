@@ -36,6 +36,11 @@
 #include <atomic>
 #include <utility>
 
+/**
+ * \file AMReX_BaseFab.H
+ * \brief BaseFab container template providing box-based field storage.
+ */
+
 namespace amrex
 {
 
@@ -58,28 +63,54 @@ extern Long private_total_cells_allocated_in_fabs_hwm; //!< high-water-mark over
 
 /// \endcond
 
+/**
+ * \brief Total bytes currently held by all BaseFab instances on this rank.
+ */
 Long TotalBytesAllocatedInFabs () noexcept;
+/**
+ * \brief High-water mark of BaseFab bytes since the last reset.
+ */
 Long TotalBytesAllocatedInFabsHWM () noexcept;
+/**
+ * \brief Total spatial grid points (`numPts`) tracked for `Real` BaseFabs on this rank.
+ */
 Long TotalCellsAllocatedInFabs () noexcept;
+/**
+ * \brief High-water mark of Real BaseFab grid-point count since the last reset.
+ */
 Long TotalCellsAllocatedInFabsHWM () noexcept;
+/**
+ * \brief Reset the byte high-water mark reported by TotalBytesAllocatedInFabsHWM().
+ */
 void ResetTotalBytesAllocatedInFabsHWM () noexcept;
+/**
+ * \brief Internal helper used by BaseFab constructors/destructors to maintain stats.
+ * \param n Change in spatial grid points; used only when \p szt equals `sizeof(Real)`.
+ * \param s Change in total number of stored elements.
+ * \param szt Size in bytes of the value type.
+ */
 void update_fab_stats (Long n, Long s, std::size_t szt) noexcept;
 
+//! Initialize BaseFab subsystem resources (profilers, stats counters, etc.).
 void BaseFab_Initialize ();
+//! Release any BaseFab subsystem resources.
 void BaseFab_Finalize ();
 
+/** \brief Source-component descriptor. */
 struct SrcComp {
     AMREX_GPU_HOST_DEVICE
     explicit SrcComp (int ai) noexcept : i(ai) {}
     int i;
 };
 
+/** \brief Destination-component descriptor. */
 struct DestComp {
     AMREX_GPU_HOST_DEVICE
     explicit DestComp (int ai) noexcept : i(ai) {}
     int i;
 };
 
+/** \brief Number-of-components descriptor. */
 struct NumComps {
     AMREX_GPU_HOST_DEVICE
     explicit NumComps (int an) noexcept : n(an) {}
@@ -94,44 +125,45 @@ makeArray4 (T* p, Box const& bx, int ncomp) noexcept
     return Array4<T>{p, amrex::begin(bx), amrex::end(bx), ncomp};
 }
 
+/**
+ * \brief Start the lifetime of objects in a preallocated buffer.
+ *
+ * Types with trivial default construction need no construction because
+ * default-initializing them has no effect.  Other types use AMReX host/device
+ * loops so both CPU and GPU resident buffers are initialized correctly.
+ */
 template <typename T>
-std::enable_if_t<std::is_arithmetic_v<T>>
-placementNew (T* const /*ptr*/, Long /*n*/)
-{}
-
-template <typename T>
-std::enable_if_t<std::is_trivially_default_constructible_v<T>
-                 && !std::is_arithmetic_v<T>>
+void
 placementNew (T* const ptr, Long n)
 {
-    for (Long i = 0; i < n; ++i) {
-        new (ptr+i) T;
+    amrex::ignore_unused(ptr,n);
+    if constexpr (!std::is_trivially_default_constructible_v<T>) {
+        AMREX_HOST_DEVICE_FOR_1D ( n, i,
+        {
+            new (ptr+i) T;
+        });
     }
 }
 
+/**
+ * \brief Destroy objects previously constructed via placementNew.
+ *
+ * Trivially destructible types need no destruction — their lifetime ends
+ * implicitly when storage is released.  For non-trivially-destructible types,
+ * the destructor is called on each element via AMReX host/device loops so
+ * both CPU and GPU resident buffers are finalized correctly.
+ */
 template <typename T>
-std::enable_if_t<!std::is_trivially_default_constructible_v<T>>
-placementNew (T* const ptr, Long n)
-{
-    AMREX_HOST_DEVICE_FOR_1D ( n, i,
-    {
-        new (ptr+i) T;
-    });
-}
-
-template <typename T>
-std::enable_if_t<std::is_trivially_destructible_v<T>>
-placementDelete (T* const /*ptr*/, Long /*n*/)
-{}
-
-template <typename T>
-std::enable_if_t<!std::is_trivially_destructible_v<T>>
+void
 placementDelete (T* const ptr, Long n)
 {
-    AMREX_HOST_DEVICE_FOR_1D (n, i,
-    {
-        (ptr+i)->~T();
-    });
+    amrex::ignore_unused(ptr,n);
+    if constexpr (!std::is_trivially_destructible_v<T>) {
+        AMREX_HOST_DEVICE_FOR_1D (n, i,
+        {
+            (ptr+i)->~T();
+        });
+    }
 }
 
 /**
@@ -197,14 +229,25 @@ public:
     //! Construct an empty BaseFab, which must be resized (see BaseFab::resize) before use.
     BaseFab () noexcept = default;
 
+    //! Construct an empty BaseFab that allocates through arena \p ar.
     explicit BaseFab (Arena* ar) noexcept;
 
+    //! Allocate \p n components over \p bx using memory arena \p ar.
     BaseFab (const Box& bx, int n, Arena* ar);
 
     //!  Make BaseFab with desired domain (box) and number of components.
     explicit BaseFab (const Box& bx, int n = 1, bool alloc = true,
                       bool shared = false, Arena* ar = nullptr);
 
+    /**
+     * \brief Construct from another BaseFab by either aliasing or copying data.
+     *
+     * \param rhs       Source fab whose data are reused.
+     * \param make_type Choose \c amrex::make_alias to share storage or
+     *                  \c amrex::make_deep_copy to allocate new storage and copy.
+     * \param scomp     Starting component in \p rhs to import.
+     * \param ncomp     Number of components copied or aliased.
+     */
     BaseFab (const BaseFab<T>& rhs, MakeType make_type, int scomp, int ncomp);
 
     /**
@@ -215,12 +258,16 @@ public:
     BaseFab (const Box& bx, int ncomp, T* p);
     BaseFab (const Box& bx, int ncomp, T const* p);
 
+    //! Wrap an existing Array4 view \p a without taking ownership.
     explicit BaseFab (Array4<T> const& a) noexcept;
 
+    //! Wrap an Array4 view and override the index type with \p t.
     explicit BaseFab (Array4<T> const& a, IndexType t) noexcept;
 
+    //! Const-qualified wrapper around an existing Array4 view \p a.
     explicit BaseFab (Array4<T const> const& a) noexcept;
 
+    //! Const wrapper that also installs the explicit index type \p t.
     explicit BaseFab (Array4<T const> const& a, IndexType t) noexcept;
 
     //! The destructor deletes the array memory.
@@ -229,13 +276,22 @@ public:
     BaseFab (const BaseFab<T>& rhs) = delete;
     BaseFab<T>& operator= (const BaseFab<T>& rhs) = delete;
 
+    //! Move-construct from \p rhs, transferring ownership of its storage.
     BaseFab (BaseFab<T>&& rhs) noexcept;
+    //! Move-assign from \p rhs, releasing any storage currently held.
     BaseFab<T>& operator= (BaseFab<T>&& rhs) noexcept;
 
+    /**
+     * \brief Fill every component with the scalar value on the specified execution space.
+     *
+     * \tparam run_on Execution space selector (host or device).
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab& operator= (T const&) noexcept;
 
+    //! Initialize static tracking/profiling metadata used by all BaseFabs.
     static void Initialize();
+    //! Release static tracking/profiling metadata allocated by Initialize().
     static void Finalize();
 
     /**
@@ -253,14 +309,21 @@ public:
     */
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
-    template <class U=T, std::enable_if_t<std::is_trivially_destructible_v<U>,int> = 0>
+    /**
+     * \brief Transfer owned storage to an Elixir when running in a GPU launch region.
+     *
+     * The returned Elixir keeps the storage alive until pending GPU work has completed
+     * and then frees it. Outside a GPU launch region, no ownership is transferred.
+     */
+    template <class U=T>
+    requires (std::is_trivially_destructible_v<U>)
     [[nodiscard]] Elixir elixir () noexcept;
 
     /**
      * \brief The function returns the BaseFab to the invalid state.
      * The memory is freed.
      */
-    void clear () noexcept;
+    void clear ();
 
     //! Release ownership of memory
     [[nodiscard]] std::unique_ptr<T,DataDeleter> release () noexcept;
@@ -360,7 +423,7 @@ public:
         }
     }
 
-    //! Same as above except works on const FABs.
+    /** \brief Const-qualified variant of dataPtr(). */
     [[nodiscard]] const T* dataPtr (int n = 0) const noexcept {
         if (this->dptr) {
             return &(this->dptr[n*this->domain.numPts()]);
@@ -369,63 +432,141 @@ public:
         }
     }
 
+    /**
+     * \brief Return a pointer to the element at spatial index \p p and component \p n.
+     * \param p Spatial cell index within the fab.
+     * \param n Component offset, defaults to 0.
+     * \return Pointer into the underlying storage.
+     */
     [[nodiscard]] T* dataPtr (const IntVect& p, int n = 0) noexcept;
 
+    /**
+     * \brief Const-qualified overload returning a read-only pointer.
+     * \param p Spatial cell index within the fab.
+     * \param n Component offset, defaults to 0.
+     * \return Pointer into the underlying storage.
+     */
     [[nodiscard]] const T* dataPtr (const IntVect& p, int n = 0) const noexcept;
 
+    /**
+     * \brief Attach externally allocated storage without taking ownership.
+     * \param p Pointer to externally allocated data.
+     * \param sz Number of T elements stored at \p p.
+     * \note Does not set \c ptr_owner; the fab will not free \p p on destruction.
+     */
     void setPtr (T* p, Long sz) noexcept { AMREX_ASSERT(this->dptr == nullptr && this->truesize == 0); this->dptr = p; this->truesize = sz; }
 
+    /**
+     * \brief Advise the runtime to migrate storage to the host.
+     * \note No effect unless the managed memory is used in this fab.
+     */
     void prefetchToHost () const noexcept;
+    /**
+     * \brief Advise the runtime to migrate storage to the active device.
+     * \note No effect unless the managed memory is used in this fab.
+     */
     void prefetchToDevice () const noexcept;
 
+    /**
+     * \brief Create an Array4 view over all components.
+     * \return Array4<T const> referencing the fab data.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
+    /**
+     * \brief Create a sliced Array4 view beginning at component \p start_comp.
+     * \param start_comp First component included in the view.
+     * \return Array4<T const> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    /**
+     * \brief Create a sliced Array4 view spanning \p num_comps components.
+     * \param start_comp First component included in the view.
+     * \param num_comps Number of components to expose.
+     * \return Array4<T const> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> array (int start_comp, int num_comps) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
+    /**
+     * \brief Create a mutable Array4 view over all components.
+     * \return Array4<T> referencing the fab data.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T> array () noexcept
     {
         return makeArray4<T>(this->dptr, this->domain, this->nvar);
     }
 
+    /**
+     * \brief Mutable overload selecting components starting at \p start_comp.
+     * \param start_comp First component included in the view.
+     * \return Array4<T> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T> array (int start_comp) noexcept
     {
         return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    /**
+     * \brief Mutable overload spanning \p num_comps components.
+     * \param start_comp First component included in the view.
+     * \param num_comps Number of components to expose.
+     * \return Array4<T> referencing the requested components.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T> array (int start_comp, int num_comps) noexcept
     {
         return Array4<T>(makeArray4<T>(this->dptr, this->domain, this->nvar), start_comp, num_comps);
     }
 
+    /**
+     * \brief Return a const-qualified Array4 view over all components.
+     *
+     * Useful when a mutable fab needs to be accessed through a read-only view
+     * without casting.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> const_array () const noexcept
     {
         return makeArray4<T const>(this->dptr, this->domain, this->nvar);
     }
 
+    /**
+     * \brief Return a const-qualified Array4 view beginning at component \p start_comp.
+     *
+     * Use this to obtain a read-only window without casting the fab itself.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> const_array (int start_comp) const noexcept
     {
         return Array4<T const>(makeArray4<T const>(this->dptr, this->domain, this->nvar),start_comp);
     }
 
+    /**
+     * \brief Return a const-qualified Array4 view spanning \p num_comps components.
+     *
+     * Use this to obtain a read-only window without casting the fab itself.
+     * \note In the returned view, \p start_comp is exposed as component 0.
+     */
     [[nodiscard]] AMREX_FORCE_INLINE
     Array4<T const> const_array (int start_comp, int num_comps) const noexcept
     {
@@ -443,13 +584,13 @@ public:
     */
     [[nodiscard]] T& operator() (const IntVect& p, int N) noexcept;
 
-    //! Same as above, except returns component 0.
+    /** \brief Returns component 0 at location \p p. */
     [[nodiscard]] T& operator() (const IntVect& p) noexcept;
 
-    //! Same as above except works on const FABs.
+    /** \brief Const-qualified accessor for component \p N. */
     [[nodiscard]] const T& operator() (const IntVect& p, int N) const noexcept;
 
-    //! Same as above, except returns component 0.
+    /** \brief Const-qualified accessor for component 0. */
     [[nodiscard]] const T& operator() (const IntVect& p) const noexcept;
 
     /**
@@ -458,11 +599,11 @@ public:
     * that must be allocated by the user.
     */
     void getVal (T* data, const IntVect& pos, int N, int numcomp) const noexcept;
-    //! Same as above, except that starts at component 0 and copies all comps.
+    /** \brief Copy all components beginning at component 0. */
     void getVal (T* data, const IntVect& pos) const noexcept;
 
-    template <RunOn run_on AMREX_DEFAULT_RUNON,
-              class U=T, std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>,int> FOO = 0>
+    template <RunOn run_on AMREX_DEFAULT_RUNON>
+    requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
     void fill_snan () noexcept;
 
     /**
@@ -473,10 +614,10 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int dcomp, int ncomp) noexcept;
-    //! Same as above, except the number of modified components is one. N is the component to be modified.
+    /** \brief Set a single component \p N over \p bx to \p x. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, const Box& bx, int N = 0) noexcept;
-    //! Same as above, except the sub-box defaults to the entire domain.
+    /** \brief Fill component \p N across the entire domain with \p x. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void setVal (T const& x, int N) noexcept;
 
@@ -579,15 +720,15 @@ public:
     *   p = 1  -> sum of ABS(FAB)
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
-    [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const noexcept;
+    [[nodiscard]] Real norm (int p, int scomp = 0, int numcomp = 1) const;
 
-    //! Same as above except only on given subbox.
+    /** \brief Restrict the norm computation to \p subbox. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
-    [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const noexcept;
-    //!Compute absolute value for all components of this FAB.
+    [[nodiscard]] Real norm (const Box& subbox, int p, int scomp = 0, int numcomp = 1) const;
+    /** \brief Compute absolute value for all components of this FAB. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs () noexcept;
-    //! Same as above except only for components (comp: comp+numcomp-1)
+    /** \brief Apply abs() to components starting at \p comp. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     void abs (int comp, int numcomp=1) noexcept;
     /**
@@ -686,38 +827,38 @@ public:
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    //! Same as above except mark cells with value less than or equal to val.
+    /** \brief Mark cells with value \c <= \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskLE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
-    //! Same as above except mark cells with value equal to val.
+    /** \brief Mark cells with value equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskEQ (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    //! Same as above except mark cells with value greater than val.
+    /** \brief Mark cells with value greater than \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGT (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
-    //! Same as above except mark cells with value greater than or equal to val.
+    /** \brief Mark cells with value greater than or equal to \p val. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     int maskGE (BaseFab<int>& mask, T const& val, int comp = 0) const noexcept;
 
     //! Returns sum of given component of FAB state vector.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (int comp, int numcomp = 1) const noexcept;
-    //! Compute sum of given component of FAB state vector in given subbox.
+    /** \brief Restrict the sum to \p subbox. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] T sum (const Box& subbox, int comp, int numcomp = 1) const noexcept;
 
     //! Most general version, specify subbox and which components.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
-    //! As above except on entire domain.
+    /** \brief Apply the inversion on the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r, int comp, int numcomp=1) noexcept;
 
     //! Negate BaseFab, most general.
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (const Box& b, int comp=0, int numcomp=1) noexcept;
-    //! As above, except on entire domain.
+    /** \brief Apply negation across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (int comp, int numcomp=1) noexcept;
 
@@ -725,7 +866,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
-    //! As above, except on entire domain.
+    /** \brief Apply scalar addition across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& plus (T const& r, int comp, int numcomp=1) noexcept;
 
@@ -829,12 +970,10 @@ public:
     BaseFab<T>& minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                        int srccomp, int destcomp, int numcomp=1) noexcept;
 
-    //! Scalar multiplication, except control which components are multiplied.
+    /** \brief Scalar multiplication applied to selected components over the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, int comp, int numcomp=1) noexcept;
-    /**
-    * \brief As above, except specify sub-box.
-    */
+    /** \brief Apply the multiplication on the specified sub-box. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& mult (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -863,11 +1002,11 @@ public:
     BaseFab<T>& mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
                       int srccomp, int destcomp, int numcomp=1) noexcept;
 
-    //! As above except specify which components.
+    /** \brief Divide selected components by a scalar across the entire domain. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, int comp, int numcomp=1) noexcept;
 
-    //! As above except specify sub-box.
+    /** \brief Restrict the scalar division to the specified sub-box. */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& divide (T const& r, const Box& b, int comp=0, int numcomp=1) noexcept;
 
@@ -1034,7 +1173,7 @@ public:
     BaseFab<T>& plus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab addition is performed on the intersection of dest and src fabs.
-    * All components of dest fab are copied. src fab must have enough
+    * All components of dest fab are updated. src fab must have enough
     * components (more is OK).
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -1059,7 +1198,7 @@ public:
     BaseFab<T>& minus (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab subtraction is performed on the intersection of dest and src fabs.
-    * All components of dest fab are copied. src fab must have enough
+    * All components of dest fab are updated. src fab must have enough
     * components (more is OK).
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -1084,7 +1223,7 @@ public:
     BaseFab<T>& mult (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab multiplication is performed on the intersection of dest and src fabs.
-    * All components of dest fab are copied. src fab must have enough
+    * All components of dest fab are updated. src fab must have enough
     * components (more is OK).
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -1109,7 +1248,7 @@ public:
     BaseFab<T>& divide (T const& val, Box const& bx, DestComp dcomp, NumComps ncomp) noexcept;
     /**
     * Fab division is performed on the intersection of dest and src fabs.
-    * All components of dest fab are copied. src fab must have enough
+    * All components of dest fab are updated. src fab must have enough
     * components (more is OK).
     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
@@ -1129,7 +1268,7 @@ public:
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& negate (const Box& bx, DestComp dcomp, NumComps ncomp) noexcept;
 
-    //! Fab <- Fab/r on the whole domain and all components
+    //! Fab <- r/Fab on the whole domain and all components
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     BaseFab<T>& invert (T const& r) noexcept;
     //
@@ -1212,10 +1351,9 @@ BaseFab<T>::prefetchToHost () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
             cudaMemLocation location = {};
-            location.type = cudaMemLocationTypeDevice;
-            location.id = cudaCpuDeviceId;
+            location.type = cudaMemLocationTypeHost;
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(this->dptr, s, location, 0,
                                                       Gpu::gpuStream()));
 #else
@@ -1244,7 +1382,7 @@ BaseFab<T>::prefetchToDevice () const noexcept
 #elif defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
             std::size_t s = sizeof(T)*this->nvar*this->domain.numPts();
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = Gpu::Device::deviceId();
@@ -1370,8 +1508,8 @@ BaseFab<T>::shiftHalf (int idir, int n_cell) noexcept
 }
 
 template <class T>
-template <RunOn run_on, class U,
-          std::enable_if_t<std::is_same_v<U,float> || std::is_same_v<U,double>, int> FOO>
+template <RunOn run_on>
+requires (std::is_same_v<T,float> || std::is_same_v<T,double>)
 void
 BaseFab<T>::fill_snan () noexcept
 {
@@ -1427,7 +1565,7 @@ BaseFab<T>::copy (const BaseFab<T>& src, const Box& srcbox, int srccomp,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
@@ -1666,7 +1804,8 @@ BaseFab<T>::resize (const Box& b, int n, Arena* ar)
 }
 
 template <class T>
-template <class U, std::enable_if_t<std::is_trivially_destructible_v<U>,int>>
+template <class U>
+requires (std::is_trivially_destructible_v<U>)
 Elixir
 BaseFab<T>::elixir () noexcept
 {
@@ -1689,7 +1828,7 @@ BaseFab<T>::elixir () noexcept
 
 template <class T>
 void
-BaseFab<T>::clear () noexcept
+BaseFab<T>::clear ()
 {
     if (this->dptr)
     {
@@ -1906,7 +2045,7 @@ BaseFab<T>::norminfmask (const Box& subbox, const BaseFab<int>& mask,
 template <class T>
 template <RunOn run_on>
 Real
-BaseFab<T>::norm (int p, int comp, int numcomp) const noexcept
+BaseFab<T>::norm (int p, int comp, int numcomp) const
 {
     return norm<run_on>(this->domain,p,comp,numcomp);
 }
@@ -1914,7 +2053,7 @@ BaseFab<T>::norm (int p, int comp, int numcomp) const noexcept
 template <class T>
 template <RunOn run_on>
 Real
-BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const noexcept
+BaseFab<T>::norm (const Box& subbox, int p, int comp, int numcomp) const
 {
     BL_ASSERT(this->domain.contains(subbox));
     BL_ASSERT(comp >= 0 && comp + numcomp <= this->nvar);
@@ -2504,7 +2643,7 @@ BaseFab<T>::saxpy (T a, const BaseFab<T>& x, const Box& srcbox, const Box& destb
     Array4<T const> const& s = x.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += a * s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -2542,7 +2681,7 @@ BaseFab<T>::xpay (T a, const BaseFab<T>& x,
     Array4<T const> const& s = x.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) = s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) + a*d(i,j,k,n+destcomp);
@@ -2601,8 +2740,8 @@ BaseFab<T>::linComb (const BaseFab<T>& f1, const Box& b1, int comp1,
     const auto dlo = amrex::lbound(b);
     const auto slo1 = amrex::lbound(b1);
     const auto slo2 = amrex::lbound(b2);
-    const Dim3 off1{slo1.x-dlo.x,slo1.y-dlo.y,slo1.z-dlo.z};
-    const Dim3 off2{slo2.x-dlo.x,slo2.y-dlo.y,slo2.z-dlo.z};
+    const Dim3 off1{.x = slo1.x-dlo.x, .y = slo1.y-dlo.y, .z = slo1.z-dlo.z};
+    const Dim3 off2{.x = slo2.x-dlo.x, .y = slo2.y-dlo.y, .z = slo2.z-dlo.z};
 
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, b, numcomp, i, j, k, n,
     {
@@ -2630,7 +2769,7 @@ BaseFab<T>::dot (const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-    const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
+    const Dim3 offset{.x = ylo.x-xlo.x, .y = ylo.y-xlo.y, .z = ylo.z-xlo.z};
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
 
@@ -2680,7 +2819,7 @@ BaseFab<T>::dotmask (const BaseFab<int>& mask, const Box& xbx, int xcomp,
 
     const auto xlo = amrex::lbound(xbx);
     const auto ylo = amrex::lbound(ybx);
-    const Dim3 offset{ylo.x-xlo.x,ylo.y-xlo.y,ylo.z-xlo.z};
+    const Dim3 offset{.x = ylo.x-xlo.x, .y = ylo.y-xlo.y, .z = ylo.z-xlo.z};
 
     Array4<T const> const& xa = this->const_array();
     Array4<T const> const& ya = y.const_array();
@@ -2836,7 +2975,7 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) += s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -2848,8 +2987,8 @@ BaseFab<T>::plus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
 namespace detail
 {
 
-template <RunOn run_on, typename T,
-          std::enable_if_t<HasAtomicAdd<T>::value,int> FOO = 0>
+template <RunOn run_on, typename T>
+requires (HasAtomicAdd<T>::value)
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
                          int srccomp, int destcomp, int numcomp) noexcept
@@ -2858,7 +2997,7 @@ void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
     Array4<T const> const& s = sfab.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         T* p = d.ptr(i,j,k,n+destcomp);
@@ -2866,11 +3005,11 @@ void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
     });
 }
 
-template <RunOn run_on, typename T,
-          std::enable_if_t<! HasAtomicAdd<T>::value,int> FOO = 0>
+template <RunOn run_on, typename T>
+requires (!HasAtomicAdd<T>::value)
 void basefab_atomic_add (BaseFab<T>& dfab, const BaseFab<T>& sfab,
                          const Box& srcbox, const Box& destbox,
-                         int srccomp, int destcomp, int numcomp) noexcept
+                         int srccomp, int destcomp, int numcomp)
 {
     amrex::ignore_unused(dfab, sfab, srcbox, destbox, srccomp, destcomp, numcomp);
     amrex::Abort("BaseFab: atomicAdd not supported");
@@ -2920,7 +3059,7 @@ BaseFab<T>::lockAdd (const BaseFab<T>& src, const Box& srcbox, const Box& destbo
         auto const& dhi = amrex::ubound(destbox);
         auto const& len = amrex::length(destbox);
         auto const& slo = amrex::lbound(srcbox);
-        Dim3 const offset{slo.x-dlo.x, slo.y-dlo.y, slo.z-dlo.z};
+        Dim3 const offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
 
         int planedim;
         int nplanes;
@@ -3034,7 +3173,7 @@ BaseFab<T>::minus (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) -= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -3092,7 +3231,7 @@ BaseFab<T>::mult (const BaseFab<T>& src, const Box& srcbox, const Box& destbox,
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) *= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -3150,7 +3289,7 @@ BaseFab<T>::divide (const BaseFab<T>& src, const Box& srcbox, const Box& destbox
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         d(i,j,k,n+destcomp) /= s(i+offset.x,j+offset.y,k+offset.z,n+srccomp);
@@ -3208,7 +3347,7 @@ BaseFab<T>::protected_divide (const BaseFab<T>& src, const Box& srcbox, const Bo
     Array4<T const> const& s = src.const_array();
     const auto dlo = amrex::lbound(destbox);
     const auto slo = amrex::lbound(srcbox);
-    const Dim3 offset{slo.x-dlo.x,slo.y-dlo.y,slo.z-dlo.z};
+    const Dim3 offset{.x = slo.x-dlo.x, .y = slo.y-dlo.y, .z = slo.z-dlo.z};
     AMREX_HOST_DEVICE_PARALLEL_FOR_4D_FLAG(run_on, destbox, numcomp, i, j, k, n,
     {
         if (s(i+offset.x,j+offset.y,k+offset.z,n+srccomp) != 0) {

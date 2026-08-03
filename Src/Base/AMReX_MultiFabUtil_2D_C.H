@@ -200,7 +200,7 @@ void amrex_avgdown_edges (Box const& bx, Array4<Real> const& crse,
                 int ii = i*facx;
                 int jj = j*facy;
                 Real c = 0.;
-                for (int jref = 0; jref < facx; ++jref) {
+                for (int jref = 0; jref < facy; ++jref) {
                     c += fine(ii,jj+jref,0,n+fcomp);
                 }
                 crse(i,j,0,n+ccomp) = c * facInv;
@@ -239,7 +239,7 @@ void amrex_avgdown_edges (int i, int j, int, int n, Array4<Real> const& crse,
         const int ii = i*facx;
         const int jj = j*facy;
         Real c = 0.;
-        for (int jref = 0; jref < facx; ++jref) {
+        for (int jref = 0; jref < facy; ++jref) {
             c += fine(ii,jj+jref,0,n+fcomp);
         }
         crse(i,j,0,n+ccomp) = c * facInv;
@@ -409,7 +409,7 @@ void amrex_compute_convective_difference (Box const& bx, Array4<amrex::Real> con
         for     (int j = lo.y; j <= hi.y; ++j) {
             AMREX_PRAGMA_SIMD
                 for (int i = lo.x; i <= hi.x; ++i) {
-                    diff(i,j,n) = Real(0.5)*dxi * (u_face(i+1,j,0,0)+u_face(i,j,0,0)) *
+                    diff(i,j,0,n) = Real(0.5)*dxi * (u_face(i+1,j,0,0)+u_face(i,j,0,0)) *
                                             (s_on_x_face(i+1,j,0,n)-s_on_x_face(i,j,0,n))
                         +         Real(0.5)*dyi * (v_face(i,j+1,0,0)+v_face(i,j,0,0)) *
                                             (s_on_y_face(i,j+1,0,n)-s_on_y_face(i,j,0,n));

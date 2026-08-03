@@ -5,6 +5,7 @@
 #include <AMReX_Print.H>
 
 #include <cstring>
+#include <iterator>
 
 using namespace amrex;
 
@@ -80,7 +81,7 @@ extern "C"
     {
         std::vector<std::string> b;
         pp->getarr(name, b);
-        BL_ASSERT(n == static_cast<int>(b.size()));
+        BL_ASSERT(n == std::ssize(b));
         for (int i = 0; i < n; ++i) {
             sv[i] = static_cast<int>(b[i].size()) + 1;
             v[i] = new char[sv[i]];

@@ -28,11 +28,168 @@ namespace amrex::simd
 #   if __cplusplus >= 202002L
         using vir::cvt;
 #   endif
+
+        /** Vectorized ternary operator: select(mask, true_val, false_val)
+         *
+         * Selects elements from true_val where mask is true and from false_val
+         * where mask is false. Analogous to (mask ? true_val : false_val) for
+         * scalars.
+         *
+         * Note: both true_val and false_val are eagerly evaluated (function
+         * arguments). To guard against operations like division by zero,
+         * sanitize inputs before the operation rather than relying on
+         * conditional selection.
+         *
+         * Example:
+         * ```cpp
+         * template <typename T>
+         * T compute (T const& a, T const& b)
+         * {
+         *     auto safe_b = amrex::simd::stdx::select(b != T(0), b, T(1));
+         *     return amrex::simd::stdx::select(b != T(0), a / safe_b, T(0));
+         * }
+         * ```
+         *
+         * @see C++26 std::simd select
+         *
+         * @todo Remove when SIMD provider (vir-simd / C++26) provides select.
+         *       https://github.com/mattkretz/vir-simd/issues/49
+         */
+        template <typename T, typename Abi>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        vir::stdx::simd<T, Abi> select (
+            typename vir::stdx::simd<T, Abi>::mask_type const& mask,
+            vir::stdx::simd<T, Abi> const& true_val,
+            vir::stdx::simd<T, Abi> const& false_val)
+        {
+            vir::stdx::simd<T, Abi> result = false_val;
+            where(mask, result) = true_val;
+            return result;
+        }
 #else
         // fallback implementations for functions that are commonly used in portable code paths
 
+        /** True if the boolean value is true (scalar identity fallback for simd any_of)
+         *
+         * Example:
+         * ```cpp
+         * // Works for both simd_mask and scalar bool:
+         * auto mask = a > b;
+         * if (amrex::simd::stdx::any_of(mask)) { ... }
+         * ```
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/any_of
+         */
         AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
         bool any_of (bool const v) { return v; }
+
+        /// \cond DOXYGEN_IGNORE
+        namespace detail {
+            template <typename T>
+            struct where_expression {
+                bool mask;
+                T* value;
+
+                AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+                where_expression& operator= (T const& new_val)
+                {
+                    if (mask) { *value = new_val; }
+                    return *this;
+                }
+            };
+        }
+        /// \endcond
+
+        /** Masked assignment expression (scalar fallback for simd where)
+         *
+         * Returns an expression object whose assignment operator conditionally
+         * updates value only when mask is true.
+         *
+         * Example:
+         * ```cpp
+         * // Works for both simd<T> and scalar T:
+         * auto mask = b > T(0);
+         * T result = T(0);
+         * amrex::simd::stdx::where(mask, result) = a / b;
+         * ```
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/where
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        detail::where_expression<T> where (bool const mask, T& value)
+        {
+            return {mask, &value};
+        }
+
+        /** Vectorized ternary operator (scalar fallback for simd select)
+         *
+         * @see select in the AMREX_USE_SIMD path above
+         * @see C++26 std::simd select
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T select (bool const mask, T const& true_val, T const& false_val)
+        {
+            return mask ? true_val : false_val;
+        }
+
+        /** Horizontal reduction over all elements (scalar identity fallback for simd reduce)
+         *
+         * For a scalar, the reduction over its single "element" is the value itself,
+         * independent of the (associative) binary operation.
+         *
+         * Example:
+         * ```cpp
+         * // Works for both simd<T> and scalar T:
+         * auto total = amrex::simd::stdx::reduce(v);  // sum of all elements
+         * ```
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/reduce
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T reduce (T const& v) { return v; }
+
+        /** Horizontal reduction with an explicit binary operation (scalar identity fallback)
+         *
+         * @see reduce above
+         */
+        template <typename T, typename BinaryOperation>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T reduce (T const& v, BinaryOperation const&) { return v; }
+
+        /** Smallest element (scalar identity fallback for simd hmin)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/reduce_min_max
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T hmin (T const& v) { return v; }
+
+        /** Largest element (scalar identity fallback for simd hmax)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/reduce_min_max
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T hmax (T const& v) { return v; }
+
+        /** Element-wise minimum (scalar fallback for simd min)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/min
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T min (T const& a, T const& b) { return (b < a) ? b : a; }
+
+        /** Element-wise maximum (scalar fallback for simd max)
+         *
+         * @see https://en.cppreference.com/w/cpp/experimental/simd/max
+         */
+        template <typename T>
+        AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
+        T max (T const& a, T const& b) { return (a < b) ? b : a; }
 #endif
     }
 
@@ -218,8 +375,15 @@ namespace amrex::simd
      * themselves, but we better help a little for robustness. Background:
      * https://github.com/AMReX-Codes/amrex/pull/4520#issuecomment-3064064215
      *
+     * The `ForceWriteback` flag forces the writeback regardless of the push
+     * method's argument constness. Use it for slots that may be modified by
+     * something other than the named push method itself (e.g., a pre/post
+     * step in the caller), where the push method's signature is not the
+     * authoritative source of truth for whether the value changed.
+     *
      * @tparam P_Method pointer to the method that used the data (for is_nth_arg_non_const)
      * @tparam N the argument index (for is_nth_arg_non_const)
+     * @tparam ForceWriteback if true, write back regardless of P_Method's argument constness
      * @tparam T data type
      * @tparam IndexType int or SIMD index
      * @tparam ValType the type of the value to store
@@ -227,7 +391,8 @@ namespace amrex::simd
      * @param ptr pointer to contiguous 1D array data
      * @param i index or SIMD index
      */
-    template <auto P_Method, int N, typename T, typename IndexType, typename ValType>
+    template <auto P_Method, int N, bool ForceWriteback = false,
+              typename T, typename IndexType, typename ValType>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     void store_1d (
         ValType const & AMREX_RESTRICT val,
@@ -237,7 +402,7 @@ namespace amrex::simd
     {
         // SIMD uses special vector register types in ValType that need to be copied back to RAM array type T
         if constexpr (!std::is_same_v<ValType, T>) {
-            if constexpr (amrex::simd::is_nth_arg_non_const(P_Method, N)) {
+            if constexpr (ForceWriteback || amrex::simd::is_nth_arg_non_const(P_Method, N)) {
 #ifdef AMREX_USE_SIMD
                 // write back to memory
                 // TODO stdx::vector_aligned needs alignment guarantees

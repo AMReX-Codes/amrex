@@ -1,8 +1,27 @@
 #ifndef AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H
 #define AMREX_WRITE_BINARY_PARTICLE_DATA_HDF5_H
 
+#include <iterator>
+
+/**
+ * \file AMReX_WriteBinaryParticleDataHDF5.H
+ *
+ * Low-level helpers that implement ParticleContainer HDF5 checkpoint/plotfile
+ * output (attribute helpers, FAPL configuration, and the synchronous writer).
+ */
+
 namespace amrex {
 
+/**
+ * \brief Create and write a numeric attribute on the given HDF5 object.
+ *
+ * \param loc   HDF5 object on which to store the attribute.
+ * \param name  Attribute name.
+ * \param n     Number of entries (for vector-valued attributes).
+ * \param data  Pointer to the values written to the attribute.
+ * \param dtype HDF5 datatype describing \p data.
+ * \return 1 on success, -1 on error (message already printed).
+ */
 static int CreateWriteHDF5Attr(hid_t loc, const char *name, hsize_t n, void *data, hid_t dtype)
 {
     herr_t ret;
@@ -30,6 +49,14 @@ static int CreateWriteHDF5Attr(hid_t loc, const char *name, hsize_t n, void *dat
     return 1;
 }
 
+/**
+ * \brief Create and write a null-terminated string attribute on the given object.
+ *
+ * \param loc  HDF5 object on which to store the attribute.
+ * \param name Attribute name.
+ * \param str  Null-terminated string copied into the attribute.
+ * \return 1 on success, -1 on error.
+ */
 static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* str)
 {
     hid_t attr, atype, space;
@@ -61,6 +88,15 @@ static int CreateWriteHDF5AttrString(hid_t loc, const char *name, const char* st
     return 1;
 }
 
+/**
+ * \brief Read an attribute from an HDF5 object into the supplied buffer.
+ *
+ * \param loc   HDF5 object that owns the attribute.
+ * \param name  Attribute name.
+ * \param data  Destination buffer.
+ * \param dtype Datatype used for the read.
+ * \return 1 on success, -1 on error.
+ */
 static int ReadHDF5Attr(hid_t loc, const char *name, void *data, hid_t dtype)
 {
     herr_t ret;
@@ -82,8 +118,19 @@ static int ReadHDF5Attr(hid_t loc, const char *name, void *data, hid_t dtype)
 }
 
 #ifdef AMREX_USE_MPI
+/**
+ * \brief Configure a file-access property list for parallel particle writes.
+ *
+ * \param fapl Property list modified in place.
+ * \param comm MPI communicator spanning the writing ranks.
+ */
 static void SetHDF5fapl(hid_t fapl, MPI_Comm comm)
 #else
+/**
+ * \brief Configure a serial file-access property list for particle writes.
+ *
+ * \param fapl Property list modified in place.
+ */
 static void SetHDF5fapl(hid_t fapl)
 #endif
 {
@@ -116,7 +163,25 @@ static void SetHDF5fapl(hid_t fapl)
 #endif
 
 }
-template <class PC, class F, std::enable_if_t<IsParticleContainer<PC>::value, int> foo = 0>
+/**
+ * \brief Synchronous HDF5 particle writer shared by checkpoint and plotfile routines.
+ *
+ * \tparam PC ParticleContainer-like type.
+ * \tparam F  Predicate that returns true for particles that should be written.
+ *
+ * \param pc               Particle container whose data are written.
+ * \param dir              Base directory (plotfile or checkpoint root).
+ * \param name             Particle subdirectory/file stem.
+ * \param write_real_comp  Flags enabling each real component.
+ * \param write_int_comp   Flags enabling each integer component.
+ * \param real_comp_names  Labels for each enabled real component.
+ * \param int_comp_names   Labels for each enabled integer component.
+ * \param compression      Compression descriptor (e.g., `"ZFP_RATE@4"`).
+ * \param f                Predicate that filters individual particles.
+ * \param is_checkpoint    True when ids/cpus are required for restarts.
+ */
+template <class PC, class F>
+requires (IsParticleContainer<PC>::value)
 void WriteHDF5ParticleDataSync (PC const& pc,
                                   const std::string& dir, const std::string& name,
                                   const Vector<int>& write_real_comp,
@@ -138,7 +203,11 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     const int NProcs = ParallelDescriptor::NProcs();
     const int IOProcNumber = ParallelDescriptor::IOProcessorNumber();
 
-    AMREX_ALWAYS_ASSERT(real_comp_names.size() == pc.NumRealComps() + NStructReal);
+    {
+        int nrc = PC::ParticleType::is_soa_particle ?
+            pc.NumRealComps() + NStructReal - AMREX_SPACEDIM : pc.NumRealComps() + NStructReal;
+        AMREX_ALWAYS_ASSERT(std::ssize(real_comp_names) == nrc);
+    }
     AMREX_ALWAYS_ASSERT( int_comp_names.size() == pc.NumIntComps() + NStructInt);
 
 #ifdef AMREX_USE_HDF5_ASYNC
@@ -196,7 +265,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
     // evaluate f for every particle to determine which ones to output
     Vector<std::map<std::pair<int, int>, typename PC::IntVector > >
         particle_io_flags(pc.GetParticles().size());
-    for (int lev = 0; lev < pc.GetParticles().size();  lev++)
+    for (int lev = 0; lev < std::ssize(pc.GetParticles());  lev++)
     {
         const auto& pmap = pc.GetParticles(lev);
         for (const auto& kv : pmap)
@@ -273,7 +342,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         CreateWriteHDF5AttrString(fid, "version_name", versionName.c_str());
 
         int num_output_real = 0;
-        for (int i = 0; i < pc.NumRealComps() + NStructReal; ++i) {
+        for (int i = 0; i < std::ssize(write_real_comp); ++i) {
             if (write_real_comp[i]) { ++num_output_real; }
         }
 
@@ -298,7 +367,7 @@ void WriteHDF5ParticleDataSync (PC const& pc,
         // Real component names
         int real_comp_count = AMREX_SPACEDIM; // position values
 
-        for (int i = 0; i < NStructReal + pc.NumRealComps(); ++i ) {
+        for (int i = 0; i < std::ssize(write_real_comp); ++i ) {
             if (write_real_comp[i]) {
                 /* HdrFile << real_comp_names[i] << '\n'; */
                 snprintf(comp_name, sizeof comp_name, "real_component_%d", real_comp_count);

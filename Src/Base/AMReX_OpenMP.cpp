@@ -156,9 +156,17 @@ namespace amrex::OpenMP
         std::string omp_threads = "system";
         pp.queryAdd("omp_threads", omp_threads);
 
-        auto to_int = [](std::string const & str_omp_threads) {
-            std::optional<int> num = std::stoi(str_omp_threads);
-            return num;
+        auto to_int = [](std::string const & str_omp_threads) -> std::optional<int> {
+            int num = 0;
+            std::istringstream iss(str_omp_threads);
+            if (iss >> num) {
+                // Require a complete integer token; otherwise "4xxxx" would parse as 4.
+                char c;
+                if (!(iss >> c)) {
+                    return num;
+                }
+            }
+            return std::nullopt;
         };
 
         if (omp_threads == "system") {

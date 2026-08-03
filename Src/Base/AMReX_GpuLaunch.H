@@ -23,6 +23,7 @@
 #include <AMReX_Algorithm.H>
 #include <AMReX_Math.H>
 #include <AMReX_Vector.H>
+#include <concepts>
 #include <cstddef>
 #include <limits>
 #include <algorithm>
@@ -39,9 +40,9 @@
         amrex::launch_global    <<<blocks, threads, sharedMem, stream>>>(__VA_ARGS__)
 #elif defined(AMREX_USE_HIP)
 #  define AMREX_LAUNCH_KERNEL(MT, blocks, threads, sharedMem, stream, ... ) \
-        hipLaunchKernelGGL(launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
+        hipLaunchKernelGGL(amrex::launch_global<MT>, blocks, threads, sharedMem, stream, __VA_ARGS__)
 #  define AMREX_LAUNCH_KERNEL_NOBOUND(blocks, threads, sharedMem, stream, ... ) \
-        hipLaunchKernelGGL(launch_global    , blocks, threads, sharedMem, stream, __VA_ARGS__)
+        hipLaunchKernelGGL(amrex::launch_global    , blocks, threads, sharedMem, stream, __VA_ARGS__)
 #endif
 
 
@@ -52,19 +53,20 @@ namespace amrex {
 //  Variadic lambda function wrappers for C++ CUDA/HIP Kernel calls.
 
 #if defined(AMREX_USE_CUDA) || defined(AMREX_USE_HIP)
+
+    /// \cond DOXYGEN_IGNORE
+
+    template <typename... Lambdas>
+    AMREX_GPU_DEVICE void call_device (Lambdas&&... fs) noexcept
+    {
+        (std::forward<Lambdas>(fs)(), ...);
+    }
+
+    /// \endcond
+
     template<class L, class... Lambdas>
     AMREX_GPU_GLOBAL void launch_global (L f0, Lambdas... fs) { f0(); call_device(fs...); }
 
-    /// \cond DOXYGEN_IGNORE
-    template<class L>
-    AMREX_GPU_DEVICE void call_device (L&& f0) noexcept { f0(); }
-
-    template<class L, class... Lambdas>
-    AMREX_GPU_DEVICE void call_device (L&& f0, Lambdas&&... fs) noexcept {
-        f0();
-        call_device(std::forward<Lambdas>(fs)...);
-    }
-    /// \endcond
 #endif
 
 // CPU variation
@@ -254,18 +256,25 @@ namespace amrex::detail {
                 try {
                     m_stream.queue->wait_and_throw();
                 } catch (sycl::exception const& ex) {
-                    The_Arena()->free((void*)m_dp);
-                    m_hp->~Ls();
-                    The_Pinned_Arena()->free((void*)m_hp);
-                    m_dp = nullptr;
-                    m_hp = nullptr;
+                    if (m_dp) {
+                        The_Arena()->free((void*)m_dp);
+                        m_dp = nullptr;
+                    }
+                    if (m_hp) {
+                        m_hp->~Ls();
+                        The_Pinned_Arena()->free((void*)m_hp);
+                        m_hp = nullptr;
+                    }
                     amrex::Abort(std::string("~SyclKernelDevPtr: ")+ex.what());
                 }
                 if (m_dp) {
                     The_Arena()->free((void*)m_dp);
+                    m_dp = nullptr;
                 }
                 if (m_hp) {
+                    m_hp->~Ls();
                     The_Pinned_Arena()->free((void*)m_hp);
+                    m_hp = nullptr;
                 }
             }
         }
@@ -315,7 +324,7 @@ namespace amrex {
  * same as ParalleFor. For CPU builds with OpenMP enabled, this function
  * uses OpenMP threading.
  */
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void ParallelForOMP (T n, L const& f) noexcept
 {
     ParallelFor(n, f);
@@ -343,7 +352,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
  * same as ParalleFor. For CPU builds with OpenMP enabled, this function
  * uses OpenMP threading.
  */
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {
     ParallelFor(box, ncomp, f);
@@ -351,7 +360,7 @@ void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 
 #else /* !defined(AMREX_USE_GPU) && defined(AMREX_USE_OMP) */
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForOMP (T n, L const& f) noexcept
 {
@@ -393,7 +402,7 @@ void ParallelForOMP (Box const& box, L const& f) noexcept
 #endif
 }
 
-template <typename T, typename L, typename M=std::enable_if_t<std::is_integral_v<T>> >
+template <std::integral T, typename L >
 AMREX_ATTRIBUTE_FLATTEN_FOR
 void ParallelForOMP (Box const& box, T ncomp, L const& f) noexcept
 {

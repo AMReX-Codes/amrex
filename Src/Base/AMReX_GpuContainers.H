@@ -312,6 +312,11 @@ namespace amrex::Gpu {
      * This is a no-op for host-only code.
      *
      * This version is blocking - CPU execution will halt until the migration is finished.
+     *
+     * \warning For GPU builds this helper only supports unified allocations
+     * (for example Gpu::ManagedVector). Passing iterators to non-managed
+     * memory, like the default DeviceVector or PinnedVector, will trigger a
+     * runtime error (cudaErrorInvalidValue) from cudaMemPrefetchAsync.
      */
     template<class Iter>
     void prefetchToHost (Iter begin, Iter end) noexcept
@@ -327,10 +332,9 @@ namespace amrex::Gpu {
         // Currently only implemented for CUDA.
 #if defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
             cudaMemLocation location = {};
-            location.type = cudaMemLocationTypeDevice;
-            location.id = cudaCpuDeviceId;
+            location.type = cudaMemLocationTypeHost;
             AMREX_CUDA_SAFE_CALL(cudaMemPrefetchAsync(&(*begin),
                                                       size*sizeof(value_type),
                                                       location, 0,
@@ -353,6 +357,11 @@ namespace amrex::Gpu {
      * This is a no-op for host-only code.
      *
      * This version is blocking - CPU execution will halt until the migration is finished.
+     *
+     * \warning For GPU builds this helper only supports unified allocations
+     * (for example Gpu::ManagedVector). Passing iterators to non-managed
+     * memory, like the default DeviceVector or PinnedVector, will trigger a
+     * runtime error (cudaErrorInvalidValue) from cudaMemPrefetchAsync.
      */
     template<class Iter>
     void prefetchToDevice (Iter begin, Iter end) noexcept
@@ -368,7 +377,7 @@ namespace amrex::Gpu {
         // Currently only implemented for CUDA.
 #if defined(AMREX_USE_CUDA) && !defined(_WIN32)
         if (Gpu::Device::devicePropMajor() >= 6) {
-#if defined(__CUDACC__) && (__CUDACC_VER_MAJOR__ >= 13)
+#if defined(CUDART_VERSION) && (CUDART_VERSION >= 13000)
             cudaMemLocation location = {};
             location.type = cudaMemLocationTypeDevice;
             location.id = Gpu::Device::deviceId();
@@ -405,11 +414,10 @@ namespace amrex::Gpu {
      *              index for the element to be filled.
      */
     template <typename IT, typename F,
-              typename T = typename std::iterator_traits<IT>::value_type,
-              std::enable_if_t<(sizeof(T) <= 36*8) &&  // so there is enough shared memory
-                               std::is_trivially_copyable_v<T> &&
-                               amrex::IsCallable<F, T&, Long>::value,
-                               int> FOO = 0>
+              typename T = typename std::iterator_traits<IT>::value_type>
+    requires ((sizeof(T) <= 36*8) &&  // so there is enough shared memory
+             std::is_trivially_copyable_v<T> &&
+             amrex::IsCallable<F, T&, Long>::value)
     void fillAsync (IT first, IT last, F const& f) noexcept
     {
         auto N = static_cast<Long>(std::distance(first, last));

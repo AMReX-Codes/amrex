@@ -7,6 +7,11 @@
 #include <AMReX_FabConv.H>
 #include <AMReX_FabFactory.H>
 
+/**
+ * \file AMReX_FArrayBox.H
+ * \brief Floating-point specialization of BaseFab plus FAB I/O helpers.
+ */
+
 namespace amrex {
 
 class FArrayBox;
@@ -163,6 +168,7 @@ class FABio_binary
     public FABio
 {
 public:
+    //! Construct a binary FAB I/O helper backed by \p rd_ (ownership transferred).
     FABio_binary (RealDescriptor* rd_);
 
     void read (std::istream& is,
@@ -235,8 +241,10 @@ public:
     //! Construct an invalid FAB with no memory.
     FArrayBox () noexcept = default;
 
+    //! Construct an invalid FAB that will allocate from the supplied arena.
     explicit FArrayBox (Arena* ar) noexcept;
 
+    //! Allocate \p ncomp components over \p b using arena-managed memory.
     FArrayBox (const Box& b, int ncomp, Arena* ar);
 
     /**
@@ -250,10 +258,24 @@ public:
                         bool       shared=false,
                         Arena*     ar = nullptr);
 
+    /**
+     * \brief Construct from another FAB either by aliasing or deep-copying components.
+     *
+     * \param rhs       Source FAB providing the data.
+     * \param make_type Use \c amrex::make_alias to share storage or
+     *                  \c amrex::make_deep_copy to allocate new storage and copy.
+     * \param scomp     First component to import from \p rhs.
+     * \param ncomp     Number of components to import.
+     */
     FArrayBox (const FArrayBox& rhs, MakeType make_type, int scomp, int ncomp);
 
+    /**
+     * \brief Wrap an externally owned const buffer; no memory is allocated or freed.
+     * \note The constness of the buffer is preserved only when this object is const.
+     */
     FArrayBox (const Box& b, int ncomp, Real const* p) noexcept;
 
+    //! Wrap an externally owned mutable buffer; no memory is allocated or freed.
     FArrayBox (const Box& b, int ncomp, Real* p) noexcept;
 
     explicit FArrayBox (Array4<Real> const& a) noexcept : BaseFab<Real>(a) {}
@@ -267,7 +289,9 @@ public:
     //!  The destructor.
     ~FArrayBox () noexcept override = default;
 
+    //! Move-construct by transferring ownership of \p rhs storage.
     FArrayBox (FArrayBox&& rhs) noexcept = default;
+    //! Move-assign, releasing existing storage then adopting \p rhs memory.
     FArrayBox& operator= (FArrayBox&&) noexcept = default;
 
     FArrayBox (const FArrayBox&) = delete;
@@ -278,47 +302,103 @@ public:
     FArrayBox& operator= (Real v) noexcept;
 
     /**
-    * \brief Are there any NaNs in the FAB?
-    * This may return false, even if the FAB contains NaNs, if the machine
-    * doesn't support the appropriate NaN testing functions.
-    */
+     * \brief Test whether any NaN is present anywhere in the FAB.
+     *
+     * May return false even if the FAB contains NaNs, when the machine does not
+     * support the appropriate NaN-testing functions.
+     *
+     * \return \c true if a NaN is found.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_nan () const noexcept;
 
+    /**
+     * \brief Test whether any NaN is present in a sub-box and component range.
+     * \param bx     Region to inspect (must lie within the FAB).
+     * \param scomp  First component to test.
+     * \param ncomp  Number of components to inspect.
+     * \return \c true if a NaN is found.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_nan (const Box& bx, int scomp, int ncomp) const noexcept;
+
     /**
-    * \brief These versions return the cell index (though not the component) of
-    * the first location of a NaN if there is one.
-    */
+     * \brief Test the whole FAB for a NaN, reporting a location if found.
+     * \param where If a NaN is found, set to its cell index (the component is
+     *              not reported; on the GPU this is not guaranteed to be the
+     *              first NaN).
+     * \return \c true if a NaN was found, in which case \p where holds the
+     *         cell index of one.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_nan (IntVect& where) const noexcept;
 
+    /**
+     * \brief Test a sub-box and component range for a NaN, reporting a
+     *        location if found.
+     * \param bx     Region to inspect (must lie within the FAB).
+     * \param scomp  First component to test.
+     * \param ncomp  Number of components to inspect.
+     * \param where  If a NaN is found, set to its cell index (the component is
+     *               not reported; on the GPU this is not guaranteed to be the
+     *               first NaN).
+     * \return \c true if a NaN was found, in which case \p where holds the
+     *         cell index of one.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_nan (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
+
     /**
-    * \brief Are there any Infs in the FAB?
-    * This may return false, even if the FAB contains Infs, if the machine
-    * doesn't support the appropriate Inf testing functions.
-    */
+     * \brief Test whether any Inf is present anywhere in the FAB.
+     *
+     * May return false even if the FAB contains Infs, when the machine does not
+     * support the appropriate Inf-testing functions.
+     *
+     * \return \c true if an Inf is found.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_inf () const noexcept;
 
+    /**
+     * \brief Test whether any Inf is present in a sub-box and component range.
+     * \param bx     Region to inspect (must lie within the FAB).
+     * \param scomp  First component to test.
+     * \param ncomp  Number of components to inspect.
+     * \return \c true if an Inf is found.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     [[nodiscard]] bool contains_inf (const Box& bx, int scomp, int ncomp) const noexcept;
+
     /**
-    * \brief These versions return the cell index (though not the component) of
-    * the first location of an Inf if there is one.
-    */
+     * \brief Test the whole FAB for an Inf, reporting a location if found.
+     * \param where If an Inf is found, set to its cell index (the component is
+     *              not reported; on the GPU this is not guaranteed to be the
+     *              first Inf).
+     * \return \c true if an Inf was found, in which case \p where holds the
+     *         cell index of one.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_inf (IntVect& where) const noexcept;
 
+    /**
+     * \brief Test a sub-box and component range for an Inf, reporting a
+     *        location if found.
+     * \param bx     Region to inspect (must lie within the FAB).
+     * \param scomp  First component to test.
+     * \param ncomp  Number of components to inspect.
+     * \param where  If an Inf is found, set to its cell index (the component is
+     *               not reported; on the GPU this is not guaranteed to be the
+     *               first Inf).
+     * \return \c true if an Inf was found, in which case \p where holds the
+     *         cell index of one.
+     */
     template <RunOn run_on AMREX_DEFAULT_RUNON>
     bool contains_inf (const Box& bx, int scomp, int ncomp, IntVect& where) const noexcept;
 
     //! For debugging purposes we hide BaseFab version and do some extra work.
     void resize (const Box& b, int N = 1, Arena* ar = nullptr);
 
+    //! Return the embedded-boundary FabType of this FAB (always \c regular for a plain FArrayBox).
     [[nodiscard]] FabType getType () const noexcept { return m_type; }
 
     void initVal () noexcept; // public for cuda
@@ -328,8 +408,8 @@ public:
     //! Read FABs in ASCII form.
     friend std::istream& operator>> (std::istream& is, FArrayBox& fb);
     /**
-    * \brief Writes out the FAB in whatever format you've set.
-    * The default format is NATIVE.
+    * \brief Write every component of the FAB using the current FABio format
+    * (the default format is NATIVE).
     */
     void writeOn (std::ostream& os) const;
 
@@ -348,14 +428,15 @@ public:
                   int           comp,
                   int           num_comp=1) const;
 
-    //! Read FAB from istream.  Format is as it was written out.
+    //! Read FAB from \p is using whichever FABio format it was written with.
     void readFrom (std::istream& is);
 
     /**
-    * \brief Read FAB from istream.  Format is as it was written out.
-    * This creates a single component FAB with data from
-    * compIndex of the FAB from the istream.
-    * Returns the number of components available in the fab.
+    * \brief Read a single component (indexed by \p compIndex) from the
+    * serialized FAB, using whichever FABio format it was written with.
+    *
+    * Creates a single-component FAB and returns the number of components
+    * available in the FAB on disk.
     */
     int readFrom (std::istream& is, int compIndex);
 
@@ -419,18 +500,24 @@ public:
     static const FABio& getFABio ();
 
     /**
-    * \brief Sets the FABio object used by the program.  It is an error
-    * if the passed pointer rd is the null pointer.
+    * \brief Replace the global FABio helper used by the program, taking
+    * ownership of \p rd.  It is an error if \p rd is the null pointer.
     */
     static void setFABio (FABio* rd);
 
+    //! Return a copy of the RealDescriptor describing the on-disk layout.
     static std::unique_ptr<RealDescriptor> getDataDescriptor ();
 
+    //! Return the runtime class name (for metadata headers).
     static std::string getClassName ();
 
+    //! Enable or disable initializing newly allocated elements to the init value.
     static bool set_do_initval (bool tf);
+    //! Query whether init-value filling is enabled.
     static bool get_do_initval ();
+    //! Set the default value used for initialization.
     static Real set_initval    (Real iv);
+    //! Query the current initialization value.
     static Real get_initval    ();
     //! Initialize from ParmParse with "fab" prefix.
     static void Initialize ();

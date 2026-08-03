@@ -56,11 +56,9 @@ class RealVectND {
         Construct a RealVectND given the specific values for its
         coordinates.
     */
-    template <class... Args,
-        std::enable_if_t<
-            (sizeof...(Args) + 2 == dim) &&
-            IsConvertible_v<Real, Args...>,
-        int> = 0>
+    template <class... Args>
+    requires ((sizeof...(Args) + 2 == dim) &&
+              IsConvertible_v<Real, Args...>)
     AMREX_GPU_HOST_DEVICE
     constexpr RealVectND (Real i, Real j, Args... ks) noexcept
         : vect{i, j, static_cast<Real>(ks)...} {}
@@ -330,9 +328,9 @@ class RealVectND {
     /**
         Returns the result of the cross product with another RealVectND
     */
-    template <int N=dim, std::enable_if_t<( N==3 ), int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE inline RealVectND crossProduct (
-        const RealVectND& a_rhs) const noexcept;
+        const RealVectND& a_rhs) const noexcept requires (dim == 3);
+
 
     ///
     /**
@@ -594,10 +592,8 @@ protected:
 };
 
 // Template deduction guide for RealVectND
-template <class...Args,
-    std::enable_if_t<
-        IsConvertible_v<Real, Args...>,
-    int> = 0>
+template <class... Args>
+requires (IsConvertible_v<Real, Args...>)
 AMREX_GPU_HOST_DEVICE // __device__ for HIP
 RealVectND(Real, Real, Args...) -> RealVectND<sizeof...(Args)+2>;
 
@@ -850,10 +846,11 @@ RealVectND<dim>::dotProduct (const RealVectND<dim>& a_rhs) const noexcept {
 }
 
 template <int dim>
-template <int N, std::enable_if_t<( N==3 ), int>>
 AMREX_GPU_HOST_DEVICE inline
 RealVectND<dim>
-RealVectND<dim>::crossProduct (const RealVectND<dim>& a_rhs) const noexcept {
+RealVectND<dim>::crossProduct (const RealVectND<dim>& a_rhs) const noexcept
+    requires (dim == 3)
+{
     RealVectND<dim> tmp(vect[1] * a_rhs[2] - vect[2] * a_rhs[1],
                         vect[2] * a_rhs[0] - vect[0] * a_rhs[2],
                         vect[0] * a_rhs[1] - vect[1] * a_rhs[0]);
@@ -1140,8 +1137,6 @@ RealVectND<dim> scale (const RealVectND<dim>& p, Real s) noexcept {
 
 /// \cond DOXYGEN_IGNORE
 namespace detail {
-    std::ostream& real_vector_write (std::ostream& os, const Real* p, int dim);
-    std::istream& real_vector_read (std::istream& is, Real* p, int dim);
 
     template<int dim>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
@@ -1170,18 +1165,32 @@ namespace detail {
 }
 /// \endcond
 
+/**
+ * \brief Streams a RealVectND as a parenthesized list of comma-separated
+ *        Real values.
+ *
+ * The output form is `(r0,r1,...,r{dim-1})`.
+ */
 template<int dim>
 std::ostream&
 operator<< (std::ostream& os, const RealVectND<dim>& p)
 {
-    return detail::real_vector_write(os, p.begin(), dim);
+    return detail::T_vector_write(os, p.begin(), dim);
 }
 
+/**
+ * \brief Parses a RealVectND from the same `(r0,r1,...,r{dim-1})` tuple syntax.
+ *
+ * Whitespace around tokens is skipped, missing trailing entries are set to
+ * zero, and any additional comma-delimited values after the requested
+ * dimension are validated then discarded.  Invalid tuple structure or
+ * values will raise `amrex::Error`.
+ */
 template<int dim>
 std::istream&
 operator>> (std::istream& is, RealVectND<dim>& p)
 {
-    return detail::real_vector_read(is, p.begin(), dim);
+    return detail::T_vector_read(is, p.begin(), dim);
 }
 
 /**

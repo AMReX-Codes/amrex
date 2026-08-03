@@ -4,21 +4,22 @@
 #include <algorithm>
 #include <cctype>
 #include <iomanip>
+#include <locale>
 #include <sstream>
 
 namespace amrex {
 
 std::string toLower (std::string s)
 {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return std::tolower(c); });
+    std::ranges::transform(s, s.begin(),
+                           [](unsigned char c) { return std::tolower(c); });
     return s;
 }
 
 std::string toUpper (std::string s)
 {
-    std::transform(s.begin(), s.end(), s.begin(),
-                   [](unsigned char c) { return std::toupper(c); });
+    std::ranges::transform(s, s.begin(),
+                           [](unsigned char c) { return std::toupper(c); });
     return s;
 }
 
@@ -35,6 +36,7 @@ std::string Concatenate (const std::string& root, int num, int mindigits)
 {
     BL_ASSERT(mindigits >= 0);
     std::stringstream result;
+    result.imbue(std::locale::classic());
     result << root << std::setfill('0') << std::setw(mindigits) << num;
     return result.str();
 }

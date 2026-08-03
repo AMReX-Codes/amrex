@@ -2,6 +2,7 @@
 #define AMREX_RUNGE_KUTTA_H_
 #include <AMReX_Config.H>
 
+#include <AMReX_Concepts.H>
 #include <AMReX_FabArray.H>
 
 /**
@@ -49,8 +50,8 @@
 namespace amrex::RungeKutta {
 
 struct PostStageNoOp {
-    template <typename MF>
-    std::enable_if_t<IsFabArray<MF>::value> operator() (int, MF&) const {}
+    template <FabArrayType MF>
+    void operator() (int, MF&) const {}
 };
 
 /// \cond DOXYGEN_IGNORE
@@ -184,7 +185,7 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
 
     // RK2 stage 2
     fillbndry(2, Unew, time+dt);
-    frhs(2, dUdt, Unew, time, Real(0.5)*dt);
+    frhs(2, dUdt, Unew, time+dt, Real(0.5)*dt);
     // Unew = (Uold+Unew)/2 + dUdt_2 * dt/2,
     // which is Unew = Uold + dt/2 * (dUdt_1 + dUdt_2)
     detail::rk2_update_2(Unew, Uold, dUdt, dt);
@@ -200,7 +201,8 @@ void RK2 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
  * \param dt              time step
  * \param frhs            computing the right-hand side
  * \param fillbndry       filling ghost cells
- * \param store_crse_data storing right-hand side data for AMR
+ * \param store_crse_data storing right-hand side data for AMR.
+ *                        The caller must deep-copy the provided data.
  * \param post_stage      post-processing stage results
  */
 template <typename MF, typename F, typename FB, typename R,
@@ -250,7 +252,8 @@ void RK3 (MF& Uold, MF& Unew, Real time, Real dt, F const& frhs, FB const& fillb
  * \param dt              time step
  * \param frhs            computing the right-hand side
  * \param fillbndry       filling ghost cells
- * \param store_crse_data storing right-hand side data for AMR
+ * \param store_crse_data storing right-hand side data for AMR.
+ *                        The caller must deep-copy the provided data.
  * \param post_stage      post-processing stage results
  */
 template <typename MF, typename F, typename FB, typename R,

@@ -10,6 +10,8 @@
     Donald Willcox (dewillcox@lbl.gov)
   ----------------------------------------------------------------------------*/
 #include "AMReX_NVector_MultiFab.H"
+#include <AMReX_ParallelContext.H>
+#include <AMReX_ParallelReduce.H>
 #include <type_traits>
 
 namespace amrex::sundials {
@@ -376,27 +378,8 @@ amrex::Real N_VDotProd_MultiFab(N_Vector x, N_Vector y)
 
 amrex::Real N_VMaxNorm_MultiFab(N_Vector x)
 {
-    using namespace amrex;
-
-    MultiFab *mf_x = amrex::sundials::getMFptr(x);
-    int ncomp = mf_x->nComp();
-    int startComp = 0;
-    int nghost = 0;  // do not include ghost cells in the norm
-
-    amrex::Real max = mf_x->max(startComp, nghost);
-
-    // continue with rest of comps
-    for (int c = 1; c < ncomp; ++c)
-    {
-         amrex::Real comp_max = mf_x->max(c, nghost); // comp c, no ghost zones
-         if (comp_max > max)
-         {
-            max = comp_max;
-         }
-    }
-
-    // no reduction needed, done in multifab
-    return max;
+    amrex::MultiFab *mf_x = amrex::sundials::getMFptr(x);
+    return mf_x->norminf(0, mf_x->nComp(), IntVect(0));
 }
 
 amrex::Real N_VWrmsNorm_MultiFab(N_Vector x, N_Vector w)
@@ -465,7 +448,7 @@ amrex::Real NormHelper_NVector_MultiFab(N_Vector a_x, N_Vector a_w, N_Vector id,
                                 [=] AMREX_GPU_HOST_DEVICE (amrex::Real x, amrex::Real y) -> amrex::Real { return x*x*y*y; },
                                 numcomp, nghost, local);
     }
-    ParallelDescriptor::ReduceRealSum(sum);
+    ParallelAllReduce::Sum(sum, ParallelContext::CommunicatorSub());
 
     return rms ? std::sqrt(sum/Real(N)) : std::sqrt(sum);
 }
@@ -530,26 +513,25 @@ int N_VInvTest_MultiFab(N_Vector x, N_Vector z)
     auto const& ma1 = mf_x->const_arrays();
     auto const& ma2 = mf_z->arrays();
 
-    GpuTuple<bool> mm = ParReduce(TypeList<ReduceOpLogicalAnd>{},
-                                    TypeList<bool>{},
-                                    *mf_x,  amrex::IntVect::TheZeroVector(),
-     [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k) noexcept
-           -> GpuTuple<bool>
-     {
-         bool result = !(ma1[box_no](i,j,k) == amrex::Real(0.0));
-         ma2[box_no](i,j,k) = result ? amrex::Real(1.0) / ma1[box_no](i,j,k) : 0.0;
-         return { result };
-     });
-
-    bool val = amrex::get<0>(mm);
-
-    if (val == false)
+    bool val = ParReduce(TypeList<ReduceOpLogicalAnd>{},
+                         TypeList<int>{}, // We use int for logical and on device.
+                         *mf_x, amrex::IntVect::TheZeroVector(),
+                         mf_x->nComp(),
+    [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+                        -> GpuTuple<int>
     {
-         return SUNFALSE;
-    }
-    else
-    {
-         return SUNTRUE;
+        auto xx = ma1[box_no](i,j,k,n);
+        bool result = xx != Real(0.0);
+        ma2[box_no](i,j,k,n) = result ? Real(1.0)/xx : Real(0.0);
+        return { static_cast<int>(result) };
+    });
+
+    ParallelAllReduce::And(val, ParallelContext::CommunicatorSub());
+
+    if (val) {
+        return SUNTRUE;
+    } else {
+        return SUNFALSE;
     }
 }
 
@@ -593,9 +575,9 @@ int N_VConstrMask_MultiFab(N_Vector a_a, N_Vector a_x, N_Vector a_m)
 
     temp = mf_m->norm1();
     /* Return false if any constraint was violated */
-    amrex::ParallelDescriptor::ReduceRealMax(temp);
+    ParallelAllReduce::Max(temp, ParallelContext::CommunicatorSub());
 
-    return (temp == amrex::Real(1.0)) ? SUNFALSE : SUNTRUE;
+    return (temp > amrex::Real(0.0)) ? SUNFALSE : SUNTRUE;
 }
 
 amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
@@ -632,7 +614,7 @@ amrex::Real N_VMinQuotient_MultiFab(N_Vector a_num, N_Vector a_denom)
          return min_loc;
      });
 
-    amrex::ParallelDescriptor::ReduceRealMin(min);
+    ParallelAllReduce::Min(min, ParallelContext::CommunicatorSub());
 
     return min;
 }

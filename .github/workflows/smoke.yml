@@ -20,14 +20,14 @@ jobs:
     needs: check_changes
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
     - name: Dependencies
       run: |
         .github/workflows/dependencies/dependencies.sh
         .github/workflows/dependencies/dependencies_clang-tidy-apt-llvm.sh 21
         .github/workflows/dependencies/dependencies_ccache.sh
     - name: Set Up Cache
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         path: ~/.cache/ccache
         key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
@@ -46,10 +46,10 @@ jobs:
         mkdir build
         cd build
         cmake ..                                  \
+            -DCMAKE_CXX_STANDARD=20               \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_SPACEDIM="1;2;3"              \
             -DAMReX_EB=ON                         \
-            -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         make install
@@ -63,9 +63,9 @@ jobs:
         mkdir ../Tests/SpackSmokeTest/build
         cd ../Tests/SpackSmokeTest/build
         cmake .. \
+            -DCMAKE_CXX_STANDARD=20               \
             -DCMAKE_VERBOSE_MAKEFILE=ON           \
             -DAMReX_ROOT=${PWD}/../../../installdir      \
-            -DCMAKE_CXX_STANDARD=17               \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
         make -j 4
         mpiexec -n 2 ./install_test ../../Amr/Advection_AmrCore/Exec/inputs-ci

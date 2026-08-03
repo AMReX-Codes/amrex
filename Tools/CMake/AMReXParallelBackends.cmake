@@ -91,7 +91,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    endforeach()
 
    # Check cuda compiler and host compiler
-   set_mininum_compiler_version(CUDA NVIDIA 9.0)
+   set_mininum_compiler_version(CUDA NVIDIA 12.2)
    check_cuda_host_compiler()
 
    # Required CUDA flags
@@ -197,7 +197,7 @@ if (  AMReX_GPU_BACKEND STREQUAL "CUDA"
    # Flags to make it an error to write a device variable in
    # a host function.
    if (CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 11.2)
-      list(APPEND _cuda_flag --display-error-number "SHELL:--diag-error 20092")
+      list(APPEND _cuda_flags --display-error-number "SHELL:--diag-error 20092")
    endif ()
 
    foreach(D IN LISTS AMReX_SPACEDIM)
@@ -361,8 +361,8 @@ if (AMReX_HIP)
        # 
        target_compile_options(amrex_${D}d PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-munsafe-fp-atomics>)
 
-       # Ensure ROCm builds enable at least C++17 without overriding higher standards
-       target_compile_features(amrex_${D}d PUBLIC cxx_std_17)
+       # Ensure ROCm builds enable at least C++20 without overriding higher standards
+       target_compile_features(amrex_${D}d PUBLIC cxx_std_20)
    endforeach()
 
    # Equivalently, relocatable-device-code (RDC) flags are needed for `extern`

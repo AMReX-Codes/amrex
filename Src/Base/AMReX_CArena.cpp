@@ -14,8 +14,8 @@ CArena::CArena (std::size_t hunk_size, ArenaInfo info)
     : m_hunk(align(hunk_size == 0 ? DefaultHunkSize : hunk_size))
 {
     arena_info = info;
-    BL_ASSERT(m_hunk >= hunk_size);
-    BL_ASSERT(m_hunk%Arena::align_size == 0);
+    AMREX_ALWAYS_ASSERT(m_hunk >= hunk_size);
+    AMREX_ALWAYS_ASSERT(m_hunk%Arena::align_size == 0);
 }
 
 CArena::~CArena ()
@@ -37,7 +37,7 @@ void*
 CArena::alloc_protected (std::size_t nbytes)
 {
     bool freeunused_called = false;
-    if (static_cast<Long>(m_used+nbytes) >= arena_info.release_threshold) {
+    if (std::cmp_greater_equal(m_used+nbytes, arena_info.release_threshold)) {
         freeUnused_protected();
         freeunused_called = true;
     }
@@ -88,6 +88,8 @@ CArena::alloc_protected (std::size_t nbytes)
             }
         }
 
+        N = Arena::align(N);
+
         vp = allocate_system(N);
 
         m_used += N;
@@ -119,7 +121,7 @@ CArena::alloc_protected (std::size_t nbytes)
     else
     {
         BL_ASSERT((*free_it).size() >= nbytes);
-        BL_ASSERT(m_busylist.find(*free_it) == m_busylist.end());
+        BL_ASSERT(!m_busylist.contains(*free_it));
 
         vp = (*free_it).block();
 
@@ -172,7 +174,7 @@ CArena::alloc_in_place (void* pt, std::size_t szmin, std::size_t szmax)
             amrex::Abort("CArena::alloc_in_place: unknown pointer");
             return std::make_pair(nullptr,0);
         }
-        AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+        AMREX_ASSERT(!m_freelist.contains(*busy_it));
 
         if (busy_it->size() >= szmax) {
             return std::make_pair(pt, busy_it->size());
@@ -246,7 +248,7 @@ CArena::shrink_in_place (void* pt, std::size_t new_size)
         amrex::Abort("CArena::shrink_in_place: unknown pointer");
         return nullptr;
     }
-    AMREX_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+    AMREX_ASSERT(!m_freelist.contains(*busy_it));
 
     auto const old_size = busy_it->size();
 
@@ -310,7 +312,7 @@ CArena::free (void* vp)
         amrex::Abort("CArena::free: unknown pointer");
         return;
     }
-    BL_ASSERT(m_freelist.find(*busy_it) == m_freelist.end());
+    BL_ASSERT(!m_freelist.contains(*busy_it));
 
     m_actually_used -= busy_it->size();
 
@@ -402,28 +404,36 @@ CArena::freeableMemory () const
 }
 
 std::size_t
+CArena::largestFreeBlock () const
+{
+    std::scoped_lock lock(carena_mutex);
+    std::size_t nbytes = 0;
+    for (auto const& free_block : m_freelist) {
+        nbytes = std::max(nbytes, free_block.size());
+    }
+    return nbytes;
+}
+
+std::size_t
 CArena::freeUnused_protected ()
 {
     std::size_t nbytes = 0;
     std::vector<std::pair<void*, std::size_t>> to_free{};
-    m_alloc.erase(std::remove_if(m_alloc.begin(), m_alloc.end(),
-                                 [&nbytes,&to_free,this] (std::pair<void*,std::size_t> a)
-                                 {
-                                     // We cannot simply use std::set::erase because
-                                     // Node::operator== only compares the starting address.
-                                     auto it = m_freelist.find(Node(a.first,nullptr,0));
-                                     if (it != m_freelist.end() &&
-                                         it->owner() == a.first &&
-                                         it->size()  == a.second)
-                                     {
-                                         it = m_freelist.erase(it);
-                                         nbytes += a.second;
-                                         to_free.emplace_back(a.first, a.second);
-                                         return true;
-                                     }
-                                     return false;
-                                 }),
-                  m_alloc.end());
+    std::erase_if(m_alloc, [&nbytes,&to_free,this] (std::pair<void*,std::size_t> a) {
+        // We cannot simply use std::set::erase because
+        // Node::operator== only compares the starting address.
+        auto it = m_freelist.find(Node(a.first,nullptr,0));
+        if (it != m_freelist.end() &&
+            it->owner() == a.first &&
+            it->size()  == a.second)
+        {
+            it = m_freelist.erase(it);
+            nbytes += a.second;
+            to_free.emplace_back(a.first, a.second);
+            return true;
+        }
+        return false;
+    });
     m_used -= nbytes;
 
     // deallocate_system can call cudafree which may perform implicit synchronization

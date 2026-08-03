@@ -1,8 +1,8 @@
-foreach(D IN LISTS AMReX_SPACEDIM)
-    if (D EQUAL 1 OR NOT AMReX_LINEAR_SOLVERS_EM)
-       return()
-    endif ()
+if (NOT AMReX_LINEAR_SOLVERS_EM)
+    return()
+endif ()
 
+foreach(D IN LISTS AMReX_SPACEDIM)
     set(_sources
        main.cpp
        MyTest.cpp

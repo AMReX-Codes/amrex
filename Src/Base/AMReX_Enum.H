@@ -1,6 +1,11 @@
 #ifndef AMREX_ENUM_H_
 #define AMREX_ENUM_H_
 
+/**
+ * \file AMReX_Enum.H
+ * \brief Enum reflection utilities and the AMREX_ENUM macro.
+ */
+
 #include <AMReX_String.H>
 
 #include <algorithm>
@@ -20,8 +25,8 @@ namespace amrex
 /// \cond DOXYGEN_IGNORE
 namespace detail
 {
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::pair<std::string,T>> getNewEnumNameValuePairs ()
     {
         auto tmp = amrex::split(std::string(ET::enum_names), ",");
@@ -42,11 +47,12 @@ namespace detail
                 T this_value;
                 if (it != r.end()) {
                     this_value = it->second;
-                } else { // v is an int
+                } else { // v is an int literal
                     // Note that if value_string is not a valid string for int,
                     // it will fail at compile time, because the compiler
                     // will not allow something like `enum FOO : int { x = 3% }`.
-                    this_value =  static_cast<T>(std::stoi(value_string));
+                    // The base of the integer is auto detected, so 0x/0 prefixes work.
+                    this_value =  static_cast<T>(std::stoi(value_string, nullptr, 0));
                 }
                 r.emplace_back(amrex::trim(kv[0]), this_value);
                 next_value = static_cast<int>(this_value) + 1;
@@ -62,8 +68,16 @@ namespace detail
 }  // namespace detail
 /// \endcond
 
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return all (name, value) pairs for an AMREX_ENUM-declared enum type.
+     *
+     * The result is cached the first time it is called for a given type \p T.
+     *
+     * \tparam T An enum type declared with AMREX_ENUM.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::pair<std::string,T>> const& getEnumNameValuePairs ()
     {
         // cache enum value strings for the whole type T
@@ -71,10 +85,14 @@ namespace detail
         return r;
     }
 
-    /** Convert a string to an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Convert a string to an enum value.
+     *
+     * Throws `std::runtime_error` if \p s does not match any enumerator name.
      *
      * Example:
-     * ```C++
+     * \code{.cpp}
      * AMREX_ENUM(Model,
      *     linear,
      *     nonlinear
@@ -82,10 +100,10 @@ namespace detail
      * std::string const model_str = "nonlinear";
      * Model const model = amrex::getEnum<Model>(model_str);
      * assert(model == Model::nonlinear);
-     * ```
+     * \endcode
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     T getEnum (std::string_view const& s)
     {
         auto const& kv = getEnumNameValuePairs<T>();
@@ -103,12 +121,14 @@ namespace detail
         }
     }
 
-    /** Convert a string case insensitive to an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Convert a string case-insensitively to an enum value.
      *
-     * Same as getEnum<T>, but case insensitive match to enum value.
+     * Same as getEnum<T>, but uses a case-insensitive match.
      *
      * Example:
-     * ```C++
+     * \code{.cpp}
      * AMREX_ENUM(Model,
      *     linear,
      *     nonlinear
@@ -116,10 +136,10 @@ namespace detail
      * std::string const model_str = "NonLinear";
      * Model const model = amrex::getEnumCaseInsensitive<Model>(model_str);
      * assert(model == Model::nonlinear);
-     * ```
+     * \endcode
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     T getEnumCaseInsensitive (std::string_view const& s)
     {
         auto const& kv = getEnumNameValuePairs<T>();
@@ -138,10 +158,14 @@ namespace detail
         }
     }
 
-    /** Get a string from an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Get the name string of an enum value.
+     *
+     * Throws `std::runtime_error` if \p v has no matching enumerator name.
      *
      * Example:
-     * ```C++
+     * \code{.cpp}
      * AMREX_ENUM(Model,
      *     linear,
      *     nonlinear
@@ -149,10 +173,10 @@ namespace detail
      * Model model = Model::linear;
      * std::string model_str = amrex::getEnumNameString(model);
      * assert(model_str == "linear");
-     * ```
+     * \endcode
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::string getEnumNameString (T const& v)
     {
         auto const& kv = getEnumNameValuePairs<T>();
@@ -162,7 +186,7 @@ namespace detail
         if (it != kv.end()) {
             return it->first;
         } else {
-            std::string error_msg("amrex::getEnum: Unknown enum value: ");
+            std::string error_msg("amrex::getEnumNameString: Unknown enum value: ");
             error_msg.append(std::to_string(static_cast<int>(v)))
                 .append(" in AMREX_ENUM(").append(ET::class_name).append(", ")
                 .append(ET::enum_names).append(").");
@@ -171,8 +195,14 @@ namespace detail
         }
     }
 
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return a list of all enumerator name strings for an AMREX_ENUM-declared type.
+     *
+     * \tparam T An enum type declared with AMREX_ENUM.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::vector<std::string> getEnumNameStrings ()
     {
         auto r = amrex::split(std::string(ET::enum_names), ",");
@@ -186,25 +216,47 @@ namespace detail
         return r;
     }
 
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return the class name string of an AMREX_ENUM-declared enum type.
+     *
+     * \tparam T An enum type declared with AMREX_ENUM.
+     */
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     std::string getEnumClassName ()
     {
         return std::string(ET::class_name);
     }
 
-    /** Return the underlying (u)int of an enum value
+    /**
+     * \ingroup amrex_utilities
+     * \brief Return the underlying integer value of an enum enumerator.
      *
      * Useful when building bitmasks.
      */
-    template <typename T, typename ET = amrex_enum_traits<T>,
-              std::enable_if_t<ET::value,int> = 0>
+    template <typename T, typename ET = amrex_enum_traits<T>>
+    requires (ET::value)
     constexpr auto toUnderlying (T v) noexcept
     {
         return static_cast<std::underlying_type_t<T>>(v);
     }
 }
 
+/**
+ * \ingroup amrex_utilities
+ * \brief Declare a scoped enum with reflection support.
+ *
+ * Defines `enum class CLASS : int` and registers its enumerator names so that
+ * amrex::getEnum, amrex::getEnumCaseInsensitive, amrex::getEnumNameString,
+ * and related utilities can convert between strings and values at run time.
+ *
+ * Example:
+ * \code{.cpp}
+ * AMREX_ENUM(Color, red, green, blue);
+ * Color c = amrex::getEnum<Color>("green");
+ * \endcode
+ */
 #define AMREX_ENUM(CLASS, ...) \
     enum class CLASS : int { __VA_ARGS__ }; \
     /** \cond DOXYGEN_IGNORE */ \
@@ -216,5 +268,18 @@ namespace detail
     }; \
     /** \endcond */ \
     CLASS##_EnumTraits amrex_get_enum_traits(CLASS)
+
+#define AMREX_ENUM_IN_CLASS(CLASS, ...) \
+    enum class CLASS : int { __VA_ARGS__ }; \
+    /** \cond DOXYGEN_IGNORE */ \
+    struct CLASS##_EnumTraits { \
+        using enum_class_t = CLASS; \
+        static constexpr bool value = true; \
+        static constexpr std::string_view class_name{#CLASS}; \
+        static constexpr std::string_view enum_names{#__VA_ARGS__}; \
+    }; \
+    /** \endcond */ \
+    friend CLASS##_EnumTraits amrex_get_enum_traits(CLASS) { return {}; } \
+    /* This gets rid of trailing semicolon warning. */ static_assert(true, "")
 
 #endif

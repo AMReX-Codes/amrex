@@ -6,17 +6,26 @@
 #include <AMReX_Utility.H>
 #include <type_traits>
 
+/**
+ * \file AMReX_EB2_IF_Base.H
+ *
+ * Base helpers shared by all EB2 implicit functions, including GPU-aware markers
+ * and compile-time utilities to identify GPU-callable functors.
+ */
+
 namespace amrex {
 
+//! Marker base that denotes an implicit function callable on device kernels.
 struct GPUable {};
 
 namespace EB2 {
 
-template <class D, class Enable = void> struct IsGPUable : std::false_type {};
+//! Type trait that reports whether a functor derives from GPUable.
+template <class D> struct IsGPUable : std::false_type {};
 
 template <class D>
-struct IsGPUable<D, std::enable_if_t<std::is_base_of_v<GPUable,D>>>
-    : std::true_type {};
+requires (std::is_base_of_v<GPUable,D>)
+struct IsGPUable<D> : std::true_type {};
 
 }
 }

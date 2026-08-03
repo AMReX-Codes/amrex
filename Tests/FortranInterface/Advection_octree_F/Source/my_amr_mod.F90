@@ -73,7 +73,7 @@ contains
     call amrex_parmparse_destroy(pp)
 
     stepno = 0
-    dtstep = huge(1._rt)
+    dtstep = huge(1._rt) * 0.1_rt
 
     call amr_data_init()
   end subroutine my_amr_init
@@ -101,7 +101,7 @@ contains
     dm = pdm
 
     t_new(lev) = time
-    t_old(lev) = time - 1.e200_amrex_real
+    t_old(lev) = time - 1.e30_amrex_real
 
     call my_clear_level(lev)
 
@@ -143,7 +143,7 @@ contains
     call my_clear_level(lev)
 
     t_new(lev) = time
-    t_old(lev) = time - 1.e200_amrex_real
+    t_old(lev) = time - 1.e30_amrex_real
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)
@@ -177,7 +177,7 @@ contains
     call my_clear_level(lev)
 
     t_new(lev) = time
-    t_old(lev) = time - 1.e200_amrex_real
+    t_old(lev) = time - 1.e30_amrex_real
 
     call amrex_multifab_build(phi_new(lev), ba, dm, ncomp, nghost)
     call amrex_multifab_build(phi_old(lev), ba, dm, ncomp, nghost)

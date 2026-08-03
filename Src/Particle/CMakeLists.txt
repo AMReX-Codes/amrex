@@ -17,6 +17,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParGDB.H
        AMReX_Particle_mod_K.H
        AMReX_TracerParticles.H
+       AMReX_TracerParticle_mod_K.H
        AMReX_NeighborParticles.H
        AMReX_NeighborParticlesI.H
        AMReX_NeighborList.H
@@ -30,6 +31,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_StructOfArrays.H
        AMReX_ArrayOfStructs.H
        AMReX_ParticleTile.H
+       AMReX_ParticleTileRT.H
        AMReX_MakeParticle.H
        AMReX_NeighborParticlesCPUImpl.H
        AMReX_NeighborParticlesGPUImpl.H
@@ -39,9 +41,12 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_ParticleCommunication.cpp
        AMReX_ParticleInterpolators.H
        AMReX_ParticleReduce.H
+       AMReX_ParticleReduceSIMD.H
        AMReX_ParticleMesh.H
        AMReX_ParticleLocator.H
        AMReX_ParticleIO.H
+       AMReX_ParticleHeader.H
+       AMReX_ParticleHeader.cpp
        AMReX_DenseBins.H
        AMReX_BinIterator.H
        AMReX_ParticleTransformation.H

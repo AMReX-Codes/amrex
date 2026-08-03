@@ -491,18 +491,8 @@ void HypreMLABecLap::addNonStencilEntriesToGraph ()
         if (!nentries.empty()) {
             auto& offset = m_f2c_offset[clev];
             offset.resize(nentries.size());
-#if (__cplusplus >= 201703L) && (!defined(_GLIBCXX_RELEASE) || _GLIBCXX_RELEASE >= 10)
-            // GCC's __cplusplus is not a reliable indication for C++17 support
             std::exclusive_scan(nentries.begin(), nentries.end(), offset.begin(),
                                 std::size_t(0), std::plus<std::size_t>{});
-#else
-            offset[0] = 0;
-            auto const offset_size = offset.size();
-            if (offset_size > 1) {
-                auto const* pin = nentries.data();
-                std::partial_sum(pin, pin+offset_size-1, offset.data()+1, std::plus<std::size_t>{});
-            }
-#endif
             auto nvalues = std::size_t(nentries.back()) + offset.back();
             m_f2c_values[clev].resize(nvalues,Real(0.0));
         }
@@ -1391,7 +1381,9 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
                 auto const& sfab = (*a_bcoefs[idir])[t.srcIndex];
 #ifdef AMREX_USE_GPU
                 bc_send_tags.emplace_back(Array4PairTag<Real>
-                    {makeArray4<Real>((Real*)dptr, bx, ncomp), sfab.const_array(), bx});
+                    {.dfab = makeArray4<Real>((Real*)dptr, bx, ncomp),
+                     .sfab = sfab.const_array(),
+                     .dbox = bx});
                 std::size_t nbytes = bx.numPts()*sizeof(Real)*ncomp;
 #else
                 auto nbytes = sfab.copyToMem(bx, 0, ncomp, dptr);
@@ -1449,7 +1441,9 @@ void HypreMLABecLap::commBCoefs (int flev, Array<MultiFab const*,AMREX_SPACEDIM>
                 auto* pdst = cf_bcoefs[idir][t.dstIndex]->data();
 
 #ifdef AMREX_USE_GPU
-                bc_recv_tags.emplace_back(BCCommTag{fsrc, offset, pdst, cbx, IntVect(0), idir});
+                bc_recv_tags.emplace_back(BCCommTag{.fsrc = fsrc, .offset = offset,
+                                                    .pdst = pdst, .cbx = cbx,
+                                                    .d2s = IntVect(0), .idir = idir});
 #else
                 IntVect rrface = rr;
                 rrface[idir] = 1;
@@ -1539,7 +1533,9 @@ void HypreMLABecLap::commBCoefs_local (int flev,
         auto* pdst = cf_bcoefs[idir][tag.dstIndex]->data();
 
 #ifdef AMREX_USE_GPU
-        bc_local_tags.emplace_back(BCCommTag{fsrc, offset, pdst, cbx, d2s, idir});
+        bc_local_tags.emplace_back(BCCommTag{.fsrc = fsrc, .offset = offset,
+                                             .pdst = pdst, .cbx = cbx,
+                                             .d2s = d2s, .idir = idir});
 #else
         IntVect rrface = rr;
         rrface[idir] = 1;

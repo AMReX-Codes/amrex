@@ -204,7 +204,7 @@ void CommProfStats::AddReduction(const long rnum, const long index) {
 
 // ----------------------------------------------------------------------
 void CommProfStats::AddNameTagName(const string &name) {
-  if(std::find(nameTagNames.begin(), nameTagNames.end(), name) == nameTagNames.end()) {
+  if(std::ranges::find(nameTagNames, name) == nameTagNames.end()) {
     nameTagNames.push_back(name);
   }
 }
@@ -302,8 +302,7 @@ void CommProfStats::AddTopoCoord(const int nid, const int node,
 
 // ----------------------------------------------------------------------
 void CommProfStats::AddCommHeaderFileName(const string &hfn) {
-  if(std::find(commHeaderFileNames.begin(),
-     commHeaderFileNames.end(), hfn) == commHeaderFileNames.end())
+  if(std::ranges::find(commHeaderFileNames, hfn) == commHeaderFileNames.end())
   {
     commHeaderFileNames.push_back(hfn);
   }
@@ -781,9 +780,9 @@ void CommProfStats::ReportSyncPointDataSetup(long &nBMax, long &nRMax)
     }
   }
   //nBMin = *std::min_element(nBarriers.begin(), nBarriers.end());
-  nBMax = *std::max_element(nBarriers.begin(), nBarriers.end());
+  nBMax = *std::ranges::max_element(nBarriers);
   //nRMin = *std::min_element(nReductions.begin(), nReductions.end());
-  nRMax = *std::max_element(nReductions.begin(), nReductions.end());
+  nRMax = *std::ranges::max_element(nReductions);
 }
 
 

@@ -2,6 +2,11 @@
 #define AMREX_ALGORITHM_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_Algorithm.H
+ * \brief General-purpose algorithm utilities available on both host and device.
+ */
+
 #include <AMReX_GpuQualifiers.H>
 #include <AMReX_Extension.H>
 #include <AMReX_Dim3.H>
@@ -9,6 +14,7 @@
 #include <AMReX_Math.H>
 
 #include <algorithm>
+#include <concepts>
 #include <limits>
 #include <type_traits>
 #include <cstdint>
@@ -16,6 +22,7 @@
 
 namespace amrex
 {
+    /// \ingroup amrex_utilities
     //! Return the smaller value. This function was added to AMReX to
     //! support GPU before `std::min` was constexpr in C++14. `std::min` can
     //! now be used directly instead.
@@ -26,6 +33,7 @@ namespace amrex
         return std::min(a,b);
     }
 
+    /// \ingroup amrex_utilities
     //! Return the smallest value. This function was added to AMReX to
     //! support GPU before `std::min` was constexpr in C++14. `std::min` can
     //! now be used directly instead.
@@ -36,6 +44,7 @@ namespace amrex
         return min(min(a,b),c...);
     }
 
+    /// \ingroup amrex_utilities
     //! Return the greater value. This function was added to AMReX to
     //! support GPU before `std::max` was constexpr in C++14. `std::max` can
     //! now be used directly instead.
@@ -46,6 +55,7 @@ namespace amrex
         return std::max(a,b);
     }
 
+    /// \ingroup amrex_utilities
     //! Return the greatest value. This function was added to AMReX to
     //! support GPU before `std::max` was constexpr in C++14. `std::max` can
     //! now be used directly instead.
@@ -56,14 +66,16 @@ namespace amrex
         return max(max(a,b),c...);
     }
 
-    //! Return the element-wise minimum of the given values for types like XDim3.
+    /// \ingroup amrex_utilities
+    //! Return the element-wise minimum of \p a and \p b for types like XDim3.
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMin (T const& a, T const& b) noexcept {
         return T{amrex::min(a.x,b.x),amrex::min(a.y,b.y),amrex::min(a.z,b.z)};
     }
 
-    //! Return the element-wise minimum of the given values for types like XDim3.
+    /// \ingroup amrex_utilities
+    //! Return the element-wise minimum of \p a, \p b, and the rest of the pack \p c.
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMin (const T& a, const T& b, const Ts& ... c) noexcept
@@ -71,14 +83,16 @@ namespace amrex
         return elemwiseMin(elemwiseMin(a,b),c...);
     }
 
-    //! Return the element-wise maximum of the given values for types like XDim3.
+    /// \ingroup amrex_utilities
+    //! Return the element-wise maximum of \p a and \p b for types like XDim3.
     template <class T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMax (T const& a, T const& b) noexcept {
         return T{amrex::max(a.x,b.x),amrex::max(a.y,b.y),amrex::max(a.z,b.z)};
     }
 
-    //! Return the element-wise maximum of the given values for types like XDim3.
+    /// \ingroup amrex_utilities
+    //! Return the element-wise maximum of \p a, \p b, and the remaining arguments in \p c.
     template <class T, class ... Ts>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE constexpr
     T elemwiseMax (const T& a, const T& b, const Ts& ... c) noexcept
@@ -86,7 +100,8 @@ namespace amrex
         return elemwiseMax(elemwiseMax(a,b),c...);
     }
 
-    //! Swap the given values. `std::swap` can be used directly instead in
+    /// \ingroup amrex_utilities
+    //! Swap the contents of \p t1 and \p t2. `std::swap` can be used directly instead in
     //! GPU codes since C++20.
     template<typename T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
@@ -97,8 +112,9 @@ namespace amrex
         t2 = std::move(temp);
     }
 
-    //! Return the reference to `lo` if `v < lo`; return the reference to
-    //! `hi` if `hi < v`; otherwise return the reference to `v. This
+    /// \ingroup amrex_utilities
+    //! Return the reference to \p lo if \p v < \p lo; return the reference to
+    //! \p hi if \p hi < \p v; otherwise return the reference to \p v. This
     //! function was added to AMReX before switching to C++17. `std::clamp`
     //! can now be used directly instead.
     template <typename T>
@@ -114,11 +130,12 @@ namespace amrex
         }
     }
 
-    //! Return if the difference between two values are small as measured by
-    //! the given `ulp` (units in the last place).
-    template <typename T>
+    /// \ingroup amrex_utilities
+    //! Return true when the difference between \p x and \p y is small, as measured by
+    //! the given \p ulp (units in the last place).
+    template <std::floating_point T>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    std::enable_if_t<std::is_floating_point_v<T>,bool>
+    bool
     almostEqual (T x, T y, int ulp = 2)
     {
         // Reference: https://en.cppreference.com/w/cpp/types/numeric_limits/epsilon
@@ -130,10 +147,12 @@ namespace amrex
     }
 
     /**
+     * \ingroup amrex_utilities
      * \brief Find a root of a scalar function on a bracketing interval
      * using bisection.
      *
-     * It's a runtime error if the root finding fails.
+     * Invalid bracketing and iteration failures are checked with AMReX
+     * assertions when assertions are enabled.
      *
      * \tparam T floating-point type
      * \tparam F callable type of the scalar function
@@ -141,12 +160,11 @@ namespace amrex
      * \param hi upper bound
      * \param f scalar function
      * \param tol absolute tolerance. Iteration stops when `hi-lo < tol` or when
-     *            `almostEqual(lo,hi) returns true.
+     *            `almostEqual(lo,hi)` returns true.
      * \param max_iter maximum number of bisection iterations allowed.
      * \return an approximate root found using bisection.
      */
-    template <class T, class F,
-              std::enable_if_t<std::is_floating_point_v<T>,int>FOO = 0>
+    template <std::floating_point T, class F>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     T bisect (T lo, T hi, F f, T tol=1e-12, int max_iter=100)
     {
@@ -184,13 +202,18 @@ namespace amrex
     }
 
     /**
+     * \ingroup amrex_utilities
      * \brief Find the index of the interval containing a value in a sorted
      * array.
      *
-     * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1].  It is
-     * assumed that the input data are sorted and d[lo] <= v < d[hi].  Note
-     * that this is different from std::lower_bound that searches for the
-     * first element which is not less than `v`.
+     * Find index `i` in the range [lo,hi) that d[i] <= v < d[i+1]. It is
+     * assumed that the input data is sorted.
+     * The elements d[lo] and d[hi] are never accessed,
+     * so that d only needs to be valid in the exclusive range (lo,hi).
+     * It is not checked whether the value v is out-of-bounds.
+     * In that case, if v < d[lo], lo is returned, and if v >= d[hi], hi-1 is returned.
+     * Note that this is different from std::lower_bound that searches
+     * for the first element which is not less than `v`.
      *
      * \tparam T value type.
      * \tparam I integral index type.
@@ -198,26 +221,25 @@ namespace amrex
      * \param lo inclusive lower bound of the search range.
      * \param hi exclusive upper bound of the search range.
      * \param v value to be located.
-     * \return an index `i` such that `d[i] <= v < d[i+1]`.
+     * \return an index `i` such that `d[i] <= v < d[i+1]`, with `lo <= i < hi`.
      */
-    template <typename T, typename I,
-              std::enable_if_t<std::is_integral_v<I>,int> = 0>
+    template <typename T, std::integral I>
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    I bisect (T const* d, I lo, I hi, T const& v) {
-        while (lo <= hi) {
-            int mid = lo + (hi-lo)/2;
-            if (v >= d[mid] && v < d[mid+1]) {
-                return mid;
-            } else if (v < d[mid]) {
-                hi = mid-1;
+    I bisect (T const* d, I lo, I hi, T const& v)
+    {
+        while (hi - lo > 1) {
+            I mid = lo + (hi - lo) / 2;
+            if (v < d[mid]) {
+                hi = mid;
             } else {
-                lo = mid+1;
+                lo = mid;
             }
         };
-        return hi;
+        return lo;
     }
 
     /**
+     * \ingroup amrex_utilities
      * \brief Return an iterator to the first element greater than a given
      * value.
      *
@@ -257,6 +279,7 @@ namespace amrex
     }
 
     /**
+     * \ingroup amrex_utilities
      * \brief Return an iterator to the first element not less than a given
      * value.
      *
@@ -298,6 +321,7 @@ namespace amrex
     }
 
     /**
+     * \ingroup amrex_utilities
      * \brief Fill a range with linearly spaced values over a closed interval.
      *
      * This function assigns linearly spaced floating-point values to the
@@ -314,11 +338,8 @@ namespace amrex
      * \param start start value.
      * \param stop stop value.
      */
-    template<typename ItType, typename ValType,
-        std::enable_if_t<
-            std::is_floating_point_v<typename std::iterator_traits<ItType>::value_type> &&
-            std::is_floating_point_v<ValType>,
-        int> = 0>
+    template<typename ItType, std::floating_point ValType>
+    requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     AMREX_GPU_HOST_DEVICE
     void linspace (ItType first, const ItType& last, const ValType& start, const ValType& stop)
     {
@@ -333,6 +354,7 @@ namespace amrex
     }
 
     /**
+     * \ingroup amrex_utilities
      * \brief Fill a range with logarithmically spaced values over a closed interval.
      *
      * This function assigns logarithmically spaced floating-point values to
@@ -350,11 +372,8 @@ namespace amrex
      * \param stop stop value.
      * \param base base of the exponential.
      */
-    template<typename ItType, typename ValType,
-        std::enable_if_t<
-            std::is_floating_point_v<typename std::iterator_traits<ItType>::value_type> &&
-            std::is_floating_point_v<ValType>,
-        int> = 0>
+    template<typename ItType, std::floating_point ValType>
+    requires (std::floating_point<typename std::iterator_traits<ItType>::value_type>)
     AMREX_GPU_HOST_DEVICE
     void logspace (ItType first, const ItType& last,
         const ValType& start, const ValType& stop, const ValType& base)
@@ -368,145 +387,6 @@ namespace amrex
             *first = std::pow(base, stop);
         }
     }
-
-/// \cond DOXYGEN_IGNORE
-namespace detail {
-
-struct clzll_tag {};
-struct clzl_tag : clzll_tag {};
-struct clz_tag : clzl_tag {};
-
-// in gcc and clang, there are three versions of __builtin_clz taking unsigned int,
-// unsigned long, and unsigned long long inputs. Because the sizes of these data types
-// vary on different platforms, we work with fixed-width integer types.
-// these tags and overloads select the smallest version of __builtin_clz that will hold the input type
-template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(unsigned int)>>
-AMREX_FORCE_INLINE
-int builtin_clz_wrapper (clz_tag, T x) noexcept
-{
-    return static_cast<int>(__builtin_clz(x) - (sizeof(unsigned int) * CHAR_BIT - sizeof(T) * CHAR_BIT));
-}
-
-template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(unsigned long)>>
-AMREX_FORCE_INLINE
-int builtin_clz_wrapper (clzl_tag, T x) noexcept
-{
-    return static_cast<int>(__builtin_clzl(x) - (sizeof(unsigned long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
-}
-
-template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(unsigned long long)>>
-AMREX_FORCE_INLINE
-int builtin_clz_wrapper (clzll_tag, T x) noexcept
-{
-    return static_cast<int>(__builtin_clzll(x) - (sizeof(unsigned long long) * CHAR_BIT - sizeof(T) * CHAR_BIT));
-}
-
-}
-/// \endcond
-
-//! Return the number of leading zeros of the given integer.
-template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
-                                    std::is_same_v<std::decay_t<T>,std::uint16_t> ||
-                                    std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                    std::is_same_v<std::decay_t<T>,std::uint64_t>, int> = 0>
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (T x) noexcept;
-
-/// \cond DOXYGEN_IGNORE
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz_generic (std::uint8_t x) noexcept
-{
-#if !defined(__NVCOMPILER)
-    static constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
-#else
-    constexpr int clz_lookup[16] = { 4, 3, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
-#endif
-    auto upper = x >> 4;
-    auto lower = x & 0xF;
-    return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz_generic (std::uint16_t x) noexcept
-{
-    auto upper = std::uint8_t(x >> 8);
-    auto lower = std::uint8_t(x & 0xFF);
-    return upper ? clz(upper) : 8 + clz(lower);
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz_generic (std::uint32_t x) noexcept
-{
-    auto upper = std::uint16_t(x >> 16);
-    auto lower = std::uint16_t(x & 0xFFFF);
-    return upper ? clz(upper) : 16 + clz(lower);
-}
-
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz_generic (std::uint64_t x) noexcept
-{
-    auto upper = std::uint32_t(x >> 32);
-    auto lower = std::uint32_t(x & 0xFFFFFFFF);
-    return upper ? clz(upper) : 32 + clz(lower);
-}
-
-/// \endcond
-
-#if defined AMREX_USE_CUDA
-
-/// \cond DOXYGEN_IGNORE
-namespace detail {
-    // likewise with CUDA, there are __clz functions that take (signed) int and long long int
-    template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(int)> >
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    int clz_wrapper (clz_tag, T x) noexcept
-    {
-        return __clz((int) x) - (sizeof(int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
-    }
-
-    template <typename T, typename = std::enable_if_t<sizeof(T) <= sizeof(long long int)> >
-    AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-    int clz_wrapper (clzll_tag, T x) noexcept
-    {
-        return __clzll((long long int) x) - (sizeof(long long int) * CHAR_BIT - sizeof(T) * CHAR_BIT);
-    }
-}
-/// \endcond
-
-template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
-                                    std::is_same_v<std::decay_t<T>,std::uint16_t> ||
-                                    std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                    std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (T x) noexcept
-{
-    AMREX_IF_ON_DEVICE((return detail::clz_wrapper(detail::clz_tag{}, x);))
-#if AMREX_HAS_BUILTIN_CLZ
-    AMREX_IF_ON_HOST((return detail::builtin_clz_wrapper(detail::clz_tag{}, x);))
-#else
-    AMREX_IF_ON_HOST((return clz_generic(x);))
-#endif
-}
-
-#else // !defined AMREX_USE_CUDA
-
-template <class T, std::enable_if_t<std::is_same_v<std::decay_t<T>,std::uint8_t>  ||
-                                    std::is_same_v<std::decay_t<T>,std::uint16_t> ||
-                                    std::is_same_v<std::decay_t<T>,std::uint32_t> ||
-                                    std::is_same_v<std::decay_t<T>,std::uint64_t>, int> >
-AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-int clz (T x) noexcept
-{
-#if (!AMREX_DEVICE_COMPILE && AMREX_HAS_BUILTIN_CLZ)
-    return detail::builtin_clz_wrapper(detail::clz_tag{}, x);
-#else
-    return clz_generic(x);
-#endif
-}
-
-#endif // defined AMREX_USE_CUDA
-
 }
 
 #endif

@@ -2,6 +2,11 @@
 #define BL_CARENA_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_CArena.H
+ * \brief Coalescing first-fit dynamic memory arena.
+ */
+
 #include <AMReX_Arena.H>
 
 #include <cstddef>
@@ -17,22 +22,25 @@
 namespace amrex {
 
 /**
-* \ingroup amrex_memory
-* \brief A Concrete Class for Dynamic Memory Management using first fit.
-* This is a coalescing memory manager.  It allocates (possibly) large
-* chunks of heap space and apportions it out as requested.  It merges
-* together neighboring chunks on each free().
-*/
+ * \class amrex::CArena
+ * \ingroup amrex_memory
+ * \brief Coalescing first-fit dynamic memory arena.
+ *
+ * Allocates large hunks from the heap and sub-allocates from them on
+ * demand. Neighboring free blocks are merged on each \c free() call
+ * to reduce fragmentation.
+ */
 class CArena
     :
     public Arena
 {
 public:
     /**
-    * \brief Construct a coalescing memory manager.  hunk_size is the
-    * minimum size of hunks of memory to allocate from the heap.
-    * If hunk_size == 0 we use DefaultHunkSize as specified below.
-    */
+     * \brief Construct a coalescing memory manager.
+     * \param hunk_size Minimum size of heap hunks to allocate.
+     *        Defaults to \c DefaultHunkSize when 0.
+     * \param info      Arena configuration flags.
+     */
     CArena (std::size_t hunk_size = 0, ArenaInfo info = ArenaInfo());
 
     CArena (const CArena& rhs) = delete;
@@ -89,6 +97,8 @@ public:
     /**
     * \brief Free up allocated memory.  Merge neighboring free memory chunks
     * into largest possible chunk.
+    *
+    * \param vp Pointer previously returned by alloc() or alloc_in_place().
     */
     void free (void* vp) final;
 
@@ -98,14 +108,21 @@ public:
     */
     std::size_t freeUnused () final;
 
-    //! Return the amount of memory that can be freed
+    /**
+     * \brief Return the amount of memory that can be released back to the heap.
+     */
     [[nodiscard]] std::size_t freeableMemory () const;
+
+    //! Return the largest free memory block already held by this CArena.
+    [[nodiscard]] std::size_t largestFreeBlock () const final;
 
     /**
      * \brief Does the device have enough free memory for allocating this
      * much memory?  For CPU builds, this always return true.  This is not a
      * const function because it may attempt to release memory back to the
      * system.
+     *
+     * \param sz Number of bytes requested.
      */
     [[nodiscard]] bool hasFreeDeviceMemory (std::size_t sz) final;
 
@@ -115,7 +132,11 @@ public:
     //! Return the total amount of memory given out via alloc.
     std::size_t heap_space_actually_used () const noexcept;
 
-    //! Return the amount of memory in this pointer.  Return 0 for unknown pointer.
+    /**
+     * \brief Return the size of the allocation referenced by \p p (0 if unknown).
+     *
+     * \param p Pointer previously returned by alloc().
+     */
     std::size_t sizeOf (void* p) const noexcept;
 
     /**
@@ -256,8 +277,9 @@ protected:
     //! The max amount of memory given out via alloc().
     std::size_t m_max_actually_used{0};
 
-    std::mutex carena_mutex;
+    mutable std::mutex carena_mutex;
 
+    //! Print a summary of the arena's free and busy lists to \p os.
     friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
 };
 

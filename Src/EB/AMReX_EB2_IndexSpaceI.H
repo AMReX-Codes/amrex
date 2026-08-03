@@ -1,4 +1,11 @@
 
+/**
+ * \file AMReX_EB2_IndexSpaceI.H
+ *
+ * Template definitions for EB2::IndexSpaceImp helper methods. Public interfaces
+ * are declared in AMReX_EB2.H; this file simply provides their implementations.
+ */
+
 template <typename G>
 IndexSpaceImp<G>::IndexSpaceImp (const G& gshop, const Geometry& geom,
                                  int required_coarsening_level,
@@ -93,7 +100,7 @@ template <typename G>
 const Level&
 IndexSpaceImp<G>::getLevel (const Geometry& geom) const
 {
-    auto it = std::find(std::begin(m_domain), std::end(m_domain), geom.Domain());
+    auto it = std::ranges::find(m_domain, geom.Domain());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
                                      "IndexSpaceImp::getLevel: Geometry not found");
     int i = std::distance(m_domain.begin(), it);
@@ -104,7 +111,7 @@ template <typename G>
 const Geometry&
 IndexSpaceImp<G>::getGeometry (const Box& dom) const
 {
-    auto it = std::find(std::begin(m_domain), std::end(m_domain), dom);
+    auto it = std::ranges::find(m_domain, dom);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(it != std::end(m_domain),
                                      "IndexSpaceImp::getLevel: domain not found");
     int i = std::distance(m_domain.begin(), it);

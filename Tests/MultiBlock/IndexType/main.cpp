@@ -54,7 +54,7 @@ bool ParallelCopyWithItselfIsCorrect(amrex::iMultiFab& mf, const amrex::Box& dom
         reduce_op.eval(section, reduce_data,
                        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
+            amrex::Dim3 si = dtos(amrex::Dim3{.x = i, .y = j, .z = k});
             int value = si.x + si.y*nx + si.z*nx*ny;
             auto r = int(array(i,j,k) != value);
             return { r };
@@ -120,7 +120,7 @@ bool ParallelCopyFaceToFace(amrex::iMultiFab& dest, const amrex::Box& domain_des
         reduce_op.eval(section, reduce_data,
                        [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
         {
-            amrex::Dim3 si = dtos(amrex::Dim3{i,j,k});
+            amrex::Dim3 si = dtos(amrex::Dim3{.x = i, .y = j, .z = k});
             int value = si.x + si.y*nx + si.z*nx*ny;
             auto r = int(darray(i,j,k) != value);
             return { r };

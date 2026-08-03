@@ -162,9 +162,9 @@ void MemoryHelper::Initialize(int nthreads)
 {
     if (initialized.empty()) {
         initialized.resize(nthreads);
-        std::fill(initialized.begin(), initialized.end(), 0);
+        std::ranges::fill(initialized, 0);
         the_sunmemory_helper.resize(nthreads);
-        std::fill(the_sunmemory_helper.begin(), the_sunmemory_helper.end(), nullptr);
+        std::ranges::fill(the_sunmemory_helper, nullptr);
     }
     for (int i = 0; i < nthreads; i++) {
         if (initialized[i]) { continue; }

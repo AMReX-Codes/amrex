@@ -313,9 +313,10 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             }
 
             if (fracy > Real(0.0)) {
+                tmp = fracy*area*b[0](i,jj,k);
                 if (cell_id(i-1,jj,k) >= 0 && cell_id(i,jj,k) >= 0) {
-                    mat_tmp(-1,joff) -= fracy*area*b[0](i,jj,k)*f;
-                    mat_tmp( 0,joff) += fracy*area*b[0](i,jj,k)*f;
+                    mat_tmp(-1,joff) -= tmp*f;
+                    mat_tmp( 0,joff) += tmp*f;
                 } else if (cell_id(i+1,jj,k) < 0 || apx(i+1,jj,k) == Real(0.0)) {
                     mat_tmp( 0,joff) += tmp*(f+bflo);
                 } else {
@@ -362,9 +363,10 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             }
 
             if (fracy > Real(0.0)) {
+                tmp = fracy*area*b[0](i+1,jj,k);
                 if (cell_id(i,jj,k) >= 0 && cell_id(i+1,jj,k) >= 0) {
-                    mat_tmp(0,joff) += fracy*area*b[0](i+1,jj,k)*f;
-                    mat_tmp(1,joff) -= fracy*area*b[0](i+1,jj,k)*f;
+                    mat_tmp(0,joff) += tmp*f;
+                    mat_tmp(1,joff) -= tmp*f;
                 } else if (cell_id(i-1,jj,k) < 0 || apx(i,jj,k) == Real(0.0)) {
                     mat_tmp(0,joff) += tmp*(f+bflo);
                 } else{
@@ -411,9 +413,10 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             }
 
             if (fracx > Real(0.0)) {
+                tmp = fracx*area*b[1](ii,j,k);
                 if (cell_id(ii,j-1,k) >= 0 && cell_id(ii,j,k) >= 0) {
-                    mat_tmp(ioff,-1) -= fracx*area*b[1](ii,j,k)*f;
-                    mat_tmp(ioff, 0) += fracx*area*b[1](ii,j,k)*f;
+                    mat_tmp(ioff,-1) -= tmp*f;
+                    mat_tmp(ioff, 0) += tmp*f;
                 } else if (cell_id(ii,j+1,k) < 0 || apy(ii,j+1,k) == Real(0.0)) {
                     mat_tmp(ioff,0) += tmp*(f+bflo);
                 } else {
@@ -460,9 +463,10 @@ void habec_ijmat_eb (GpuArray<Real,9>& sten, Array4<Int> const& ncols,
             }
 
             if (fracx > Real(0.0)) {
+                tmp = fracx*area*b[1](ii,j+1,k);
                 if (cell_id(ii,j,k) >= 0 && cell_id(ii,j+1,k) >= 0) {
-                    mat_tmp(ioff,0) += fracx*area*b[1](ii,j+1,k)*f;
-                    mat_tmp(ioff,1) -= fracx*area*b[1](ii,j+1,k)*f;
+                    mat_tmp(ioff,0) += tmp*f;
+                    mat_tmp(ioff,1) -= tmp*f;
                 } else if (cell_id(ii,j-1,k) < 0 || apy(ii,j,k) == Real(0.0)) {
                     mat_tmp(ioff,0) += tmp*(f+bflo);
                 } else {

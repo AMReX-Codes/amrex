@@ -73,7 +73,7 @@ endif
 ifdef CXXSTD
   CXXSTD := $(strip $(CXXSTD))
 else
-  CXXSTD := c++17
+  CXXSTD := c++20
 endif
 
 ifeq ($(CRAY_IS_CLANG_BASED),TRUE)

@@ -9,6 +9,12 @@
 #include <algorithm>
 #include <utility>
 
+/**
+ * \file AMReX_EB2_IF_Intersection.H
+ *
+ * Constructive solid-geometry helper that intersects multiple implicit shapes.
+ */
+
 namespace amrex::EB2 {
 
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
@@ -46,6 +52,7 @@ namespace IIF_detail {
 /// \endcond
 
 template <class... Fs>
+//! Implicit function that evaluates the intersection of multiple objects.
 class IntersectionIF
     : public GpuTuple<Fs...>
 {
@@ -57,9 +64,9 @@ public:
         return op_impl(p, std::make_index_sequence<sizeof...(Fs)>());
     }
 
-    template <class U=IntersectionIF<Fs...>, std::enable_if_t<IsGPUable<U>::value,int> = 0>
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires ((IsGPUable<Fs>::value && ...))
     {
         return op_impl(AMREX_D_DECL(x,y,z), std::make_index_sequence<sizeof...(Fs)>());
     }
@@ -81,12 +88,13 @@ protected:
 };
 
 template <class Head, class... Tail>
-struct IsGPUable<IntersectionIF<Head, Tail...>, std::enable_if_t<IsGPUable<Head>::value>>
-    : IsGPUable<IntersectionIF<Tail...> > {};
+requires (IsGPUable<Head>::value)
+struct IsGPUable<IntersectionIF<Head, Tail...>>
+    : IsGPUable<IntersectionIF<Tail...>> {};
 
 template <class F>
-struct IsGPUable<IntersectionIF<F>, std::enable_if_t<IsGPUable<F>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value)
+struct IsGPUable<IntersectionIF<F>> : std::true_type {};
 
 template <class... Fs>
 constexpr IntersectionIF<std::decay_t<Fs> ...>

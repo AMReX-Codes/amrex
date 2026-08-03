@@ -9,20 +9,29 @@
 #include <algorithm>
 #include <utility>
 
+/**
+ * \file AMReX_EB2_IF_Difference.H
+ *
+ * Constructive solid-geometry helper that subtracts one implicit function from another.
+ */
+
 // For all implicit functions, >0: body; =0: boundary; <0: fluid
 
 namespace amrex::EB2 {
 
 template <class F, class G>
+//! Implicit function that keeps points inside \p F but outside \p G.
 class DifferenceIF
 {
 public:
 
+    //! Store the minuend `a_f` and subtrahend `a_g` implicit functions.
     DifferenceIF (F a_f, G a_g)
         : m_f(std::move(a_f)),
           m_g(std::move(a_g))
         {}
 
+    //! Evaluate the set difference at \p p.
     [[nodiscard]] AMREX_FORCE_INLINE Real operator() (const RealArray& p) const noexcept
     {
         Real r1 = m_f(p);
@@ -30,11 +39,10 @@ public:
         return amrex::min(r1, -r2);
     }
 
-    template <class U=F, class V=G,
-              std::enable_if_t<IsGPUable<U>::value &&
-                                      IsGPUable<V>::value, int> = 0>
+    //! Evaluate the set difference at given physical coordinates.
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     Real operator() (AMREX_D_DECL(Real x, Real y, Real z)) const noexcept
+        requires (IsGPUable<F>::value && IsGPUable<G>::value)
     {
         Real r1 = m_f(AMREX_D_DECL(x,y,z));
         Real r2 = m_g(AMREX_D_DECL(x,y,z));
@@ -48,11 +56,11 @@ protected:
 };
 
 template <class F, class G>
-struct IsGPUable<DifferenceIF<F,G>, std::enable_if_t<IsGPUable<F>::value &&
-                                                            IsGPUable<G>::value>>
-    : std::true_type {};
+requires (IsGPUable<F>::value && IsGPUable<G>::value)
+struct IsGPUable<DifferenceIF<F,G>> : std::true_type {};
 
 template <class F, class G>
+//! Helper that constructs a difference operator.
 constexpr DifferenceIF<std::decay_t<F>,
                        std::decay_t<G>>
 makeDifference (F&& f, G&& g)

@@ -30,8 +30,8 @@ std::map<std::string, Vector<char> > *StateData::faHeaderMap;
 
 StateData::StateData ()
     :
-      new_time{INVALID_TIME,INVALID_TIME},
-      old_time{INVALID_TIME,INVALID_TIME}
+      new_time{.start = INVALID_TIME, .stop = INVALID_TIME},
+      old_time{.start = INVALID_TIME, .stop = INVALID_TIME}
 
 {
 }
@@ -288,6 +288,8 @@ StateData::restart (const StateDescriptor& d,
     arena = nullptr;
     domain = rhs.domain;
     grids = rhs.grids;
+    dmap = rhs.dmap;
+    m_factory.reset(rhs.m_factory->clone());
     old_time.start = rhs.old_time.start;
     old_time.stop  = rhs.old_time.stop;
     new_time.start = rhs.new_time.start;

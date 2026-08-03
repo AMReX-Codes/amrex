@@ -7,7 +7,7 @@
 
 /**
  * \file AMReX_MFInterpolater.H
- * \brief Interpolaters that operate directly on MultiFabs (cell- or node-centered).
+ * \brief Interpolaters that operate directly on MultiFabs (cell-centered or nodal).
  */
 
 namespace amrex {

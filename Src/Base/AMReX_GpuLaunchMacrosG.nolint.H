@@ -403,6 +403,7 @@
                     case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                                 block2 \
                             } \
+                            break; \
                     case 2: for (auto const TI3 : amrex::Gpu::Range(amrex_i_tn3,amrex_i_item.get_global_id(0),amrex_i_item.get_global_range(0))) { \
                                 block3 \
                             } \
@@ -414,7 +415,7 @@
         } \
     } \
     else { \
-        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
+        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3: cannot call device function from host"); \
     }}}
 #else
 #define AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3(TN1,TI1,block1,TN2,TI2,block2,TN3,TI3,block3) \
@@ -439,6 +440,7 @@
             case 1: for (auto const TI2 : amrex::Gpu::Range(amrex_i_tn2)) { \
                         block2 \
                     } \
+                    break; \
             case 2: for (auto const TI3 : amrex::Gpu::Range(amrex_i_tn3)) { \
                         block3 \
                     } \
@@ -447,7 +449,7 @@
         AMREX_GPU_ERROR_CHECK(); \
     } \
     else { \
-        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_2: cannot call device function from host"); \
+        amrex::Abort("AMREX_GPU_LAUNCH_DEVICE_LAMBDA_RANGE_3: cannot call device function from host"); \
     }}}
 #endif
 

@@ -103,7 +103,13 @@ namespace amrex {
         explicit constexpr PolymorphicArenaWrapper (Arena* a_arena)
             : m_arena(a_arena) {}
         [[nodiscard]] Arena* arena () const noexcept {
-            return (m_arena) ? m_arena : The_Arena();
+            //! After Arena::Finalize() the cached pointer is stale;
+            //! fall back to The_Null_Arena().
+            if (Arena::IsInitialized()) {
+                return (m_arena) ? m_arena : The_Arena();
+            } else {
+                return The_Null_Arena();
+            }
         }
         Arena* m_arena = nullptr;
     };
@@ -167,11 +173,11 @@ namespace amrex {
     struct IsArenaAllocator : std::false_type {};
     //
     template <class T>
-    struct IsArenaAllocator
-                <T,std::enable_if_t<std::is_base_of_v
-                                    <ArenaAllocatorBase<typename T::value_type,
-                                                        typename T::arena_wrapper_type>,
-                                     T>>>
+    requires (std::is_base_of_v
+              <ArenaAllocatorBase<typename T::value_type,
+                                  typename T::arena_wrapper_type>,
+               T>)
+    struct IsArenaAllocator<T>
         : std::true_type {};
 
     template <typename T>
@@ -202,17 +208,17 @@ namespace amrex {
     using DefaultAllocator = std::allocator<T>;
 #endif // AMREX_USE_GPU
 
-    template <typename A1, typename A2,
-              std::enable_if_t<IsArenaAllocator<A1>::value &&
-                               IsArenaAllocator<A2>::value, int> = 0>
+    template <typename A1, typename A2>
+    requires (IsArenaAllocator<A1>::value &&
+              IsArenaAllocator<A2>::value)
     bool operator== (A1 const& a1, A2 const& a2)
     {
         return a1.arena() == a2.arena();
     }
 
-    template <typename A1, typename A2,
-              std::enable_if_t<IsArenaAllocator<A1>::value &&
-                               IsArenaAllocator<A2>::value, int> = 0>
+    template <typename A1, typename A2>
+    requires (IsArenaAllocator<A1>::value &&
+              IsArenaAllocator<A2>::value)
     bool operator!= (A1 const& a1, A2 const& a2)
     {
         return a1.arena() != a2.arena();
