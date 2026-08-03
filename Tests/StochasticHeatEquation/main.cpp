@@ -119,12 +119,19 @@ Real reference_state (int i, Real uinit, Real midfact, int jmidl, int jmidr) noe
   verify that we get roundoff-level differences, the next three functions have
   been added to achieve this for both CPU and GPU runs.
 */
+/*
+  Returns a random number uniformly distributed in (0,1).
+*/
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double precision_independent_uniform (RandomEngine const& engine) noexcept
 {
     constexpr unsigned int base = 65536U;
     unsigned int const hi = amrex::Random_int(base, engine);
     unsigned int const lo = amrex::Random_int(base, engine);
+    // 2.3283064365386962890625e-10 == 1/2^32. Combining hi and lo gives a
+    // uniform 32-bit integer in [0, 2^32-1]; adding 0.5 before scaling
+    // returns the midpoint of that bin, so the result always lies strictly
+    // inside (0,1) and never rounds to exactly 0 or 1.
     return (static_cast<double>(hi) * static_cast<double>(base) +
             static_cast<double>(lo) + 0.5) * 2.3283064365386962890625e-10;
 }
