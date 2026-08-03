@@ -14,6 +14,7 @@
 #include <fstream>
 #include <iomanip>
 #include <limits>
+#include <numbers>
 #include <sstream>
 #include <string>
 
@@ -267,8 +268,8 @@ Inputs read_inputs ()
 Geometry make_geometry (Inputs const& p)
 {
     Box const domain(IntVect(0), IntVect(p.npts-1));
-    RealBox const real_box({AMREX_D_DECL(Real(0.0), Real(0.0), Real(0.0))},
-                           {AMREX_D_DECL(p.xlen, Real(1.0), Real(1.0))});
+    RealBox const real_box(AMREX_D_DECL(Real(0.0), Real(0.0), Real(0.0)),
+                           AMREX_D_DECL(p.xlen, Real(1.0), Real(1.0)));
     Array<int,AMREX_SPACEDIM> const periodic{AMREX_D_DECL(p.iper, 0, 0)};
 
     Geometry geom;
@@ -356,7 +357,7 @@ void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry cons
         ParallelForRNG(fbx, [=] AMREX_GPU_DEVICE (int i, int j, int k,
                                                   RandomEngine const& engine) noexcept
         {
-            double const normal = local_random_normal<double>(0.0, 1.0, engine);
+            auto const normal = local_random_normal<double>(0.0, 1.0, engine);
             ra(i,j,k) = (normal >= 0.5) ? Real(1.0) : Real(-1.0);
         });
     }
@@ -372,7 +373,7 @@ void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry cons
     Real const uleft = p.uleft;
     Real const uright = p.uright;
     Real const dorand = p.dorand;
-    Real const sqrt_two = std::sqrt(Real(2.0));
+    Real const sqrt_two = std::numbers::sqrt2_v<Real>;
     Real const noise_scale = dorand / std::sqrt(dx*dt);
     int const coef_comp = ncoef - 1;
 
