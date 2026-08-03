@@ -110,6 +110,13 @@ Real reference_state (int i, Real uinit, Real midfact, int jmidl, int jmidr) noe
     return value;
 }
 
+/*
+  Note - amrex::RandomNormal does not return the same random number stream
+  (modulo precision) when compiled with PRECISION=FLOAT versus PRECISION=DOUBLE.
+  Since in this example we want to compare single with double precision and
+  verify that we get roundoff-level differences, the next three functions have
+  been added to achieve this for both CPU and GPU runs.
+*/
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double precision_independent_uniform (RandomEngine const& engine) noexcept
 {
@@ -120,6 +127,10 @@ double precision_independent_uniform (RandomEngine const& engine) noexcept
             static_cast<double>(lo) + 0.5) * 2.3283064365386962890625e-10;
 }
 
+/*
+  This uses Acklam's algorithm for the inverse normal CDF:
+  https://stackedboxes.org/2017/05/01/acklams-normal-quantile-function/
+*/
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
 double inverse_standard_normal (double p) noexcept
 {
