@@ -366,7 +366,7 @@ void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry cons
                                                   RandomEngine const& engine) noexcept
         {
             auto const normal = local_random_normal<double>(0.0, 1.0, engine);
-            ra(i,j,k) = (normal >= 0.5) ? Real(1.0) : Real(-1.0);
+            ra(i,j,k) = (normal >= 0.0) ? Real(1.0) : Real(-1.0);
         });
     }
     ranflux.OverrideSync(geom.periodicity());
