@@ -863,7 +863,7 @@ int main (int argc, char* argv[])
             / (inputs.rho * inputs.cv);
 
         if (inputs.cfl > Real(0.0)) {
-            inputs.dt = inputs.cfl * dx * dx / kappa;
+            inputs.dt = inputs.cfl * dx * dx / (Real(2.0) * kappa);
         }
         if (inputs.dt <= Real(0.0)) {
             amrex::Abort("dt must be positive");
