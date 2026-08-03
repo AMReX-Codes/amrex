@@ -934,8 +934,8 @@ int main (int argc, char* argv[])
             amrex::Print() << "completed " << ens << "\n";
 
             if (tout == 0 && ens % inputs.ensout == 0) {
-                Real const time = Real(total_steps) * inputs.dt;
-                print_state(u, geom, total_steps, time, ens);
+                Real const final_time = Real(total_steps) * inputs.dt;
+                print_state(u, geom, total_steps, final_time, ens);
             }
         }
     }
