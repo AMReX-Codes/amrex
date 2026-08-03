@@ -3055,6 +3055,17 @@ There are other versions of :cpp:`ParallelFor`,
     ParallelFor(box, numcomps,
                 [=] AMREX_GPU_DEVICE (int i, int j, int k, int n) { ... });
 
+Note that on CPU :cpp:`ParallelFor` marks the innermost loop with
+``AMREX_PRAGMA_SIMD``, i.e., it promises the compiler that the loop
+iterations are independent of each other.  If the iterations are not
+independent -- for example, when different iterations may update the
+same memory location, as in scatter-style accumulation with
+:cpp:`Gpu::Atomic` operations, which are plain non-atomic updates on
+the host -- use :cpp:`amrex::For` instead.  It provides the same set
+of signatures (including the :cpp:`CompileTimeOptions` variants) and
+is identical to :cpp:`ParallelFor` on GPU, but does not add the SIMD
+pragma on CPU.
+
 Ghost Cells
 ===========
 
