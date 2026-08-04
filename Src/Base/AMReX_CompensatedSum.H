@@ -41,11 +41,9 @@ namespace amrex
 #pragma nv_diag_suppress 1675
 #endif
 
-#if defined(__clang__)
-#pragma clang fp reassociate(off) contract(off)
-#elif defined(__INTEL_COMPILER) || defined(_MSC_VER)
+#if defined(__INTEL_COMPILER) || defined(_MSC_VER)
 #pragma float_control(precise, on, push)
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && !defined(__clang__)
 #pragma GCC push_options
 #pragma GCC optimize ("no-fast-math")
 #endif
@@ -60,17 +58,18 @@ template <typename T, typename U>
 AMREX_GPU_HOST_DEVICE
 void compensatedAdd (T& sum, T& compensation, U value) noexcept
 {
+#if defined(__clang__)
+#pragma clang fp reassociate(off) contract(off)
+#endif
     T const y = static_cast<T>(value) - compensation;
     T const t = sum + y;
     compensation = (t - sum) - y;
     sum = t;
 }
 
-#if defined(__clang__)
-#pragma clang fp reassociate(on) contract(on)
-#elif defined(__INTEL_COMPILER) || defined(_MSC_VER)
+#if defined(__INTEL_COMPILER) || defined(_MSC_VER)
 #pragma float_control(pop)
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) && !defined(__clang__)
 #pragma GCC pop_options
 #endif
 
