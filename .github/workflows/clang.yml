@@ -191,6 +191,53 @@ jobs:
         ccache -s
         du -hs ~/.cache/ccache
 
+  tests_fastmath_clang:
+    name: Clang@18 FastMath [tests]
+    runs-on: ubuntu-24.04
+    needs: check_changes
+    if: needs.check_changes.outputs.has_non_docs_changes == 'true'
+    steps:
+    - uses: actions/checkout@v7
+    - name: Dependencies
+      run: |
+        .github/workflows/dependencies/dependencies_clang.sh 18
+        .github/workflows/dependencies/dependencies_ccache.sh
+    - name: Set Up Cache
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ccache
+        key: ccache-${{ github.workflow }}-${{ github.job }}-git-${{ github.sha }}
+        restore-keys: |
+             ccache-${{ github.workflow }}-${{ github.job }}-git-
+    - name: Build & Test
+      env: {CXXFLAGS: "-fno-operator-names -Werror -Wall -Wextra -Wpedantic -Wnull-dereference -Wfloat-conversion -Wshadow -Woverloaded-virtual -Wextra-semi -Wunreachable-code -Wnon-virtual-dtor"}
+      run: |
+        export CCACHE_COMPRESS=1
+        export CCACHE_COMPRESSLEVEL=10
+        export CCACHE_MAXSIZE=100M
+        ccache -z
+
+        cmake -S . -B build                         \
+            -DCMAKE_CXX_STANDARD=20                 \
+            -DCMAKE_BUILD_TYPE=Release              \
+            -DCMAKE_VERBOSE_MAKEFILE=ON             \
+            -DAMReX_FASTMATH=ON                     \
+            -DAMReX_ENABLE_TESTS=ON                 \
+            -DAMReX_TEST_TYPE=Small                 \
+            -DAMReX_FFT=ON                          \
+            -DAMReX_EB=ON                           \
+            -DAMReX_FORTRAN=OFF                     \
+            -DAMReX_MPI=OFF                         \
+            -DCMAKE_C_COMPILER=$(which clang-18)    \
+            -DCMAKE_CXX_COMPILER=$(which clang++-18) \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        cmake --build build -j 4
+
+        ctest --test-dir build --output-on-failure
+
+        ccache -s
+        du -hs ~/.cache/ccache
+
   # Build 2D libamrex with configure
   configure-2d:
     name: Clang NOMPI Release [configure 2D]
