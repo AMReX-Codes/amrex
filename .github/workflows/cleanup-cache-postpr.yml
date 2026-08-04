@@ -19,8 +19,6 @@ jobs:
       - uses: actions/checkout@v7
       - name: Clean up ccache
         run: |
-          gh extension install actions/gh-actions-cache
-
           REPO=${{ github.repository }}
 
           # For debugging cat ${GITHUB_EVENT_PATH} to see the payload.
@@ -33,11 +31,10 @@ jobs:
           # Setting this to not fail the workflow while deleting cache keys.
           set +e
 
-          keys=$(gh actions-cache list -L 100 -R $REPO -B $BRANCH | cut -f 1)
-          # $keys might contain spaces. Thus we set IFS to \n.
-          IFS=$'\n'
-          for k in $keys
+          # Note that `gh cache delete` has no ref filter, so we delete by
+          # cache id, not by key.
+          ids=$(gh cache list -L 100 -R $REPO --ref $BRANCH --json id --jq '.[].id')
+          for i in $ids
           do
-            gh actions-cache delete "$k" -R $REPO -B $BRANCH --confirm
+            gh cache delete "$i" -R $REPO
           done
-          unset IFS
