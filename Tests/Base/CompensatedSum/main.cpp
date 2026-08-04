@@ -63,7 +63,7 @@ void test_compensated_add ()
         // Confirm this is actually a stringent test: naive summation at
         // this magnitude must fail, or the check above is not meaningful.
         volatile T naive_sum = big;
-        for (int i = 0; i < n; ++i) { naive_sum += increment; }
+        for (int i = 0; i < n; ++i) { naive_sum = naive_sum + increment; }
         T const naive_result = naive_sum - big;
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(naive_result != expected,
             "test setup error: naive summation did not lose precision at "
