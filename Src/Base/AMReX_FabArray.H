@@ -541,7 +541,9 @@ public:
     void prefetchToHost (const MFIter& mfi) const noexcept
     requires (BaseFabType<FAB>)
     {
-#ifdef AMREX_USE_CUDA
+        // BaseFab::prefetchToHost() does the managed-memory check and the
+        // per-backend dispatch, so guard only against non-GPU builds here.
+#ifdef AMREX_USE_GPU
         this->fabPtr(mfi)->prefetchToHost();
 #else
         amrex::ignore_unused(mfi);
@@ -551,7 +553,9 @@ public:
     void prefetchToDevice (const MFIter& mfi) const noexcept
     requires (BaseFabType<FAB>)
     {
-#ifdef AMREX_USE_CUDA
+        // BaseFab::prefetchToDevice() does the managed-memory check and the
+        // per-backend dispatch, so guard only against non-GPU builds here.
+#ifdef AMREX_USE_GPU
         this->fabPtr(mfi)->prefetchToDevice();
 #else
         amrex::ignore_unused(mfi);
