@@ -116,12 +116,10 @@ MLTensorOp::setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPAC
 void
 MLTensorOp::setBulkViscosity (int amrlev, Real kappa)
 {
-    if (kappa != 0.0) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            m_kappa[amrlev][0][idim].setVal(kappa);
-        }
-        m_has_kappa = true;
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_kappa[amrlev][0][idim].setVal(kappa);
     }
+    m_has_kappa = true;
 }
 
 void

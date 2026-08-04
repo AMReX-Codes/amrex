@@ -129,10 +129,8 @@ MLEBTensorOp::setEBBulkViscosity (int amrlev, MultiFab const& kappa)
 void
 MLEBTensorOp::setEBBulkViscosity (int amrlev, Real kappa)
 {
-    if (kappa != 0.0) {
-        m_eb_kappa[amrlev][0].setVal(kappa);
-        m_has_eb_kappa = true;
-    }
+    m_eb_kappa[amrlev][0].setVal(kappa);
+    m_has_eb_kappa = true;
 }
 
 void
