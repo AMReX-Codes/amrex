@@ -14,11 +14,11 @@ namespace amrex
 // -ffast-math, -fassociative-math) or that fuse operations across the
 // subtractions (aggressive FP contraction) are free to simplify that
 // expression to 0, which silently turns compensatedAdd into a plain,
-// uncompensated sum. AMReX enables -ffast-math by default for several
-// compilers (see Flags_FASTMATH in Tools/CMake/AMReXFlagsTargets.cmake and
-// the gnu.mak/cray.mak GNU Make compiler flags), so this function's body is
-// pinned to strict floating-point semantics regardless of the flags used by
-// the translation unit that calls it.
+// uncompensated sum. Most compilers only enable such optimizations when a
+// user opts in (e.g. AMReX_FASTMATH, off by default -- see
+// Tools/CMake/AMReXOptions.cmake). Since this function's correctness must not
+// depend on the flags used by its translation unit, its body is pinned to
+// strict floating-point semantics regardless.
 //
 // This function is deliberately NOT AMREX_FORCE_INLINE. Forcing
 // inlining across an optimization-setting boundary like the one below
