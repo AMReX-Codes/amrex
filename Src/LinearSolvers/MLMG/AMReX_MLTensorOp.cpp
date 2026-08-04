@@ -111,6 +111,7 @@ MLTensorOp::setBulkViscosity (int amrlev, const Array<MultiFab const*,AMREX_SPAC
         MultiFab::Copy(m_kappa[amrlev][0][idim], *kappa[idim], 0, 0, 1, 0);
     }
     m_has_kappa = true;
+    m_needs_update = true;
 }
 
 void
@@ -120,6 +121,7 @@ MLTensorOp::setBulkViscosity (int amrlev, Real kappa)
         m_kappa[amrlev][0][idim].setVal(kappa);
     }
     m_has_kappa = true;
+    m_needs_update = true;
 }
 
 void
@@ -192,6 +194,8 @@ MLTensorOp::prepareForSolve ()
             }
         }
     }
+
+    m_needs_update = false;
 }
 
 void
