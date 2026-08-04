@@ -50,6 +50,7 @@ struct Inputs
     int iopt = 1;
     int plot_int = -1;
     int write_ascii = 1;
+    int scheme = 1;
 
     Real xlen = Real(1.0);
     Real dorand = Real(1.0);
@@ -232,6 +233,7 @@ Inputs read_inputs ()
     pp.query("iopt", p.iopt);
     pp.query("plot_int", p.plot_int);
     pp.query("write_ascii", p.write_ascii);
+    pp.query("scheme", p.scheme);
 
     if (p.npts <= 0) {
         amrex::Abort("npts must be positive");
@@ -254,6 +256,9 @@ Inputs read_inputs ()
     }
     if (p.ipdf != 0 && (p.nbins <= 0 || p.dbin <= Real(0.0))) {
         amrex::Abort("PDF output requires nbins > 0 and dbin > 0");
+    }
+    if (p.scheme != 0 && p.scheme != 1) {
+        amrex::Abort("scheme must be 0 (forward Euler) or 1 (predictor-corrector)");
     }
 
     return p;
@@ -339,11 +344,8 @@ void initialize_state (MultiFab& u, Inputs const& p)
     }
 }
 
-void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry const& geom,
-                   Inputs const& p, Real dx, Real dt, Real kappa, Real alpha, int ncoef)
+void sample_ranflux (MultiFab& ranflux, Geometry const& geom)
 {
-    fill_physical_boundary(u, geom, p);
-
     for (MFIter mfi(ranflux); mfi.isValid(); ++mfi) {
         Box const& fbx = mfi.validbox();
         Array4<Real> const ra = ranflux.array(mfi);
@@ -356,6 +358,12 @@ void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry cons
         });
     }
     ranflux.OverrideSync(geom.periodicity());
+}
+
+void compute_flux (MultiFab& flux, MultiFab const& ranflux, MultiFab& u, Geometry const& geom,
+                   Inputs const& p, Real dx, Real dt, Real kappa, Real alpha, int ncoef)
+{
+    fill_physical_boundary(u, geom, p);
 
     Box const domain = geom.Domain();
     int const domlo = domain.smallEnd(0);
@@ -430,7 +438,8 @@ void compute_flux (MultiFab& flux, MultiFab& ranflux, MultiFab& u, Geometry cons
     flux.OverrideSync(geom.periodicity());
 }
 
-void advance (MultiFab& u, MultiFab& unew, MultiFab const& flux, Real dx, Real dt)
+void apply_flux_divergence (MultiFab& unew, MultiFab const& u, MultiFab const& flux,
+                            Real dx, Real dt)
 {
     for (MFIter mfi(u); mfi.isValid(); ++mfi) {
         Box const& bx = mfi.validbox();
@@ -442,6 +451,28 @@ void advance (MultiFab& u, MultiFab& unew, MultiFab const& flux, Real dx, Real d
         {
             unewa(i,j,k,n) = ua(i,j,k,n) + dt * (fa(i+1,j,k,n) - fa(i,j,k,n)) / dx;
         });
+    }
+}
+
+void advance (MultiFab& u, MultiFab& unew, MultiFab& upred, MultiFab& flux, MultiFab& ranflux,
+             Geometry const& geom, Inputs const& p, Real dx, Real dt, Real kappa, Real alpha,
+             int ncoef)
+{
+    // Sampled once per step and reused by both stages with predictor-corrector
+    sample_ranflux(ranflux, geom);
+
+    // Predictor stage (the only stage when scheme == 0): du/dt evaluated at u^n.
+    compute_flux(flux, ranflux, u, geom, p, dx, dt, kappa, alpha, ncoef);
+    apply_flux_divergence(unew, u, flux, dx, dt);
+
+    if (p.scheme == 1) {
+        // Corrector stage: du/dt evaluated at the predicted state u^*.
+        MultiFab::Copy(upred, unew, 0, 0, u.nComp(), 0);
+        compute_flux(flux, ranflux, upred, geom, p, dx, dt, kappa, alpha, ncoef);
+        apply_flux_divergence(unew, upred, flux, dx, dt);
+        // u^{n+1} = 0.5*(u^n + u^*) + 0.5*dt*div(F(u^*))
+        //         = 0.5*u^n + 0.5*[u^* + dt*div(F(u^*))]
+        MultiFab::LinComb(unew, Real(0.5), u, 0, Real(0.5), unew, 0, 0, u.nComp(), 0);
     }
 
     MultiFab::Copy(u, unew, 0, 0, u.nComp(), 0);
@@ -859,6 +890,8 @@ int main (int argc, char* argv[])
                        << kappa << " " << alpha << " " << inputs.rho << " "
                        << inputs.cv << " " << inputs.lambda << "\n";
         amrex::Print() << "dt, dx = " << inputs.dt << " " << dx << "\n";
+        amrex::Print() << "scheme = "
+                       << (inputs.scheme == 1 ? "predictor-corrector" : "forward Euler") << "\n";
         amrex::Print() << "delreg, delnreg = " << Real(4.0)*dx*dx << " "
                        << Real(4.0)*dx*dx*inputs.uinit << "\n";
 
@@ -870,6 +903,7 @@ int main (int argc, char* argv[])
 
         MultiFab u(ba, dm, ncoef, 1);
         MultiFab unew(ba, dm, ncoef, 0);
+        MultiFab upred(ba, dm, ncoef, 1);
         MultiFab flux(fba, dm, ncoef, 0);
         MultiFab ranflux(fba, dm, 1, 0);
         MultiFab stats(ba, dm, NumStatComps, 0);
@@ -897,8 +931,8 @@ int main (int argc, char* argv[])
             for (int step = 1; step <= total_steps; ++step) {
                 time = Real(step) * inputs.dt;
 
-                compute_flux(flux, ranflux, u, geom, inputs, dx, inputs.dt, kappa, alpha, ncoef);
-                advance(u, unew, flux, dx, inputs.dt);
+                advance(u, unew, upred, flux, ranflux, geom, inputs, dx, inputs.dt, kappa,
+                       alpha, ncoef);
 
                 int const prod_step = step - inputs.ntherm;
 
