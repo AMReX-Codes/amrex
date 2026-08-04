@@ -36,5 +36,7 @@ jobs:
           ids=$(gh cache list -L 100 -R $REPO --ref $BRANCH --json id --jq '.[].id')
           for i in $ids
           do
-            gh cache delete "$i" -R $REPO
+            # `|| true` so that a failed deletion does not fail the step: the
+            # step's exit status is that of the last command run.
+            gh cache delete "$i" -R $REPO || true
           done

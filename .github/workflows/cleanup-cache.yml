@@ -60,7 +60,7 @@ jobs:
             old_ids=$(gh cache list -L 100 -R $REPO --ref $BRANCH --key "${j}-git-" --sort last_accessed_at --order desc --json id --jq '.[].id' | tail -n +2)
             for i in $old_ids
             do
-              gh cache delete "$i" -R $REPO
+              gh cache delete "$i" -R $REPO || true
             done
           done
           unset IFS
