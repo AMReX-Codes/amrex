@@ -106,6 +106,7 @@ if (AMReX_TEST_TYPE STREQUAL "Small")
 
    add_subdirectory("Base/TrackedVector")
    add_subdirectory("Base/RealBox")
+   add_subdirectory("Base/CompensatedSum")
 
    add_subdirectory("Amr/Advection_AmrCore")
 

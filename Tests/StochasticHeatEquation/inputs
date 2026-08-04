@@ -18,7 +18,7 @@ scheme = 1           # time integrator: 0 forward Euler, 1 predictor-corrector
 nstep = 20000000     # number of production steps after thermalization
 ntherm = 2000000     # number of initial steps skipped by diagnostics
 nout = 20000000      # diagnostic output interval after thermalization
-nstat = 100          # statistics accumulation interval after thermalization
+nstat = 1            # statistics accumulation interval after thermalization
 icor = 1             # 1-based reference cell index for correlations
 ensout = 1           # output every ensout ensemble realizations
 
