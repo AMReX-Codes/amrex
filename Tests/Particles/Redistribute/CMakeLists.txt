@@ -59,7 +59,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
       if (AMReX_MPI)
         add_test(
           NAME              Particles_Redistribute_${D}d_LocalNoMaskUnevenMPI
-          COMMAND           mpiexec -n 3 ${_exe_dir}/${_exe_name} inputs.rt.local_nomask_uneven
+          COMMAND           mpiexec -n 2 ${_exe_dir}/${_exe_name} inputs.rt.local_nomask_uneven
           WORKING_DIRECTORY ${_exe_dir}
         )
         if (AMReX_OMP)
