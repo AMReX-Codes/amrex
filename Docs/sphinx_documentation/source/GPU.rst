@@ -1686,8 +1686,13 @@ it is reset, at which point AMReX restores the previous external stream.
   :cpp:`The_Async_Arena` are still pending, in which case AMReX forces a
   synchronization to keep the arena safe.  The external stream or queue must
   belong to the active AMReX device.  For SYCL, the queue must also use the
-  same SYCL context as AMReX and must be an in-order queue.  AMReX selects the
-  active GPU during :cpp:`amrex::Initialize`, whose overloads accept an
+  same SYCL context as AMReX and must be an in-order queue.  When supported by
+  the SYCL implementation, AMReX uses the selected device platform's default
+  context.  That context can contain several devices, but each MPI rank's
+  AMReX queues still target only the GPU selected for that rank.  This also
+  makes an in-order queue created for that device with the platform default
+  context compatible with AMReX.  AMReX selects the active GPU during
+  :cpp:`amrex::Initialize`, whose overloads accept an
   optional trailing :cpp:`int device_id` argument; pass the desired GPU there
   if an external runtime needs AMReX to adopt a specific device before the
   stream is created.  Conversely, if AMReX should drive the selection, query
