@@ -13,7 +13,11 @@ foreach(D IN LISTS AMReX_SPACEDIM)
       set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
       set(_exe_name Test_Particles_Redistribute_${D}d)
 
-      file(COPY inputs.rt.local_multilevel inputs.rt.local_nomask DESTINATION ${_exe_dir})
+      file(COPY
+        inputs.rt.local_multilevel
+        inputs.rt.local_nomask
+        inputs.rt.local_nomask_uneven
+        DESTINATION ${_exe_dir})
 
       if (AMReX_OMP)
         add_test(
@@ -50,6 +54,17 @@ foreach(D IN LISTS AMReX_SPACEDIM)
           COMMAND           ${_exe_dir}/${_exe_name} inputs.rt.local_nomask
           WORKING_DIRECTORY ${_exe_dir}
         )
+      endif ()
+
+      if (AMReX_MPI)
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalNoMaskUnevenMPI
+          COMMAND           mpiexec -n 3 ${_exe_dir}/${_exe_name} inputs.rt.local_nomask_uneven
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+        if (AMReX_OMP)
+          set_tests_properties(Particles_Redistribute_${D}d_LocalNoMaskUnevenMPI PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+        endif ()
       endif ()
     endif ()
 

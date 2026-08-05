@@ -1182,20 +1182,29 @@ Particles
    :type: bool
    :value: true
 
+   .. versionadded:: 26.08
+      Runtime parameter ``particles.redistribute_use_mask``.
+
    On CPU builds, this controls whether local ``Redistribute()`` may use a
    level-0 mask for particle-to-grid lookup when the call is otherwise eligible.
 
 .. py:data:: particles.redistribute_mask_max_ratio
-   :type: real
+   :type: double
    :value: 8.0
+
+   .. versionadded:: 26.08
+      Runtime parameter ``particles.redistribute_mask_max_ratio``.
 
    This is the maximum ratio of grown mask cells to valid cells for using the
    CPU local ``Redistribute()`` lookup mask. Non-positive values disable this
    ratio limit.
 
 .. py:data:: particles.redistribute_mask_max_bytes
-   :type: int
+   :type: long
    :value: 268435456
+
+   .. versionadded:: 26.08
+      Runtime parameter ``particles.redistribute_mask_max_bytes``.
 
    This is the maximum estimated per-rank storage, in bytes, for using the CPU
    local ``Redistribute()`` lookup mask. Negative values disable this byte limit.

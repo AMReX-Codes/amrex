@@ -12,6 +12,35 @@ IntVect ParticleContainerBase::tile_size { AMREX_D_DECL(1024000,8,8) };
 bool    ParticleContainerBase::memEfficientSort = true;
 bool    ParticleContainerBase::use_comms_arena = false;
 
+namespace {
+
+struct RedistributeMaskParameters
+{
+    int use_mask = 1;
+    double max_ratio = 8.0;
+    Long max_bytes = 256L * 1024L * 1024L;
+};
+
+RedistributeMaskParameters const&
+RedistributeMaskParams ()
+{
+    static RedistributeMaskParameters params;
+    static bool initialized = false;
+
+    if (! initialized)
+    {
+        ParmParse pp("particles");
+        pp.query("redistribute_use_mask", params.use_mask);
+        pp.query("redistribute_mask_max_ratio", params.max_ratio);
+        pp.query("redistribute_mask_max_bytes", params.max_bytes);
+        initialized = true;
+    }
+
+    return params;
+}
+
+}
+
 void ParticleContainerBase::Define (const Geometry            & geom,
                                     const DistributionMapping & dmap,
                                     const BoxArray            & ba)
@@ -335,47 +364,64 @@ bool ParticleContainerBase::RedistributeMaskLooksCheap (int lev, IntVect nghost)
 
     AMREX_ASSERT(lev == 0);
 
-    int use_mask = 1;
-    Real max_ratio = 8.0;
-    Long max_bytes = 256L * 1024L * 1024L;
+    const auto& params = RedistributeMaskParams();
 
-    ParmParse pp("particles");
-    pp.query("redistribute_use_mask", use_mask);
-    pp.query("redistribute_mask_max_ratio", max_ratio);
-    pp.query("redistribute_mask_max_bytes", max_bytes);
+    if (!params.use_mask) { return false; }
 
-    if (!use_mask) { return false; }
-
-    Long valid_cells = 0;
-    Long grown_cells = 0;
     const BoxArray& ba = this->ParticleBoxArray(lev);
     const DistributionMapping& dmap = this->ParticleDistributionMap(lev);
 
-    for (MFIter mfi(ba, dmap); mfi.isValid(); ++mfi)
+    if (redistribute_mask_cost_cached &&
+        redistribute_mask_cost_nghost == nghost &&
+        BoxArray::SameRefs(redistribute_mask_cost_ba, ba) &&
+        DistributionMapping::SameRefs(redistribute_mask_cost_dmap, dmap))
     {
-        const Box& box = mfi.validbox();
-        valid_cells += box.numPts();
-        grown_cells += amrex::grow(box, nghost).numPts();
+        return redistribute_mask_cost;
     }
 
-    if (grown_cells == 0) { return true; }
+    Vector<Long> valid_cells(ParallelContext::NProcsSub(), 0);
+    Vector<Long> grown_cells(ParallelContext::NProcsSub(), 0);
 
-    if (max_bytes >= 0) {
-        const auto estimated_bytes = static_cast<long double>(grown_cells)
-            * static_cast<long double>(2 * sizeof(int));
-        if (estimated_bytes > static_cast<long double>(max_bytes)) {
-            return false;
+    for (int i = 0; i < ba.size(); ++i)
+    {
+        const int rank = ParallelContext::global_to_local_rank(dmap[i]);
+        AMREX_ASSERT(rank >= 0 && rank < ParallelContext::NProcsSub());
+        valid_cells[rank] += ba[i].numPts();
+        grown_cells[rank] += amrex::grow(ba[i], nghost).numPts();
+    }
+
+    bool looks_cheap = true;
+    const Long bytes_per_cell = 2L * static_cast<Long>(sizeof(int));
+    for (int rank = 0; rank < ParallelContext::NProcsSub(); ++rank)
+    {
+        if (grown_cells[rank] == 0) { continue; }
+
+        if (params.max_bytes >= 0 &&
+            grown_cells[rank] > params.max_bytes / bytes_per_cell)
+        {
+            looks_cheap = false;
+            break;
+        }
+
+        if (params.max_ratio > 0.0 && valid_cells[rank] > 0)
+        {
+            const auto ratio = static_cast<double>(grown_cells[rank])
+                / static_cast<double>(valid_cells[rank]);
+            if (ratio > params.max_ratio)
+            {
+                looks_cheap = false;
+                break;
+            }
         }
     }
 
-    if (max_ratio > 0.0 && valid_cells > 0) {
-        const auto ratio = static_cast<Real>(grown_cells) / static_cast<Real>(valid_cells);
-        if (ratio > max_ratio) {
-            return false;
-        }
-    }
+    redistribute_mask_cost_cached = true;
+    redistribute_mask_cost = looks_cheap;
+    redistribute_mask_cost_nghost = nghost;
+    redistribute_mask_cost_ba = ba;
+    redistribute_mask_cost_dmap = dmap;
 
-    return true;
+    return looks_cheap;
 }
 
 void ParticleContainerBase::BuildRedistributeMask (int lev, IntVect nghost) const
