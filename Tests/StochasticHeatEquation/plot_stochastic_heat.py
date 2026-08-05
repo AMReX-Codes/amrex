@@ -415,13 +415,9 @@ def main(argv: list[str]) -> int:
     inputs_path = args.inputs.resolve() if args.inputs else data_dir / "inputs"
     params = read_inputs(inputs_path)
     required_inputs = set(REQUIRED_INPUTS)
-    if args.tag is None:
-        required_inputs.add("is_gaussian")
     require_inputs(params, inputs_path, required_inputs)
 
-    tag = normalize_tag(
-        args.tag if args.tag is not None else ("ga" if int(params["is_gaussian"]) else "fv")
-    )
+    tag = normalize_tag(args.tag if args.tag is not None else "ga")
     labels = find_labels(data_dir, tag)
     if not labels:
         print(f"No mean_{tag}_*.dat files found in {data_dir}", file=sys.stderr)
