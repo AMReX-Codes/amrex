@@ -20,6 +20,9 @@ nstep = 20000000     # number of production steps after thermalization
 ntherm = 2000000     # number of initial steps skipped by diagnostics
 nout = 20000000      # diagnostic output interval after thermalization
 nstat = 1            # statistics accumulation interval after thermalization
+variance_check = 1   # check average variance against equilibrium theory when diagnostics are built
+variance_check_rel_tol = 0.1  # relative tolerance for the variance check
+variance_check_min_samples = 1000  # skip variance check before this many samples
 icor = 1             # 1-based reference cell index for correlations
 ensout = 1           # output every ensout ensemble realizations
 

@@ -51,6 +51,8 @@ struct Inputs
     int plot_int = -1;
     int write_ascii = 1;
     int scheme = 1;
+    int variance_check = 1;
+    int variance_check_min_samples = 1000;
 
     Real xlen = Real(1.0);
     Real dorand = Real(1.0);
@@ -66,6 +68,7 @@ struct Inputs
     Real rho = Real(7870.0);
     Real cv = Real(450.0);
     Real crossA = Real(4.e-18);
+    Real variance_check_rel_tol = Real(0.1);
 };
 
 enum StatComp : int {
@@ -234,6 +237,9 @@ Inputs read_inputs ()
     pp.query("plot_int", p.plot_int);
     pp.query("write_ascii", p.write_ascii);
     pp.query("scheme", p.scheme);
+    pp.query("variance_check", p.variance_check);
+    pp.query("variance_check_min_samples", p.variance_check_min_samples);
+    pp.query("variance_check_rel_tol", p.variance_check_rel_tol);
 
     if (p.npts <= 0) {
         amrex::Abort("npts must be positive");
@@ -262,6 +268,15 @@ Inputs read_inputs ()
     }
     if (p.scheme != 0 && p.scheme != 1) {
         amrex::Abort("scheme must be 0 (forward Euler) or 1 (predictor-corrector)");
+    }
+    if (p.variance_check != 0 && p.variance_check != 1) {
+        amrex::Abort("variance_check must be 0 or 1");
+    }
+    if (p.variance_check_min_samples < 0) {
+        amrex::Abort("variance_check_min_samples must be nonnegative");
+    }
+    if (p.variance_check_rel_tol <= Real(0.0)) {
+        amrex::Abort("variance_check_rel_tol must be positive");
     }
 
     return p;
@@ -620,6 +635,93 @@ void build_diagnostics (MultiFab& diag, MultiFab const& stats, Inputs const& p, 
     }
 }
 
+bool nearly_equal (Real a, Real b) noexcept
+{
+    Real const scale = Real(1.0) + std::abs(a) + std::abs(b);
+    return std::abs(a-b) <= Real(1.e-6) * scale;
+}
+
+bool supports_uniform_variance_check (Inputs const& p) noexcept
+{
+    if (!nearly_equal(p.midfact, Real(1.0))) {
+        return false;
+    }
+    if (!nearly_equal(p.dorand, Real(1.0))) {
+        return false;
+    }
+    if (p.iper == 1) {
+        return true;
+    }
+    if (p.iresl == 1 && !nearly_equal(p.uleft, p.uinit)) {
+        return false;
+    }
+    if (p.iresr == 1 && !nearly_equal(p.uright, p.uinit)) {
+        return false;
+    }
+    return true;
+}
+
+bool conserves_total_temperature (Inputs const& p) noexcept
+{
+    return p.iper == 1 || (p.iresl == 0 && p.iresr == 0);
+}
+
+Real expected_temperature_variance (Geometry const& geom, Inputs const& p, Real kb) noexcept
+{
+    int const npts = geom.Domain().length(0);
+    Real const dx = geom.CellSize(0);
+    Real const dvol = p.crossA * dx;
+    Real expected = kb * p.uinit * p.uinit / (p.rho * p.cv * dvol);
+
+    if (conserves_total_temperature(p)) {
+        expected *= Real(npts-1) / Real(npts);
+    }
+
+    return expected;
+}
+
+void check_temperature_variance (Real average_variance, Geometry const& geom, Inputs const& p,
+                                 Long istat, Real kb)
+{
+    if (p.variance_check == 0) {
+        return;
+    }
+
+    if (istat < static_cast<Long>(p.variance_check_min_samples)) {
+        amrex::Print() << "variance check skipped: istats " << istat
+                       << " < variance_check_min_samples "
+                       << p.variance_check_min_samples << "\n";
+        return;
+    }
+
+    if (!supports_uniform_variance_check(p)) {
+        amrex::Print() << "variance check skipped: requires uniform equilibrium inputs "
+                       << "with dorand = 1\n";
+        return;
+    }
+
+    Real const expected = expected_temperature_variance(geom, p, kb);
+    if (expected <= Real(0.0)) {
+        amrex::Print() << "variance check skipped: expected variance is nonpositive\n";
+        return;
+    }
+
+    Real const rel_error = std::abs(average_variance - expected) / expected;
+    amrex::Print() << "variance check: average = " << average_variance
+                   << " expected = " << expected
+                   << " relative error = " << rel_error
+                   << " tolerance = " << p.variance_check_rel_tol << "\n";
+
+    if (rel_error > p.variance_check_rel_tol) {
+        std::ostringstream msg;
+        msg << "temperature variance check failed: average variance "
+            << average_variance << ", expected " << expected
+            << ", relative error " << rel_error
+            << " exceeds tolerance " << p.variance_check_rel_tol;
+        amrex::Abort(msg.str());
+    }
+}
+
 std::string output_label (int ens, int step)
 {
     std::ostringstream os;
@@ -676,7 +778,7 @@ void write_pdf_file (std::string const& filename, Vector<Long> const& pdf,
 
 void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, Inputs const& p,
                                   Long istat, int ens, int step, std::string const& tag,
-                                  Vector<Long> const& pdf, Long total_pdf_points)
+                                  Vector<Long> const& pdf, Long total_pdf_points, Real kb)
 {
     Gpu::HostVector<Real> const line =
         amrex::sumToLine(diag, 0, NumDiagComps, geom.Domain(), 0, false);
@@ -782,6 +884,7 @@ void print_and_write_diagnostics (MultiFab const& diag, Geometry const& geom, In
     amrex::Print() << "istats " << istat << " " << npts << "\n";
     amrex::Print() << "aver stats " << av_mean << " " << av_var << " " << av_skew << " "
                    << av_kur << " " << av_mom3 << " " << av_mom4 << "\n";
+    check_temperature_variance(av_var, geom, p, istat, kb);
 
     if (npts > 1) {
         Real const inv_cov = Real(1.0) / Real(npts-1);
@@ -968,7 +1071,7 @@ int main (int argc, char* argv[])
                     if (istat > 0) {
                         build_diagnostics(diag, stats, inputs, istat);
                         print_and_write_diagnostics(diag, geom, inputs, istat, ens, step,
-                                                    tag, pdf, total_pdf_points);
+                                                    tag, pdf, total_pdf_points, kb);
                     }
                     tout = 1;
                 }
