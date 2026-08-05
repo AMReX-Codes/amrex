@@ -661,11 +661,6 @@ bool supports_uniform_variance_check (Inputs const& p) noexcept
     return true;
 }
 
-bool conserves_total_temperature (Inputs const& p) noexcept
-{
-    return p.iper == 1 || (p.iresl == 0 && p.iresr == 0);
-}
-
 Real expected_temperature_variance (Geometry const& geom, Inputs const& p, Real kb) noexcept
 {
     int const npts = geom.Domain().length(0);
@@ -673,7 +668,7 @@ Real expected_temperature_variance (Geometry const& geom, Inputs const& p, Real 
     Real const dvol = p.crossA * dx;
     Real expected = kb * p.uinit * p.uinit / (p.rho * p.cv * dvol);
 
-    if (conserves_total_temperature(p)) {
+    if (p.iper == 1) {
         expected *= Real(npts-1) / Real(npts);
     }
 
