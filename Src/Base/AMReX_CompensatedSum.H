@@ -53,6 +53,11 @@ namespace amrex
  *
  * Callers own both the accumulated sum and the compensation storage. Both
  * should be initialized before the first call, usually to zero.
+ *
+ * \param[in,out] sum Running sum updated by \p value.
+ * \param[in,out] compensation Kahan compensation term updated to track the
+ *                             rounding error from the addition.
+ * \param[in] value Value to add to \p sum.
  */
 template <typename T, typename U>
 AMREX_GPU_HOST_DEVICE
