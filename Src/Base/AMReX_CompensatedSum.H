@@ -30,10 +30,12 @@ namespace amrex
 // Clang, Intel classic icc, Intel icx (clang-based, covered by the clang
 // branch), MSVC, clang-cl (defines both _MSC_VER and __clang__; the clang
 // branch takes priority and is what actually applies), NVCC host and
-// device code, and AMD's HIP/ROCm clang host and device code (also covered
-// by the clang branch). NVCC's device compiler was confirmed not to need
-// protection: neither --use_fast_math nor --fmad=true collapses this
-// expression, unlike host-side -ffast-math. The nv_diag_suppress pair
+// device code, AMD's HIP/ROCm clang host and device code (also covered by
+// the clang branch), and NVHPC. NVCC's device compiler was confirmed not to
+// need protection: neither --use_fast_math nor --fmad=true collapses this
+// expression, unlike host-side -ffast-math. NVHPC nvc++ 26.5 also preserves
+// the expression under -fast, and it does not support GCC's optimize pragma
+// even though it defines __GNUC__. The nv_diag_suppress pair
 // exists only to silence NVCC's front end complaining about the (correct,
 // but nvcc-unrecognized) GCC/MSVC/Intel pragmas when it parses this header
 // while selecting a host-side branch; it has no effect on codegen.
@@ -43,7 +45,7 @@ namespace amrex
 
 #if defined(__INTEL_COMPILER) || defined(_MSC_VER)
 #pragma float_control(precise, on, push)
-#elif defined(__GNUC__) && !defined(__clang__)
+#elif defined(__GNUC__) && !defined(__clang__) && !defined(__NVCOMPILER)
 #pragma GCC push_options
 #pragma GCC optimize ("no-fast-math")
 #endif
@@ -74,7 +76,7 @@ void compensatedAdd (T& sum, T& compensation, U value) noexcept
 
 #if defined(__INTEL_COMPILER) || defined(_MSC_VER)
 #pragma float_control(pop)
-#elif defined(__GNUC__) && !defined(__clang__)
+#elif defined(__GNUC__) && !defined(__clang__) && !defined(__NVCOMPILER)
 #pragma GCC pop_options
 #endif
 

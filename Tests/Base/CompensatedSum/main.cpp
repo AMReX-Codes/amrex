@@ -6,7 +6,7 @@
 #include <AMReX_Print.H>
 #include <AMReX_Random.H>
 
-#include <cmath>
+#include <cstdint>
 #include <limits>
 
 //
@@ -42,9 +42,11 @@ void test_compensated_add ()
     int const n = 12;
 
     // Two binary orders above the mantissa limit: the representable ULP
-    // there is 2, so repeatedly adding 1 is a worst-case cancellation for
-    // naive summation, while compensatedAdd must still recover it exactly.
-    T const big = std::ldexp(T(1), std::numeric_limits<T>::digits + 1) * T(rank);
+    // is larger than increment, so naive summation loses each term while
+    // compensatedAdd must still recover them exactly.
+    constexpr std::uint64_t big_base =
+        std::uint64_t(1) << (std::numeric_limits<T>::digits + 1);
+    T const big = T(big_base) * T(rank);
     T const increment = T(1) * T(rank);
     T const expected = T(n) * increment;
 
