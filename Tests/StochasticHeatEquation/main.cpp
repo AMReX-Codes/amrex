@@ -917,8 +917,9 @@ int main (int argc, char* argv[])
         Long istat = 0;
         int const total_steps = inputs.nstep + inputs.ntherm;
 
-        amrex::InitRandom(static_cast<ULong>(inputs.seed), ParallelDescriptor::NProcs(),
-                          static_cast<ULong>(inputs.seed));
+        ULong const rank_seed = static_cast<ULong>(inputs.seed) +
+            static_cast<ULong>(ParallelDescriptor::MyProc());
+        amrex::ResetRandomSeed(rank_seed, rank_seed);
 
         for (int ens = 1; ens <= inputs.ensemble; ++ens) {
             initialize_state(u, inputs);
