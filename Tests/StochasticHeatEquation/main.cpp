@@ -257,6 +257,9 @@ Inputs read_inputs ()
     if (p.ipdf != 0 && (p.nbins <= 0 || p.dbin <= Real(0.0))) {
         amrex::Abort("PDF output requires nbins > 0 and dbin > 0");
     }
+    if (p.is_gaussian != 0 && p.is_gaussian != 1) {
+        amrex::Abort("is_gaussian must be 0 (two-point noise) or 1 (Gaussian noise)");
+    }
     if (p.scheme != 0 && p.scheme != 1) {
         amrex::Abort("scheme must be 0 (forward Euler) or 1 (predictor-corrector)");
     }
@@ -344,8 +347,10 @@ void initialize_state (MultiFab& u, Inputs const& p)
     }
 }
 
-void sample_ranflux (MultiFab& ranflux, Geometry const& geom)
+void sample_ranflux (MultiFab& ranflux, Geometry const& geom, int is_gaussian)
 {
+    bool const use_gaussian = (is_gaussian == 1);
+
     for (MFIter mfi(ranflux); mfi.isValid(); ++mfi) {
         Box const& fbx = mfi.validbox();
         Array4<Real> const ra = ranflux.array(mfi);
@@ -354,7 +359,8 @@ void sample_ranflux (MultiFab& ranflux, Geometry const& geom)
                                                   RandomEngine const& engine) noexcept
         {
             auto const normal = local_random_normal<double>(0.0, 1.0, engine);
-            ra(i,j,k) = (normal >= 0.0) ? Real(1.0) : Real(-1.0);
+            ra(i,j,k) = use_gaussian ? static_cast<Real>(normal) :
+                ((normal >= 0.0) ? Real(1.0) : Real(-1.0));
         });
     }
     ranflux.OverrideSync(geom.periodicity());
@@ -459,7 +465,7 @@ void advance (MultiFab& u, MultiFab& unew, MultiFab& upred, MultiFab& flux, Mult
              int ncoef)
 {
     // Sampled once per step and reused by both stages with predictor-corrector
-    sample_ranflux(ranflux, geom);
+    sample_ranflux(ranflux, geom, p.is_gaussian);
 
     // Predictor stage (the only stage when scheme == 0): du/dt evaluated at u^n.
     compute_flux(flux, ranflux, u, geom, p, dx, dt, kappa, alpha, ncoef);
@@ -892,6 +898,8 @@ int main (int argc, char* argv[])
         amrex::Print() << "dt, dx = " << inputs.dt << " " << dx << "\n";
         amrex::Print() << "scheme = "
                        << (inputs.scheme == 1 ? "predictor-corrector" : "forward Euler") << "\n";
+        amrex::Print() << "noise = "
+                       << (inputs.is_gaussian == 1 ? "Gaussian" : "two-point") << "\n";
         amrex::Print() << "delreg, delnreg = " << Real(4.0)*dx*dx << " "
                        << Real(4.0)*dx*dx*inputs.uinit << "\n";
 

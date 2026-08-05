@@ -14,6 +14,7 @@ iopt = 2             # reservoir-face noise state: 1 boundary, 2 interior
 dt = 1.e-12          # time step used when cfl <= 0
 cfl = 0.1e0          # if positive, set dt from cfl*dx*dx/(2*kappa)
 dorand = 1.0e0       # scale factor on the stochastic flux noise; 0 disables fluctuations
+is_gaussian = 0      # face noise distribution: 0 two-point +/-1, 1 Gaussian N(0,1)
 scheme = 1           # time integrator: 0 forward Euler, 1 predictor-corrector
 nstep = 20000000     # number of production steps after thermalization
 ntherm = 2000000     # number of initial steps skipped by diagnostics
