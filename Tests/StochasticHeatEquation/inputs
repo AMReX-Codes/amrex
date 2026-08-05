@@ -26,8 +26,8 @@ ensout = 1           # output every ensout ensemble realizations
 seed = 1022349098    # random-number seed
 
 uinit = 300.         # initial state outside the middle region
-jmidl = 26           # 1-based first cell in the middle region
-jmidr = 75           # 1-based last cell in the middle region
+jmidl = 9            # 1-based first cell in the middle region
+jmidr = 24           # 1-based last cell in the middle region
 midfact = 1.0e0      # multiplier applied to uinit in the middle region
 iresr = 0            # right reservoir flag when non-periodic: 0 off, 1 on
 iresl = 0            # left reservoir flag when non-periodic: 0 off, 1 on

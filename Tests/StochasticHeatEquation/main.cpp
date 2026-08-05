@@ -38,8 +38,8 @@ struct Inputs
     int nout = -1;
     int nstat = 1;
     int icor = 1;
-    int jmidl = -5;
-    int jmidr = -5;
+    int jmidl = 9;
+    int jmidr = 24;
     int ensemble = 1;
     int is_gaussian = 0;
     int ipdf = 0;
