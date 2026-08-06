@@ -725,7 +725,7 @@ static constexpr struct DoLocalCopy {} do_local_copy{};
 template <BaseFabType FAB, typename DataPacking>
 requires (IsDataPacking<DataPacking, FAB>::value)
 #ifdef AMREX_USE_MPI
-AMREX_NODISCARD CommHandler
+[[nodiscard]] CommHandler
 ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>& dest, const FabArray<FAB>& src,
                      const FabArrayBase::CommMetaData& cmd, const DataPacking& data_packing)
 {
@@ -782,7 +782,7 @@ CommHandler ParallelCopy_nowait (NoLocalCopy, FabArray<FAB>&, const FabArray<FAB
 template <BaseFabType FAB, typename DataPacking>
 requires (IsDataPacking<DataPacking, FAB>::value)
 #ifdef AMREX_USE_MPI
-AMREX_NODISCARD
+[[nodiscard]]
 #endif
 CommHandler
 ParallelCopy_nowait (FabArray<FAB>& dest, const FabArray<FAB>& src,

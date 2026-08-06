@@ -672,11 +672,11 @@ public:
     void setFab (const MFIter&mfi, FAB&& elem);
 
     //! Release ownership of the FAB. This function is not thread safe.
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* release (int K);
 
     //! Release ownership of the FAB. This function is not thread safe.
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* release (const MFIter& mfi);
 
     //! Releases FAB memory in the FabArray.
@@ -1622,7 +1622,7 @@ public:
                    int                                    SeqNum);
 
     template <typename BUF=value_type>
-    AMREX_NODISCARD
+    [[nodiscard]]
     static TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
@@ -1642,7 +1642,7 @@ public:
                              int                                  ncomp);
 
     template <typename BUF=value_type>
-    AMREX_NODISCARD
+    [[nodiscard]]
     static TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
@@ -1902,7 +1902,7 @@ FabArray<FAB>::clear_arrays ()
 }
 
 template <class FAB>
-AMREX_NODISCARD
+[[nodiscard]]
 FAB*
 FabArray<FAB>::release (int K)
 {
@@ -1922,7 +1922,7 @@ FabArray<FAB>::release (int K)
 }
 
 template <class FAB>
-AMREX_NODISCARD
+[[nodiscard]]
 FAB*
 FabArray<FAB>::release (const MFIter& mfi)
 {
