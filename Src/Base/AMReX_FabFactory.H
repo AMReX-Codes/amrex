@@ -55,13 +55,13 @@ public:
     FabFactory& operator= (FabFactory const&) noexcept = default;
     FabFactory& operator= (FabFactory &&) noexcept = default;
     virtual ~FabFactory () noexcept = default;
-    AMREX_NODISCARD
+    [[nodiscard]]
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
-    AMREX_NODISCARD
+    [[nodiscard]]
     virtual FAB* create_alias (FAB const& /*rhs*/, int /*scomp*/, int /*ncomp*/) const { return nullptr; }
     virtual void destroy (FAB* fab) const = 0;
-    AMREX_NODISCARD virtual FabFactory<FAB>* clone () const = 0;
-    AMREX_NODISCARD virtual Long nBytes (const Box& box, int ncomps, int /*box_index*/) const {
+    [[nodiscard]] virtual FabFactory<FAB>* clone () const = 0;
+    [[nodiscard]] virtual Long nBytes (const Box& box, int ncomps, int /*box_index*/) const {
         if constexpr (IsBaseFab_v<FAB>) {
             return box.numPts() * ncomps * Long(sizeof(typename FAB::value_type));
         } else {
@@ -75,13 +75,13 @@ class DefaultFabFactory
     : public FabFactory<FAB>
 {
 public:
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* create (const Box& box, int ncomps, const FabInfo& info, int /*box_index*/) const override
     {
         return new FAB(box, ncomps, info.alloc, info.shared, info.arena);
     }
 
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* create_alias (FAB const& rhs, int scomp, int ncomp) const override
     {
         return new FAB(rhs, amrex::make_alias, scomp, ncomp);
@@ -92,7 +92,7 @@ public:
         delete fab;
     }
 
-    AMREX_NODISCARD
+    [[nodiscard]]
     DefaultFabFactory<FAB>* clone () const override {
         return new DefaultFabFactory<FAB>();
     }

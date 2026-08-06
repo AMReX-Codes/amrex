@@ -794,7 +794,7 @@ FabArray<FAB>::copyTo (FAB& dest, int scomp, int dcomp, int ncomp, int nghost) c
 #ifdef BL_USE_MPI
 template <class FAB>
 template <typename BUF>
-AMREX_NODISCARD TheFaArenaPointer
+[[nodiscard]] TheFaArenaPointer
 FabArray<FAB>::PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                                    Vector<char*>&                       send_data,
                                    Vector<std::size_t>&                 send_size,

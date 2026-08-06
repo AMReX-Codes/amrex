@@ -92,7 +92,7 @@ EBFArrayBoxFactory::EBFArrayBoxFactory (const EB2::Level& a_level,
 #endif
 }
 
-AMREX_NODISCARD
+[[nodiscard]]
 FArrayBox*
 EBFArrayBoxFactory::create (const Box& box, int ncomps,
                             const FabInfo& info, int box_index) const
@@ -108,7 +108,7 @@ EBFArrayBoxFactory::create (const Box& box, int ncomps,
     }
 }
 
-AMREX_NODISCARD
+[[nodiscard]]
 FArrayBox*
 EBFArrayBoxFactory::create_alias (FArrayBox const& rhs, int scomp, int ncomp) const
 {
@@ -137,7 +137,7 @@ EBFArrayBoxFactory::destroy (FArrayBox* fab) const
     }
 }
 
-AMREX_NODISCARD
+[[nodiscard]]
 EBFArrayBoxFactory*
 EBFArrayBoxFactory::clone () const
 {
