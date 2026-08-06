@@ -2,7 +2,7 @@ name: CleanUpCache
 
 on:
   workflow_run:
-    workflows: [bittree, LinuxClang, cuda, LinuxGcc, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
+    workflows: [bittree, LinuxClang, cuda, LinuxGCC, hip, Hypre, intel, macos, PETSc, SUNDIALS, CodeQL, smoke, apps]
     types:
       - completed
 
@@ -19,8 +19,6 @@ jobs:
       - uses: actions/checkout@v7
       - name: Clean up ccache
         run: |
-          gh extension install actions/gh-actions-cache
-
           REPO=${{ github.repository }}
 
           # push or pull_request or schedule or ...
@@ -50,18 +48,19 @@ jobs:
           # something like ccache-LinuxClang-
           keyprefix="ccache-${WORKFLOW_NAME}-"
 
-          cached_jobs=$(gh actions-cache list -L 100 -R $REPO -B $BRANCH --key "$keyprefix" | awk -F '-git-' '{print $1}' | sort | uniq)
+          cached_jobs=$(gh cache list -L 100 -R $REPO --ref $BRANCH --key "$keyprefix" --json key --jq '.[].key' | awk -F '-git-' '{print $1}' | sort | uniq)
 
           # cached_jobs is something like "ccache-LinuxClang-configure-1d ccache-LinuxClang-configure-2d".
           # It might also contain spaces. Thus we set IFS to \n.
           IFS=$'\n'
           for j in $cached_jobs
           do
-            # Delete all entries except the last used one
-            old_keys=$(gh actions-cache list -L 100 -R $REPO -B $BRANCH --key "${j}-git-" --sort last-used | cut -f 1 | tail -n +2)
-            for k in $old_keys
+            # Delete all entries except the last used one. Note that `gh cache
+            # delete` has no ref filter, so we delete by cache id, not by key.
+            old_ids=$(gh cache list -L 100 -R $REPO --ref $BRANCH --key "${j}-git-" --sort last_accessed_at --order desc --json id --jq '.[].id' | tail -n +2)
+            for i in $old_ids
             do
-              gh actions-cache delete "$k" -R $REPO -B $BRANCH --confirm
+              gh cache delete "$i" -R $REPO || true
             done
           done
           unset IFS

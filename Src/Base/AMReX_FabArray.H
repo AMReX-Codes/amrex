@@ -592,7 +592,9 @@ public:
     void prefetchToHost (const MFIter& mfi) const noexcept
     requires (BaseFabType<FAB>)
     {
-#ifdef AMREX_USE_CUDA
+        // BaseFab::prefetchToHost() does the managed-memory check and the
+        // per-backend dispatch, so guard only against non-GPU builds here.
+#ifdef AMREX_USE_GPU
         this->fabPtr(mfi)->prefetchToHost();
 #else
         amrex::ignore_unused(mfi);
@@ -606,7 +608,9 @@ public:
     void prefetchToDevice (const MFIter& mfi) const noexcept
     requires (BaseFabType<FAB>)
     {
-#ifdef AMREX_USE_CUDA
+        // BaseFab::prefetchToDevice() does the managed-memory check and the
+        // per-backend dispatch, so guard only against non-GPU builds here.
+#ifdef AMREX_USE_GPU
         this->fabPtr(mfi)->prefetchToDevice();
 #else
         amrex::ignore_unused(mfi);
@@ -748,11 +752,11 @@ public:
     void setFab (const MFIter&mfi, FAB&& elem);
 
     //! Release ownership of the FAB. This function is not thread safe.
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* release (int K);
 
     //! Release ownership of the FAB. This function is not thread safe.
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* release (const MFIter& mfi);
 
     //! Releases FAB memory in the FabArray.
@@ -1859,7 +1863,7 @@ public:
                    int                                    SeqNum);
 
     template <typename BUF=value_type>
-    AMREX_NODISCARD
+    [[nodiscard]]
     static TheFaArenaPointer PostRcvs (const MapOfCopyComTagContainers&       RcvTags,
                    Vector<char*>&                         recv_data,
                    Vector<std::size_t>&                   recv_size,
@@ -1879,7 +1883,7 @@ public:
                              int                                  ncomp);
 
     template <typename BUF=value_type>
-    AMREX_NODISCARD
+    [[nodiscard]]
     static TheFaArenaPointer PrepareSendBuffers (const MapOfCopyComTagContainers&     SndTags,
                              Vector<char*>&                       send_data,
                              Vector<std::size_t>&                 send_size,
@@ -2139,7 +2143,7 @@ FabArray<FAB>::clear_arrays ()
 }
 
 template <class FAB>
-AMREX_NODISCARD
+[[nodiscard]]
 FAB*
 FabArray<FAB>::release (int K)
 {
@@ -2159,7 +2163,7 @@ FabArray<FAB>::release (int K)
 }
 
 template <class FAB>
-AMREX_NODISCARD
+[[nodiscard]]
 FAB*
 FabArray<FAB>::release (const MFIter& mfi)
 {

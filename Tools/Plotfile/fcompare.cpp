@@ -159,8 +159,8 @@ int main_main()
         }
     }
 
-    // also print out, as a diagnostic, those variables in plotfile 1 that
-    // are not in plotfile 2
+    // also print out, as a diagnostic, those variables in plotfile 2 that
+    // are not in plotfile 1
     for (int n_b = 0; n_b < ncomp_b; ++n_b) {
         auto r = std::ranges::find(names_a, names_b[n_b]);
         if (r == std::end(names_a)) {
@@ -319,7 +319,7 @@ int main_main()
                                << "< NaN present in A > "
                                << "\n";
             } else if (has_nan_b[icomp_a]) {
-                amrex::Print() << " " << std::setw(24) << std::left << names_b[icomp_a]
+                amrex::Print() << " " << std::setw(24) << std::left << names_a[icomp_a]
                                << "  " << std::setw(50)
                                << "< NaN present in B > "
                                << "\n";

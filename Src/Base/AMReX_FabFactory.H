@@ -89,21 +89,21 @@ public:
      * \param box_index Global box index supplied by the owning container.
      * \return A newly created FAB owned by the caller.
      */
-    AMREX_NODISCARD
+    [[nodiscard]]
     virtual FAB* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const = 0;
     /**
      * \brief Create an alias FAB that views components [\p scomp, \p scomp+\p ncomp) of \p rhs.
      *
      * Default implementation returns nullptr, indicating aliasing is unsupported.
      */
-    AMREX_NODISCARD
+    [[nodiscard]]
     virtual FAB* create_alias (FAB const& /*rhs*/, int /*scomp*/, int /*ncomp*/) const { return nullptr; }
     //! Destroy a FAB previously created by this factory.
     virtual void destroy (FAB* fab) const = 0;
     //! Return a heap-allocated copy of this factory.
-    AMREX_NODISCARD virtual FabFactory<FAB>* clone () const = 0;
+    [[nodiscard]] virtual FabFactory<FAB>* clone () const = 0;
     //! Return the storage size for \p ncomps components in \p box, or -1 if unavailable.
-    AMREX_NODISCARD virtual Long nBytes (const Box& box, int ncomps, int /*box_index*/) const {
+    [[nodiscard]] virtual Long nBytes (const Box& box, int ncomps, int /*box_index*/) const {
         if constexpr (IsBaseFab_v<FAB>) {
             return box.numPts() * ncomps * Long(sizeof(typename FAB::value_type));
         } else {
@@ -123,13 +123,13 @@ class DefaultFabFactory
     : public FabFactory<FAB>
 {
 public:
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* create (const Box& box, int ncomps, const FabInfo& info, int /*box_index*/) const override
     {
         return new FAB(box, ncomps, info.alloc, info.shared, info.arena);
     }
 
-    AMREX_NODISCARD
+    [[nodiscard]]
     FAB* create_alias (FAB const& rhs, int scomp, int ncomp) const override
     {
         return new FAB(rhs, amrex::make_alias, scomp, ncomp);
@@ -140,7 +140,7 @@ public:
         delete fab;
     }
 
-    AMREX_NODISCARD
+    [[nodiscard]]
     DefaultFabFactory<FAB>* clone () const override {
         return new DefaultFabFactory<FAB>();
     }
