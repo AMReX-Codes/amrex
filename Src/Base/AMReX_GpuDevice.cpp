@@ -556,8 +556,6 @@ Device::initialize_gpu (bool minimal)
         sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
 #if defined(SYCL_KHR_DEFAULT_CONTEXT)
         sycl_context = std::make_unique<sycl::context>(platform.khr_get_default_context());
-#elif defined(SYCL_EXT_ONEAPI_DEFAULT_CONTEXT)
-        sycl_context = std::make_unique<sycl::context>(platform.ext_oneapi_get_default_context());
 #else
         sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
 #endif
