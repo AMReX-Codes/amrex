@@ -1,0 +1,10 @@
+nx = 64
+ny = 64
+nz = 64
+
+max_grid_size = 32
+
+cleanup_test = 1
+test_stl_center = 0.011 0.0 0.0
+
+eb2.small_volfrac = 0.1

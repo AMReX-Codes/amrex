@@ -4,6 +4,7 @@
 
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <cmath>
 #include <algorithm>
@@ -213,6 +214,77 @@ void EBToPVD::WriteEBVTP(const int myID) const
 
       myfile.close();
    }
+}
+
+void EBToPVD::WriteSTL (std::string const& filename) const
+{
+   int const myproc = ParallelDescriptor::MyProc();
+   int const nprocs = ParallelDescriptor::NProcs();
+   std::ofstream ofs;
+
+   if (myproc == 0) {
+      ofs.open(filename);
+      ofs << "solid Created by AMReX planar EB reconstruction\n";
+   }
+
+#ifdef AMREX_USE_MPI
+   if (myproc > 0) {
+      int token = 0;
+      ParallelDescriptor::Recv(&token, 1, myproc-1, 101);
+   }
+#endif
+
+   if (!ofs.is_open()) {
+      ofs.open(filename, std::ios_base::app);
+   }
+   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      ofs.good(), "Could not open planar EB STL output " + filename);
+   ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
+
+   for (auto const& polygon : m_connectivity) {
+      int const npoints = polygon[0];
+      AMREX_ALWAYS_ASSERT(npoints >= 3 && npoints <= 6);
+      auto const& v1 = m_points[polygon[1]];
+      for (int n = 2; n < npoints; ++n) {
+         auto const& v2 = m_points[polygon[n]];
+         auto const& v3 = m_points[polygon[n+1]];
+         std::array<Real,3> const e1{
+            v2[0]-v1[0],v2[1]-v1[1],v2[2]-v1[2]};
+         std::array<Real,3> const e2{
+            v3[0]-v1[0],v3[1]-v1[1],v3[2]-v1[2]};
+         std::array<Real,3> normal{
+            e1[1]*e2[2]-e1[2]*e2[1],
+            e1[2]*e2[0]-e1[0]*e2[2],
+            e1[0]*e2[1]-e1[1]*e2[0]};
+         Real const norm = std::sqrt(dot_product(normal,normal));
+         if (norm <= std::numeric_limits<Real>::epsilon()) {
+            continue;
+         }
+         for (Real& value : normal) {
+            value /= norm;
+         }
+         ofs << "facet normal "
+             << normal[0] << " " << normal[1] << " " << normal[2] << "\n"
+             << "  outer loop\n"
+             << "    vertex " << v1[0] << " " << v1[1] << " " << v1[2] << "\n"
+             << "    vertex " << v2[0] << " " << v2[1] << " " << v2[2] << "\n"
+             << "    vertex " << v3[0] << " " << v3[1] << " " << v3[2] << "\n"
+             << "  endloop\n"
+             << "endfacet\n";
+      }
+   }
+
+   if (myproc == nprocs-1) {
+      ofs << "endsolid Created by AMReX planar EB reconstruction\n";
+   }
+   ofs.close();
+
+#ifdef AMREX_USE_MPI
+   if (myproc < nprocs-1) {
+      int token = 0;
+      ParallelDescriptor::Send(&token, 1, myproc+1, 101);
+   }
+#endif
 }
 
 void EBToPVD::WritePVTP(const int nProcs)

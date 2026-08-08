@@ -9,9 +9,10 @@
 
 namespace amrex {
 
-void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,
-                     const EBFArrayBoxFactory * ebf) {
-
+namespace {
+EBToPVD make_eb_surface (const BoxArray& ba, const DistributionMapping& dmap,
+                         const Geometry& geom, const EBFArrayBoxFactory* ebf)
+{
     EBToPVD eb_to_pvd;
 
     const Real* dx     = geom.CellSize();
@@ -81,6 +82,15 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
                 areafrac[2]->const_array());
     }
 
+    return eb_to_pvd;
+}
+}
+
+void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, const Geometry & geom,
+                     const EBFArrayBoxFactory * ebf) {
+
+    EBToPVD eb_to_pvd = make_eb_surface(ba,dmap,geom,ebf);
+
     int cpu = ParallelDescriptor::MyProc();
     int nProcs = ParallelDescriptor::NProcs();
 
@@ -89,6 +99,10 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
     if(ParallelDescriptor::IOProcessor()) {
         EBToPVD::WritePVTP(nProcs);
     }
+
+    const Real* dx     = geom.CellSize();
+    const Real* problo = geom.ProbLo();
+    MultiFab mf_ba(ba, dmap, 1, 0, MFInfo(), *ebf);
 
     for (MFIter mfi(mf_ba); mfi.isValid(); ++mfi) {
 
@@ -115,6 +129,14 @@ void WriteEBSurface (const BoxArray & ba, const DistributionMapping & dmap, cons
 
         eb_to_pvd.EBGridCoverage(cpu, problo, dx, bx, my_flag_ptr->const_array());
     }
+}
+
+void WriteEBSurfaceSTL (const BoxArray& ba, const DistributionMapping& dmap,
+                        const Geometry& geom, const EBFArrayBoxFactory* ebf,
+                        std::string const& filename)
+{
+    EBToPVD eb_to_pvd = make_eb_surface(ba,dmap,geom,ebf);
+    eb_to_pvd.WriteSTL(filename);
 }
 
 }

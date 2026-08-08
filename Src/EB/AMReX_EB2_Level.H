@@ -165,9 +165,6 @@ protected:
     BoxArray m_covered_grids;
     DistributionMapping m_dmap;
     MultiFab m_sdf;
-#if (AMREX_SPACEDIM == 3)
-    std::map<int,std::unique_ptr<MC::MCFab>> m_marching_cubes;
-#endif
     MultiGFab m_mgf;
     MultiFab m_levelset;
     FabArray<EBCellFlagFab> m_cellflag;
@@ -224,8 +221,9 @@ public:
      */
     template <typename GS = G>
     requires (std::same_as<GS,STLtools>)
-    void define_fine_mvmc (GS const& gshop, const Geometry& geom,
-                           int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt);
+    void define_fine_marching_cubes (GS const& gshop, const Geometry& geom,
+                                     int max_grid_size, int ngrow,
+                                     bool extend_domain_face, int num_crse_opt);
 #endif
 
     /**
@@ -666,39 +664,289 @@ GShopLevel<G>::define_fine (G const& gshop, const Geometry& geom,
 #if (AMREX_SPACEDIM == 3)
 template <typename G>
 template <typename GS>
-requires (std::same_as<GS,STLtools>)
-void
-GShopLevel<G>::define_fine_mvmc (GS const& gshop, const Geometry& geom,
-                                 int max_grid_size, int ngrow, bool extend_domain_face, int num_crse_opt)
-{
-    BL_PROFILE("EB2::GShopLevel()-fine-mvmc");
+  requires(std::same_as<GS, STLtools>)
+void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
+                                               const Geometry &geom,
+                                               int max_grid_size, int ngrow,
+                                               bool extend_domain_face,
+                                               int num_crse_opt) {
+  BL_PROFILE("EB2::GShopLevel()-fine-marching-cubes");
 
-    prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face, num_crse_opt);
+  auto const cell_size = geom.CellSizeArray();
+  Real const max_cell_size =
+      amrex::max(cell_size[0], amrex::max(cell_size[1], cell_size[2]));
+  Real const cubic_tolerance =
+      16.0_rt * std::numeric_limits<Real>::epsilon() * max_cell_size;
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      geom.Coord() == CoordSys::cartesian &&
+          std::abs(cell_size[0] - cell_size[1]) <= cubic_tolerance &&
+          std::abs(cell_size[0] - cell_size[2]) <= cubic_tolerance,
+      "Marching-cubes EB construction requires a 3D Cartesian grid with dx == "
+      "dy == dz");
 
-    if (m_allregular) { return; }
+#ifdef AMREX_USE_FLOAT
+  Real small_volfrac = 1.e-5_rt;
+#else
+  Real small_volfrac = 1.e-14_rt;
+#endif
+  int maxiter = 32;
+  bool cover_multiple_cuts = false;
+  {
+    ParmParse pp("eb2");
+    pp.queryAdd("small_volfrac", small_volfrac);
+    pp.queryAdd("maxiter", maxiter);
+    pp.queryAdd("cover_multiple_cuts", cover_multiple_cuts);
+  }
+  maxiter = std::min(100000, maxiter);
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(maxiter > 0, "eb2.maxiter must be positive");
 
-    MC::Initialize();
+  // Keep only the cut-box discovery from the legacy path. Every EB field
+  // below is allocated and populated from the MC working SDF.
+  prepare_grids(gshop, geom, max_grid_size, ngrow, extend_domain_face,
+                num_crse_opt);
+  if (m_allregular) {
+    return;
+  }
 
-    m_sdf.define(amrex::convert(m_grids,IntVect(1)), m_dmap, 1, IntVect(1));
-    gshop.fillSignedDistance(m_sdf, m_sdf.nGrowVect(), geom);
+  MC::Initialize();
 
-    for (MFIter mfi(m_sdf,MFItInfo().DisableDeviceSync()); mfi.isValid(); ++mfi) {
-        m_marching_cubes[mfi.index()] = std::make_unique<MC::MCFab>();
+  int const ng = GFab::ng;
+  MFInfo mf_info;
+  mf_info.SetTag("EB2::Level-MC");
+  m_cellflag.define(m_grids, m_dmap, 1, ng, mf_info);
+  m_volfrac.define(m_grids, m_dmap, 1, ng, mf_info);
+  m_centroid.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
+  m_bndryarea.define(m_grids, m_dmap, 1, ng, mf_info);
+  m_bndrycent.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
+  m_bndrynorm.define(m_grids, m_dmap, AMREX_SPACEDIM, ng, mf_info);
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+    m_areafrac[idim].define(
+        amrex::convert(m_grids, IntVect::TheDimensionVector(idim)), m_dmap, 1,
+        ng, mf_info);
+    m_facecent[idim].define(
+        amrex::convert(m_grids, IntVect::TheDimensionVector(idim)), m_dmap,
+        AMREX_SPACEDIM - 1, ng, mf_info);
+    IntVect edge_type{1};
+    edge_type[idim] = 0;
+    m_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng,
+                            mf_info);
+  }
+
+  BoxArray const nodal_grids =
+      amrex::convert(m_grids, IntVect::TheNodeVector());
+  m_sdf.define(nodal_grids, m_dmap, 1, IntVect(2), mf_info);
+  gshop.fillMarchingCubesLevelSet(m_sdf, m_sdf.nGrowVect(), geom);
+
+  std::map<int, std::unique_ptr<MC::MCFab>> marching_cubes;
+  for (MFIter mfi(m_sdf, MFItInfo().DisableDeviceSync()); mfi.isValid();
+       ++mfi) {
+    marching_cubes[mfi.index()] = std::make_unique<MC::MCFab>();
+  }
+
+  iMultiFab rejected_cells(m_grids, m_dmap, 1, 2, mf_info);
+  Array<iMultiFab, AMREX_SPACEDIM> rejected_faces;
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+    rejected_faces[idim].define(m_areafrac[idim].boxArray(), m_dmap, 1, 2,
+                                mf_info);
+  }
+
+  bool converged = false;
+  for (int iter = 0; iter < maxiter; ++iter) {
+    rejected_cells.setVal(0);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+      rejected_faces[idim].setVal(0);
     }
 
     MFItInfo info{};
-
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
     info.SetDynamic(true);
 #pragma omp parallel
 #endif
-    for (MFIter mfi(m_sdf,info); mfi.isValid(); ++mfi) {
-        amrex::MC::marching_cubes(geom, m_sdf[mfi], *m_marching_cubes[mfi.index()]);
+    for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
+      MC::marching_cubes(geom, m_sdf[mfi], *marching_cubes[mfi.index()]);
     }
 
-    MC::write_stl("test.stl", m_marching_cubes);
+    m_volfrac.setVal(1.0_rt, 0, 1, m_volfrac.nGrowVect());
+    m_centroid.setVal(0.0_rt, 0, AMREX_SPACEDIM, m_centroid.nGrowVect());
+    m_bndryarea.setVal(0.0_rt, 0, 1, m_bndryarea.nGrowVect());
+    m_bndrycent.setVal(-1.0_rt, 0, AMREX_SPACEDIM, m_bndrycent.nGrowVect());
+    m_bndrynorm.setVal(0.0_rt, 0, AMREX_SPACEDIM, m_bndrynorm.nGrowVect());
 
-    m_ok = false; // xxxxx TODO
+    int face_geometry_errors = 0;
+    int cell_geometry_errors = 0;
+    int face_rejections = 0;
+    int topology_rejections = 0;
+    int small_cell_rejections = 0;
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())                             \
+    reduction(+ : face_geometry_errors, cell_geometry_errors, face_rejections, \
+                  topology_rejections, small_cell_rejections)
+#endif
+    for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+      Box const vbx = amrex::enclosedCells(mfi.validbox());
+      Box const gbx = amrex::grow(vbx, 1);
+      auto const sdf = m_sdf.const_array(mfi);
+      auto const vfrac = m_volfrac.array(mfi);
+      auto const vcent = m_centroid.array(mfi);
+      auto const barea = m_bndryarea.array(mfi);
+      auto const bcent = m_bndrycent.array(mfi);
+      auto const bnorm = m_bndrynorm.array(mfi);
+
+      ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        int nfluid = 0;
+        nfluid += sdf(i, j, k) > 0.0_rt;
+        nfluid += sdf(i + 1, j, k) > 0.0_rt;
+        nfluid += sdf(i, j + 1, k) > 0.0_rt;
+        nfluid += sdf(i + 1, j + 1, k) > 0.0_rt;
+        nfluid += sdf(i, j, k + 1) > 0.0_rt;
+        nfluid += sdf(i + 1, j, k + 1) > 0.0_rt;
+        nfluid += sdf(i, j + 1, k + 1) > 0.0_rt;
+        nfluid += sdf(i + 1, j + 1, k + 1) > 0.0_rt;
+        vfrac(i, j, k) =
+            nfluid == 0 ? 0.0_rt : (nfluid == 8 ? 1.0_rt : -1.0_rt);
+        barea(i, j, k) = 0.0_rt;
+        for (int n = 0; n < AMREX_SPACEDIM; ++n) {
+          vcent(i, j, k, n) = 0.0_rt;
+          bcent(i, j, k, n) = -1.0_rt;
+          bnorm(i, j, k, n) = 0.0_rt;
+        }
+      });
+
+      face_geometry_errors += MC::build_face_fractions(
+          gbx, *marching_cubes[mfi.index()], m_sdf[mfi], m_areafrac[0][mfi],
+          m_areafrac[1][mfi], m_areafrac[2][mfi], m_facecent[0][mfi],
+          m_facecent[1][mfi], m_facecent[2][mfi]);
+      MC::build_edge_centroids(gbx, m_sdf[mfi], m_edgecent[0][mfi],
+                               m_edgecent[1][mfi], m_edgecent[2][mfi]);
+      cell_geometry_errors += MC::build_cell_fractions(
+          vbx, geom, *marching_cubes[mfi.index()], m_sdf[mfi],
+          m_areafrac[0][mfi], m_areafrac[1][mfi], m_areafrac[2][mfi],
+          m_facecent[0][mfi], m_facecent[1][mfi], m_facecent[2][mfi],
+          m_volfrac[mfi], m_centroid[mfi], m_bndryarea[mfi], m_bndrycent[mfi],
+          m_bndrynorm[mfi]);
+
+      face_rejections += MC::mark_faces_for_cleanup(
+          vbx, *marching_cubes[mfi.index()], m_sdf[mfi], rejected_faces[0][mfi],
+          rejected_faces[1][mfi], rejected_faces[2][mfi]);
+      GpuArray<int, 2> const counts = MC::mark_cells_for_cleanup(
+          vbx, *marching_cubes[mfi.index()], m_sdf[mfi], m_volfrac[mfi],
+          small_volfrac, rejected_cells[mfi]);
+      topology_rejections += counts[0];
+      small_cell_rejections += counts[1];
+    }
+
+    ParallelAllReduce::Sum<int>({face_geometry_errors, cell_geometry_errors,
+                                 face_rejections, topology_rejections,
+                                 small_cell_rejections},
+                                ParallelContext::CommunicatorSub());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        face_geometry_errors == 0,
+        "Marching-cubes EB encountered " +
+            std::to_string(face_geometry_errors) +
+            " inconsistent Cartesian-face geometry records");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        cell_geometry_errors == 0 || topology_rejections > 0,
+        "Marching-cubes EB could not map an invalid cell-moment record to "
+        "the nodal repair set");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        cover_multiple_cuts || face_rejections + topology_rejections == 0,
+        "Marching-cubes EB found " +
+            std::to_string(face_rejections + topology_rejections) +
+            " faces or cells whose topology cannot be represented by one VoF; "
+            "set eb2.cover_multiple_cuts=1 to enable legacy-style nodal "
+            "repair");
+
+    if (face_rejections + topology_rejections + small_cell_rejections == 0) {
+      converged = true;
+      break;
+    }
+
+    rejected_cells.FillBoundary(geom.periodicity());
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+      rejected_faces[idim].OverrideSync(geom.periodicity());
+      rejected_faces[idim].FillBoundary(geom.periodicity());
+    }
+
+    Long changed_nodes = 0;
+    for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+      changed_nodes += MC::zero_nodes_for_cleanup(
+          mfi.validbox(), rejected_cells[mfi], rejected_faces[0][mfi],
+          rejected_faces[1][mfi], rejected_faces[2][mfi], m_sdf[mfi]);
+    }
+    ParallelAllReduce::Sum(changed_nodes, ParallelContext::CommunicatorSub());
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(changed_nodes > 0,
+                                     "Marching-cubes EB repair found rejected "
+                                     "geometry but changed no fluid nodes");
+
+    m_sdf.OverrideSync(geom.periodicity());
+    m_sdf.FillBoundary(geom.periodicity());
+    if (amrex::Verbose() > 0) {
+      if (small_cell_rejections > 0) {
+        amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " fixed "
+                       << small_cell_rejections << " small cells\n";
+      }
+      if (face_rejections + topology_rejections > 0) {
+        amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " fixed "
+                       << face_rejections + topology_rejections
+                       << " unsupported faces/cells\n";
+      }
+      if (cell_geometry_errors > 0) {
+        amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " included "
+                       << cell_geometry_errors
+                       << " invalid cell-moment records in the repair set\n";
+      }
+    }
+  }
+
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      converged, "Marching-cubes EB failed to fix small or unsupported cells");
+
+  m_volfrac.FillBoundary(geom.periodicity());
+  m_centroid.FillBoundary(geom.periodicity());
+  m_bndryarea.FillBoundary(geom.periodicity());
+  m_bndrycent.FillBoundary(geom.periodicity());
+  m_bndrynorm.FillBoundary(geom.periodicity());
+  for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+    m_areafrac[idim].FillBoundary(geom.periodicity());
+    m_facecent[idim].FillBoundary(geom.periodicity());
+    m_edgecent[idim].FillBoundary(geom.periodicity());
+  }
+
+  int geometry_errors = 0;
+  for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+    Box const vbx = amrex::enclosedCells(mfi.validbox());
+    m_cellflag[mfi].setVal(EBCellFlag::TheDefaultCell());
+    geometry_errors += MC::build_cell_topology(
+        vbx, *marching_cubes[mfi.index()], m_sdf[mfi], m_cellflag[mfi],
+        m_volfrac[mfi], m_areafrac[0][mfi], m_areafrac[1][mfi],
+        m_areafrac[2][mfi]);
+    m_cellflag[mfi].resetType(GFab::ng);
+  }
+  ParallelAllReduce::Sum(geometry_errors, ParallelContext::CommunicatorSub());
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      geometry_errors == 0,
+      "Final repaired marching-cubes topology is inconsistent");
+
+  // The converged triangulation and the public EB data now describe the same
+  // repaired domain.
+  std::string stl_output;
+  ParmParse("eb2").query("mc_stl_file", stl_output);
+  if (!stl_output.empty()) {
+    MC::write_stl(stl_output, marching_cubes, m_grids);
+  }
+  marching_cubes.clear();
+
+  for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+    auto const phi = m_sdf.array(mfi);
+    ParallelFor(m_sdf[mfi].box(),
+                [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                  // EB2's public convention is negative in fluid.
+                  phi(i, j, k) = -phi(i, j, k);
+                });
+  }
+  m_levelset = std::move(m_sdf);
+
+  m_ok = true;
 }
 #endif
 

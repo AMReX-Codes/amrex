@@ -203,6 +203,8 @@ Build (const G& gshop, Vector<Geometry> geom,
  * ParmParse namespace (notably `eb2.geom_type` along with its shape-specific parameters)
  * and instantiates the matching implicit function.  Supported values currently include
  * `all_regular`, `box`, `cylinder`, `plane`, `sphere`, `torus`, `parser`, and `stl`.
+ * For STL input, runtime `eb2.stl_geometry_method` selects `legacy` (the default)
+ * or the supported 3-D, cubic-cell, single-valued `marching_cubes` generator.
  *
  * \param geom   Finest-level Geometry.
  * \param required_coarsening_level Number of coarse levels required by the application.
@@ -213,9 +215,9 @@ Build (const G& gshop, Vector<Geometry> geom,
  * \param extend_domain_face Whether to extrapolate the EB description beyond the domain by extending from the domain face.
  * \param num_coarsen_opt Number of coarse probes to try (defaults to EB2::NumCoarsenOpt /
  *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
- * \param support_mvmc Whether to build multi-valued multi-cut support. (Only honored when
+ * \param support_mvmc Whether to build experimental multi-valued multi-cut support. (Only honored when
  *        `eb2.geom_type` is `stl`; other geometries ignore it and emit a warning.
- *        Even for STL, this is not supported yet.)
+ *        It is incompatible with `eb2.stl_geometry_method=marching_cubes`.)
  */
 void Build (const Geometry& geom,
             int required_coarsening_level,
