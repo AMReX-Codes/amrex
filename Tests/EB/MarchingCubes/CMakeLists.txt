@@ -13,6 +13,8 @@ set(_input_files
     inputs.multilevel.rebuild
     inputs.nodal
     inputs.periodic
+    inputs.scaled
+    inputs.extend-domain
     inputs.anisotropic
     inputs.open-stl
     cube.stl
@@ -37,6 +39,13 @@ add_test_variant(EB_MarchingCubesNodal_3d
     Test_EB_MarchingCubes_3d inputs.nodal)
 add_test_variant(EB_MarchingCubesPeriodic_3d
     Test_EB_MarchingCubes_3d inputs.periodic)
+add_test_variant(EB_MarchingCubesScaled_3d
+    Test_EB_MarchingCubes_3d inputs.scaled)
+add_test_variant(EB_MarchingCubesExtendDomain_3d
+    Test_EB_MarchingCubes_3d inputs.extend-domain)
+add_test_variant(EB_MarchingCubesExtendDomainLegacy_3d
+    Test_EB_MarchingCubes_3d inputs.extend-domain
+    eb2.stl_geometry_method=legacy)
 
 function(add_expected_failure _test_name _inputs_filename _expected_regex)
     add_test(

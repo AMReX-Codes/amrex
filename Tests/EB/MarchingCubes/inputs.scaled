@@ -1,0 +1,14 @@
+nx = 32
+ny = 32
+nz = 32
+
+xmin = -2.4e-5
+xmax =  2.4e-5
+ymin = -2.4e-5
+ymax =  2.4e-5
+zmin = -2.4e-5
+zmax =  2.4e-5
+
+max_grid_size = 32
+test_stl_scale = 2.e-5
+eb2.eb_surface_stl_file = mc_scaled_surface.stl

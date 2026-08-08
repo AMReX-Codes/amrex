@@ -1284,9 +1284,13 @@ int build_cell_fractions (
     AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
     AMREX_ALWAYS_ASSERT(
         sdf_fab.box().contains(amrex::surroundingNodes(bx)));
+    auto const dx = geom.CellSizeArray();
+    Real const max_dx = amrex::max(dx[0],amrex::max(dx[1],dx[2]));
+    Real const cubic_tolerance =
+        16.0_rt*std::numeric_limits<Real>::epsilon()*max_dx;
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        geom.CellSize(0) == geom.CellSize(1)
-        && geom.CellSize(0) == geom.CellSize(2),
+        std::abs(dx[0]-dx[1]) <= cubic_tolerance
+        && std::abs(dx[0]-dx[2]) <= cubic_tolerance,
         "Marching-cubes cut-cell fractions currently require dx == dy == dz");
 
     auto const cell_data = mc_fab.m_cell_data.const_array();
@@ -1311,11 +1315,9 @@ int build_cell_fractions (
     auto const* vert_z = mc_fab.m_vertices.z.data();
 
     auto const problo = geom.ProbLoArray();
-    auto const dx = geom.CellSizeArray();
-
-    // Area-vector closure, volume, centroid, physical area vector, and
-    // physical area scale, respectively.
-    Gpu::Buffer<int> error_count({0,0,0,0,0});
+    // Area-vector closure, volume, centroid, and boundary-normal errors.
+    // Every quantity checked against tolerance is dimensionless.
+    Gpu::Buffer<int> error_count({0,0,0,0});
     int* const errors = error_count.data();
 
 #ifdef AMREX_USE_FLOAT
@@ -1345,7 +1347,6 @@ int build_cell_fractions (
         // volume fraction and first moments normalize directly to AMReX
         // centroid coordinates.
         Real eb_area_vector[3] = {0.0_rt, 0.0_rt, 0.0_rt};
-        Real eb_physical_area_vector[3] = {0.0_rt, 0.0_rt, 0.0_rt};
         Real eb_area = 0.0_rt;
         Real eb_centroid_numerator[3] = {0.0_rt, 0.0_rt, 0.0_rt};
 
@@ -1377,21 +1378,12 @@ int build_cell_fractions (
             for (int d = 0; d < 3; ++d) {
                 eb_area_vector[d] += local_av[d];
             }
-
-            Real const p21[3] = {p2[0]-p1[0], p2[1]-p1[1], p2[2]-p1[2]};
-            Real const p31[3] = {p3[0]-p1[0], p3[1]-p1[1], p3[2]-p1[2]};
-            Real const physical_av[3] = {
-                0.5_rt*(p21[1]*p31[2]-p21[2]*p31[1]),
-                0.5_rt*(p21[2]*p31[0]-p21[0]*p31[2]),
-                0.5_rt*(p21[0]*p31[1]-p21[1]*p31[0])
-            };
             Real const triangle_area = std::sqrt(
-                physical_av[0]*physical_av[0]
-                + physical_av[1]*physical_av[1]
-                + physical_av[2]*physical_av[2]);
+                local_av[0]*local_av[0]
+                + local_av[1]*local_av[1]
+                + local_av[2]*local_av[2]);
             eb_area += triangle_area;
             for (int d = 0; d < 3; ++d) {
-                eb_physical_area_vector[d] += physical_av[d];
                 eb_centroid_numerator[d] +=
                     triangle_area*(q1[d]+q2[d]+q3[d])/3.0_rt;
             }
@@ -1531,44 +1523,35 @@ int build_cell_fractions (
             return;
         }
 
-        Real physical_area_vector[3] = {
-            orientation*eb_physical_area_vector[0],
-            orientation*eb_physical_area_vector[1],
-            orientation*eb_physical_area_vector[2]
+        Real boundary_normal[3] = {
+            orientation*eb_area_vector[0],
+            orientation*eb_area_vector[1],
+            orientation*eb_area_vector[2]
         };
         Real const area_vector_norm = std::sqrt(
-            physical_area_vector[0]*physical_area_vector[0]
-            + physical_area_vector[1]*physical_area_vector[1]
-            + physical_area_vector[2]*physical_area_vector[2]);
+            boundary_normal[0]*boundary_normal[0]
+            + boundary_normal[1]*boundary_normal[1]
+            + boundary_normal[2]*boundary_normal[2]);
         if (area_vector_norm <= tolerance) {
             Gpu::Atomic::AddNoRet(errors+3, 1);
             return;
         }
         for (int d = 0; d < 3; ++d) {
-            physical_area_vector[d] /= area_vector_norm;
-        }
-
-        Real const area_scale = std::sqrt(
-            Math::powi<2>(physical_area_vector[0]*dx[1]*dx[2])
-            + Math::powi<2>(physical_area_vector[1]*dx[0]*dx[2])
-            + Math::powi<2>(physical_area_vector[2]*dx[0]*dx[1]));
-        if (area_scale <= tolerance) {
-            Gpu::Atomic::AddNoRet(errors+4, 1);
-            return;
+            boundary_normal[d] /= area_vector_norm;
         }
 
         vfrac(i,j,k) = volume;
         for (int d = 0; d < 3; ++d) {
             vcent(i,j,k,d) = amrex::min(amrex::max(centroid[d],-0.5_rt),0.5_rt);
             bcent(i,j,k,d) = eb_centroid_numerator[d]/eb_area;
-            bnorm(i,j,k,d) = physical_area_vector[d];
+            bnorm(i,j,k,d) = boundary_normal[d];
         }
-        barea(i,j,k) = eb_area/area_scale;
+        barea(i,j,k) = eb_area;
     });
 
     error_count.copyToHost();
     int result = 0;
-    for (int n = 0; n < 5; ++n) {
+    for (int n = 0; n < 4; ++n) {
         result += error_count.hostData()[n];
     }
     if (result != 0) {
@@ -1576,8 +1559,7 @@ int build_cell_fractions (
                    << error_count.hostData()[0]
                    << ", volume=" << error_count.hostData()[1]
                    << ", centroid=" << error_count.hostData()[2]
-                   << ", area-vector=" << error_count.hostData()[3]
-                   << ", area-scale=" << error_count.hostData()[4] << '\n';
+                   << ", area-vector=" << error_count.hostData()[3] << '\n';
     }
     return result;
 }
@@ -1774,6 +1756,67 @@ int mark_faces_for_cleanup(Box const &bx, MCFab const &mc_fab,
                          sdf(i, j + 1, k), i, j, k - 1, 5, i, j, k, 4);
     rejected_z(i, j, k) = rejected;
     if (rejected) {
+      Gpu::Atomic::AddNoRet(count, 1);
+    }
+  });
+
+  rejection_count.copyToHost();
+  return rejection_count.hostData()[0];
+}
+
+int mark_cells_for_domain_extension(
+    Box const &bx, Box const &domain, GpuArray<int, 3> const &is_periodic,
+    FArrayBox const &vfrac_fab, IArrayBox &rejected_fab) {
+  BL_PROFILE("MC::mark_cells_for_domain_extension");
+
+  AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bx));
+  AMREX_ALWAYS_ASSERT(rejected_fab.box().contains(bx));
+
+  int const domlo_x = domain.smallEnd(0);
+  int const domlo_y = domain.smallEnd(1);
+  int const domlo_z = domain.smallEnd(2);
+  int const domhi_x = domain.bigEnd(0);
+  int const domhi_y = domain.bigEnd(1);
+  int const domhi_z = domain.bigEnd(2);
+
+  Box clamped_box = bx;
+  if (!is_periodic[0]) {
+    clamped_box.setSmall(0, amrex::Clamp(bx.smallEnd(0), domlo_x, domhi_x));
+    clamped_box.setBig(0, amrex::Clamp(bx.bigEnd(0), domlo_x, domhi_x));
+  }
+  if (!is_periodic[1]) {
+    clamped_box.setSmall(1, amrex::Clamp(bx.smallEnd(1), domlo_y, domhi_y));
+    clamped_box.setBig(1, amrex::Clamp(bx.bigEnd(1), domlo_y, domhi_y));
+  }
+  if (!is_periodic[2]) {
+    clamped_box.setSmall(2, amrex::Clamp(bx.smallEnd(2), domlo_z, domhi_z));
+    clamped_box.setBig(2, amrex::Clamp(bx.bigEnd(2), domlo_z, domhi_z));
+  }
+  AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(clamped_box));
+
+  auto const vfrac = vfrac_fab.const_array();
+  auto const rejected = rejected_fab.array();
+  Gpu::Buffer<int> rejection_count({0});
+  int *const count = rejection_count.data();
+
+#ifdef AMREX_USE_FLOAT
+  constexpr Real tolerance = 2.e-5_rt;
+#else
+  constexpr Real tolerance = 2.e-12_rt;
+#endif
+
+  ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+    int const ii = is_periodic[0] ? i : amrex::Clamp(i, domlo_x, domhi_x);
+    int const jj = is_periodic[1] ? j : amrex::Clamp(j, domlo_y, domhi_y);
+    int const kk = is_periodic[2] ? k : amrex::Clamp(k, domlo_z, domhi_z);
+    bool const outside = ii != i || jj != j || kk != k;
+    Real const reference_vfrac = vfrac(ii, jj, kk);
+    bool const reference_is_covered =
+        reference_vfrac >= 0.0_rt && reference_vfrac <= tolerance;
+    bool const cell_is_not_covered = vfrac(i, j, k) > tolerance;
+    if (outside && reference_is_covered && cell_is_not_covered &&
+        rejected(i, j, k) == 0) {
+      rejected(i, j, k) = RejectionReason::domain_extension;
       Gpu::Atomic::AddNoRet(count, 1);
     }
   });

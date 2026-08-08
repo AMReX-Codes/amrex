@@ -749,6 +749,9 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
     rejected_faces[idim].define(m_areafrac[idim].boxArray(), m_dmap, 1, 2,
                                 mf_info);
   }
+  Box const domain = geom.Domain();
+  GpuArray<int, 3> const is_periodic{
+      geom.isPeriodic(0), geom.isPeriodic(1), geom.isPeriodic(2)};
 
   bool converged = false;
   for (int iter = 0; iter < maxiter; ++iter) {
@@ -777,10 +780,12 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
     int face_rejections = 0;
     int topology_rejections = 0;
     int small_cell_rejections = 0;
+    int extension_rejections = 0;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())                             \
     reduction(+ : face_geometry_errors, cell_geometry_errors, face_rejections, \
-                  topology_rejections, small_cell_rejections)
+                  topology_rejections, small_cell_rejections,                  \
+                  extension_rejections)
 #endif
     for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
       Box const vbx = amrex::enclosedCells(mfi.validbox());
@@ -833,11 +838,15 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
           small_volfrac, rejected_cells[mfi]);
       topology_rejections += counts[0];
       small_cell_rejections += counts[1];
+      if (extend_domain_face) {
+        extension_rejections += MC::mark_cells_for_domain_extension(
+            vbx, domain, is_periodic, m_volfrac[mfi], rejected_cells[mfi]);
+      }
     }
 
     ParallelAllReduce::Sum<int>({face_geometry_errors, cell_geometry_errors,
                                  face_rejections, topology_rejections,
-                                 small_cell_rejections},
+                                 small_cell_rejections, extension_rejections},
                                 ParallelContext::CommunicatorSub());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         face_geometry_errors == 0,
@@ -856,7 +865,9 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
             "set eb2.cover_multiple_cuts=1 to enable legacy-style nodal "
             "repair");
 
-    if (face_rejections + topology_rejections + small_cell_rejections == 0) {
+    if (face_rejections + topology_rejections + small_cell_rejections +
+            extension_rejections ==
+        0) {
       converged = true;
       break;
     }
@@ -889,6 +900,11 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
         amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " fixed "
                        << face_rejections + topology_rejections
                        << " unsupported faces/cells\n";
+      }
+      if (extension_rejections > 0) {
+        amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " extended "
+                       << extension_rejections
+                       << " covered cells beyond physical domain faces\n";
       }
       if (cell_geometry_errors > 0) {
         amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " included "

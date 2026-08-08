@@ -200,6 +200,7 @@ void main_main ()
     bool cleanup_test = false;
     bool bunny_test = false;
     bool narrow_band_test = false;
+    bool extend_domain_test = false;
     std::string eb_method("marching_cubes");
     std::string stl_file("cube.stl");
     Real stl_scale = 1.0;
@@ -224,6 +225,7 @@ void main_main ()
         pp.query("cleanup_test", cleanup_test);
         pp.query("bunny_test", bunny_test);
         pp.query("narrow_band_test", narrow_band_test);
+        pp.query("extend_domain_test", extend_domain_test);
         pp.query("test_stl_file", stl_file);
         pp.query("test_stl_scale", stl_scale);
         pp.queryarr("test_stl_center", stl_center);
@@ -280,7 +282,7 @@ void main_main ()
     Real const error = std::abs(fluid_volume - expected_volume);
     Real const max_dx = amrex::max(
         geom.CellSize(0), amrex::max(geom.CellSize(1), geom.CellSize(2)));
-    if (bunny_test) {
+    if (bunny_test || extend_domain_test) {
       amrex::Print() << "Fluid volume: " << fluid_volume << "\n";
     } else {
       amrex::Print() << "Fluid volume: " << fluid_volume
@@ -289,7 +291,7 @@ void main_main ()
     }
     AMREX_ALWAYS_ASSERT(volfrac.min(0) >= 0.0_rt);
     AMREX_ALWAYS_ASSERT(volfrac.max(0) <= 1.0_rt);
-    if (bunny_test) {
+    if (bunny_test || extend_domain_test) {
       AMREX_ALWAYS_ASSERT(fluid_volume > 0.0_rt);
       AMREX_ALWAYS_ASSERT(fluid_volume < domain_volume);
     }
@@ -340,6 +342,33 @@ void main_main ()
     auto const &levelset = factory->getLevelSet();
     AMREX_ALWAYS_ASSERT(!levelset.contains_nan());
     AMREX_ALWAYS_ASSERT(!levelset.contains_inf());
+
+    if (extend_domain_test) {
+      IntVect const probe_iv(
+          AMREX_D_DECL(geom.Domain().smallEnd(0) - 1,
+                       (geom.Domain().smallEnd(1) + geom.Domain().bigEnd(1) + 1) / 2,
+                       (geom.Domain().smallEnd(2) + geom.Domain().bigEnd(2) + 1) / 2));
+      Gpu::Buffer<Long> extension_counts({0L, 0L});
+      Long *const extension = extension_counts.data();
+      for (MFIter mfi(levelset); mfi.isValid(); ++mfi) {
+        Box const probe = Box(probe_iv, probe_iv) & levelset[mfi].box();
+        auto const phi = levelset.const_array(mfi);
+        ParallelFor(probe, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+          Gpu::Atomic::AddNoRet(extension, 1L);
+          if (phi(i, j, k) >= 0.0_rt) {
+            Gpu::Atomic::AddNoRet(extension + 1, 1L);
+          }
+        });
+      }
+      extension_counts.copyToHost();
+      Long extension_total = extension_counts.hostData()[0];
+      Long extension_covered = extension_counts.hostData()[1];
+      ParallelAllReduce::Sum<Long>({extension_total, extension_covered},
+                                   ParallelContext::CommunicatorSub());
+      AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+          extension_total > 0 && extension_covered == extension_total,
+          "MC domain-face extension did not keep the exterior probe covered");
+    }
 
     auto const edge_centroid = factory->getEdgeCent();
     Array<std::unique_ptr<MultiFab>, AMREX_SPACEDIM> dense_edge;
@@ -513,9 +542,11 @@ void main_main ()
                    << topology_counts.hostData()[1]
                    << ", retained multi-valued cells: "
                    << topology_counts.hostData()[3] << "\n";
-    if (!cleanup_test && !bunny_test) {
+    if (!cleanup_test && !bunny_test && !extend_domain_test) {
+        Real const domain_scale = amrex::max(
+            xmax-xmin,amrex::max(ymax-ymin,zmax-zmin));
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            error < 6.0_rt*max_dx*max_dx,
+            error < 6.0_rt*max_dx*max_dx*domain_scale,
             "Marching-cubes cut-cell volume error exceeds the expected O(dx^2) bound");
     }
 }

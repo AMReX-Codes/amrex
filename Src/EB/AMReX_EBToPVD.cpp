@@ -257,7 +257,11 @@ void EBToPVD::WriteSTL (std::string const& filename) const
             e1[2]*e2[0]-e1[0]*e2[2],
             e1[0]*e2[1]-e1[1]*e2[0]};
          Real const norm = std::sqrt(dot_product(normal,normal));
-         if (norm <= std::numeric_limits<Real>::epsilon()) {
+         Real const edge_scale_sq = std::max(
+            dot_product(e1,e1),dot_product(e2,e2));
+         Real const degenerate_tolerance = 64.0_rt
+            * std::numeric_limits<Real>::epsilon()*edge_scale_sq;
+         if (norm <= degenerate_tolerance) {
             continue;
          }
          for (Real& value : normal) {

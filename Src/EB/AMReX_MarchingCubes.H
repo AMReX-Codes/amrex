@@ -22,7 +22,8 @@ namespace amrex::MC {
 
 enum RejectionReason : int {
     invalid_topology = 1,
-    small_volume = 2
+    small_volume = 2,
+    domain_extension = 4
 };
 
 /**
@@ -169,6 +170,18 @@ int mark_faces_for_cleanup (
 GpuArray<int,2> mark_cells_for_cleanup (
     Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf,
     FArrayBox const& vfrac, Real small_volfrac, IArrayBox& rejected);
+
+/**
+ * \brief Mark exterior cells that legacy domain-face extension makes covered.
+ *
+ * A cell outside a non-periodic physical domain is marked when the cell at
+ * the corresponding clamped domain location is covered.
+ *
+ * \return Number of newly marked exterior cells.
+ */
+int mark_cells_for_domain_extension (
+    Box const& bx, Box const& domain, GpuArray<int,3> const& is_periodic,
+    FArrayBox const& vfrac, IArrayBox& rejected);
 
 /**
  * \brief Apply the legacy EB repair transform to the MC working level set.
