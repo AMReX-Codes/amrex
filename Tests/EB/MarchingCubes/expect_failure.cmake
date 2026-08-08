@@ -3,15 +3,17 @@ if (NOT DEFINED TEST_EXECUTABLE OR NOT DEFINED TEST_INPUT
     message(FATAL_ERROR "Expected-failure test is missing a required argument")
 endif ()
 
+set(test_command ${TEST_PREFIX} "${TEST_EXECUTABLE}" "${TEST_INPUT}" ${TEST_SUFFIX})
+
 execute_process(
-    COMMAND "${TEST_EXECUTABLE}" "${TEST_INPUT}"
+    COMMAND ${test_command}
     RESULT_VARIABLE test_result
     OUTPUT_VARIABLE test_stdout
     ERROR_VARIABLE test_stderr
 )
 
 if (test_result STREQUAL "0")
-    message(FATAL_ERROR "Command unexpectedly succeeded: ${TEST_EXECUTABLE} ${TEST_INPUT}")
+    message(FATAL_ERROR "Command unexpectedly succeeded: ${test_command}")
 endif ()
 
 set(test_output "${test_stdout}\n${test_stderr}")

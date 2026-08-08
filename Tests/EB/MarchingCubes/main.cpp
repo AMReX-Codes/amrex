@@ -118,10 +118,14 @@ void validate_narrow_band_levelset() {
     });
   }
   errors.copyToHost();
+  GpuArray<Long, 2> global_errors{
+      errors.hostData()[0], errors.hostData()[1]};
+  ParallelAllReduce::Sum(global_errors.data(), int(global_errors.size()),
+                         ParallelContext::CommunicatorSub());
   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-      errors.hostData()[0] == 0,
+      global_errors[0] == 0,
       "Narrow-band MC field changed the global STL sign classification");
-  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(errors.hostData()[1] == 0,
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(global_errors[1] == 0,
                                    "Narrow-band MC field is not exact on a "
                                    "cut-cell interpolation/normal stencil");
 }
@@ -137,12 +141,15 @@ void validate_ascii_stl(std::string const &filename) {
         input.good(), "Could not open generated STL " + filename);
     std::string line;
     Long facets = 0;
-    bool has_end = false;
+    Long headers = 0;
+    Long trailers = 0;
+    Long vertex_lines = 0;
     GpuArray<GpuArray<Real, 3>, 3> vertices;
     int vertex_count = 0;
     while (std::getline(input, line)) {
-      facets += line.find("facet normal") != std::string::npos;
-      has_end = has_end || line.find("endsolid") != std::string::npos;
+      facets += line.rfind("facet normal ", 0) == 0;
+      headers += line.rfind("solid Created by AMReX", 0) == 0;
+      trailers += line.rfind("endsolid Created by AMReX", 0) == 0;
       AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
           line.find("nan") == std::string::npos &&
               line.find("inf") == std::string::npos,
@@ -152,6 +159,7 @@ void validate_ascii_stl(std::string const &filename) {
         std::string tag;
         parser >> tag >> vertices[vertex_count][0] >>
             vertices[vertex_count][1] >> vertices[vertex_count][2];
+        ++vertex_lines;
         ++vertex_count;
         if (vertex_count == 3) {
           Real const ax = vertices[1][0] - vertices[0][0];
@@ -171,8 +179,10 @@ void validate_ascii_stl(std::string const &filename) {
       }
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        facets > 0 && has_end,
-        "Generated STL has no facets or closing solid record: " + filename);
+        facets > 0 && headers == 1 && trailers == 1 && vertex_count == 0 &&
+            vertex_lines == 3 * facets,
+        "Generated STL has incomplete facets or invalid solid records: " +
+            filename);
   }
   ParallelDescriptor::Barrier();
 }
@@ -427,11 +437,16 @@ void main_main ()
       }
     }
     levelset_errors.copyToHost();
+    GpuArray<int, 2> global_levelset_errors{
+        levelset_errors.hostData()[0], levelset_errors.hostData()[1]};
+    ParallelAllReduce::Sum(global_levelset_errors.data(),
+                           int(global_levelset_errors.size()),
+                           ParallelContext::CommunicatorSub());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        levelset_errors.hostData()[0] == 0,
+        global_levelset_errors[0] == 0,
         "A covered cell retains a public negative-in-fluid level-set node");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        levelset_errors.hostData()[1] == 0,
+        global_levelset_errors[1] == 0,
         "Edge centroids disagree with repaired public level-set signs");
 
     Gpu::Buffer<Long> zero_node_count({0L});
@@ -518,17 +533,24 @@ void main_main ()
       });
     }
     topology_counts.copyToHost();
+    GpuArray<int, 6> global_topology_counts;
+    for (int n = 0; n < int(global_topology_counts.size()); ++n) {
+      global_topology_counts[n] = topology_counts.hostData()[n];
+    }
+    ParallelAllReduce::Sum(global_topology_counts.data(),
+                           int(global_topology_counts.size()),
+                           ParallelContext::CommunicatorSub());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        topology_counts.hostData()[0] == 0,
+        global_topology_counts[0] == 0,
         "EBCellFlag coordinate connectivity disagrees with MC face apertures");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        topology_counts.hostData()[1] > 0,
+        global_topology_counts[1] > 0,
         "Marching-cubes test did not produce any single-valued cells");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        topology_counts.hostData()[2] == 0,
+        global_topology_counts[2] == 0,
         "Nodal repair left a single-valued cell below eb2.small_volfrac");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        topology_counts.hostData()[3] == 0,
+        global_topology_counts[3] == 0,
         "Single-valued EB regression retained a multi-valued cell");
     if (cleanup_test) {
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -536,12 +558,12 @@ void main_main ()
             "Legacy-style MC repair did not move any fluid node to zero");
     }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        topology_counts.hostData()[5] == 0,
+        global_topology_counts[5] == 0,
         "EB boundary normals disagree with repaired face-aperture closure");
     amrex::Print() << "Single-valued cells: "
-                   << topology_counts.hostData()[1]
+                   << global_topology_counts[1]
                    << ", retained multi-valued cells: "
-                   << topology_counts.hostData()[3] << "\n";
+                   << global_topology_counts[3] << "\n";
     if (!cleanup_test && !bunny_test && !extend_domain_test) {
         Real const domain_scale = amrex::max(
             xmax-xmin,amrex::max(ymax-ymin,zmax-zmin));

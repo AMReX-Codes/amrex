@@ -2054,6 +2054,8 @@ void write_stl(std::string const &filename,
   if (!ofs.is_open()) {
     ofs.open(filename, std::ios_base::app);
   }
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      ofs.good(), "Could not open marching-cubes STL output " + filename);
   ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
 
   for (auto const &[k, p] : mc_fabs) {
@@ -2137,15 +2139,19 @@ void write_stl(std::string const &filename,
     });
   }
 
+  if (myproc == nprocs - 1) {
+    ofs << "endsolid Created by AMReX\n";
+  }
+  ofs.close();
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      !ofs.fail(), "Could not complete marching-cubes STL output " + filename);
+
 #ifdef AMREX_USE_MPI
   if (myproc < nprocs - 1) {
     int foo = 0;
     ParallelDescriptor::Send(&foo, 1, myproc + 1, 100);
   }
+  ParallelDescriptor::Barrier();
 #endif
-
-  if (myproc == nprocs - 1) {
-    ofs << "endsolid Created by AMReX\n";
-  }
 }
 }

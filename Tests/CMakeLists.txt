@@ -3,7 +3,7 @@
 #
 function (setup_test _dim _srcs  _inputs)
 
-   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES"
+   cmake_parse_arguments( "" "HAS_FORTRAN_MODULES;COMBINE_MPI_OMP"
       "BASE_NAME;RUNTIME_SUBDIR;EXTRA_DEFINITIONS;CMDLINE_PARAMS;NTASKS;NTHREADS"
       "CMDLINE_PARAMS_AFTER_INPUTS" ${ARGN} )
 
@@ -79,7 +79,30 @@ function (setup_test _dim _srcs  _inputs)
    #
    # Add the test
    #
-   if (AMReX_OMP)
+   if (_COMBINE_MPI_OMP)
+      set(_parallel_cmd ${_cmd})
+      if (AMReX_MPI)
+         set(_ntasks 2)
+         if (_NTASKS)
+            set(_ntasks ${_NTASKS})
+         endif ()
+         set(_parallel_cmd ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} ${_ntasks}
+                           ${MPIEXEC_PREFLAGS} ${_cmd} ${MPIEXEC_POSTFLAGS})
+      endif ()
+      add_test(
+         NAME               ${_test_name}
+         COMMAND            ${_parallel_cmd}
+         WORKING_DIRECTORY  ${_exe_dir}
+      )
+      if (AMReX_OMP)
+         set(_nthreads 2)
+         if (_NTHREADS)
+            set(_nthreads ${_NTHREADS})
+         endif ()
+         set_tests_properties(${_test_name} PROPERTIES
+            ENVIRONMENT OMP_NUM_THREADS=${_nthreads})
+      endif ()
+   elseif (AMReX_OMP)
       add_test(
          NAME               ${_test_name}
          COMMAND            ${_cmd}

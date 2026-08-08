@@ -742,6 +742,7 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
        ++mfi) {
     marching_cubes[mfi.index()] = std::make_unique<MC::MCFab>();
   }
+  auto const &mc_fabs = marching_cubes;
 
   iMultiFab rejected_cells(m_grids, m_dmap, 1, 2, mf_info);
   Array<iMultiFab, AMREX_SPACEDIM> rejected_faces;
@@ -766,7 +767,7 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
 #pragma omp parallel
 #endif
     for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
-      MC::marching_cubes(geom, m_sdf[mfi], *marching_cubes[mfi.index()]);
+      MC::marching_cubes(geom, m_sdf[mfi], *mc_fabs.at(mfi.index()));
     }
 
     m_volfrac.setVal(1.0_rt, 0, 1, m_volfrac.nGrowVect());
@@ -787,7 +788,7 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
                   topology_rejections, small_cell_rejections,                  \
                   extension_rejections)
 #endif
-    for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+    for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
       Box const vbx = amrex::enclosedCells(mfi.validbox());
       Box const gbx = amrex::grow(vbx, 1);
       auto const sdf = m_sdf.const_array(mfi);
@@ -818,23 +819,23 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
       });
 
       face_geometry_errors += MC::build_face_fractions(
-          gbx, *marching_cubes[mfi.index()], m_sdf[mfi], m_areafrac[0][mfi],
+          gbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_areafrac[0][mfi],
           m_areafrac[1][mfi], m_areafrac[2][mfi], m_facecent[0][mfi],
           m_facecent[1][mfi], m_facecent[2][mfi]);
       MC::build_edge_centroids(gbx, m_sdf[mfi], m_edgecent[0][mfi],
                                m_edgecent[1][mfi], m_edgecent[2][mfi]);
       cell_geometry_errors += MC::build_cell_fractions(
-          vbx, geom, *marching_cubes[mfi.index()], m_sdf[mfi],
+          vbx, geom, *mc_fabs.at(mfi.index()), m_sdf[mfi],
           m_areafrac[0][mfi], m_areafrac[1][mfi], m_areafrac[2][mfi],
           m_facecent[0][mfi], m_facecent[1][mfi], m_facecent[2][mfi],
           m_volfrac[mfi], m_centroid[mfi], m_bndryarea[mfi], m_bndrycent[mfi],
           m_bndrynorm[mfi]);
 
       face_rejections += MC::mark_faces_for_cleanup(
-          vbx, *marching_cubes[mfi.index()], m_sdf[mfi], rejected_faces[0][mfi],
+          vbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], rejected_faces[0][mfi],
           rejected_faces[1][mfi], rejected_faces[2][mfi]);
       GpuArray<int, 2> const counts = MC::mark_cells_for_cleanup(
-          vbx, *marching_cubes[mfi.index()], m_sdf[mfi], m_volfrac[mfi],
+          vbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_volfrac[mfi],
           small_volfrac, rejected_cells[mfi]);
       topology_rejections += counts[0];
       small_cell_rejections += counts[1];
@@ -879,7 +880,10 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
     }
 
     Long changed_nodes = 0;
-    for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+ : changed_nodes)
+#endif
+    for (MFIter mfi(m_sdf, info); mfi.isValid(); ++mfi) {
       changed_nodes += MC::zero_nodes_for_cleanup(
           mfi.validbox(), rejected_cells[mfi], rejected_faces[0][mfi],
           rejected_faces[1][mfi], rejected_faces[2][mfi], m_sdf[mfi]);
@@ -928,12 +932,19 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
     m_edgecent[idim].FillBoundary(geom.periodicity());
   }
 
+  MFItInfo final_info{};
+#if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
+  final_info.SetDynamic(true);
+#endif
   int geometry_errors = 0;
-  for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+ : geometry_errors)
+#endif
+  for (MFIter mfi(m_sdf, final_info); mfi.isValid(); ++mfi) {
     Box const vbx = amrex::enclosedCells(mfi.validbox());
     m_cellflag[mfi].setVal(EBCellFlag::TheDefaultCell());
     geometry_errors += MC::build_cell_topology(
-        vbx, *marching_cubes[mfi.index()], m_sdf[mfi], m_cellflag[mfi],
+        vbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_cellflag[mfi],
         m_volfrac[mfi], m_areafrac[0][mfi], m_areafrac[1][mfi],
         m_areafrac[2][mfi]);
     m_cellflag[mfi].resetType(GFab::ng);
@@ -952,7 +963,10 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
   }
   marching_cubes.clear();
 
-  for (MFIter mfi(m_sdf); mfi.isValid(); ++mfi) {
+#ifdef AMREX_USE_OMP
+#pragma omp parallel if (Gpu::notInLaunchRegion())
+#endif
+  for (MFIter mfi(m_sdf, final_info); mfi.isValid(); ++mfi) {
     auto const phi = m_sdf.array(mfi);
     ParallelFor(m_sdf[mfi].box(),
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
