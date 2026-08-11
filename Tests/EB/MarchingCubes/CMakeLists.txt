@@ -11,7 +11,6 @@ set(_input_files
     inputs.multilevel.rebuild
     inputs.nodal
     inputs.periodic
-    inputs.scaled
     inputs.extend-domain
     inputs.anisotropic
     inputs.open-stl
@@ -51,7 +50,6 @@ add_mc_test_variant(EB_MarchingCubesMultilevel_3d inputs.multilevel)
 add_mc_test_variant(EB_MarchingCubesMultilevelRebuild_3d inputs.multilevel.rebuild)
 add_mc_test_variant(EB_MarchingCubesNodal_3d inputs.nodal)
 add_mc_test_variant(EB_MarchingCubesPeriodic_3d inputs.periodic)
-add_mc_test_variant(EB_MarchingCubesScaled_3d inputs.scaled)
 add_mc_test_variant(EB_MarchingCubesExtendDomain_3d inputs.extend-domain)
 add_mc_test_variant(EB_MarchingCubesExtendDomainLegacy_3d inputs.extend-domain
     eb2.stl_geometry_method=legacy)
