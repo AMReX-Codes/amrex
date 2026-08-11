@@ -8,6 +8,8 @@
 #include <AMReX_WriteEBSurface.H>
 
 #include <fstream>
+#include <iomanip>
+#include <limits>
 #include <sstream>
 
 using namespace amrex;
@@ -74,11 +76,35 @@ void validate_narrow_band_levelset() {
   exact.FillBoundary(geom.periodicity());
   stl.fillMarchingCubesLevelSet(narrow, narrow.nGrowVect(), geom);
 
-  Gpu::Buffer<Long> errors({0L, 0L});
+  Gpu::Buffer<Long> errors({0L, 0L, 0L, 0L});
   Long *const error = errors.data();
   for (MFIter mfi(exact); mfi.isValid(); ++mfi) {
     auto const full = exact.const_array(mfi);
     auto const band = narrow.const_array(mfi);
+    MC::MCFab mc_fab;
+    mc_fab.defineEdgeIntersections(narrow[mfi].box());
+    stl.fillMarchingCubesEdgeIntersections(narrow[mfi], geom, mc_fab);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+      auto const crossing = mc_fab.m_edge_intersections[idim].const_array();
+      ParallelFor(Box{crossing},
+                  [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                    int const di = idim == 0;
+                    int const dj = idim == 1;
+                    int const dk = idim == 2;
+                    Real const lo = band(i, j, k);
+                    Real const hi = band(i + di, j + dj, k + dk);
+                    Real const refined = crossing(i, j, k);
+                    if ((lo > 0.0_rt) != (hi > 0.0_rt)
+                        && !amrex::isnan(refined)) {
+                      Gpu::Atomic::AddNoRet(error + 2, 1L);
+                      Real const linear = lo / (lo - hi);
+                      if (std::abs(refined - linear)
+                          > 64.0_rt * std::numeric_limits<Real>::epsilon()) {
+                        Gpu::Atomic::AddNoRet(error + 3, 1L);
+                      }
+                    }
+                  });
+    }
     ParallelFor(mfi.validbox(),
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                   if ((full(i, j, k) > 0.0_rt) != (band(i, j, k) > 0.0_rt)) {
@@ -118,8 +144,9 @@ void validate_narrow_band_levelset() {
     });
   }
   errors.copyToHost();
-  GpuArray<Long, 2> global_errors{
-      errors.hostData()[0], errors.hostData()[1]};
+  GpuArray<Long, 4> global_errors{
+      errors.hostData()[0], errors.hostData()[1],
+      errors.hostData()[2], errors.hostData()[3]};
   ParallelAllReduce::Sum(global_errors.data(), int(global_errors.size()),
                          ParallelContext::CommunicatorSub());
   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -128,19 +155,37 @@ void validate_narrow_band_levelset() {
   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(global_errors[1] == 0,
                                    "Narrow-band MC field is not exact on a "
                                    "cut-cell interpolation/normal stencil");
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      global_errors[2] > 0,
+      "Exact STL refinement found no sign-changing Cartesian edges");
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      global_errors[3] > 0,
+      "Exact STL refinement did not move any sampled-SDF edge crossing");
 }
 
-void validate_ascii_stl(std::string const &filename) {
+char const *execution_backend() noexcept {
+#if defined(AMREX_USE_CUDA)
+  return "CUDA";
+#elif defined(AMREX_USE_HIP)
+  return "HIP";
+#elif defined(AMREX_USE_SYCL)
+  return "SYCL";
+#else
+  return "CPU";
+#endif
+}
+
+Long validate_ascii_stl(std::string const &filename) {
   if (filename.empty()) {
-    return;
+    return 0;
   }
   ParallelDescriptor::Barrier();
+  Long facets = 0;
   if (ParallelDescriptor::IOProcessor()) {
     std::ifstream input(filename);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         input.good(), "Could not open generated STL " + filename);
     std::string line;
-    Long facets = 0;
     Long headers = 0;
     Long trailers = 0;
     Long vertex_lines = 0;
@@ -185,12 +230,20 @@ void validate_ascii_stl(std::string const &filename) {
             filename);
   }
   ParallelDescriptor::Barrier();
+  ParallelDescriptor::Bcast(
+      &facets, 1, ParallelDescriptor::IOProcessorNumber());
+  return facets;
 }
 
 } // namespace
 
 void main_main ()
 {
+#ifdef AMREX_USE_GPU
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        Gpu::inLaunchRegion(),
+        "The marching-cubes GPU test must execute in a GPU launch region");
+#endif
     validate_mc33_face_decisions();
 
     int nx = 64;
@@ -282,7 +335,7 @@ void main_main ()
     }
     std::string mc_stl_file;
     ParmParse("eb2").query("mc_stl_file", mc_stl_file);
-    validate_ascii_stl(mc_stl_file);
+    Long const mc_facets = validate_ascii_stl(mc_stl_file);
     auto const &volfrac = factory->getVolFrac();
     Real const fluid_volume =
         volfrac.sum() * geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
@@ -564,6 +617,15 @@ void main_main ()
                    << global_topology_counts[1]
                    << ", retained multi-valued cells: "
                    << global_topology_counts[3] << "\n";
+    amrex::Print()
+        << std::setprecision(std::numeric_limits<Real>::max_digits10)
+        << "MC_TEST_SIGNATURE backend=" << execution_backend()
+        << " precision=" << 8*sizeof(Real)
+        << " method=" << eb_method
+        << " fluid_volume=" << fluid_volume
+        << " single_valued_cells=" << global_topology_counts[1]
+        << " repaired_nodes=" << repaired_nodes
+        << " mc_facets=" << mc_facets << '\n';
     if (!cleanup_test && !bunny_test && !extend_domain_test) {
         Real const domain_scale = amrex::max(
             xmax-xmin,amrex::max(ymax-ymin,zmax-zmin));

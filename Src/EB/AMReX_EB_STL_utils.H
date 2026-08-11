@@ -21,6 +21,10 @@
 namespace amrex
 {
 
+namespace MC {
+class MCFab;
+}
+
 //! Utility class that loads STL meshes and samples them onto AMReX grids.
 class STLtools
 {
@@ -130,6 +134,17 @@ public:
      */
     void fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
                                     Geometry const& geom) const;
+
+    /**
+     * \brief Cache exact normalized Cartesian-edge crossings for MC geometry.
+     *
+     * The cache is evaluated against the original triangles rather than the
+     * sampled signed-distance field. It remains valid through the monotone
+     * nodal cleanup used by marching cubes.
+     */
+    void fillMarchingCubesEdgeIntersections (
+        FArrayBox const& levelset, Geometry const& geom,
+        MC::MCFab& mc_fab) const;
 
     //! Upload triangle data to device memory (exposed for CUDA workflows).
     void prepare (Gpu::PinnedVector<Triangle> a_tri_pts);  // public for cuda

@@ -2,6 +2,7 @@
 #include <AMReX_EB_STL_utils.H>
 #include <AMReX_EB_triGeomOps_K.H>
 #include <AMReX_IntConv.H>
+#include <AMReX_MarchingCubes.H>
 #include <AMReX_Math.H>
 #include <AMReX_Stack.H>
 #include <AMReX_iMultiFab.H>
@@ -1588,6 +1589,178 @@ void STLtools::fillMarchingCubesLevelSet(MultiFab &mf, IntVect const &nghost,
   Gpu::streamSynchronize();
   mf.OverrideSync(geom.periodicity());
   mf.FillBoundary(geom.periodicity());
+#endif
+}
+
+void STLtools::fillMarchingCubesEdgeIntersections (
+    FArrayBox const& levelset, Geometry const& geom, MC::MCFab& mc_fab) const
+{
+    BL_PROFILE("STLtools::fillMarchingCubesEdgeIntersections");
+
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        AMREX_SPACEDIM == 3,
+        "STL marching-cubes edge intersections are only available in 3D");
+
+#if (AMREX_SPACEDIM != 3)
+    amrex::ignore_unused(this, levelset, geom, mc_fab);
+#else
+    auto const sdf = levelset.const_array();
+    auto const plo = geom.ProbLoArray();
+    auto const dx = geom.CellSizeArray();
+    auto const* tri_pts = m_tri_pts_d.data();
+    auto const* tri_norm = m_tri_normals_d.data();
+    auto const* bvh_root = m_bvh_nodes.data();
+    int const num_triangles = m_num_tri;
+    bool const use_bvh = m_bvh_optimization;
+
+    auto find_x = [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                        Real& fraction) noexcept {
+        XDim3 const p1{plo[0]+static_cast<Real>(i)*dx[0],
+                       plo[1]+static_cast<Real>(j)*dx[1],
+                       plo[2]+static_cast<Real>(k)*dx[2]};
+        Real const x2 = p1.x + dx[0];
+        Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i+1,j,k));
+        Real best_distance = std::numeric_limits<Real>::max();
+        bool found = false;
+        auto test = [&] AMREX_GPU_DEVICE (int ntri, Triangle const* tris,
+                                          XDim3 const* norms) noexcept -> int {
+            for (int it = 0; it < ntri; ++it) {
+                auto const hit = edge_tri_intersects(
+                    p1.x, x2, p1.y, p1.z, tris[it].v1, tris[it].v2,
+                    tris[it].v3, norms[it], sdf(i,j,k)-sdf(i+1,j,k));
+                if (hit.first) {
+                    Real const candidate = amrex::Clamp(
+                        (hit.second-p1.x)/dx[0], 0.0_rt, 1.0_rt);
+                    Real const distance = std::abs(candidate-target);
+                    if (distance < best_distance) {
+                        fraction = candidate;
+                        best_distance = distance;
+                        found = true;
+                    }
+                }
+            }
+            return 0;
+        };
+        if (use_bvh) {
+            Real a[3] = {p1.x,p1.y,p1.z};
+            Real b[3] = {x2,p1.y,p1.z};
+            bvh_line_tri_intersects(a,b,bvh_root,test);
+        } else {
+            test(num_triangles,tri_pts,tri_norm);
+        }
+        return found;
+    };
+
+    auto find_y = [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                        Real& fraction) noexcept {
+        XDim3 const p1{plo[0]+static_cast<Real>(i)*dx[0],
+                       plo[1]+static_cast<Real>(j)*dx[1],
+                       plo[2]+static_cast<Real>(k)*dx[2]};
+        Real const y2 = p1.y + dx[1];
+        Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i,j+1,k));
+        Real best_distance = std::numeric_limits<Real>::max();
+        bool found = false;
+        auto test = [&] AMREX_GPU_DEVICE (int ntri, Triangle const* tris,
+                                          XDim3 const* norms) noexcept -> int {
+            for (int it = 0; it < ntri; ++it) {
+                auto const& tri = tris[it];
+                auto const& norm = norms[it];
+                auto const hit = edge_tri_intersects(
+                    p1.y, y2, p1.z, p1.x,
+                    XDim3{tri.v1.y,tri.v1.z,tri.v1.x},
+                    XDim3{tri.v2.y,tri.v2.z,tri.v2.x},
+                    XDim3{tri.v3.y,tri.v3.z,tri.v3.x},
+                    XDim3{norm.y,norm.z,norm.x}, sdf(i,j,k)-sdf(i,j+1,k));
+                if (hit.first) {
+                    Real const candidate = amrex::Clamp(
+                        (hit.second-p1.y)/dx[1], 0.0_rt, 1.0_rt);
+                    Real const distance = std::abs(candidate-target);
+                    if (distance < best_distance) {
+                        fraction = candidate;
+                        best_distance = distance;
+                        found = true;
+                    }
+                }
+            }
+            return 0;
+        };
+        if (use_bvh) {
+            Real a[3] = {p1.x,p1.y,p1.z};
+            Real b[3] = {p1.x,y2,p1.z};
+            bvh_line_tri_intersects(a,b,bvh_root,test);
+        } else {
+            test(num_triangles,tri_pts,tri_norm);
+        }
+        return found;
+    };
+
+    auto find_z = [=] AMREX_GPU_DEVICE (int i, int j, int k,
+                                        Real& fraction) noexcept {
+        XDim3 const p1{plo[0]+static_cast<Real>(i)*dx[0],
+                       plo[1]+static_cast<Real>(j)*dx[1],
+                       plo[2]+static_cast<Real>(k)*dx[2]};
+        Real const z2 = p1.z + dx[2];
+        Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i,j,k+1));
+        Real best_distance = std::numeric_limits<Real>::max();
+        bool found = false;
+        auto test = [&] AMREX_GPU_DEVICE (int ntri, Triangle const* tris,
+                                          XDim3 const* norms) noexcept -> int {
+            for (int it = 0; it < ntri; ++it) {
+                auto const& tri = tris[it];
+                auto const& norm = norms[it];
+                auto const hit = edge_tri_intersects(
+                    p1.z, z2, p1.x, p1.y,
+                    XDim3{tri.v1.z,tri.v1.x,tri.v1.y},
+                    XDim3{tri.v2.z,tri.v2.x,tri.v2.y},
+                    XDim3{tri.v3.z,tri.v3.x,tri.v3.y},
+                    XDim3{norm.z,norm.x,norm.y}, sdf(i,j,k)-sdf(i,j,k+1));
+                if (hit.first) {
+                    Real const candidate = amrex::Clamp(
+                        (hit.second-p1.z)/dx[2], 0.0_rt, 1.0_rt);
+                    Real const distance = std::abs(candidate-target);
+                    if (distance < best_distance) {
+                        fraction = candidate;
+                        best_distance = distance;
+                        found = true;
+                    }
+                }
+            }
+            return 0;
+        };
+        if (use_bvh) {
+            Real a[3] = {p1.x,p1.y,p1.z};
+            Real b[3] = {p1.x,p1.y,z2};
+            bvh_line_tri_intersects(a,b,bvh_root,test);
+        } else {
+            test(num_triangles,tri_pts,tri_norm);
+        }
+        return found;
+    };
+
+    auto const exact_x = mc_fab.m_edge_intersections[0].array();
+    auto const exact_y = mc_fab.m_edge_intersections[1].array();
+    auto const exact_z = mc_fab.m_edge_intersections[2].array();
+    ParallelFor(Box{exact_x}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        if ((sdf(i,j,k) > 0.0_rt) != (sdf(i+1,j,k) > 0.0_rt)) {
+            Real fraction = std::numeric_limits<Real>::quiet_NaN();
+            find_x(i,j,k,fraction);
+            exact_x(i,j,k) = fraction;
+        }
+    });
+    ParallelFor(Box{exact_y}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        if ((sdf(i,j,k) > 0.0_rt) != (sdf(i,j+1,k) > 0.0_rt)) {
+            Real fraction = std::numeric_limits<Real>::quiet_NaN();
+            find_y(i,j,k,fraction);
+            exact_y(i,j,k) = fraction;
+        }
+    });
+    ParallelFor(Box{exact_z}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
+        if ((sdf(i,j,k) > 0.0_rt) != (sdf(i,j,k+1) > 0.0_rt)) {
+            Real fraction = std::numeric_limits<Real>::quiet_NaN();
+            find_z(i,j,k,fraction);
+            exact_z(i,j,k) = fraction;
+        }
+    });
 #endif
 }
 

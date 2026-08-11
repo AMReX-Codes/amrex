@@ -741,6 +741,9 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
   for (MFIter mfi(m_sdf, MFItInfo().DisableDeviceSync()); mfi.isValid();
        ++mfi) {
     marching_cubes[mfi.index()] = std::make_unique<MC::MCFab>();
+    auto& mc_fab = *marching_cubes[mfi.index()];
+    mc_fab.defineEdgeIntersections(m_sdf[mfi].box());
+    gshop.fillMarchingCubesEdgeIntersections(m_sdf[mfi], geom, mc_fab);
   }
   auto const &mc_fabs = marching_cubes;
 
@@ -822,8 +825,9 @@ void GShopLevel<G>::define_fine_marching_cubes(GS const &gshop,
           gbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_areafrac[0][mfi],
           m_areafrac[1][mfi], m_areafrac[2][mfi], m_facecent[0][mfi],
           m_facecent[1][mfi], m_facecent[2][mfi]);
-      MC::build_edge_centroids(gbx, m_sdf[mfi], m_edgecent[0][mfi],
-                               m_edgecent[1][mfi], m_edgecent[2][mfi]);
+      MC::build_edge_centroids(
+          gbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_edgecent[0][mfi],
+          m_edgecent[1][mfi], m_edgecent[2][mfi]);
       cell_geometry_errors += MC::build_cell_fractions(
           vbx, geom, *mc_fabs.at(mfi.index()), m_sdf[mfi],
           m_areafrac[0][mfi], m_areafrac[1][mfi], m_areafrac[2][mfi],

@@ -55,6 +55,20 @@ EB2::Type_t face_type (Real area, Real tolerance) noexcept
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+Real edge_intersection_fraction (Real lo, Real hi, Real exact) noexcept
+{
+    // Cleanup moves fluid nodes to exactly zero.  Those repaired crossings
+    // belong at the node, rather than at the original STL intersection.
+    if (lo == 0.0_rt) {
+        return 0.0_rt;
+    }
+    if (hi == 0.0_rt) {
+        return 1.0_rt;
+    }
+    return amrex::isnan(exact) ? lo/(lo-hi) : exact;
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void consume_face_decision (Array4<int const> const& cell_data,
                             Box const& cell_box, int i, int j, int k,
                             int face, int& valid, int& connected) noexcept
@@ -137,7 +151,8 @@ bool face_is_rejected (Real a, Real b, Real c, Real d,
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void cut_face_fraction (Real const* levelset, Real& area,
+void cut_face_fraction (Real const* levelset, Real const* intersections,
+                        Real& area,
                         Real& centroid_x, Real& centroid_y,
                         bool has_resolved_decision,
                         bool resolved_fluid_connected,
@@ -168,8 +183,8 @@ void cut_face_fraction (Real const* levelset, Real& area,
             ++polygon_size;
         }
         if (fluid != next_fluid) {
-            Real const alpha =
-                levelset[n] / (levelset[n]-levelset[next]);
+            Real const alpha = edge_intersection_fraction(
+                levelset[n], levelset[next], intersections[n]);
             polygon_x[polygon_size] =
                 vertex_x[n] + alpha*(vertex_x[next]-vertex_x[n]);
             polygon_y[polygon_size] =
@@ -965,6 +980,17 @@ void Triangle::resize (int n)
     v3.resize(n);
 }
 
+void MCFab::defineEdgeIntersections (Box const& sdf_box)
+{
+    Box const nbox = amrex::grow(sdf_box, -1);
+    for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+        m_edge_intersections[idim].resize(
+            amrex::enclosedCells(nbox, idim), 1);
+        m_edge_intersections[idim].setVal(
+            std::numeric_limits<Real>::quiet_NaN());
+    }
+}
+
 void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
 {
     BL_PROFILE("marching_cubes");
@@ -988,6 +1014,20 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     Array4<int> ex = ex_fab.array();
     Array4<int> ey = ey_fab.array();
     Array4<int> ez = ez_fab.array();
+    if (mc_fab.m_edge_intersections[0].nComp() == 0
+        || mc_fab.m_edge_intersections[1].nComp() == 0
+        || mc_fab.m_edge_intersections[2].nComp() == 0
+        || !mc_fab.m_edge_intersections[0].box().contains(exbox)
+        || !mc_fab.m_edge_intersections[1].box().contains(eybox)
+        || !mc_fab.m_edge_intersections[2].box().contains(ezbox))
+    {
+        // Standalone MC callers do not have an original STL to refine
+        // against.  Keep their established sampled-SDF interpolation.
+        mc_fab.defineEdgeIntersections(sdf_fab.box());
+    }
+    auto const exact_x = mc_fab.m_edge_intersections[0].const_array();
+    auto const exact_y = mc_fab.m_edge_intersections[1].const_array();
+    auto const exact_z = mc_fab.m_edge_intersections[2].const_array();
     BoxIndexer n_bi(nbox);
 
     auto nvx = Scan::PrefixSum<int>(int(nbox.numPts()),
@@ -1044,7 +1084,8 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     {
         if (ex.contains(i,j,k) && ex(i,j,k,0)) {
             int m = ex(i,j,k,1);
-            Real u = sdf(i,j,k) / (sdf(i,j,k) - sdf(i+1,j,k));
+            Real u = edge_intersection_fraction(
+                sdf(i,j,k), sdf(i+1,j,k), exact_x(i,j,k));
             pvrtx[0][m] = Real(i) + u;
             pvrtx[1][m] = Real(j);
             pvrtx[2][m] = Real(k);
@@ -1066,7 +1107,8 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
         }
         if (ey.contains(i,j,k) && ey(i,j,k,0)) {
             int m = ey(i,j,k,1);
-            Real u = sdf(i,j,k) / (sdf(i,j,k) - sdf(i,j+1,k));
+            Real u = edge_intersection_fraction(
+                sdf(i,j,k), sdf(i,j+1,k), exact_y(i,j,k));
             pvrtx[0][m] = Real(i);
             pvrtx[1][m] = Real(j) + u;
             pvrtx[2][m] = Real(k);
@@ -1088,7 +1130,8 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
         }
         if (ez.contains(i,j,k) && ez(i,j,k,0)) {
             int m = ez(i,j,k,1);
-            Real u = sdf(i,j,k) / (sdf(i,j,k) - sdf(i,j,k+1));
+            Real u = edge_intersection_fraction(
+                sdf(i,j,k), sdf(i,j,k+1), exact_z(i,j,k));
             pvrtx[0][m] = Real(i);
             pvrtx[1][m] = Real(j);
             pvrtx[2][m] = Real(k) + u;
@@ -1203,6 +1246,9 @@ int build_face_fractions (
 
     auto const sdf = sdf_fab.const_array();
     auto const cell_data = mc_fab.m_cell_data.const_array();
+    auto const exact_x = mc_fab.m_edge_intersections[0].const_array();
+    auto const exact_y = mc_fab.m_edge_intersections[1].const_array();
+    auto const exact_z = mc_fab.m_edge_intersections[2].const_array();
     Box const cell_box = mc_fab.m_cell_data.box();
     auto const apx = apx_fab.array();
     auto const apy = apy_fab.array();
@@ -1224,9 +1270,13 @@ int build_face_fractions (
             sdf(i,j  ,k  ), sdf(i,j+1,k  ),
             sdf(i,j+1,k+1), sdf(i,j  ,k+1)
         };
+        Real const intersections[4] = {
+            exact_y(i,j,k), exact_z(i,j+1,k),
+            1.0_rt-exact_y(i,j,k+1), 1.0_rt-exact_z(i,j,k)
+        };
         auto const decision = resolved_face_decision(
             cell_data, cell_box, error, i-1,j,k,1, i,j,k,3);
-        cut_face_fraction(face_levelset, apx(i,j,k),
+        cut_face_fraction(face_levelset, intersections, apx(i,j,k),
                           fcx(i,j,k,0), fcx(i,j,k,1),
                           decision[0] != 0, decision[1] != 0, error);
     });
@@ -1238,9 +1288,13 @@ int build_face_fractions (
             sdf(i  ,j,k  ), sdf(i+1,j,k  ),
             sdf(i+1,j,k+1), sdf(i  ,j,k+1)
         };
+        Real const intersections[4] = {
+            exact_x(i,j,k), exact_z(i+1,j,k),
+            1.0_rt-exact_x(i,j,k+1), 1.0_rt-exact_z(i,j,k)
+        };
         auto const decision = resolved_face_decision(
             cell_data, cell_box, error, i,j-1,k,2, i,j,k,0);
-        cut_face_fraction(face_levelset, apy(i,j,k),
+        cut_face_fraction(face_levelset, intersections, apy(i,j,k),
                           fcy(i,j,k,0), fcy(i,j,k,1),
                           decision[0] != 0, decision[1] != 0, error);
     });
@@ -1252,9 +1306,13 @@ int build_face_fractions (
             sdf(i  ,j  ,k), sdf(i+1,j  ,k),
             sdf(i+1,j+1,k), sdf(i  ,j+1,k)
         };
+        Real const intersections[4] = {
+            exact_x(i,j,k), exact_y(i+1,j,k),
+            1.0_rt-exact_x(i,j+1,k), 1.0_rt-exact_y(i,j,k)
+        };
         auto const decision = resolved_face_decision(
             cell_data, cell_box, error, i,j,k-1,5, i,j,k,4);
-        cut_face_fraction(face_levelset, apz(i,j,k),
+        cut_face_fraction(face_levelset, intersections, apz(i,j,k),
                           fcz(i,j,k,0), fcz(i,j,k,1),
                           decision[0] != 0, decision[1] != 0, error);
     });
@@ -1264,7 +1322,7 @@ int build_face_fractions (
 }
 
 void build_edge_centroids (
-    Box const& bx, FArrayBox const& sdf_fab,
+    Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
     FArrayBox& ecx_fab, FArrayBox& ecy_fab, FArrayBox& ecz_fab)
 {
     BL_PROFILE("MC::build_edge_centroids");
@@ -1277,6 +1335,9 @@ void build_edge_centroids (
     AMREX_ALWAYS_ASSERT(ecz_fab.box().contains(ezbx));
 
     auto const sdf = sdf_fab.const_array();
+    auto const exact_x = mc_fab.m_edge_intersections[0].const_array();
+    auto const exact_y = mc_fab.m_edge_intersections[1].const_array();
+    auto const exact_z = mc_fab.m_edge_intersections[2].const_array();
     auto const ecx = ecx_fab.array();
     auto const ecy = ecy_fab.array();
     auto const ecz = ecz_fab.array();
@@ -1292,7 +1353,8 @@ void build_edge_centroids (
         } else if (!lo_fluid && !hi_fluid) {
             ecx(i,j,k) = -1.0_rt;
         } else {
-            Real const cut = lo/(lo-hi);
+            Real const cut = edge_intersection_fraction(
+                lo, hi, exact_x(i,j,k));
             ecx(i,j,k) = lo_fluid
                 ? 0.5_rt*cut-0.5_rt
                 : 0.5_rt*cut;
@@ -1310,7 +1372,8 @@ void build_edge_centroids (
         } else if (!lo_fluid && !hi_fluid) {
             ecy(i,j,k) = -1.0_rt;
         } else {
-            Real const cut = lo/(lo-hi);
+            Real const cut = edge_intersection_fraction(
+                lo, hi, exact_y(i,j,k));
             ecy(i,j,k) = lo_fluid
                 ? 0.5_rt*cut-0.5_rt
                 : 0.5_rt*cut;
@@ -1328,7 +1391,8 @@ void build_edge_centroids (
         } else if (!lo_fluid && !hi_fluid) {
             ecz(i,j,k) = -1.0_rt;
         } else {
-            Real const cut = lo/(lo-hi);
+            Real const cut = edge_intersection_fraction(
+                lo, hi, exact_z(i,j,k));
             ecz(i,j,k) = lo_fluid
                 ? 0.5_rt*cut-0.5_rt
                 : 0.5_rt*cut;
@@ -1605,10 +1669,27 @@ int build_cell_fractions (
             boundary_normal[d] /= area_vector_norm;
         }
 
+        Real boundary_centroid[3] = {
+            eb_centroid_numerator[0]/eb_area,
+            eb_centroid_numerator[1]/eb_area,
+            eb_centroid_numerator[2]/eb_area
+        };
+        if (boundary_centroid[0] < -0.5_rt-tolerance
+            || boundary_centroid[0] > 0.5_rt+tolerance
+            || boundary_centroid[1] < -0.5_rt-tolerance
+            || boundary_centroid[1] > 0.5_rt+tolerance
+            || boundary_centroid[2] < -0.5_rt-tolerance
+            || boundary_centroid[2] > 0.5_rt+tolerance)
+        {
+            Gpu::Atomic::AddNoRet(errors+2, 1);
+            return;
+        }
+
         vfrac(i,j,k) = volume;
         for (int d = 0; d < 3; ++d) {
             vcent(i,j,k,d) = amrex::min(amrex::max(centroid[d],-0.5_rt),0.5_rt);
-            bcent(i,j,k,d) = eb_centroid_numerator[d]/eb_area;
+            bcent(i,j,k,d) = amrex::Clamp(
+                boundary_centroid[d], -0.5_rt, 0.5_rt);
             bnorm(i,j,k,d) = boundary_normal[d];
         }
         barea(i,j,k) = eb_area;

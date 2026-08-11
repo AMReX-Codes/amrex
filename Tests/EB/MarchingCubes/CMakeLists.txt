@@ -25,6 +25,13 @@ set(_input_files
 
 setup_test(3 _sources _input_files COMBINE_MPI_OMP NTASKS 2 NTHREADS 2)
 
+set(_mc_test_labels EB MarchingCubes)
+if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
+    list(APPEND _mc_test_labels GPU)
+endif()
+set_tests_properties(EB_MarchingCubes_3d PROPERTIES
+    LABELS "${_mc_test_labels}")
+
 function(add_mc_test_variant _test_name _inputs_filename)
     set(_cmd $<TARGET_FILE:Test_EB_MarchingCubes_3d> ${_inputs_filename} ${ARGN})
     if (AMReX_MPI)
@@ -39,6 +46,7 @@ function(add_mc_test_variant _test_name _inputs_filename)
     if (AMReX_OMP)
         set_tests_properties(${_test_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
     endif()
+    set_tests_properties(${_test_name} PROPERTIES LABELS "${_mc_test_labels}")
 endfunction()
 
 add_mc_test_variant(EB_MarchingCubesCleanup_3d inputs.cleanup)
@@ -52,6 +60,13 @@ add_mc_test_variant(EB_MarchingCubesScaled_3d inputs.scaled)
 add_mc_test_variant(EB_MarchingCubesExtendDomain_3d inputs.extend-domain)
 add_mc_test_variant(EB_MarchingCubesExtendDomainLegacy_3d inputs.extend-domain
     eb2.stl_geometry_method=legacy)
+
+if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
+    add_mc_test_variant(EB_MarchingCubesCleanupSingleStream_3d inputs.cleanup
+        amrex.max_gpu_streams=1)
+    add_mc_test_variant(EB_MarchingCubesNodalSingleStream_3d inputs.nodal
+        amrex.max_gpu_streams=1)
+endif()
 
 function(add_expected_failure _test_name _inputs_filename _expected_regex)
     set(_test_prefix)
@@ -75,6 +90,7 @@ function(add_expected_failure _test_name _inputs_filename _expected_regex)
     if (AMReX_OMP)
         set_tests_properties(${_test_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
     endif()
+    set_tests_properties(${_test_name} PROPERTIES LABELS "${_mc_test_labels}")
 endfunction()
 
 add_expected_failure(EB_MarchingCubesRejectAnisotropic_3d
@@ -84,3 +100,4 @@ add_expected_failure(EB_MarchingCubesRejectOpenSTL_3d
 
 unset(_sources)
 unset(_input_files)
+unset(_mc_test_labels)

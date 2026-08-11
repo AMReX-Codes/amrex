@@ -83,8 +83,13 @@ class MCFab
 public:
     //! Per-cell ranges and resolved MC33 case/ambiguity metadata.
     BaseFab<int> m_cell_data;
+    //! Exact normalized STL crossings on Cartesian edges, when available.
+    Array<BaseFab<Real>,AMREX_SPACEDIM> m_edge_intersections;
     Triangle m_triangles;
     Vertex m_vertices;
+
+    //! Allocate edge-intersection caches for the usable nodal SDF region.
+    void defineEdgeIntersections (Box const& sdf_box);
 };
 
 //! Run marching cubes on signed-distance field \p sdf_fab.
@@ -110,7 +115,7 @@ int build_face_fractions (
  * Cut-edge values are the centroid of the fluid part of the unit edge.
  */
 void build_edge_centroids (
-    Box const& bx, FArrayBox const& sdf,
+    Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf,
     FArrayBox& ecx, FArrayBox& ecy, FArrayBox& ecz);
 
 /**
