@@ -19,7 +19,7 @@ namespace {
 bool resolved_bottom_face_is_fluid_connected (GpuArray<Real, 8> const& values)
 {
     Box const cell_box(IntVect(0), IntVect(0));
-    Box const node_box = amrex::surroundingNodes(amrex::grow(cell_box, 1));
+    Box const node_box = amrex::surroundingNodes(cell_box);
     FArrayBox sdf(node_box, 1);
     sdf.setVal(-1.0_rt);
     auto const phi = sdf.array();
@@ -57,7 +57,7 @@ void validate_mc33_face_decisions ()
 void validate_mc33_vertex_indices ()
 {
     Box const cell_box(IntVect(0), IntVect(0));
-    Box const node_box = amrex::surroundingNodes(amrex::grow(cell_box, 1));
+    Box const node_box = amrex::surroundingNodes(cell_box);
     Box const cube_nodes = amrex::surroundingNodes(cell_box);
     Geometry geom(cell_box, RealBox({0.0_rt, 0.0_rt, 0.0_rt},
                                     {1.0_rt, 1.0_rt, 1.0_rt}), 0, {0, 0, 0});
@@ -111,7 +111,7 @@ void validate_mc33_vertex_indices ()
 void validate_exact_ambiguous_face_fraction ()
 {
     Box const cell_box(IntVect(0), IntVect(0));
-    Box const node_box = amrex::grow(amrex::surroundingNodes(cell_box), 2);
+    Box const node_box = amrex::surroundingNodes(cell_box);
     FArrayBox sdf(node_box, 1);
     sdf.setVal(1.0_rt);
     auto const phi = sdf.array();
@@ -167,8 +167,8 @@ void validate_narrow_band_levelset ()
     ba.maxSize(8);
     DistributionMapping dm(ba);
     BoxArray const nba = amrex::convert(ba, IntVect::TheNodeVector());
-    MultiFab exact(nba, dm, 1, 2);
-    MultiFab narrow(nba, dm, 1, 2);
+    MultiFab exact(nba, dm, 1, 1);
+    MultiFab narrow(nba, dm, 1, 1);
 
     STLtools stl;
     stl.setUseMarchingCubes(true);
@@ -225,9 +225,9 @@ void validate_narrow_band_levelset ()
                 }
             }
             if (has_fluid && has_covered) {
-                for (int kk = -1; kk <= 2; ++kk) {
-                    for (int jj = -1; jj <= 2; ++jj) {
-                        for (int ii = -1; ii <= 2; ++ii) {
+                for (int kk = 0; kk <= 1; ++kk) {
+                    for (int jj = 0; jj <= 1; ++jj) {
+                        for (int ii = 0; ii <= 1; ++ii) {
                             Real const a = full(i + ii, j + jj, k + kk);
                             Real const b = band(i + ii, j + jj, k + kk);
                             Real const tolerance = 16.0_rt * std::numeric_limits<Real>::epsilon() *
@@ -250,7 +250,7 @@ void validate_narrow_band_levelset ()
         global_errors[0] == 0, "Narrow-band MC field changed the global STL sign classification");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(global_errors[1] == 0,
                                      "Narrow-band MC field is not exact on a "
-                                     "cut-cell interpolation/normal stencil");
+                                     "cut-cell interpolation stencil");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(global_errors[2] > 0,
                                      "Exact STL refinement found no sign-changing Cartesian edges");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(

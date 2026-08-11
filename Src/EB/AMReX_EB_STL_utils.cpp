@@ -1507,8 +1507,8 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
     amrex::ignore_unused(this, mf, nghost, geom);
 #else
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        nghost.allGE(IntVect(2)) && mf.nGrowVect().allGE(nghost),
-        "Marching-cubes STL sampling requires at least two nodal ghost cells");
+        nghost.allGE(IntVect(1)) && mf.nGrowVect().allGE(nghost),
+        "Marching-cubes STL sampling requires at least one nodal ghost cell");
 
     // The sign is sufficient in regular/covered regions.  Canonicalize it
     // before constructing the band so every FAB makes the same decision at a
@@ -1520,10 +1520,9 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
     FabArray<BaseFab<char>> exact_band(
         mf.boxArray(), mf.DistributionMap(), 1, nghost);
 
-    // A radius-two sign search includes every corner of a mixed cell and the
-    // additional node needed by the centered SDF-gradient stencils used when
-    // constructing MC vertices.  A byte mask preserves the level-wide kernel
-    // batching while using one quarter of the old integer-mask storage.
+    // A radius-one sign search includes every corner of a mixed cell.  A byte
+    // mask preserves the level-wide kernel batching while using one quarter of
+    // the old integer-mask storage.
 
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         Box const bx = mf[mfi].box();
@@ -1538,10 +1537,10 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
             bool const fluid = phi(i, j, k) > 0.0_rt;
             bool mixed = false;
-            for (int kk = amrex::max(k - 2, klo); kk <= amrex::min(k + 2, khi) && !mixed; ++kk) {
-                for (int jj = amrex::max(j - 2, jlo); jj <= amrex::min(j + 2, jhi) && !mixed;
+            for (int kk = amrex::max(k - 1, klo); kk <= amrex::min(k + 1, khi) && !mixed; ++kk) {
+                for (int jj = amrex::max(j - 1, jlo); jj <= amrex::min(j + 1, jhi) && !mixed;
                      ++jj) {
-                    for (int ii = amrex::max(i - 2, ilo); ii <= amrex::min(i + 2, ihi); ++ii) {
+                    for (int ii = amrex::max(i - 1, ilo); ii <= amrex::min(i + 1, ihi); ++ii) {
                         if ((phi(ii, jj, kk) > 0.0_rt) != fluid) {
                             mixed = true;
                             break;

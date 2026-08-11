@@ -46,16 +46,16 @@ void Initialize ();
 //! Destroy any static storage allocated by Initialize().
 void Finalize ();
 
-//! Vertex buffer storing coordinates and normals for extracted surfaces.
+//! Vertex buffer storing coordinates for extracted surfaces.
 struct Vertex
 {
-    Gpu::DeviceVector<Real> x, y, z, nx, ny, nz;
+    Gpu::DeviceVector<Real> x, y, z;
 
     //! Resize the vertex buffers to hold \p n entries.
     void resize (int n);
 
     //! Raw device pointers used when launching kernels.
-    GpuArray<Real*,6> dataPtrs () { return {x.data(), y.data(), z.data(), nx.data(), ny.data(), nz.data()}; }
+    GpuArray<Real*,3> dataPtrs () { return {x.data(), y.data(), z.data()}; }
 };
 
 //! Triangle index buffer referencing Vertex entries.

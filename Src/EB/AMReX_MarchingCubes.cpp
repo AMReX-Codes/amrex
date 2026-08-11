@@ -287,7 +287,7 @@ AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int k,
                    Array4<Real const> const& sdf, Array4<int const> const& ex,
                    Array4<int const> const& ey, Array4<int const> const& ez,
-                   GpuArray<Real*,6> const& pvrtx, Array4<int> const& ntri,
+                   GpuArray<Real*,3> const& pvrtx, Array4<int> const& ntri,
                    GpuArray<int*,3> const& ptri, int* error)
 {
     std::uint8_t lut_entry = 0;
@@ -546,20 +546,14 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         auto& vert_x  = pvrtx[0][m];
         auto& vert_y  = pvrtx[1][m];
         auto& vert_z  = pvrtx[2][m];
-        auto& vert_nx = pvrtx[3][m];
-        auto& vert_ny = pvrtx[4][m];
-        auto& vert_nz = pvrtx[5][m];
 
-        vert_x = vert_y = vert_z = vert_nx = vert_ny = vert_nz = 0 ;
+        vert_x = vert_y = vert_z = 0 ;
 
         auto update_vertex = [&] () {
             ++u ;
             vert_x  += pvrtx[0][vid];
             vert_y  += pvrtx[1][vid];
             vert_z  += pvrtx[2][vid];
-            vert_nx += pvrtx[3][vid];
-            vert_ny += pvrtx[4][vid];
-            vert_nz += pvrtx[5][vid];
         };
 
 
@@ -592,14 +586,6 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         vert_x  *= Real(1)/u ;
         vert_y  *= Real(1)/u ;
         vert_z  *= Real(1)/u ;
-
-        u = std::sqrt( vert_nx * vert_nx + vert_ny * vert_ny +vert_nz * vert_nz ) ;
-        if( u > 0 )
-        {
-            vert_nx *= Real(1)/u ;
-            vert_ny *= Real(1)/u ;
-            vert_nz *= Real(1)/u ;
-        }
 
         return m;
     };
@@ -953,9 +939,6 @@ void Vertex::resize (int n)
     x.resize(n);
     y.resize(n);
     z.resize(n);
-    nx.resize(n);
-    ny.resize(n);
-    nz.resize(n);
 }
 
 void Triangle::resize (int n)
@@ -967,9 +950,8 @@ void Triangle::resize (int n)
 
 void MCFab::defineEdgeIntersections (Box const& sdf_box)
 {
-    Box const nbox = amrex::grow(sdf_box, -1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        Box const edge_box = amrex::enclosedCells(nbox, idim);
+        Box const edge_box = amrex::enclosedCells(sdf_box, idim);
         m_edge_intersections[idim].resize(edge_box, 1);
         m_edge_intersections[idim].setVal(
             std::numeric_limits<Real>::quiet_NaN());
@@ -986,8 +968,7 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     // nodes to ON without introducing a new positive fluid sample.
     auto const& sdf = sdf_fab.array();
 
-    Box nbox = sdf_fab.box();
-    nbox.grow(-1); // Shrink the box by 1 so that we can compute gradient of sdf
+    Box const nbox = sdf_fab.box();
     Box cbox = amrex::enclosedCells(nbox);
     Box exbox = amrex::enclosedCells(nbox, 0);
     Box eybox = amrex::enclosedCells(nbox, 1);
@@ -1074,21 +1055,6 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
             pvrtx[0][m] = Real(i) + u;
             pvrtx[1][m] = Real(j);
             pvrtx[2][m] = Real(k);
-            Real nx = (Real(1)-u) * (sdf(i+1,j  ,k  ) - sdf(i-1,j  ,k  ))
-                +              u  * (sdf(i+2,j,  k  ) - sdf(i  ,j  ,k  ));
-            Real ny = (Real(1)-u) * (sdf(i  ,j+1,k  ) - sdf(i  ,j-1,k  ))
-                +              u  * (sdf(i+1,j+1,k  ) - sdf(i+1,j-1,k  ));
-            Real nz = (Real(1)-u) * (sdf(i  ,j  ,k+1) - sdf(i  ,j  ,k-1))
-                +              u  * (sdf(i+1,j  ,k+1) - sdf(i+1,j  ,k-1));
-            Real norm = std::sqrt(nx*nx + ny*ny + nz*nz);
-            if (norm > 0) {
-                nx *= Real(1)/norm;
-                ny *= Real(1)/norm;
-                nz *= Real(1)/norm;
-            }
-            pvrtx[3][m] = nx;
-            pvrtx[4][m] = ny;
-            pvrtx[5][m] = nz;
         }
         if (ey.contains(i,j,k) && ey(i,j,k,0)) {
             int m = ey(i,j,k,1);
@@ -1097,21 +1063,6 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
             pvrtx[0][m] = Real(i);
             pvrtx[1][m] = Real(j) + u;
             pvrtx[2][m] = Real(k);
-            Real nx = (Real(1)-u) * (sdf(i+1,j  ,k  ) - sdf(i-1,j  ,k  ))
-                +              u  * (sdf(i+1,j+1,k  ) - sdf(i-1,j+1,k  ));
-            Real ny = (Real(1)-u) * (sdf(i  ,j+1,k  ) - sdf(i  ,j-1,k  ))
-                +              u  * (sdf(i  ,j+2,k  ) - sdf(i  ,j  ,k  ));
-            Real nz = (Real(1)-u) * (sdf(i  ,j  ,k+1) - sdf(i  ,j  ,k-1))
-                +              u  * (sdf(i  ,j+1,k+1) - sdf(i  ,j+1,k-1));
-            Real norm = std::sqrt(nx*nx + ny*ny + nz*nz);
-            if (norm > 0) {
-                nx *= Real(1)/norm;
-                ny *= Real(1)/norm;
-                nz *= Real(1)/norm;
-            }
-            pvrtx[3][m] = nx;
-            pvrtx[4][m] = ny;
-            pvrtx[5][m] = nz;
         }
         if (ez.contains(i,j,k) && ez(i,j,k,0)) {
             int m = ez(i,j,k,1);
@@ -1120,21 +1071,6 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
             pvrtx[0][m] = Real(i);
             pvrtx[1][m] = Real(j);
             pvrtx[2][m] = Real(k) + u;
-            Real nx = (Real(1)-u) * (sdf(i+1,j  ,k  ) - sdf(i-1,j  ,k  ))
-                +              u  * (sdf(i+1,j,  k+1) - sdf(i-1,j  ,k+1));
-            Real ny = (Real(1)-u) * (sdf(i  ,j+1,k  ) - sdf(i  ,j-1,k  ))
-                +              u  * (sdf(i  ,j+1,k+1) - sdf(i  ,j-1,k+1));
-            Real nz = (Real(1)-u) * (sdf(i  ,j  ,k+1) - sdf(i  ,j  ,k-1))
-                +              u  * (sdf(i  ,j  ,k+2) - sdf(i  ,j  ,k  ));
-            Real norm = std::sqrt(nx*nx + ny*ny + nz*nz);
-            if (norm > 0) {
-                nx *= Real(1)/norm;
-                ny *= Real(1)/norm;
-                nz *= Real(1)/norm;
-            }
-            pvrtx[3][m] = nx;
-            pvrtx[4][m] = ny;
-            pvrtx[5][m] = nz;
         }
     });
 
@@ -1219,7 +1155,7 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
 
     mc_fab.m_cell_data = std::move(ntri_fab);
     mc_fab.m_triangles = std::move(tri);
-    mc_fab.m_vertices = std::move(vrtx); // We can probably release the memory used by nx, ny, nz.
+    mc_fab.m_vertices = std::move(vrtx);
 }
 
 int build_face_fractions (

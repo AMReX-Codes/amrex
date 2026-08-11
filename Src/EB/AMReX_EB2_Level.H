@@ -726,7 +726,7 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
     }
 
     BoxArray const nodal_grids = amrex::convert(m_grids, IntVect::TheNodeVector());
-    m_sdf.define(nodal_grids, m_dmap, 1, IntVect(2), mf_info);
+    m_sdf.define(nodal_grids, m_dmap, 1, IntVect(1), mf_info);
     gshop.fillMarchingCubesLevelSet(m_sdf, m_sdf.nGrowVect(), geom);
 
     std::map<int, std::unique_ptr<MC::MCFab>> marching_cubes;
