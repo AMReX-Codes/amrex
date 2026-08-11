@@ -5,7 +5,6 @@
 #include <AMReX_MarchingCubes.H>
 #include <AMReX_Math.H>
 #include <AMReX_Stack.H>
-#include <AMReX_iMultiFab.H>
 
 #include <array>
 #include <cstring>
@@ -1518,12 +1517,14 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
     mf.OverrideSync(geom.periodicity());
     mf.FillBoundary(geom.periodicity());
 
-    iMultiFab exact_band(mf.boxArray(), mf.DistributionMap(), 1, nghost);
-    exact_band.setVal(0);
+    FabArray<BaseFab<char>> exact_band(
+        mf.boxArray(), mf.DistributionMap(), 1, nghost);
 
     // A radius-two sign search includes every corner of a mixed cell and the
     // additional node needed by the centered SDF-gradient stencils used when
-    // constructing MC vertices.
+    // constructing MC vertices.  A byte mask preserves the level-wide kernel
+    // batching while using one quarter of the old integer-mask storage.
+
     for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
         Box const bx = mf[mfi].box();
         int const ilo = bx.smallEnd(0);

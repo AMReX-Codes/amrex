@@ -7,6 +7,13 @@ set(_sources  main.cpp)
 set(_input_files
     inputs
     inputs.cleanup
+    inputs.multilevel
+    inputs.multilevel.rebuild
+    inputs.nodal
+    inputs.periodic
+    inputs.scaled
+    inputs.extend-domain
+    inputs.anisotropic
     inputs.open-stl
     cube.stl
     open_surface.stl
@@ -22,7 +29,8 @@ set_tests_properties(EB_MarchingCubes_3d PROPERTIES
     LABELS "${_mc_test_labels}")
 
 function(add_mc_test_variant _test_name _inputs_filename)
-    set(_cmd $<TARGET_FILE:Test_EB_MarchingCubes_3d> ${_inputs_filename} ${ARGN})
+    set(_cmd $<TARGET_FILE:Test_EB_MarchingCubes_3d> ${_inputs_filename}
+        algorithm_tests=0 ${ARGN})
     if (AMReX_MPI)
         set(_cmd ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
             ${MPIEXEC_PREFLAGS} ${_cmd} ${MPIEXEC_POSTFLAGS})
@@ -39,6 +47,14 @@ function(add_mc_test_variant _test_name _inputs_filename)
 endfunction()
 
 add_mc_test_variant(EB_MarchingCubesCleanup_3d inputs.cleanup)
+add_mc_test_variant(EB_MarchingCubesMultilevel_3d inputs.multilevel)
+add_mc_test_variant(EB_MarchingCubesMultilevelRebuild_3d inputs.multilevel.rebuild)
+add_mc_test_variant(EB_MarchingCubesNodal_3d inputs.nodal)
+add_mc_test_variant(EB_MarchingCubesPeriodic_3d inputs.periodic)
+add_mc_test_variant(EB_MarchingCubesScaled_3d inputs.scaled)
+add_mc_test_variant(EB_MarchingCubesExtendDomain_3d inputs.extend-domain)
+add_mc_test_variant(EB_MarchingCubesExtendDomainLegacy_3d inputs.extend-domain
+    eb2.stl_geometry_method=legacy)
 add_mc_test_variant(EB_MarchingCubesLegacySTL_3d inputs
     narrow_band_test=0
     eb2.stl_geometry_method=legacy
@@ -90,6 +106,8 @@ endfunction()
 
 add_expected_failure(EB_MarchingCubesRejectOpenSTL_3d
     inputs.open-stl "STL is open, nonmanifold, or inconsistently oriented")
+add_expected_failure(EB_MarchingCubesRejectAnisotropic_3d
+    inputs.anisotropic "requires a 3D Cartesian grid")
 
 unset(_sources)
 unset(_input_files)

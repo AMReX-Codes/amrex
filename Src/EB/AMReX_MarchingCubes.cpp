@@ -304,8 +304,6 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
 
     int face_valid_mask = 0;
     int face_connected_mask = 0;
-    int interior_count = 0;
-    int interior_mask = 0;
 
     auto add_triangle = [&] (const std::int8_t* trig, std::int8_t n, int v12 = -1) -> int
     {
@@ -531,14 +529,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
     auto test_interior = [&] (std::int8_t c, std::int8_t config,
                               std::int8_t subconfig, std::int8_t s) -> bool
     {
-        bool const result = test_interior_impl(c,config,subconfig,s);
-        if (interior_count < std::numeric_limits<int>::digits) {
-            if (result) {
-                interior_mask |= 1 << interior_count;
-            }
-            ++interior_count;
-        }
-        return result;
+        return test_interior_impl(c,config,subconfig,s);
     };
 
     auto add_c_vertex = [&] () -> int
@@ -924,14 +915,8 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
 
     if (ipass == 0) {
         ntri(i,j,k,triangle_count) = nt;
-        ntri(i,j,k,MC::lut_entry) = int(lut_entry);
-        ntri(i,j,k,case_id) = int(static_cast<unsigned char>(_case));
-        ntri(i,j,k,configuration) = int(static_cast<unsigned char>(_config));
-        ntri(i,j,k,subconfiguration) = int(static_cast<unsigned char>(_subconfig));
         ntri(i,j,k,face_decision_valid_mask) = face_valid_mask;
         ntri(i,j,k,face_fluid_connected_mask) = face_connected_mask;
-        ntri(i,j,k,interior_decision_count) = interior_count;
-        ntri(i,j,k,interior_decision_mask) = interior_mask;
     }
 }
 
@@ -984,8 +969,8 @@ void MCFab::defineEdgeIntersections (Box const& sdf_box)
 {
     Box const nbox = amrex::grow(sdf_box, -1);
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        m_edge_intersections[idim].resize(
-            amrex::enclosedCells(nbox, idim), 1);
+        Box const edge_box = amrex::enclosedCells(nbox, idim);
+        m_edge_intersections[idim].resize(edge_box, 1);
         m_edge_intersections[idim].setVal(
             std::numeric_limits<Real>::quiet_NaN());
     }
@@ -1191,6 +1176,7 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
         amrex::Abort("Marching Cubes: invalid triangle");
     }
 
+    int const edge_vertex_count = nvx;
     int nvx_c = Scan::PrefixSum<int>(int(cbox.numPts()),
                                      [=] AMREX_GPU_DEVICE (int m) {
                                          auto [i,j,k] = c_bi(m);
@@ -1198,7 +1184,8 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
                                      },
                                      [=] AMREX_GPU_DEVICE (int m, int ps) {
                                          auto [i,j,k] = c_bi(m);
-                                         ntri(i,j,k,interior_vertex_offset) = ps;
+                                         ntri(i,j,k,interior_vertex_offset) =
+                                             edge_vertex_count + ps;
                                      },
                                      Scan::Type::exclusive, Scan::retSum);
 
@@ -1927,6 +1914,14 @@ Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
     BL_PROFILE("MC::zero_nodes_for_cleanup");
 
     AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(node_box));
+    AMREX_ALWAYS_ASSERT(rejected_cells_fab.box().contains(
+        amrex::enclosedCells(amrex::grow(node_box, 1))));
+    AMREX_ALWAYS_ASSERT(rejected_x_fab.box().contains(amrex::convert(
+        amrex::grow(node_box, IntVect(0, 1, 1)), IntVect::TheDimensionVector(0))));
+    AMREX_ALWAYS_ASSERT(rejected_y_fab.box().contains(amrex::convert(
+        amrex::grow(node_box, IntVect(1, 0, 1)), IntVect::TheDimensionVector(1))));
+    AMREX_ALWAYS_ASSERT(rejected_z_fab.box().contains(amrex::convert(
+        amrex::grow(node_box, IntVect(1, 1, 0)), IntVect::TheDimensionVector(2))));
     auto const rejected_cells = rejected_cells_fab.const_array();
     auto const rejected_x = rejected_x_fab.const_array();
     auto const rejected_y = rejected_y_fab.const_array();

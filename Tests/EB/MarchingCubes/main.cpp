@@ -29,8 +29,8 @@ bool resolved_bottom_face_is_fluid_connected (GpuArray<Real, 8> const& values)
         phi(i, j, k) = values[n];
     });
 
-    Geometry geom(cell_box, RealBox({0.0_rt, 0.0_rt, 0.0_rt}, {1.0_rt, 1.0_rt, 1.0_rt}), 0,
-                  {0, 0, 0});
+    Geometry geom(cell_box, RealBox({0.0_rt, 0.0_rt, 0.0_rt},
+                                    {1.0_rt, 1.0_rt, 1.0_rt}), 0, {0, 0, 0});
     MC::MCFab result;
     MC::marching_cubes(geom, sdf, result);
 
@@ -40,7 +40,6 @@ bool resolved_bottom_face_is_fluid_connected (GpuArray<Real, 8> const& values)
     int const bit = 1 << 4; // MC33 face 5: the low-z face.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((host[MC::face_decision_valid_mask] & bit) != 0,
                                      "MC33 did not retain its resolved low-z face decision");
-    AMREX_ALWAYS_ASSERT(host[MC::case_id] >= 0);
     return (host[MC::face_fluid_connected_mask] & bit) != 0;
 }
 
@@ -53,6 +52,60 @@ void validate_mc33_face_decisions ()
         {1.0_rt, -2.0_rt, 1.0_rt, -2.0_rt, -1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt}));
     AMREX_ALWAYS_ASSERT(resolved_bottom_face_is_fluid_connected(
         {1.0_rt, -1.0_rt, 1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt}));
+}
+
+void validate_mc33_vertex_indices ()
+{
+    Box const cell_box(IntVect(0), IntVect(0));
+    Box const node_box = amrex::surroundingNodes(amrex::grow(cell_box, 1));
+    Box const cube_nodes = amrex::surroundingNodes(cell_box);
+    Geometry geom(cell_box, RealBox({0.0_rt, 0.0_rt, 0.0_rt},
+                                    {1.0_rt, 1.0_rt, 1.0_rt}), 0, {0, 0, 0});
+    for (int mask = 0; mask < 256; ++mask) {
+        FArrayBox sdf(node_box, 1);
+        sdf.setVal(-1.0_rt);
+        auto const phi = sdf.array();
+        ParallelFor(cube_nodes, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+            int const n = 4 * k + (j == 0 ? i : 3 - i);
+            Real const magnitude = 1.0_rt + 0.125_rt * static_cast<Real>(n);
+            phi(i, j, k) = (mask & (1 << n)) != 0 ? magnitude : -magnitude;
+        });
+
+        MC::MCFab result;
+        MC::marching_cubes(geom, sdf, result);
+
+        Gpu::PinnedVector<int> cell_data(result.m_cell_data.nComp());
+        Gpu::dtoh_memcpy(cell_data.data(), result.m_cell_data.dataPtr(),
+                         cell_data.size() * sizeof(int));
+
+        int const ntri = cell_data[MC::triangle_count];
+        int const interior_count = cell_data[MC::interior_vertex_count];
+        int const interior_offset = cell_data[MC::interior_vertex_offset];
+        int const nvertices = static_cast<int>(result.m_vertices.x.size());
+        int const edge_vertex_count = nvertices - interior_count;
+        AMREX_ALWAYS_ASSERT(ntri == static_cast<int>(result.m_triangles.v1.size()));
+        AMREX_ALWAYS_ASSERT(interior_count == 0 || interior_count == 1);
+        if (interior_count != 0) {
+            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+                interior_offset == edge_vertex_count,
+                "MC33 interior vertex overlaps the Cartesian-edge vertex block");
+        }
+
+        Gpu::PinnedVector<int> v1(ntri);
+        Gpu::PinnedVector<int> v2(ntri);
+        Gpu::PinnedVector<int> v3(ntri);
+        if (ntri != 0) {
+            Gpu::dtoh_memcpy(v1.data(), result.m_triangles.v1.data(), ntri * sizeof(int));
+            Gpu::dtoh_memcpy(v2.data(), result.m_triangles.v2.data(), ntri * sizeof(int));
+            Gpu::dtoh_memcpy(v3.data(), result.m_triangles.v3.data(), ntri * sizeof(int));
+        }
+        Gpu::streamSynchronize();
+        for (int n = 0; n < ntri; ++n) {
+            AMREX_ALWAYS_ASSERT(v1[n] >= 0 && v1[n] < nvertices);
+            AMREX_ALWAYS_ASSERT(v2[n] >= 0 && v2[n] < nvertices);
+            AMREX_ALWAYS_ASSERT(v3[n] >= 0 && v3[n] < nvertices);
+        }
+    }
 }
 
 void validate_exact_ambiguous_face_fraction ()
@@ -282,8 +335,14 @@ void main_main ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         Gpu::inLaunchRegion(), "The marching-cubes GPU test must execute in a GPU launch region");
 #endif
-    validate_mc33_face_decisions();
-    validate_exact_ambiguous_face_fraction();
+    bool algorithm_tests = true;
+    ParmParse pp;
+    pp.query("algorithm_tests", algorithm_tests);
+    if (algorithm_tests) {
+        validate_mc33_face_decisions();
+        validate_mc33_vertex_indices();
+        validate_exact_ambiguous_face_fraction();
+    }
 
     int nx = 64;
     int ny = 64;
@@ -308,7 +367,6 @@ void main_main ()
     Real stl_scale = 1.0;
     std::vector<Real> stl_center{0.0, 0.0, 0.0};
     {
-        ParmParse pp;
         pp.query("nx", nx);
         pp.query("ny", ny);
         pp.query("nz", nz);

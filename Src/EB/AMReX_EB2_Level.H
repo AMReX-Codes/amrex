@@ -738,10 +738,15 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
     }
     auto const& mc_fabs = marching_cubes;
 
-    iMultiFab rejected_cells(m_grids, m_dmap, 1, 2, mf_info);
+    iMultiFab rejected_cells(m_grids, m_dmap, 1, IntVect(1), mf_info);
+    AMREX_ALWAYS_ASSERT(rejected_cells.nGrowVect() == IntVect(1));
     Array<iMultiFab, AMREX_SPACEDIM> rejected_faces;
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        rejected_faces[idim].define(m_areafrac[idim].boxArray(), m_dmap, 1, 2, mf_info);
+        IntVect const transverse_ghost =
+            IntVect::TheUnitVector() - IntVect::TheDimensionVector(idim);
+        rejected_faces[idim].define(m_areafrac[idim].boxArray(), m_dmap, 1,
+                                    transverse_ghost, mf_info);
+        AMREX_ALWAYS_ASSERT(rejected_faces[idim].nGrowVect() == transverse_ghost);
     }
     Box const domain = geom.Domain();
     GpuArray<int, 3> const is_periodic{geom.isPeriodic(0), geom.isPeriodic(1), geom.isPeriodic(2)};
@@ -784,10 +789,6 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
             Box const gbx = amrex::grow(vbx, 1);
             auto const sdf = m_sdf.const_array(mfi);
             auto const vfrac = m_volfrac.array(mfi);
-            auto const vcent = m_centroid.array(mfi);
-            auto const barea = m_bndryarea.array(mfi);
-            auto const bcent = m_bndrycent.array(mfi);
-            auto const bnorm = m_bndrynorm.array(mfi);
 
             ParallelFor(gbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
                 int nfluid = 0;
@@ -800,12 +801,6 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
                 nfluid += sdf(i, j + 1, k + 1) > 0.0_rt;
                 nfluid += sdf(i + 1, j + 1, k + 1) > 0.0_rt;
                 vfrac(i, j, k) = nfluid == 0 ? 0.0_rt : (nfluid == 8 ? 1.0_rt : -1.0_rt);
-                barea(i, j, k) = 0.0_rt;
-                for (int n = 0; n < AMREX_SPACEDIM; ++n) {
-                    vcent(i, j, k, n) = 0.0_rt;
-                    bcent(i, j, k, n) = -1.0_rt;
-                    bnorm(i, j, k, n) = 0.0_rt;
-                }
             });
 
             face_geometry_errors += MC::build_face_fractions(
@@ -846,8 +841,9 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
             "the nodal repair set");
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             cover_multiple_cuts || face_rejections + topology_rejections == 0,
-            "Marching-cubes EB found " + std::to_string(face_rejections + topology_rejections) +
-                " faces or cells whose topology cannot be represented by one VoF; "
+            "Marching-cubes EB found " + std::to_string(face_rejections) +
+                " unsupported faces and " + std::to_string(topology_rejections) +
+                " unsupported cells; "
                 "set eb2.cover_multiple_cuts=1 to enable legacy-style nodal "
                 "repair");
 
@@ -886,8 +882,8 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
             }
             if (face_rejections + topology_rejections > 0) {
                 amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " fixed "
-                               << face_rejections + topology_rejections
-                               << " unsupported faces/cells\n";
+                               << face_rejections << " unsupported faces and "
+                               << topology_rejections << " unsupported cells\n";
             }
             if (extension_rejections > 0) {
                 amrex::Print() << "AMReX MC EB: Iter. " << iter + 1 << " extended "

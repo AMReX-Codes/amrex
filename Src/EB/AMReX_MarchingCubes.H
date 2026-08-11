@@ -27,24 +27,17 @@ enum RejectionReason : int {
 };
 
 /**
- * Components stored in MCFab::m_cell_data.  Besides the compact triangle
- * ranges, these retain the MC33 ambiguity decisions made while selecting the
- * final tiling.  Downstream face/topology construction must consume this
- * resolution instead of running an independent decider.
+ * Components stored in MCFab::m_cell_data.  Besides compact triangle and
+ * interior-vertex ranges, these retain the MC33 face decisions consumed by
+ * downstream face construction.
  */
 enum CellDataComponent : int {
     triangle_count = 0,
     triangle_offset,
     interior_vertex_count,
     interior_vertex_offset,
-    lut_entry,
-    case_id,
-    configuration,
-    subconfiguration,
     face_decision_valid_mask,
     face_fluid_connected_mask,
-    interior_decision_count,
-    interior_decision_mask,
     num_cell_data_components
 };
 
@@ -81,7 +74,7 @@ struct Triangle
 class MCFab
 {
 public:
-    //! Per-cell ranges and resolved MC33 case/ambiguity metadata.
+    //! Per-cell triangle/interior ranges and resolved MC33 face decisions.
     BaseFab<int> m_cell_data;
     //! Exact normalized STL crossings on Cartesian edges, when available.
     Array<BaseFab<Real>,AMREX_SPACEDIM> m_edge_intersections;
