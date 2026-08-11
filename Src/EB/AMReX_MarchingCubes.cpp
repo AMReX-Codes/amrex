@@ -1404,7 +1404,6 @@ int build_cell_fractions (
     Box const& bx, Geometry const& geom, MCFab const& mc_fab,
     FArrayBox const& sdf_fab,
     FArrayBox& apx_fab, FArrayBox& apy_fab, FArrayBox& apz_fab,
-    FArrayBox& fcx_fab, FArrayBox& fcy_fab, FArrayBox& fcz_fab,
     FArrayBox& vfrac_fab, FArrayBox& vcent_fab, FArrayBox& barea_fab,
     FArrayBox& bcent_fab, FArrayBox& bnorm_fab)
 {
@@ -1427,9 +1426,6 @@ int build_cell_fractions (
     auto const apx = apx_fab.array();
     auto const apy = apy_fab.array();
     auto const apz = apz_fab.array();
-    auto const fcx = fcx_fab.array();
-    auto const fcy = fcy_fab.array();
-    auto const fcz = fcz_fab.array();
     auto const vfrac = vfrac_fab.array();
     auto const vcent = vcent_fab.array();
     auto const barea = barea_fab.array();

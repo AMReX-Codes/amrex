@@ -815,9 +815,8 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
                                      m_edgecent[1][mfi], m_edgecent[2][mfi]);
             cell_geometry_errors += MC::build_cell_fractions(
                 vbx, geom, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_areafrac[0][mfi],
-                m_areafrac[1][mfi], m_areafrac[2][mfi], m_facecent[0][mfi], m_facecent[1][mfi],
-                m_facecent[2][mfi], m_volfrac[mfi], m_centroid[mfi], m_bndryarea[mfi],
-                m_bndrycent[mfi], m_bndrynorm[mfi]);
+                m_areafrac[1][mfi], m_areafrac[2][mfi], m_volfrac[mfi], m_centroid[mfi],
+                m_bndryarea[mfi], m_bndrycent[mfi], m_bndrynorm[mfi]);
 
             face_rejections += MC::mark_faces_for_cleanup(
                 vbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], rejected_faces[0][mfi],

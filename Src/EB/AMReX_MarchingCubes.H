@@ -133,7 +133,6 @@ int build_cell_fractions (
     Box const& bx, Geometry const& geom, MCFab const& mc_fab,
     FArrayBox const& sdf,
     FArrayBox& apx, FArrayBox& apy, FArrayBox& apz,
-    FArrayBox& fcx, FArrayBox& fcy, FArrayBox& fcz,
     FArrayBox& vfrac, FArrayBox& vcent, FArrayBox& barea,
     FArrayBox& bcent, FArrayBox& bnorm);
 
