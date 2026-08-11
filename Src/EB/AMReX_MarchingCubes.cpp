@@ -43,6 +43,100 @@ bool four_crossing_fluid_is_connected (Real const* levelset) noexcept
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+EB2::Type_t face_type (Real area, Real tolerance) noexcept
+{
+    if (area <= tolerance) {
+        return EB2::Type::covered;
+    } else if (area >= 1.0_rt-tolerance) {
+        return EB2::Type::regular;
+    } else {
+        return EB2::Type::irregular;
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void consume_face_decision (Array4<int const> const& cell_data,
+                            Box const& cell_box, int i, int j, int k,
+                            int face, int& valid, int& connected) noexcept
+{
+    if (valid == 0 && cell_box.contains(i,j,k)) {
+        int const bit = 1 << face;
+        if ((cell_data(i,j,k,face_decision_valid_mask) & bit) != 0) {
+            valid = 1;
+            connected =
+                (cell_data(i,j,k,face_fluid_connected_mask) & bit) != 0;
+        }
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+void accumulate_face_decision (Array4<int const> const& cell_data,
+                               Box const& cell_box, int i, int j, int k,
+                               int face, int* error,
+                               int& valid, int& connected) noexcept
+{
+    if (cell_box.contains(i,j,k)) {
+        int const bit = 1 << face;
+        int const valid_mask =
+            cell_data(i,j,k,face_decision_valid_mask);
+        if ((valid_mask & bit) != 0) {
+            int const decision =
+                (cell_data(i,j,k,face_fluid_connected_mask) & bit) != 0;
+            if (valid != 0 && connected != decision) {
+                Gpu::Atomic::AddNoRet(error,1);
+            } else if (valid == 0) {
+                connected = decision;
+            }
+            valid = 1;
+        }
+    }
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+GpuArray<int,2> resolved_face_decision (
+    Array4<int const> const& cell_data, Box const& cell_box, int* error,
+    int ilo, int jlo, int klo, int flo,
+    int ihi, int jhi, int khi, int fhi) noexcept
+{
+    int valid = 0;
+    int connected = 0;
+    accumulate_face_decision(cell_data, cell_box, ilo, jlo, klo, flo,
+                             error, valid, connected);
+    accumulate_face_decision(cell_data, cell_box, ihi, jhi, khi, fhi,
+                             error, valid, connected);
+    return {valid,connected};
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+bool face_is_rejected (Real a, Real b, Real c, Real d,
+                       Array4<int const> const& cell_data,
+                       Box const& cell_box,
+                       int ilo, int jlo, int klo, int flo,
+                       int ihi, int jhi, int khi, int fhi) noexcept
+{
+    bool const f0 = a > 0.0_rt;
+    bool const f1 = b > 0.0_rt;
+    bool const f2 = c > 0.0_rt;
+    bool const f3 = d > 0.0_rt;
+    if (!(f0 == f2 && f1 == f3 && f0 != f1)) {
+        return false;
+    }
+
+    int valid = 0;
+    int connected = 0;
+    consume_face_decision(cell_data, cell_box, ilo, jlo, klo, flo,
+                          valid, connected);
+    consume_face_decision(cell_data, cell_box, ihi, jhi, khi, fhi,
+                          valid, connected);
+
+    Real const values[4] = {a, b, c, d};
+    bool const fluid_connected = valid != 0
+        ? connected != 0
+        : four_crossing_fluid_is_connected(values);
+    return !fluid_connected;
+}
+
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void cut_face_fraction (Real const* levelset, Real& area,
                         Real& centroid_x, Real& centroid_y,
                         bool has_resolved_decision,
@@ -847,6 +941,7 @@ void Finalize ()
         delete h_table;
         h_table = nullptr;
 #ifdef AMREX_USE_GPU
+        Gpu::streamSynchronizeAll();
         The_Arena()->free(d_table);
 #endif
         d_table = nullptr;
@@ -1119,36 +1214,6 @@ int build_face_fractions (
     Gpu::Buffer<int> error_count({0});
     int* const error = error_count.data();
 
-    auto resolved_face_decision =
-        [=] AMREX_GPU_DEVICE (int ilo, int jlo, int klo, int flo,
-                              int ihi, int jhi, int khi, int fhi) noexcept
-            -> GpuArray<int,2>
-    {
-        int valid = 0;
-        int connected = 0;
-        auto consume = [&] (int i, int j, int k, int face) noexcept
-        {
-            if (cell_box.contains(i,j,k)) {
-                int const bit = 1 << face;
-                int const valid_mask =
-                    cell_data(i,j,k,face_decision_valid_mask);
-                if ((valid_mask & bit) != 0) {
-                    int const decision =
-                        (cell_data(i,j,k,face_fluid_connected_mask) & bit) != 0;
-                    if (valid != 0 && connected != decision) {
-                        Gpu::Atomic::AddNoRet(error,1);
-                    } else if (valid == 0) {
-                        connected = decision;
-                    }
-                    valid = 1;
-                }
-            }
-        };
-        consume(ilo,jlo,klo,flo);
-        consume(ihi,jhi,khi,fhi);
-        return {valid,connected};
-    };
-
     // Chombo's moment construction starts with boundary-face moments.  Build
     // those apertures from the same signed-distance edge intersections used
     // by marching cubes, so the six Cartesian patches and EB triangles close.
@@ -1160,7 +1225,7 @@ int build_face_fractions (
             sdf(i,j+1,k+1), sdf(i,j  ,k+1)
         };
         auto const decision = resolved_face_decision(
-            i-1,j,k,1, i,j,k,3);
+            cell_data, cell_box, error, i-1,j,k,1, i,j,k,3);
         cut_face_fraction(face_levelset, apx(i,j,k),
                           fcx(i,j,k,0), fcx(i,j,k,1),
                           decision[0] != 0, decision[1] != 0, error);
@@ -1174,7 +1239,7 @@ int build_face_fractions (
             sdf(i+1,j,k+1), sdf(i  ,j,k+1)
         };
         auto const decision = resolved_face_decision(
-            i,j-1,k,2, i,j,k,0);
+            cell_data, cell_box, error, i,j-1,k,2, i,j,k,0);
         cut_face_fraction(face_levelset, apy(i,j,k),
                           fcy(i,j,k,0), fcy(i,j,k,1),
                           decision[0] != 0, decision[1] != 0, error);
@@ -1188,7 +1253,7 @@ int build_face_fractions (
             sdf(i+1,j+1,k), sdf(i  ,j+1,k)
         };
         auto const decision = resolved_face_decision(
-            i,j,k-1,5, i,j,k,4);
+            cell_data, cell_box, error, i,j,k-1,5, i,j,k,4);
         cut_face_fraction(face_levelset, apz(i,j,k),
                           fcz(i,j,k,0), fcz(i,j,k,1),
                           decision[0] != 0, decision[1] != 0, error);
@@ -1622,24 +1687,14 @@ int build_cell_topology(Box const &bx, MCFab const &mc_fab,
     }
   });
 
-  auto face_type = [] AMREX_GPU_DEVICE(Real area) noexcept -> EB2::Type_t {
-    if (area <= tolerance) {
-      return EB2::Type::covered;
-    } else if (area >= 1.0_rt - tolerance) {
-      return EB2::Type::regular;
-    } else {
-      return EB2::Type::irregular;
-    }
-  };
-
   ParallelFor(fxbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    fx(i, j, k) = face_type(apx(i, j, k));
+    fx(i, j, k) = face_type(apx(i, j, k), tolerance);
   });
   ParallelFor(fybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    fy(i, j, k) = face_type(apy(i, j, k));
+    fy(i, j, k) = face_type(apy(i, j, k), tolerance);
   });
   ParallelFor(fzbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    fz(i, j, k) = face_type(apz(i, j, k));
+    fz(i, j, k) = face_type(apz(i, j, k), tolerance);
   });
 
   Gpu::Buffer<int> error_count({0});
@@ -1698,44 +1753,12 @@ int mark_faces_for_cleanup(Box const &bx, MCFab const &mc_fab,
   Gpu::Buffer<int> rejection_count({0});
   int *const count = rejection_count.data();
 
-  auto face_is_rejected =
-      [=] AMREX_GPU_DEVICE(Real a, Real b, Real c, Real d, int ilo, int jlo,
-                           int klo, int flo, int ihi, int jhi, int khi,
-                           int fhi) noexcept -> bool {
-    bool const f0 = a > 0.0_rt;
-    bool const f1 = b > 0.0_rt;
-    bool const f2 = c > 0.0_rt;
-    bool const f3 = d > 0.0_rt;
-    if (!(f0 == f2 && f1 == f3 && f0 != f1)) {
-      return false;
-    }
-
-    int valid = 0;
-    int connected = 0;
-    auto consume = [&](int i, int j, int k, int face) noexcept {
-      if (cell_box.contains(i, j, k)) {
-        int const bit = 1 << face;
-        if ((cell_data(i, j, k, face_decision_valid_mask) & bit) != 0) {
-          valid = 1;
-          connected =
-              (cell_data(i, j, k, face_fluid_connected_mask) & bit) != 0;
-        }
-      }
-    };
-    consume(ilo, jlo, klo, flo);
-    if (valid == 0) {
-      consume(ihi, jhi, khi, fhi);
-    }
-    Real const values[4] = {a, b, c, d};
-    bool const fluid_connected =
-        valid != 0 ? connected != 0 : four_crossing_fluid_is_connected(values);
-    return !fluid_connected;
-  };
-
   ParallelFor(xbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
     bool const rejected =
-        face_is_rejected(sdf(i, j, k), sdf(i, j + 1, k), sdf(i, j + 1, k + 1),
-                         sdf(i, j, k + 1), i - 1, j, k, 1, i, j, k, 3);
+        face_is_rejected(sdf(i, j, k), sdf(i, j + 1, k),
+                         sdf(i, j + 1, k + 1), sdf(i, j, k + 1),
+                         cell_data, cell_box,
+                         i - 1, j, k, 1, i, j, k, 3);
     rejected_x(i, j, k) = rejected;
     if (rejected) {
       Gpu::Atomic::AddNoRet(count, 1);
@@ -1743,8 +1766,10 @@ int mark_faces_for_cleanup(Box const &bx, MCFab const &mc_fab,
   });
   ParallelFor(ybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
     bool const rejected =
-        face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k), sdf(i + 1, j, k + 1),
-                         sdf(i, j, k + 1), i, j - 1, k, 2, i, j, k, 0);
+        face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k),
+                         sdf(i + 1, j, k + 1), sdf(i, j, k + 1),
+                         cell_data, cell_box,
+                         i, j - 1, k, 2, i, j, k, 0);
     rejected_y(i, j, k) = rejected;
     if (rejected) {
       Gpu::Atomic::AddNoRet(count, 1);
@@ -1752,8 +1777,10 @@ int mark_faces_for_cleanup(Box const &bx, MCFab const &mc_fab,
   });
   ParallelFor(zbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
     bool const rejected =
-        face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k), sdf(i + 1, j + 1, k),
-                         sdf(i, j + 1, k), i, j, k - 1, 5, i, j, k, 4);
+        face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k),
+                         sdf(i + 1, j + 1, k), sdf(i, j + 1, k),
+                         cell_data, cell_box,
+                         i, j, k - 1, 5, i, j, k, 4);
     rejected_z(i, j, k) = rejected;
     if (rejected) {
       Gpu::Atomic::AddNoRet(count, 1);
