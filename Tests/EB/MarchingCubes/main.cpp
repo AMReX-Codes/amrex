@@ -7,10 +7,12 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_WriteEBSurface.H>
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <limits>
 #include <sstream>
+#include <utility>
 
 using namespace amrex;
 
@@ -21,7 +23,7 @@ bool resolved_bottom_face_is_fluid_connected (GpuArray<Real, 8> const& values)
     Box const cell_box(IntVect(0), IntVect(0));
     Box const node_box = amrex::surroundingNodes(cell_box);
     FArrayBox sdf(node_box, 1);
-    sdf.setVal(-1.0_rt);
+    sdf.setVal<RunOn::Device>(-1.0_rt);
     auto const phi = sdf.array();
     Box const cube_nodes = amrex::surroundingNodes(cell_box);
     ParallelFor(cube_nodes, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
@@ -34,8 +36,8 @@ bool resolved_bottom_face_is_fluid_connected (GpuArray<Real, 8> const& values)
     MC::MCFab result;
     MC::marching_cubes(geom, sdf, result);
 
-    Gpu::PinnedVector<int> host(result.m_cell_data.nComp());
-    Gpu::dtoh_memcpy(host.data(), result.m_cell_data.dataPtr(), host.size() * sizeof(int));
+    GpuArray<int, MC::num_cell_data_components> host{};
+    Gpu::dtoh_memcpy(host.data(), result.m_cell_data.dataPtr(), sizeof(host));
     Gpu::streamSynchronize();
     int const bit = 1 << 4; // MC33 face 5: the low-z face.
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE((host[MC::face_decision_valid_mask] & bit) != 0,
@@ -63,7 +65,7 @@ void validate_mc33_vertex_indices ()
                                     {1.0_rt, 1.0_rt, 1.0_rt}), 0, {0, 0, 0});
     for (int mask = 0; mask < 256; ++mask) {
         FArrayBox sdf(node_box, 1);
-        sdf.setVal(-1.0_rt);
+        sdf.setVal<RunOn::Device>(-1.0_rt);
         auto const phi = sdf.array();
         ParallelFor(cube_nodes, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
             int const n = 4 * k + (j == 0 ? i : 3 - i);
@@ -74,16 +76,15 @@ void validate_mc33_vertex_indices ()
         MC::MCFab result;
         MC::marching_cubes(geom, sdf, result);
 
-        Gpu::PinnedVector<int> cell_data(result.m_cell_data.nComp());
-        Gpu::dtoh_memcpy(cell_data.data(), result.m_cell_data.dataPtr(),
-                         cell_data.size() * sizeof(int));
+        GpuArray<int, MC::num_cell_data_components> cell_data{};
+        Gpu::dtoh_memcpy(cell_data.data(), result.m_cell_data.dataPtr(), sizeof(cell_data));
 
         int const ntri = cell_data[MC::triangle_count];
         int const interior_count = cell_data[MC::interior_vertex_count];
         int const interior_offset = cell_data[MC::interior_vertex_offset];
         int const nvertices = static_cast<int>(result.m_vertices.x.size());
         int const edge_vertex_count = nvertices - interior_count;
-        AMREX_ALWAYS_ASSERT(ntri == static_cast<int>(result.m_triangles.v1.size()));
+        AMREX_ALWAYS_ASSERT(std::cmp_equal(ntri, result.m_triangles.v1.size()));
         AMREX_ALWAYS_ASSERT(interior_count == 0 || interior_count == 1);
         if (interior_count != 0) {
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
@@ -113,7 +114,7 @@ void validate_exact_ambiguous_face_fraction ()
     Box const cell_box(IntVect(0), IntVect(0));
     Box const node_box = amrex::surroundingNodes(cell_box);
     FArrayBox sdf(node_box, 1);
-    sdf.setVal(1.0_rt);
+    sdf.setVal<RunOn::Device>(1.0_rt);
     auto const phi = sdf.array();
     ParallelFor(amrex::surroundingNodes(cell_box),
                 [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
@@ -124,7 +125,7 @@ void validate_exact_ambiguous_face_fraction ()
 
     MC::MCFab mc_fab;
     mc_fab.m_cell_data.resize(cell_box, MC::num_cell_data_components);
-    mc_fab.m_cell_data.setVal(0);
+    mc_fab.m_cell_data.setVal<RunOn::Device>(0);
     auto const cell_data = mc_fab.m_cell_data.array();
     ParallelFor(cell_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         cell_data(i, j, k, MC::face_decision_valid_mask) = 1 << 4;
@@ -149,12 +150,12 @@ void validate_exact_ambiguous_face_fraction ()
     int const errors =
         MC::build_face_fractions(cell_box, mc_fab, sdf, apx, apy, apz, fcx, fcy, fcz);
 
-    Gpu::PinnedVector<Real> area(1);
-    Gpu::dtoh_memcpy(area.data(), apz.dataPtr(), sizeof(Real));
+    Real area = 0.0_rt;
+    Gpu::dtoh_memcpy(&area, apz.dataPtr(), sizeof(Real));
     Gpu::streamSynchronize();
     AMREX_ALWAYS_ASSERT(errors == 0);
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        std::abs(area[0] - 0.23_rt) < 64.0_rt * std::numeric_limits<Real>::epsilon(),
+        std::abs(area - 0.23_rt) < 64.0_rt * std::numeric_limits<Real>::epsilon(),
         "Ambiguous MC face fraction did not use exact STL edge crossings");
 }
 
@@ -178,7 +179,9 @@ void validate_narrow_band_levelset ()
     exact.FillBoundary(geom.periodicity());
     stl.fillMarchingCubesLevelSet(narrow, narrow.nGrowVect(), geom);
 
-    Gpu::Buffer<Long> errors({0L, 0L, 0L, 0L});
+    Gpu::Buffer<Long> errors(4);
+    std::fill_n(errors.hostData(), errors.size(), static_cast<Long>(0));
+    errors.copyToDeviceAsync();
     Long* const error = errors.data();
     for (MFIter mfi(exact); mfi.isValid(); ++mfi) {
         auto const full = exact.const_array(mfi);
@@ -196,18 +199,18 @@ void validate_narrow_band_levelset ()
                 Real const hi = band(i + di, j + dj, k + dk);
                 Real const refined = crossing(i, j, k);
                 if ((lo > 0.0_rt) != (hi > 0.0_rt) && !amrex::isnan(refined)) {
-                    Gpu::Atomic::AddNoRet(error + 2, 1L);
+                    Gpu::Atomic::AddNoRet(error + 2, static_cast<Long>(1));
                     Real const linear = lo / (lo - hi);
                     if (std::abs(refined - linear) >
                         64.0_rt * std::numeric_limits<Real>::epsilon()) {
-                        Gpu::Atomic::AddNoRet(error + 3, 1L);
+                        Gpu::Atomic::AddNoRet(error + 3, static_cast<Long>(1));
                     }
                 }
             });
         }
         ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
             if ((full(i, j, k) > 0.0_rt) != (band(i, j, k) > 0.0_rt)) {
-                Gpu::Atomic::AddNoRet(error, 1L);
+                Gpu::Atomic::AddNoRet(error, static_cast<Long>(1));
             }
         });
 
@@ -233,7 +236,7 @@ void validate_narrow_band_levelset ()
                             Real const tolerance = 16.0_rt * std::numeric_limits<Real>::epsilon() *
                                                    amrex::max(1.0_rt, std::abs(a));
                             if (std::abs(a - b) > tolerance) {
-                                Gpu::Atomic::AddNoRet(error + 1, 1L);
+                                Gpu::Atomic::AddNoRet(error + 1, static_cast<Long>(1));
                             }
                         }
                     }
@@ -244,7 +247,7 @@ void validate_narrow_band_levelset ()
     errors.copyToHost();
     GpuArray<Long, 4> global_errors{errors.hostData()[0], errors.hostData()[1],
                                     errors.hostData()[2], errors.hostData()[3]};
-    ParallelAllReduce::Sum(global_errors.data(), int(global_errors.size()),
+    ParallelAllReduce::Sum(global_errors.data(), static_cast<int>(global_errors.size()),
                            ParallelContext::CommunicatorSub());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         global_errors[0] == 0, "Narrow-band MC field changed the global STL sign classification");
@@ -287,9 +290,9 @@ Long validate_ascii_stl (std::string const& filename)
         GpuArray<GpuArray<Real, 3>, 3> vertices;
         int vertex_count = 0;
         while (std::getline(input, line)) {
-            facets += line.rfind("facet normal ", 0) == 0;
-            headers += line.rfind("solid Created by AMReX", 0) == 0;
-            trailers += line.rfind("endsolid Created by AMReX", 0) == 0;
+            facets += line.starts_with("facet normal ");
+            headers += line.starts_with("solid Created by AMReX");
+            trailers += line.starts_with("endsolid Created by AMReX");
             AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
                 line.find("nan") == std::string::npos && line.find("inf") == std::string::npos,
                 "Generated STL contains a non-finite value: " + filename);
@@ -454,16 +457,16 @@ void main_main ()
     auto volume_centroid = factory->getCentroid().ToMultiFab(0.0_rt, 0.0_rt);
     auto boundary_centroid = factory->getBndryCent().ToMultiFab(0.0_rt, 0.0_rt);
     auto boundary_normal = factory->getBndryNormal().ToMultiFab(0.0_rt, 0.0_rt);
-    auto boundary_area = factory->getBndryArea().ToMultiFab(0.0_rt, 0.0_rt);
+    auto bndry_area = factory->getBndryArea().ToMultiFab(0.0_rt, 0.0_rt);
     AMREX_ALWAYS_ASSERT(!volume_centroid.contains_nan());
     AMREX_ALWAYS_ASSERT(!boundary_centroid.contains_nan());
     AMREX_ALWAYS_ASSERT(!boundary_normal.contains_nan());
-    AMREX_ALWAYS_ASSERT(!boundary_area.contains_nan());
+    AMREX_ALWAYS_ASSERT(!bndry_area.contains_nan());
     AMREX_ALWAYS_ASSERT(!volume_centroid.contains_inf());
     AMREX_ALWAYS_ASSERT(!boundary_centroid.contains_inf());
     AMREX_ALWAYS_ASSERT(!boundary_normal.contains_inf());
-    AMREX_ALWAYS_ASSERT(!boundary_area.contains_inf());
-    AMREX_ALWAYS_ASSERT(boundary_area.min(0) >= -roundoff_tolerance);
+    AMREX_ALWAYS_ASSERT(!bndry_area.contains_inf());
+    AMREX_ALWAYS_ASSERT(bndry_area.min(0) >= -roundoff_tolerance);
     for (int d = 0; d < AMREX_SPACEDIM; ++d) {
         AMREX_ALWAYS_ASSERT(volume_centroid.min(d) >= -0.5_rt - roundoff_tolerance);
         AMREX_ALWAYS_ASSERT(volume_centroid.max(d) <= 0.5_rt + roundoff_tolerance);
@@ -502,15 +505,17 @@ void main_main ()
             AMREX_D_DECL(geom.Domain().smallEnd(0) - 1,
                          (geom.Domain().smallEnd(1) + geom.Domain().bigEnd(1) + 1) / 2,
                          (geom.Domain().smallEnd(2) + geom.Domain().bigEnd(2) + 1) / 2));
-        Gpu::Buffer<Long> extension_counts({0L, 0L});
+        Gpu::Buffer<Long> extension_counts(2);
+        std::fill_n(extension_counts.hostData(), extension_counts.size(), static_cast<Long>(0));
+        extension_counts.copyToDeviceAsync();
         Long* const extension = extension_counts.data();
         for (MFIter mfi(levelset); mfi.isValid(); ++mfi) {
             Box const probe = Box(probe_iv, probe_iv) & levelset[mfi].box();
             auto const phi = levelset.const_array(mfi);
             ParallelFor(probe, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                Gpu::Atomic::AddNoRet(extension, 1L);
+                Gpu::Atomic::AddNoRet(extension, static_cast<Long>(1));
                 if (phi(i, j, k) >= 0.0_rt) {
-                    Gpu::Atomic::AddNoRet(extension + 1, 1L);
+                    Gpu::Atomic::AddNoRet(extension + 1, static_cast<Long>(1));
                 }
             });
         }
@@ -534,7 +539,9 @@ void main_main ()
         AMREX_ALWAYS_ASSERT(dense_edge[d]->max(0) <= 1.0_rt + roundoff_tolerance);
     }
 
-    Gpu::Buffer<int> levelset_errors({0, 0});
+    Gpu::Buffer<int> levelset_errors(2);
+    std::fill_n(levelset_errors.hostData(), levelset_errors.size(), 0);
+    levelset_errors.copyToDeviceAsync();
     int* const level_errors = levelset_errors.data();
     for (MFIter mfi(flags); mfi.isValid(); ++mfi) {
         auto const flag = flags.const_array(mfi);
@@ -580,7 +587,8 @@ void main_main ()
     levelset_errors.copyToHost();
     GpuArray<int, 2> global_levelset_errors{levelset_errors.hostData()[0],
                                             levelset_errors.hostData()[1]};
-    ParallelAllReduce::Sum(global_levelset_errors.data(), int(global_levelset_errors.size()),
+    ParallelAllReduce::Sum(global_levelset_errors.data(),
+                           static_cast<int>(global_levelset_errors.size()),
                            ParallelContext::CommunicatorSub());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         global_levelset_errors[0] == 0,
@@ -589,23 +597,24 @@ void main_main ()
         global_levelset_errors[1] == 0,
         "Edge centroids disagree with repaired public level-set signs");
 
-    Gpu::Buffer<Long> zero_node_count({0L});
-    Long* const zero_nodes = zero_node_count.data();
+    Gpu::DeviceScalar<Long> zero_node_count(static_cast<Long>(0));
+    Long* const zero_nodes = zero_node_count.dataPtr();
     for (MFIter mfi(levelset); mfi.isValid(); ++mfi) {
         auto const phi = levelset.const_array(mfi);
         ParallelFor(mfi.validbox(), [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
             if (phi(i, j, k) == 0.0_rt) {
-                Gpu::Atomic::AddNoRet(zero_nodes, 1L);
+                Gpu::Atomic::AddNoRet(zero_nodes, static_cast<Long>(1));
             }
         });
     }
-    zero_node_count.copyToHost();
-    Long repaired_nodes = zero_node_count.hostData()[0];
+    Long repaired_nodes = zero_node_count.dataValue();
     ParallelAllReduce::Sum(repaired_nodes, ParallelContext::CommunicatorSub());
 
     Real small_volfrac = 0.0_rt;
     ParmParse("eb2").query("small_volfrac", small_volfrac);
-    Gpu::Buffer<int> topology_counts({0, 0, 0, 0, 0, 0});
+    Gpu::Buffer<int> topology_counts(6);
+    std::fill_n(topology_counts.hostData(), topology_counts.size(), 0);
+    topology_counts.copyToDeviceAsync();
     int* const topology = topology_counts.data();
     Box const domain = geom.Domain();
     for (MFIter mfi(flags); mfi.isValid(); ++mfi) {
@@ -615,7 +624,7 @@ void main_main ()
         auto const apy = dense_area[1]->const_array(mfi);
         auto const apz = dense_area[2]->const_array(mfi);
         auto const vf = volfrac.const_array(mfi);
-        auto const ba = boundary_area.const_array(mfi);
+        auto const bndry_area_arr = bndry_area.const_array(mfi);
         auto const bn = boundary_normal.const_array(mfi);
         ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
             if (flag(i, j, k).isSingleValued()) {
@@ -623,18 +632,20 @@ void main_main ()
                 if (vf(i, j, k) + roundoff_tolerance < small_volfrac) {
                     Gpu::Atomic::AddNoRet(topology + 2, 1);
                 }
-                if (vf(i, j, k) == 1.0_rt && ba(i, j, k) > 0.0_rt) {
+                if (vf(i, j, k) == 1.0_rt && bndry_area_arr(i, j, k) > 0.0_rt) {
                     Gpu::Atomic::AddNoRet(topology + 4, 1);
                 }
-                Real const nx = apx(i, j, k) - apx(i + 1, j, k);
-                Real const ny = apy(i, j, k) - apy(i, j + 1, k);
-                Real const nz = apz(i, j, k) - apz(i, j, k + 1);
-                Real const norm = std::sqrt(nx * nx + ny * ny + nz * nz);
+                Real const area_x = apx(i, j, k) - apx(i + 1, j, k);
+                Real const area_y = apy(i, j, k) - apy(i, j + 1, k);
+                Real const area_z = apz(i, j, k) - apz(i, j, k + 1);
+                Real const norm =
+                    std::sqrt(area_x * area_x + area_y * area_y + area_z * area_z);
                 Real const normal_tolerance =
                     amrex::max(5.e-12_rt, roundoff_tolerance * amrex::max(1.0_rt, norm));
-                if (norm <= 1.e-12_rt || std::abs(norm * bn(i, j, k, 0) - nx) > normal_tolerance ||
-                    std::abs(norm * bn(i, j, k, 1) - ny) > normal_tolerance ||
-                    std::abs(norm * bn(i, j, k, 2) - nz) > normal_tolerance) {
+                if (norm <= 1.e-12_rt ||
+                    std::abs(norm * bn(i, j, k, 0) - area_x) > normal_tolerance ||
+                    std::abs(norm * bn(i, j, k, 1) - area_y) > normal_tolerance ||
+                    std::abs(norm * bn(i, j, k, 2) - area_z) > normal_tolerance) {
                     Gpu::Atomic::AddNoRet(topology + 5, 1);
                 }
             }
@@ -668,10 +679,10 @@ void main_main ()
     }
     topology_counts.copyToHost();
     GpuArray<int, 6> global_topology_counts;
-    for (int n = 0; n < int(global_topology_counts.size()); ++n) {
-        global_topology_counts[n] = topology_counts.hostData()[n];
-    }
-    ParallelAllReduce::Sum(global_topology_counts.data(), int(global_topology_counts.size()),
+    std::copy_n(topology_counts.hostData(), global_topology_counts.size(),
+                global_topology_counts.begin());
+    ParallelAllReduce::Sum(global_topology_counts.data(),
+                           static_cast<int>(global_topology_counts.size()),
                            ParallelContext::CommunicatorSub());
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         global_topology_counts[0] == 0,

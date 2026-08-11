@@ -73,7 +73,7 @@ namespace {
         std::map<std::pair<int,int>,std::pair<int,int>> edges;
         int next_vertex_id = 0;
         auto vertex_id = [&] (XDim3 const& vertex) -> int {
-            STLVertexKey const key{vertex.x,vertex.y,vertex.z};
+            STLVertexKey const key{.x = vertex.x, .y = vertex.y, .z = vertex.z};
             auto [it,inserted] = vertex_ids.emplace(key,next_vertex_id);
             if (inserted) {
                 ++next_vertex_id;
@@ -1548,7 +1548,7 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
                     }
                 }
             }
-            band(i, j, k) = mixed;
+            band(i, j, k) = static_cast<char>(mixed);
         });
     }
 
@@ -1615,9 +1615,9 @@ void STLtools::fillMarchingCubesEdgeIntersections (
 
     auto find_x = [=] AMREX_GPU_DEVICE (int i, int j, int k,
                                         Real& fraction) noexcept {
-        XDim3 const p1{plo[0]+static_cast<Real>(i)*dx[0],
-                       plo[1]+static_cast<Real>(j)*dx[1],
-                       plo[2]+static_cast<Real>(k)*dx[2]};
+        XDim3 const p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                       .y = plo[1]+static_cast<Real>(j)*dx[1],
+                       .z = plo[2]+static_cast<Real>(k)*dx[2]};
         Real const x2 = p1.x + dx[0];
         Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i+1,j,k));
         Real best_distance = std::numeric_limits<Real>::max();
@@ -1653,9 +1653,9 @@ void STLtools::fillMarchingCubesEdgeIntersections (
 
     auto find_y = [=] AMREX_GPU_DEVICE (int i, int j, int k,
                                         Real& fraction) noexcept {
-        XDim3 const p1{plo[0]+static_cast<Real>(i)*dx[0],
-                       plo[1]+static_cast<Real>(j)*dx[1],
-                       plo[2]+static_cast<Real>(k)*dx[2]};
+        XDim3 const p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                       .y = plo[1]+static_cast<Real>(j)*dx[1],
+                       .z = plo[2]+static_cast<Real>(k)*dx[2]};
         Real const y2 = p1.y + dx[1];
         Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i,j+1,k));
         Real best_distance = std::numeric_limits<Real>::max();
@@ -1667,10 +1667,11 @@ void STLtools::fillMarchingCubesEdgeIntersections (
                 auto const& norm = norms[it];
                 auto const hit = edge_tri_intersects(
                     p1.y, y2, p1.z, p1.x,
-                    XDim3{tri.v1.y,tri.v1.z,tri.v1.x},
-                    XDim3{tri.v2.y,tri.v2.z,tri.v2.x},
-                    XDim3{tri.v3.y,tri.v3.z,tri.v3.x},
-                    XDim3{norm.y,norm.z,norm.x}, sdf(i,j,k)-sdf(i,j+1,k));
+                    XDim3{.x = tri.v1.y, .y = tri.v1.z, .z = tri.v1.x},
+                    XDim3{.x = tri.v2.y, .y = tri.v2.z, .z = tri.v2.x},
+                    XDim3{.x = tri.v3.y, .y = tri.v3.z, .z = tri.v3.x},
+                    XDim3{.x = norm.y, .y = norm.z, .z = norm.x},
+                    sdf(i,j,k)-sdf(i,j+1,k));
                 if (hit.first) {
                     Real const candidate = amrex::Clamp(
                         (hit.second-p1.y)/dx[1], 0.0_rt, 1.0_rt);
@@ -1696,9 +1697,9 @@ void STLtools::fillMarchingCubesEdgeIntersections (
 
     auto find_z = [=] AMREX_GPU_DEVICE (int i, int j, int k,
                                         Real& fraction) noexcept {
-        XDim3 const p1{plo[0]+static_cast<Real>(i)*dx[0],
-                       plo[1]+static_cast<Real>(j)*dx[1],
-                       plo[2]+static_cast<Real>(k)*dx[2]};
+        XDim3 const p1{.x = plo[0]+static_cast<Real>(i)*dx[0],
+                       .y = plo[1]+static_cast<Real>(j)*dx[1],
+                       .z = plo[2]+static_cast<Real>(k)*dx[2]};
         Real const z2 = p1.z + dx[2];
         Real const target = sdf(i,j,k)/(sdf(i,j,k)-sdf(i,j,k+1));
         Real best_distance = std::numeric_limits<Real>::max();
@@ -1710,10 +1711,11 @@ void STLtools::fillMarchingCubesEdgeIntersections (
                 auto const& norm = norms[it];
                 auto const hit = edge_tri_intersects(
                     p1.z, z2, p1.x, p1.y,
-                    XDim3{tri.v1.z,tri.v1.x,tri.v1.y},
-                    XDim3{tri.v2.z,tri.v2.x,tri.v2.y},
-                    XDim3{tri.v3.z,tri.v3.x,tri.v3.y},
-                    XDim3{norm.z,norm.x,norm.y}, sdf(i,j,k)-sdf(i,j,k+1));
+                    XDim3{.x = tri.v1.z, .y = tri.v1.x, .z = tri.v1.y},
+                    XDim3{.x = tri.v2.z, .y = tri.v2.x, .z = tri.v2.y},
+                    XDim3{.x = tri.v3.z, .y = tri.v3.x, .z = tri.v3.y},
+                    XDim3{.x = norm.z, .y = norm.x, .z = norm.y},
+                    sdf(i,j,k)-sdf(i,j,k+1));
                 if (hit.first) {
                     Real const candidate = amrex::Clamp(
                         (hit.second-p1.z)/dx[2], 0.0_rt, 1.0_rt);

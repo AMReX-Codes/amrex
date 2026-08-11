@@ -8,6 +8,7 @@
 #include <AMReX_MarchingCubes.H>
 #include <AMReX_mc_jgt_table.H>
 
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 
@@ -953,7 +954,7 @@ void MCFab::defineEdgeIntersections (Box const& sdf_box)
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         Box const edge_box = amrex::enclosedCells(sdf_box, idim);
         m_edge_intersections[idim].resize(edge_box, 1);
-        m_edge_intersections[idim].setVal(
+        m_edge_intersections[idim].setVal<RunOn::Device>(
             std::numeric_limits<Real>::quiet_NaN());
     }
 }
@@ -1081,12 +1082,12 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     auto const& ez_c = ez_fab.const_array();
 
     BaseFab<int> ntri_fab(cbox,num_cell_data_components);
-    ntri_fab.setVal(0);
+    ntri_fab.setVal<RunOn::Device>(0);
     auto const& ntri = ntri_fab.array();
     GpuArray<int*,3> ptri{nullptr,nullptr,nullptr};
 
-    Gpu::Buffer<int> error({0});
-    auto* perror = error.data();
+    Gpu::DeviceScalar<int> error(0);
+    auto* perror = error.dataPtr();
 
     BoxIndexer c_bi(cbox);
 
@@ -1107,8 +1108,7 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
                                      },
                                      Scan::Type::exclusive, Scan::retSum);
 
-    auto* nerror = error.copyToHost();
-    if (*nerror > 0) {
+    if (error.dataValue() > 0) {
         amrex::Abort("Marching Cubes: invalid triangle");
     }
 
@@ -1180,8 +1180,8 @@ int build_face_fractions (
     auto const fcy = fcy_fab.array();
     auto const fcz = fcz_fab.array();
 
-    Gpu::Buffer<int> error_count({0});
-    int* const error = error_count.data();
+    Gpu::DeviceScalar<int> error_count(0);
+    int* const error = error_count.dataPtr();
 
     // Chombo's moment construction starts with boundary-face moments.  Build
     // those apertures from the same signed-distance edge intersections used
@@ -1240,8 +1240,7 @@ int build_face_fractions (
                           decision[0] != 0, decision[1] != 0, error);
     });
 
-    error_count.copyToHost();
-    return error_count.hostData()[0];
+    return error_count.dataValue();
 }
 
 void build_edge_centroids (
@@ -1365,7 +1364,9 @@ int build_cell_fractions (
     auto const problo = geom.ProbLoArray();
     // Area-vector closure, volume, centroid, and boundary-normal errors.
     // Every quantity checked against tolerance is dimensionless.
-    Gpu::Buffer<int> error_count({0,0,0,0});
+    Gpu::Buffer<int> error_count(4);
+    std::fill_n(error_count.hostData(), error_count.size(), 0);
+    error_count.copyToDeviceAsync();
     int* const errors = error_count.data();
 
 #ifdef AMREX_USE_FLOAT
@@ -1584,8 +1585,8 @@ int build_cell_fractions (
             Gpu::Atomic::AddNoRet(errors+3, 1);
             return;
         }
-        for (int d = 0; d < 3; ++d) {
-            boundary_normal[d] /= area_vector_norm;
+        for (Real& normal_component : boundary_normal) {
+            normal_component /= area_vector_norm;
         }
 
         Real boundary_centroid[3] = {
@@ -1696,8 +1697,8 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
         fz(i, j, k) = face_type(apz(i, j, k), tolerance);
     });
 
-    Gpu::Buffer<int> error_count({0});
-    int* const errors = error_count.data();
+    Gpu::DeviceScalar<int> error_count(0);
+    int* const errors = error_count.dataPtr();
     ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         int const triangle_count = cell_data(i, j, k, CellDataComponent::triangle_count);
         bool const has_triangles = triangle_count > 0;
@@ -1722,8 +1723,7 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
     EB2::set_connection_flags(bx, bxg1, cell, cellflagtmp.array(), fx, fy, fz);
 
     Gpu::streamSynchronize();
-    error_count.copyToHost();
-    return error_count.hostData()[0];
+    return error_count.dataValue();
 }
 
 int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
@@ -1748,8 +1748,8 @@ int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const&
     auto const rejected_y = rejected_y_fab.array();
     auto const rejected_z = rejected_z_fab.array();
 
-    Gpu::Buffer<int> rejection_count({0});
-    int* const count = rejection_count.data();
+    Gpu::DeviceScalar<int> rejection_count(0);
+    int* const count = rejection_count.dataPtr();
 
     ParallelFor(xbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         bool const rejected =
@@ -1779,8 +1779,7 @@ int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const&
         }
     });
 
-    rejection_count.copyToHost();
-    return rejection_count.hostData()[0];
+    return rejection_count.dataValue();
 }
 
 int mark_cells_for_domain_extension (Box const& bx, Box const& domain,
@@ -1816,8 +1815,8 @@ int mark_cells_for_domain_extension (Box const& bx, Box const& domain,
 
     auto const vfrac = vfrac_fab.const_array();
     auto const rejected = rejected_fab.array();
-    Gpu::Buffer<int> rejection_count({0});
-    int* const count = rejection_count.data();
+    Gpu::DeviceScalar<int> rejection_count(0);
+    int* const count = rejection_count.dataPtr();
 
 #ifdef AMREX_USE_FLOAT
     constexpr Real tolerance = 2.e-5_rt;
@@ -1839,8 +1838,7 @@ int mark_cells_for_domain_extension (Box const& bx, Box const& domain,
         }
     });
 
-    rejection_count.copyToHost();
-    return rejection_count.hostData()[0];
+    return rejection_count.dataValue();
 }
 
 Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cells_fab,
@@ -1864,8 +1862,8 @@ Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
     auto const rejected_z = rejected_z_fab.const_array();
     auto const sdf = sdf_fab.array();
 
-    Gpu::Buffer<Long> changed_count({0L});
-    Long* const changed = changed_count.data();
+    Gpu::DeviceScalar<Long> changed_count(static_cast<Long>(0));
+    Long* const changed = changed_count.dataPtr();
     ParallelFor(node_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         if (sdf(i, j, k) <= 0.0_rt) {
             return;
@@ -1896,12 +1894,11 @@ Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
         }
         if (rejected) {
             sdf(i, j, k) = 0.0_rt;
-            Gpu::Atomic::AddNoRet(changed, 1L);
+            Gpu::Atomic::AddNoRet(changed, static_cast<Long>(1));
         }
     });
 
-    changed_count.copyToHost();
-    return changed_count.hostData()[0];
+    return changed_count.dataValue();
 }
 
 GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
@@ -1923,7 +1920,9 @@ GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
     auto const* tri_v2 = mc_fab.m_triangles.v2.data();
     auto const* tri_v3 = mc_fab.m_triangles.v3.data();
 
-    Gpu::Buffer<int> rejection_count({0, 0});
+    Gpu::Buffer<int> rejection_count(2);
+    std::fill_n(rejection_count.hostData(), rejection_count.size(), 0);
+    rejection_count.copyToDeviceAsync();
     int* const counts = rejection_count.data();
 
     ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
@@ -1953,27 +1952,27 @@ GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
             int const lo = edge_lo[n];
             int const hi = edge_hi[n];
             if (fluid[lo] && fluid[hi]) {
-                int rlo = lo;
-                int rhi = hi;
-                while (corner_parent[rlo] != rlo) {
-                    rlo = corner_parent[rlo];
+                int lo_root = lo;
+                int hi_root = hi;
+                while (corner_parent[lo_root] != lo_root) {
+                    lo_root = corner_parent[lo_root];
                 }
-                while (corner_parent[rhi] != rhi) {
-                    rhi = corner_parent[rhi];
+                while (corner_parent[hi_root] != hi_root) {
+                    hi_root = corner_parent[hi_root];
                 }
-                if (rlo != rhi) {
-                    corner_parent[rhi] = rlo;
+                if (lo_root != hi_root) {
+                    corner_parent[hi_root] = lo_root;
                 }
             }
         }
         int fluid_components = 0;
         for (int n = 0; n < 8; ++n) {
             if (fluid[n]) {
-                int root = n;
-                while (corner_parent[root] != root) {
-                    root = corner_parent[root];
+                int corner_root = n;
+                while (corner_parent[corner_root] != corner_root) {
+                    corner_root = corner_parent[corner_root];
                 }
-                fluid_components += root == n;
+                fluid_components += corner_root == n;
             }
         }
 
@@ -1996,32 +1995,32 @@ GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
                     int const mm = triangle_offset + m;
                     int const mv[3] = {tri_v1[mm], tri_v2[mm], tri_v3[mm]};
                     bool share_vertex = false;
-                    for (int a = 0; a < 3; ++a) {
-                        for (int b = 0; b < 3; ++b) {
-                            share_vertex = share_vertex || nv[a] == mv[b];
+                    for (int const vertex_n : nv) {
+                        for (int const vertex_m : mv) {
+                            share_vertex = share_vertex || vertex_n == vertex_m;
                         }
                     }
                     if (share_vertex) {
-                        int rn = n;
-                        int rm = m;
-                        while (triangle_parent[rn] != rn) {
-                            rn = triangle_parent[rn];
+                        int n_root = n;
+                        int m_root = m;
+                        while (triangle_parent[n_root] != n_root) {
+                            n_root = triangle_parent[n_root];
                         }
-                        while (triangle_parent[rm] != rm) {
-                            rm = triangle_parent[rm];
+                        while (triangle_parent[m_root] != m_root) {
+                            m_root = triangle_parent[m_root];
                         }
-                        if (rn != rm) {
-                            triangle_parent[rm] = rn;
+                        if (n_root != m_root) {
+                            triangle_parent[m_root] = n_root;
                         }
                     }
                 }
             }
             for (int n = 0; n < triangle_count; ++n) {
-                int root = n;
-                while (triangle_parent[root] != root) {
-                    root = triangle_parent[root];
+                int triangle_root = n;
+                while (triangle_parent[triangle_root] != triangle_root) {
+                    triangle_root = triangle_parent[triangle_root];
                 }
-                triangle_components += root == n;
+                triangle_components += triangle_root == n;
             }
         }
         bad_topology = bad_topology || (fluid_components > 1 && triangle_components > 1);
