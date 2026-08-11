@@ -532,7 +532,7 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
                               std::int8_t subconfig, std::int8_t s) -> bool
     {
         bool const result = test_interior_impl(c,config,subconfig,s);
-        if (interior_count < int(sizeof(int)*8)) {
+        if (interior_count < std::numeric_limits<int>::digits) {
             if (result) {
                 interior_mask |= 1 << interior_count;
             }
@@ -925,9 +925,9 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
     if (ipass == 0) {
         ntri(i,j,k,triangle_count) = nt;
         ntri(i,j,k,MC::lut_entry) = int(lut_entry);
-        ntri(i,j,k,case_id) = int(_case);
-        ntri(i,j,k,configuration) = int(_config);
-        ntri(i,j,k,subconfiguration) = int(_subconfig);
+        ntri(i,j,k,case_id) = int(static_cast<unsigned char>(_case));
+        ntri(i,j,k,configuration) = int(static_cast<unsigned char>(_config));
+        ntri(i,j,k,subconfiguration) = int(static_cast<unsigned char>(_subconfig));
         ntri(i,j,k,face_decision_valid_mask) = face_valid_mask;
         ntri(i,j,k,face_fluid_connected_mask) = face_connected_mask;
         ntri(i,j,k,interior_decision_count) = interior_count;
@@ -2143,6 +2143,7 @@ void write_stl (std::string const& filename, std::map<int, std::unique_ptr<MCFab
     for (auto const& [k, p] : mc_fabs) {
         AMREX_ALWAYS_ASSERT(k >= 0 && k < grids.size() && p->m_cell_data.box().contains(grids[k]));
         auto ntri = int(p->m_triangles.v1.size());
+        amrex::ignore_unused(ntri);
 
 #ifdef AMREX_USE_GPU
         Gpu::PinnedVector<int> tri_v1(ntri);

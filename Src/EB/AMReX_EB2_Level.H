@@ -920,13 +920,13 @@ void GShopLevel<G>::define_fine_marching_cubes (GS const& gshop, const Geometry&
 #if defined(AMREX_USE_OMP) && !defined(AMREX_USE_GPU)
     final_info.SetDynamic(true);
 #endif
+    m_cellflag.setVal(EBCellFlag::TheDefaultCell());
     int geometry_errors = 0;
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion()) reduction(+ : geometry_errors)
 #endif
     for (MFIter mfi(m_sdf, final_info); mfi.isValid(); ++mfi) {
         Box const vbx = amrex::enclosedCells(mfi.validbox());
-        m_cellflag[mfi].setVal(EBCellFlag::TheDefaultCell());
         geometry_errors += MC::build_cell_topology(
             vbx, *mc_fabs.at(mfi.index()), m_sdf[mfi], m_cellflag[mfi], m_volfrac[mfi],
             m_areafrac[0][mfi], m_areafrac[1][mfi], m_areafrac[2][mfi]);
