@@ -1710,556 +1710,530 @@ int build_cell_fractions (
     return result;
 }
 
-int build_cell_topology(Box const &bx, MCFab const &mc_fab,
-                        FArrayBox const &sdf_fab, EBCellFlagFab &cellflag,
-                        FArrayBox const &vfrac_fab, FArrayBox const &apx_fab,
-                        FArrayBox const &apy_fab, FArrayBox const &apz_fab) {
-  BL_PROFILE("MC::build_cell_topology");
+int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
+                         EBCellFlagFab& cellflag, FArrayBox const& vfrac_fab,
+                         FArrayBox const& apx_fab, FArrayBox const& apy_fab,
+                         FArrayBox const& apz_fab)
+{
+    BL_PROFILE("MC::build_cell_topology");
 
-  Box const bxg1 = amrex::grow(bx, 1);
-  Box const nbxg1 = amrex::surroundingNodes(bxg1);
-  Box const fxbx = amrex::surroundingNodes(bxg1, 0);
-  Box const fybx = amrex::surroundingNodes(bxg1, 1);
-  Box const fzbx = amrex::surroundingNodes(bxg1, 2);
+    Box const bxg1 = amrex::grow(bx, 1);
+    Box const nbxg1 = amrex::surroundingNodes(bxg1);
+    Box const fxbx = amrex::surroundingNodes(bxg1, 0);
+    Box const fybx = amrex::surroundingNodes(bxg1, 1);
+    Box const fzbx = amrex::surroundingNodes(bxg1, 2);
 
-  AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(nbxg1));
-  AMREX_ALWAYS_ASSERT(cellflag.box().contains(bxg1));
-  AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bxg1));
-  AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
-  AMREX_ALWAYS_ASSERT(apx_fab.box().contains(fxbx));
-  AMREX_ALWAYS_ASSERT(apy_fab.box().contains(fybx));
-  AMREX_ALWAYS_ASSERT(apz_fab.box().contains(fzbx));
+    AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(nbxg1));
+    AMREX_ALWAYS_ASSERT(cellflag.box().contains(bxg1));
+    AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bxg1));
+    AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
+    AMREX_ALWAYS_ASSERT(apx_fab.box().contains(fxbx));
+    AMREX_ALWAYS_ASSERT(apy_fab.box().contains(fybx));
+    AMREX_ALWAYS_ASSERT(apz_fab.box().contains(fzbx));
 
-  auto const sdf = sdf_fab.const_array();
-  auto const cell = cellflag.array();
-  auto const cell_data = mc_fab.m_cell_data.const_array();
-  auto const vfrac = vfrac_fab.const_array();
-  auto const apx = apx_fab.const_array();
-  auto const apy = apy_fab.const_array();
-  auto const apz = apz_fab.const_array();
+    auto const sdf = sdf_fab.const_array();
+    auto const cell = cellflag.array();
+    auto const cell_data = mc_fab.m_cell_data.const_array();
+    auto const vfrac = vfrac_fab.const_array();
+    auto const apx = apx_fab.const_array();
+    auto const apy = apy_fab.const_array();
+    auto const apz = apz_fab.const_array();
 
-  BaseFab<EB2::Type_t> fx_fab(fxbx);
-  BaseFab<EB2::Type_t> fy_fab(fybx);
-  BaseFab<EB2::Type_t> fz_fab(fzbx);
-  auto const fx = fx_fab.array();
-  auto const fy = fy_fab.array();
-  auto const fz = fz_fab.array();
-
-#ifdef AMREX_USE_FLOAT
-  constexpr Real tolerance = 2.e-5_rt;
-#else
-  constexpr Real tolerance = 2.e-12_rt;
-#endif
-
-  ParallelFor(bxg1, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    bool const all_faces_open = apx(i, j, k) >= 1.0_rt - tolerance &&
-                                apx(i + 1, j, k) >= 1.0_rt - tolerance &&
-                                apy(i, j, k) >= 1.0_rt - tolerance &&
-                                apy(i, j + 1, k) >= 1.0_rt - tolerance &&
-                                apz(i, j, k) >= 1.0_rt - tolerance &&
-                                apz(i, j, k + 1) >= 1.0_rt - tolerance;
-
-    if (vfrac(i, j, k) <= tolerance) {
-      cell(i, j, k).setCovered();
-    } else if (vfrac(i, j, k) >= 1.0_rt - tolerance && all_faces_open) {
-      cell(i, j, k).setRegular();
-    } else {
-      cell(i, j, k).setSingleValued();
-    }
-  });
-
-  ParallelFor(fxbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    fx(i, j, k) = face_type(apx(i, j, k), tolerance);
-  });
-  ParallelFor(fybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    fy(i, j, k) = face_type(apy(i, j, k), tolerance);
-  });
-  ParallelFor(fzbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    fz(i, j, k) = face_type(apz(i, j, k), tolerance);
-  });
-
-  Gpu::Buffer<int> error_count({0});
-  int *const errors = error_count.data();
-  ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    int const triangle_count =
-        cell_data(i, j, k, CellDataComponent::triangle_count);
-    bool const has_triangles = triangle_count > 0;
-    bool const source_has_fluid =
-        sdf(i, j, k) > 0.0_rt || sdf(i + 1, j, k) > 0.0_rt ||
-        sdf(i, j + 1, k) > 0.0_rt || sdf(i + 1, j + 1, k) > 0.0_rt ||
-        sdf(i, j, k + 1) > 0.0_rt || sdf(i + 1, j, k + 1) > 0.0_rt ||
-        sdf(i, j + 1, k + 1) > 0.0_rt || sdf(i + 1, j + 1, k + 1) > 0.0_rt;
-    bool const source_has_covered =
-        sdf(i, j, k) <= 0.0_rt || sdf(i + 1, j, k) <= 0.0_rt ||
-        sdf(i, j + 1, k) <= 0.0_rt || sdf(i + 1, j + 1, k) <= 0.0_rt ||
-        sdf(i, j, k + 1) <= 0.0_rt || sdf(i + 1, j, k + 1) <= 0.0_rt ||
-        sdf(i, j + 1, k + 1) <= 0.0_rt || sdf(i + 1, j + 1, k + 1) <= 0.0_rt;
-    bool const source_is_cut = source_has_fluid && source_has_covered;
-    if (has_triangles != source_is_cut) {
-      Gpu::Atomic::AddNoRet(errors, 1);
-    }
-  });
-
-  EBCellFlagFab cellflagtmp(cellflag.box(), 1);
-  Elixir cellflagtmp_eli = cellflagtmp.elixir();
-  EB2::set_connection_flags(bx, bxg1, cell, cellflagtmp.array(), fx, fy, fz);
-
-  Gpu::streamSynchronize();
-  error_count.copyToHost();
-  return error_count.hostData()[0];
-}
-
-int mark_faces_for_cleanup(Box const &bx, MCFab const &mc_fab,
-                           FArrayBox const &sdf_fab, IArrayBox &rejected_x_fab,
-                           IArrayBox &rejected_y_fab,
-                           IArrayBox &rejected_z_fab) {
-  BL_PROFILE("MC::mark_faces_for_cleanup");
-
-  Box const xbx = amrex::surroundingNodes(bx, 0);
-  Box const ybx = amrex::surroundingNodes(bx, 1);
-  Box const zbx = amrex::surroundingNodes(bx, 2);
-  AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
-  AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(amrex::surroundingNodes(bx)));
-  AMREX_ALWAYS_ASSERT(rejected_x_fab.box().contains(xbx));
-  AMREX_ALWAYS_ASSERT(rejected_y_fab.box().contains(ybx));
-  AMREX_ALWAYS_ASSERT(rejected_z_fab.box().contains(zbx));
-
-  auto const cell_data = mc_fab.m_cell_data.const_array();
-  Box const cell_box = mc_fab.m_cell_data.box();
-  auto const sdf = sdf_fab.const_array();
-  auto const rejected_x = rejected_x_fab.array();
-  auto const rejected_y = rejected_y_fab.array();
-  auto const rejected_z = rejected_z_fab.array();
-
-  Gpu::Buffer<int> rejection_count({0});
-  int *const count = rejection_count.data();
-
-  ParallelFor(xbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    bool const rejected =
-        face_is_rejected(sdf(i, j, k), sdf(i, j + 1, k),
-                         sdf(i, j + 1, k + 1), sdf(i, j, k + 1),
-                         cell_data, cell_box,
-                         i - 1, j, k, 1, i, j, k, 3);
-    rejected_x(i, j, k) = rejected;
-    if (rejected) {
-      Gpu::Atomic::AddNoRet(count, 1);
-    }
-  });
-  ParallelFor(ybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    bool const rejected =
-        face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k),
-                         sdf(i + 1, j, k + 1), sdf(i, j, k + 1),
-                         cell_data, cell_box,
-                         i, j - 1, k, 2, i, j, k, 0);
-    rejected_y(i, j, k) = rejected;
-    if (rejected) {
-      Gpu::Atomic::AddNoRet(count, 1);
-    }
-  });
-  ParallelFor(zbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    bool const rejected =
-        face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k),
-                         sdf(i + 1, j + 1, k), sdf(i, j + 1, k),
-                         cell_data, cell_box,
-                         i, j, k - 1, 5, i, j, k, 4);
-    rejected_z(i, j, k) = rejected;
-    if (rejected) {
-      Gpu::Atomic::AddNoRet(count, 1);
-    }
-  });
-
-  rejection_count.copyToHost();
-  return rejection_count.hostData()[0];
-}
-
-int mark_cells_for_domain_extension(
-    Box const &bx, Box const &domain, GpuArray<int, 3> const &is_periodic,
-    FArrayBox const &vfrac_fab, IArrayBox &rejected_fab) {
-  BL_PROFILE("MC::mark_cells_for_domain_extension");
-
-  AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bx));
-  AMREX_ALWAYS_ASSERT(rejected_fab.box().contains(bx));
-
-  int const domlo_x = domain.smallEnd(0);
-  int const domlo_y = domain.smallEnd(1);
-  int const domlo_z = domain.smallEnd(2);
-  int const domhi_x = domain.bigEnd(0);
-  int const domhi_y = domain.bigEnd(1);
-  int const domhi_z = domain.bigEnd(2);
-
-  Box clamped_box = bx;
-  if (!is_periodic[0]) {
-    clamped_box.setSmall(0, amrex::Clamp(bx.smallEnd(0), domlo_x, domhi_x));
-    clamped_box.setBig(0, amrex::Clamp(bx.bigEnd(0), domlo_x, domhi_x));
-  }
-  if (!is_periodic[1]) {
-    clamped_box.setSmall(1, amrex::Clamp(bx.smallEnd(1), domlo_y, domhi_y));
-    clamped_box.setBig(1, amrex::Clamp(bx.bigEnd(1), domlo_y, domhi_y));
-  }
-  if (!is_periodic[2]) {
-    clamped_box.setSmall(2, amrex::Clamp(bx.smallEnd(2), domlo_z, domhi_z));
-    clamped_box.setBig(2, amrex::Clamp(bx.bigEnd(2), domlo_z, domhi_z));
-  }
-  AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(clamped_box));
-
-  auto const vfrac = vfrac_fab.const_array();
-  auto const rejected = rejected_fab.array();
-  Gpu::Buffer<int> rejection_count({0});
-  int *const count = rejection_count.data();
+    BaseFab<EB2::Type_t> fx_fab(fxbx);
+    BaseFab<EB2::Type_t> fy_fab(fybx);
+    BaseFab<EB2::Type_t> fz_fab(fzbx);
+    auto const fx = fx_fab.array();
+    auto const fy = fy_fab.array();
+    auto const fz = fz_fab.array();
 
 #ifdef AMREX_USE_FLOAT
-  constexpr Real tolerance = 2.e-5_rt;
+    constexpr Real tolerance = 2.e-5_rt;
 #else
-  constexpr Real tolerance = 2.e-12_rt;
+    constexpr Real tolerance = 2.e-12_rt;
 #endif
 
-  ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    int const ii = is_periodic[0] ? i : amrex::Clamp(i, domlo_x, domhi_x);
-    int const jj = is_periodic[1] ? j : amrex::Clamp(j, domlo_y, domhi_y);
-    int const kk = is_periodic[2] ? k : amrex::Clamp(k, domlo_z, domhi_z);
-    bool const outside = ii != i || jj != j || kk != k;
-    Real const reference_vfrac = vfrac(ii, jj, kk);
-    bool const reference_is_covered =
-        reference_vfrac >= 0.0_rt && reference_vfrac <= tolerance;
-    bool const cell_is_not_covered = vfrac(i, j, k) > tolerance;
-    if (outside && reference_is_covered && cell_is_not_covered &&
-        rejected(i, j, k) == 0) {
-      rejected(i, j, k) = RejectionReason::domain_extension;
-      Gpu::Atomic::AddNoRet(count, 1);
-    }
-  });
+    ParallelFor(bxg1, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        bool const all_faces_open =
+            apx(i, j, k) >= 1.0_rt - tolerance && apx(i + 1, j, k) >= 1.0_rt - tolerance &&
+            apy(i, j, k) >= 1.0_rt - tolerance && apy(i, j + 1, k) >= 1.0_rt - tolerance &&
+            apz(i, j, k) >= 1.0_rt - tolerance && apz(i, j, k + 1) >= 1.0_rt - tolerance;
 
-  rejection_count.copyToHost();
-  return rejection_count.hostData()[0];
+        if (vfrac(i, j, k) <= tolerance) {
+            cell(i, j, k).setCovered();
+        } else if (vfrac(i, j, k) >= 1.0_rt - tolerance && all_faces_open) {
+            cell(i, j, k).setRegular();
+        } else {
+            cell(i, j, k).setSingleValued();
+        }
+    });
+
+    ParallelFor(fxbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        fx(i, j, k) = face_type(apx(i, j, k), tolerance);
+    });
+    ParallelFor(fybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        fy(i, j, k) = face_type(apy(i, j, k), tolerance);
+    });
+    ParallelFor(fzbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        fz(i, j, k) = face_type(apz(i, j, k), tolerance);
+    });
+
+    Gpu::Buffer<int> error_count({0});
+    int* const errors = error_count.data();
+    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        int const triangle_count = cell_data(i, j, k, CellDataComponent::triangle_count);
+        bool const has_triangles = triangle_count > 0;
+        bool const source_has_fluid = sdf(i, j, k) > 0.0_rt || sdf(i + 1, j, k) > 0.0_rt ||
+                                      sdf(i, j + 1, k) > 0.0_rt || sdf(i + 1, j + 1, k) > 0.0_rt ||
+                                      sdf(i, j, k + 1) > 0.0_rt || sdf(i + 1, j, k + 1) > 0.0_rt ||
+                                      sdf(i, j + 1, k + 1) > 0.0_rt ||
+                                      sdf(i + 1, j + 1, k + 1) > 0.0_rt;
+        bool const source_has_covered =
+            sdf(i, j, k) <= 0.0_rt || sdf(i + 1, j, k) <= 0.0_rt || sdf(i, j + 1, k) <= 0.0_rt ||
+            sdf(i + 1, j + 1, k) <= 0.0_rt || sdf(i, j, k + 1) <= 0.0_rt ||
+            sdf(i + 1, j, k + 1) <= 0.0_rt || sdf(i, j + 1, k + 1) <= 0.0_rt ||
+            sdf(i + 1, j + 1, k + 1) <= 0.0_rt;
+        bool const source_is_cut = source_has_fluid && source_has_covered;
+        if (has_triangles != source_is_cut) {
+            Gpu::Atomic::AddNoRet(errors, 1);
+        }
+    });
+
+    EBCellFlagFab cellflagtmp(cellflag.box(), 1);
+    Elixir cellflagtmp_eli = cellflagtmp.elixir();
+    EB2::set_connection_flags(bx, bxg1, cell, cellflagtmp.array(), fx, fy, fz);
+
+    Gpu::streamSynchronize();
+    error_count.copyToHost();
+    return error_count.hostData()[0];
 }
 
-Long zero_nodes_for_cleanup(Box const &node_box,
-                            IArrayBox const &rejected_cells_fab,
-                            IArrayBox const &rejected_x_fab,
-                            IArrayBox const &rejected_y_fab,
-                            IArrayBox const &rejected_z_fab,
-                            FArrayBox &sdf_fab) {
-  BL_PROFILE("MC::zero_nodes_for_cleanup");
+int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
+                            IArrayBox& rejected_x_fab, IArrayBox& rejected_y_fab,
+                            IArrayBox& rejected_z_fab)
+{
+    BL_PROFILE("MC::mark_faces_for_cleanup");
 
-  AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(node_box));
-  auto const rejected_cells = rejected_cells_fab.const_array();
-  auto const rejected_x = rejected_x_fab.const_array();
-  auto const rejected_y = rejected_y_fab.const_array();
-  auto const rejected_z = rejected_z_fab.const_array();
-  auto const sdf = sdf_fab.array();
+    Box const xbx = amrex::surroundingNodes(bx, 0);
+    Box const ybx = amrex::surroundingNodes(bx, 1);
+    Box const zbx = amrex::surroundingNodes(bx, 2);
+    AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
+    AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(amrex::surroundingNodes(bx)));
+    AMREX_ALWAYS_ASSERT(rejected_x_fab.box().contains(xbx));
+    AMREX_ALWAYS_ASSERT(rejected_y_fab.box().contains(ybx));
+    AMREX_ALWAYS_ASSERT(rejected_z_fab.box().contains(zbx));
 
-  Gpu::Buffer<Long> changed_count({0L});
-  Long *const changed = changed_count.data();
-  ParallelFor(node_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    if (sdf(i, j, k) <= 0.0_rt) {
-      return;
-    }
+    auto const cell_data = mc_fab.m_cell_data.const_array();
+    Box const cell_box = mc_fab.m_cell_data.box();
+    auto const sdf = sdf_fab.const_array();
+    auto const rejected_x = rejected_x_fab.array();
+    auto const rejected_y = rejected_y_fab.array();
+    auto const rejected_z = rejected_z_fab.array();
 
-    bool rejected = false;
-    for (int kk = 0; kk <= 1 && !rejected; ++kk) {
-      for (int jj = 0; jj <= 1 && !rejected; ++jj) {
-        for (int ii = 0; ii <= 1; ++ii) {
-          rejected = rejected || rejected_cells(i - ii, j - jj, k - kk) != 0;
+    Gpu::Buffer<int> rejection_count({0});
+    int* const count = rejection_count.data();
+
+    ParallelFor(xbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        bool const rejected =
+            face_is_rejected(sdf(i, j, k), sdf(i, j + 1, k), sdf(i, j + 1, k + 1), sdf(i, j, k + 1),
+                             cell_data, cell_box, i - 1, j, k, 1, i, j, k, 3);
+        rejected_x(i, j, k) = rejected;
+        if (rejected) {
+            Gpu::Atomic::AddNoRet(count, 1);
         }
-      }
-    }
-    for (int kk = 0; kk <= 1 && !rejected; ++kk) {
-      for (int jj = 0; jj <= 1; ++jj) {
-        rejected = rejected || rejected_x(i, j - jj, k - kk) != 0;
-      }
-    }
-    for (int kk = 0; kk <= 1 && !rejected; ++kk) {
-      for (int ii = 0; ii <= 1; ++ii) {
-        rejected = rejected || rejected_y(i - ii, j, k - kk) != 0;
-      }
-    }
-    for (int jj = 0; jj <= 1 && !rejected; ++jj) {
-      for (int ii = 0; ii <= 1; ++ii) {
-        rejected = rejected || rejected_z(i - ii, j - jj, k) != 0;
-      }
-    }
-    if (rejected) {
-      sdf(i, j, k) = 0.0_rt;
-      Gpu::Atomic::AddNoRet(changed, 1L);
-    }
-  });
+    });
+    ParallelFor(ybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        bool const rejected =
+            face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k), sdf(i + 1, j, k + 1), sdf(i, j, k + 1),
+                             cell_data, cell_box, i, j - 1, k, 2, i, j, k, 0);
+        rejected_y(i, j, k) = rejected;
+        if (rejected) {
+            Gpu::Atomic::AddNoRet(count, 1);
+        }
+    });
+    ParallelFor(zbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        bool const rejected =
+            face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k), sdf(i + 1, j + 1, k), sdf(i, j + 1, k),
+                             cell_data, cell_box, i, j, k - 1, 5, i, j, k, 4);
+        rejected_z(i, j, k) = rejected;
+        if (rejected) {
+            Gpu::Atomic::AddNoRet(count, 1);
+        }
+    });
 
-  changed_count.copyToHost();
-  return changed_count.hostData()[0];
+    rejection_count.copyToHost();
+    return rejection_count.hostData()[0];
 }
 
-GpuArray<int, 2> mark_cells_for_cleanup(Box const &bx, MCFab const &mc_fab,
-                                        FArrayBox const &sdf_fab,
-                                        FArrayBox const &vfrac_fab,
-                                        Real small_volfrac,
-                                        IArrayBox &rejected_fab) {
-  BL_PROFILE("MC::mark_cells_for_cleanup");
+int mark_cells_for_domain_extension (Box const& bx, Box const& domain,
+                                     GpuArray<int, 3> const& is_periodic,
+                                     FArrayBox const& vfrac_fab, IArrayBox& rejected_fab)
+{
+    BL_PROFILE("MC::mark_cells_for_domain_extension");
 
-  AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
-  AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bx));
-  AMREX_ALWAYS_ASSERT(rejected_fab.box().contains(bx));
-  AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(amrex::surroundingNodes(bx)));
+    AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bx));
+    AMREX_ALWAYS_ASSERT(rejected_fab.box().contains(bx));
 
-  auto const cell_data = mc_fab.m_cell_data.const_array();
-  auto const sdf = sdf_fab.const_array();
-  auto const vfrac = vfrac_fab.const_array();
-  auto const rejected = rejected_fab.array();
-  auto const *tri_v1 = mc_fab.m_triangles.v1.data();
-  auto const *tri_v2 = mc_fab.m_triangles.v2.data();
-  auto const *tri_v3 = mc_fab.m_triangles.v3.data();
+    int const domlo_x = domain.smallEnd(0);
+    int const domlo_y = domain.smallEnd(1);
+    int const domlo_z = domain.smallEnd(2);
+    int const domhi_x = domain.bigEnd(0);
+    int const domhi_y = domain.bigEnd(1);
+    int const domhi_z = domain.bigEnd(2);
 
-  Gpu::Buffer<int> rejection_count({0, 0});
-  int *const counts = rejection_count.data();
-
-  ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-    Real const cube[8] = {sdf(i, j, k),
-                          sdf(i + 1, j, k),
-                          sdf(i + 1, j + 1, k),
-                          sdf(i, j + 1, k),
-                          sdf(i, j, k + 1),
-                          sdf(i + 1, j, k + 1),
-                          sdf(i + 1, j + 1, k + 1),
-                          sdf(i, j + 1, k + 1)};
-    bool fluid[8];
-    int nfluid = 0;
-    for (int n = 0; n < 8; ++n) {
-      fluid[n] = cube[n] > 0.0_rt;
-      nfluid += fluid[n];
+    Box clamped_box = bx;
+    if (!is_periodic[0]) {
+        clamped_box.setSmall(0, amrex::Clamp(bx.smallEnd(0), domlo_x, domhi_x));
+        clamped_box.setBig(0, amrex::Clamp(bx.bigEnd(0), domlo_x, domhi_x));
     }
-
-    int const triangle_count =
-        cell_data(i, j, k, CellDataComponent::triangle_count);
-    int const triangle_offset =
-        cell_data(i, j, k, CellDataComponent::triangle_offset);
-    bool const is_cut = nfluid > 0 && nfluid < 8;
-    bool bad_topology = is_cut && triangle_count <= 0;
-
-    // Count positive-corner components connected by cube edges.
-    int corner_parent[8];
-    for (int n = 0; n < 8; ++n) {
-      corner_parent[n] = n;
+    if (!is_periodic[1]) {
+        clamped_box.setSmall(1, amrex::Clamp(bx.smallEnd(1), domlo_y, domhi_y));
+        clamped_box.setBig(1, amrex::Clamp(bx.bigEnd(1), domlo_y, domhi_y));
     }
-    constexpr int edge_lo[12] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3};
-    constexpr int edge_hi[12] = {1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7};
-    for (int n = 0; n < 12; ++n) {
-      int const lo = edge_lo[n];
-      int const hi = edge_hi[n];
-      if (fluid[lo] && fluid[hi]) {
-        int rlo = lo;
-        int rhi = hi;
-        while (corner_parent[rlo] != rlo) {
-          rlo = corner_parent[rlo];
-        }
-        while (corner_parent[rhi] != rhi) {
-          rhi = corner_parent[rhi];
-        }
-        if (rlo != rhi) {
-          corner_parent[rhi] = rlo;
-        }
-      }
+    if (!is_periodic[2]) {
+        clamped_box.setSmall(2, amrex::Clamp(bx.smallEnd(2), domlo_z, domhi_z));
+        clamped_box.setBig(2, amrex::Clamp(bx.bigEnd(2), domlo_z, domhi_z));
     }
-    int fluid_components = 0;
-    for (int n = 0; n < 8; ++n) {
-      if (fluid[n]) {
-        int root = n;
-        while (corner_parent[root] != root) {
-          root = corner_parent[root];
+    AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(clamped_box));
+
+    auto const vfrac = vfrac_fab.const_array();
+    auto const rejected = rejected_fab.array();
+    Gpu::Buffer<int> rejection_count({0});
+    int* const count = rejection_count.data();
+
+#ifdef AMREX_USE_FLOAT
+    constexpr Real tolerance = 2.e-5_rt;
+#else
+    constexpr Real tolerance = 2.e-12_rt;
+#endif
+
+    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        int const ii = is_periodic[0] ? i : amrex::Clamp(i, domlo_x, domhi_x);
+        int const jj = is_periodic[1] ? j : amrex::Clamp(j, domlo_y, domhi_y);
+        int const kk = is_periodic[2] ? k : amrex::Clamp(k, domlo_z, domhi_z);
+        bool const outside = ii != i || jj != j || kk != k;
+        Real const reference_vfrac = vfrac(ii, jj, kk);
+        bool const reference_is_covered = reference_vfrac >= 0.0_rt && reference_vfrac <= tolerance;
+        bool const cell_is_not_covered = vfrac(i, j, k) > tolerance;
+        if (outside && reference_is_covered && cell_is_not_covered && rejected(i, j, k) == 0) {
+            rejected(i, j, k) = RejectionReason::domain_extension;
+            Gpu::Atomic::AddNoRet(count, 1);
         }
-        fluid_components += root == n;
-      }
-    }
+    });
 
-    // MC33's connected tilings join otherwise separated corner groups
-    // through the cell interior. Triangle-patch connectivity records that
-    // resolution without treating triangle count itself as topology.
-    constexpr int max_cell_triangles = 16;
-    int triangle_parent[max_cell_triangles];
-    int triangle_components = 0;
-    if (triangle_count > max_cell_triangles) {
-      bad_topology = true;
-    } else {
-      for (int n = 0; n < triangle_count; ++n) {
-        triangle_parent[n] = n;
-      }
-      for (int n = 0; n < triangle_count; ++n) {
-        int const mn = triangle_offset + n;
-        int const nv[3] = {tri_v1[mn], tri_v2[mn], tri_v3[mn]};
-        for (int m = n + 1; m < triangle_count; ++m) {
-          int const mm = triangle_offset + m;
-          int const mv[3] = {tri_v1[mm], tri_v2[mm], tri_v3[mm]};
-          bool share_vertex = false;
-          for (int a = 0; a < 3; ++a) {
-            for (int b = 0; b < 3; ++b) {
-              share_vertex = share_vertex || nv[a] == mv[b];
-            }
-          }
-          if (share_vertex) {
-            int rn = n;
-            int rm = m;
-            while (triangle_parent[rn] != rn) {
-              rn = triangle_parent[rn];
-            }
-            while (triangle_parent[rm] != rm) {
-              rm = triangle_parent[rm];
-            }
-            if (rn != rm) {
-              triangle_parent[rm] = rn;
-            }
-          }
-        }
-      }
-      for (int n = 0; n < triangle_count; ++n) {
-        int root = n;
-        while (triangle_parent[root] != root) {
-          root = triangle_parent[root];
-        }
-        triangle_components += root == n;
-      }
-    }
-    bad_topology =
-        bad_topology || (fluid_components > 1 && triangle_components > 1);
-
-    // A negative sentinel means geometry construction rejected the closed
-    // boundary. Cover it and let the next MC pass rebuild its neighbors.
-    bad_topology = bad_topology || (is_cut && vfrac(i, j, k) < 0.0_rt);
-    bool const small_cell =
-        is_cut && !bad_topology && vfrac(i, j, k) < small_volfrac;
-
-    rejected(i, j, k) = bad_topology
-                            ? RejectionReason::invalid_topology
-                            : (small_cell ? RejectionReason::small_volume : 0);
-    if (bad_topology) {
-      Gpu::Atomic::AddNoRet(counts, 1);
-    } else if (small_cell) {
-      Gpu::Atomic::AddNoRet(counts + 1, 1);
-    }
-  });
-
-  rejection_count.copyToHost();
-  return {rejection_count.hostData()[0], rejection_count.hostData()[1]};
+    rejection_count.copyToHost();
+    return rejection_count.hostData()[0];
 }
 
-void write_stl(std::string const &filename,
-               std::map<int, std::unique_ptr<MCFab>> const &mc_fabs,
-               BoxArray const &grids) {
-  int myproc = ParallelDescriptor::MyProc();
-  int nprocs = ParallelDescriptor::NProcs();
+Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cells_fab,
+                             IArrayBox const& rejected_x_fab, IArrayBox const& rejected_y_fab,
+                             IArrayBox const& rejected_z_fab, FArrayBox& sdf_fab)
+{
+    BL_PROFILE("MC::zero_nodes_for_cleanup");
 
-  std::ofstream ofs;
+    AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(node_box));
+    auto const rejected_cells = rejected_cells_fab.const_array();
+    auto const rejected_x = rejected_x_fab.const_array();
+    auto const rejected_y = rejected_y_fab.const_array();
+    auto const rejected_z = rejected_z_fab.const_array();
+    auto const sdf = sdf_fab.array();
 
-  if (myproc == 0) {
-    ofs.open(filename);
-    ofs << "solid Created by AMReX\n";
-  }
+    Gpu::Buffer<Long> changed_count({0L});
+    Long* const changed = changed_count.data();
+    ParallelFor(node_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        if (sdf(i, j, k) <= 0.0_rt) {
+            return;
+        }
+
+        bool rejected = false;
+        for (int kk = 0; kk <= 1 && !rejected; ++kk) {
+            for (int jj = 0; jj <= 1 && !rejected; ++jj) {
+                for (int ii = 0; ii <= 1; ++ii) {
+                    rejected = rejected || rejected_cells(i - ii, j - jj, k - kk) != 0;
+                }
+            }
+        }
+        for (int kk = 0; kk <= 1 && !rejected; ++kk) {
+            for (int jj = 0; jj <= 1; ++jj) {
+                rejected = rejected || rejected_x(i, j - jj, k - kk) != 0;
+            }
+        }
+        for (int kk = 0; kk <= 1 && !rejected; ++kk) {
+            for (int ii = 0; ii <= 1; ++ii) {
+                rejected = rejected || rejected_y(i - ii, j, k - kk) != 0;
+            }
+        }
+        for (int jj = 0; jj <= 1 && !rejected; ++jj) {
+            for (int ii = 0; ii <= 1; ++ii) {
+                rejected = rejected || rejected_z(i - ii, j - jj, k) != 0;
+            }
+        }
+        if (rejected) {
+            sdf(i, j, k) = 0.0_rt;
+            Gpu::Atomic::AddNoRet(changed, 1L);
+        }
+    });
+
+    changed_count.copyToHost();
+    return changed_count.hostData()[0];
+}
+
+GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
+                                         FArrayBox const& sdf_fab, FArrayBox const& vfrac_fab,
+                                         Real small_volfrac, IArrayBox& rejected_fab)
+{
+    BL_PROFILE("MC::mark_cells_for_cleanup");
+
+    AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
+    AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bx));
+    AMREX_ALWAYS_ASSERT(rejected_fab.box().contains(bx));
+    AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(amrex::surroundingNodes(bx)));
+
+    auto const cell_data = mc_fab.m_cell_data.const_array();
+    auto const sdf = sdf_fab.const_array();
+    auto const vfrac = vfrac_fab.const_array();
+    auto const rejected = rejected_fab.array();
+    auto const* tri_v1 = mc_fab.m_triangles.v1.data();
+    auto const* tri_v2 = mc_fab.m_triangles.v2.data();
+    auto const* tri_v3 = mc_fab.m_triangles.v3.data();
+
+    Gpu::Buffer<int> rejection_count({0, 0});
+    int* const counts = rejection_count.data();
+
+    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        Real const cube[8] = {
+            sdf(i, j, k),     sdf(i + 1, j, k),     sdf(i + 1, j + 1, k),     sdf(i, j + 1, k),
+            sdf(i, j, k + 1), sdf(i + 1, j, k + 1), sdf(i + 1, j + 1, k + 1), sdf(i, j + 1, k + 1)};
+        bool fluid[8];
+        int nfluid = 0;
+        for (int n = 0; n < 8; ++n) {
+            fluid[n] = cube[n] > 0.0_rt;
+            nfluid += fluid[n];
+        }
+
+        int const triangle_count = cell_data(i, j, k, CellDataComponent::triangle_count);
+        int const triangle_offset = cell_data(i, j, k, CellDataComponent::triangle_offset);
+        bool const is_cut = nfluid > 0 && nfluid < 8;
+        bool bad_topology = is_cut && triangle_count <= 0;
+
+        // Count positive-corner components connected by cube edges.
+        int corner_parent[8];
+        for (int n = 0; n < 8; ++n) {
+            corner_parent[n] = n;
+        }
+        constexpr int edge_lo[12] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3};
+        constexpr int edge_hi[12] = {1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7};
+        for (int n = 0; n < 12; ++n) {
+            int const lo = edge_lo[n];
+            int const hi = edge_hi[n];
+            if (fluid[lo] && fluid[hi]) {
+                int rlo = lo;
+                int rhi = hi;
+                while (corner_parent[rlo] != rlo) {
+                    rlo = corner_parent[rlo];
+                }
+                while (corner_parent[rhi] != rhi) {
+                    rhi = corner_parent[rhi];
+                }
+                if (rlo != rhi) {
+                    corner_parent[rhi] = rlo;
+                }
+            }
+        }
+        int fluid_components = 0;
+        for (int n = 0; n < 8; ++n) {
+            if (fluid[n]) {
+                int root = n;
+                while (corner_parent[root] != root) {
+                    root = corner_parent[root];
+                }
+                fluid_components += root == n;
+            }
+        }
+
+        // MC33's connected tilings join otherwise separated corner groups
+        // through the cell interior. Triangle-patch connectivity records that
+        // resolution without treating triangle count itself as topology.
+        constexpr int max_cell_triangles = 16;
+        int triangle_parent[max_cell_triangles];
+        int triangle_components = 0;
+        if (triangle_count > max_cell_triangles) {
+            bad_topology = true;
+        } else {
+            for (int n = 0; n < triangle_count; ++n) {
+                triangle_parent[n] = n;
+            }
+            for (int n = 0; n < triangle_count; ++n) {
+                int const mn = triangle_offset + n;
+                int const nv[3] = {tri_v1[mn], tri_v2[mn], tri_v3[mn]};
+                for (int m = n + 1; m < triangle_count; ++m) {
+                    int const mm = triangle_offset + m;
+                    int const mv[3] = {tri_v1[mm], tri_v2[mm], tri_v3[mm]};
+                    bool share_vertex = false;
+                    for (int a = 0; a < 3; ++a) {
+                        for (int b = 0; b < 3; ++b) {
+                            share_vertex = share_vertex || nv[a] == mv[b];
+                        }
+                    }
+                    if (share_vertex) {
+                        int rn = n;
+                        int rm = m;
+                        while (triangle_parent[rn] != rn) {
+                            rn = triangle_parent[rn];
+                        }
+                        while (triangle_parent[rm] != rm) {
+                            rm = triangle_parent[rm];
+                        }
+                        if (rn != rm) {
+                            triangle_parent[rm] = rn;
+                        }
+                    }
+                }
+            }
+            for (int n = 0; n < triangle_count; ++n) {
+                int root = n;
+                while (triangle_parent[root] != root) {
+                    root = triangle_parent[root];
+                }
+                triangle_components += root == n;
+            }
+        }
+        bad_topology = bad_topology || (fluid_components > 1 && triangle_components > 1);
+
+        // A negative sentinel means geometry construction rejected the closed
+        // boundary. Cover it and let the next MC pass rebuild its neighbors.
+        bad_topology = bad_topology || (is_cut && vfrac(i, j, k) < 0.0_rt);
+        bool const small_cell = is_cut && !bad_topology && vfrac(i, j, k) < small_volfrac;
+
+        rejected(i, j, k) = bad_topology ? RejectionReason::invalid_topology
+                                         : (small_cell ? RejectionReason::small_volume : 0);
+        if (bad_topology) {
+            Gpu::Atomic::AddNoRet(counts, 1);
+        } else if (small_cell) {
+            Gpu::Atomic::AddNoRet(counts + 1, 1);
+        }
+    });
+
+    rejection_count.copyToHost();
+    return {rejection_count.hostData()[0], rejection_count.hostData()[1]};
+}
+
+void write_stl (std::string const& filename, std::map<int, std::unique_ptr<MCFab>> const& mc_fabs,
+                BoxArray const& grids)
+{
+    int myproc = ParallelDescriptor::MyProc();
+    int nprocs = ParallelDescriptor::NProcs();
+
+    std::ofstream ofs;
+
+    if (myproc == 0) {
+        ofs.open(filename);
+        ofs << "solid Created by AMReX\n";
+    }
 
 #ifdef AMREX_USE_MPI
-  if (myproc > 0) {
-    int foo = 0;
-    ParallelDescriptor::Recv(&foo, 1, myproc - 1, 100);
-  }
+    if (myproc > 0) {
+        int foo = 0;
+        ParallelDescriptor::Recv(&foo, 1, myproc - 1, 100);
+    }
 #endif
 
-  if (!ofs.is_open()) {
-    ofs.open(filename, std::ios_base::app);
-  }
-  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-      ofs.good(), "Could not open marching-cubes STL output " + filename);
-  ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
+    if (!ofs.is_open()) {
+        ofs.open(filename, std::ios_base::app);
+    }
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(ofs.good(),
+                                     "Could not open marching-cubes STL output " + filename);
+    ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
 
-  for (auto const &[k, p] : mc_fabs) {
-    AMREX_ALWAYS_ASSERT(k >= 0 && k < grids.size() &&
-                        p->m_cell_data.box().contains(grids[k]));
-    auto ntri = int(p->m_triangles.v1.size());
+    for (auto const& [k, p] : mc_fabs) {
+        AMREX_ALWAYS_ASSERT(k >= 0 && k < grids.size() && p->m_cell_data.box().contains(grids[k]));
+        auto ntri = int(p->m_triangles.v1.size());
 
 #ifdef AMREX_USE_GPU
-    Gpu::PinnedVector<int> tri_v1(ntri);
-    Gpu::PinnedVector<int> tri_v2(ntri);
-    Gpu::PinnedVector<int> tri_v3(ntri);
-    auto nvert = p->m_vertices.x.size();
-    Gpu::PinnedVector<Real> vert_x(nvert);
-    Gpu::PinnedVector<Real> vert_y(nvert);
-    Gpu::PinnedVector<Real> vert_z(nvert);
-    BaseFab<int> cell_data(p->m_cell_data.box(), p->m_cell_data.nComp(),
-                           The_Pinned_Arena());
-    Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v1.begin(),
-                   p->m_triangles.v1.end(), tri_v1.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v2.begin(),
-                   p->m_triangles.v2.end(), tri_v2.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v3.begin(),
-                   p->m_triangles.v3.end(), tri_v3.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.x.begin(),
-                   p->m_vertices.x.end(), vert_x.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.y.begin(),
-                   p->m_vertices.y.end(), vert_y.begin());
-    Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.z.begin(),
-                   p->m_vertices.z.end(), vert_z.begin());
-    Gpu::dtoh_memcpy_async(
-        cell_data.dataPtr(), p->m_cell_data.dataPtr(),
-        p->m_cell_data.nBytes(p->m_cell_data.box(), p->m_cell_data.nComp()));
-    Gpu::streamSynchronize();
+        Gpu::PinnedVector<int> tri_v1(ntri);
+        Gpu::PinnedVector<int> tri_v2(ntri);
+        Gpu::PinnedVector<int> tri_v3(ntri);
+        auto nvert = p->m_vertices.x.size();
+        Gpu::PinnedVector<Real> vert_x(nvert);
+        Gpu::PinnedVector<Real> vert_y(nvert);
+        Gpu::PinnedVector<Real> vert_z(nvert);
+        BaseFab<int> cell_data(p->m_cell_data.box(), p->m_cell_data.nComp(), The_Pinned_Arena());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v1.begin(), p->m_triangles.v1.end(),
+                       tri_v1.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v2.begin(), p->m_triangles.v2.end(),
+                       tri_v2.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_triangles.v3.begin(), p->m_triangles.v3.end(),
+                       tri_v3.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.x.begin(), p->m_vertices.x.end(),
+                       vert_x.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.y.begin(), p->m_vertices.y.end(),
+                       vert_y.begin());
+        Gpu::copyAsync(Gpu::deviceToHost, p->m_vertices.z.begin(), p->m_vertices.z.end(),
+                       vert_z.begin());
+        Gpu::dtoh_memcpy_async(cell_data.dataPtr(), p->m_cell_data.dataPtr(),
+                               p->m_cell_data.nBytes(p->m_cell_data.box(), p->m_cell_data.nComp()));
+        Gpu::streamSynchronize();
 #else
-    auto const &tri_v1 = p->m_triangles.v1;
-    auto const &tri_v2 = p->m_triangles.v2;
-    auto const &tri_v3 = p->m_triangles.v3;
-    auto const &vert_x = p->m_vertices.x;
-    auto const &vert_y = p->m_vertices.y;
-    auto const &vert_z = p->m_vertices.z;
-    auto const &cell_data = p->m_cell_data;
+        auto const& tri_v1 = p->m_triangles.v1;
+        auto const& tri_v2 = p->m_triangles.v2;
+        auto const& tri_v3 = p->m_triangles.v3;
+        auto const& vert_x = p->m_vertices.x;
+        auto const& vert_y = p->m_vertices.y;
+        auto const& vert_z = p->m_vertices.z;
+        auto const& cell_data = p->m_cell_data;
 #endif
-    auto const cell = cell_data.const_array();
-    amrex::LoopOnCpu(grids[k], [&](int i, int j, int kk) noexcept {
-      int const count = cell(i, j, kk, 0);
-      int const offset = cell(i, j, kk, 1);
-      for (int n = 0; n < count; ++n) {
-        int const itri = offset + n;
-        AMREX_ASSERT(itri >= 0 && itri < ntri);
-        auto iv1 = tri_v1[itri];
-        auto iv2 = tri_v2[itri];
-        auto iv3 = tri_v3[itri];
-        XDim3 v1{.x = vert_x[iv1], .y = vert_y[iv1], .z = vert_z[iv1]};
-        XDim3 v2{.x = vert_x[iv2], .y = vert_y[iv2], .z = vert_z[iv2]};
-        XDim3 v3{.x = vert_x[iv3], .y = vert_y[iv3], .z = vert_z[iv3]};
-        XDim3 vec1{.x = v2.x - v1.x, .y = v2.y - v1.y, .z = v2.z - v1.z};
-        XDim3 vec2{.x = v3.x - v2.x, .y = v3.y - v2.y, .z = v3.z - v2.z};
-        XDim3 norm{.x = vec1.y * vec2.z - vec1.z * vec2.y,
-                   .y = vec1.z * vec2.x - vec1.x * vec2.z,
-                   .z = vec1.x * vec2.y - vec1.y * vec2.x};
-        auto tmp = std::sqrt(
-            norm.x * norm.x + norm.y * norm.y + norm.z * norm.z);
-        Real const edge_scale_sq = amrex::max(
-            vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z,
-            vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z);
-        Real const degenerate_tolerance = 64.0_rt
-            * std::numeric_limits<Real>::epsilon() * edge_scale_sq;
-        if (tmp <= degenerate_tolerance) {
-            continue;
-        }
-        tmp = Real(1) / tmp;
-        ofs << "facet normal " << norm.x * tmp << " " << norm.y * tmp << " "
-            << norm.z * tmp << "\n"
-            << "  outer loop\n"
-            << "    vertex " << v1.x << " " << v1.y << " " << v1.z << "\n"
-            << "    vertex " << v2.x << " " << v2.y << " " << v2.z << "\n"
-            << "    vertex " << v3.x << " " << v3.y << " " << v3.z << "\n"
-            << "  endloop\n"
-            << "endfacet\n";
-      }
-    });
-  }
+        auto const cell = cell_data.const_array();
+        amrex::LoopOnCpu(grids[k], [&] (int i, int j, int kk) noexcept {
+            int const count = cell(i, j, kk, 0);
+            int const offset = cell(i, j, kk, 1);
+            for (int n = 0; n < count; ++n) {
+                int const itri = offset + n;
+                AMREX_ASSERT(itri >= 0 && itri < ntri);
+                auto iv1 = tri_v1[itri];
+                auto iv2 = tri_v2[itri];
+                auto iv3 = tri_v3[itri];
+                XDim3 v1{.x = vert_x[iv1], .y = vert_y[iv1], .z = vert_z[iv1]};
+                XDim3 v2{.x = vert_x[iv2], .y = vert_y[iv2], .z = vert_z[iv2]};
+                XDim3 v3{.x = vert_x[iv3], .y = vert_y[iv3], .z = vert_z[iv3]};
+                XDim3 vec1{.x = v2.x - v1.x, .y = v2.y - v1.y, .z = v2.z - v1.z};
+                XDim3 vec2{.x = v3.x - v2.x, .y = v3.y - v2.y, .z = v3.z - v2.z};
+                XDim3 norm{.x = vec1.y * vec2.z - vec1.z * vec2.y,
+                           .y = vec1.z * vec2.x - vec1.x * vec2.z,
+                           .z = vec1.x * vec2.y - vec1.y * vec2.x};
+                auto tmp = std::sqrt(norm.x * norm.x + norm.y * norm.y + norm.z * norm.z);
+                Real const edge_scale_sq =
+                    amrex::max(vec1.x * vec1.x + vec1.y * vec1.y + vec1.z * vec1.z,
+                               vec2.x * vec2.x + vec2.y * vec2.y + vec2.z * vec2.z);
+                Real const degenerate_tolerance =
+                    64.0_rt * std::numeric_limits<Real>::epsilon() * edge_scale_sq;
+                if (tmp <= degenerate_tolerance) {
+                    continue;
+                }
+                tmp = Real(1) / tmp;
+                ofs << "facet normal " << norm.x * tmp << " " << norm.y * tmp << " " << norm.z * tmp
+                    << "\n"
+                    << "  outer loop\n"
+                    << "    vertex " << v1.x << " " << v1.y << " " << v1.z << "\n"
+                    << "    vertex " << v2.x << " " << v2.y << " " << v2.z << "\n"
+                    << "    vertex " << v3.x << " " << v3.y << " " << v3.z << "\n"
+                    << "  endloop\n"
+                    << "endfacet\n";
+            }
+        });
+    }
 
-  if (myproc == nprocs - 1) {
-    ofs << "endsolid Created by AMReX\n";
-  }
-  ofs.close();
-  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-      !ofs.fail(), "Could not complete marching-cubes STL output " + filename);
+    if (myproc == nprocs - 1) {
+        ofs << "endsolid Created by AMReX\n";
+    }
+    ofs.close();
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(!ofs.fail(),
+                                     "Could not complete marching-cubes STL output " + filename);
 
 #ifdef AMREX_USE_MPI
-  if (myproc < nprocs - 1) {
-    int foo = 0;
-    ParallelDescriptor::Send(&foo, 1, myproc + 1, 100);
-  }
-  ParallelDescriptor::Barrier();
+    if (myproc < nprocs - 1) {
+        int foo = 0;
+        ParallelDescriptor::Send(&foo, 1, myproc + 1, 100);
+    }
+    ParallelDescriptor::Barrier();
 #endif
 }
-}
+} // namespace amrex::MC

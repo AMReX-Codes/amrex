@@ -65,7 +65,10 @@ namespace {
             scale > 0.0_rt,
             "Marching-cubes STL has a zero-size bounding box");
         Real const epsilon = std::numeric_limits<Real>::epsilon();
-        Real const area_tolerance = 64.0_rt*epsilon*epsilon*scale*scale;
+        // Squaring the coordinate resolution gives the smallest meaningful
+        // cross-product scale.  A larger multiplier rejects valid, very small
+        // facets after otherwise representable single-precision conversion.
+        Real const area_tolerance = epsilon*epsilon*scale*scale;
 
         std::map<STLVertexKey,int> vertex_ids;
         std::map<std::pair<int,int>,std::pair<int,int>> edges;
@@ -1493,102 +1496,99 @@ STLtools::fillSignedDistance (MultiFab& mf, IntVect const& nghost, Geometry cons
 #endif
 }
 
-void STLtools::fillMarchingCubesLevelSet(MultiFab &mf, IntVect const &nghost,
-                                         Geometry const &geom) const {
-  BL_PROFILE("STLtools::fillMarchingCubesLevelSet");
+void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
+                                          Geometry const& geom) const
+{
+    BL_PROFILE("STLtools::fillMarchingCubesLevelSet");
 
-  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-      AMREX_SPACEDIM == 3,
-      "STLtools::fillMarchingCubesLevelSet is only available in 3D");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(AMREX_SPACEDIM == 3,
+                                     "STLtools::fillMarchingCubesLevelSet is only available in 3D");
 
 #if (AMREX_SPACEDIM != 3)
-  amrex::ignore_unused(this, mf, nghost, geom);
+    amrex::ignore_unused(this, mf, nghost, geom);
 #else
-  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-      nghost.allGE(IntVect(2)) && mf.nGrowVect().allGE(nghost),
-      "Marching-cubes STL sampling requires at least two nodal ghost cells");
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+        nghost.allGE(IntVect(2)) && mf.nGrowVect().allGE(nghost),
+        "Marching-cubes STL sampling requires at least two nodal ghost cells");
 
-  // The sign is sufficient in regular/covered regions.  Canonicalize it
-  // before constructing the band so every FAB makes the same decision at a
-  // shared node.
-  this->fill(mf, nghost, geom, 1.0_rt, -1.0_rt);
-  mf.OverrideSync(geom.periodicity());
-  mf.FillBoundary(geom.periodicity());
+    // The sign is sufficient in regular/covered regions.  Canonicalize it
+    // before constructing the band so every FAB makes the same decision at a
+    // shared node.
+    this->fill(mf, nghost, geom, 1.0_rt, -1.0_rt);
+    mf.OverrideSync(geom.periodicity());
+    mf.FillBoundary(geom.periodicity());
 
-  iMultiFab exact_band(mf.boxArray(), mf.DistributionMap(), 1, nghost);
-  exact_band.setVal(0);
+    iMultiFab exact_band(mf.boxArray(), mf.DistributionMap(), 1, nghost);
+    exact_band.setVal(0);
 
-  // A radius-two sign search includes every corner of a mixed cell and the
-  // additional node needed by the centered SDF-gradient stencils used when
-  // constructing MC vertices.
-  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-    Box const bx = mf[mfi].box();
-    int const ilo = bx.smallEnd(0);
-    int const jlo = bx.smallEnd(1);
-    int const klo = bx.smallEnd(2);
-    int const ihi = bx.bigEnd(0);
-    int const jhi = bx.bigEnd(1);
-    int const khi = bx.bigEnd(2);
-    auto const phi = mf.const_array(mfi);
-    auto const band = exact_band.array(mfi);
-    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-      bool const fluid = phi(i, j, k) > 0.0_rt;
-      bool mixed = false;
-      for (int kk = amrex::max(k - 2, klo);
-           kk <= amrex::min(k + 2, khi) && !mixed; ++kk) {
-        for (int jj = amrex::max(j - 2, jlo);
-             jj <= amrex::min(j + 2, jhi) && !mixed; ++jj) {
-          for (int ii = amrex::max(i - 2, ilo); ii <= amrex::min(i + 2, ihi);
-               ++ii) {
-            if ((phi(ii, jj, kk) > 0.0_rt) != fluid) {
-              mixed = true;
-              break;
+    // A radius-two sign search includes every corner of a mixed cell and the
+    // additional node needed by the centered SDF-gradient stencils used when
+    // constructing MC vertices.
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        Box const bx = mf[mfi].box();
+        int const ilo = bx.smallEnd(0);
+        int const jlo = bx.smallEnd(1);
+        int const klo = bx.smallEnd(2);
+        int const ihi = bx.bigEnd(0);
+        int const jhi = bx.bigEnd(1);
+        int const khi = bx.bigEnd(2);
+        auto const phi = mf.const_array(mfi);
+        auto const band = exact_band.array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+            bool const fluid = phi(i, j, k) > 0.0_rt;
+            bool mixed = false;
+            for (int kk = amrex::max(k - 2, klo); kk <= amrex::min(k + 2, khi) && !mixed; ++kk) {
+                for (int jj = amrex::max(j - 2, jlo); jj <= amrex::min(j + 2, jhi) && !mixed;
+                     ++jj) {
+                    for (int ii = amrex::max(i - 2, ilo); ii <= amrex::min(i + 2, ihi); ++ii) {
+                        if ((phi(ii, jj, kk) > 0.0_rt) != fluid) {
+                            mixed = true;
+                            break;
+                        }
+                    }
+                }
             }
-          }
-        }
-      }
-      band(i, j, k) = mixed;
-    });
-  }
+            band(i, j, k) = mixed;
+        });
+    }
 
-  auto const plo = geom.ProbLoArray();
-  auto const dx = geom.CellSizeArray();
-  auto const ixt = mf.ixType();
-  RealVect const offset(AMREX_D_DECL(ixt.cellCentered(0) ? 0.5_rt : 0.0_rt,
-                                     ixt.cellCentered(1) ? 0.5_rt : 0.0_rt,
-                                     ixt.cellCentered(2) ? 0.5_rt : 0.0_rt));
+    auto const plo = geom.ProbLoArray();
+    auto const dx = geom.CellSizeArray();
+    auto const ixt = mf.ixType();
+    RealVect const offset(AMREX_D_DECL(ixt.cellCentered(0) ? 0.5_rt : 0.0_rt,
+                                       ixt.cellCentered(1) ? 0.5_rt : 0.0_rt,
+                                       ixt.cellCentered(2) ? 0.5_rt : 0.0_rt));
 
-  auto const *bvh_root = m_bvh_nodes.data();
-  auto const *tri_pts = m_tri_pts_d.data();
-  int const num_triangles = m_num_tri;
-  bool const use_bvh = m_bvh_optimization;
+    auto const* bvh_root = m_bvh_nodes.data();
+    auto const* tri_pts = m_tri_pts_d.data();
+    int const num_triangles = m_num_tri;
+    bool const use_bvh = m_bvh_optimization;
 
-  for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
-    Box const bx = mf[mfi].box();
-    auto const phi = mf.array(mfi);
-    auto const band = exact_band.const_array(mfi);
-    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-      if (band(i, j, k) == 0) {
-        return;
-      }
-      XDim3 const coords{
-          .x = plo[0] + (static_cast<Real>(i) + offset[0]) * dx[0],
-          .y = plo[1] + (static_cast<Real>(j) + offset[1]) * dx[1],
-          .z = plo[2] + (static_cast<Real>(k) + offset[2]) * dx[2]};
-      Real d2 = std::numeric_limits<Real>::max();
-      if (use_bvh) {
-        d2 = bvh_d2(coords, bvh_root);
-      } else {
-        for (int tr = 0; tr < num_triangles; ++tr) {
-          d2 = amrex::min(d2, pt_tri_min_d2(coords, tri_pts[tr]));
-        }
-      }
-      phi(i, j, k) *= std::sqrt(d2);
-    });
-  }
-  Gpu::streamSynchronize();
-  mf.OverrideSync(geom.periodicity());
-  mf.FillBoundary(geom.periodicity());
+    for (MFIter mfi(mf); mfi.isValid(); ++mfi) {
+        Box const bx = mf[mfi].box();
+        auto const phi = mf.array(mfi);
+        auto const band = exact_band.const_array(mfi);
+        ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+            if (band(i, j, k) == 0) {
+                return;
+            }
+            XDim3 const coords{.x = plo[0] + (static_cast<Real>(i) + offset[0]) * dx[0],
+                               .y = plo[1] + (static_cast<Real>(j) + offset[1]) * dx[1],
+                               .z = plo[2] + (static_cast<Real>(k) + offset[2]) * dx[2]};
+            Real d2 = std::numeric_limits<Real>::max();
+            if (use_bvh) {
+                d2 = bvh_d2(coords, bvh_root);
+            } else {
+                for (int tr = 0; tr < num_triangles; ++tr) {
+                    d2 = amrex::min(d2, pt_tri_min_d2(coords, tri_pts[tr]));
+                }
+            }
+            phi(i, j, k) *= std::sqrt(d2);
+        });
+    }
+    Gpu::streamSynchronize();
+    mf.OverrideSync(geom.periodicity());
+    mf.FillBoundary(geom.periodicity());
 #endif
 }
 

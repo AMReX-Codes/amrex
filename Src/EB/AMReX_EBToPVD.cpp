@@ -282,12 +282,15 @@ void EBToPVD::WriteSTL (std::string const& filename) const
       ofs << "endsolid Created by AMReX planar EB reconstruction\n";
    }
    ofs.close();
+   AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      !ofs.fail(), "Could not complete planar EB STL output " + filename);
 
 #ifdef AMREX_USE_MPI
    if (myproc < nprocs-1) {
       int token = 0;
       ParallelDescriptor::Send(&token, 1, myproc+1, 101);
    }
+   ParallelDescriptor::Barrier();
 #endif
 }
 

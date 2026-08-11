@@ -5,3 +5,5 @@ nz = 64
 
 max_grid_size = 32
 narrow_band_test = 1
+
+eb2.eb_surface_stl_file = cube_mc.stl
