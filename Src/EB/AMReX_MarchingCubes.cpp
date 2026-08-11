@@ -206,8 +206,8 @@ void cut_face_fraction (Real const* levelset, Real const* intersections,
         Real edge_y[4];
         for (int n = 0; n < 4; ++n) {
             int const next = (n+1) % 4;
-            Real const alpha =
-                levelset[n] / (levelset[n]-levelset[next]);
+            Real const alpha = edge_intersection_fraction(
+                levelset[n], levelset[next], intersections[n]);
             edge_x[n] = vertex_x[n]
                 + alpha*(vertex_x[next]-vertex_x[n]);
             edge_y[n] = vertex_y[n]

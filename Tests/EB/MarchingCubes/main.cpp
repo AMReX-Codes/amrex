@@ -56,6 +56,55 @@ void validate_mc33_face_decisions() {
       {1.0_rt, -1.0_rt, 1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt, -1.0_rt}));
 }
 
+void validate_exact_ambiguous_face_fraction() {
+  Box const cell_box(IntVect(0), IntVect(0));
+  Box const node_box = amrex::grow(amrex::surroundingNodes(cell_box), 2);
+  FArrayBox sdf(node_box, 1);
+  sdf.setVal(1.0_rt);
+  auto const phi = sdf.array();
+  ParallelFor(amrex::surroundingNodes(cell_box),
+              [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+                if (k == 0) {
+                  phi(i, j, k) = (i == j) ? 1.0_rt : -1.0_rt;
+                }
+              });
+
+  MC::MCFab mc_fab;
+  mc_fab.m_cell_data.resize(cell_box, MC::num_cell_data_components);
+  mc_fab.m_cell_data.setVal(0);
+  auto const cell_data = mc_fab.m_cell_data.array();
+  ParallelFor(cell_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+    cell_data(i, j, k, MC::face_decision_valid_mask) = 1 << 4;
+  });
+
+  mc_fab.defineEdgeIntersections(sdf.box());
+  auto const exact_x = mc_fab.m_edge_intersections[0].array();
+  auto const exact_y = mc_fab.m_edge_intersections[1].array();
+  ParallelFor(cell_box, [=] AMREX_GPU_DEVICE(int, int, int) noexcept {
+    exact_x(0, 0, 0) = 0.2_rt;
+    exact_y(1, 0, 0) = 0.3_rt;
+    exact_x(0, 1, 0) = 0.6_rt;
+    exact_y(0, 0, 0) = 0.9_rt;
+  });
+
+  FArrayBox apx(amrex::surroundingNodes(cell_box, 0), 1);
+  FArrayBox apy(amrex::surroundingNodes(cell_box, 1), 1);
+  FArrayBox apz(amrex::surroundingNodes(cell_box, 2), 1);
+  FArrayBox fcx(amrex::surroundingNodes(cell_box, 0), 2);
+  FArrayBox fcy(amrex::surroundingNodes(cell_box, 1), 2);
+  FArrayBox fcz(amrex::surroundingNodes(cell_box, 2), 2);
+  int const errors = MC::build_face_fractions(
+      cell_box, mc_fab, sdf, apx, apy, apz, fcx, fcy, fcz);
+
+  Gpu::PinnedVector<Real> area(1);
+  Gpu::dtoh_memcpy(area.data(), apz.dataPtr(), sizeof(Real));
+  Gpu::streamSynchronize();
+  AMREX_ALWAYS_ASSERT(errors == 0);
+  AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
+      std::abs(area[0] - 0.23_rt) < 64.0_rt * std::numeric_limits<Real>::epsilon(),
+      "Ambiguous MC face fraction did not use exact STL edge crossings");
+}
+
 void validate_narrow_band_levelset() {
   Box const domain(IntVect(0), IntVect(15));
   Geometry const geom(
@@ -245,6 +294,7 @@ void main_main ()
         "The marching-cubes GPU test must execute in a GPU launch region");
 #endif
     validate_mc33_face_decisions();
+    validate_exact_ambiguous_face_fraction();
 
     int nx = 64;
     int ny = 64;
