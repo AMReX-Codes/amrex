@@ -267,6 +267,14 @@ the supplied cell count in each direction since the last :cpp:`Redistribute()`
 call. Use the global algorithm after initialization, regridding, load balancing,
 or any update that may send particles arbitrarily far.
 
+On CPU builds, local :cpp:`Redistribute()` can use a level-0 mask to speed up
+particle-to-grid lookup for short moves. AMReX bypasses this mask for multi-level
+redistribution and when the estimated mask storage is too large; in those cases,
+the local MPI communication algorithm can still be used while particle lookup
+falls back to a box search. The mask policy can be controlled with
+``particles.redistribute_use_mask``, ``particles.redistribute_mask_max_ratio``,
+and ``particles.redistribute_mask_max_bytes``.
+
 Application codes will likely want to create their own derived
 ParticleContainer class that specializes the template parameters and adds
 additional functionality, like setting the initial conditions, moving the
