@@ -9,7 +9,7 @@ set(_input_files
     inputs.cube.legacy
     inputs.cubes.mc
     inputs.cubes.legacy
-    inputs.bunny
+    inputs.bunny.mc
     inputs.bunny.legacy
     inputs.multilevel.mc
     inputs.multilevel.rebuild.mc
@@ -32,8 +32,7 @@ set_tests_properties(EB_MarchingCubes_3d PROPERTIES
     LABELS "${_mc_test_labels}")
 
 function(add_mc_test_variant _test_name _inputs_filename)
-    set(_cmd $<TARGET_FILE:Test_EB_MarchingCubes_3d> ${_inputs_filename}
-        algorithm_tests=0 ${ARGN})
+    set(_cmd $<TARGET_FILE:Test_EB_MarchingCubes_3d> ${_inputs_filename} ${ARGN})
     if (AMReX_MPI)
         set(_cmd ${MPIEXEC_EXECUTABLE} ${MPIEXEC_NUMPROC_FLAG} 2
             ${MPIEXEC_PREFLAGS} ${_cmd} ${MPIEXEC_POSTFLAGS})
@@ -55,7 +54,7 @@ add_mc_test_variant(EB_MarchingCubesNodal_3d inputs.nodal.mc)
 add_mc_test_variant(EB_MarchingCubesCubeLegacy_3d inputs.cube.legacy)
 add_mc_test_variant(EB_MarchingCubesCubes_3d inputs.cubes.mc)
 add_mc_test_variant(EB_MarchingCubesCubesLegacy_3d inputs.cubes.legacy)
-add_mc_test_variant(EB_MarchingCubesBunny_3d inputs.bunny)
+add_mc_test_variant(EB_MarchingCubesBunny_3d inputs.bunny.mc)
 add_mc_test_variant(EB_MarchingCubesBunnyLegacy_3d inputs.bunny.legacy)
 
 function(add_expected_failure _test_name _inputs_filename _expected_regex)

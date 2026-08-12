@@ -1,6 +1,7 @@
 nx = 256
 ny = 128
 nz = 64
+algorithm_tests = 0
 
 max_grid_size = 32
 

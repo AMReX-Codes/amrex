@@ -1,9 +1,9 @@
 nx = 256
 ny = 128
 nz = 64
-
 max_grid_size = 32
 
+algorithm_tests = 0
 custom_stl_test = 1
 
 geometry.prob_lo = -2.4 -1.2 0.00

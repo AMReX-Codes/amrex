@@ -10,4 +10,6 @@ zmin = -1.0
 zmax = 1.0
 
 max_grid_size = 32
-test_stl_scale = 0.5
+eb2.stl_scale = 0.5
+
+algorithm_tests = 0

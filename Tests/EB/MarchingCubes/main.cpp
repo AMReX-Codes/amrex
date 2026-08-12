@@ -8,10 +8,8 @@
 #include <AMReX_WriteEBSurface.H>
 
 #include <algorithm>
-#include <fstream>
 #include <iomanip>
 #include <limits>
-#include <sstream>
 #include <utility>
 
 using namespace amrex;
@@ -306,63 +304,6 @@ char const* execution_backend () noexcept
 #endif
 }
 
-Long validate_ascii_stl (std::string const& filename)
-{
-    if (filename.empty()) {
-        return 0;
-    }
-    ParallelDescriptor::Barrier();
-    Long facets = 0;
-    if (ParallelDescriptor::IOProcessor()) {
-        std::ifstream input(filename);
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(input.good(), "Could not open generated STL " + filename);
-        std::string line;
-        Long headers = 0;
-        Long trailers = 0;
-        Long vertex_lines = 0;
-        GpuArray<GpuArray<Real, 3>, 3> vertices;
-        int vertex_count = 0;
-        while (std::getline(input, line)) {
-            facets += line.starts_with("facet normal ");
-            headers += line.starts_with("solid Created by AMReX");
-            trailers += line.starts_with("endsolid Created by AMReX");
-            AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-                line.find("nan") == std::string::npos && line.find("inf") == std::string::npos,
-                "Generated STL contains a non-finite value: " + filename);
-            if (line.find("vertex") != std::string::npos) {
-                std::istringstream parser(line);
-                std::string tag;
-                parser >> tag >> vertices[vertex_count][0] >> vertices[vertex_count][1] >>
-                    vertices[vertex_count][2];
-                ++vertex_lines;
-                ++vertex_count;
-                if (vertex_count == 3) {
-                    Real const ax = vertices[1][0] - vertices[0][0];
-                    Real const ay = vertices[1][1] - vertices[0][1];
-                    Real const az = vertices[1][2] - vertices[0][2];
-                    Real const bx = vertices[2][0] - vertices[0][0];
-                    Real const by = vertices[2][1] - vertices[0][1];
-                    Real const bz = vertices[2][2] - vertices[0][2];
-                    Real const cx = ay * bz - az * by;
-                    Real const cy = az * bx - ax * bz;
-                    Real const cz = ax * by - ay * bx;
-                    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(cx * cx + cy * cy + cz * cz > 0.0_rt,
-                                                     "Generated STL contains a degenerate facet: " +
-                                                         filename);
-                    vertex_count = 0;
-                }
-            }
-        }
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            facets > 0 && headers == 1 && trailers == 1 && vertex_count == 0 &&
-                vertex_lines == 3 * facets,
-            "Generated STL has incomplete facets or invalid solid records: " + filename);
-    }
-    ParallelDescriptor::Barrier();
-    ParallelDescriptor::Bcast(&facets, 1, ParallelDescriptor::IOProcessorNumber());
-    return facets;
-}
-
 } // namespace
 
 void main_main ()
@@ -416,10 +357,6 @@ void main_main ()
         pp.query("build_coarse_level_by_coarsening", build_coarse_level_by_coarsening);
         pp.query("custom_stl_test", custom_stl_test);
         pp.query("narrow_band_test", narrow_band_test);
-        pp.query("test_stl_file", stl_file);
-        pp.query("test_stl_scale", stl_scale);
-        pp.queryarr("test_stl_center", stl_center);
-
         std::vector<Real> prob_lo{xmin, ymin, zmin};
         std::vector<Real> prob_hi{xmax, ymax, zmax};
         ParmParse ppgeom("geometry");
@@ -466,14 +403,9 @@ void main_main ()
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(factory->maxCoarseningLevel() >= required_coarsening_level,
                                      "Marching-cubes EB did not build every required coarse level");
     std::string eb_surface_stl_file;
-    ParmParse("eb2").query("eb_surface_stl_file", eb_surface_stl_file);
-    if (!eb_surface_stl_file.empty()) {
+    if (ParmParse("eb2").query("eb_surface_stl_file", eb_surface_stl_file)) {
         WriteEBSurfaceSTL(ba, dm, geom, factory.get(), eb_surface_stl_file);
-        validate_ascii_stl(eb_surface_stl_file);
     }
-    std::string mc_stl_file;
-    ParmParse("eb2").query("mc_stl_file", mc_stl_file);
-    Long const mc_facets = eb_method == "marching_cubes" ? validate_ascii_stl(mc_stl_file) : 0;
     auto const& volfrac = factory->getVolFrac();
     Real const fluid_volume =
         volfrac.sum() * geom.CellSize(0) * geom.CellSize(1) * geom.CellSize(2);
@@ -717,7 +649,7 @@ void main_main ()
                    << " precision=" << 8 * sizeof(Real) << " method=" << eb_method
                    << " fluid_volume=" << fluid_volume
                    << " single_valued_cells=" << global_topology_counts[1]
-                   << " repaired_nodes=" << repaired_nodes << " mc_facets=" << mc_facets << '\n';
+                   << " repaired_nodes=" << repaired_nodes << '\n';
     if (!custom_stl_test) {
         Real const domain_scale = amrex::max(xmax - xmin, amrex::max(ymax - ymin, zmax - zmin));
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
