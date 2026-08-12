@@ -23,6 +23,15 @@ set(_input_files
 )
 
 setup_test(3 _sources _input_files COMBINE_MPI_OMP NTASKS 2 NTHREADS 2)
+
+# Temporary CI instrumentation for the Clang FastMath heap-corruption trace.
+if (AMReX_FASTMATH AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(amrex_3d PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer -g)
+    target_link_options(amrex_3d INTERFACE -fsanitize=address,undefined)
+    target_compile_options(Test_EB_MarchingCubes_3d PRIVATE
+        -fsanitize=address,undefined -fno-omit-frame-pointer -g)
+endif()
+
 # Input files stay in the configuration-independent runtime directory even
 # when a multi-config generator puts the executable in a configuration subdir.
 get_target_property(_mc_test_working_directory Test_EB_MarchingCubes_3d
