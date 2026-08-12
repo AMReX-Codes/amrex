@@ -950,8 +950,7 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
         } else {
             return classify_on_cpu(std::false_type{});
         }
-#endif
-
+#else
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -1015,6 +1014,7 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
         } else {
             return mixedcells;
         }
+#endif
     }
 }
 
