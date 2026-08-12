@@ -2,8 +2,6 @@ DEBUG = FALSE
 TEST = TRUE
 USE_ASSERTION = TRUE
 
-TINY_PROFILE = TRUE
-
 USE_EB = TRUE
 
 USE_MPI  = TRUE
@@ -28,4 +26,3 @@ Ppack	+= $(foreach dir, $(Pdirs), $(AMREX_HOME)/Src/$(dir)/Make.package)
 include $(Ppack)
 
 include $(AMREX_HOME)/Tools/GNUMake/Make.rules
-

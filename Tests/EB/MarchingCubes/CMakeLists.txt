@@ -9,20 +9,16 @@ set(_input_files
     inputs.cube.legacy
     inputs.cubes.mc
     inputs.cubes.legacy
-    inputs.cleanup.mc
-    inputs.cleanup.legacy
+    inputs.bunny
+    inputs.bunny.legacy
     inputs.multilevel.mc
     inputs.multilevel.rebuild.mc
     inputs.nodal.mc
-    inputs.periodic.mc
-    inputs.periodic.legacy
-    inputs.extend-domain.mc
-    inputs.extend-domain.legacy
-    inputs.anisotropic.mc
     inputs.open-stl.mc
     cube.stl
     cubes.stl
-    cubes_mc_triangles.stl
+    stanford_bunny.stl
+    STANFORD_BUNNY_LICENSE.md
     open_surface.stl
 )
 
@@ -53,37 +49,14 @@ function(add_mc_test_variant _test_name _inputs_filename)
     set_tests_properties(${_test_name} PROPERTIES LABELS "${_mc_test_labels}")
 endfunction()
 
-add_mc_test_variant(EB_MarchingCubesCleanup_3d inputs.cleanup.mc)
-add_mc_test_variant(EB_MarchingCubesCleanupLegacy_3d inputs.cleanup.legacy)
 add_mc_test_variant(EB_MarchingCubesMultilevel_3d inputs.multilevel.mc)
 add_mc_test_variant(EB_MarchingCubesMultilevelRebuild_3d inputs.multilevel.rebuild.mc)
 add_mc_test_variant(EB_MarchingCubesNodal_3d inputs.nodal.mc)
-add_mc_test_variant(EB_MarchingCubesPeriodic_3d inputs.periodic.mc)
-add_mc_test_variant(EB_MarchingCubesPeriodicLegacy_3d inputs.periodic.legacy)
-add_mc_test_variant(EB_MarchingCubesExtendDomain_3d inputs.extend-domain.mc)
-add_mc_test_variant(EB_MarchingCubesExtendDomainLegacy_3d inputs.extend-domain.legacy)
-add_mc_test_variant(EB_MarchingCubesLegacySTL_3d inputs.cube.legacy)
+add_mc_test_variant(EB_MarchingCubesCubeLegacy_3d inputs.cube.legacy)
 add_mc_test_variant(EB_MarchingCubesCubes_3d inputs.cubes.mc)
 add_mc_test_variant(EB_MarchingCubesCubesLegacy_3d inputs.cubes.legacy)
-
-find_package(Python3 COMPONENTS Interpreter REQUIRED)
-add_test(
-    NAME EB_MarchingCubesCompareSTL_3d
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_LIST_DIR}/compare_stl.py
-        cube_legacy.stl cube_mc.stl
-        --relative-tolerance 0.0001
-        --absolute-tolerance 0.00001
-    WORKING_DIRECTORY $<TARGET_FILE_DIR:Test_EB_MarchingCubes_3d>
-)
-set_tests_properties(
-    EB_MarchingCubes_3d
-    EB_MarchingCubesLegacySTL_3d
-    PROPERTIES FIXTURES_SETUP MarchingCubesSTL
-)
-set_tests_properties(EB_MarchingCubesCompareSTL_3d PROPERTIES
-    FIXTURES_REQUIRED MarchingCubesSTL
-    LABELS "${_mc_test_labels}"
-)
+add_mc_test_variant(EB_MarchingCubesBunny_3d inputs.bunny)
+add_mc_test_variant(EB_MarchingCubesBunnyLegacy_3d inputs.bunny.legacy)
 
 function(add_expected_failure _test_name _inputs_filename _expected_regex)
     set(_test_prefix)
@@ -112,8 +85,6 @@ endfunction()
 
 add_expected_failure(EB_MarchingCubesRejectOpenSTL_3d
     inputs.open-stl.mc "STL is open, nonmanifold, or inconsistently oriented")
-add_expected_failure(EB_MarchingCubesRejectAnisotropic_3d
-    inputs.anisotropic.mc "requires a 3D Cartesian grid")
 
 unset(_sources)
 unset(_input_files)

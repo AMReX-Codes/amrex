@@ -8,4 +8,4 @@ narrow_band_test = 1
 
 eb2.stl_geometry_method = marching_cubes
 eb2.stl_file = cube.stl
-eb2.eb_surface_stl_file = cube_mc.stl
+# eb2.eb_surface_stl_file = cube_mc.stl

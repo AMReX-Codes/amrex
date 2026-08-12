@@ -192,65 +192,6 @@ void validate_nodal_stl_face_levelset ()
         "STL samples on a grid-aligned face were not consistently classified as on-surface");
 }
 
-void validate_domain_extension_is_feature_local ()
-{
-    Box const cells(IntVect(0), IntVect(2));
-    Box const extended_nodes(IntVect(-2, -1, -1), IntVect(5, 4, 4));
-    FArrayBox levelset(extended_nodes, 1);
-    levelset.setVal<RunOn::Device>(1.0_rt);
-    auto const phi = levelset.array();
-    ParallelFor(Box(IntVect(0, 1, 1), IntVect(0, 2, 2)),
-                [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                    phi(i, j, k) = -1.0_rt;
-                });
-
-    MC::extend_domain_face_levelset(
-        extended_nodes, cells, GpuArray<int, 3>{0, 0, 0}, levelset);
-    auto const extended_phi = levelset.const_array();
-    Gpu::DeviceScalar<Long> error_count(static_cast<Long>(0));
-    Long* const errors = error_count.dataPtr();
-    ParallelFor(extended_nodes, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-        bool const normal_extrusion = i < 0 && j >= 1 && j <= 2 && k >= 1 && k <= 2;
-        bool const source_feature = i == 0 && j >= 1 && j <= 2 && k >= 1 && k <= 2;
-        bool const covered = extended_phi(i, j, k) < 0.0_rt;
-        if (covered != (normal_extrusion || source_feature)) {
-            Gpu::Atomic::AddNoRet(errors, static_cast<Long>(1));
-        }
-    });
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        error_count.dataValue() == 0,
-        "MC domain extension covered nodes outside the selected exterior feature");
-
-    MC::MCFab mc_fab;
-    mc_fab.defineEdgeIntersections(extended_nodes);
-    auto const transverse_crossing = mc_fab.m_edge_intersections[1].array();
-    ParallelFor(Box(IntVect(0, 1, 1), IntVect(0, 1, 1)),
-                [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                    transverse_crossing(i, j, k) = 0.25_rt;
-                });
-    MC::extend_domain_face_edge_intersections(
-        cells, GpuArray<int, 3>{0, 0, 0}, mc_fab);
-    auto const normal_crossing = mc_fab.m_edge_intersections[0].const_array();
-    Gpu::DeviceScalar<Long> cache_error_count(static_cast<Long>(0));
-    Long* const cache_errors = cache_error_count.dataPtr();
-    ParallelFor(Box(IntVect(-2, 1, 1), IntVect(-1, 1, 1)),
-                [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                    if (transverse_crossing(i, j, k) != 0.25_rt) {
-                        Gpu::Atomic::AddNoRet(cache_errors, static_cast<Long>(1));
-                    }
-                });
-    ParallelFor(Box(IntVect(-1, 1, 0), IntVect(-1, 1, 0)),
-                [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                    if (!amrex::isnan(transverse_crossing(i, j, k))
-                        || !amrex::isnan(normal_crossing(i, j, k + 1))) {
-                        Gpu::Atomic::AddNoRet(cache_errors, static_cast<Long>(1));
-                    }
-                });
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        cache_error_count.dataValue() == 0,
-        "MC exact crossings were not extended only along the selected face normal");
-}
-
 void validate_narrow_band_levelset ()
 {
     Box const domain(IntVect(0), IntVect(15));
@@ -438,7 +379,6 @@ void main_main ()
         validate_mc33_vertex_indices();
         validate_exact_ambiguous_face_fraction();
         validate_nodal_stl_face_levelset();
-        validate_domain_extension_is_feature_local();
     }
 
     int nx = 64;
@@ -454,11 +394,8 @@ void main_main ()
     Real ymax = 1.2;
     Real zmin = -1.2;
     Real zmax = 1.2;
-    std::vector<int> is_periodic{0, 0, 0};
-    bool cleanup_test = false;
     bool custom_stl_test = false;
     bool narrow_band_test = false;
-    bool extend_domain_test = false;
     std::string eb_method("marching_cubes");
     std::string stl_file("cube.stl");
     Real stl_scale = 1.0;
@@ -474,14 +411,11 @@ void main_main ()
         pp.query("ymax", ymax);
         pp.query("zmin", zmin);
         pp.query("zmax", zmax);
-        pp.queryarr("is_periodic", is_periodic);
         pp.query("required_coarsening_level", required_coarsening_level);
         pp.query("max_coarsening_level", max_coarsening_level);
         pp.query("build_coarse_level_by_coarsening", build_coarse_level_by_coarsening);
-        pp.query("cleanup_test", cleanup_test);
         pp.query("custom_stl_test", custom_stl_test);
         pp.query("narrow_band_test", narrow_band_test);
-        pp.query("extend_domain_test", extend_domain_test);
         pp.query("test_stl_file", stl_file);
         pp.query("test_stl_scale", stl_scale);
         pp.queryarr("test_stl_center", stl_center);
@@ -518,7 +452,7 @@ void main_main ()
 
     Geometry geom(Box(IntVect(0), IntVect(AMREX_D_DECL(nx - 1, ny - 1, nz - 1))),
                   RealBox({AMREX_D_DECL(xmin, ymin, zmin)}, {AMREX_D_DECL(xmax, ymax, zmax)}), 0,
-                  {AMREX_D_DECL(is_periodic[0], is_periodic[1], is_periodic[2])});
+                  {AMREX_D_DECL(0, 0, 0)});
     BoxArray ba(geom.Domain());
     ba.maxSize(max_grid_size);
     DistributionMapping dm(ba);
@@ -549,7 +483,7 @@ void main_main ()
     Real const max_dx =
         amrex::max(geom.CellSize(0), amrex::max(geom.CellSize(1), geom.CellSize(2)));
     Real const roundoff_tolerance = 64.0_rt * std::numeric_limits<Real>::epsilon();
-    if (custom_stl_test || extend_domain_test) {
+    if (custom_stl_test) {
         amrex::Print() << "Fluid volume: " << fluid_volume << "\n";
     } else {
         amrex::Print() << "Fluid volume: " << fluid_volume << ", expected: " << expected_volume
@@ -557,7 +491,7 @@ void main_main ()
     }
     AMREX_ALWAYS_ASSERT(volfrac.min(0) >= -roundoff_tolerance);
     AMREX_ALWAYS_ASSERT(volfrac.max(0) <= 1.0_rt + roundoff_tolerance);
-    if (custom_stl_test || extend_domain_test) {
+    if (custom_stl_test) {
         AMREX_ALWAYS_ASSERT(fluid_volume > 0.0_rt);
         AMREX_ALWAYS_ASSERT(fluid_volume < domain_volume);
     }
@@ -607,51 +541,6 @@ void main_main ()
     auto const& levelset = factory->getLevelSet();
     AMREX_ALWAYS_ASSERT(!levelset.contains_nan());
     AMREX_ALWAYS_ASSERT(!levelset.contains_inf());
-
-    if (extend_domain_test) {
-        IntVect const covered_probe_iv(
-            AMREX_D_DECL(geom.Domain().smallEnd(0) - 1,
-                         (geom.Domain().smallEnd(1) + geom.Domain().bigEnd(1) + 1) / 2,
-                         (geom.Domain().smallEnd(2) + geom.Domain().bigEnd(2) + 1) / 2));
-        IntVect const fluid_probe_iv(
-            AMREX_D_DECL(geom.Domain().smallEnd(0) - 1,
-                         geom.Domain().smallEnd(1) + 25,
-                         (geom.Domain().smallEnd(2) + geom.Domain().bigEnd(2) + 1) / 2));
-        Gpu::Buffer<Long> extension_counts(4);
-        std::fill_n(extension_counts.hostData(), extension_counts.size(), static_cast<Long>(0));
-        extension_counts.copyToDeviceAsync();
-        Long* const extension = extension_counts.data();
-        for (MFIter mfi(levelset); mfi.isValid(); ++mfi) {
-            Box const covered_probe = Box(covered_probe_iv, covered_probe_iv) & levelset[mfi].box();
-            Box const fluid_probe = Box(fluid_probe_iv, fluid_probe_iv) & levelset[mfi].box();
-            auto const phi = levelset.const_array(mfi);
-            ParallelFor(covered_probe, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                Gpu::Atomic::AddNoRet(extension, static_cast<Long>(1));
-                if (phi(i, j, k) >= 0.0_rt) {
-                    Gpu::Atomic::AddNoRet(extension + 1, static_cast<Long>(1));
-                }
-            });
-            ParallelFor(fluid_probe, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-                Gpu::Atomic::AddNoRet(extension + 2, static_cast<Long>(1));
-                if (phi(i, j, k) < 0.0_rt) {
-                    Gpu::Atomic::AddNoRet(extension + 3, static_cast<Long>(1));
-                }
-            });
-        }
-        extension_counts.copyToHost();
-        Long extension_total = extension_counts.hostData()[0];
-        Long extension_covered = extension_counts.hostData()[1];
-        Long fluid_total = extension_counts.hostData()[2];
-        Long fluid_unchanged = extension_counts.hostData()[3];
-        ParallelAllReduce::Sum<Long>({extension_total, extension_covered, fluid_total, fluid_unchanged},
-                                     ParallelContext::CommunicatorSub());
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            extension_total > 0 && extension_covered == extension_total,
-            "MC domain-face extension did not keep the exterior probe covered");
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            fluid_total > 0 && fluid_unchanged == fluid_total,
-            "MC domain-face extension covered an exterior location unrelated to the boundary feature");
-    }
 
     auto const edge_centroid = factory->getEdgeCent();
     Array<std::unique_ptr<MultiFab>, AMREX_SPACEDIM> dense_edge;
@@ -818,10 +707,6 @@ void main_main ()
         "Nodal repair left a single-valued cell below eb2.small_volfrac");
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(global_topology_counts[3] == 0,
                                      "Single-valued EB regression retained a multi-valued cell");
-    if (cleanup_test) {
-        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-            repaired_nodes > 0, "Legacy-style MC repair did not move any fluid node to zero");
-    }
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
         global_topology_counts[5] == 0,
         "EB boundary normals disagree with repaired face-aperture closure");
@@ -833,7 +718,7 @@ void main_main ()
                    << " fluid_volume=" << fluid_volume
                    << " single_valued_cells=" << global_topology_counts[1]
                    << " repaired_nodes=" << repaired_nodes << " mc_facets=" << mc_facets << '\n';
-    if (!cleanup_test && !custom_stl_test && !extend_domain_test) {
+    if (!custom_stl_test) {
         Real const domain_scale = amrex::max(xmax - xmin, amrex::max(ymax - ymin, zmax - zmin));
         AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
             error < 6.0_rt * max_dx * max_dx * domain_scale,

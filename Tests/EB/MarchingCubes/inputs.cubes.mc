@@ -5,7 +5,6 @@ nz = 64
 max_grid_size = 32
 
 custom_stl_test = 1
-algorithm_tests = 0
 
 geometry.prob_lo = -2.4 -1.2 0.00
 geometry.prob_hi =  2.4  1.2 1.20
@@ -16,5 +15,5 @@ eb2.small_volfrac = 1.e-6
 eb2.stl_scale = 1e-3
 eb2.stl_center = 0.0 0.0 0.0
 eb2.cover_multiple_cuts = 1
-eb2.mc_stl_file = cubes_mc_triangles.stl
-eb2.eb_surface_stl_file = cubes_mc.stl
+# eb2.mc_stl_file = cubes_mc_triangles.stl
+# eb2.eb_surface_stl_file = cubes_mc.stl

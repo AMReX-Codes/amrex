@@ -15,4 +15,4 @@ eb2.small_volfrac = 1.e-6
 eb2.stl_scale = 1e-3
 eb2.stl_center = 0.0 0.0 0.0
 eb2.cover_multiple_cuts = 1
-eb2.eb_surface_stl_file = cubes_legacy.stl
+# eb2.eb_surface_stl_file = cubes_legacy.stl

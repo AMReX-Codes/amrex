@@ -1,0 +1,16 @@
+nx = 128
+ny = 128
+nz = 128
+
+max_grid_size = 32
+
+custom_stl_test = 1
+eb2.stl_geometry_method = legacy
+test_stl_file = stanford_bunny.stl
+test_stl_scale = 0.016
+test_stl_center = -0.48516235 -0.03025528 -0.94753541
+
+eb2.small_volfrac = 1.e-6
+eb2.maxiter = 64
+eb2.cover_multiple_cuts = 1
+# eb2.eb_surface_stl_file = stanford_bunny_legacy.stl
