@@ -1583,7 +1583,15 @@ void STLtools::fillMarchingCubesLevelSet (MultiFab& mf, IntVect const& nghost,
                     d2 = amrex::min(d2, pt_tri_min_d2(coords, tri_pts[tr]));
                 }
             }
-            phi(i, j, k) *= std::sqrt(d2);
+            Real const distance = std::sqrt(d2);
+            Real const coordinate_scale = amrex::max(
+                1.0_rt, amrex::max(std::abs(coords.x),
+                                   amrex::max(std::abs(coords.y), std::abs(coords.z))));
+            Real const on_surface_tolerance =
+                16.0_rt * std::numeric_limits<Real>::epsilon() * coordinate_scale;
+            phi(i, j, k) = distance <= on_surface_tolerance
+                               ? 0.0_rt
+                               : phi(i, j, k) * distance;
         });
     }
     Gpu::streamSynchronize();

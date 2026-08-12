@@ -1782,65 +1782,6 @@ int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const&
     return rejection_count.dataValue();
 }
 
-int mark_cells_for_domain_extension (Box const& bx, Box const& domain,
-                                     GpuArray<int, 3> const& is_periodic,
-                                     FArrayBox const& vfrac_fab, IArrayBox& rejected_fab)
-{
-    BL_PROFILE("MC::mark_cells_for_domain_extension");
-
-    AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(bx));
-    AMREX_ALWAYS_ASSERT(rejected_fab.box().contains(bx));
-
-    int const domlo_x = domain.smallEnd(0);
-    int const domlo_y = domain.smallEnd(1);
-    int const domlo_z = domain.smallEnd(2);
-    int const domhi_x = domain.bigEnd(0);
-    int const domhi_y = domain.bigEnd(1);
-    int const domhi_z = domain.bigEnd(2);
-
-    Box clamped_box = bx;
-    if (!is_periodic[0]) {
-        clamped_box.setSmall(0, amrex::Clamp(bx.smallEnd(0), domlo_x, domhi_x));
-        clamped_box.setBig(0, amrex::Clamp(bx.bigEnd(0), domlo_x, domhi_x));
-    }
-    if (!is_periodic[1]) {
-        clamped_box.setSmall(1, amrex::Clamp(bx.smallEnd(1), domlo_y, domhi_y));
-        clamped_box.setBig(1, amrex::Clamp(bx.bigEnd(1), domlo_y, domhi_y));
-    }
-    if (!is_periodic[2]) {
-        clamped_box.setSmall(2, amrex::Clamp(bx.smallEnd(2), domlo_z, domhi_z));
-        clamped_box.setBig(2, amrex::Clamp(bx.bigEnd(2), domlo_z, domhi_z));
-    }
-    AMREX_ALWAYS_ASSERT(vfrac_fab.box().contains(clamped_box));
-
-    auto const vfrac = vfrac_fab.const_array();
-    auto const rejected = rejected_fab.array();
-    Gpu::DeviceScalar<int> rejection_count(0);
-    int* const count = rejection_count.dataPtr();
-
-#ifdef AMREX_USE_FLOAT
-    constexpr Real tolerance = 2.e-5_rt;
-#else
-    constexpr Real tolerance = 2.e-12_rt;
-#endif
-
-    ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
-        int const ii = is_periodic[0] ? i : amrex::Clamp(i, domlo_x, domhi_x);
-        int const jj = is_periodic[1] ? j : amrex::Clamp(j, domlo_y, domhi_y);
-        int const kk = is_periodic[2] ? k : amrex::Clamp(k, domlo_z, domhi_z);
-        bool const outside = ii != i || jj != j || kk != k;
-        Real const reference_vfrac = vfrac(ii, jj, kk);
-        bool const reference_is_covered = reference_vfrac >= 0.0_rt && reference_vfrac <= tolerance;
-        bool const cell_is_not_covered = vfrac(i, j, k) > tolerance;
-        if (outside && reference_is_covered && cell_is_not_covered && rejected(i, j, k) == 0) {
-            rejected(i, j, k) = RejectionReason::domain_extension;
-            Gpu::Atomic::AddNoRet(count, 1);
-        }
-    });
-
-    return rejection_count.dataValue();
-}
-
 Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cells_fab,
                              IArrayBox const& rejected_x_fab, IArrayBox const& rejected_y_fab,
                              IArrayBox const& rejected_z_fab, FArrayBox& sdf_fab)
@@ -1899,6 +1840,91 @@ Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
     });
 
     return changed_count.dataValue();
+}
+
+Long extend_domain_face_levelset (Box const& node_box, Box const& domain,
+                                  GpuArray<int, 3> const& is_periodic, FArrayBox& sdf_fab)
+{
+    BL_PROFILE("MC::extend_domain_face_levelset");
+
+    AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(node_box));
+    Box const nodal_domain = amrex::surroundingNodes(domain);
+    Box reference_box = node_box;
+    for (int d = 0; d < 3; ++d) {
+        if (!is_periodic[d]) {
+            reference_box.setSmall(
+                d, amrex::Clamp(node_box.smallEnd(d), nodal_domain.smallEnd(d),
+                                nodal_domain.bigEnd(d)));
+            reference_box.setBig(
+                d, amrex::Clamp(node_box.bigEnd(d), nodal_domain.smallEnd(d),
+                                nodal_domain.bigEnd(d)));
+        }
+    }
+    AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(reference_box));
+    auto const sdf = sdf_fab.array();
+
+    int const domlo_x = nodal_domain.smallEnd(0);
+    int const domlo_y = nodal_domain.smallEnd(1);
+    int const domlo_z = nodal_domain.smallEnd(2);
+    int const domhi_x = nodal_domain.bigEnd(0);
+    int const domhi_y = nodal_domain.bigEnd(1);
+    int const domhi_z = nodal_domain.bigEnd(2);
+
+    Gpu::DeviceScalar<Long> changed_count(static_cast<Long>(0));
+    Long* const changed = changed_count.dataPtr();
+    ParallelFor(node_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+        int const ii = is_periodic[0] ? i : amrex::Clamp(i, domlo_x, domhi_x);
+        int const jj = is_periodic[1] ? j : amrex::Clamp(j, domlo_y, domhi_y);
+        int const kk = is_periodic[2] ? k : amrex::Clamp(k, domlo_z, domhi_z);
+        int const outside_directions = (ii != i) + (jj != j) + (kk != k);
+        if (outside_directions != 1) {
+            return;
+        }
+        Real const extended_value = sdf(ii, jj, kk);
+        if (sdf(i, j, k) != extended_value) {
+            sdf(i, j, k) = extended_value;
+            Gpu::Atomic::AddNoRet(changed, static_cast<Long>(1));
+        }
+    });
+
+    return changed_count.dataValue();
+}
+
+void extend_domain_face_edge_intersections (Box const& domain,
+                                            GpuArray<int, 3> const& is_periodic,
+                                            MCFab& mc_fab)
+{
+    BL_PROFILE("MC::extend_domain_face_edge_intersections");
+
+    GpuArray<int, 3> const domain_lo{
+        domain.smallEnd(0), domain.smallEnd(1), domain.smallEnd(2)};
+    GpuArray<int, 3> const domain_hi{
+        domain.bigEnd(0), domain.bigEnd(1), domain.bigEnd(2)};
+    for (int edge_direction = 0; edge_direction < 3; ++edge_direction) {
+        auto const crossing = mc_fab.m_edge_intersections[edge_direction].array();
+        Box const edge_box = mc_fab.m_edge_intersections[edge_direction].box();
+        ParallelFor(edge_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+            int index[3] = {i, j, k};
+            int reference[3] = {i, j, k};
+            int outside_direction = -1;
+            int outside_directions = 0;
+            for (int d = 0; d < 3; ++d) {
+                if (is_periodic[d]) {
+                    continue;
+                }
+                int const lo = domain_lo[d];
+                int const hi = domain_hi[d] + (d != edge_direction);
+                reference[d] = amrex::Clamp(index[d], lo, hi);
+                if (reference[d] != index[d]) {
+                    outside_direction = d;
+                    ++outside_directions;
+                }
+            }
+            if (outside_directions == 1 && outside_direction != edge_direction) {
+                crossing(i, j, k) = crossing(reference[0], reference[1], reference[2]);
+            }
+        });
+    }
 }
 
 GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,

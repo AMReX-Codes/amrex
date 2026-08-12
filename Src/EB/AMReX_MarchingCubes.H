@@ -22,8 +22,7 @@ namespace amrex::MC {
 
 enum RejectionReason : int {
     invalid_topology = 1,
-    small_volume = 2,
-    domain_extension = 4
+    small_volume = 2
 };
 
 /**
@@ -169,18 +168,6 @@ GpuArray<int,2> mark_cells_for_cleanup (
     FArrayBox const& vfrac, Real small_volfrac, IArrayBox& rejected);
 
 /**
- * \brief Mark exterior cells that legacy domain-face extension makes covered.
- *
- * A cell outside a non-periodic physical domain is marked when the cell at
- * the corresponding clamped domain location is covered.
- *
- * \return Number of newly marked exterior cells.
- */
-int mark_cells_for_domain_extension (
-    Box const& bx, Box const& domain, GpuArray<int,3> const& is_periodic,
-    FArrayBox const& vfrac, IArrayBox& rejected);
-
-/**
  * \brief Apply the legacy EB repair transform to the MC working level set.
  *
  * Positive (fluid) nodes incident to a rejected face or cell are moved to
@@ -192,6 +179,29 @@ Long zero_nodes_for_cleanup (
     Box const& node_box, IArrayBox const& rejected_cells,
     IArrayBox const& rejected_x, IArrayBox const& rejected_y,
     IArrayBox const& rejected_z, FArrayBox& sdf);
+
+/**
+ * \brief Extrude the nodal level set straight outward from physical domain faces.
+ *
+ * An exterior node is assigned the value of the corresponding physical-face
+ * node only when it is outside in exactly one non-periodic direction. This
+ * preserves the feature's transverse footprint and does not extend diagonally
+ * from domain edges or corners.
+ *
+ * \return Number of exterior nodal values changed.
+ */
+Long extend_domain_face_levelset (
+    Box const& node_box, Box const& domain, GpuArray<int,3> const& is_periodic,
+    FArrayBox& sdf);
+
+/**
+ * \brief Extrude exact transverse-edge crossings with the domain-face level set.
+ *
+ * Crossings on edges transverse to the extension normal are copied straight
+ * outward from the physical face. Edges parallel to the normal are unchanged.
+ */
+void extend_domain_face_edge_intersections (
+    Box const& domain, GpuArray<int,3> const& is_periodic, MCFab& mc_fab);
 
 //! Write the converged MC triangles owned by \p grids to an STL file.
 void write_stl (
