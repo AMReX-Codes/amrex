@@ -110,42 +110,30 @@ namespace {
     }
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-    bool line_box_intersects (Real const a[3], Real const b[3], RealBox const& box)
+    bool line_box_intersects (Real const a[3], Real const inv_direction[3],
+                              int parallel_direction_mask, RealBox const& box)
     {
+        Real tmin = 0.0_rt;
+        Real tmax = 1.0_rt;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if ((a[idim] < box.lo(idim) && b[idim] < box.lo(idim)) ||
-                (a[idim] > box.hi(idim) && b[idim] > box.hi(idim))) {
-                return false;
-            }
-        }
-        if (box.contains(a) || box.contains(b)) {
-            return true;
-        }
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            // Note that we have made bounding box slightly bigger. So it's
-            // safe to assume that a line in the plane does not intersect
-            // with the actual bounding box.
-            if (a[idim] == b[idim]) { continue; }
-            Real xi[] = {box.lo(idim), box.hi(idim)};
-            for (auto xface : xi) {
-                if (!((a[idim] > xface && b[idim] > xface) ||
-                      (a[idim] < xface && b[idim] < xface)))
-                {
-                    Real w = (xface-a[idim]) / (b[idim]-a[idim]);
-                    bool inside = true;
-                    for (int jdim = 0; jdim < AMREX_SPACEDIM; ++jdim) {
-                        if (idim != jdim) {
-                            Real xpt = a[jdim] + (b[jdim]-a[jdim]) * w;
-                            inside = inside && (xpt >= box.lo(jdim)
-                                            &&  xpt <= box.hi(jdim));
-                        }
-                    }
-                    if (inside) { return true; }
+            if ((parallel_direction_mask & (1 << idim)) != 0) {
+                if (a[idim] < box.lo(idim) || a[idim] > box.hi(idim)) {
+                    return false;
+                }
+            } else {
+                Real tlo = (box.lo(idim)-a[idim]) * inv_direction[idim];
+                Real thi = (box.hi(idim)-a[idim]) * inv_direction[idim];
+                if (tlo > thi) {
+                    amrex::Swap(tlo,thi);
+                }
+                tmin = amrex::max(tmin,tlo);
+                tmax = amrex::min(tmax,thi);
+                if (tmin > tmax) {
+                    return false;
                 }
             }
         }
-
-        return false;
+        return true;
     }
 
     template <int M, int N, typename F>
@@ -154,11 +142,25 @@ namespace {
                                   STLtools::BVHNodeT<M,N> const* root,
                                   F const& f)
     {
+        // Reuse these reciprocals for every bounding box visited by this ray.
+        Real inv_direction[AMREX_SPACEDIM];
+        int parallel_direction_mask = 0;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            Real const direction = b[idim] - a[idim];
+            if (direction == 0.0_rt) {
+                parallel_direction_mask |= (1 << idim);
+                inv_direction[idim] = 0.0_rt;
+            } else {
+                inv_direction[idim] = 1.0_rt / direction;
+            }
+        }
+
         // Use stack to avoid recursion
         Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
         Stack<std::int8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
 
-        if (line_box_intersects(a, b, root->boundingbox)) {
+        if (line_box_intersects(a, inv_direction, parallel_direction_mask,
+                                root->boundingbox)) {
             nodes_to_do.push(0);
             nchildren_done.push(0);
         }
@@ -176,7 +178,8 @@ namespace {
                     for (auto ichild = ndone; ichild < node.nchildren; ++ichild) {
                         ++ndone;
                         int inode = node.children[ichild];
-                        if (line_box_intersects(a, b, root[inode].boundingbox)) {
+                        if (line_box_intersects(a, inv_direction, parallel_direction_mask,
+                                                root[inode].boundingbox)) {
                             nodes_to_do.push(inode);
                             nchildren_done.push(0);
                             break;
