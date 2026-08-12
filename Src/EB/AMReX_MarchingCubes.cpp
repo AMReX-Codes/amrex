@@ -1644,9 +1644,12 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
         IntVect::TheUnitVector() - IntVect::TheDimensionVector(1);
     IntVect const z_transverse_ghost =
         IntVect::TheUnitVector() - IntVect::TheDimensionVector(2);
-    Box const fxbx = amrex::grow(amrex::surroundingNodes(bxg1, 0), x_transverse_ghost);
-    Box const fybx = amrex::grow(amrex::surroundingNodes(bxg1, 1), y_transverse_ghost);
-    Box const fzbx = amrex::grow(amrex::surroundingNodes(bxg1, 2), z_transverse_ghost);
+    Box const valid_fxbx = amrex::surroundingNodes(bxg1, 0);
+    Box const valid_fybx = amrex::surroundingNodes(bxg1, 1);
+    Box const valid_fzbx = amrex::surroundingNodes(bxg1, 2);
+    Box const fxbx = amrex::grow(valid_fxbx, x_transverse_ghost);
+    Box const fybx = amrex::grow(valid_fybx, y_transverse_ghost);
+    Box const fzbx = amrex::grow(valid_fzbx, z_transverse_ghost);
 
     AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(nbxg1));
     AMREX_ALWAYS_ASSERT(cellflag.box().contains(bxg1));
@@ -1667,6 +1670,9 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
     BaseFab<EB2::Type_t> fx_fab(fxbx);
     BaseFab<EB2::Type_t> fy_fab(fybx);
     BaseFab<EB2::Type_t> fz_fab(fzbx);
+    fx_fab.setVal<RunOn::Device>(EB2::Type::regular);
+    fy_fab.setVal<RunOn::Device>(EB2::Type::regular);
+    fz_fab.setVal<RunOn::Device>(EB2::Type::regular);
     auto const fx = fx_fab.array();
     auto const fy = fy_fab.array();
     auto const fz = fz_fab.array();
@@ -1692,13 +1698,13 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
         }
     });
 
-    ParallelFor(fxbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+    ParallelFor(valid_fxbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         fx(i, j, k) = face_type(apx(i, j, k), tolerance);
     });
-    ParallelFor(fybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+    ParallelFor(valid_fybx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         fy(i, j, k) = face_type(apy(i, j, k), tolerance);
     });
-    ParallelFor(fzbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
+    ParallelFor(valid_fzbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         fz(i, j, k) = face_type(apz(i, j, k), tolerance);
     });
 
