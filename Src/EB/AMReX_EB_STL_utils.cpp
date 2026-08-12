@@ -6,6 +6,7 @@
 #include <AMReX_Stack.H>
 
 #include <cstring>
+#include <type_traits>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 
@@ -952,6 +953,73 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
 
         auto const* bvh_root = m_bvh_nodes.data();
 
+#ifndef AMREX_USE_GPU
+        // Unlike the device reduction, the serial host path can stop as soon
+        // as it sees both signs.
+        auto classify_on_cpu = [&] (auto use_bvh) -> int
+        {
+            int first_value = -1;
+            if (blo.x < ptmin.x || blo.y < ptmin.y || blo.z < ptmin.z ||
+                bhi.x > ptmax.x || bhi.y > ptmax.y || bhi.z > ptmax.z)
+            {
+                first_value = ref_value;
+            }
+
+            const Dim3 lo = amrex::lbound(box);
+            const Dim3 hi = amrex::ubound(box);
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                Real coords[3];
+                coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
+                coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+#if (AMREX_SPACEDIM == 2)
+                amrex::ignore_unused(k);
+                coords[2]=Real(0.);
+#else
+                coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+#endif
+                if (coords[0] < ptmin.x || coords[0] > ptmax.x ||
+                    coords[1] < ptmin.y || coords[1] > ptmax.y ||
+                    coords[2] < ptmin.z || coords[2] > ptmax.z)
+                {
+                    continue;
+                }
+
+                Real pr[] = {ptref.x, ptref.y, ptref.z};
+                int num_intersects = 0;
+                if constexpr (decltype(use_bvh)::value) {
+                    bvh_line_tri_intersects(pr, coords, bvh_root,
+                                            [&] (int ntri, Triangle const* tri,
+                                                    XDim3 const*) -> int
+                    {
+                        for (int tr = 0; tr < ntri; ++tr) {
+                            num_intersects += line_tri_intersects(pr, coords, tri[tr]);
+                        }
+                        return 0;
+                    });
+                } else {
+                    for (int tr = 0; tr < num_triangles; ++tr) {
+                        num_intersects += line_tri_intersects(pr, coords, tri_pts[tr]);
+                    }
+                }
+
+                int const value = (num_intersects % 2 == 0) ? ref_value : 1-ref_value;
+                if (first_value < 0) {
+                    first_value = value;
+                } else if (value != first_value) {
+                    return mixedcells;
+                }
+            }}}
+            return first_value == 1 ? allregular : allcovered;
+        };
+
+        if (m_bvh_optimization) {
+            return classify_on_cpu(std::true_type{});
+        } else {
+            return classify_on_cpu(std::false_type{});
+        }
+#else
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -1015,6 +1083,7 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
         } else {
             return mixedcells;
         }
+#endif
     }
 }
 
