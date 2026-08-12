@@ -20,6 +20,9 @@
 
 namespace amrex::MC {
 
+//! Sentinel used when an original-STL edge crossing is unavailable.
+inline constexpr Real invalid_edge_intersection = -1.0_rt;
+
 enum RejectionReason : int {
     invalid_topology = 1,
     small_volume = 2

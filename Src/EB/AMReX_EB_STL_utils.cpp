@@ -1752,21 +1752,21 @@ void STLtools::fillMarchingCubesEdgeIntersections (
     auto const exact_z = mc_fab.m_edge_intersections[2].array();
     ParallelFor(Box{exact_x}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
         if ((sdf(i,j,k) > 0.0_rt) != (sdf(i+1,j,k) > 0.0_rt)) {
-            Real fraction = std::numeric_limits<Real>::quiet_NaN();
+            Real fraction = MC::invalid_edge_intersection;
             find_x(i,j,k,fraction);
             exact_x(i,j,k) = fraction;
         }
     });
     ParallelFor(Box{exact_y}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
         if ((sdf(i,j,k) > 0.0_rt) != (sdf(i,j+1,k) > 0.0_rt)) {
-            Real fraction = std::numeric_limits<Real>::quiet_NaN();
+            Real fraction = MC::invalid_edge_intersection;
             find_y(i,j,k,fraction);
             exact_y(i,j,k) = fraction;
         }
     });
     ParallelFor(Box{exact_z}, [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept {
         if ((sdf(i,j,k) > 0.0_rt) != (sdf(i,j,k+1) > 0.0_rt)) {
-            Real fraction = std::numeric_limits<Real>::quiet_NaN();
+            Real fraction = MC::invalid_edge_intersection;
             find_z(i,j,k,fraction);
             exact_z(i,j,k) = fraction;
         }

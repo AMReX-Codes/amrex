@@ -66,7 +66,7 @@ Real edge_intersection_fraction (Real lo, Real hi, Real exact) noexcept
     if (hi == 0.0_rt) {
         return 1.0_rt;
     }
-    return amrex::isnan(exact) ? lo/(lo-hi) : exact;
+    return (exact < 0.0_rt || exact > 1.0_rt) ? lo/(lo-hi) : exact;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -954,8 +954,7 @@ void MCFab::defineEdgeIntersections (Box const& sdf_box)
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         Box const edge_box = amrex::enclosedCells(sdf_box, idim);
         m_edge_intersections[idim].resize(edge_box, 1);
-        m_edge_intersections[idim].setVal<RunOn::Device>(
-            std::numeric_limits<Real>::quiet_NaN());
+        m_edge_intersections[idim].setVal<RunOn::Device>(invalid_edge_intersection);
     }
 }
 
