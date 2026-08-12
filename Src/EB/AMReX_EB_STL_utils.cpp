@@ -294,7 +294,7 @@ namespace {
                         }
                     }
                     if (d > closest_d2) {
-                        ndone = static_cast<std::uint8_t>(ndone | (1u << closest_child));
+                        ndone = static_cast<std::uint8_t>(ndone | (1 << closest_child));
                         nodes_to_do.push(node.children[closest_child]);
                         nchildren_done.push(0);
                     } else {
@@ -304,7 +304,7 @@ namespace {
                 } else {
                     bool child_added = false;
                     for (std::int8_t ichild = 0; ichild < node.nchildren; ++ichild) {
-                        auto const child_bit = static_cast<std::uint8_t>(1u << ichild);
+                        auto const child_bit = static_cast<std::uint8_t>(1 << ichild);
                         if ((ndone & child_bit) != 0) { continue; }
                         ndone = static_cast<std::uint8_t>(ndone | child_bit);
                         int inode = node.children[ichild];
