@@ -5,16 +5,24 @@ endif ()
 set(_sources  main.cpp)
 
 set(_input_files
-    inputs
-    inputs.cleanup
-    inputs.multilevel
-    inputs.multilevel.rebuild
-    inputs.nodal
-    inputs.periodic
-    inputs.extend-domain
-    inputs.anisotropic
-    inputs.open-stl
+    inputs.cube.mc
+    inputs.cube.legacy
+    inputs.cubes.mc
+    inputs.cubes.legacy
+    inputs.cleanup.mc
+    inputs.cleanup.legacy
+    inputs.multilevel.mc
+    inputs.multilevel.rebuild.mc
+    inputs.nodal.mc
+    inputs.periodic.mc
+    inputs.periodic.legacy
+    inputs.extend-domain.mc
+    inputs.extend-domain.legacy
+    inputs.anisotropic.mc
+    inputs.open-stl.mc
     cube.stl
+    cubes.stl
+    cubes_mc_triangles.stl
     open_surface.stl
 )
 
@@ -45,18 +53,18 @@ function(add_mc_test_variant _test_name _inputs_filename)
     set_tests_properties(${_test_name} PROPERTIES LABELS "${_mc_test_labels}")
 endfunction()
 
-add_mc_test_variant(EB_MarchingCubesCleanup_3d inputs.cleanup)
-add_mc_test_variant(EB_MarchingCubesMultilevel_3d inputs.multilevel)
-add_mc_test_variant(EB_MarchingCubesMultilevelRebuild_3d inputs.multilevel.rebuild)
-add_mc_test_variant(EB_MarchingCubesNodal_3d inputs.nodal)
-add_mc_test_variant(EB_MarchingCubesPeriodic_3d inputs.periodic)
-add_mc_test_variant(EB_MarchingCubesExtendDomain_3d inputs.extend-domain)
-add_mc_test_variant(EB_MarchingCubesExtendDomainLegacy_3d inputs.extend-domain
-    eb2.stl_geometry_method=legacy)
-add_mc_test_variant(EB_MarchingCubesLegacySTL_3d inputs
-    narrow_band_test=0
-    eb2.stl_geometry_method=legacy
-    eb2.eb_surface_stl_file=cube_legacy.stl)
+add_mc_test_variant(EB_MarchingCubesCleanup_3d inputs.cleanup.mc)
+add_mc_test_variant(EB_MarchingCubesCleanupLegacy_3d inputs.cleanup.legacy)
+add_mc_test_variant(EB_MarchingCubesMultilevel_3d inputs.multilevel.mc)
+add_mc_test_variant(EB_MarchingCubesMultilevelRebuild_3d inputs.multilevel.rebuild.mc)
+add_mc_test_variant(EB_MarchingCubesNodal_3d inputs.nodal.mc)
+add_mc_test_variant(EB_MarchingCubesPeriodic_3d inputs.periodic.mc)
+add_mc_test_variant(EB_MarchingCubesPeriodicLegacy_3d inputs.periodic.legacy)
+add_mc_test_variant(EB_MarchingCubesExtendDomain_3d inputs.extend-domain.mc)
+add_mc_test_variant(EB_MarchingCubesExtendDomainLegacy_3d inputs.extend-domain.legacy)
+add_mc_test_variant(EB_MarchingCubesLegacySTL_3d inputs.cube.legacy)
+add_mc_test_variant(EB_MarchingCubesCubes_3d inputs.cubes.mc)
+add_mc_test_variant(EB_MarchingCubesCubesLegacy_3d inputs.cubes.legacy)
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 add_test(
@@ -103,9 +111,9 @@ function(add_expected_failure _test_name _inputs_filename _expected_regex)
 endfunction()
 
 add_expected_failure(EB_MarchingCubesRejectOpenSTL_3d
-    inputs.open-stl "STL is open, nonmanifold, or inconsistently oriented")
+    inputs.open-stl.mc "STL is open, nonmanifold, or inconsistently oriented")
 add_expected_failure(EB_MarchingCubesRejectAnisotropic_3d
-    inputs.anisotropic "requires a 3D Cartesian grid")
+    inputs.anisotropic.mc "requires a 3D Cartesian grid")
 
 unset(_sources)
 unset(_input_files)

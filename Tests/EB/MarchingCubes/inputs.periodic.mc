@@ -1,0 +1,8 @@
+nx = 64
+ny = 64
+nz = 64
+
+max_grid_size = 32
+is_periodic = 1 1 1
+
+eb2.stl_geometry_method = marching_cubes

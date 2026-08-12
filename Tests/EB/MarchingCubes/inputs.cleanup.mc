@@ -7,4 +7,5 @@ max_grid_size = 32
 cleanup_test = 1
 test_stl_center = 0.011 0.0 0.0
 
+eb2.stl_geometry_method = marching_cubes
 eb2.small_volfrac = 0.1
