@@ -260,9 +260,9 @@ namespace {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Real bvh_d2 (XDim3 const& pt, STLtools::BVHNodeT<M,N> const* root)
     {
-        static_assert(N <= std::numeric_limits<std::int8_t>::digits);
+        static_assert(N <= std::numeric_limits<std::uint8_t>::digits);
         Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
-        Stack<std::int8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
+        Stack<std::uint8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
         nodes_to_do.push(0);
         nchildren_done.push(0);
 
@@ -294,7 +294,7 @@ namespace {
                         }
                     }
                     if (d > closest_d2) {
-                        ndone |= static_cast<std::int8_t>(1 << closest_child);
+                        ndone = static_cast<std::uint8_t>(ndone | (1u << closest_child));
                         nodes_to_do.push(node.children[closest_child]);
                         nchildren_done.push(0);
                     } else {
@@ -304,9 +304,9 @@ namespace {
                 } else {
                     bool child_added = false;
                     for (std::int8_t ichild = 0; ichild < node.nchildren; ++ichild) {
-                        auto const child_bit = static_cast<std::int8_t>(1 << ichild);
+                        auto const child_bit = static_cast<std::uint8_t>(1u << ichild);
                         if ((ndone & child_bit) != 0) { continue; }
-                        ndone |= child_bit;
+                        ndone = static_cast<std::uint8_t>(ndone | child_bit);
                         int inode = node.children[ichild];
                         auto dmin = pt_box_min_d2(pt, root[inode].boundingbox);
                         if (d > dmin) {
