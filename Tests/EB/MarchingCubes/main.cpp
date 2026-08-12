@@ -149,7 +149,7 @@ void validate_exact_ambiguous_face_fraction ()
         MC::build_face_fractions(cell_box, mc_fab, sdf, apx, apy, apz, fcx, fcy, fcz);
 
     Gpu::Buffer<Real> area_buffer(1);
-    Box const sample_box(IntVect(0), IntVect(0));
+    Box const sample_box = amrex::makeSingleCellBox(IntVect(0), apz.box().ixType());
     apz.copyToMem<RunOn::Device>(sample_box, 0, 1, area_buffer.data());
     area_buffer.copyToHost();
     Real const area = area_buffer.hostData()[0];
