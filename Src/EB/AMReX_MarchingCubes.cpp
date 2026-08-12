@@ -1639,9 +1639,15 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
 
     Box const bxg1 = amrex::grow(bx, 1);
     Box const nbxg1 = amrex::surroundingNodes(bxg1);
-    Box const fxbx = amrex::surroundingNodes(bxg1, 0);
-    Box const fybx = amrex::surroundingNodes(bxg1, 1);
-    Box const fzbx = amrex::surroundingNodes(bxg1, 2);
+    IntVect const x_transverse_ghost =
+        IntVect::TheUnitVector() - IntVect::TheDimensionVector(0);
+    IntVect const y_transverse_ghost =
+        IntVect::TheUnitVector() - IntVect::TheDimensionVector(1);
+    IntVect const z_transverse_ghost =
+        IntVect::TheUnitVector() - IntVect::TheDimensionVector(2);
+    Box const fxbx = amrex::grow(amrex::surroundingNodes(bxg1, 0), x_transverse_ghost);
+    Box const fybx = amrex::grow(amrex::surroundingNodes(bxg1, 1), y_transverse_ghost);
+    Box const fzbx = amrex::grow(amrex::surroundingNodes(bxg1, 2), z_transverse_ghost);
 
     AMREX_ALWAYS_ASSERT(sdf_fab.box().contains(nbxg1));
     AMREX_ALWAYS_ASSERT(cellflag.box().contains(bxg1));

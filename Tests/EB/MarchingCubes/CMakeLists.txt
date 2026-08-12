@@ -23,6 +23,10 @@ set(_input_files
 )
 
 setup_test(3 _sources _input_files COMBINE_MPI_OMP NTASKS 2 NTHREADS 2)
+# Input files stay in the configuration-independent runtime directory even
+# when a multi-config generator puts the executable in a configuration subdir.
+get_target_property(_mc_test_working_directory Test_EB_MarchingCubes_3d
+    RUNTIME_OUTPUT_DIRECTORY)
 
 set(_mc_test_labels EB MarchingCubes)
 if (NOT AMReX_GPU_BACKEND STREQUAL NONE)
@@ -40,7 +44,7 @@ function(add_mc_test_variant _test_name _inputs_filename)
     add_test(
         NAME ${_test_name}
         COMMAND ${_cmd}
-        WORKING_DIRECTORY $<TARGET_FILE_DIR:Test_EB_MarchingCubes_3d>
+        WORKING_DIRECTORY ${_mc_test_working_directory}
     )
     if (AMReX_OMP)
         set_tests_properties(${_test_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
@@ -74,7 +78,7 @@ function(add_expected_failure _test_name _inputs_filename _expected_regex)
             -DTEST_INPUT=${_inputs_filename}
             -DEXPECTED_REGEX=${_expected_regex}
             -P ${CMAKE_CURRENT_LIST_DIR}/expect_failure.cmake
-        WORKING_DIRECTORY $<TARGET_FILE_DIR:Test_EB_MarchingCubes_3d>
+        WORKING_DIRECTORY ${_mc_test_working_directory}
     )
     if (AMReX_OMP)
         set_tests_properties(${_test_name} PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
@@ -88,3 +92,4 @@ add_expected_failure(EB_MarchingCubesRejectOpenSTL_3d
 unset(_sources)
 unset(_input_files)
 unset(_mc_test_labels)
+unset(_mc_test_working_directory)
