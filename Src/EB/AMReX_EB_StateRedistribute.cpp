@@ -306,7 +306,7 @@ MLStateRedistribute ( Box const& bx, int ncomp,
                             Real q_over_Q = fac2*vfrac(ii,jj,kk)/nbhd_vol(i,j,k);
 
                             // Skip if neighbor (ii,jj,kk) is outside domain_per_grown
-                            // This matches the write condition in the first loop (line 152)
+                            // This matches the write condition in the first loop
                             if (!domain_per_grown.contains(IntVect(AMREX_D_DECL(ii,jj,kk)))) continue;
 
                             Real update = qt(i,j,k,r_nbor);
