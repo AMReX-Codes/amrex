@@ -65,9 +65,8 @@ MakeITracker ( Box const& bx,
     {
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
-           // Track whether we used vfrac fallback for first neighbor
-           // Store second neighbor info at lambda scope for later use
-           bool first_nbr_by_vfrac = false;
+           // Variables for vfrac fallback - initialized here but only populated if needed
+           bool select_by_vfrac = false;
            Real second_vfrac = Real(-1.0);
            int second_idx = -1;
 
@@ -126,7 +125,6 @@ MakeITracker ( Box const& bx,
            // Sanity check - if selected neighbor is covered, use vfrac fallback
            if (vfrac(i+ioff,j+joff,k) == 0.)
            {
-               // X-direction: default to +x, override if -x is better
                Real vfrac_x = (xdir_pls_ok) ? vfrac(i+1,j,k) : Real(-1.0);
                int idx_x = 5;
                if (xdir_mns_ok && vfrac(i-1,j,k) > vfrac_x) {
@@ -134,7 +132,6 @@ MakeITracker ( Box const& bx,
                    idx_x = 4;
                }
 
-               // Y-direction: default to +y, override if -y is better
                Real vfrac_y = (ydir_pls_ok) ? vfrac(i,j+1,k) : Real(-1.0);
                int idx_y = 7;
                if (ydir_mns_ok && vfrac(i,j-1,k) > vfrac_y) {
@@ -142,7 +139,7 @@ MakeITracker ( Box const& bx,
                    idx_y = 2;
                }
 
-               // Select largest (first) and second-largest
+               // Select largest and second-largest vfrac
                int first_idx;
                Real first_vfrac;
                if (vfrac_x >= vfrac_y) {
@@ -157,16 +154,16 @@ MakeITracker ( Box const& bx,
                    second_vfrac = vfrac_x;
                }
 
-               // Validate first neighbor has vfrac > 0
                if (first_vfrac <= 0.0) {
                    amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
                }
 
                itracker(i,j,k,1) = first_idx;
-               first_nbr_by_vfrac = true;
-
+               
                ioff = imap[first_idx];
                joff = jmap[first_idx];
+
+               select_by_vfrac = true;
            }
 
            Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k);
@@ -183,7 +180,7 @@ MakeITracker ( Box const& bx,
            if (sum_vol < target_volfrac || nx_eq_ny)
            {
                // If first neighbor was selected by vfrac, use second-best vfrac candidate for second neighbor
-               if (first_nbr_by_vfrac && second_vfrac > 0.0)
+               if (select_by_vfrac && second_vfrac > 0.0)
                {
                    itracker(i,j,k,2) = second_idx;
                    itracker(i,j,k,0) += 1;
@@ -191,7 +188,7 @@ MakeITracker ( Box const& bx,
                    int joff2 = jmap[second_idx];
                    sum_vol += vfrac(i+ioff2,j+joff2,k);
                }
-               else if (!first_nbr_by_vfrac)
+               else if (!select_by_vfrac)
                {
                    // Original normal-based perpendicular selection logic
                    // Original offset was in y-direction, so we will add to the x-direction
@@ -238,7 +235,7 @@ MakeITracker ( Box const& bx,
                                               " to get new sum_vol " <<  sum_vol << '\n';
 #endif
                    }
-               }  // end else if (!first_nbr_by_vfrac)
+               }  // end else if (!select_by_vfrac)
            }
 
            // Now we merge in the corner direction if we have already claimed two
@@ -349,12 +346,6 @@ MakeITracker ( Box const& bx,
     {
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
-           // Track whether we used vfrac fallback for first neighbor
-           // Store second neighbor info at lambda scope for later use
-           bool first_nbr_by_vfrac = false;
-           Real second_vfrac = Real(-1.0);
-           int second_idx = -1;
-
            Real apnorm, apnorm_inv;
            const Real dapx = apx(i+1,j  ,k  ) - apx(i,j,k);
            const Real dapy = apy(i  ,j+1,k  ) - apy(i,j,k);
@@ -447,13 +438,14 @@ MakeITracker ( Box const& bx,
            int joff = jmap[itracker(i,j,k,1)];
            int koff = kmap[itracker(i,j,k,1)];
 
+           // Variables for vfrac fallback
+           bool select_by_vfrac = false;
+           Real second_vfrac = Real(-1.0);
+           int second_idx = -1;
+
            // Sanity check - if selected neighbor is covered, use vfrac fallback
            if (vfrac(i+ioff,j+joff,k+koff) == 0.)
            {
-               // For each direction, get best neighbor's vfrac and index
-               // Use if-statements for optimal GPU performance
-
-               // X-direction: default to +x, override if -x is better
                Real vfrac_x = (xdir_pls_ok) ? vfrac(i+1,j,k) : Real(-1.0);
                int idx_x = 5;
                if (xdir_mns_ok && vfrac(i-1,j,k) > vfrac_x) {  // Strict > means +x wins ties
@@ -461,7 +453,6 @@ MakeITracker ( Box const& bx,
                    idx_x = 4;
                }
 
-               // Y-direction: default to +y, override if -y is better
                Real vfrac_y = (ydir_pls_ok) ? vfrac(i,j+1,k) : Real(-1.0);
                int idx_y = 7;
                if (ydir_mns_ok && vfrac(i,j-1,k) > vfrac_y) {
@@ -469,7 +460,6 @@ MakeITracker ( Box const& bx,
                    idx_y = 2;
                }
 
-               // Z-direction: default to +z, override if -z is better
                Real vfrac_z = (zdir_pls_ok) ? vfrac(i,j,k+1) : Real(-1.0);
                int idx_z = 22;
                if (zdir_mns_ok && vfrac(i,j,k-1) > vfrac_z) {
@@ -477,7 +467,7 @@ MakeITracker ( Box const& bx,
                    idx_z = 13;
                }
 
-               // Find largest and second-largest, storing to lambda-scope variables
+               // Find largest and second-largest vfrac
                int first_idx;
                Real first_vfrac;
 
@@ -516,28 +506,18 @@ MakeITracker ( Box const& bx,
                    }
                }
 
-               // Validate first neighbor has vfrac > 0
                if (first_vfrac <= 0.0) {
                    amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
                }
 
-               // Update itracker with vfrac-selected neighbor
+               // Update itracker and offsets
                itracker(i,j,k,1) = first_idx;
-               first_nbr_by_vfrac = true;
 
-               // Recompute offsets with new selection
                ioff = imap[first_idx];
                joff = jmap[first_idx];
                koff = kmap[first_idx];
 
-#if 0
-               if (debug_print) {
-                   amrex::Print() << "Cell " << IntVect(i,j,k) << " with vfrac " << vfrac(i,j,k)
-                                  << " using vfrac fallback. Selected neighbor " << first_idx
-                                  << " at " << IntVect(i+ioff,j+joff,k+koff)
-                                  << " with vfrac " << first_vfrac << '\n';
-               }
-#endif
+               select_by_vfrac = true;
            }
 
            Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k+koff);
@@ -561,7 +541,7 @@ MakeITracker ( Box const& bx,
            if ( (sum_vol < target_volfrac) || just_broke_symmetry )
            {
                // If first neighbor was selected by vfrac, use second-best vfrac candidate for second neighbor
-               if (first_nbr_by_vfrac && second_vfrac > 0.0)  // Check vfrac validity directly
+               if (select_by_vfrac && second_vfrac > 0.0)
                {
                    itracker(i,j,k,2) = second_idx;
                    itracker(i,j,k,0) += 1;
@@ -571,16 +551,8 @@ MakeITracker ( Box const& bx,
                    int koff2 = kmap[second_idx];
                    sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
 
-#if 0
-                   if (debug_print) {
-                       amrex::Print() << "Cell " << IntVect(i,j,k)
-                                      << " also merging with second-best vfrac neighbor " << second_idx
-                                      << " at " << IntVect(i+ioff2,j+joff2,k+koff2)
-                                      << " with vfrac " << second_vfrac << '\n';
-                   }
-#endif
                }
-               else if (!first_nbr_by_vfrac)
+               else if (!select_by_vfrac)
                {
                    // Original normal-based perpendicular selection logic
                    // Original offset was in x-direction
@@ -639,7 +611,7 @@ MakeITracker ( Box const& bx,
                                          " with volfrac " << vfrac(i+ioff2,j+joff2,k+koff2) <<
                                           " to get new sum_vol " <<  sum_vol << '\n';
 #endif
-               }  // end else if (!first_nbr_by_vfrac)
+               }  // end else if (!select_by_vfrac)
            }
 
            // If the merged cell has merged in two directions, we now merge in the corner direction within the current plane
