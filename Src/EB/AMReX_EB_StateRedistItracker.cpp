@@ -65,6 +65,12 @@ MakeITracker ( Box const& bx,
     {
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
+           // Track whether we used vfrac fallback for first neighbor
+           // Store second neighbor info at lambda scope for later use
+           bool first_nbr_by_vfrac = false;
+           Real second_vfrac = Real(-1.0);
+           int second_idx = -1;
+
            Real apnorm, apnorm_inv;
            const Real dapx = apx(i+1,j  ,k  ) - apx(i,j,k);
            const Real dapy = apy(i  ,j+1,k  ) - apy(i,j,k);
@@ -117,9 +123,50 @@ MakeITracker ( Box const& bx,
            int ioff = imap[itracker(i,j,k,1)];
            int joff = jmap[itracker(i,j,k,1)];
 
-           // Sanity check
-           if (vfrac(i+ioff,j+joff,k) == 0.) {
-               amrex::Abort(" Trying to merge with covered cell");
+           // Sanity check - if selected neighbor is covered, use vfrac fallback
+           if (vfrac(i+ioff,j+joff,k) == 0.)
+           {
+               // X-direction: default to +x, override if -x is better
+               Real vfrac_x = (xdir_pls_ok) ? vfrac(i+1,j,k) : Real(-1.0);
+               int idx_x = 5;
+               if (xdir_mns_ok && vfrac(i-1,j,k) > vfrac_x) {
+                   vfrac_x = vfrac(i-1,j,k);
+                   idx_x = 4;
+               }
+
+               // Y-direction: default to +y, override if -y is better
+               Real vfrac_y = (ydir_pls_ok) ? vfrac(i,j+1,k) : Real(-1.0);
+               int idx_y = 7;
+               if (ydir_mns_ok && vfrac(i,j-1,k) > vfrac_y) {
+                   vfrac_y = vfrac(i,j-1,k);
+                   idx_y = 2;
+               }
+
+               // Select largest (first) and second-largest
+               int first_idx;
+               Real first_vfrac;
+               if (vfrac_x >= vfrac_y) {
+                   first_idx = idx_x;
+                   first_vfrac = vfrac_x;
+                   second_idx = idx_y;
+                   second_vfrac = vfrac_y;
+               } else {
+                   first_idx = idx_y;
+                   first_vfrac = vfrac_y;
+                   second_idx = idx_x;
+                   second_vfrac = vfrac_x;
+               }
+
+               // Validate first neighbor has vfrac > 0
+               if (first_vfrac <= 0.0) {
+                   amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
+               }
+
+               itracker(i,j,k,1) = first_idx;
+               first_nbr_by_vfrac = true;
+
+               ioff = imap[first_idx];
+               joff = jmap[first_idx];
            }
 
            Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k);
@@ -135,9 +182,21 @@ MakeITracker ( Box const& bx,
            // If the merged cell isn't large enough, we try to merge in the other direction
            if (sum_vol < target_volfrac || nx_eq_ny)
            {
-               // Original offset was in y-direction, so we will add to the x-direction
-               // Note that if we can't because it would go outside the domain, we don't
-               if (ioff == 0) {
+               // If first neighbor was selected by vfrac, use second-best vfrac candidate for second neighbor
+               if (first_nbr_by_vfrac && second_vfrac > 0.0)
+               {
+                   itracker(i,j,k,2) = second_idx;
+                   itracker(i,j,k,0) += 1;
+                   int ioff2 = imap[second_idx];
+                   int joff2 = jmap[second_idx];
+                   sum_vol += vfrac(i+ioff2,j+joff2,k);
+               }
+               else if (!first_nbr_by_vfrac)
+               {
+                   // Original normal-based perpendicular selection logic
+                   // Original offset was in y-direction, so we will add to the x-direction
+                   // Note that if we can't because it would go outside the domain, we don't
+                   if (ioff == 0) {
                    if (nx >= 0 && xdir_pls_ok)
                    {
                        itracker(i,j,k,2) = 5;
@@ -162,23 +221,24 @@ MakeITracker ( Box const& bx,
                        itracker(i,j,k,2) = 2;
                        itracker(i,j,k,0) += 1;
                    }
-               }
+                   }
 
-               if (itracker(i,j,k,0) > 1)
-               {
-                   // (i+ioff2,j+joff2) is in the nbhd of (i,j)
-                   int ioff2 = imap[itracker(i,j,k,2)];
-                   int joff2 = jmap[itracker(i,j,k,2)];
+                   if (itracker(i,j,k,0) > 1)
+                   {
+                       // (i+ioff2,j+joff2) is in the nbhd of (i,j)
+                       int ioff2 = imap[itracker(i,j,k,2)];
+                       int joff2 = jmap[itracker(i,j,k,2)];
 
-                   sum_vol += vfrac(i+ioff2,j+joff2,k);
+                       sum_vol += vfrac(i+ioff2,j+joff2,k);
 #if 0
-                   if (debug_verbose > 0)
-                       amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vfrac(i,j,k) <<
-                                         " trying to ALSO merge with " << IntVect(i+ioff2,j+joff2) <<
-                                         " with volfrac " << vfrac(i+ioff2,j+joff2,k) <<
-                                          " to get new sum_vol " <<  sum_vol << '\n';
+                       if (debug_verbose > 0)
+                           amrex::Print() << "Cell " << IntVect(i,j) << " with volfrac " << vfrac(i,j,k) <<
+                                             " trying to ALSO merge with " << IntVect(i+ioff2,j+joff2) <<
+                                             " with volfrac " << vfrac(i+ioff2,j+joff2,k) <<
+                                              " to get new sum_vol " <<  sum_vol << '\n';
 #endif
-               }
+                   }
+               }  // end else if (!first_nbr_by_vfrac)
            }
 
            // Now we merge in the corner direction if we have already claimed two
@@ -289,6 +349,12 @@ MakeITracker ( Box const& bx,
     {
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
+           // Track whether we used vfrac fallback for first neighbor
+           // Store second neighbor info at lambda scope for later use
+           bool first_nbr_by_vfrac = false;
+           Real second_vfrac = Real(-1.0);
+           int second_idx = -1;
+
            Real apnorm, apnorm_inv;
            const Real dapx = apx(i+1,j  ,k  ) - apx(i,j,k);
            const Real dapy = apy(i  ,j+1,k  ) - apy(i,j,k);
@@ -381,11 +447,97 @@ MakeITracker ( Box const& bx,
            int joff = jmap[itracker(i,j,k,1)];
            int koff = kmap[itracker(i,j,k,1)];
 
-           // Sanity check
+           // Sanity check - if selected neighbor is covered, use vfrac fallback
            if (vfrac(i+ioff,j+joff,k+koff) == 0.)
            {
-               // amrex::Print() << "Cell " << IntVect(i,j,k) << " is trying to merge with cell " << IntVect(i+ioff,j+joff,k+koff) << '\n';
-               amrex::Abort(" Trying to merge with covered cell");
+               // For each direction, get best neighbor's vfrac and index
+               // Use if-statements for optimal GPU performance
+
+               // X-direction: default to +x, override if -x is better
+               Real vfrac_x = (xdir_pls_ok) ? vfrac(i+1,j,k) : Real(-1.0);
+               int idx_x = 5;
+               if (xdir_mns_ok && vfrac(i-1,j,k) > vfrac_x) {  // Strict > means +x wins ties
+                   vfrac_x = vfrac(i-1,j,k);
+                   idx_x = 4;
+               }
+
+               // Y-direction: default to +y, override if -y is better
+               Real vfrac_y = (ydir_pls_ok) ? vfrac(i,j+1,k) : Real(-1.0);
+               int idx_y = 7;
+               if (ydir_mns_ok && vfrac(i,j-1,k) > vfrac_y) {
+                   vfrac_y = vfrac(i,j-1,k);
+                   idx_y = 2;
+               }
+
+               // Z-direction: default to +z, override if -z is better
+               Real vfrac_z = (zdir_pls_ok) ? vfrac(i,j,k+1) : Real(-1.0);
+               int idx_z = 22;
+               if (zdir_mns_ok && vfrac(i,j,k-1) > vfrac_z) {
+                   vfrac_z = vfrac(i,j,k-1);
+                   idx_z = 13;
+               }
+
+               // Find largest and second-largest, storing to lambda-scope variables
+               int first_idx;
+               Real first_vfrac;
+
+               if (vfrac_x >= vfrac_y && vfrac_x >= vfrac_z) {
+                   // X is largest
+                   first_idx = idx_x;
+                   first_vfrac = vfrac_x;
+                   if (vfrac_y >= vfrac_z) {
+                       second_idx = idx_y;
+                       second_vfrac = vfrac_y;
+                   } else {
+                       second_idx = idx_z;
+                       second_vfrac = vfrac_z;
+                   }
+               } else if (vfrac_y >= vfrac_z) {
+                   // Y is largest
+                   first_idx = idx_y;
+                   first_vfrac = vfrac_y;
+                   if (vfrac_x >= vfrac_z) {
+                       second_idx = idx_x;
+                       second_vfrac = vfrac_x;
+                   } else {
+                       second_idx = idx_z;
+                       second_vfrac = vfrac_z;
+                   }
+               } else {
+                   // Z is largest
+                   first_idx = idx_z;
+                   first_vfrac = vfrac_z;
+                   if (vfrac_x >= vfrac_y) {
+                       second_idx = idx_x;
+                       second_vfrac = vfrac_x;
+                   } else {
+                       second_idx = idx_y;
+                       second_vfrac = vfrac_y;
+                   }
+               }
+
+               // Validate first neighbor has vfrac > 0
+               if (first_vfrac <= 0.0) {
+                   amrex::Abort("Trying to merge with covered cell - all cardinal neighbors are also covered or outside domain");
+               }
+
+               // Update itracker with vfrac-selected neighbor
+               itracker(i,j,k,1) = first_idx;
+               first_nbr_by_vfrac = true;
+
+               // Recompute offsets with new selection
+               ioff = imap[first_idx];
+               joff = jmap[first_idx];
+               koff = kmap[first_idx];
+
+#if 0
+               if (debug_print) {
+                   amrex::Print() << "Cell " << IntVect(i,j,k) << " with vfrac " << vfrac(i,j,k)
+                                  << " using vfrac fallback. Selected neighbor " << first_idx
+                                  << " at " << IntVect(i+ioff,j+joff,k+koff)
+                                  << " with vfrac " << first_vfrac << '\n';
+               }
+#endif
            }
 
            Real sum_vol = vfrac(i,j,k) + vfrac(i+ioff,j+joff,k+koff);
@@ -408,8 +560,31 @@ MakeITracker ( Box const& bx,
 
            if ( (sum_vol < target_volfrac) || just_broke_symmetry )
            {
-               // Original offset was in x-direction
-               if (joff == 0 && koff == 0)
+               // If first neighbor was selected by vfrac, use second-best vfrac candidate for second neighbor
+               if (first_nbr_by_vfrac && second_vfrac > 0.0)  // Check vfrac validity directly
+               {
+                   itracker(i,j,k,2) = second_idx;
+                   itracker(i,j,k,0) += 1;
+
+                   int ioff2 = imap[second_idx];
+                   int joff2 = jmap[second_idx];
+                   int koff2 = kmap[second_idx];
+                   sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
+
+#if 0
+                   if (debug_print) {
+                       amrex::Print() << "Cell " << IntVect(i,j,k)
+                                      << " also merging with second-best vfrac neighbor " << second_idx
+                                      << " at " << IntVect(i+ioff2,j+joff2,k+koff2)
+                                      << " with vfrac " << second_vfrac << '\n';
+                   }
+#endif
+               }
+               else if (!first_nbr_by_vfrac)
+               {
+                   // Original normal-based perpendicular selection logic
+                   // Original offset was in x-direction
+                   if (joff == 0 && koff == 0)
                {
                    if (nx_eq_ny) {
                        itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
@@ -448,22 +623,23 @@ MakeITracker ( Box const& bx,
                    }
                }
 
-               // (i,j,k) merges with at least two cells now
-               itracker(i,j,k,0) += 1;
+                   // (i,j,k) merges with at least two cells now
+                   itracker(i,j,k,0) += 1;
 
-               // (i+ioff2,j+joff2,k+koff2) is in the nbhd of (i,j,k)
-               int ioff2 = imap[itracker(i,j,k,2)];
-               int joff2 = jmap[itracker(i,j,k,2)];
-               int koff2 = kmap[itracker(i,j,k,2)];
+                   // (i+ioff2,j+joff2,k+koff2) is in the nbhd of (i,j,k)
+                   int ioff2 = imap[itracker(i,j,k,2)];
+                   int joff2 = jmap[itracker(i,j,k,2)];
+                   int koff2 = kmap[itracker(i,j,k,2)];
 
-               sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
+                   sum_vol += vfrac(i+ioff2,j+joff2,k+koff2);
 #if 0
-               if (debug_print)
-                   amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
-                                     " trying to ALSO merge with " << IntVect(i+ioff2,j+joff2,k+koff2) <<
-                                     " with volfrac " << vfrac(i+ioff2,j+joff2,k+koff2) <<
-                                      " to get new sum_vol " <<  sum_vol << '\n';
+                   if (debug_print)
+                       amrex::Print() << "Cell " << IntVect(i,j,k) << " with volfrac " << vfrac(i,j,k) <<
+                                         " trying to ALSO merge with " << IntVect(i+ioff2,j+joff2,k+koff2) <<
+                                         " with volfrac " << vfrac(i+ioff2,j+joff2,k+koff2) <<
+                                          " to get new sum_vol " <<  sum_vol << '\n';
 #endif
+               }  // end else if (!first_nbr_by_vfrac)
            }
 
            // If the merged cell has merged in two directions, we now merge in the corner direction within the current plane
