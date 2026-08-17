@@ -67,6 +67,13 @@ ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
       m_table(&g_table)
 {}
 
+ParmParse::Table
+ParmParse::tableCopy () const
+{
+    std::scoped_lock lock(g_table_mutex);
+    return *m_table;
+}
+
 namespace
 {
 

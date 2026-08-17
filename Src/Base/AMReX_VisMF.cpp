@@ -6,6 +6,7 @@
 #include <AMReX_Utility.H>
 #include <AMReX_VisMF.H>
 
+#include <atomic>
 #include <cerrno>
 #include <cstdio>
 #include <iterator>
@@ -1590,7 +1591,9 @@ VisMF::Read (FabArray<FArrayBox> &mf,
     VisMF::Header hdr;
     double hEndTime, hStartTime, faCopyTime(0.0);
     double startTime(amrex::second());
-    static double totalTime(0.0);
+    // Atomic: VisMF::Read is reachable from several host threads (PlotFileData),
+    // and this accumulates across calls. Only touched when verbose is on.
+    static std::atomic<double> totalTime(0.0);
     int myProc(ParallelDescriptor::MyProc());
     int messTotal(0);
 
@@ -2070,13 +2073,14 @@ VisMF::Read (FabArray<FArrayBox> &mf,
 
     if(myProc == coordinatorProc && verbose) {
       auto mfReadTime = amrex::second() - startTime;
-      totalTime += mfReadTime;
+      double const totalTimeSoFar =
+          totalTime.fetch_add(mfReadTime, std::memory_order_relaxed) + mfReadTime;
       amrex::AllPrint() << "FARead ::  nBoxes = " << hdr.m_ba.size()
                         << "  nMessages = " << messTotal << '\n'
                         << "FARead ::  hTime = " << (hEndTime - hStartTime) << '\n'
                         << "FARead ::  faCopyTime = " << faCopyTime << '\n'
                         << "FARead ::  mfReadTime = " << mfReadTime
-                        << "  totalTime = " << totalTime << '\n';
+                        << "  totalTime = " << totalTimeSoFar << '\n';
     }
 
     BL_ASSERT(mf.ok());

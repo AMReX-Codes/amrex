@@ -1789,6 +1789,17 @@ public:
 
     [[nodiscard]] const Table& table() const {return *m_table;}
 
+    /**
+     * \brief A snapshot of the table, taken under the table lock.
+     *
+     * table() hands out a reference to process-global state that a concurrent
+     * query or add mutates -- a query is a writer, because it updates the
+     * entry's use count, type hint and last value through mutable members.
+     * Copy through this instead when another host thread may be using
+     * ParmParse.
+     */
+    [[nodiscard]] Table tableCopy () const;
+
     //! keyword for files to load
     static std::string const FileKeyword;
 
