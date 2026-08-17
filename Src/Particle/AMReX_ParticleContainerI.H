@@ -80,14 +80,17 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     //                      "Particle type must be standard layout and trivial.");
 
     // Read the settings once. A function-local static gives us thread-safe
-    // initialisation, which a `static bool initialized` flag does not -- two
+    // initialization, which a `static bool initialized` flag does not -- two
     // host threads building containers at the same time would both run the
     // body and both write the static members below.
     //
     // `this` is captured because usePrePost/doUnlink are per-container
-    // members: as before, only the container that gets here first reads them
-    // from the inputs.
-    static const bool read_settings_once = [this] {
+    // members, and this preserves the previous behaviour: only the container
+    // that gets here first reads them from the inputs. Note that both are
+    // declared without an initializer and are only assigned if the
+    // corresponding input is present, so they can be read indeterminate --
+    // pre-existing, and worth a separate fix.
+    [[maybe_unused]] static const bool read_settings_once = [this] {
         ParmParse pp("particles");
         pp.queryAdd("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
@@ -101,7 +104,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         pp.queryAdd("use_comms_arena", use_comms_arena);
         return true;
     }();
-    amrex::ignore_unused(read_settings_once);
 }
 
 template<

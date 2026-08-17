@@ -46,7 +46,7 @@ namespace {
      * parallel region and nothing at all in a build without OpenMP.
      *
      * Recursive because the parser path re-enters squeryval() to resolve
-     * symbols. This also serialises g_parser_recursive_symbols, whose
+     * symbols. This also serializes g_parser_recursive_symbols, whose
      * per-thread slot is indexed by OpenMP::get_thread_num().
      */
     std::recursive_mutex g_table_mutex;
@@ -1534,6 +1534,10 @@ pp_make_parser (std::string const& func, Vector<std::string> const& vars,
                 ParmParse::Table const& table, std::string const& parser_prefix,
                 bool use_querywithparser)
 {
+    // Guards g_parser_recursive_symbols, whose slot is indexed by
+    // OpenMP::get_thread_num() and is therefore shared by every host thread in
+    // a build without OpenMP. Recursive: this re-enters squeryval() below.
+    std::scoped_lock lock(g_table_mutex);
     using value_t =  std::conditional_t<std::is_integral_v<T> && !std::is_same_v<bool,T>,
                                         long long, double>;
 
@@ -2825,6 +2829,11 @@ bool squeryWithParser (const ParmParse::Table& table,
                        const std::string&      name,
                        T&                      ref)
 {
+    // Held across the whole function: the parser path below writes the entry's
+    // mutable m_typehint and m_last_vals after squeryarr() has returned.
+    // Recursive, so the nested squeryarr() is fine.
+    std::scoped_lock lock(g_table_mutex);
+
     std::vector<std::string> vals;
     bool exist = squeryarr(table, parser_prefix, name, vals,
                            ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
@@ -2871,6 +2880,10 @@ bool squeryarrWithParser (const ParmParse::Table& table,
                           int                     nvals,
                           T*                      ptr)
 {
+    // Held across the whole function: the parser path below writes the entry's
+    // mutable m_typehint and m_last_vals after squeryarr() has returned.
+    // Recursive, so the nested squeryarr() is fine.
+    std::scoped_lock lock(g_table_mutex);
     std::vector<std::string> vals;
     bool exist = squeryarr(table, parser_prefix, name, vals,
                            ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);

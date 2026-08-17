@@ -8,13 +8,12 @@ namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
 thread_local int MFIter::depth = 0;
-int MFIter::allow_multiple_mfiters = 0;
+std::atomic<int> MFIter::allow_multiple_mfiters{0};
 
 int
 MFIter::allowMultipleMFIters (int allow)
 {
-    std::swap(allow, allow_multiple_mfiters);
-    return allow;
+    return allow_multiple_mfiters.exchange(allow);
 }
 
 int

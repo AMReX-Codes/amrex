@@ -46,7 +46,7 @@ namespace
     std::atomic<int>  next_foreign_slot{0};
     std::atomic<bool> slot0_claimed{false};
 
-    //! Serialises InitRandom, which reseeds process-global state.
+    //! Serializes InitRandom, which reseeds process-global state.
     std::mutex init_random_mutex;
 
     std::mt19937& get_generator ()
@@ -350,7 +350,7 @@ void FillRandom (Real* p, Long N)
 
 #else
     std::uniform_real_distribution<Real> distribution(Real(0.0), Real(1.0));
-    auto& gen = generators[OpenMP::get_thread_num()];
+    auto& gen = get_generator();
     for (Long i = 0; i < N; ++i) {
         p[i] = distribution(gen);
     }
@@ -397,7 +397,7 @@ void FillRandomNormal (Real* p, Long N, Real mean, Real stddev)
 #else
 
     std::normal_distribution<Real> distribution(mean, stddev);
-    auto& gen = generators[OpenMP::get_thread_num()];
+    auto& gen = get_generator();
     for (Long i = 0; i < N; ++i) {
         p[i] = distribution(gen);
     }

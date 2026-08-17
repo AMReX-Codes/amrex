@@ -24,7 +24,7 @@ struct RedistributeMaskParameters
 RedistributeMaskParameters const&
 RedistributeMaskParams ()
 {
-    // Function-local static: the C++ runtime makes the initialisation
+    // Function-local static: the C++ runtime makes the initialization
     // thread-safe, which a `static bool initialized` flag does not.
     static RedistributeMaskParameters const params = [] {
         RedistributeMaskParameters p;

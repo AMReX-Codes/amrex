@@ -812,7 +812,8 @@ public:
     struct FabArrayStats
     {
         // Atomic because recordBuild()/recordDelete() run from every FabArray
-        // constructor and destructor, which any host thread may reach.
+        // constructor and destructor, which any host thread may reach. This
+        // makes FabArrayStats non-copyable and non-movable; use reset().
         std::atomic<int>  num_fabarrays{0};
         std::atomic<int>  max_num_fabarrays{0};
         std::atomic<int>  max_num_boxarrays{0};

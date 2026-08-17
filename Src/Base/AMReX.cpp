@@ -331,7 +331,7 @@ namespace
      * Guards the two callback stacks above and the AMReX instance stack.
      *
      * amrex::Initialize() and Finalize() are meant to be called from one
-     * thread, but ExecOnFinalize() is reached from lazy initialisation deep
+     * thread, but ExecOnFinalize() is reached from lazy initialization deep
      * inside otherwise thread-safe code, so the stacks themselves have to
      * tolerate concurrent pushes.
      */

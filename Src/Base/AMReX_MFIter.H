@@ -4,6 +4,7 @@
 
 #include <AMReX_FabArrayBase.H>
 
+#include <atomic>
 #include <memory>
 
 namespace amrex {
@@ -250,11 +251,15 @@ protected:
      * of control starting a second MFIter before finishing the first -- which
      * is a per-thread property. Two independent host threads, each iterating
      * its own MFIter, are fine and each see a depth of one.
+     *
+     * Inside an OpenMP parallel region only the team's master increments it
+     * (see the `omp master` in Initialize()), so the other team members see
+     * zero -- unchanged from when this was a global.
      */
     // Not AMREX_EXPORT: MSVC forbids dllexport on a thread_local, and this
     // is only ever touched from inside the library.
     static thread_local int depth;
-    static AMREX_EXPORT int allow_multiple_mfiters;
+    static AMREX_EXPORT std::atomic<int> allow_multiple_mfiters;
 
     void Initialize ();
 };

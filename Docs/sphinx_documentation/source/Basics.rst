@@ -2738,10 +2738,16 @@ AMReX's process-global state is safe under that:
   generator, seeded from the same sequence as the OpenMP ones. Only the OpenMP
   generators take part in :cpp:`SaveRandomState`/:cpp:`RestoreRandomState`.
 - Particle IDs (:cpp:`Particle::NextID()`) are handed out atomically.
-- The GPU stream index is per thread, so each host thread submits to a stream of
-  its own from :cpp:`Gpu::Device::gpuStream()`.
+- The current-stream index is per thread, so one host thread can no longer
+  change the stream another is submitting to. The stream *pool* is still
+  shared, and an :cpp:`MFIter` walks it from index 0 in every thread, so two
+  threads can still land on the same stream.
 - :cpp:`amrex::Tokenize()` uses per-thread scratch and returns a per-thread
   result.
+- :cpp:`VisMF`'s persistent input streams are per thread, since an
+  :cpp:`std::ifstream` carries a single read position. Note that
+  :cpp:`VisMF::CloseAllStreams()` therefore closes only the calling thread's;
+  the rest close when their thread exits.
 
 What remains the caller's responsibility:
 
@@ -2753,7 +2759,7 @@ What remains the caller's responsibility:
 - :cpp:`amrex::InitRandom()` -- and therefore
   :cpp:`ParticleContainer::InitRandom()`, which calls it -- *reseeds* the
   global generators, and on a GPU build frees and reallocates the device RNG
-  state. Concurrent calls are serialised, but reseeding while another thread
+  state. Concurrent calls are serialized, but reseeding while another thread
   draws numbers is still a logical race (a use-after-free on the device). Seed
   before starting worker threads.
 - **MPI**, unless AMReX is built with ``AMReX_MPI_THREAD_MULTIPLE=ON``.
