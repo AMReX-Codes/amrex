@@ -59,6 +59,7 @@ operator>> (std::istream& is, Geometry& g)
         is >> is_per;
         g.setPeriodicity({{AMREX_D_DECL(is_per[0],is_per[1],is_per[2])}});
     } else {
+        std::scoped_lock lock(default_geometry_mutex);
         g.setPeriodicity(DefaultGeometry().isPeriodic());
     }
 
@@ -67,7 +68,16 @@ operator>> (std::istream& is, Geometry& g)
 
 Geometry::Geometry () noexcept
 {
-    if (!AMReX::empty()) { *this = DefaultGeometry(); }
+    // Copying the process-global default is a read of everything
+    // ResetDefault*() writes, so it takes the same lock. pyAMReX binds both
+    // this constructor and all three ResetDefault* functions, so
+    // `amr.Geometry()` on one Python thread concurrent with
+    // `g.ResetDefaultProbDomain(rb)` on another is otherwise a torn read of a
+    // RealBox from pure Python.
+    if (!AMReX::empty()) {
+        std::scoped_lock lock(default_geometry_mutex);
+        *this = DefaultGeometry();
+    }
 }
 
 Geometry::Geometry (const Box& dom, const RealBox* rb, int coord,

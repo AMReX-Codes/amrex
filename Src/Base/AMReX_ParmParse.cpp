@@ -48,17 +48,13 @@ namespace {
      * Recursive because the parser path re-enters squeryval() to resolve
      * symbols. This also serializes g_parser_recursive_symbols, whose
      * per-thread slot is indexed by OpenMP::get_thread_num().
-     */
-    /**
-     * Guards g_table.
      *
      * Function-local rather than namespace-scope because std::recursive_mutex
-     * has no constexpr constructor, so a namespace-scope one is dynamically
-     * initialized -- and ParmParse::tableMutex() now hands it to the inline
-     * queryAdd() templates in every translation unit. A static-storage object
-     * whose constructor queries ParmParse would otherwise be able to reach it
-     * before it exists. (Destruction order at exit is still the caller's
-     * problem, as for any static.)
+     * is not guaranteed constant-initializable -- true on libc++ and MSVC,
+     * though libstdc++ with glibc does constant-initialize it -- and
+     * ParmParse::tableMutex() now hands it to the inline queryAdd() templates
+     * in every translation unit. A static-storage object whose constructor
+     * queries ParmParse could otherwise reach it before it is constructed.
      */
     std::recursive_mutex& g_table_mutex ()
     {
@@ -612,10 +608,7 @@ ppindex (const ParmParse::Table& table, int n, const std::string& name)
     auto found = table.find(name);
     if (found == table.cend()) { return nullptr; }
 
-#ifdef AMREX_USE_OMP
-#pragma omp atomic update
-#endif
-    ++(found->second.m_count);
+    ++(found->second.m_count);  // under g_table_mutex()
 
     if (n == ParmParse::LAST) {
         return &(found->second.m_vals.back());
@@ -938,16 +931,16 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
 template <typename T>
 void pp_entry_set_last_val (ParmParse::PP_entry const& entry, int ival, T ref, bool parsed)
 {
-#ifdef AMREX_USE_OMP
-#pragma omp single nowait
-#endif
-    {
-        if (ival >= std::ssize(entry.m_last_vals)) {
-            entry.m_last_vals.resize(ival+1);
-        }
-        entry.m_last_vals[ival] = ref;
-        if (parsed) { entry.m_parsed = true; }
+    // Callers hold g_table_mutex(). The `omp single nowait` that used to guard
+    // this is gone with it, and not just as dead weight: `single` means one
+    // team member executes, so with the mutex serialising arrivals the other
+    // members' writes were silently dropped. It was also a landmine -- take
+    // away the `nowait` and the implicit barrier deadlocks against the mutex.
+    if (ival >= std::ssize(entry.m_last_vals)) {
+        entry.m_last_vals.resize(ival+1);
     }
+    entry.m_last_vals[ival] = ref;
+    if (parsed) { entry.m_parsed = true; }
 }
 
 template <typename T>
@@ -1108,13 +1101,10 @@ squeryval (const ParmParse::Table& table,
 
     auto const& entry = table.at(name);
 
-#ifdef AMREX_USE_OMP
-#pragma omp single nowait
-#endif
-    {
+    // under g_table_mutex(); `omp single` here executed on one
+    // team member only, discarding the others' type hints.
         using T_ptr = std::decay_t<T>*;
         entry.m_typehint = static_cast<T_ptr>(nullptr);
-    }
 
     //
     // Handle TOML array: stored as single token "$$ARR[v0,v1,...]"
@@ -1277,13 +1267,10 @@ squeryarr (const ParmParse::Table& table,
 
     auto const& entry = table.at(name);
 
-#ifdef AMREX_USE_OMP
-#pragma omp single nowait
-#endif
-    {
+    // under g_table_mutex(); `omp single` here executed on one
+    // team member only, discarding the others' type hints.
         using T_ptr = std::decay_t<T>*;
         entry.m_typehint = static_cast<T_ptr>(nullptr);
-    }
 
     //
     // Does it have sufficient number of values and are they all
@@ -2841,10 +2828,7 @@ ParmParse::contains (std::string_view name) const
     auto pname = prefixedName(name);
     auto found = m_table->find(pname);
     if (found != m_table->cend()) {
-#ifdef AMREX_USE_OMP
-#pragma omp atomic update
-#endif
-        ++(found->second.m_count);
+        ++(found->second.m_count);  // under g_table_mutex()
         return true;
     } else {
         return false;
@@ -2893,13 +2877,10 @@ bool squeryWithParser (const ParmParse::Table& table,
 
     if (pp_parser(table, parser_prefix, name, combined_string, ref, true))
     {
-#ifdef AMREX_USE_OMP
-#pragma omp single nowait
-#endif
-        {
+        // under g_table_mutex(); `omp single` here executed on one
+        // team member only, discarding the others' type hints.
             using T_ptr = std::decay_t<T>*;
             entry.m_typehint = static_cast<T_ptr>(nullptr);
-        }
 
         if constexpr (is_integral_floating) {
             pp_entry_set_last_val(entry, 0, ref, true);
@@ -2948,13 +2929,10 @@ bool squeryarrWithParser (const ParmParse::Table& table,
         }
     }
 
-#ifdef AMREX_USE_OMP
-#pragma omp single nowait
-#endif
-    {
+    // under g_table_mutex(); `omp single` here executed on one
+    // team member only, discarding the others' type hints.
         using T_ptr = std::decay_t<T>*;
         entry.m_typehint = static_cast<T_ptr>(nullptr);
-    }
 
     return true;
 }

@@ -1190,6 +1190,7 @@ public:
               std::same_as<T,double>)
     int queryAddWithParser (std::string_view name, T& ref)
     {
+        std::scoped_lock lock(tableMutex());
         int exist = this->queryWithParser(name, ref);
         if (!exist) {
             this->add(name, ref);

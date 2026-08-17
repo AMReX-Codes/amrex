@@ -194,11 +194,14 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
     // The cost is that if this thread never draws, generators[0] goes unused,
     // and Save/RestoreRandomState -- which persist only that generator -- have
     // nothing to say about the threads that did.
-    if (tl_which == ThreadGenerator::unassigned) {
-        bool unclaimed = false;
-        if (slot0_claimed.compare_exchange_strong(unclaimed, true)) {
-            tl_which = ThreadGenerator::shared_slot0;
-        }
+    // Unconditional, not guarded on tl_which == unassigned: a thread that
+    // already drew (legally -- get_generator() copes with nthreads == 0) is
+    // 'own' by now and would not claim, leaving slot 0 for whichever arbitrary
+    // worker next reaches InitRandom while unassigned. That worker would then
+    // share generators[0] with team member 0 of any OpenMP region another host
+    // thread opens, which is the race this claim exists to prevent.
+    if (!slot0_claimed.exchange(true)) {
+        tl_which = ThreadGenerator::shared_slot0;
     }
 
 #ifdef AMREX_USE_GPU

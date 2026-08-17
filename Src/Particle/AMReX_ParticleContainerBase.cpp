@@ -5,6 +5,8 @@
 #include <AMReX_ParallelDescriptor.H>
 #include <AMReX_iMultiFab.H>
 
+#include <mutex>
+
 namespace amrex {
 
 bool    ParticleContainerBase::do_tiling = false;
@@ -272,17 +274,33 @@ const std::string& ParticleContainerBase::DataPrefix ()
 
 void ParticleContainerBase::ReadStaticParameters ()
 {
-    [[maybe_unused]] static const bool read_once = [] {
-        ParmParse pp("particles");
-        pp.queryAdd("do_tiling", do_tiling);
-        Vector<int> tilesize(AMREX_SPACEDIM);
-        if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
-            for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
-        }
-        pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
-        pp.queryAdd("use_comms_arena", use_comms_arena);
-        return true;
-    }();
+    // Once per amrex::Initialize(), not once per process: ParmParse::Finalize()
+    // clears the table, so a container type first constructed in a later
+    // initialize/finalize cycle -- which is every pyAMReX test, since the suite
+    // initializes and finalizes around each one -- has to read the inputs
+    // again. Otherwise its "particles.*" entries are never queried, and turn up
+    // under "Unused ParmParse Variables" (fatal with
+    // amrex.abort_on_unused_inputs=1).
+    static std::mutex read_mutex;
+    static bool have_read = false;
+
+    std::scoped_lock lock(read_mutex);
+    if (have_read) { return; }
+
+    ParmParse pp("particles");
+    pp.queryAdd("do_tiling", do_tiling);
+    Vector<int> tilesize(AMREX_SPACEDIM);
+    if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
+        for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
+    }
+    pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
+    pp.queryAdd("use_comms_arena", use_comms_arena);
+
+    have_read = true;
+    amrex::ExecOnFinalize([] {
+        std::scoped_lock reset_lock(read_mutex);
+        have_read = false;
+    });
 }
 
 int ParticleContainerBase::MaxReaders ()

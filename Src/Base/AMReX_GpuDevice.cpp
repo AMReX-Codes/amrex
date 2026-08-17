@@ -109,10 +109,13 @@ namespace {
 int
 Device::getStreamIndex () noexcept
 {
-    // Clamped: a thread that outlives a Finalize()/Initialize() cycle keeps its
-    // index, and max_gpu_streams is re-read from the inputs on every
-    // Initialize(), so the pool may have shrunk underneath it.
-    return (tl_gpu_stream_index >= 0 && tl_gpu_stream_index < max_gpu_streams)
+    // Clamped against the pool itself, not max_gpu_streams: a thread that
+    // outlives a Finalize()/Initialize() cycle keeps its index, and
+    // max_gpu_streams is re-read from the inputs early in Initialize() while
+    // gpu_stream_pool is only resized to match later -- so between the two a
+    // grown max_gpu_streams would otherwise hand back an index past the end.
+    return (tl_gpu_stream_index >= 0 &&
+            tl_gpu_stream_index < static_cast<int>(gpu_stream_pool.size()))
         ? tl_gpu_stream_index : 0;
 }
 

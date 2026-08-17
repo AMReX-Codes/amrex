@@ -43,15 +43,12 @@ namespace {
      * at all. A real mutex covers both.
      *
      * Recursive because clearThisBD() calls the flushers while holding it.
-     */
-    /**
-     * Guards the FabArrayBase cache family and the memory-usage bookkeeping.
      *
-     * Function-local for the same reason as ParmParse's table mutex:
-     * std::recursive_mutex is not constant-initializable, and a
-     * namespace-scope one can be reached before construction by a
-     * static-storage object -- here, anything that builds or destroys a
-     * FabArray during static initialization.
+     * Function-local rather than namespace-scope because std::recursive_mutex
+     * is not guaranteed constant-initializable, so a namespace-scope one can
+     * be reached before construction by a static-storage object -- here,
+     * anything that builds or destroys a FabArray during static
+     * initialization.
      */
     std::recursive_mutex& fabarray_cache_mutex ()
     {

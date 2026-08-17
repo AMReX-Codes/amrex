@@ -559,10 +559,21 @@ void
 CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const
 {
     std::size_t megabytes, actual_megabytes, n_alloc, n_busy, n_free;
+    // try_to_lock, not a blocking lock. This overload is on the
+    // out-of-memory path (Arena::out_of_memory_abort -> PrintUsageToStream),
+    // which walks *every* arena in turn. A thread that OOMs inside The_Arena
+    // therefore arrives here holding The_Arena's mutex and asking for
+    // The_Pinned_Arena's, while a thread that OOMs inside The_Pinned_Arena
+    // does the mirror image -- a classic AB-BA hang, with no diagnostic, in
+    // exactly the situation the diagnostic exists for. Two threads exhausting
+    // memory at once is the ordinary case under free threading, so a
+    // best-effort read is the right trade: a dying process must not block.
+    //
+    // The mutex is recursive, so the same thread's re-entry (depth 1 -> 2)
+    // still succeeds and reads consistent state -- alloc_protected() mutates
+    // nothing between its last consistent point and allocate_system().
+    std::unique_lock<std::recursive_mutex> lk(carena_mutex, std::try_to_lock);
     {
-        // The container sizes especially: reading them while another thread
-        // allocates is reading containers that are being rehashed/rebalanced.
-        std::scoped_lock lock(carena_mutex);
         megabytes = m_used / (1024*1024);
         actual_megabytes = m_actually_used / (1024*1024);
         n_alloc = m_alloc.size();
@@ -572,13 +583,16 @@ CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const
     os << space << "[" << name << "] space allocated (MB): " << megabytes << "\n";
     os << space << "[" << name << "] space used      (MB): " << actual_megabytes << "\n";
     os << space << "[" << name << "]: " << n_alloc << " allocs, "
-       << n_busy << " busy blocks, " << n_free << " free blocks\n";
+       << n_busy << " busy blocks, " << n_free << " free blocks"
+       << (lk.owns_lock() ? "" : "  (read without the lock: busy)") << "\n";
 }
 
 std::ostream& operator<< (std::ostream& os, const CArena& arena)
 {
-    // Same lock as every mutator: this walks m_alloc/m_freelist/m_busylist.
-    std::scoped_lock lock(arena.carena_mutex);
+    // Same lock as every mutator, since this walks m_alloc/m_freelist/
+    // m_busylist -- but try_to_lock, for the reason given in PrintUsage above:
+    // this is diagnostic output and must never be the thing that hangs.
+    std::unique_lock<std::recursive_mutex> lk(arena.carena_mutex, std::try_to_lock);
 
     os << "CArea:\n"
        << "    Hunk size: " << arena.m_hunk << "\n"
