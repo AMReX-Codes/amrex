@@ -15,6 +15,7 @@
 #include <array>
 #include <concepts>
 #include <iosfwd>
+#include <mutex>
 #include <optional>
 #include <set>
 #include <string>
@@ -1045,6 +1046,7 @@ public:
      */
     template <typename T>
     int queryAdd (std::string_view name, T& ref) {
+        std::scoped_lock lock(tableMutex());
         int exist = this->query(name, ref);
         if (!exist) {
             this->add(name, ref);
@@ -1053,6 +1055,7 @@ public:
     }
 
     int queryAdd (std::string_view name, std::string& ref) {
+        std::scoped_lock lock(tableMutex());
         int exist = this->query(name, ref);
         if (!exist && !ref.empty()) {
             this->add(name, ref);
@@ -1071,6 +1074,7 @@ public:
      */
     template <typename T>
     int queryAdd (std::string_view name, std::vector<T>& ref) {
+        std::scoped_lock lock(tableMutex());
         std::vector<T> empty;
         int exist = this->queryarr(name, empty);
         if (exist) {
@@ -1095,6 +1099,7 @@ public:
      */
     template <typename T>
     int queryAdd (std::string_view name, std::vector<T>& ref, int num_val) {
+        std::scoped_lock lock(tableMutex());
         int exist = this->queryarr(name, ref, 0, num_val);
         if (!exist) {
             this->addarr(name, ref);
@@ -1110,6 +1115,7 @@ public:
      */
     template <typename T, std::size_t N>
     int queryAdd (std::string_view name, std::array<T,N>& ref) {
+        std::scoped_lock lock(tableMutex());
         std::vector<T> v;
         int exist = this->queryarr(name, v);
         if (exist) {
@@ -1722,6 +1728,17 @@ public:
 
     static int Verbose ();
     static void SetVerbose (int v);
+
+    /**
+     * \brief The lock guarding the parameter table.
+     *
+     * Exposed because the queryAdd() templates live in this header and have to
+     * hold it across their query-then-add: query() and add() each take it on
+     * their own, so without this two threads querying the same absent name
+     * both miss and both add, leaving a duplicate entry with m_count == 2. It
+     * is recursive, so taking it here and again inside query()/add() is fine.
+     */
+    static std::recursive_mutex& tableMutex ();
 
     //! Write the contents of the table in ASCII to the ostream (diagnostic only, not valid ParmParse syntax).
     //! Diagnostic view of the internal table. This text is not valid ParmParse syntax

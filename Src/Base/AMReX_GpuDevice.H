@@ -82,6 +82,7 @@ public:
     static void Initialize (bool minimal, int a_device_id);
     static void Finalize ();
 
+#if defined(AMREX_USE_GPU)
     /**
      * Index into gpu_stream_pool of the stream the calling thread submits to.
      *
@@ -98,7 +99,6 @@ public:
      */
     static int getStreamIndex () noexcept;
 
-#if defined(AMREX_USE_GPU)
     static gpuStream_t gpuStream () noexcept {
         if (!external_stream_stack.empty()) {
             AMREX_ASSERT(external_stream_stack.back().manager != nullptr);

@@ -1769,9 +1769,18 @@ ParmParse::getEntries (const std::string& prefix)
     return r;
 }
 
+std::recursive_mutex&
+ParmParse::tableMutex ()
+{
+    return g_table_mutex;
+}
+
 int
 ParmParse::Verbose ()
 {
+    // Recursive: Finalize() and the unused-parameter warning path already hold
+    // this when they call in here.
+    std::scoped_lock lock(g_table_mutex);
     if (pp_detail::verbose < 0) {
         pp_detail::verbose = std::max(amrex::Verbose(),0);
         ParmParse pp("amrex.parmparse");
@@ -1785,6 +1794,7 @@ ParmParse::Verbose ()
 void
 ParmParse::SetVerbose (int v)
 {
+    std::scoped_lock lock(g_table_mutex);
     pp_detail::verbose = v;
 }
 

@@ -142,8 +142,13 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
 void
 EBCellFlagFab::resetType (int ng)
 {
-    this->setType(FabType::undefined);
-    m_typemap.clear();
+    {
+        // getType() below takes this lock too, so it has to be released first
+        // -- ebcellflag_typemap_mutex is a plain std::mutex.
+        std::scoped_lock lock(ebcellflag_typemap_mutex);
+        this->setType(FabType::undefined);
+        m_typemap.clear();
+    }
 
     Box const& bx = this->box();
     auto typ = this->getType(bx);

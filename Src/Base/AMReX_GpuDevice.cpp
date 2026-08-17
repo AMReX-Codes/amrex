@@ -106,14 +106,21 @@ namespace {
     thread_local int tl_gpu_stream_index = 0;
 }
 
-int  Device::getStreamIndex   () noexcept {
+int
+Device::getStreamIndex () noexcept
+{
     // Clamped: a thread that outlives a Finalize()/Initialize() cycle keeps its
     // index, and max_gpu_streams is re-read from the inputs on every
     // Initialize(), so the pool may have shrunk underneath it.
     return (tl_gpu_stream_index >= 0 && tl_gpu_stream_index < max_gpu_streams)
         ? tl_gpu_stream_index : 0;
 }
-void Device::setStreamIndexTL (int idx) noexcept { tl_gpu_stream_index = idx; }
+
+void
+Device::setStreamIndexTL (int idx) noexcept
+{
+    tl_gpu_stream_index = idx;
+}
 gpuDeviceProp_t         Device::device_prop;
 int                     Device::memory_pools_supported = 0;
 #ifdef AMREX_USE_GPU
@@ -655,8 +662,10 @@ Device::initialize_gpu (bool minimal)
     }
 #endif
 
-    // Every thread starts on stream 0; a thread that has since moved to
-    // another one gets a fresh index from its next MFIter.
+    // Reset *this* thread to stream 0. Unlike the vector this replaced, it
+    // cannot reset the other threads' indices -- a thread that outlives a
+    // Finalize()/Initialize() cycle keeps the index it had, which is why
+    // getStreamIndex() clamps, and picks up a fresh one at its next MFIter.
     Device::setStreamIndexTL(0);
 
     ParmParse pp("device");

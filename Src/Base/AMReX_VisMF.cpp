@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <iterator>
 #include <limits>
+#include <mutex>
 #include <vector>
 #include <utility>
 
@@ -69,8 +70,26 @@ namespace
 
     std::vector<std::pair<std::weak_ptr<BARef>, std::weak_ptr<DMRef>>> s_layout_cache;
 
+    /**
+     * Guards s_layout_cache.
+     *
+     * VisMF::Read() reaches vismf_make_dm() whenever it is handed an
+     * undefined MultiFab, which is what pyAMReX's amr.VisMF.Read(name) does on
+     * every call. Without this, two host threads reading -- the same file or
+     * different ones -- erase() and emplace_back() the same vector while the
+     * other is iterating it.
+     *
+     * Note this serialises the local threads only. The
+     * ParallelDescriptor::ReduceBoolAnd below is still a collective, and
+     * calling it from more than one thread remains the caller's
+     * responsibility, as for every other collective in AMReX.
+     */
+    std::mutex layout_cache_mutex; // NOLINT(cert-err58-cpp)
+
     DistributionMapping vismf_make_dm (BoxArray& ba)
     {
+        std::scoped_lock lock(layout_cache_mutex);
+
         auto& ba_ref = ba.getSharedRef();
 
         std::shared_ptr<DMRef> dm_ref;
@@ -151,6 +170,7 @@ void
 VisMF::Finalize ()
 {
     initialized = false;
+    std::scoped_lock lock(layout_cache_mutex);
     s_layout_cache.clear();
 }
 

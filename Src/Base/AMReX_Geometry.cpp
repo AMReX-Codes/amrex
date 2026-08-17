@@ -11,8 +11,31 @@
 #include <AMReX_OpenMP.H>
 
 #include <iostream>
+#include <mutex>
 
 namespace amrex {
+
+namespace {
+    /**
+     * Guards the process-global default Geometry, AMReX::top()->getDefaultGeometry().
+     *
+     * Setup() is a check-then-act on that object: it returns early if the
+     * default has already been filled in, and otherwise writes its coordinate
+     * system, problem domain, offset and periodicity field by field. Every
+     * Geometry::define() calls it, so without this two threads constructing
+     * the first Geometry of the process both see ok == false, both run the
+     * body, and either can read a half-written RealBox.
+     *
+     * The lock is also what orders the reads back in define(): a thread that
+     * finds the default already set up still acquires this mutex on the way
+     * in, so the values it then reads out of the default Geometry are the
+     * ones the thread that filled them in published.
+     *
+     * The window reopens on every amrex::Initialize(), because the default
+     * Geometry hangs off AMReX::top().
+     */
+    std::mutex default_geometry_mutex; // NOLINT(cert-err58-cpp)
+}
 
 std::ostream&
 operator<< (std::ostream& os, const Geometry& g)
@@ -74,28 +97,35 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 
     Setup(rb,coord,is_per);
 
-    Geometry* gg = AMReX::top()->getDefaultGeometry();
+    {
+        // Whatever this constructor did not get told explicitly is inherited
+        // from the default Geometry, so read it under the same lock Setup()
+        // fills it in under.
+        std::scoped_lock lock(default_geometry_mutex);
 
-    if (coord <= -1 || coord > 2) {
-        c_sys = gg->Coord();
-    } else {
-        c_sys = static_cast<CoordType>(coord);
-    }
+        Geometry* gg = AMReX::top()->getDefaultGeometry();
 
-    if (is_per == nullptr) {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            is_periodic[idim] = gg->isPeriodic(idim);
+        if (coord <= -1 || coord > 2) {
+            c_sys = gg->Coord();
+        } else {
+            c_sys = static_cast<CoordType>(coord);
         }
-    } else {
-        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            is_periodic[idim] = is_per[idim];
-        }
-    }
 
-    if (rb == nullptr) {
-        prob_domain = gg->ProbDomain();
-    } else {
-        prob_domain = *rb;
+        if (is_per == nullptr) {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                is_periodic[idim] = gg->isPeriodic(idim);
+            }
+        } else {
+            for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+                is_periodic[idim] = is_per[idim];
+            }
+        }
+
+        if (rb == nullptr) {
+            prob_domain = gg->ProbDomain();
+        } else {
+            prob_domain = *rb;
+        }
     }
 
     domain = dom;
@@ -107,6 +137,8 @@ Geometry::define (const Box& dom, const RealBox* rb, int coord,
 void
 Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 {
+    std::scoped_lock lock(default_geometry_mutex);
+
     Geometry* gg = AMReX::top()->getDefaultGeometry();
 
     if (gg->ok) { return; }

@@ -133,7 +133,10 @@ each thread will have its own dedicated Random Number Generator that
 is totally independent of the others. A host thread that AMReX did not create --
 a Python thread on a free-threaded interpreter, say -- also gets its own
 generator, seeded from the same sequence; note that only the OpenMP generators
-are written by :cpp:`SaveRandomState`. See :ref:`sec:basics:hostthreads`.
+are written by :cpp:`SaveRandomState`. Inside an OpenMP parallel region the
+generator is still picked by thread number, so do not have several of your own
+host threads each open a team and draw at the same time.
+See :ref:`sec:basics:hostthreads`.
 
 |
 

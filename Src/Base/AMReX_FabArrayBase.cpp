@@ -155,22 +155,32 @@ FabArrayBase::Initialize ()
 #ifdef AMREX_MEM_PROFILING
     MemProfiler::add(m_TAC_stats.name, std::function<MemProfiler::MemInfo()>
                      ([] () -> MemProfiler::MemInfo {
+                         // Written under fabarray_cache_mutex by updateMemUsage()
+                         std::scoped_lock lock(fabarray_cache_mutex);
                          return {m_TAC_stats.bytes, m_TAC_stats.bytes_hwm};
                      }));
     MemProfiler::add(m_FBC_stats.name, std::function<MemProfiler::MemInfo()>
                      ([] () -> MemProfiler::MemInfo {
+                         // Written under fabarray_cache_mutex by updateMemUsage()
+                         std::scoped_lock lock(fabarray_cache_mutex);
                          return {m_FBC_stats.bytes, m_FBC_stats.bytes_hwm};
                      }));
     MemProfiler::add(m_CPC_stats.name, std::function<MemProfiler::MemInfo()>
                      ([] () -> MemProfiler::MemInfo {
+                         // Written under fabarray_cache_mutex by updateMemUsage()
+                         std::scoped_lock lock(fabarray_cache_mutex);
                          return {m_CPC_stats.bytes, m_CPC_stats.bytes_hwm};
                      }));
     MemProfiler::add(m_FPinfo_stats.name, std::function<MemProfiler::MemInfo()>
                      ([] () -> MemProfiler::MemInfo {
+                         // Written under fabarray_cache_mutex by updateMemUsage()
+                         std::scoped_lock lock(fabarray_cache_mutex);
                          return {m_FPinfo_stats.bytes, m_FPinfo_stats.bytes_hwm};
                      }));
     MemProfiler::add(m_CFinfo_stats.name, std::function<MemProfiler::MemInfo()>
                      ([] () -> MemProfiler::MemInfo {
+                         // Written under fabarray_cache_mutex by updateMemUsage()
+                         std::scoped_lock lock(fabarray_cache_mutex);
                          return {m_CFinfo_stats.bytes, m_CFinfo_stats.bytes_hwm};
                      }));
 #endif

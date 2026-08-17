@@ -286,6 +286,19 @@ public:
         m_arena = a;
     }
 
+    /**
+     * Read the container-wide "particles.*" settings from the inputs, once.
+     *
+     * do_tiling, tile_size, memEfficientSort and use_comms_arena are static
+     * members of this non-template base, so the guard has to live here too. A guard in
+     * ParticleContainer's constructor is one guard per *instantiation*, and
+     * pyAMReX registers a dozen of those in a single module -- two threads
+     * each constructing their first container of a different type would both
+     * run the body, tearing the IntVect tile_size and double-adding the
+     * queryAdd entries.
+     */
+    static void ReadStaticParameters ();
+
     static const std::string& CheckpointVersion ();
     static const std::string& PlotfileVersion ();
     static const std::string& DataPrefix ();

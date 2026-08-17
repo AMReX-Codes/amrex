@@ -264,6 +264,11 @@ MFIter::Finalize ()
 #pragma omp master
 #endif
     {
+        // Note: assignment, not --depth. With allowMultipleMFIters(true) an
+        // inner MFIter's destruction therefore zeroes the outer one's depth
+        // too. Pre-existing, and harmless while the counter only gates the
+        // nesting assertion, but now that it is documented as a per-thread
+        // nesting count it is worth naming.
         depth = 0;
     }
 }

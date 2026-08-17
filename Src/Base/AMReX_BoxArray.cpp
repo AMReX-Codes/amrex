@@ -1437,9 +1437,29 @@ BoxArray::complementIn (BoxList& bl, const Box& bx) const
     }
 }
 
+namespace {
+    /**
+     * Guards the lazily built BARef hash map.
+     *
+     * A real mutex rather than `omp critical`: the hash map is built lazily
+     * from a const method, so any host thread can be the one to build it --
+     * including threads AMReX did not create, which an OpenMP critical section
+     * does not exclude (and which a build without OpenMP would not exclude at
+     * all).
+     *
+     * clear_hash_bin() takes it as well as getHashMap(). uniqify() only calls
+     * clear_hash_bin() when it believes it is the sole owner of the BARef, but
+     * that use_count() == 1 test is a check-then-act: another thread copying
+     * the BoxArray raises the count right after it is read, and then the
+     * "sole owner" is tearing down a hash map that copy is entitled to build.
+     */
+    std::mutex hashmap_mutex; // NOLINT(cert-err58-cpp)
+}
+
 void
 BoxArray::clear_hash_bin () const
 {
+    std::scoped_lock lock(hashmap_mutex);
     if (!m_ref->hash.empty())
     {
 #ifdef AMREX_MEM_PROFILING
@@ -1567,12 +1587,6 @@ BoxArray::getHashMap () const
     if (m_ref->HasHashMap()) { return BoxHashMap; }
 
     {
-        // A real mutex rather than `omp critical`: the hash map is built
-        // lazily from a const method, so any host thread can be the one to
-        // build it -- including threads AMReX did not create, which an
-        // OpenMP critical section does not exclude (and which a build without
-        // OpenMP would not exclude at all).
-        static std::mutex hashmap_mutex;
         std::scoped_lock lock(hashmap_mutex);
 
         if (!m_ref->HasHashMap() && size() > 0)

@@ -2737,6 +2737,11 @@ AMReX's process-global state is safe under that:
 - :cpp:`amrex::Random()` and friends give a thread AMReX did not create its own
   generator, seeded from the same sequence as the OpenMP ones. Only the OpenMP
   generators take part in :cpp:`SaveRandomState`/:cpp:`RestoreRandomState`.
+  The exception is *inside* an OpenMP parallel region, where the generator is
+  still selected by :cpp:`OpenMP::get_thread_num()`: in an ``AMReX_OMP=ON``
+  build, two host threads that each open their own team index the same
+  per-team generators and race on them. Draw random numbers from your own
+  threads or from an OpenMP team, not from both at once.
 - Particle IDs (:cpp:`Particle::NextID()`) are handed out atomically.
 - The current-stream index is per thread, so one host thread can no longer
   change the stream another is submitting to. The stream *pool* is still

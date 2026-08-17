@@ -493,12 +493,14 @@ CArena::hasFreeDeviceMemory (std::size_t sz)
 std::size_t
 CArena::heap_space_used () const noexcept
 {
+    std::scoped_lock lock(carena_mutex);
     return m_used;
 }
 
 std::size_t
 CArena::heap_space_actually_used () const noexcept
 {
+    std::scoped_lock lock(carena_mutex);
     return m_actually_used;
 }
 
@@ -508,6 +510,7 @@ CArena::sizeOf (void* p) const noexcept
     if (p == nullptr) {
         return 0;
     } else {
+        std::scoped_lock lock(carena_mutex);
         auto it = m_busylist.find(Node(p,nullptr,0));
         if (it == m_busylist.end()) {
             return 0;
@@ -520,11 +523,18 @@ CArena::sizeOf (void* p) const noexcept
 void
 CArena::PrintUsage (std::string const& name, bool print_max_usage) const
 {
-    Long min_megabytes = static_cast<Long>(
-        (print_max_usage ? m_max_used : heap_space_used()) / (1024*1024));
+    // Snapshot under the lock, then reduce outside it: every allocation path
+    // takes carena_mutex, and holding it across an MPI collective would block
+    // any thread that needs to allocate before it can reach its own.
+    Long min_megabytes, actual_min_megabytes;
+    {
+        std::scoped_lock lock(carena_mutex);
+        min_megabytes = static_cast<Long>(
+            (print_max_usage ? m_max_used : m_used) / (1024*1024));
+        actual_min_megabytes = static_cast<Long>(
+            (print_max_usage ? m_max_actually_used : m_actually_used) / (1024*1024));
+    }
     Long max_megabytes = min_megabytes;
-    Long actual_min_megabytes = static_cast<Long>(
-        (print_max_usage ? m_max_actually_used : heap_space_actually_used()) / (1024*1024));
     Long actual_max_megabytes = actual_min_megabytes;
     const int IOProc = ParallelDescriptor::IOProcessorNumber();
     ParallelReduce::Min<Long>({min_megabytes, actual_min_megabytes},
@@ -547,12 +557,21 @@ CArena::PrintUsage (std::string const& name, bool print_max_usage) const
 void
 CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const& space) const
 {
-    auto megabytes = heap_space_used() / (1024*1024);
-    auto actual_megabytes = heap_space_actually_used() / (1024*1024);
+    std::size_t megabytes, actual_megabytes, n_alloc, n_busy, n_free;
+    {
+        // The container sizes especially: reading them while another thread
+        // allocates is reading a std::set that is being rebalanced.
+        std::scoped_lock lock(carena_mutex);
+        megabytes = m_used / (1024*1024);
+        actual_megabytes = m_actually_used / (1024*1024);
+        n_alloc = m_alloc.size();
+        n_busy = m_busylist.size();
+        n_free = m_freelist.size();
+    }
     os << space << "[" << name << "] space allocated (MB): " << megabytes << "\n";
     os << space << "[" << name << "] space used      (MB): " << actual_megabytes << "\n";
-    os << space << "[" << name << "]: " << m_alloc.size() << " allocs, "
-       << m_busylist.size() << " busy blocks, " << m_freelist.size() << " free blocks\n";
+    os << space << "[" << name << "]: " << n_alloc << " allocs, "
+       << n_busy << " busy blocks, " << n_free << " free blocks\n";
 }
 
 std::ostream& operator<< (std::ostream& os, const CArena& arena)

@@ -79,29 +79,23 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     //                   && std::is_trivial<ParticleType>::value,
     //                      "Particle type must be standard layout and trivial.");
 
-    // Read the settings once. A function-local static gives us thread-safe
-    // initialization, which a `static bool initialized` flag does not -- two
-    // host threads building containers at the same time would both run the
-    // body and both write the static members below.
-    //
-    // `this` is captured because usePrePost/doUnlink are per-container
-    // members, and this preserves the previous behaviour: only the container
-    // that gets here first reads them from the inputs. Note that both are
-    // declared without an initializer and are only assigned if the
-    // corresponding input is present, so they can be read indeterminate --
-    // pre-existing, and worth a separate fix.
+    // The settings shared by every container type live on the non-template
+    // base, and so does the guard that reads them: a guard here would be one
+    // per instantiation, and pyAMReX registers a dozen of those in one module.
+    // See ParticleContainerBase::ReadStaticParameters().
+    ParticleContainerBase::ReadStaticParameters();
+
+    // usePrePost/doUnlink are per-container members, so this guard does belong
+    // here. A function-local static gives thread-safe initialization, which
+    // the `static bool initialized` flag it replaced did not. It keeps the
+    // previous behaviour of only the container that gets here first reading
+    // them from the inputs. Note both are declared without an initializer and
+    // are only assigned if the corresponding input is present, so they can be
+    // read indeterminate -- pre-existing, and worth a separate fix.
     [[maybe_unused]] static const bool read_settings_once = [this] {
         ParmParse pp("particles");
-        pp.queryAdd("do_tiling", do_tiling);
-        Vector<int> tilesize(AMREX_SPACEDIM);
-        if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
-            for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
-        }
-
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
-        pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
-        pp.queryAdd("use_comms_arena", use_comms_arena);
         return true;
     }();
 }

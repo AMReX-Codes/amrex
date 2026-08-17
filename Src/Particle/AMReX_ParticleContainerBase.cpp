@@ -270,6 +270,21 @@ const std::string& ParticleContainerBase::DataPrefix ()
     return data;
 }
 
+void ParticleContainerBase::ReadStaticParameters ()
+{
+    [[maybe_unused]] static const bool read_once = [] {
+        ParmParse pp("particles");
+        pp.queryAdd("do_tiling", do_tiling);
+        Vector<int> tilesize(AMREX_SPACEDIM);
+        if (pp.queryarr("tile_size", tilesize, 0, AMREX_SPACEDIM)) {
+            for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
+        }
+        pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
+        pp.queryAdd("use_comms_arena", use_comms_arena);
+        return true;
+    }();
+}
+
 int ParticleContainerBase::MaxReaders ()
 {
     static int const Max_Readers = [] {

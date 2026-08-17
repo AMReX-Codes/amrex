@@ -253,8 +253,11 @@ protected:
      * its own MFIter, are fine and each see a depth of one.
      *
      * Inside an OpenMP parallel region only the team's master increments it
-     * (see the `omp master` in Initialize()), so the other team members see
-     * zero -- unchanged from when this was a global.
+     * (see the `omp master` in Initialize()), so the other team members now
+     * see zero. This *is* a behaviour change: when depth was a plain global,
+     * a non-master member read the master's incremented value. It only shows
+     * through currentDepth(), which has no in-tree caller, but a downstream
+     * OpenMP code that branches on it should know.
      */
     // Not AMREX_EXPORT: MSVC forbids dllexport on a thread_local, and this
     // is only ever touched from inside the library (including Src/Amr, where
