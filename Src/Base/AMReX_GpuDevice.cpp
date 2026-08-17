@@ -110,7 +110,8 @@ int  Device::getStreamIndex   () noexcept {
     // Clamped: a thread that outlives a Finalize()/Initialize() cycle keeps its
     // index, and max_gpu_streams is re-read from the inputs on every
     // Initialize(), so the pool may have shrunk underneath it.
-    return (tl_gpu_stream_index < max_gpu_streams) ? tl_gpu_stream_index : 0;
+    return (tl_gpu_stream_index >= 0 && tl_gpu_stream_index < max_gpu_streams)
+        ? tl_gpu_stream_index : 0;
 }
 void Device::setStreamIndexTL (int idx) noexcept { tl_gpu_stream_index = idx; }
 gpuDeviceProp_t         Device::device_prop;

@@ -257,7 +257,9 @@ protected:
      * zero -- unchanged from when this was a global.
      */
     // Not AMREX_EXPORT: MSVC forbids dllexport on a thread_local, and this
-    // is only ever touched from inside the library.
+    // is only ever touched from inside the library (including Src/Amr, where
+    // FillPatchIterator zeroes it -- now only for the calling thread, which is
+    // what that code wants).
     static thread_local int depth;
     static AMREX_EXPORT std::atomic<int> allow_multiple_mfiters;
 

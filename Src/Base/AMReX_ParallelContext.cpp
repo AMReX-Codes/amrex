@@ -1,6 +1,7 @@
 #include <AMReX_ParallelContext.H>
 #include <AMReX_ParallelDescriptor.H>
 
+#include <mutex>
 #include <sstream>
 #include <fstream>
 
@@ -102,6 +103,13 @@ Frame::global_to_local_rank (int* local, const int* global, int n)
 int
 Frame::get_inc_mpi_tag ()
 {
+    // Guarded rather than made atomic: Frame lives in a Vector and has to stay
+    // movable. Two host threads handing themselves the same tag would cross
+    // messages between unrelated communications, and this is reached even in a
+    // serial build (NFilesIter's constructor calls SeqNum()).
+    static std::mutex mpi_tag_mutex;
+    std::scoped_lock lock(mpi_tag_mutex);
+
     int cur_tag = m_mpi_tag;
     m_mpi_tag = (m_mpi_tag < ParallelDescriptor::MaxTag()) ?
         m_mpi_tag + 1 : ParallelDescriptor::MinTag();

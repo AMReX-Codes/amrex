@@ -56,6 +56,8 @@ namespace
 #endif
         if (tl_which == ThreadGenerator::shared_slot0) { return generators[0]; }
         if (tl_which == ThreadGenerator::unassigned) {
+            // seed_base/seed_stride/nthreads are written by InitRandom, which
+            // the docs put on one thread before any worker starts.
             int const slot = nthreads + next_foreign_slot.fetch_add(1);
             tl_own_generator.seed(seed_base
                                   + static_cast<amrex::ULong>(slot)
@@ -168,7 +170,9 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
     // Continue the same seed sequence for any thread AMReX did not create.
     seed_base = cpu_seed;
     seed_stride = nprocs;
-    next_foreign_slot.store(0);
+    // Deliberately not reset: a thread that already took a slot keeps its
+    // generator, and reusing slot numbers after a re-Initialize would hand a
+    // new thread the same seed as a live one.
 
     // The first thread through here keeps generators[0]; a later caller on
     // another thread keeps whatever generator it already had.

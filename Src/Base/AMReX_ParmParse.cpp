@@ -1559,6 +1559,9 @@ pp_make_parser (std::string const& func, Vector<std::string> const& vars,
     }
 
     bool recursive = false;
+    // g_parser_recursive_symbols is indexed by OpenMP::get_thread_num(), i.e.
+    // slot 0 for every host thread without OpenMP. Safe because every caller
+    // already holds g_table_mutex.
     auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
 
     for (auto const& s : symbols) {
@@ -1601,6 +1604,9 @@ bool pp_parser (const ParmParse::Table& table, const std::string& parser_prefix,
                 const std::string& name, const std::string& val, T& ref,
                 bool use_querywithparser)
 {
+    // g_parser_recursive_symbols is indexed by OpenMP::get_thread_num(), i.e.
+    // slot 0 for every host thread without OpenMP. Safe because every caller
+    // already holds g_table_mutex.
     auto& recursive_symbols = g_parser_recursive_symbols[OpenMP::get_thread_num()];
     if (auto found = recursive_symbols.find(name); found != recursive_symbols.end()) {
         amrex::Error("ParmParse: recursive reference to "+name+" is not allowed");
