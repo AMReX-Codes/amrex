@@ -2773,19 +2773,26 @@ What remains the caller's responsibility:
 - :cpp:`TinyProfiler`: its section stack is global and asserts on nesting.
 - :cpp:`Gpu::setExternalStream()`, and dynamic :cpp:`MFIter` scheduling
   (:cpp:`MFItInfo::SetDynamic`), which shares one counter across an OpenMP team.
-- The GPU execution-scope guards -- :cpp:`Gpu::LaunchSafeGuard`,
-  :cpp:`Gpu::GraphSafeGuard`, :cpp:`Gpu::SingleStreamRegion`,
-  :cpp:`Gpu::NoSyncRegion`. These set
-  process-wide mode flags and restore them on scope exit, so one thread's guard
-  changes what every other thread does. They are deliberately *not* per-thread:
-  an OpenMP program opens them outside a parallel region and expects the team
-  inside to observe them.
 - The AMReX instance stack accessors :cpp:`AMReX::empty()`, :cpp:`size()` and
   :cpp:`top()` are unlocked, so they inherit the Initialize/Finalize rule above:
   do not call them while another thread may be pushing or erasing an instance.
 - :cpp:`EB2::Build()` pushes onto an unguarded process-global index-space
   stack that :cpp:`EB2::TopIndexSpace()` reads, so building embedded-boundary
   geometry belongs on one thread, before other threads start using it.
+
+The GPU execution-scope guards -- :cpp:`Gpu::LaunchSafeGuard`,
+:cpp:`Gpu::GraphSafeGuard`, :cpp:`Gpu::SingleStreamRegion` and
+:cpp:`Gpu::NoSyncRegion` -- *are* per-thread, so one host thread's guard no
+longer changes what another one does. This could not be left to caller
+discipline: AMReX opens these guards itself inside ordinary API calls
+(:cpp:`ParticleContainer::addParticles()` opens a :cpp:`Gpu::NoSyncRegion`,
+:cpp:`Gpu::AnyOf()` behind :cpp:`MultiFab::contains_nan()` opens a
+:cpp:`Gpu::LaunchSafeGuard`), so two threads calling those would interleave the
+save/restore pairs and leave a flag stuck on for the rest of the run. An OpenMP
+team still observes a guard opened outside it, because the setters broadcast to
+the team; what remains unsupported is an ``AMReX_OMP=ON`` build driven from
+several host threads at once, which shares those broadcast slots -- the same
+caveat :cpp:`amrex::Random()` carries.
 
 Note that host threads and OpenMP are two thread pools over the same cores.
 Using both oversubscribes the node; pick one, or cap ``OMP_NUM_THREADS`` so that
