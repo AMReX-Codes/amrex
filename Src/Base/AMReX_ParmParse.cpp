@@ -49,7 +49,22 @@ namespace {
      * symbols. This also serializes g_parser_recursive_symbols, whose
      * per-thread slot is indexed by OpenMP::get_thread_num().
      */
-    std::recursive_mutex g_table_mutex;
+    /**
+     * Guards g_table.
+     *
+     * Function-local rather than namespace-scope because std::recursive_mutex
+     * has no constexpr constructor, so a namespace-scope one is dynamically
+     * initialized -- and ParmParse::tableMutex() now hands it to the inline
+     * queryAdd() templates in every translation unit. A static-storage object
+     * whose constructor queries ParmParse would otherwise be able to reach it
+     * before it exists. (Destruction order at exit is still the caller's
+     * problem, as for any static.)
+     */
+    std::recursive_mutex& g_table_mutex ()
+    {
+        static std::recursive_mutex m;
+        return m;
+    }
     /// \cond DOXYGEN_IGNORE
     namespace pp_detail {
         int verbose = -1;
@@ -70,7 +85,7 @@ ParmParse::ParmParse (std::string prefix, std::string parser_prefix)
 ParmParse::Table
 ParmParse::tableCopy () const
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     return *m_table;
 }
 
@@ -1081,7 +1096,7 @@ squeryval (const ParmParse::Table& table,
            int                     ival,
            int                     occurrence)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     //
     // Get specified occurrence of name in table.
     //
@@ -1244,7 +1259,7 @@ squeryarr (const ParmParse::Table& table,
            int                     num_val,
            int                     occurrence)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     //
     // Get last occurrence of name in table.
     //
@@ -1544,7 +1559,7 @@ pp_make_parser (std::string const& func, Vector<std::string> const& vars,
     // Guards g_parser_recursive_symbols, whose slot is indexed by
     // OpenMP::get_thread_num() and is therefore shared by every host thread in
     // a build without OpenMP. Recursive: this re-enters squeryval() below.
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     using value_t =  std::conditional_t<std::is_integral_v<T> && !std::is_same_v<bool,T>,
                                         long long, double>;
 
@@ -1654,7 +1669,7 @@ ParmParse::prefixedName (std::string_view str) const
 
 void
 ParmParse::addfile (std::string const& filename) {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
 #ifdef AMREX_USE_MPI
     // this is required because we will BCast the file content in sub-function calls
     if (ParallelDescriptor::Communicator() == MPI_COMM_NULL)
@@ -1688,7 +1703,7 @@ ParmParse::Initialize (int         argc,
                        char**      argv,
                        const char* parfile)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     if ( initialized )
     {
         amrex::Error("ParmParse::Initialize(): already initialized!");
@@ -1704,7 +1719,7 @@ ParmParse::Initialize (int         argc,
 bool
 ParmParse::QueryUnusedInputs ()
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
         if (ParmParse::Verbose()) {
@@ -1720,14 +1735,14 @@ ParmParse::QueryUnusedInputs ()
 bool
 ParmParse::hasUnusedInputs (const std::string& prefix)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     return unused_table_entries_q(g_table, prefix);
 }
 
 std::vector<std::string>
 ParmParse::getUnusedInputs (const std::string& prefix)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     std::vector<std::string> sorted_names;
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
@@ -1758,7 +1773,7 @@ ParmParse::getUnusedInputs (const std::string& prefix)
 std::set<std::string>
 ParmParse::getEntries (const std::string& prefix)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     std::set<std::string> r;
     const std::string prefixdot = prefix.empty() ? std::string() : prefix+".";
     for (auto const& [name, entry] : g_table) {
@@ -1772,7 +1787,7 @@ ParmParse::getEntries (const std::string& prefix)
 std::recursive_mutex&
 ParmParse::tableMutex ()
 {
-    return g_table_mutex;
+    return g_table_mutex();
 }
 
 int
@@ -1780,7 +1795,7 @@ ParmParse::Verbose ()
 {
     // Recursive: Finalize() and the unused-parameter warning path already hold
     // this when they call in here.
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     if (pp_detail::verbose < 0) {
         pp_detail::verbose = std::max(amrex::Verbose(),0);
         ParmParse pp("amrex.parmparse");
@@ -1794,14 +1809,14 @@ ParmParse::Verbose ()
 void
 ParmParse::SetVerbose (int v)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     pp_detail::verbose = v;
 }
 
 void
 ParmParse::Finalize ()
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     if ( ParallelDescriptor::IOProcessor() && unused_table_entries_q(g_table))
     {
         if (ParmParse::Verbose()) {
@@ -1829,7 +1844,7 @@ ParmParse::Finalize ()
 void
 ParmParse::SetParserPrefix (std::string a_prefix)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     ParmParse::ParserPrefix = std::move(a_prefix);
 }
 
@@ -1838,7 +1853,7 @@ ParmParse::SetParserPrefix (std::string a_prefix)
 void
 ParmParse::dumpTable (std::ostream& os, bool prettyPrint)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     std::vector<std::string> sorted_names;
     sorted_names.reserve(g_table.size());
     for (auto const& [name, entry] : g_table) {
@@ -1903,21 +1918,21 @@ void pretty_print_table (std::ostream& os, PPFlag pp_flag)
 void
 ParmParse::prettyPrintTable (std::ostream& os)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     pretty_print_table(os, PPFlag::all);
 }
 
 void
 ParmParse::prettyPrintUnusedInputs (std::ostream& os)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     pretty_print_table(os, PPFlag::unused);
 }
 
 void
 ParmParse::prettyPrintUsedInputs (std::ostream& os)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     pretty_print_table(os, PPFlag::used);
 }
 
@@ -1925,7 +1940,7 @@ int
 ParmParse::countval (std::string_view name,
                      int              n) const
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     //
     // First find n'th occurrence of name in table.
     //
@@ -2013,7 +2028,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 bool       val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2056,7 +2071,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 int        val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2102,7 +2117,7 @@ void
 ParmParse::addarr (std::string_view        name, // NOLINT(readability-make-member-function-const)
                    const std::vector<int>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2146,7 +2161,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 long       val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2191,7 +2206,7 @@ ParmParse::queryarr (std::string_view   name,
 void
 ParmParse::addarr (std::string_view name, const std::vector<long>& ref) // NOLINT(readability-make-member-function-const)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2234,7 +2249,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 long long  val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2280,7 +2295,7 @@ void
 ParmParse::addarr (std::string_view              name, // NOLINT(readability-make-member-function-const)
                    const std::vector<long long>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2323,7 +2338,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 float      val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2369,7 +2384,7 @@ void
 ParmParse::addarr (std::string_view          name, // NOLINT(readability-make-member-function-const)
                    const std::vector<float>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2414,7 +2429,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 double     val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2460,7 +2475,7 @@ void
 ParmParse::addarr (std::string_view           name, // NOLINT(readability-make-member-function-const)
                    const std::vector<double>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2505,7 +2520,7 @@ void
 ParmParse::add (std::string_view   name, // NOLINT(readability-make-member-function-const)
                 const std::string& val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2551,7 +2566,7 @@ void
 ParmParse::addarr (std::string_view                name, // NOLINT(readability-make-member-function-const)
                    const std::vector<std::string>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2596,7 +2611,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 const IntVect&   val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2642,7 +2657,7 @@ void
 ParmParse::addarr (std::string_view            name, // NOLINT(readability-make-member-function-const)
                    const std::vector<IntVect>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2685,7 +2700,7 @@ void
 ParmParse::add (std::string_view name, // NOLINT(readability-make-member-function-const)
                 const Box&       val)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddval(prefixedName(name),val);
 }
 
@@ -2731,7 +2746,7 @@ void
 ParmParse::addarr (std::string_view        name, // NOLINT(readability-make-member-function-const)
                    const std::vector<Box>& ref)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     saddarr(prefixedName(name),ref);
 }
 
@@ -2805,7 +2820,7 @@ ParmParse::queryline (std::string_view name, std::string& ref) const
 int
 ParmParse::countname (std::string_view name) const
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     auto pname = prefixedName(name);
     auto found = m_table->find(pname);
     if (found != m_table->cend()) {
@@ -2822,7 +2837,7 @@ ParmParse::countname (std::string_view name) const
 bool
 ParmParse::contains (std::string_view name) const
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     auto pname = prefixedName(name);
     auto found = m_table->find(pname);
     if (found != m_table->cend()) {
@@ -2839,7 +2854,7 @@ ParmParse::contains (std::string_view name) const
 int
 ParmParse::remove (std::string_view name)
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     auto const pname = prefixedName(name);
     auto n = m_table->erase(pname);
     return static_cast<int>(n);
@@ -2855,7 +2870,7 @@ bool squeryWithParser (const ParmParse::Table& table,
     // Held across the whole function: the parser path below writes the entry's
     // mutable m_typehint and m_last_vals after squeryarr() has returned.
     // Recursive, so the nested squeryarr() is fine.
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
 
     std::vector<std::string> vals;
     bool exist = squeryarr(table, parser_prefix, name, vals,
@@ -2906,7 +2921,7 @@ bool squeryarrWithParser (const ParmParse::Table& table,
     // Held across the whole function: the parser path below writes the entry's
     // mutable m_typehint and m_last_vals after squeryarr() has returned.
     // Recursive, so the nested squeryarr() is fine.
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     std::vector<std::string> vals;
     bool exist = squeryarr(table, parser_prefix, name, vals,
                            ParmParse::FIRST, ParmParse::ALL, ParmParse::LAST);
@@ -3021,7 +3036,7 @@ Parser
 ParmParse::makeParser (std::string const& func,
                        Vector<std::string> const& vars) const
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     return pp_make_parser<double>(func, vars, *m_table, m_parser_prefix, true);
 }
 
@@ -3029,7 +3044,7 @@ IParser
 ParmParse::makeIParser (std::string const& func,
                         Vector<std::string> const& vars) const
 {
-    std::scoped_lock lock(g_table_mutex);
+    std::scoped_lock lock(g_table_mutex());
     return pp_make_parser<long long>(func, vars, *m_table, m_parser_prefix, true);
 }
 

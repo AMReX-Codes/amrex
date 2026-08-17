@@ -32,10 +32,10 @@ namespace
     // they would share one std::mt19937 and race on its state. Hand each of
     // them a generator of its own instead, seeded from the same base.
     //
-    // The first thread to draw keeps generators[0], so serial runs have their
-    // existing stream and stay checkpointable through Save/RestoreRandomState.
-    // Every other thread gets tl_own_generator, which is not part of the
-    // checkpoint.
+    // The first thread to call InitRandom keeps generators[0], so serial runs
+    // have their existing stream and stay checkpointable through
+    // Save/RestoreRandomState. Every other thread gets tl_own_generator, which
+    // is not part of the checkpoint.
     enum class ThreadGenerator { unassigned, shared_slot0, own };
 
     thread_local std::mt19937     tl_own_generator;
@@ -60,29 +60,16 @@ namespace
             return generators[amrex::OpenMP::get_thread_num()];
         }
 #endif
-        if (tl_which == ThreadGenerator::unassigned) {
-            // The first thread to actually draw takes generators[0], the one
-            // Save/RestoreRandomState persist. Claiming it in InitRandom()
-            // instead would orphan it whenever the thread that initialized
-            // AMReX never draws itself, silently turning those two into
-            // no-ops. (A thread that claims it and then exits still orphans
-            // it; slot 0 is deliberately never handed out a second time, so
-            // that a re-Initialize cannot give a new thread the same seed as
-            // a live one.)
-            bool unclaimed = false;
-            if (slot0_claimed.compare_exchange_strong(unclaimed, true)) {
-                tl_which = ThreadGenerator::shared_slot0;
-            } else {
-                // seed_base/seed_stride/nthreads are written by InitRandom,
-                // which the docs put on one thread before any worker starts.
-                int const slot = nthreads + next_foreign_slot.fetch_add(1);
-                tl_own_generator.seed(seed_base
-                                      + static_cast<amrex::ULong>(slot)
-                                      * static_cast<amrex::ULong>(seed_stride));
-                tl_which = ThreadGenerator::own;
-            }
-        }
         if (tl_which == ThreadGenerator::shared_slot0) { return generators[0]; }
+        if (tl_which == ThreadGenerator::unassigned) {
+            // seed_base/seed_stride/nthreads are written by InitRandom, which
+            // the docs put on one thread before any worker starts.
+            int const slot = nthreads + next_foreign_slot.fetch_add(1);
+            tl_own_generator.seed(seed_base
+                                  + static_cast<amrex::ULong>(slot)
+                                  * static_cast<amrex::ULong>(seed_stride));
+            tl_which = ThreadGenerator::own;
+        }
         return tl_own_generator;
     }
 }
@@ -192,8 +179,27 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
     // next_foreign_slot is deliberately not reset here: a thread that already
     // took a slot keeps its generator, and reusing slot numbers after a
     // re-Initialize would hand a new thread the same seed as a live one.
+
+    // The first thread through here keeps generators[0]; a later caller on
+    // another thread keeps whatever generator it already had.
     //
-    // Slot 0 is claimed lazily, on first draw, in get_generator().
+    // The claim belongs here rather than at the first draw, because this is
+    // amrex::Initialize's thread, which is also the OpenMP master -- and the
+    // OpenMP branch of get_generator() hands generators[0] to team member 0.
+    // Tying slot 0 to any other thread would let that thread and the master
+    // inside a team draw from one std::mt19937 at the same time. It also
+    // keeps a draw made before InitRandom() out of the then-empty generators
+    // vector.
+    //
+    // The cost is that if this thread never draws, generators[0] goes unused,
+    // and Save/RestoreRandomState -- which persist only that generator -- have
+    // nothing to say about the threads that did.
+    if (tl_which == ThreadGenerator::unassigned) {
+        bool unclaimed = false;
+        if (slot0_claimed.compare_exchange_strong(unclaimed, true)) {
+            tl_which = ThreadGenerator::shared_slot0;
+        }
+    }
 
 #ifdef AMREX_USE_GPU
     ResizeRandomSeed(gpu_seed);

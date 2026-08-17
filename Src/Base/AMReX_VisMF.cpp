@@ -79,10 +79,14 @@ namespace
      * different ones -- erase() and emplace_back() the same vector while the
      * other is iterating it.
      *
-     * Note this serialises the local threads only. The
-     * ParallelDescriptor::ReduceBoolAnd below is still a collective, and
-     * calling it from more than one thread remains the caller's
-     * responsibility, as for every other collective in AMReX.
+     * Note this serialises the local threads only, and it is *held across*
+     * the ParallelDescriptor::ReduceBoolAnd below. That is deliberate -- the
+     * cache lookup, the agreement across ranks and the insert have to be one
+     * step -- but it does not make multi-rank concurrent Read() safe: two
+     * threads can be admitted here in different orders on different ranks and
+     * then pair up the collective wrongly. Concurrent VisMF::Read is
+     * therefore host-safe on one rank, and still subject to the usual
+     * one-thread rule for collectives across ranks.
      */
     std::mutex layout_cache_mutex; // NOLINT(cert-err58-cpp)
 

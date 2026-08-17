@@ -393,6 +393,7 @@ CArena::freeUnused ()
 std::size_t
 CArena::freeableMemory () const
 {
+    std::scoped_lock lock(carena_mutex);
     std::size_t nbytes = 0;
     for (auto const& [p, sz] : m_alloc) {
         auto it = m_freelist.find(Node(p,nullptr,0));
@@ -560,7 +561,7 @@ CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const
     std::size_t megabytes, actual_megabytes, n_alloc, n_busy, n_free;
     {
         // The container sizes especially: reading them while another thread
-        // allocates is reading a std::set that is being rebalanced.
+        // allocates is reading containers that are being rehashed/rebalanced.
         std::scoped_lock lock(carena_mutex);
         megabytes = m_used / (1024*1024);
         actual_megabytes = m_actually_used / (1024*1024);
@@ -576,6 +577,9 @@ CArena::PrintUsage (std::ostream& os, std::string const& name, std::string const
 
 std::ostream& operator<< (std::ostream& os, const CArena& arena)
 {
+    // Same lock as every mutator: this walks m_alloc/m_freelist/m_busylist.
+    std::scoped_lock lock(arena.carena_mutex);
+
     os << "CArea:\n"
        << "    Hunk size: " << arena.m_hunk << "\n"
        << "    Memory allocated: " << arena.m_used << "\n"

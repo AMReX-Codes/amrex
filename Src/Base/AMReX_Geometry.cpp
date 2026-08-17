@@ -214,6 +214,12 @@ Geometry::Setup (const RealBox* rb, int coord, int const* isper)
 void
 Geometry::ResetDefaultProbDomain (const RealBox& rb) noexcept
 {
+    // Same lock as Setup()/define(): these write the very fields define()
+    // reads out of the default Geometry. Note the lock only keeps a reader
+    // from seeing a half-written RealBox -- resetting a default that other
+    // Geometry objects were already built from is a semantic question the
+    // docs still put on the caller.
+    std::scoped_lock lock(default_geometry_mutex);
     Geometry* gg = AMReX::top()->getDefaultGeometry();
     gg->prob_domain.setLo(rb.lo());
     gg->prob_domain.setHi(rb.hi());
@@ -223,6 +229,7 @@ Geometry::ResetDefaultProbDomain (const RealBox& rb) noexcept
 void
 Geometry::ResetDefaultPeriodicity (const Array<int,AMREX_SPACEDIM>& is_per) noexcept
 {
+    std::scoped_lock lock(default_geometry_mutex);
     Geometry* gg = AMReX::top()->getDefaultGeometry();
     gg->setPeriodicity(is_per);
 }
@@ -231,6 +238,7 @@ void
 Geometry::ResetDefaultCoord (int coord) noexcept
 {
     AMREX_ASSERT(coord >= -1 && coord <= 2);
+    std::scoped_lock lock(default_geometry_mutex);
     Geometry* gg = AMReX::top()->getDefaultGeometry();
     gg->SetCoord(static_cast<CoordType>(coord)); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 }

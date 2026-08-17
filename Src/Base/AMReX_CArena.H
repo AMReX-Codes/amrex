@@ -277,7 +277,16 @@ protected:
     //! The max amount of memory given out via alloc().
     std::size_t m_max_actually_used{0};
 
-    mutable std::mutex carena_mutex;
+    /**
+     * Guards the free/busy lists, the allocation vector and the usage counters.
+     *
+     * Recursive because the out-of-memory path re-enters on the same thread:
+     * alloc() takes this, alloc_protected() calls allocate_system(), and if
+     * that fails Arena::out_of_memory_abort() prints every arena's usage --
+     * back through CArena::PrintUsage(std::ostream&), which needs it too. With
+     * a plain std::mutex that diagnostic deadlocks instead of aborting.
+     */
+    mutable std::recursive_mutex carena_mutex;
 
     //! Print a summary of the arena's free and busy lists to \p os.
     friend std::ostream& operator<< (std::ostream& os, const CArena& arena);
