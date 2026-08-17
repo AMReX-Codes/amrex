@@ -56,7 +56,9 @@ namespace
         // and generators was sized for exactly that. Note this also means two
         // host threads that each open their own team share these slots -- see
         // the OpenMP caveat in the Host Thread Safety docs.
-        if (OpenMP::in_parallel()) { return generators[OpenMP::get_thread_num()]; }
+        if (amrex::OpenMP::in_parallel()) {
+            return generators[amrex::OpenMP::get_thread_num()];
+        }
 #endif
         if (tl_which == ThreadGenerator::unassigned) {
             // The first thread to actually draw takes generators[0], the one
