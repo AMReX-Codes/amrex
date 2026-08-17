@@ -100,7 +100,14 @@ dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 unsigned int Device::max_blocks_per_launch = 2560;
 
 Vector<StreamManager>   Device::gpu_stream_pool;
-thread_local int        Device::gpu_stream_index = 0;
+namespace {
+    //! See Device::getStreamIndex(). File scope rather than a class member,
+    //! because MSVC forbids dllexport on a thread_local.
+    thread_local int tl_gpu_stream_index = 0;
+}
+
+int  Device::getStreamIndex   () noexcept { return tl_gpu_stream_index; }
+void Device::setStreamIndexTL (int idx) noexcept { tl_gpu_stream_index = idx; }
 gpuDeviceProp_t         Device::device_prop;
 int                     Device::memory_pools_supported = 0;
 #ifdef AMREX_USE_GPU
@@ -644,7 +651,7 @@ Device::initialize_gpu (bool minimal)
 
     // Every thread starts on stream 0; a thread that has since moved to
     // another one gets a fresh index from its next MFIter.
-    gpu_stream_index = 0;
+    Device::setStreamIndexTL(0);
 
     ParmParse pp("device");
 
@@ -735,7 +742,7 @@ Device::setStreamIndex (int idx) noexcept
 {
     amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
-    gpu_stream_index = idx % max_gpu_streams;
+    Device::setStreamIndexTL(idx % max_gpu_streams);
 #ifdef AMREX_USE_ACC
     amrex_set_acc_stream(idx % max_gpu_streams);
 #endif
@@ -747,7 +754,7 @@ gpuStream_t
 Device::resetStream () noexcept
 {
     gpuStream_t r = gpuStream();
-    gpu_stream_index = 0;
+    Device::setStreamIndexTL(0);
     return r;
 }
 
@@ -766,7 +773,7 @@ Device::setStream (gpuStream_t s) noexcept
     if (idx == std::ssize(gpu_stream_pool)) {
         amrex::Abort("Gpu::Device::setStream: stream is not managed by AMReX.");
     }
-    gpu_stream_index = idx;
+    Device::setStreamIndexTL(idx);
     return r;
 }
 
@@ -810,7 +817,7 @@ Device::setExternalStream (gpuStream_t s)
     // these regions.
     external_stream_stack.emplace_back(
         ExternalStream{std::make_unique<StreamManager>(),
-                       gpu_stream_index});
+                       Device::getStreamIndex()});
     external_stream_stack.back().manager->getStream() = s;
 }
 
@@ -864,7 +871,7 @@ Device::streamSynchronize () noexcept
         AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
         external_stream_stack.back().manager->sync();
     } else {
-        gpu_stream_pool[gpu_stream_index].sync();
+        gpu_stream_pool[Device::getStreamIndex()].sync();
     }
 #endif
 }
@@ -943,7 +950,7 @@ Device::freeAsync (Arena* arena, void* mem) noexcept
         AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
         external_stream_stack.back().manager->free_async(arena, mem);
     } else {
-        gpu_stream_pool[gpu_stream_index].free_async(arena, mem);
+        gpu_stream_pool[Device::getStreamIndex()].free_async(arena, mem);
     }
 #else
     arena->free(mem);

@@ -251,7 +251,9 @@ protected:
      * is a per-thread property. Two independent host threads, each iterating
      * its own MFIter, are fine and each see a depth of one.
      */
-    static AMREX_EXPORT thread_local int depth;
+    // Not AMREX_EXPORT: MSVC forbids dllexport on a thread_local, and this
+    // is only ever touched from inside the library.
+    static thread_local int depth;
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();

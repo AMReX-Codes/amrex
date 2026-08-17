@@ -350,7 +350,9 @@ private:
     * has its own cache, closed when the thread exits; CloseAllStreams() closes
     * the calling thread's.
     */
-    static AMREX_EXPORT thread_local std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
+    // Not AMREX_EXPORT: MSVC forbids dllexport on a thread_local, and this
+    // is private and only touched from AMReX_VisMF.cpp.
+    static thread_local std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
     //! The number of files to write for a FabArray<FArrayBox>.
     static AMREX_EXPORT int nOutFiles;
     static AMREX_EXPORT int nMFFileInStreams;

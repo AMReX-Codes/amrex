@@ -82,7 +82,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     // Read the settings once. A function-local static gives us thread-safe
     // initialisation, which a `static bool initialized` flag does not -- two
     // host threads building containers at the same time would both run the
-    // body and both write the class statics below.
+    // body and both write the static members below.
     //
     // `this` is captured because usePrePost/doUnlink are per-container
     // members: as before, only the container that gets here first reads them

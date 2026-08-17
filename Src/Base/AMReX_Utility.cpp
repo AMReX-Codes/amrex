@@ -54,9 +54,9 @@ amrex::Tokenize (const std::string& instr,
     //
     // Make copy of line that we can modify.
     //
-    const int len = static_cast<int>(instr.size()) + 1;
+    const std::size_t len = instr.size() + 1;
 
-    if (len > static_cast<int>(line.size())) { line.resize(len); }
+    if (len > line.size()) { line.resize(len); }
 
     (void) std::strncpy(line.data(), instr.c_str(), len);
 

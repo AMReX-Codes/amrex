@@ -82,13 +82,29 @@ public:
     static void Initialize (bool minimal, int a_device_id);
     static void Finalize ();
 
+    /**
+     * Index into gpu_stream_pool of the stream the calling thread submits to.
+     *
+     * Backed by thread-local storage, so a thread AMReX did not create (a
+     * Python thread on a free-threaded interpreter, say) gets its own stream
+     * just like an OpenMP thread does. It used to be a vector indexed by
+     * OpenMP::get_thread_num(), which is a compile-time 0 in a build without
+     * OpenMP -- so every host thread shared one slot and could silently launch
+     * onto another thread's stream.
+     *
+     * Out of line rather than a thread_local data member, because MSVC forbids
+     * dllexport on a thread_local and this is reached from the inline
+     * gpuStream() below.
+     */
+    static int getStreamIndex () noexcept;
+
 #if defined(AMREX_USE_GPU)
     static gpuStream_t gpuStream () noexcept {
         if (!external_stream_stack.empty()) {
             AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
             return external_stream_stack.back().manager->getStream();
         } else {
-            return gpu_stream_pool[gpu_stream_index].getStream();
+            return gpu_stream_pool[getStreamIndex()].getStream();
         }
     }
 #ifdef AMREX_USE_CUDA
@@ -258,18 +274,10 @@ private:
     static AMREX_EXPORT dim3 numThreadsMin;
     static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
+    //! Set the calling thread's stream index; see getStreamIndex().
+    static void setStreamIndexTL (int idx) noexcept;
+
     static AMREX_EXPORT Vector<StreamManager> gpu_stream_pool; // The size of this is max_gpu_stream
-    /**
-     * Index into gpu_stream_pool of the stream the calling thread submits to.
-     *
-     * Thread-local. It used to be a vector indexed by OpenMP::get_thread_num(),
-     * which is a compile-time 0 in a build without OpenMP -- so every host
-     * thread shared one slot and could silently launch onto another thread's
-     * stream. With this, a thread AMReX did not create (a Python thread on a
-     * free-threaded interpreter, say) gets its own stream just like an OpenMP
-     * thread does.
-     */
-    static AMREX_EXPORT thread_local int gpu_stream_index;
     static AMREX_EXPORT gpuDeviceProp_t device_prop;
     static AMREX_EXPORT int memory_pools_supported;
     static AMREX_EXPORT unsigned int max_blocks_per_launch;
