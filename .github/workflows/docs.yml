@@ -71,7 +71,7 @@ jobs:
 
       - name: Deploy
         if: github.event_name == 'push' && github.repository == 'AMReX-Codes/amrex' && github.ref == 'refs/heads/development'
-        uses: JamesIves/github-pages-deploy-action@v4.8.0
+        uses: JamesIves/github-pages-deploy-action@v4.9.0
         with:
           ssh-key: ${{ secrets.AMREX_BUILD_DOCS }}
           repository-name: AMReX-Codes/AMReX-Codes.github.io
