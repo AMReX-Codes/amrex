@@ -475,6 +475,21 @@ public:
     //! Pop the most recent region tag. The tag stack must be nonempty.
     static void popRegionTag ();
 
+    //! A snapshot of the region-tag stack, taken under the cache lock.
+    static std::vector<std::string> regionTags ();
+
+    /**
+     * The region-tag stack used to label memory-usage accounting.
+     *
+     * push/popRegionTag() take fabarray_cache_mutex and so does the one
+     * reader, FabArray::AllocFabs(). That keeps the vector itself safe, but
+     * note a *stack* shared by threads is only meaningful when one thread
+     * uses it: RegionTag is RAII, so two overlapping guards on different
+     * threads pop each other's tag. Making it thread_local would fix that,
+     * and would also mean an OpenMP team no longer inherits a tag opened
+     * outside it -- a behaviour change wanting its own PR. Only Src/Amr uses
+     * it today.
+     */
     static AMREX_EXPORT std::vector<std::string> m_region_tag;
     struct RegionTag {
         RegionTag (const char* t) : tagged(true) { pushRegionTag(t); }

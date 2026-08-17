@@ -2724,6 +2724,13 @@ FabArrayBase::queryMemUsageHWM (const std::string& t)
     }
 }
 
+std::vector<std::string>
+FabArrayBase::regionTags ()
+{
+    std::scoped_lock lock(fabarray_cache_mutex);
+    return m_region_tag;
+}
+
 void
 FabArrayBase::pushRegionTag (const char* t)
 {

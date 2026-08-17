@@ -2540,7 +2540,9 @@ FabArray<FAB>::AllocFabs (const FabFactory<FAB>& factory, Arena* ar,
 
     m_tags.clear();
     m_tags.emplace_back("All");
-    for (auto const& t : m_region_tag) {
+    // A snapshot, not m_region_tag itself: push/popRegionTag() mutate that
+    // under a lock this header cannot see.
+    for (auto const& t : FabArrayBase::regionTags()) {
         m_tags.push_back(t);
     }
     for (auto const& t : tags) {
