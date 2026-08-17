@@ -83,6 +83,22 @@ namespace Gpu {
 
 #if defined(AMREX_USE_GPU)
 
+    /* The execution-scope flags below (in_launch_region, in_graph_region,
+     * in_single_stream_region, in_nosync_region) are process-global, and the
+     * RAII guards further down save and restore them. That means one host
+     * thread's guard changes what every other host thread does, and two
+     * overlapping guards on different threads restore each other's values --
+     * see the host-thread-safety section of the docs, which lists them as the
+     * caller's responsibility.
+     *
+     * They are not simply thread_local because an OpenMP program opens a guard
+     * *outside* a parallel region and expects the team inside to observe it.
+     * Making them per-thread with the guard broadcasting to the current team
+     * on entry would serve both, and looks affordable; it wants its own PR.
+     * Note MSVC forbids dllexport on a thread_local, so per-thread storage
+     * here needs the accessor-function treatment used for
+     * Gpu::Device::getStreamIndex().
+     */
     extern bool in_launch_region;
 
     [[nodiscard]] inline bool inLaunchRegion () noexcept { return in_launch_region; }
