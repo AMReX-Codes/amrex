@@ -111,24 +111,28 @@ namespace {
 
     AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     bool line_box_intersects (Real const a[3], Real const inv_direction[3],
-                              int parallel_direction_mask, RealBox const& box)
+                              RealBox const& box)
     {
+        // Multiplying by the reciprocal loses the exactness that dividing by
+        // the direction gives when the segment ends exactly on a face plane,
+        // so open the far bound by a few ulps instead of culling a box the
+        // segment might really touch.
+        constexpr Real ulps = Real(4)*std::numeric_limits<Real>::epsilon();
         Real tmin = 0.0_rt;
         Real tmax = 1.0_rt;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-            if ((parallel_direction_mask & (1 << idim)) != 0) {
+            // A zero reciprocal marks a direction parallel to this pair of
+            // faces. 1/direction is never zero for a finite direction.
+            if (inv_direction[idim] == 0.0_rt) {
                 if (a[idim] < box.lo(idim) || a[idim] > box.hi(idim)) {
                     return false;
                 }
             } else {
-                Real tlo = (box.lo(idim)-a[idim]) * inv_direction[idim];
-                Real thi = (box.hi(idim)-a[idim]) * inv_direction[idim];
-                if (tlo > thi) {
-                    amrex::Swap(tlo,thi);
-                }
-                tmin = amrex::max(tmin,tlo);
-                tmax = amrex::min(tmax,thi);
-                if (tmin > tmax) {
+                Real const t1 = (box.lo(idim)-a[idim]) * inv_direction[idim];
+                Real const t2 = (box.hi(idim)-a[idim]) * inv_direction[idim];
+                tmin = amrex::max(tmin, amrex::min(t1,t2));
+                tmax = amrex::min(tmax, amrex::max(t1,t2));
+                if (tmin > tmax*(1.0_rt+ulps) + ulps) {
                     return false;
                 }
             }
@@ -144,23 +148,16 @@ namespace {
     {
         // Reuse these reciprocals for every bounding box visited by this ray.
         Real inv_direction[AMREX_SPACEDIM];
-        int parallel_direction_mask = 0;
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             Real const direction = b[idim] - a[idim];
-            if (direction == 0.0_rt) {
-                parallel_direction_mask |= (1 << idim);
-                inv_direction[idim] = 0.0_rt;
-            } else {
-                inv_direction[idim] = 1.0_rt / direction;
-            }
+            inv_direction[idim] = (direction == 0.0_rt) ? 0.0_rt : 1.0_rt/direction;
         }
 
         // Use stack to avoid recursion
         Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
         Stack<std::int8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
 
-        if (line_box_intersects(a, inv_direction, parallel_direction_mask,
-                                root->boundingbox)) {
+        if (line_box_intersects(a, inv_direction, root->boundingbox)) {
             nodes_to_do.push(0);
             nchildren_done.push(0);
         }
@@ -178,8 +175,7 @@ namespace {
                     for (auto ichild = ndone; ichild < node.nchildren; ++ichild) {
                         ++ndone;
                         int inode = node.children[ichild];
-                        if (line_box_intersects(a, inv_direction, parallel_direction_mask,
-                                                root[inode].boundingbox)) {
+                        if (line_box_intersects(a, inv_direction, root[inode].boundingbox)) {
                             nodes_to_do.push(inode);
                             nchildren_done.push(0);
                             break;
