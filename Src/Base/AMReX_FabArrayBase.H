@@ -21,6 +21,7 @@
 #include <omp.h>
 #endif
 
+#include <atomic>
 #include <cstdint>
 #include <ostream>
 #include <string>
@@ -810,25 +811,46 @@ public:
     //
     struct FabArrayStats
     {
-        int  num_fabarrays{0};
-        int  max_num_fabarrays{0};
-        int  max_num_boxarrays{0};
-        int  max_num_ba_use{1};
-        Long num_build{0};
+        // Atomic because recordBuild()/recordDelete() run from every FabArray
+        // constructor and destructor, which any host thread may reach.
+        std::atomic<int>  num_fabarrays{0};
+        std::atomic<int>  max_num_fabarrays{0};
+        std::atomic<int>  max_num_boxarrays{0};
+        std::atomic<int>  max_num_ba_use{1};
+        std::atomic<Long> num_build{0};
+
+        //! Raise `target` to `n` if `n` is larger.
+        template <typename T>
+        static void recordMax (std::atomic<T>& target, T n) noexcept {
+            T current = target.load(std::memory_order_relaxed);
+            while (current < n &&
+                   !target.compare_exchange_weak(current, n,
+                                                 std::memory_order_relaxed)) {
+                // current was reloaded with the value that beat us; retry
+            }
+        }
 
         void recordBuild () noexcept {
-            ++num_fabarrays;
-            ++num_build;
-            max_num_fabarrays = std::max(max_num_fabarrays, num_fabarrays);
+            int const n = num_fabarrays.fetch_add(1, std::memory_order_relaxed) + 1;
+            num_build.fetch_add(1, std::memory_order_relaxed);
+            recordMax(max_num_fabarrays, n);
         }
         void recordDelete () noexcept {
-            --num_fabarrays;
+            num_fabarrays.fetch_sub(1, std::memory_order_relaxed);
         }
         void recordMaxNumBoxArrays (int n) noexcept {
-            max_num_boxarrays = std::max(max_num_boxarrays, n);
+            recordMax(max_num_boxarrays, n);
         }
         void recordMaxNumBAUse (int n) noexcept {
-            max_num_ba_use = std::max(max_num_ba_use, n);
+            recordMax(max_num_ba_use, n);
+        }
+        //! Back to the state right after construction.
+        void reset () noexcept {
+            num_fabarrays.store(0);
+            max_num_fabarrays.store(0);
+            max_num_boxarrays.store(0);
+            max_num_ba_use.store(1);
+            num_build.store(0);
         }
         void print () const {
             amrex::Print(Print::AllProcs) << "### FabArray ###\n"

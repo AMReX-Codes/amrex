@@ -5,6 +5,8 @@
 #include <AMReX_Gpu.H>
 #include <AMReX_OpenMP.H>
 
+#include <atomic>
+#include <mutex>
 #include <iterator>
 #include <limits>
 
@@ -23,6 +25,45 @@ namespace
 {
     int nthreads;
     amrex::Vector<std::mt19937> generators;
+
+    // AMReX gives every OpenMP thread its own generator, indexed by
+    // OpenMP::get_thread_num(). Host threads that AMReX did not create -- e.g.
+    // Python threads on a free-threaded interpreter -- all report thread 0, so
+    // they would share one std::mt19937 and race on its state. Hand each of
+    // them a generator of its own instead, seeded from the same base.
+    //
+    // The first thread to call InitRandom keeps generators[0], so serial runs
+    // have their existing stream and stay checkpointable through
+    // Save/RestoreRandomState. Every other thread gets tl_own_generator, which
+    // is not part of the checkpoint.
+    enum class ThreadGenerator { unassigned, shared_slot0, own };
+
+    thread_local std::mt19937     tl_own_generator;
+    thread_local ThreadGenerator  tl_which = ThreadGenerator::unassigned;
+
+    amrex::ULong      seed_base = 0;
+    int               seed_stride = 1;
+    std::atomic<int>  next_foreign_slot{0};
+    std::atomic<bool> slot0_claimed{false};
+
+    //! Serialises InitRandom, which reseeds process-global state.
+    std::mutex init_random_mutex;
+
+    std::mt19937& get_generator ()
+    {
+#ifdef AMREX_USE_OMP
+        if (omp_in_parallel()) { return generators[omp_get_thread_num()]; }
+#endif
+        if (tl_which == ThreadGenerator::shared_slot0) { return generators[0]; }
+        if (tl_which == ThreadGenerator::unassigned) {
+            int const slot = nthreads + next_foreign_slot.fetch_add(1);
+            tl_own_generator.seed(seed_base
+                                  + static_cast<amrex::ULong>(slot)
+                                  * static_cast<amrex::ULong>(seed_stride));
+            tl_which = ThreadGenerator::own;
+        }
+        return tl_own_generator;
+    }
 }
 
 #ifdef AMREX_USE_GPU
@@ -98,6 +139,14 @@ namespace amrex {
 void
 InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 {
+    // InitRandom reseeds process-global state: the per-OpenMP-thread generator
+    // vector and, on GPU, the device state array (which it frees and
+    // reallocates). The lock keeps two threads from doing that at once. It
+    // does *not* make reseeding safe against another thread that is drawing
+    // numbers at the same time -- see the host-thread-safety section of the
+    // docs; reseed before starting worker threads.
+    std::scoped_lock lock(init_random_mutex);
+
     nthreads = OpenMP::get_max_threads();
     generators.resize(nthreads);
 
@@ -116,6 +165,20 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
         generators[tid].seed(init_seed);
     }
 
+    // Continue the same seed sequence for any thread AMReX did not create.
+    seed_base = cpu_seed;
+    seed_stride = nprocs;
+    next_foreign_slot.store(0);
+
+    // The first thread through here keeps generators[0]; a later caller on
+    // another thread keeps whatever generator it already had.
+    if (tl_which == ThreadGenerator::unassigned) {
+        bool unclaimed = false;
+        if (slot0_claimed.compare_exchange_strong(unclaimed, true)) {
+            tl_which = ThreadGenerator::shared_slot0;
+        }
+    }
+
 #ifdef AMREX_USE_GPU
     ResizeRandomSeed(gpu_seed);
 #else
@@ -126,45 +189,39 @@ InitRandom (ULong cpu_seed, int nprocs, ULong gpu_seed)
 Real RandomNormal (Real mean, Real stddev)
 {
     std::normal_distribution<Real> distribution(mean, stddev);
-    int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return distribution(get_generator());
 }
 
 Real Random ()
 {
     std::uniform_real_distribution<Real> distribution(0.0, 1.0);
-    int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return distribution(get_generator());
 }
 
 unsigned int RandomPoisson (Real lambda)
 {
     std::poisson_distribution<unsigned int> distribution(lambda);
-    int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return distribution(get_generator());
 }
 
 Real RandomGamma (Real alpha, Real beta)
 {
     std::gamma_distribution<Real> distribution(alpha, beta);
-    int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return distribution(get_generator());
 }
 
 unsigned int Random_int (unsigned int n)
 {
     if (n == 0) {return 0;}
     std::uniform_int_distribution<unsigned int> distribution(0, n-1);
-    int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return distribution(get_generator());
 }
 
 ULong Random_long (ULong n)
 {
     if (n == 0) {return 0;}
     std::uniform_int_distribution<ULong> distribution(0, n-1);
-    int tid = OpenMP::get_thread_num();
-    return distribution(generators[tid]);
+    return distribution(get_generator());
 }
 
 void

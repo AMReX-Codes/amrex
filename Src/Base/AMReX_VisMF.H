@@ -344,8 +344,13 @@ private:
     * \brief Persistent streams.  These open on demand and should
     * be closed when not needed with CloseAllStreams.
     * ~VisMF also closes them.  [filename, pifs]
+    *
+    * Per thread: an ifstream carries a single read position, so two host
+    * threads reading the same file must not share one. Each thread therefore
+    * has its own cache, closed when the thread exits; CloseAllStreams() closes
+    * the calling thread's.
     */
-    static AMREX_EXPORT std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
+    static AMREX_EXPORT thread_local std::map<std::string, VisMF::PersistentIFStream> persistentIFStreams;
     //! The number of files to write for a FabArray<FArrayBox>.
     static AMREX_EXPORT int nOutFiles;
     static AMREX_EXPORT int nMFFileInStreams;

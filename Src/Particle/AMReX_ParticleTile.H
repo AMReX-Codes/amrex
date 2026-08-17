@@ -12,6 +12,7 @@
 
 #include <array>
 #include <atomic>
+#include <mutex>
 #include <string>
 #include <type_traits>
 #include <vector>
@@ -407,7 +408,8 @@ struct alignas(sizeof(double)) SoAParticle : SoAParticleBase
     {
     }
 
-    static Long the_next_id;
+    //! Atomic: particle ids are handed out from any host thread.
+    static std::atomic<Long> the_next_id;
 
     //functions to get id and cpu in the SOA data
 
@@ -471,21 +473,16 @@ private :
 };
 
 //template <int NArrayReal, int NArrayInt> Long ConstSoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
-template <int NArrayReal, int NArrayInt> Long SoAParticle<NArrayReal, NArrayInt>::the_next_id = 1;
+template <int NArrayReal, int NArrayInt> std::atomic<Long> SoAParticle<NArrayReal, NArrayInt>::the_next_id{1};
 
 template <int NArrayReal, int NArrayInt>
 Long
 SoAParticle<NArrayReal, NArrayInt>::NextID ()
 {
-    Long next;
-// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
-// but we must work around a bug in gcc < 4.9
-#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
-#pragma omp critical (amrex_particle_nextid)
-#elif defined(AMREX_USE_OMP)
-#pragma omp atomic capture
-#endif
-    next = the_next_id++;
+    // std::atomic rather than `omp atomic capture`: the latter is compiled
+    // out in a build without OpenMP, leaving a bare increment that any two
+    // host threads adding particles would race on.
+    Long const next = the_next_id.fetch_add(1, std::memory_order_relaxed);
 
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
@@ -498,7 +495,7 @@ template <int NArrayReal, int NArrayInt>
 Long
 SoAParticle<NArrayReal, NArrayInt>::UnprotectedNextID ()
 {
-    Long next = the_next_id++;
+    Long const next = the_next_id.fetch_add(1, std::memory_order_relaxed);
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("SoAParticle<NArrayReal, NArrayInt>::NextID() -- too many particles");
     }
@@ -1469,10 +1466,12 @@ private:
         if (!m_runtime_ptrs_dirty.load(std::memory_order_acquire)) {
             return;
         }
-#if defined(AMREX_USE_OMP)
-#pragma omp critical (amrex_particle_tile_data_cache)
-#endif
+        // A real mutex rather than `omp critical`, which excludes only
+        // threads in the same OpenMP contention group and disappears in a
+        // build without OpenMP. Only reached on the rare dirty path.
+        static std::mutex cache_mutex;
         {
+            std::scoped_lock lock(cache_mutex);
             if (m_runtime_ptrs_dirty.load(std::memory_order_relaxed)) {
                 m_runtime_r_ptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
                 m_runtime_i_ptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);
@@ -1525,10 +1524,10 @@ private:
         if (!m_runtime_cptrs_dirty.load(std::memory_order_acquire)) {
             return;
         }
-#if defined(AMREX_USE_OMP)
-#pragma omp critical (amrex_const_particle_tile_data_cache)
-#endif
+        // See refreshRuntimePtrCaches() above.
+        static std::mutex const_cache_mutex;
         {
+            std::scoped_lock lock(const_cache_mutex);
             if (m_runtime_cptrs_dirty.load(std::memory_order_relaxed)) {
                 m_runtime_r_cptrs.resize(m_soa_tile.NumRealComps() - NArrayReal);
                 m_runtime_i_cptrs.resize(m_soa_tile.NumIntComps() - NArrayInt);

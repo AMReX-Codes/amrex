@@ -1,8 +1,22 @@
 #include <AMReX_EBCellFlag.H>
 #include <AMReX_Reduce.H>
 #include <iostream>
+#include <mutex>
 
 namespace amrex {
+
+namespace {
+    /**
+     * Guards EBCellFlagFab::m_typemap, the lazily filled cell-count cache that
+     * getType() and the getNum*Cells() queries share.
+     *
+     * A real mutex rather than `omp critical`, which excludes only threads in
+     * the same OpenMP contention group and is compiled out entirely in a build
+     * without OpenMP -- these are const queries, so any host thread can be the
+     * one that fills the cache.
+     */
+    std::mutex ebcellflag_typemap_mutex;
+}
 
 EBCellFlagFab::EBCellFlagFab (Arena* ar) noexcept
     : BaseFab<EBCellFlag>(ar)
@@ -104,27 +118,24 @@ EBCellFlagFab::getType (const Box& bx_in) const noexcept
     else
     {
         const Box& bx = amrex::enclosedCells(bx_in);
-        std::map<Box,NumCells>::iterator it;
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
-        it = m_typemap.find(bx);
-        if (it != m_typemap.end())
         {
-            return it->second.type;
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
+            auto it = m_typemap.find(bx);
+            if (it != m_typemap.end())
+            {
+                return it->second.type;
+            }
         }
-        else
-        {
-            auto const& flag = this->const_array();
-            auto const& t = countCells(flag, bx);
 
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
+        auto const& flag = this->const_array();
+        auto const& t = countCells(flag, bx);
+
+        {
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
             m_typemap.insert({bx,t});
-
-            return t.type;
         }
+
+        return t.type;
     }
 }
 
@@ -160,27 +171,24 @@ EBCellFlagFab::getNumRegularCells (const Box& bx_in) const noexcept
     }
     else
     {
-        std::map<Box,NumCells>::iterator it;
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
-        it = m_typemap.find(bx);
-        if (it != m_typemap.end())
         {
-            return it->second.nregular;
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
+            auto it = m_typemap.find(bx);
+            if (it != m_typemap.end())
+            {
+                return it->second.nregular;
+            }
         }
-        else
-        {
-            auto const& flag = this->const_array();
-            auto const& t = countCells(flag, bx);
 
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
+        auto const& flag = this->const_array();
+        auto const& t = countCells(flag, bx);
+
+        {
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
             m_typemap.insert({bx,t});
-
-            return t.nregular;
         }
+
+        return t.nregular;
     }
 }
 
@@ -198,27 +206,24 @@ EBCellFlagFab::getNumCutCells (const Box& bx_in) const noexcept
     }
     else
     {
-        std::map<Box,NumCells>::iterator it;
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
-        it = m_typemap.find(bx);
-        if (it != m_typemap.end())
         {
-            return it->second.nsingle;
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
+            auto it = m_typemap.find(bx);
+            if (it != m_typemap.end())
+            {
+                return it->second.nsingle;
+            }
         }
-        else
-        {
-            auto const& flag = this->const_array();
-            auto const& t = countCells(flag, bx);
 
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
+        auto const& flag = this->const_array();
+        auto const& t = countCells(flag, bx);
+
+        {
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
             m_typemap.insert({bx,t});
-
-            return t.nsingle;
         }
+
+        return t.nsingle;
     }
 }
 
@@ -239,27 +244,24 @@ EBCellFlagFab::getNumCoveredCells (const Box& bx_in) const noexcept
     }
     else
     {
-        std::map<Box,NumCells>::iterator it;
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
-        it = m_typemap.find(bx);
-        if (it != m_typemap.end())
         {
-            return it->second.ncovered;
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
+            auto it = m_typemap.find(bx);
+            if (it != m_typemap.end())
+            {
+                return it->second.ncovered;
+            }
         }
-        else
-        {
-            auto const& flag = this->const_array();
-            auto const& t = countCells(flag, bx);
 
-#ifdef AMREX_USE_OMP
-#pragma omp critical (amrex_ebcellflagfab_gettype)
-#endif
+        auto const& flag = this->const_array();
+        auto const& t = countCells(flag, bx);
+
+        {
+            std::scoped_lock lock(ebcellflag_typemap_mutex);
             m_typemap.insert({bx,t});
-
-            return t.ncovered;
         }
+
+        return t.ncovered;
     }
 }
 

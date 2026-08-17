@@ -198,6 +198,8 @@ public:
 
     static int allowMultipleMFIters (int allow);
 
+    //! How deeply MFIters are nested on the *calling* thread. Other threads
+    //! iterating their own MFIters do not contribute to this count.
     static int currentDepth ();
 
     void Finalize ();
@@ -241,7 +243,15 @@ protected:
     const Vector<int>* num_local_tiles;
 
     static AMREX_EXPORT int nextDynamicIndex;
-    static AMREX_EXPORT int depth;
+    /**
+     * Nesting depth of the MFIters currently alive on the calling thread.
+     *
+     * Thread-local, because what it guards against is *nesting* -- one thread
+     * of control starting a second MFIter before finishing the first -- which
+     * is a per-thread property. Two independent host threads, each iterating
+     * its own MFIter, are fine and each see a depth of one.
+     */
+    static AMREX_EXPORT thread_local int depth;
     static AMREX_EXPORT int allow_multiple_mfiters;
 
     void Initialize ();

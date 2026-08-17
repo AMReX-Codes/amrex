@@ -60,6 +60,7 @@
 #endif
 
 #include <iterator>
+#include <mutex>
 
 #ifdef AMREX_USE_OMP
 #include <AMReX_OpenMP.H>
@@ -325,17 +326,29 @@ namespace
 {
     std::stack<std::function<void()>> The_Finalize_Function_Stack;
     std::stack<std::function<void()>> The_Initialize_Function_Stack;
+
+    /**
+     * Guards the two callback stacks above and the AMReX instance stack.
+     *
+     * amrex::Initialize() and Finalize() are meant to be called from one
+     * thread, but ExecOnFinalize() is reached from lazy initialisation deep
+     * inside otherwise thread-safe code, so the stacks themselves have to
+     * tolerate concurrent pushes.
+     */
+    std::mutex amrex_instance_mutex;
 }
 
 void
 amrex::ExecOnFinalize (std::function<void()> f)
 {
+    std::scoped_lock lock(amrex_instance_mutex);
     The_Finalize_Function_Stack.push(std::move(f));
 }
 
 void
 amrex::ExecOnInitialize (std::function<void()> f)
 {
+    std::scoped_lock lock(amrex_instance_mutex);
     The_Initialize_Function_Stack.push(std::move(f));
 }
 
@@ -438,16 +451,18 @@ amrex::Initialize (int& argc, char**& argv, bool build_parm_parse,
     upcxx::init();
 #endif
 
-    while ( ! The_Initialize_Function_Stack.empty())
+    while (true)
     {
-        //
-        // Call the registered function.
-        //
-        The_Initialize_Function_Stack.top()();
-        //
-        // And then remove it from the stack.
-        //
-        The_Initialize_Function_Stack.pop();
+        // Pop under the lock, then run the callback without it: a callback is
+        // free to register another one, and would otherwise deadlock.
+        std::function<void()> f;
+        {
+            std::scoped_lock lock(amrex_instance_mutex);
+            if (The_Initialize_Function_Stack.empty()) { break; }
+            f = std::move(The_Initialize_Function_Stack.top());
+            The_Initialize_Function_Stack.pop();
+        }
+        f();
     }
 
     BL_PROFILE_INITIALIZE();
@@ -851,16 +866,18 @@ amrex::Finalize (amrex::AMReX* pamrex)
     Lazy::Finalize();
 #endif
 
-    while (!The_Finalize_Function_Stack.empty())
+    while (true)
     {
-        //
-        // Call the registered function.
-        //
-        The_Finalize_Function_Stack.top()();
-        //
-        // And then remove it from the stack.
-        //
-        The_Finalize_Function_Stack.pop();
+        // Pop under the lock, then run the callback without it: a callback is
+        // free to register another one, and would otherwise deadlock.
+        std::function<void()> f;
+        {
+            std::scoped_lock lock(amrex_instance_mutex);
+            if (The_Finalize_Function_Stack.empty()) { break; }
+            f = std::move(The_Finalize_Function_Stack.top());
+            The_Finalize_Function_Stack.pop();
+        }
+        f();
     }
 
     // The MemPool stuff is not using The_Finalize_Function_Stack so that
@@ -1010,6 +1027,7 @@ AMReX::~AMReX ()
 void
 AMReX::push (AMReX* pamrex)
 {
+    std::scoped_lock lock(amrex_instance_mutex);
     auto r = std::find_if(m_instance.begin(), m_instance.end(),
                           [=] (const std::unique_ptr<AMReX>& x) -> bool
                           { return x.get() == pamrex; });
@@ -1023,12 +1041,14 @@ AMReX::push (AMReX* pamrex)
 void
 AMReX::push (std::unique_ptr<AMReX> pamrex)
 {
+    std::scoped_lock lock(amrex_instance_mutex);
     m_instance.push_back(std::move(pamrex));
 }
 
 void
 AMReX::erase (AMReX* pamrex)
 {
+    std::scoped_lock lock(amrex_instance_mutex);
     auto r = std::find_if(m_instance.begin(), m_instance.end(),
                           [=] (const std::unique_ptr<AMReX>& x) -> bool
                           { return x.get() == pamrex; });

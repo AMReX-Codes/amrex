@@ -23,9 +23,29 @@
 #endif
 
 #include <algorithm>
+#include <atomic>
+#include <mutex>
 #include <utility>
 
 namespace amrex {
+
+namespace {
+    /**
+     * Guards every process-global FabArrayBase cache: the tile arrays, the
+     * FillBoundary/ParallelCopy/rotate/FillPatch/CrseFine/ParFor plans, their
+     * statistics, and the BoxArray-DistributionMapping reference counts that
+     * decide when those caches are flushed.
+     *
+     * The `omp critical` that used to guard the tile-array cache only excluded
+     * threads inside the same OpenMP contention group, and vanished entirely
+     * in a build without OpenMP -- so host threads that AMReX did not create
+     * (Python threads on a free-threaded interpreter, say) had no protection
+     * at all. A real mutex covers both.
+     *
+     * Recursive because clearThisBD() calls the flushers while holding it.
+     */
+    std::recursive_mutex fabarray_cache_mutex;
+}
 
 int FabArrayBase::MaxComp = 25;
 
@@ -88,7 +108,8 @@ bool                               FabArrayBase::m_alloc_single_chunk = false;
 namespace
 {
     bool initialized = false;
-    std::uint64_t comm_meta_data_id = 0;
+    //! Handed out to every CommMetaData, from any host thread.
+    std::atomic<std::uint64_t> comm_meta_data_id{0};
 }
 
 void
@@ -512,6 +533,7 @@ FabArrayBase::CPC::CPC (const BoxArray& ba, const IntVect& ng,
 void
 FabArrayBase::flushCPC (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
@@ -555,6 +577,7 @@ FabArrayBase::flushCPC (bool no_assertion) const
 void
 FabArrayBase::flushCPCache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     std::vector<CPC*> cpcs;
     for (auto const& it : m_TheCPCache)
     {
@@ -577,6 +600,7 @@ FabArrayBase::getCPC (const IntVect& dstng, const FabArrayBase& src, const IntVe
                       const Periodicity& period, bool to_ghost_cells_only,
                       const IntVect& offset) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::getCPC()");
 
     BL_ASSERT(getBDKey() == m_bdkey);
@@ -1266,6 +1290,7 @@ FabArrayBase::FB::define_sb (const FabArrayBase& fa)
 void
 FabArrayBase::flushFB (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     std::pair<FBCacheIter,FBCacheIter> er_it = m_TheFBCache.equal_range(m_bdkey);
@@ -1283,6 +1308,7 @@ FabArrayBase::flushFB (bool no_assertion) const
 void
 FabArrayBase::flushFBCache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     for (auto const& it : m_TheFBCache)
     {
         m_FBC_stats.recordErase(it.second->m_nuse);
@@ -1299,6 +1325,7 @@ FabArrayBase::getFB (const IntVect& nghost, const Periodicity& period,
                      bool cross, bool enforce_periodicity_only,
                      bool override_sync, IntVect const& sumboundary_src_nghost) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::getFB()");
 
     BL_ASSERT(getBDKey() == m_bdkey);
@@ -1486,6 +1513,7 @@ FabArrayBase::RB90::define (const FabArrayBase& fa)
 void
 FabArrayBase::flushRB90 (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     AMREX_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_TheRB90Cache.equal_range(m_bdkey);
@@ -1498,6 +1526,7 @@ FabArrayBase::flushRB90 (bool no_assertion) const
 void
 FabArrayBase::flushRB90Cache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     for (auto const& it : m_TheRB90Cache) {
         delete it.second;
     }
@@ -1507,6 +1536,7 @@ FabArrayBase::flushRB90Cache ()
 const FabArrayBase::RB90&
 FabArrayBase::getRB90 (const IntVect& nghost, const Box& domain) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::getRB90()");
 
     AMREX_ASSERT(getBDKey() == m_bdkey);
@@ -1650,6 +1680,7 @@ FabArrayBase::RB180::define (const FabArrayBase& fa)
 void
 FabArrayBase::flushRB180 (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     AMREX_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_TheRB180Cache.equal_range(m_bdkey);
@@ -1662,6 +1693,7 @@ FabArrayBase::flushRB180 (bool no_assertion) const
 void
 FabArrayBase::flushRB180Cache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     for (auto const& it : m_TheRB180Cache) {
         delete it.second;
     }
@@ -1671,6 +1703,7 @@ FabArrayBase::flushRB180Cache ()
 const FabArrayBase::RB180&
 FabArrayBase::getRB180 (const IntVect& nghost, const Box& domain) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::getRB180()");
 
     AMREX_ASSERT(getBDKey() == m_bdkey);
@@ -1836,6 +1869,7 @@ FabArrayBase::PolarB::define (const FabArrayBase& fa)
 void
 FabArrayBase::flushPolarB (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     AMREX_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_ThePolarBCache.equal_range(m_bdkey);
@@ -1848,6 +1882,7 @@ FabArrayBase::flushPolarB (bool no_assertion) const
 void
 FabArrayBase::flushPolarBCache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     for (auto const& it : m_ThePolarBCache) {
         delete it.second;
     }
@@ -1857,6 +1892,7 @@ FabArrayBase::flushPolarBCache ()
 const FabArrayBase::PolarB&
 FabArrayBase::getPolarB (const IntVect& nghost, const Box& domain) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::getPolarB()");
 
     AMREX_ASSERT(getBDKey() == m_bdkey);
@@ -2071,6 +2107,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
                          const Geometry&     cgeom,
                          const EB2::IndexSpace* index_space)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::TheFPinfo()");
 
     Box dstdomain = fgeom.Domain();
@@ -2125,6 +2162,7 @@ FabArrayBase::TheFPinfo (const FabArrayBase& srcfa,
 void
 FabArrayBase::flushFPinfo (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
@@ -2245,6 +2283,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
                          bool                include_periodic,
                          bool                include_physbndry)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_PROFILE("FabArrayBase::TheCFinfo()");
 
     const BDKey& key = finefa.getBDKey();
@@ -2283,6 +2322,7 @@ FabArrayBase::TheCFinfo (const FabArrayBase& finefa,
 void
 FabArrayBase::flushCFinfo (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_TheCrseFineCache.equal_range(m_bdkey);
@@ -2300,6 +2340,7 @@ FabArrayBase::flushCFinfo (bool no_assertion) const
 void
 FabArrayBase::Finalize ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     FabArrayBase::flushFBCache();
     FabArrayBase::flushCPCache();
     FabArrayBase::flushRB90Cache();
@@ -2333,7 +2374,7 @@ FabArrayBase::Finalize ()
 
     m_BD_count.clear();
 
-    m_FA_stats = FabArrayStats();
+    m_FA_stats.reset();
 
     initialized = false;
 }
@@ -2343,10 +2384,9 @@ FabArrayBase::getTileArray (const IntVect& tilesize) const
 {
     TileArray* p;
 
-#ifdef AMREX_USE_OMP
-#pragma omp critical(gettilearray)
-#endif
     {
+        std::scoped_lock lock(fabarray_cache_mutex);
+
         BL_ASSERT(getBDKey() == m_bdkey);
 
         const IntVect& crse_ratio = boxArray().crseRatio();
@@ -2468,6 +2508,7 @@ FabArrayBase::buildTileArray (const IntVect& tileSize, TileArray& ta) const
 void
 FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     BL_ASSERT(no_assertion || getBDKey() == m_bdkey);
 
@@ -2505,6 +2546,7 @@ FabArrayBase::flushTileArray (const IntVect& tileSize, bool no_assertion) const
 void
 FabArrayBase::flushTileArrayCache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     for (auto const& tao_it : m_TheTileArrayCache) {
         for (auto const& tai_it : tao_it.second) {
             m_TAC_stats.recordErase(tai_it.second.nuse);
@@ -2519,6 +2561,7 @@ FabArrayBase::flushTileArrayCache ()
 void
 FabArrayBase::clearThisBD (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     BL_ASSERT(boxarray.empty() || no_assertion || getBDKey() == m_bdkey);
 
     auto cnt_it = m_BD_count.find(m_bdkey);
@@ -2549,6 +2592,7 @@ FabArrayBase::clearThisBD (bool no_assertion) const
 void
 FabArrayBase::addThisBD ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     m_bdkey = getBDKey();
     int cnt = ++(m_BD_count[m_bdkey]);
     if (cnt == 1) { // new one
@@ -2561,6 +2605,7 @@ FabArrayBase::addThisBD ()
 void
 FabArrayBase::updateBDKey ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     if (getBDKey() != m_bdkey) {
         clearThisBD(true);
         addThisBD();
@@ -2626,6 +2671,7 @@ operator<< (std::ostream& os, const FabArrayBase::BDKey& id)
 void
 FabArrayBase::updateMemUsage (std::string const& tag, Long nbytes, Arena const* /*ar*/)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     auto& mi = m_mem_usage[tag];
     mi.nbytes += nbytes;
     mi.nbytes_hwm = std::max(mi.nbytes, mi.nbytes_hwm);
@@ -2634,6 +2680,7 @@ FabArrayBase::updateMemUsage (std::string const& tag, Long nbytes, Arena const* 
 void
 FabArrayBase::printMemUsage ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     if (ParallelContext::IOProcessorSub())
     {
         std::cout << "MultiFab Tag, current usage and hwm in bytes\n";
@@ -2646,6 +2693,7 @@ FabArrayBase::printMemUsage ()
 Long
 FabArrayBase::queryMemUsage (const std::string& t)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     auto r = m_mem_usage.find(t);
     if (r != m_mem_usage.end()) {
         return r->second.nbytes;
@@ -2657,6 +2705,7 @@ FabArrayBase::queryMemUsage (const std::string& t)
 Long
 FabArrayBase::queryMemUsageHWM (const std::string& t)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     auto r = m_mem_usage.find(t);
     if (r != m_mem_usage.end()) {
         return r->second.nbytes_hwm;
@@ -2668,18 +2717,21 @@ FabArrayBase::queryMemUsageHWM (const std::string& t)
 void
 FabArrayBase::pushRegionTag (const char* t)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     m_region_tag.emplace_back(t);
 }
 
 void
 FabArrayBase::pushRegionTag (std::string t)
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     m_region_tag.emplace_back(std::move(t));
 }
 
 void
 FabArrayBase::popRegionTag ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     m_region_tag.pop_back();
 }
 
@@ -2754,6 +2806,7 @@ FabArrayBase::ParForInfo::~ParForInfo ()
 FabArrayBase::ParForInfo const&
 FabArrayBase::getParForInfo (const IntVect& nghost) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     AMREX_ASSERT(getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
     for (auto it = er_it.first; it != er_it.second; ++it) {
@@ -2773,6 +2826,7 @@ FabArrayBase::getParForInfo (const IntVect& nghost) const
 void
 FabArrayBase::flushParForInfo (bool no_assertion) const
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     amrex::ignore_unused(no_assertion);
     AMREX_ASSERT(no_assertion || getBDKey() == m_bdkey);
     auto er_it = m_TheParForCache.equal_range(m_bdkey);
@@ -2785,6 +2839,7 @@ FabArrayBase::flushParForInfo (bool no_assertion) const
 void
 FabArrayBase::flushParForCache ()
 {
+    std::scoped_lock lock(fabarray_cache_mutex);
     for (auto it = m_TheParForCache.begin(); it != m_TheParForCache.end(); ++it) {
         delete it->second;
     }
@@ -2796,7 +2851,7 @@ FabArrayBase::flushParForCache ()
 std::uint64_t
 FabArrayBase::getNextCommMetaDataId ()
 {
-    return comm_meta_data_id++;
+    return comm_meta_data_id.fetch_add(1, std::memory_order_relaxed);
 }
 
 /// \cond DOXYGEN_IGNORE

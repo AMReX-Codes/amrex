@@ -7,7 +7,7 @@
 namespace amrex {
 
 int MFIter::nextDynamicIndex = std::numeric_limits<int>::min();
-int MFIter::depth = 0;
+thread_local int MFIter::depth = 0;
 int MFIter::allow_multiple_mfiters = 0;
 
 int
@@ -20,12 +20,7 @@ MFIter::allowMultipleMFIters (int allow)
 int
 MFIter::currentDepth ()
 {
-    int r;
-#ifdef AMREX_USE_OMP
-#pragma omp atomic read
-#endif
-    r = MFIter::depth;
-    return r;
+    return MFIter::depth;
 }
 
 MFIter::MFIter (const FabArrayBase& fabarray_,

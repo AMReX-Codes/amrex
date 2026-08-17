@@ -11,6 +11,7 @@
 #include <AMReX_RealVect.H>
 
 #include <array>
+#include <atomic>
 #include <numeric>
 #include <string>
 #include <type_traits>
@@ -333,22 +334,18 @@ private:
 };
 
 struct NextIDRTSoA {
-    inline static Long the_next_id = 1;
+    //! Atomic: particle ids are handed out from any host thread.
+    inline static std::atomic<Long> the_next_id{1};
 };
 
 template <class RType, class IType>
 Long
 RTSoAParticle<RType, IType>::NextID ()
 {
-    Long next;
-// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
-// but we must work around a bug in gcc < 4.9
-#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
-#pragma omp critical (amrex_particle_nextid)
-#elif defined(AMREX_USE_OMP)
-#pragma omp atomic capture
-#endif
-    next = NextIDRTSoA::the_next_id++;
+    // std::atomic rather than `omp atomic capture`: the latter is compiled
+    // out in a build without OpenMP, leaving a bare increment that any two
+    // host threads adding particles would race on.
+    Long const next = NextIDRTSoA::the_next_id.fetch_add(1, std::memory_order_relaxed);
 
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("RTSoAParticle<RType, IType>::NextID() -- too many particles");
@@ -361,7 +358,7 @@ template <class RType, class IType>
 Long
 RTSoAParticle<RType, IType>::UnprotectedNextID ()
 {
-    Long next = NextIDRTSoA::the_next_id++;
+    Long const next = NextIDRTSoA::the_next_id.fetch_add(1, std::memory_order_relaxed);
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("RTSoAParticle<RType, IType>::NextID() -- too many particles");
     }

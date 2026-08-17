@@ -2708,6 +2708,65 @@ assertion, one could call
     logical :: old_flag
     old_flag = amrex_mfiter_allow_multiple(.true.)
 
+.. _sec:basics:hostthreads:
+
+Host Thread Safety
+==================
+
+.. highlight:: c++
+
+Besides OpenMP, AMReX can also be driven from host threads it did not create
+itself -- most commonly Python threads on a free-threaded (`PEP 703
+<https://peps.python.org/pep-0703/>`__) interpreter through `pyAMReX
+<https://pyamrex.readthedocs.io>`__, but equally :cpp:`std::thread` in a C++
+application. Such a thread is not part of any OpenMP team, so
+:cpp:`amrex::OpenMP::get_thread_num()` reports ``0`` for it -- and in a build
+without OpenMP it reports ``0`` for every thread.
+
+AMReX's process-global state is safe under that:
+
+- The caches behind :cpp:`MFIter`, :cpp:`FillBoundary` and :cpp:`ParallelCopy`,
+  and the reference counts that decide when they are flushed, are mutex
+  protected.
+- The nesting counter behind the "Nested or multiple active MFIters" assertion
+  is per thread, so **each thread may drive its own MFIter**, including over the
+  same :cpp:`FabArray`. Consequently :cpp:`MFIter::currentDepth()` reports the
+  calling thread's nesting only.
+- The :cpp:`ParmParse` table is mutex protected, including on *query*, which
+  updates the entry's use count and type hint.
+- :cpp:`amrex::Random()` and friends give a thread AMReX did not create its own
+  generator, seeded from the same sequence as the OpenMP ones. Only the OpenMP
+  generators take part in :cpp:`SaveRandomState`/:cpp:`RestoreRandomState`.
+- Particle IDs (:cpp:`Particle::NextID()`) are handed out atomically.
+- The GPU stream index is per thread, so each host thread submits to a stream of
+  its own from :cpp:`Gpu::Device::gpuStream()`.
+- :cpp:`amrex::Tokenize()` uses per-thread scratch and returns a per-thread
+  result.
+
+What remains the caller's responsibility:
+
+- **Concurrent writes to the same data.** Two threads writing the same box, or
+  overlapping regions of one :cpp:`Array4`, is a data race, exactly as it would
+  be inside an OpenMP region.
+- :cpp:`amrex::Initialize()` and :cpp:`amrex::Finalize()`, and process-wide
+  policy such as :cpp:`SetVerbose()` or the error handler: one thread only.
+- :cpp:`amrex::InitRandom()` -- and therefore
+  :cpp:`ParticleContainer::InitRandom()`, which calls it -- *reseeds* the
+  global generators, and on a GPU build frees and reallocates the device RNG
+  state. Concurrent calls are serialised, but reseeding while another thread
+  draws numbers is still a logical race (a use-after-free on the device). Seed
+  before starting worker threads.
+- **MPI**, unless AMReX is built with ``AMReX_MPI_THREAD_MULTIPLE=ON``.
+  Otherwise AMReX calls :cpp:`MPI_Init` rather than :cpp:`MPI_Init_thread`, and
+  collectives must not be entered from two threads at once.
+- :cpp:`TinyProfiler`: its section stack is global and asserts on nesting.
+- :cpp:`Gpu::setExternalStream()`, and dynamic :cpp:`MFIter` scheduling
+  (:cpp:`MFItInfo::SetDynamic`), which shares one counter across an OpenMP team.
+
+Note that host threads and OpenMP are two thread pools over the same cores.
+Using both oversubscribes the node; pick one, or cap ``OMP_NUM_THREADS`` so that
+the product matches the core count.
+
 .. _sec:basics:fortran:
 
 Fortran and C++ Kernels

@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <functional>
 #include <iostream>
+#include <mutex>
 
 namespace amrex {
 
@@ -1565,10 +1566,15 @@ BoxArray::getHashMap () const
 
     if (m_ref->HasHashMap()) { return BoxHashMap; }
 
-#ifdef AMREX_USE_OMP
-#pragma omp critical(intersections_lock)
-#endif
     {
+        // A real mutex rather than `omp critical`: the hash map is built
+        // lazily from a const method, so any host thread can be the one to
+        // build it -- including threads AMReX did not create, which an
+        // OpenMP critical section does not exclude (and which a build without
+        // OpenMP would not exclude at all).
+        static std::mutex hashmap_mutex;
+        std::scoped_lock lock(hashmap_mutex);
+
         if (!m_ref->HasHashMap() && size() > 0)
         {
             //

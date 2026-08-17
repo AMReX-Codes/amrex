@@ -18,6 +18,7 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <mutex>
 #include <numeric>
 #include <string>
 #include <cstring>
@@ -1909,41 +1910,56 @@ DistributionMapping::makeSFC (const BoxArray& ba, bool use_box_vol, int nprocs)
     return r;
 }
 
-const Vector<int>&
-DistributionMapping::getIndexArray ()
-{
-    if (m_ref->m_index_array.empty())
+namespace {
+    /**
+     * Guards the lazy build of DMRef::m_index_array / m_ownership.
+     *
+     * Copies of a DistributionMapping share one DMRef, so every FabArray built
+     * from the same map reaches the same two vectors. Without this, two host
+     * threads constructing FabArrays concurrently both find them empty and both
+     * push_back into them.
+     */
+    std::mutex dm_index_array_mutex;
+
+    /**
+     * Fill m_index_array and m_ownership if they are not there yet.
+     *
+     * The emptiness test has to be inside the lock: testing it outside would
+     * let a second thread see the vector already non-empty while the first is
+     * still pushing into (and reallocating) it, and hand back a reference to
+     * a vector under construction. Once built, neither vector is modified
+     * again for the life of the DMRef, so the references the getters return
+     * stay valid after the lock is dropped.
+     */
+    void buildIndexArray (DMRef& ref)
     {
+        std::scoped_lock lock(dm_index_array_mutex);
+        if (!ref.m_index_array.empty()) { return; }
+
         int myProc = ParallelDescriptor::MyProc();
 
-        for(int i = 0, N = static_cast<int>(m_ref->m_pmap.size()); i < N; ++i) {
-            int rank = m_ref->m_pmap[i];
+        for(int i = 0, N = static_cast<int>(ref.m_pmap.size()); i < N; ++i) {
+            int rank = ref.m_pmap[i];
             if (ParallelDescriptor::sameTeam(rank)) {
                 // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
-                m_ref->m_index_array.push_back(i);
-                m_ref->m_ownership.push_back(myProc == rank);
+                ref.m_index_array.push_back(i);
+                ref.m_ownership.push_back(myProc == rank);
             }
         }
     }
+}
+
+const Vector<int>&
+DistributionMapping::getIndexArray ()
+{
+    buildIndexArray(*m_ref);
     return m_ref->m_index_array;
 }
 
 const std::vector<bool>&
 DistributionMapping::getOwnerShip ()
 {
-    if (m_ref->m_ownership.empty())
-    {
-        int myProc = ParallelDescriptor::MyProc();
-
-        for(int i = 0, N = static_cast<int>(m_ref->m_pmap.size()); i < N; ++i) {
-            int rank = m_ref->m_pmap[i];
-            if (ParallelDescriptor::sameTeam(rank)) {
-                // If Team is not used (i.e., team size == 1), distributionMap[i] == myProc
-                m_ref->m_index_array.push_back(i);
-                m_ref->m_ownership.push_back(myProc == rank);
-            }
-        }
-    }
+    buildIndexArray(*m_ref);
     return m_ref->m_ownership;
 }
 

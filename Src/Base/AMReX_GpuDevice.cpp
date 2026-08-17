@@ -100,7 +100,7 @@ dim3 Device::numBlocksOverride  = dim3(0, 0, 0);
 unsigned int Device::max_blocks_per_launch = 2560;
 
 Vector<StreamManager>   Device::gpu_stream_pool;
-Vector<int>             Device::gpu_stream_index;
+thread_local int        Device::gpu_stream_index = 0;
 gpuDeviceProp_t         Device::device_prop;
 int                     Device::memory_pools_supported = 0;
 #ifdef AMREX_USE_GPU
@@ -481,8 +481,6 @@ Device::Finalize ()
     }
 #endif
 
-    gpu_stream_index.clear();
-
 #ifdef AMREX_USE_ACC
     amrex_finalize_acc();
 #endif
@@ -644,7 +642,9 @@ Device::initialize_gpu (bool minimal)
     }
 #endif
 
-    gpu_stream_index.resize(OpenMP::get_max_threads(), 0);
+    // Every thread starts on stream 0; a thread that has since moved to
+    // another one gets a fresh index from its next MFIter.
+    gpu_stream_index = 0;
 
     ParmParse pp("device");
 
@@ -735,7 +735,7 @@ Device::setStreamIndex (int idx) noexcept
 {
     amrex::ignore_unused(idx);
 #ifdef AMREX_USE_GPU
-    gpu_stream_index[OpenMP::get_thread_num()] = idx % max_gpu_streams;
+    gpu_stream_index = idx % max_gpu_streams;
 #ifdef AMREX_USE_ACC
     amrex_set_acc_stream(idx % max_gpu_streams);
 #endif
@@ -747,14 +747,13 @@ gpuStream_t
 Device::resetStream () noexcept
 {
     gpuStream_t r = gpuStream();
-    gpu_stream_index[OpenMP::get_thread_num()] = 0;
+    gpu_stream_index = 0;
     return r;
 }
 
 gpuStream_t
 Device::setStream (gpuStream_t s) noexcept
 {
-    int const tid = OpenMP::get_thread_num();
     gpuStream_t r = gpuStream();
     for (auto it = external_stream_stack.rbegin(); it != external_stream_stack.rend(); ++it) {
         AMREX_ASSERT(it->manager != nullptr);
@@ -767,7 +766,7 @@ Device::setStream (gpuStream_t s) noexcept
     if (idx == std::ssize(gpu_stream_pool)) {
         amrex::Abort("Gpu::Device::setStream: stream is not managed by AMReX.");
     }
-    gpu_stream_index[tid] = idx;
+    gpu_stream_index = idx;
     return r;
 }
 
@@ -811,7 +810,7 @@ Device::setExternalStream (gpuStream_t s)
     // these regions.
     external_stream_stack.emplace_back(
         ExternalStream{std::make_unique<StreamManager>(),
-                       gpu_stream_index[OpenMP::get_thread_num()]});
+                       gpu_stream_index});
     external_stream_stack.back().manager->getStream() = s;
 }
 
@@ -865,8 +864,7 @@ Device::streamSynchronize () noexcept
         AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
         external_stream_stack.back().manager->sync();
     } else {
-        int tid = OpenMP::get_thread_num();
-        gpu_stream_pool[gpu_stream_index[tid]].sync();
+        gpu_stream_pool[gpu_stream_index].sync();
     }
 #endif
 }
@@ -945,8 +943,7 @@ Device::freeAsync (Arena* arena, void* mem) noexcept
         AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
         external_stream_stack.back().manager->free_async(arena, mem);
     } else {
-        int tid = OpenMP::get_thread_num();
-        gpu_stream_pool[gpu_stream_index[tid]].free_async(arena, mem);
+        gpu_stream_pool[gpu_stream_index].free_async(arena, mem);
     }
 #else
     arena->free(mem);

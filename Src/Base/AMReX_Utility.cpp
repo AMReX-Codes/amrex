@@ -28,11 +28,14 @@
 #include <thread>
 
 namespace {
-    bool tokenize_initialized = false;
-    char* line = nullptr;
-    void CleanupTokenizeStatics ()
+    //! Reentrant strtok: POSIX spells it strtok_r, MSVC spells it strtok_s.
+    inline char* amrex_strtok_r (char* str, const char* delim, char** saveptr)
     {
-        delete [] line;
+#ifdef _MSC_VER
+        return strtok_s(str, delim, saveptr);
+#else
+        return strtok_r(str, delim, saveptr);
+#endif
     }
 }
 
@@ -40,34 +43,32 @@ const std::vector<std::string>&
 amrex::Tokenize (const std::string& instr,
                   const std::string& separators)
 {
-    if (!tokenize_initialized) {
-        amrex::ExecOnFinalize(CleanupTokenizeStatics);
-        tokenize_initialized = true;
-    }
-
-    static std::vector<char*>       ptr;
-    static std::vector<std::string> tokens;
-    static int                      linelen = 0;
+    // All of the scratch below is per-thread, and so is the vector whose
+    // reference we hand back: two host threads tokenizing at the same time
+    // would otherwise scribble over each other's tokens, and over the result
+    // the first caller is still holding. Freed when the thread exits, so
+    // there is nothing to clean up at amrex::Finalize().
+    static thread_local std::vector<char>        line;
+    static thread_local std::vector<char*>       ptr;
+    static thread_local std::vector<std::string> tokens;
     //
     // Make copy of line that we can modify.
     //
     const int len = static_cast<int>(instr.size()) + 1;
 
-    if (len > linelen)
-    {
-        delete [] line;
-        line = new char[len];
-        linelen = len;
-    }
+    if (len > static_cast<int>(line.size())) { line.resize(len); }
 
-    (void) std::strncpy(line, instr.c_str(), len);
+    (void) std::strncpy(line.data(), instr.c_str(), len);
 
     char* token = nullptr;
+    char* saveptr = nullptr;
 
-    if (!((token = std::strtok(line, separators.c_str())) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
+    // strtok_r rather than strtok: strtok's parsing state is a single static,
+    // which two threads tokenizing concurrently would share.
+    if (!((token = amrex_strtok_r(line.data(), separators.c_str(), &saveptr)) == nullptr)) // NOLINT(bugprone-assignment-in-if-condition)
     {
         ptr.push_back(token);
-        while (!((token = std::strtok(nullptr, separators.c_str())) == nullptr)) { // NOLINT(bugprone-assignment-in-if-condition)
+        while (!((token = amrex_strtok_r(nullptr, separators.c_str(), &saveptr)) == nullptr)) { // NOLINT(bugprone-assignment-in-if-condition)
             ptr.push_back(token);
         }
     }

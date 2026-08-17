@@ -9,6 +9,7 @@
 #include <AMReX_REAL.H>
 #include <AMReX_RealVect.H>
 
+#include <atomic>
 #include <type_traits>
 
 
@@ -418,7 +419,8 @@ struct alignas(sizeof(double)) Particle
     using RealType = ParticleReal;
     using IntType = int;
 
-    static Long the_next_id;
+    //! Atomic: particle ids are handed out from any host thread.
+    static std::atomic<Long> the_next_id;
 
     [[nodiscard]] AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
     ParticleCPUWrapper cpu () & { return ParticleCPUWrapper(this->m_idcpu); }
@@ -588,21 +590,16 @@ struct alignas(sizeof(double)) Particle
     static void NextID (Long nextid);
 };
 
-template <int NReal, int NInt> Long Particle<NReal, NInt>::the_next_id = 1;
+template <int NReal, int NInt> std::atomic<Long> Particle<NReal, NInt>::the_next_id{1};
 
 template <int NReal, int NInt>
 Long
 Particle<NReal, NInt>::NextID ()
 {
-    Long next;
-// we should be able to test on _OPENMP < 201107 for capture (version 3.1)
-// but we must work around a bug in gcc < 4.9
-#if defined(AMREX_USE_OMP) && defined(_OPENMP) && _OPENMP < 201307
-#pragma omp critical (amrex_particle_nextid)
-#elif defined(AMREX_USE_OMP)
-#pragma omp atomic capture
-#endif
-    next = the_next_id++;
+    // std::atomic rather than `omp atomic capture`: the latter is compiled
+    // out in a build without OpenMP, leaving a bare increment that any two
+    // host threads adding particles would race on.
+    Long const next = the_next_id.fetch_add(1, std::memory_order_relaxed);
 
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
@@ -615,7 +612,7 @@ template <int NReal, int NInt>
 Long
 Particle<NReal, NInt>::UnprotectedNextID ()
 {
-    Long next = the_next_id++;
+    Long const next = the_next_id.fetch_add(1, std::memory_order_relaxed);
     if (next > LongParticleIds::LastParticleID) {
         amrex::Abort("Particle<NReal, NInt>::NextID() -- too many particles");
     }

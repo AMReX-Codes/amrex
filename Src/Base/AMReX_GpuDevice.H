@@ -88,8 +88,7 @@ public:
             AMREX_ASSERT(external_stream_stack.back().manager != nullptr);
             return external_stream_stack.back().manager->getStream();
         } else {
-            int tid = OpenMP::get_thread_num();
-            return gpu_stream_pool[gpu_stream_index[tid]].getStream();
+            return gpu_stream_pool[gpu_stream_index].getStream();
         }
     }
 #ifdef AMREX_USE_CUDA
@@ -260,9 +259,17 @@ private:
     static AMREX_EXPORT dim3 numBlocksOverride, numThreadsOverride;
 
     static AMREX_EXPORT Vector<StreamManager> gpu_stream_pool; // The size of this is max_gpu_stream
-    // The non-owning gpu_stream_index is used to store the current stream index that will be used.
-    // gpu_stream_index is a vector so that it's thread safe to write to it.
-    static AMREX_EXPORT Vector<int> gpu_stream_index; // The size of this is omp_max_threads
+    /**
+     * Index into gpu_stream_pool of the stream the calling thread submits to.
+     *
+     * Thread-local. It used to be a vector indexed by OpenMP::get_thread_num(),
+     * which is a compile-time 0 in a build without OpenMP -- so every host
+     * thread shared one slot and could silently launch onto another thread's
+     * stream. With this, a thread AMReX did not create (a Python thread on a
+     * free-threaded interpreter, say) gets its own stream just like an OpenMP
+     * thread does.
+     */
+    static AMREX_EXPORT thread_local int gpu_stream_index;
     static AMREX_EXPORT gpuDeviceProp_t device_prop;
     static AMREX_EXPORT int memory_pools_supported;
     static AMREX_EXPORT unsigned int max_blocks_per_launch;

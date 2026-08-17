@@ -72,12 +72,22 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         m_soa_idata_names.push_back(getDefaultCompNameInt<ParticleType>(i));
     }
 
-    static bool initialized = false;
-    if ( ! initialized)
-    {
-        static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
-                      "sizeof ParticleType is not a multiple of sizeof RealType");
+    static_assert(sizeof(ParticleType)%sizeof(RealType) == 0,
+                  "sizeof ParticleType is not a multiple of sizeof RealType");
+    static_assert(std::is_standard_layout_v<ParticleType>,
+                  "Particle type must be standard layout");
+    //                   && std::is_trivial<ParticleType>::value,
+    //                      "Particle type must be standard layout and trivial.");
 
+    // Read the settings once. A function-local static gives us thread-safe
+    // initialisation, which a `static bool initialized` flag does not -- two
+    // host threads building containers at the same time would both run the
+    // body and both write the class statics below.
+    //
+    // `this` is captured because usePrePost/doUnlink are per-container
+    // members: as before, only the container that gets here first reads them
+    // from the inputs.
+    static const bool read_settings_once = [this] {
         ParmParse pp("particles");
         pp.queryAdd("do_tiling", do_tiling);
         Vector<int> tilesize(AMREX_SPACEDIM);
@@ -85,18 +95,13 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             for (int i=0; i<AMREX_SPACEDIM; ++i) { tile_size[i] = tilesize[i]; }
         }
 
-        static_assert(std::is_standard_layout_v<ParticleType>,
-                      "Particle type must be standard layout");
-        //                   && std::is_trivial<ParticleType>::value,
-        //                      "Particle type must be standard layout and trivial.");
-
         pp.query("use_prepost", usePrePost);
         pp.query("do_unlink", doUnlink);
         pp.queryAdd("do_mem_efficient_sort", memEfficientSort);
         pp.queryAdd("use_comms_arena", use_comms_arena);
-
-        initialized = true;
-    }
+        return true;
+    }();
+    amrex::ignore_unused(read_settings_once);
 }
 
 template<

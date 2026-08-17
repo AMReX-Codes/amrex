@@ -21,7 +21,7 @@ namespace {
     const char *TheFabOnDiskPrefix = "FabOnDisk:";
 }
 
-std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
+thread_local std::map<std::string, VisMF::PersistentIFStream> VisMF::persistentIFStreams;
 
 int VisMF::verbose(0);
 VisMF::Header::Version VisMF::currentVersion(VisMF::Header::Version_v1);

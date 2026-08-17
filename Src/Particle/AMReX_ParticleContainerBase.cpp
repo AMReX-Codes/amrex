@@ -24,17 +24,16 @@ struct RedistributeMaskParameters
 RedistributeMaskParameters const&
 RedistributeMaskParams ()
 {
-    static RedistributeMaskParameters params;
-    static bool initialized = false;
-
-    if (! initialized)
-    {
+    // Function-local static: the C++ runtime makes the initialisation
+    // thread-safe, which a `static bool initialized` flag does not.
+    static RedistributeMaskParameters const params = [] {
+        RedistributeMaskParameters p;
         ParmParse pp("particles");
-        pp.query("redistribute_use_mask", params.use_mask);
-        pp.query("redistribute_mask_max_ratio", params.max_ratio);
-        pp.query("redistribute_mask_max_bytes", params.max_bytes);
-        initialized = true;
-    }
+        pp.query("redistribute_use_mask", p.use_mask);
+        pp.query("redistribute_mask_max_ratio", p.max_ratio);
+        pp.query("redistribute_mask_max_bytes", p.max_bytes);
+        return p;
+    }();
 
     return params;
 }
@@ -273,22 +272,18 @@ const std::string& ParticleContainerBase::DataPrefix ()
 
 int ParticleContainerBase::MaxReaders ()
 {
-    const int Max_Readers_def = 64;
-    static int Max_Readers;
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
+    static int const Max_Readers = [] {
+        const int Max_Readers_def = 64;
+        int n = Max_Readers_def;
         ParmParse pp("particles");
-        Max_Readers = Max_Readers_def;
-        pp.query("nreaders", Max_Readers);
-        Max_Readers = std::min(ParallelDescriptor::NProcs(),Max_Readers);
-        if (Max_Readers <= 0)
+        pp.query("nreaders", n);
+        n = std::min(ParallelDescriptor::NProcs(), n);
+        if (n <= 0)
         {
             amrex::Abort("particles.nreaders must be positive");
         }
-    }
+        return n;
+    }();
 
     return Max_Readers;
 }
@@ -299,61 +294,49 @@ Long ParticleContainerBase::MaxParticlesPerRead ()
     // This is the maximum particles that "each" reader will attempt to read
     // before doing a Redistribute().
     //
-    const Long Max_Particles_Per_Read_def = 100000;
-    static Long Max_Particles_Per_Read;
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
+    static Long const Max_Particles_Per_Read = [] {
+        const Long Max_Particles_Per_Read_def = 100000;
+        Long n = Max_Particles_Per_Read_def;
         ParmParse pp("particles");
-        Max_Particles_Per_Read = Max_Particles_Per_Read_def;
-        pp.query("nparts_per_read", Max_Particles_Per_Read);
-        if (Max_Particles_Per_Read <= 0)
+        pp.query("nparts_per_read", n);
+        if (n <= 0)
         {
             amrex::Abort("particles.nparts_per_read must be positive");
         }
-    }
+        return n;
+    }();
 
     return Max_Particles_Per_Read;
 }
 
 const std::string& ParticleContainerBase::AggregationType ()
 {
-    static std::string aggregation_type;
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
-        aggregation_type = "None";
+    static std::string const aggregation_type = [] {
+        std::string t = "None";
         ParmParse pp("particles");
-        pp.query("aggregation_type", aggregation_type);
-        if (!(aggregation_type == "None" || aggregation_type == "Cell"))
+        pp.query("aggregation_type", t);
+        if (!(t == "None" || t == "Cell"))
         {
             amrex::Abort("particles.aggregation_type not implemented.");
         }
-    }
+        return t;
+    }();
 
     return aggregation_type;
 }
 
 int ParticleContainerBase::AggregationBuffer ()
 {
-    static int aggregation_buffer;
-    static bool first = true;
-
-    if (first)
-    {
-        first = false;
-        aggregation_buffer = 2;
+    static int const aggregation_buffer = [] {
+        int n = 2;
         ParmParse pp("particles");
-        pp.query("aggregation_buffer", aggregation_buffer);
-        if (aggregation_buffer <= 0)
+        pp.query("aggregation_buffer", n);
+        if (n <= 0)
         {
             amrex::Abort("particles.aggregation_buffer must be positive");
         }
-    }
+        return n;
+    }();
 
     return aggregation_buffer;
 }
