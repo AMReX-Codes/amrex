@@ -1178,6 +1178,37 @@ Particles
    container when writing checkpoint and plot files for particles. The
    special value of ``-1`` indicates one file per process.
 
+.. py:data:: particles.redistribute_use_mask
+   :type: bool
+   :value: true
+
+   .. versionadded:: 26.08
+      Runtime parameter ``particles.redistribute_use_mask``.
+
+   On CPU builds, this controls whether local ``Redistribute()`` may use a
+   level-0 mask for particle-to-grid lookup when the call is otherwise eligible.
+
+.. py:data:: particles.redistribute_mask_max_ratio
+   :type: double
+   :value: 8.0
+
+   .. versionadded:: 26.08
+      Runtime parameter ``particles.redistribute_mask_max_ratio``.
+
+   This is the maximum ratio of grown mask cells to valid cells for using the
+   CPU local ``Redistribute()`` lookup mask. Non-positive values disable this
+   ratio limit.
+
+.. py:data:: particles.redistribute_mask_max_bytes
+   :type: long
+   :value: 268435456
+
+   .. versionadded:: 26.08
+      Runtime parameter ``particles.redistribute_mask_max_bytes``.
+
+   This is the maximum estimated per-rank storage, in bytes, for using the CPU
+   local ``Redistribute()`` lookup mask. Negative values disable this byte limit.
+
 Tiling
 ------
 
@@ -1600,12 +1631,17 @@ enabled.
 
 .. py:data:: tiny_profiler.output_file
    :type: string
-   :value: [empty]
+   :value: stdout
 
    .. versionadded:: 24.09
       Runtime parameter ``tiny_profiler.output_file``.
 
-   If this parameter is empty, the output of tiny profiling is dumped to the
-   default output stream of AMReX. If it is not empty, it specifies the file
-   name for the output. Note that ``/dev/null`` is a special name that means
-   no output.
+   .. versionchanged:: 26.09
+      Special names ``stdout`` and ``stderr``; the default value is now
+      ``stdout`` (same behavior as the previous default, the empty string).
+
+   This parameter specifies the destination of the tiny profiling output.
+   Note that ``stdout``, ``stderr`` and ``/dev/null`` are special names that
+   mean the default output stream, the default error stream, and no output,
+   respectively. An empty value is treated the same as ``stdout``. Any other
+   value specifies the file name for the output.

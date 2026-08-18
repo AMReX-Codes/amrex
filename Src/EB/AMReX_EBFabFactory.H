@@ -70,18 +70,18 @@ public:
     EBFArrayBoxFactory& operator= (EBFArrayBoxFactory&&) = delete;
 
     //! Allocate an EB-aware FAB for `box` with `ncomps` components.
-    AMREX_NODISCARD
+    [[nodiscard]]
     FArrayBox* create (const Box& box, int ncomps, const FabInfo& info, int box_index) const final;
 
     //! Create an alias view into an existing EB-aware FAB.
-    AMREX_NODISCARD
+    [[nodiscard]]
     FArrayBox* create_alias (FArrayBox const& rhs, int scomp, int ncomp) const final;
 
     //! Destroy a FAB produced by this factory.
     void destroy (FArrayBox* fab) const final;
 
     //! Produce a deep copy of this factory (excluding EB level ownership).
-    AMREX_NODISCARD
+    [[nodiscard]]
     EBFArrayBoxFactory* clone () const final;
 
     //! EB cell flags for all boxes.

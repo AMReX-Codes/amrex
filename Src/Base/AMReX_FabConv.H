@@ -3,6 +3,11 @@
 #define BL_FABCONV_H
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_FabConv.H
+ * \brief Portable serialization descriptors for FAB I/O (ints/reals).
+ */
+
 #include <AMReX_Array.H>
 #include <AMReX_Vector.H>
 #include <AMReX_BLassert.H>
@@ -43,12 +48,18 @@ public:
     * one from an istream.
     */
     IntDescriptor () = default;
-    //! Construct a specific IntDescriptor.
+    /**
+     * \brief Construct an IntDescriptor with \p nb bytes and byte order \p ordering.
+     *
+     * \param nb       Number of bytes in the represented integer type.
+     * \param ordering IntDescriptor::NormalOrder for the canonical byte order
+     *                 1 .. \p nb, or IntDescriptor::ReverseOrder for its reverse.
+     */
     IntDescriptor (Long     nb,
                    Ordering ordering = NormalOrder);
-    //! Returns the ordering.
+    //! Returns the stored byte ordering policy.
     [[nodiscard]] Ordering order () const;
-    //! Returns the number of bytes.
+    //! Returns the number of bytes per integer.
     [[nodiscard]] int numBytes () const;
     //! The equality operator.
     bool operator== (const IntDescriptor& id) const;
@@ -164,9 +175,12 @@ public:
     static RealDescriptor* newRealDescriptor (int fmt, int prec, const char* systype,
                                               int ordering);
     /**
-    * \brief Convert nitems in RealDescriptor format to native Real format.
-    * The out array is assumed to be large enough to hold the
-    * resulting output.
+    * \brief Convert serialized bytes in descriptor format to native Real values.
+    *
+    * \param out      Destination array sized for \p nitems native values.
+    * \param nitems   Number of entries to translate.
+    * \param in       Pointer to the serialized payload laid out per \p id.
+    * \param id       Descriptor describing the serialized byte order/format.
     */
     static void convertToNativeFormat (Real*                 out,
                                        Long                  nitems,
@@ -174,9 +188,12 @@ public:
                                        const RealDescriptor& id);
 
     /**
-    * \brief Read nitems from istream in RealDescriptor format and
-    * convert them to the native Real format.  The out array is
-    * assumed to be large enough to hold the resulting output.
+    * \brief Read descriptor-formatted bytes from a stream and convert them to native Reals.
+    *
+    * \param out      Destination array sized for \p nitems native values.
+    * \param nitems   Number of entries to translate.
+    * \param is       Input stream containing descriptor-formatted bytes.
+    * \param id       Descriptor describing the serialized byte order/format.
     */
     static void convertToNativeFormat (Real*                 out,
                                        Long                  nitems,
@@ -184,17 +201,24 @@ public:
                                        const RealDescriptor& id);
 
     /**
-    * \brief Convert nitems Reals in native format to RealDescriptor format
-    * and write them to the ostream.
+    * \brief Serialize native Reals to descriptor format and write them to an ostream.
+    *
+    * \param os       Output stream receiving the serialized bytes.
+    * \param nitems   Number of entries to convert.
+    * \param in       Pointer to native Real data.
+    * \param od       Descriptor describing the target layout.
     */
     static void convertFromNativeFormat (std::ostream&         os,
                                          Long                  nitems,
                                          const Real*           in,
                                          const RealDescriptor& od);
     /**
-    * \brief Convert nitems Reals in native format to RealDescriptor format.
-    * The out array is assumed to be large enough to hold the
-    * resulting output.
+    * \brief Serialize native Reals to descriptor format into a caller-provided buffer.
+    *
+    * \param out      Destination buffer sized for the descriptor-formatted bytes.
+    * \param nitems   Number of entries to convert.
+    * \param in       Pointer to native Real data.
+    * \param od       Descriptor describing the target layout.
     */
     static void convertFromNativeFormat (void*                 out,
                                          Long                  nitems,
@@ -202,8 +226,12 @@ public:
                                          const RealDescriptor& od);
 
     /**
-    * \brief Convert nitems floats in native format to RealDescriptor format
-    * and write them to the ostream.
+    * \brief Serialize single-precision values to descriptor format and write them to \p os.
+    *
+    * \param os     Output stream receiving the serialized bytes.
+    * \param nitems Number of entries to convert.
+    * \param in     Pointer to \p nitems native float values.
+    * \param od     Descriptor describing the target layout.
     */
     static void convertFromNativeFloatFormat (std::ostream&         os,
                                               Long                  nitems,
@@ -211,8 +239,12 @@ public:
                                               const RealDescriptor& od);
 
     /**
-    * \brief Convert nitems doubles in native format to RealDescriptor format
-    * and write them to the ostream.
+    * \brief Serialize double-precision values to descriptor format and write them to \p os.
+    *
+    * \param os     Output stream receiving the serialized bytes.
+    * \param nitems Number of entries to convert.
+    * \param in     Pointer to \p nitems native double values.
+    * \param od     Descriptor describing the target layout.
     */
     static void convertFromNativeDoubleFormat (std::ostream&         os,
                                                Long                  nitems,
@@ -220,9 +252,12 @@ public:
                                                const RealDescriptor& od);
 
     /**
-    * \brief Read nitems from istream in RealDescriptor format and
-    * convert them to the native float format.  The out array is
-    * assumed to be large enough to hold the resulting output.
+    * \brief Read descriptor-formatted bytes and convert them to native floats.
+    *
+    * \param out    Destination array sized for \p nitems float values.
+    * \param nitems Number of entries to convert.
+    * \param is     Input stream containing descriptor-formatted bytes.
+    * \param id     Descriptor of the serialized input.
     */
     static void convertToNativeFloatFormat (float*                out,
                                             Long                  nitems,
@@ -230,9 +265,12 @@ public:
                                             const RealDescriptor& id);
 
     /**
-    * \brief Read nitems from istream in RealDescriptor format and
-    * convert them to the native double format.  The out array is
-    * assumed to be large enough to hold the resulting output.
+    * \brief Read descriptor-formatted bytes and convert them to native doubles.
+    *
+    * \param out    Destination array sized for \p nitems double values.
+    * \param nitems Number of entries to convert.
+    * \param is     Input stream containing descriptor-formatted bytes.
+    * \param id     Descriptor of the serialized input.
     */
     static void convertToNativeDoubleFormat (double*               out,
                                              Long                  nitems,

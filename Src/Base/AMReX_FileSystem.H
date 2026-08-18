@@ -2,6 +2,11 @@
 #define AMREX_FILE_SYSTEM_H_
 #include <AMReX_Config.H>
 
+/**
+ * \file AMReX_FileSystem.H
+ * \brief File-system utility functions (directory creation, path query, removal).
+ */
+
 #include <string>
 
 #ifdef _WIN32

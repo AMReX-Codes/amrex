@@ -159,7 +159,7 @@ struct OnesidedMultiBlockBoundaryFn {
                              .src_component = 0,
                              .n_components = three_components}, dtos};
 
-  AMREX_NODISCARD CommHandler FillBoundary_nowait() {
+  [[nodiscard]] CommHandler FillBoundary_nowait() {
     if (!cmd || cached_dest_bd_key != dest->mass.getBDKey() || cached_src_bd_key != src->mass.getBDKey()) {
         cmd = std::make_unique<MultiBlockCommMetaData>(dest->mass, boundary_to_fill, src->mass, dest->mass.nGrowVect(), dtos);
         cached_dest_bd_key = dest->mass.getBDKey();

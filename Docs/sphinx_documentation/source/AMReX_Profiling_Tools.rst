@@ -93,6 +93,9 @@ it is also recommended to wrap any ``BL_PROFILE_TINY_FLUSH();`` calls in
 informative ``amrex::Print()`` lines to ensure accurate identification of each
 set of timers.
 
+The results can also be redirected, e.g. to a file or to ``stderr``, with the
+runtime parameter ``tiny_profiler.output_file`` (see :ref:`chap:inputs`).
+
 Hot Spots and Load Balance
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

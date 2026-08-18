@@ -6,6 +6,7 @@
 #include <AMReX_Stack.H>
 
 #include <cstring>
+#include <type_traits>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 
@@ -250,117 +251,19 @@ namespace {
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Real pt_box_min_d2 (XDim3 const& pt, RealBox const& bbox)
     {
-        bool inside_x = (pt.x >= bbox.lo(0)) && (pt.x <= bbox.hi(0));
-        bool inside_y = (pt.y >= bbox.lo(1)) && (pt.y <= bbox.hi(1));
-        bool inside_z = (pt.z >= bbox.lo(2)) && (pt.z <= bbox.hi(2));
-        if (inside_x && inside_y && inside_z) {
-            return Real(0);
-        } else if (inside_x && inside_y) {
-            if (pt.z < bbox.lo(2)) {
-                return Math::powi<2>(pt.z-bbox.lo(2));
-            } else {
-                return Math::powi<2>(pt.z-bbox.hi(2));
-            }
-        } else if (inside_x && inside_z) {
-            if (pt.y < bbox.lo(1)) {
-                return Math::powi<2>(pt.y-bbox.lo(1));
-            } else {
-                return Math::powi<2>(pt.y-bbox.hi(1));
-            }
-        } else if (inside_y && inside_z) {
-            if (pt.x < bbox.lo(0)) {
-                return Math::powi<2>(pt.x-bbox.lo(0));
-            } else {
-                return Math::powi<2>(pt.x-bbox.hi(0));
-            }
-        } else if (inside_x) {
-            if ((pt.y < bbox.lo(1)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.y-bbox.lo(1))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else if ((pt.y < bbox.lo(1)) && (pt.z > bbox.hi(2))) {
-                return Math::powi<2>(pt.y-bbox.lo(1))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            } else if ((pt.y > bbox.hi(1)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.y-bbox.hi(1))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else {
-                return Math::powi<2>(pt.y-bbox.hi(1))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            }
-        } else if (inside_y) {
-            if ((pt.x < bbox.lo(0)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else if ((pt.x < bbox.lo(0)) && (pt.z > bbox.hi(2))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            } else if ((pt.x > bbox.hi(0)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            }
-        } else if (inside_z) {
-            if ((pt.x < bbox.lo(0)) && (pt.y < bbox.lo(1))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.y-bbox.lo(1));
-            } else if ((pt.x < bbox.lo(0)) && (pt.y > bbox.hi(1))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.y-bbox.hi(1));
-
-            } else if ((pt.x > bbox.hi(0)) && (pt.y < bbox.lo(1))) {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.y-bbox.lo(1));
-
-            } else {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.y-bbox.hi(1));
-
-            }
-        } else {
-            if ((pt.x < bbox.lo(0)) && (pt.y < bbox.lo(1)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.y-bbox.lo(1))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else if ((pt.x > bbox.hi(0)) && (pt.y < bbox.lo(1)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.y-bbox.lo(1))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else if ((pt.x < bbox.lo(0)) && (pt.y > bbox.hi(1)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.y-bbox.hi(1))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else if ((pt.x > bbox.hi(0)) && (pt.y > bbox.hi(1)) && (pt.z < bbox.lo(2))) {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.y-bbox.hi(1))
-                    +  Math::powi<2>(pt.z-bbox.lo(2));
-            } else if ((pt.x < bbox.lo(0)) && (pt.y < bbox.lo(1)) && (pt.z > bbox.hi(2))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.y-bbox.lo(1))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            } else if ((pt.x > bbox.hi(0)) && (pt.y < bbox.lo(1)) && (pt.z > bbox.hi(2))) {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.y-bbox.lo(1))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            } else if ((pt.x < bbox.lo(0)) && (pt.y > bbox.hi(1)) && (pt.z > bbox.hi(2))) {
-                return Math::powi<2>(pt.x-bbox.lo(0))
-                    +  Math::powi<2>(pt.y-bbox.hi(1))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            } else {
-                return Math::powi<2>(pt.x-bbox.hi(0))
-                    +  Math::powi<2>(pt.y-bbox.hi(1))
-                    +  Math::powi<2>(pt.z-bbox.hi(2));
-            }
-        }
+        Real const dx = amrex::max(bbox.lo(0)-pt.x, Real(0), pt.x-bbox.hi(0));
+        Real const dy = amrex::max(bbox.lo(1)-pt.y, Real(0), pt.y-bbox.hi(1));
+        Real const dz = amrex::max(bbox.lo(2)-pt.z, Real(0), pt.z-bbox.hi(2));
+        return dx*dx + dy*dy + dz*dz;
     }
 
     template <int M, int N>
     AMREX_GPU_DEVICE AMREX_FORCE_INLINE
     Real bvh_d2 (XDim3 const& pt, STLtools::BVHNodeT<M,N> const* root)
     {
+        static_assert(N <= std::numeric_limits<std::uint8_t>::digits);
         Stack<int, STLtools::m_bvh_max_stack_size> nodes_to_do;
-        Stack<std::int8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
+        Stack<std::uint8_t, STLtools::m_bvh_max_stack_size> nchildren_done;
         nodes_to_do.push(0);
         nchildren_done.push(0);
 
@@ -378,20 +281,46 @@ namespace {
                 nchildren_done.pop();
             } else {
                 auto& ndone = nchildren_done.top();
-                if (ndone < node.nchildren) {
-                    for (auto ichild = ndone; ichild < node.nchildren; ++ichild) {
-                        ++ndone;
+                if (ndone == 0) {
+                    // Visit the nearest child first to tighten d before testing
+                    // the remaining children against their lower bounds.
+                    Real closest_d2 = std::numeric_limits<Real>::max();
+                    std::int8_t closest_child = 0;
+                    for (std::int8_t ichild = 0; ichild < node.nchildren; ++ichild) {
+                        auto const child_d2 = pt_box_min_d2(
+                            pt, root[node.children[ichild]].boundingbox);
+                        if (child_d2 < closest_d2) {
+                            closest_d2 = child_d2;
+                            closest_child = ichild;
+                        }
+                    }
+                    if (d > closest_d2) {
+                        ndone = static_cast<std::uint8_t>(ndone | (1 << closest_child));
+                        nodes_to_do.push(node.children[closest_child]);
+                        nchildren_done.push(0);
+                    } else {
+                        nodes_to_do.pop();
+                        nchildren_done.pop();
+                    }
+                } else {
+                    bool child_added = false;
+                    for (std::int8_t ichild = 0; ichild < node.nchildren; ++ichild) {
+                        auto const child_bit = static_cast<std::uint8_t>(1 << ichild);
+                        if ((ndone & child_bit) != 0) { continue; }
+                        ndone = static_cast<std::uint8_t>(ndone | child_bit);
                         int inode = node.children[ichild];
                         auto dmin = pt_box_min_d2(pt, root[inode].boundingbox);
                         if (d > dmin) {
                             nodes_to_do.push(inode);
                             nchildren_done.push(0);
+                            child_added = true;
                             break;
                         }
                     }
-                } else {
-                    nodes_to_do.pop();
-                    nchildren_done.pop();
+                    if (!child_added) {
+                        nodes_to_do.pop();
+                        nchildren_done.pop();
+                    }
                 }
             }
         }
@@ -952,6 +881,73 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
 
         auto const* bvh_root = m_bvh_nodes.data();
 
+#ifndef AMREX_USE_GPU
+        // Unlike the device reduction, the serial host path can stop as soon
+        // as it sees both signs.
+        auto classify_on_cpu = [&] (auto use_bvh) -> int
+        {
+            int first_value = -1;
+            if (blo.x < ptmin.x || blo.y < ptmin.y || blo.z < ptmin.z ||
+                bhi.x > ptmax.x || bhi.y > ptmax.y || bhi.z > ptmax.z)
+            {
+                first_value = ref_value;
+            }
+
+            const Dim3 lo = amrex::lbound(box);
+            const Dim3 hi = amrex::ubound(box);
+            for (int k = lo.z; k <= hi.z; ++k) {
+            for (int j = lo.y; j <= hi.y; ++j) {
+            for (int i = lo.x; i <= hi.x; ++i) {
+                Real coords[3];
+                coords[0]=plo[0]+static_cast<Real>(i)*dx[0];
+                coords[1]=plo[1]+static_cast<Real>(j)*dx[1];
+#if (AMREX_SPACEDIM == 2)
+                amrex::ignore_unused(k);
+                coords[2]=Real(0.);
+#else
+                coords[2]=plo[2]+static_cast<Real>(k)*dx[2];
+#endif
+                if (coords[0] < ptmin.x || coords[0] > ptmax.x ||
+                    coords[1] < ptmin.y || coords[1] > ptmax.y ||
+                    coords[2] < ptmin.z || coords[2] > ptmax.z)
+                {
+                    continue;
+                }
+
+                Real pr[] = {ptref.x, ptref.y, ptref.z};
+                int num_intersects = 0;
+                if constexpr (decltype(use_bvh)::value) {
+                    bvh_line_tri_intersects(pr, coords, bvh_root,
+                                            [&] (int ntri, Triangle const* tri,
+                                                    XDim3 const*) -> int
+                    {
+                        for (int tr = 0; tr < ntri; ++tr) {
+                            num_intersects += line_tri_intersects(pr, coords, tri[tr]);
+                        }
+                        return 0;
+                    });
+                } else {
+                    for (int tr = 0; tr < num_triangles; ++tr) {
+                        num_intersects += line_tri_intersects(pr, coords, tri_pts[tr]);
+                    }
+                }
+
+                int const value = (num_intersects % 2 == 0) ? ref_value : 1-ref_value;
+                if (first_value < 0) {
+                    first_value = value;
+                } else if (value != first_value) {
+                    return mixedcells;
+                }
+            }}}
+            return first_value == 1 ? allregular : allcovered;
+        };
+
+        if (m_bvh_optimization) {
+            return classify_on_cpu(std::true_type{});
+        } else {
+            return classify_on_cpu(std::false_type{});
+        }
+#else
         ReduceOps<ReduceOpSum> reduce_op;
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
@@ -1015,6 +1011,7 @@ STLtools::getBoxType (Box const& box, Geometry const& geom, RunOn) const
         } else {
             return mixedcells;
         }
+#endif
     }
 }
 

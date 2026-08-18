@@ -1445,12 +1445,6 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
 ::Redistribute_impl (int lev_min, int lev_max, IntVect nGrow,
                      bool local, IntVect max_cells_moved, bool remove_negative)
 {
-    if (local) {
-        AMREX_ASSERT(max_cells_moved.allGE(0));
-        AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max,
-                                            max_cells_moved) == 0);
-    }
-
     BL_PROFILE("ParticleContainer::Redistribute_impl()");
     BL_PROFILE_VAR_NS("Redistribute_partition", blp_partition);
 
@@ -1478,10 +1472,18 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
     }
     AMREX_ASSERT(lev_max <= finestLevel());
 
+    if (local) {
+        AMREX_ASSERT(max_cells_moved.allGE(0));
+        AMREX_ASSERT(numParticlesOutOfRange(*this, lev_min, lev_max,
+                                            max_cells_moved) == 0);
+    }
+
     this->defineBufferMap();
 
 #ifndef AMREX_USE_GPU
-    if (local) { BuildRedistributeMask(0, max_cells_moved); }
+    const bool use_mask_lookup = local && lev_min == 0 && lev_max == 0
+        && RedistributeMaskLooksCheap(0, max_cells_moved);
+    if (use_mask_lookup) { BuildRedistributeMask(0, max_cells_moved); }
 #else
     if (! m_particle_locator.isValid(GetParGDB(), do_tiling, tile_size)) { m_particle_locator.build(GetParGDB(), do_tiling, tile_size); }
     m_particle_locator.setGeometry(GetParGDB());
@@ -1587,7 +1589,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
         auto& periodic_shift = *periodic_shift_ptrs[pmap_it];
         *new_size_ptrs[pmap_it] = hostPartitionTile(src_tile,
                                                     lev, gid, tid,
-                                                    lev_min, lev_max, nGrow, local,
+                                                    lev_min, lev_max, nGrow, use_mask_lookup,
                                                     remove_negative, myproc,
                                                     boxes, levels, tiles,
                                                     src_indices, periodic_shift);
@@ -1656,7 +1658,7 @@ ParticleContainer_impl<ParticleType, NArrayReal, NArrayInt, Allocator, CellAssig
             auto& periodic_shift = op.m_periodic_shift[lev][index];
             new_size = hostPartitionTile(src_tile,
                                          lev, gid, tid,
-                                         lev_min, lev_max, nGrow, local,
+                                         lev_min, lev_max, nGrow, use_mask_lookup,
                                          remove_negative, myproc,
                                          boxes, levels, tiles,
                                          src_indices, periodic_shift);
