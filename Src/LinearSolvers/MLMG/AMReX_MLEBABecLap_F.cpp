@@ -50,101 +50,164 @@ MLEBABecLap::Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) c
         const bool extdir_y = !(m_geom[amrlev][mglev].isPeriodic(1));,
         const bool extdir_z = !(m_geom[amrlev][mglev].isPeriodic(2)););
 
-    MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && out.isFusingCandidate() && factory && !has_overset)
+    {
+        MultiArray4<Real const> fooma;
+        auto const& xma = in.const_arrays();
+        auto const& yma = out.arrays();
+        auto const& ama = acoef.const_arrays();
+        AMREX_D_TERM(auto const& bxma = bxcoef.const_arrays();,
+                     auto const& byma = bycoef.const_arrays();,
+                     auto const& bzma = bzcoef.const_arrays(););
+        auto const& ccmma = ccmask.const_arrays();
+        auto const ebdata_ma = factory->getEBDataArrays();
+        auto const& bebma = (is_eb_dirichlet)
+            ? m_eb_b_coeffs[amrlev][mglev]->const_arrays() : fooma;
+        auto const& phiebma = (is_eb_dirichlet && is_eb_inhomog)
+            ? m_eb_phi[amrlev]->const_arrays() : fooma;
+
+        const bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+        const bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+        const bool treat_phi_as_on_centroid = (phi_on_centroid && (mglev == 0));
+
+        if (treat_phi_as_on_centroid) {
+#ifdef AMREX_USE_HIP
+            // This causes an abort in HIP 4.5 but works in earlier versions
+            // A follow-up release should fix this.
+            // Error message:
+            //   lld: error: ran out of registers during register allocation
+            amrex::Abort("MLEBABecLap::Fapply: phi on centroid not supported for HIP");
+            amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                 AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                 AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
+#else
+            amrex::ParallelFor(out, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                mlebabeclap_adotx_centroid(i, j, k, n, yma[box_no], xma[box_no], ama[box_no],
+                                  AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                  ebdata_ma.get(box_no), bebma[box_no], phiebma[box_no],
+                                  AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                  AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                  AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                  is_eb_dirichlet, is_eb_inhomog, dxinvarr,
+                                  ascalar, bscalar);
+            });
+#endif
+        } else {
+            amrex::ParallelFor(out, IntVect(0), ncomp,
+            [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+            {
+                mlebabeclap_adotx(i, j, k, n, yma[box_no], xma[box_no], ama[box_no],
+                                  AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                                  ccmma[box_no], ebdata_ma.get(box_no), bebma[box_no],
+                                  is_eb_dirichlet, phiebma[box_no],
+                                  is_eb_inhomog, dxinvarr,
+                                  ascalar, bscalar, beta_on_centroid, phi_on_centroid);
+            });
+        }
+        if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    }
+    else
+#endif
+    {
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) { mfi_info.EnableTiling().SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
-    {
-        const Box& bx = mfi.tilebox();
-        Array4<Real const> const& xfab = in.const_array(mfi);
-        Array4<Real> const& yfab = out.array(mfi);
-        Array4<Real const> const& afab = acoef.const_array(mfi);
-        AMREX_D_TERM(Array4<Real const> const& bxfab = bxcoef.const_array(mfi);,
-                     Array4<Real const> const& byfab = bycoef.const_array(mfi);,
-                     Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
+        for (MFIter mfi(out, mfi_info); mfi.isValid(); ++mfi)
+        {
+            const Box& bx = mfi.tilebox();
+            Array4<Real const> const& xfab = in.const_array(mfi);
+            Array4<Real> const& yfab = out.array(mfi);
+            Array4<Real const> const& afab = acoef.const_array(mfi);
+            AMREX_D_TERM(Array4<Real const> const& bxfab = bxcoef.const_array(mfi);,
+                         Array4<Real const> const& byfab = bycoef.const_array(mfi);,
+                         Array4<Real const> const& bzfab = bzcoef.const_array(mfi););
 
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(bx) : FabType::regular;
 
-        if (fabtyp == FabType::covered) {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-            {
-                yfab(i,j,k,n) = 0.0;
-            });
-        } else if (fabtyp == FabType::regular) {
-            if (has_overset) {
-                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+            if (fabtyp == FabType::covered) {
                 AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
                 {
-                    mlabeclap_adotx_os(i,j,k,n, yfab, xfab, afab,
-                                       AMREX_D_DECL(bxfab,byfab,bzfab),
-                                       osm, dxinvarr, ascalar, bscalar);
+                    yfab(i,j,k,n) = 0.0;
                 });
+            } else if (fabtyp == FabType::regular) {
+                if (has_overset) {
+                    Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                    {
+                        mlabeclap_adotx_os(i,j,k,n, yfab, xfab, afab,
+                                           AMREX_D_DECL(bxfab,byfab,bzfab),
+                                           osm, dxinvarr, ascalar, bscalar);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                    {
+                        mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
+                                        AMREX_D_DECL(bxfab,byfab,bzfab),
+                                        dxinvarr, ascalar, bscalar);
+                    });
+                }
             } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-                {
-                    mlabeclap_adotx(i,j,k,n, yfab, xfab, afab,
-                                    AMREX_D_DECL(bxfab,byfab,bzfab),
-                                    dxinvarr, ascalar, bscalar);
-                });
-            }
-        } else {
-            Array4<int const> const& ccmfab = ccmask.const_array(mfi);
-            auto const& ebdata = factory->getEBData(mfi);
-            Array4<Real const> const& bebfab = (is_eb_dirichlet)
-                ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
-            Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
-                ? m_eb_phi[amrlev]->const_array(mfi) : foo;
+                Array4<int const> const& ccmfab = ccmask.const_array(mfi);
+                auto const& ebdata = factory->getEBData(mfi);
+                Array4<Real const> const& bebfab = (is_eb_dirichlet)
+                    ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
+                Array4<Real const> const& phiebfab = (is_eb_dirichlet && is_eb_inhomog)
+                    ? m_eb_phi[amrlev]->const_array(mfi) : foo;
 
-            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
-            bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+                bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+                bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
 
-            bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
+                bool treat_phi_as_on_centroid = ( phi_on_centroid && (mglev == 0) );
 
-            if (treat_phi_as_on_centroid) {
+                if (treat_phi_as_on_centroid) {
 #ifdef AMREX_USE_HIP
-                // This causes an abort in HIP 4.5 but works in earlier versions
-                // A follow-up release should fix this.
-                // Error message:
-                //   lld: error: ran out of registers during register allocation
-                amrex::Abort("MLEBABecLap::Fapply: phi on centroid not supported for HIP");
-                amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
-                                     AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
-                                     AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
+                    // This causes an abort in HIP 4.5 but works in earlier versions
+                    // A follow-up release should fix this.
+                    // Error message:
+                    //   lld: error: ran out of registers during register allocation
+                    amrex::Abort("MLEBABecLap::Fapply: phi on centroid not supported for HIP");
+                    amrex::ignore_unused(AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                         AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                         AMREX_D_DECL(extdir_x, extdir_y, extdir_z));
 #else
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-                {
-                    mlebabeclap_adotx_centroid(i, j, k, n, yfab, xfab, afab,
-                                      AMREX_D_DECL(bxfab,byfab,bzfab),
-                                      ebdata, bebfab, phiebfab,
-                                      AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
-                                      AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
-                                      AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
-                                      is_eb_dirichlet, is_eb_inhomog, dxinvarr,
-                                      ascalar, bscalar);
-                });
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                    {
+                        mlebabeclap_adotx_centroid(i, j, k, n, yfab, xfab, afab,
+                                          AMREX_D_DECL(bxfab,byfab,bzfab),
+                                          ebdata, bebfab, phiebfab,
+                                          AMREX_D_DECL(domlo_x, domlo_y, domlo_z),
+                                          AMREX_D_DECL(domhi_x, domhi_y, domhi_z),
+                                          AMREX_D_DECL(extdir_x, extdir_y, extdir_z),
+                                          is_eb_dirichlet, is_eb_inhomog, dxinvarr,
+                                          ascalar, bscalar);
+                    });
 #endif
-            } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-                {
-                    mlebabeclap_adotx(i, j, k, n, yfab, xfab, afab,
-                                      AMREX_D_DECL(bxfab,byfab,bzfab),
-                                      ccmfab, ebdata, bebfab,
-                                      is_eb_dirichlet,
-                                      phiebfab,
-                                      is_eb_inhomog, dxinvarr,
-                                      ascalar, bscalar, beta_on_centroid, phi_on_centroid);
-                });
-            }
-            if (has_overset) {
-                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
-                {
-                    if (osm(i,j,k) == 0) {
-                        yfab(i,j,k,n) = Real(0.0);
-                    }
-                });
+                } else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                    {
+                        mlebabeclap_adotx(i, j, k, n, yfab, xfab, afab,
+                                          AMREX_D_DECL(bxfab,byfab,bzfab),
+                                          ccmfab, ebdata, bebfab,
+                                          is_eb_dirichlet,
+                                          phiebfab,
+                                          is_eb_inhomog, dxinvarr,
+                                          ascalar, bscalar, beta_on_centroid, phi_on_centroid);
+                    });
+                }
+                if (has_overset) {
+                    Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D( bx, ncomp, i, j, k, n,
+                    {
+                        if (osm(i,j,k) == 0) {
+                            yfab(i,j,k,n) = Real(0.0);
+                        }
+                    });
+                }
             }
         }
     }
@@ -206,117 +269,181 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
     Array4<Real const> foo;
 
-    MFItInfo mfi_info;
-    if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
+#ifdef AMREX_USE_GPU
+    if (Gpu::inLaunchRegion() && sol.isFusingCandidate() && factory && !has_overset)
+    {
+        AMREX_ALWAYS_ASSERT(rhs.nGrowVect() == 0);
+
+        MultiArray4<Real const> fooma;
+        auto const& m0ma = mm0.const_arrays();
+        auto const& m1ma = mm1.const_arrays();
+#if (AMREX_SPACEDIM > 1)
+        auto const& m2ma = mm2.const_arrays();
+        auto const& m3ma = mm3.const_arrays();
+#if (AMREX_SPACEDIM > 2)
+        auto const& m4ma = mm4.const_arrays();
+        auto const& m5ma = mm5.const_arrays();
+#endif
+#endif
+        auto const& solma = sol.arrays();
+        auto const& rhsma = rhs.const_arrays();
+        auto const& ama   = acoef.const_arrays();
+        AMREX_D_TERM(auto const& bxma = bxcoef.const_arrays();,
+                     auto const& byma = bycoef.const_arrays();,
+                     auto const& bzma = bzcoef.const_arrays(););
+        auto const& f0ma = f0.const_arrays();
+        auto const& f1ma = f1.const_arrays();
+#if (AMREX_SPACEDIM > 1)
+        auto const& f2ma = f2.const_arrays();
+        auto const& f3ma = f3.const_arrays();
+#if (AMREX_SPACEDIM > 2)
+        auto const& f4ma = f4.const_arrays();
+        auto const& f5ma = f5.const_arrays();
+#endif
+#endif
+        auto const& ccmma = ccmask.const_arrays();
+        auto const ebdata_ma = factory->getEBDataArrays();
+        auto const& bebma = (is_eb_dirichlet)
+            ? m_eb_b_coeffs[amrlev][mglev]->const_arrays() : fooma;
+
+        const bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+        const bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+        if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
+
+        amrex::ParallelFor(sol, IntVect(0), nc,
+        [=] AMREX_GPU_DEVICE (int box_no, int i, int j, int k, int n) noexcept
+        {
+            Box vbx(rhsma[box_no]);
+            mlebabeclap_gsrb(i, j, k, n, solma[box_no], rhsma[box_no], alpha, ama[box_no],
+                             AMREX_D_DECL(dhx, dhy, dhz),
+                             AMREX_2D_ONLY_ARGS(dh,h)
+                             AMREX_D_DECL(bxma[box_no],byma[box_no],bzma[box_no]),
+                             AMREX_D_DECL(m0ma[box_no],m2ma[box_no],m4ma[box_no]),
+                             AMREX_D_DECL(m1ma[box_no],m3ma[box_no],m5ma[box_no]),
+                             AMREX_D_DECL(f0ma[box_no],f2ma[box_no],f4ma[box_no]),
+                             AMREX_D_DECL(f1ma[box_no],f3ma[box_no],f5ma[box_no]),
+                             ccmma[box_no], bebma[box_no], ebdata_ma.get(box_no),
+                             is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                             vbx, redblack);
+        });
+        if (!Gpu::inNoSyncRegion()) { Gpu::streamSynchronize(); }
+    }
+    else
+#endif
+    {
+        MFItInfo mfi_info;
+        if (Gpu::notInLaunchRegion()) { mfi_info.SetDynamic(true); }
 #ifdef AMREX_USE_OMP
 #pragma omp parallel if (Gpu::notInLaunchRegion())
 #endif
-    for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
-    {
-        const auto& m0 = mm0.array(mfi);
-        const auto& m1 = mm1.array(mfi);
-#if (AMREX_SPACEDIM > 1)
-        const auto& m2 = mm2.array(mfi);
-        const auto& m3 = mm3.array(mfi);
-#if (AMREX_SPACEDIM > 2)
-        const auto& m4 = mm4.array(mfi);
-        const auto& m5 = mm5.array(mfi);
-#endif
-#endif
-
-        const Box& vbx = mfi.validbox();
-        const auto& solnfab = sol.array(mfi);
-        const auto& rhsfab  = rhs.const_array(mfi);
-        const auto& afab    = acoef.const_array(mfi);
-
-        AMREX_D_TERM(const auto& bxfab = bxcoef.const_array(mfi);,
-                     const auto& byfab = bycoef.const_array(mfi);,
-                     const auto& bzfab = bzcoef.const_array(mfi););
-
-        const auto& f0fab = f0.const_array(mfi);
-        const auto& f1fab = f1.const_array(mfi);
-#if (AMREX_SPACEDIM > 1)
-        const auto& f2fab = f2.const_array(mfi);
-        const auto& f3fab = f3.const_array(mfi);
-#if (AMREX_SPACEDIM > 2)
-        const auto& f4fab = f4.const_array(mfi);
-        const auto& f5fab = f5.const_array(mfi);
-#endif
-#endif
-
-        auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
-
-        if (fabtyp == FabType::covered)
+        for (MFIter mfi(sol, mfi_info);  mfi.isValid(); ++mfi)
         {
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
+            const auto& m0 = mm0.array(mfi);
+            const auto& m1 = mm1.array(mfi);
+#if (AMREX_SPACEDIM > 1)
+            const auto& m2 = mm2.array(mfi);
+            const auto& m3 = mm3.array(mfi);
+#if (AMREX_SPACEDIM > 2)
+            const auto& m4 = mm4.array(mfi);
+            const auto& m5 = mm5.array(mfi);
+#endif
+#endif
+
+            const Box& vbx = mfi.validbox();
+            const auto& solnfab = sol.array(mfi);
+            const auto& rhsfab  = rhs.const_array(mfi);
+            const auto& afab    = acoef.const_array(mfi);
+
+            AMREX_D_TERM(const auto& bxfab = bxcoef.const_array(mfi);,
+                         const auto& byfab = bycoef.const_array(mfi);,
+                         const auto& bzfab = bzcoef.const_array(mfi););
+
+            const auto& f0fab = f0.const_array(mfi);
+            const auto& f1fab = f1.const_array(mfi);
+#if (AMREX_SPACEDIM > 1)
+            const auto& f2fab = f2.const_array(mfi);
+            const auto& f3fab = f3.const_array(mfi);
+#if (AMREX_SPACEDIM > 2)
+            const auto& f4fab = f4.const_array(mfi);
+            const auto& f5fab = f5.const_array(mfi);
+#endif
+#endif
+
+            auto fabtyp = (flags) ? (*flags)[mfi].getType(vbx) : FabType::regular;
+
+            if (fabtyp == FabType::covered)
             {
-                solnfab(i,j,k,n) = 0.0;
-            });
-        }
-        else if (fabtyp == FabType::regular)
-        {
-            if (has_overset) {
-                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
                 {
-                    abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
-                                 AMREX_D_DECL(dhx, dhy, dhz),
-                                 AMREX_D_DECL(bxfab, byfab, bzfab),
-                                 AMREX_D_DECL(m0,m2,m4),
-                                 AMREX_D_DECL(m1,m3,m5),
-                                 AMREX_D_DECL(f0fab,f2fab,f4fab),
-                                 AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                 osm, vbx, redblack);
-                });
-            } else {
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
-                {
-                    abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
-                              AMREX_D_DECL(dhx, dhy, dhz),
-                              AMREX_D_DECL(bxfab, byfab, bzfab),
-                              AMREX_D_DECL(m0,m2,m4),
-                              AMREX_D_DECL(m1,m3,m5),
-                              AMREX_D_DECL(f0fab,f2fab,f4fab),
-                              AMREX_D_DECL(f1fab,f3fab,f5fab),
-                              vbx, redblack);
+                    solnfab(i,j,k,n) = 0.0;
                 });
             }
-        }
-        else
-        {
-            Array4<int const> const& ccmfab = ccmask.const_array(mfi);
-            Array4<Real const> const& bebfab = (is_eb_dirichlet)
-                ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
-
-            auto const& ebdata = factory->getEBData(mfi);
-
-            bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
-            bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
-
-            if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
-
-            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
+            else if (fabtyp == FabType::regular)
             {
-                mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
-                                 AMREX_D_DECL(dhx, dhy, dhz),
-                                 AMREX_2D_ONLY_ARGS(dh,h)
-                                 AMREX_D_DECL(bxfab,byfab,bzfab),
-                                 AMREX_D_DECL(m0,m2,m4),
-                                 AMREX_D_DECL(m1,m3,m5),
-                                 AMREX_D_DECL(f0fab,f2fab,f4fab),
-                                 AMREX_D_DECL(f1fab,f3fab,f5fab),
-                                 ccmfab, bebfab, ebdata,
-                                 is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
-                                 vbx, redblack);
-            });
-            if (has_overset) {
-                Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
-                AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                if (has_overset) {
+                    Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                    {
+                        abec_gsrb_os(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                                     AMREX_D_DECL(dhx, dhy, dhz),
+                                     AMREX_D_DECL(bxfab, byfab, bzfab),
+                                     AMREX_D_DECL(m0,m2,m4),
+                                     AMREX_D_DECL(m1,m3,m5),
+                                     AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                     AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                     osm, vbx, redblack);
+                    });
+                } else {
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                    {
+                        abec_gsrb(i,j,k,n, solnfab, rhsfab, alpha, afab,
+                                  AMREX_D_DECL(dhx, dhy, dhz),
+                                  AMREX_D_DECL(bxfab, byfab, bzfab),
+                                  AMREX_D_DECL(m0,m2,m4),
+                                  AMREX_D_DECL(m1,m3,m5),
+                                  AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                  AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                  vbx, redblack);
+                    });
+                }
+            }
+            else
+            {
+                Array4<int const> const& ccmfab = ccmask.const_array(mfi);
+                Array4<Real const> const& bebfab = (is_eb_dirichlet)
+                    ? m_eb_b_coeffs[amrlev][mglev]->const_array(mfi) : foo;
+
+                auto const& ebdata = factory->getEBData(mfi);
+
+                bool beta_on_centroid = (m_beta_loc == Location::FaceCentroid);
+                bool  phi_on_centroid = (m_phi_loc  == Location::CellCentroid);
+
+                if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
+
+                AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
                 {
-                    if (((i+j+k+redblack)%2 == 0) && (osm(i,j,k) == 0)) {
-                        solnfab(i,j,k,n) = Real(0.0);
-                    }
+                    mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
+                                     AMREX_D_DECL(dhx, dhy, dhz),
+                                     AMREX_2D_ONLY_ARGS(dh,h)
+                                     AMREX_D_DECL(bxfab,byfab,bzfab),
+                                     AMREX_D_DECL(m0,m2,m4),
+                                     AMREX_D_DECL(m1,m3,m5),
+                                     AMREX_D_DECL(f0fab,f2fab,f4fab),
+                                     AMREX_D_DECL(f1fab,f3fab,f5fab),
+                                     ccmfab, bebfab, ebdata,
+                                     is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
+                                     vbx, redblack);
                 });
+                if (has_overset) {
+                    Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_4D(vbx, nc, i, j, k, n,
+                    {
+                        if (((i+j+k+redblack)%2 == 0) && (osm(i,j,k) == 0)) {
+                            solnfab(i,j,k,n) = Real(0.0);
+                        }
+                    });
+                }
             }
         }
     }
