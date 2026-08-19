@@ -295,9 +295,9 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
 
             if (phi_on_centroid) { amrex::Abort("phi_on_centroid is still a WIP"); }
 
-            AMREX_LAUNCH_HOST_DEVICE_LAMBDA ( vbx, thread_box,
+            AMREX_HOST_DEVICE_PARALLEL_FOR_4D ( vbx, nc, i, j, k, n,
             {
-                mlebabeclap_gsrb(thread_box, solnfab, rhsfab, alpha, afab,
+                mlebabeclap_gsrb(i, j, k, n, solnfab, rhsfab, alpha, afab,
                                  AMREX_D_DECL(dhx, dhy, dhz),
                                  AMREX_2D_ONLY_ARGS(dh,h)
                                  AMREX_D_DECL(bxfab,byfab,bzfab),
@@ -307,7 +307,7 @@ MLEBABecLap::Fsmooth (int amrlev, int mglev, MultiFab& sol, const MultiFab& rhs,
                                  AMREX_D_DECL(f1fab,f3fab,f5fab),
                                  ccmfab, bebfab, ebdata,
                                  is_eb_dirichlet, beta_on_centroid, phi_on_centroid,
-                                 vbx, redblack, nc);
+                                 vbx, redblack);
             });
             if (has_overset) {
                 Array4<int const> const& osm = m_overset_mask[amrlev][mglev]->const_array(mfi);

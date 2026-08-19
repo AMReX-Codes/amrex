@@ -374,7 +374,7 @@ void mlebabeclap_ebflux (int i, int j, int k, int n,
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_gsrb (Box const& box,
+void mlebabeclap_gsrb (int i, int j, int k, int n,
                        Array4<Real> const& phi, Array4<Real const> const& rhs,
                        Real alpha, Array4<Real const> const& a,
                        Real dhx, Real dhy, Real dh,
@@ -387,206 +387,203 @@ void mlebabeclap_gsrb (Box const& box,
                        Array4<const int> const& ccm, Array4<Real const> const& beb,
                        EBData const& ebdata,
                        bool is_dirichlet, bool beta_on_centroid, bool phi_on_centroid,
-                       Box const& vbox, int redblack, int ncomp) noexcept
+                       Box const& vbox, int redblack) noexcept
 {
     const auto vlo = amrex::lbound(vbox);
     const auto vhi = amrex::ubound(vbox);
 
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    if ((i+j+k+redblack) % 2 == 0)
     {
-        if ((i+j+k+redblack) % 2 == 0)
+        auto const flag = ebdata.get<EBData_t::cellflag>(i,j,k);
+        if (flag.isCovered())
         {
-            auto const flag = ebdata.get<EBData_t::cellflag>(i,j,k);
-            if (flag.isCovered())
+            phi(i,j,k,n) = Real(0.0);
+        }
+        else
+        {
+            Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
+                ? f0(vlo.x,j,k,n) : Real(0.0);
+            Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
+                ? f1(i,vlo.y,k,n) : Real(0.0);
+            Real cf2 = (i == vhi.x && m2(vhi.x+1,j,k) > 0)
+                ? f2(vhi.x,j,k,n) : Real(0.0);
+            Real cf3 = (j == vhi.y && m3(i,vhi.y+1,k) > 0)
+                ? f3(i,vhi.y,k,n) : Real(0.0);
+
+            if (flag.isRegular())
             {
-                phi(i,j,k,n) = Real(0.0);
+                Real gamma = alpha*a(i,j,k)
+                    + dhx * (bX(i+1,j,k,n) + bX(i,j,k,n))
+                    + dhy * (bY(i,j+1,k,n) + bY(i,j,k,n));
+
+                Real rho =  dhx * (bX(i+1,j,k,n)*phi(i+1,j,k,n)
+                                 + bX(i  ,j,k,n)*phi(i-1,j,k,n))
+                          + dhy * (bY(i,j+1,k,n)*phi(i,j+1,k,n)
+                                 + bY(i,j  ,k,n)*phi(i,j-1,k,n));
+
+                Real delta = dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf2)
+                    +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf3);
+
+                Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
+                phi(i,j,k,n) += res/(gamma-delta);
             }
             else
             {
-                Real cf0 = (i == vlo.x && m0(vlo.x-1,j,k) > 0)
-                    ? f0(vlo.x,j,k,n) : Real(0.0);
-                Real cf1 = (j == vlo.y && m1(i,vlo.y-1,k) > 0)
-                    ? f1(i,vlo.y,k,n) : Real(0.0);
-                Real cf2 = (i == vhi.x && m2(vhi.x+1,j,k) > 0)
-                    ? f2(vhi.x,j,k,n) : Real(0.0);
-                Real cf3 = (j == vhi.y && m3(i,vhi.y+1,k) > 0)
-                    ? f3(i,vhi.y,k,n) : Real(0.0);
+                Real kappa = ebdata.get<EBData_t::volfrac>(i,j,k);
+                Real apxm = ebdata.get<EBData_t::apx>(i  ,j  ,k);
+                Real apxp = ebdata.get<EBData_t::apx>(i+1,j  ,k);
+                Real apym = ebdata.get<EBData_t::apy>(i  ,j  ,k);
+                Real apyp = ebdata.get<EBData_t::apy>(i  ,j+1,k);
 
-                if (flag.isRegular())
-                {
-                    Real gamma = alpha*a(i,j,k)
-                        + dhx * (bX(i+1,j,k,n) + bX(i,j,k,n))
-                        + dhy * (bY(i,j+1,k,n) + bY(i,j,k,n));
-
-                    Real rho =  dhx * (bX(i+1,j,k,n)*phi(i+1,j,k,n)
-                                     + bX(i  ,j,k,n)*phi(i-1,j,k,n))
-                              + dhy * (bY(i,j+1,k,n)*phi(i,j+1,k,n)
-                                     + bY(i,j  ,k,n)*phi(i,j-1,k,n));
-
-                    Real delta = dhx*(bX(i,j,k,n)*cf0 + bX(i+1,j,k,n)*cf2)
-                        +        dhy*(bY(i,j,k,n)*cf1 + bY(i,j+1,k,n)*cf3);
-
-                    Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
-                    phi(i,j,k,n) += res/(gamma-delta);
+                Real fxm = -bX(i,j,k,n)*phi(i-1,j,k,n);
+                Real oxm = -bX(i,j,k,n)*cf0;
+                Real sxm =  bX(i,j,k,n);
+                if (apxm != Real(0.0) && apxm != Real(1.0)) {
+                    Real fcx = ebdata.get<EBData_t::fcx>(i,j,k);
+                    int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx));
+                    Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx) : Real(0.0);
+                    if (!beta_on_centroid && !phi_on_centroid)
+                    {
+                        fxm = (Real(1.0)-fracy)*fxm +
+                                   fracy *bX(i,jj,k,n)*(phi(i,jj,k,n)-phi(i-1,jj,k,n));
+                    }
+                    else if (beta_on_centroid && !phi_on_centroid)
+                    {
+                        fxm = (Real(1.0)-fracy)*(             -phi(i-1,j,k,n)) +
+                                   fracy *(phi(i,jj,k,n)-phi(i-1,jj,k,n));
+                        fxm *= bX(i,j,k,n);
+                    }
+                    oxm = Real(0.0);
+                    sxm = (Real(1.0)-fracy)*sxm;
                 }
-                else
-                {
-                    Real kappa = ebdata.get<EBData_t::volfrac>(i,j,k);
-                    Real apxm = ebdata.get<EBData_t::apx>(i  ,j  ,k);
-                    Real apxp = ebdata.get<EBData_t::apx>(i+1,j  ,k);
-                    Real apym = ebdata.get<EBData_t::apy>(i  ,j  ,k);
-                    Real apyp = ebdata.get<EBData_t::apy>(i  ,j+1,k);
 
-                    Real fxm = -bX(i,j,k,n)*phi(i-1,j,k,n);
-                    Real oxm = -bX(i,j,k,n)*cf0;
-                    Real sxm =  bX(i,j,k,n);
-                    if (apxm != Real(0.0) && apxm != Real(1.0)) {
-                        Real fcx = ebdata.get<EBData_t::fcx>(i,j,k);
-                        int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx));
-                        Real fracy = (ccm(i-1,jj,k) || ccm(i,jj,k)) ? std::abs(fcx) : Real(0.0);
-                        if (!beta_on_centroid && !phi_on_centroid)
-                        {
-                            fxm = (Real(1.0)-fracy)*fxm +
-                                       fracy *bX(i,jj,k,n)*(phi(i,jj,k,n)-phi(i-1,jj,k,n));
-                        }
-                        else if (beta_on_centroid && !phi_on_centroid)
-                        {
-                            fxm = (Real(1.0)-fracy)*(             -phi(i-1,j,k,n)) +
-                                       fracy *(phi(i,jj,k,n)-phi(i-1,jj,k,n));
-                            fxm *= bX(i,j,k,n);
-                        }
-                        oxm = Real(0.0);
-                        sxm = (Real(1.0)-fracy)*sxm;
+                Real fxp =  bX(i+1,j,k,n)*phi(i+1,j,k,n);
+                Real oxp =  bX(i+1,j,k,n)*cf2;
+                Real sxp = -bX(i+1,j,k,n);
+                if (apxp != Real(0.0) && apxp != Real(1.0)) {
+                    Real fcx = ebdata.get<EBData_t::fcx>(i+1,j,k);
+                    int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx));
+                    Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? std::abs(fcx) : Real(0.0);
+                    if (!beta_on_centroid && !phi_on_centroid)
+                    {
+                        fxp = (Real(1.0)-fracy)*fxp +
+                                   fracy *bX(i+1,jj,k,n)*(phi(i+1,jj,k,n)-phi(i,jj,k,n));
                     }
-
-                    Real fxp =  bX(i+1,j,k,n)*phi(i+1,j,k,n);
-                    Real oxp =  bX(i+1,j,k,n)*cf2;
-                    Real sxp = -bX(i+1,j,k,n);
-                    if (apxp != Real(0.0) && apxp != Real(1.0)) {
-                        Real fcx = ebdata.get<EBData_t::fcx>(i+1,j,k);
-                        int jj = j + static_cast<int>(std::copysign(Real(1.0),fcx));
-                        Real fracy = (ccm(i,jj,k) || ccm(i+1,jj,k)) ? std::abs(fcx) : Real(0.0);
-                        if (!beta_on_centroid && !phi_on_centroid)
-                        {
-                            fxp = (Real(1.0)-fracy)*fxp +
-                                       fracy *bX(i+1,jj,k,n)*(phi(i+1,jj,k,n)-phi(i,jj,k,n));
-                        }
-                        else if (beta_on_centroid && !phi_on_centroid)
-                        {
-                            fxp = (Real(1.0)-fracy)*(phi(i+1,j,k,n)               ) +
-                                       fracy *(phi(i+1,jj,k,n)-phi(i,jj,k,n));
-                            fxp *= bX(i+1,j,k,n);
-                        }
-                        oxp = Real(0.0);
-                        sxp = (Real(1.0)-fracy)*sxp;
+                    else if (beta_on_centroid && !phi_on_centroid)
+                    {
+                        fxp = (Real(1.0)-fracy)*(phi(i+1,j,k,n)               ) +
+                                   fracy *(phi(i+1,jj,k,n)-phi(i,jj,k,n));
+                        fxp *= bX(i+1,j,k,n);
                     }
-
-                    Real fym = -bY(i,j,k,n)*phi(i,j-1,k,n);
-                    Real oym = -bY(i,j,k,n)*cf1;
-                    Real sym =  bY(i,j,k,n);
-                    if (apym != Real(0.0) && apym != Real(1.0)) {
-                        Real fcy = ebdata.get<EBData_t::fcy>(i,j,k);
-                        int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy));
-                        Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy) : Real(0.0);
-                        if (!beta_on_centroid && !phi_on_centroid)
-                        {
-                            fym = (Real(1.0)-fracx)*fym +
-                                       fracx *bY(ii,j,k,n)*(phi(ii,j,k,n)-phi(ii,j-1,k,n));
-                        }
-                        else if (beta_on_centroid && !phi_on_centroid)
-                        {
-                            fym = (Real(1.0)-fracx)*(             -phi( i,j-1,k,n)) +
-                                       fracx *(phi(ii,j,k,n)-phi(ii,j-1,k,n));
-                            fym *= bY(i,j,k,n);
-                        }
-
-                        oym = Real(0.0);
-                        sym = (Real(1.0)-fracx)*sym;
-                    }
-
-                    Real fyp =  bY(i,j+1,k,n)*phi(i,j+1,k,n);
-                    Real oyp =  bY(i,j+1,k,n)*cf3;
-                    Real syp = -bY(i,j+1,k,n);
-                    if (apyp != Real(0.0) && apyp != Real(1.0)) {
-                        Real fcy = ebdata.get<EBData_t::fcy>(i,j+1,k);
-                        int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy));
-                        Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? std::abs(fcy) : Real(0.0);
-                        if (!beta_on_centroid && !phi_on_centroid)
-                        {
-                            fyp = (Real(1.0)-fracx)*fyp +
-                                       fracx*bY(ii,j+1,k,n)*(phi(ii,j+1,k,n)-phi(ii,j,k,n));
-                        }
-                        else if (beta_on_centroid && !phi_on_centroid)
-                        {
-                            fyp = (Real(1.0)-fracx)*(phi(i,j+1,k,n)               )+
-                                       fracx *(phi(ii,j+1,k,n)-phi(ii,j,k,n));
-                            fyp *= bY(i,j+1,k,n);
-                        }
-                        oyp = Real(0.0);
-                        syp = (Real(1.0)-fracx)*syp;
-                    }
-
-                    Real vfrcinv = (Real(1.0)/kappa);
-                    Real gamma = alpha*a(i,j,k) + vfrcinv *
-                        (dhx*(apxm*sxm-apxp*sxp) +
-                         dhy*(apym*sym-apyp*syp));
-                    Real rho = -vfrcinv *
-                        (dhx*(apxm*fxm-apxp*fxp) +
-                         dhy*(apym*fym-apyp*fyp));
-
-                    Real delta = -vfrcinv *
-                        (dhx*(apxm*oxm-apxp*oxp) +
-                         dhy*(apym*oym-apyp*oyp));
-
-                    if (is_dirichlet) {
-                        Real dapx = (apxm-apxp)*dx[1];
-                        Real dapy = (apym-apyp)*dx[0];
-                        Real anorm = std::hypot(dapx,dapy);
-                        Real anorminv = Real(1.0)/anorm;
-                        Real anrmx = dapx * anorminv;
-                        Real anrmy = dapy * anorminv;
-
-                        Real bctx = ebdata.get<EBData_t::bndrycent>(i,j,k,0);
-                        Real bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
-                        Real dx_eb = get_dx_eb(kappa);
-
-                        Real dg, gx, gy, sx, sy;
-                        if (std::abs(anrmx) > std::abs(anrmy)) {
-                            dg = dx_eb / std::abs(anrmx);
-                        } else {
-                            dg = dx_eb / std::abs(anrmy);
-                        }
-                        gx = bctx - dg*anrmx;
-                        gy = bcty - dg*anrmy;
-                        sx = std::copysign(Real(1.0),anrmx);
-                        sy = std::copysign(Real(1.0),anrmy);
-
-                        int ii = i - static_cast<int>(sx);
-                        int jj = j - static_cast<int>(sy);
-
-                        Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
-                        Real phig = (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j ,k,n)
-                            +       (            - gy*sy - gx*gy*sx*sy) * phi(i ,jj,k,n)
-                            +       (                    + gx*gy*sx*sy) * phi(ii,jj,k,n);
-
-                        // In gsrb we are always in residual-correction form so phib = 0
-                        Real dphidn =  (    -phig)/dg;
-
-                        Real ba = ebdata.get<EBData_t::bndryarea>(i,j,k);
-
-                        Real feb = dphidn * ba * beb(i,j,k,n);
-                        rho += -vfrcinv*(-dh)*feb;
-
-                        Real feb_gamma = -phig_gamma/dg * ba * beb(i,j,k,n);
-                        gamma += vfrcinv*(-dh)*feb_gamma;
-                    }
-
-                    Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
-                    phi(i,j,k,n) += res/(gamma-delta);
+                    oxp = Real(0.0);
+                    sxp = (Real(1.0)-fracy)*sxp;
                 }
+
+                Real fym = -bY(i,j,k,n)*phi(i,j-1,k,n);
+                Real oym = -bY(i,j,k,n)*cf1;
+                Real sym =  bY(i,j,k,n);
+                if (apym != Real(0.0) && apym != Real(1.0)) {
+                    Real fcy = ebdata.get<EBData_t::fcy>(i,j,k);
+                    int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy));
+                    Real fracx = (ccm(ii,j-1,k) || ccm(ii,j,k)) ? std::abs(fcy) : Real(0.0);
+                    if (!beta_on_centroid && !phi_on_centroid)
+                    {
+                        fym = (Real(1.0)-fracx)*fym +
+                                   fracx *bY(ii,j,k,n)*(phi(ii,j,k,n)-phi(ii,j-1,k,n));
+                    }
+                    else if (beta_on_centroid && !phi_on_centroid)
+                    {
+                        fym = (Real(1.0)-fracx)*(             -phi( i,j-1,k,n)) +
+                                   fracx *(phi(ii,j,k,n)-phi(ii,j-1,k,n));
+                        fym *= bY(i,j,k,n);
+                    }
+
+                    oym = Real(0.0);
+                    sym = (Real(1.0)-fracx)*sym;
+                }
+
+                Real fyp =  bY(i,j+1,k,n)*phi(i,j+1,k,n);
+                Real oyp =  bY(i,j+1,k,n)*cf3;
+                Real syp = -bY(i,j+1,k,n);
+                if (apyp != Real(0.0) && apyp != Real(1.0)) {
+                    Real fcy = ebdata.get<EBData_t::fcy>(i,j+1,k);
+                    int ii = i + static_cast<int>(std::copysign(Real(1.0),fcy));
+                    Real fracx = (ccm(ii,j,k) || ccm(ii,j+1,k)) ? std::abs(fcy) : Real(0.0);
+                    if (!beta_on_centroid && !phi_on_centroid)
+                    {
+                        fyp = (Real(1.0)-fracx)*fyp +
+                                   fracx*bY(ii,j+1,k,n)*(phi(ii,j+1,k,n)-phi(ii,j,k,n));
+                    }
+                    else if (beta_on_centroid && !phi_on_centroid)
+                    {
+                        fyp = (Real(1.0)-fracx)*(phi(i,j+1,k,n)               )+
+                                   fracx *(phi(ii,j+1,k,n)-phi(ii,j,k,n));
+                        fyp *= bY(i,j+1,k,n);
+                    }
+                    oyp = Real(0.0);
+                    syp = (Real(1.0)-fracx)*syp;
+                }
+
+                Real vfrcinv = (Real(1.0)/kappa);
+                Real gamma = alpha*a(i,j,k) + vfrcinv *
+                    (dhx*(apxm*sxm-apxp*sxp) +
+                     dhy*(apym*sym-apyp*syp));
+                Real rho = -vfrcinv *
+                    (dhx*(apxm*fxm-apxp*fxp) +
+                     dhy*(apym*fym-apyp*fyp));
+
+                Real delta = -vfrcinv *
+                    (dhx*(apxm*oxm-apxp*oxp) +
+                     dhy*(apym*oym-apyp*oyp));
+
+                if (is_dirichlet) {
+                    Real dapx = (apxm-apxp)*dx[1];
+                    Real dapy = (apym-apyp)*dx[0];
+                    Real anorm = std::hypot(dapx,dapy);
+                    Real anorminv = Real(1.0)/anorm;
+                    Real anrmx = dapx * anorminv;
+                    Real anrmy = dapy * anorminv;
+
+                    Real bctx = ebdata.get<EBData_t::bndrycent>(i,j,k,0);
+                    Real bcty = ebdata.get<EBData_t::bndrycent>(i,j,k,1);
+                    Real dx_eb = get_dx_eb(kappa);
+
+                    Real dg, gx, gy, sx, sy;
+                    if (std::abs(anrmx) > std::abs(anrmy)) {
+                        dg = dx_eb / std::abs(anrmx);
+                    } else {
+                        dg = dx_eb / std::abs(anrmy);
+                    }
+                    gx = bctx - dg*anrmx;
+                    gy = bcty - dg*anrmy;
+                    sx = std::copysign(Real(1.0),anrmx);
+                    sy = std::copysign(Real(1.0),anrmy);
+
+                    int ii = i - static_cast<int>(sx);
+                    int jj = j - static_cast<int>(sy);
+
+                    Real phig_gamma = (Real(1.0) + gx*sx + gy*sy + gx*gy*sx*sy);
+                    Real phig = (    - gx*sx         - gx*gy*sx*sy) * phi(ii,j ,k,n)
+                        +       (            - gy*sy - gx*gy*sx*sy) * phi(i ,jj,k,n)
+                        +       (                    + gx*gy*sx*sy) * phi(ii,jj,k,n);
+
+                    // In gsrb we are always in residual-correction form so phib = 0
+                    Real dphidn =  (    -phig)/dg;
+
+                    Real ba = ebdata.get<EBData_t::bndryarea>(i,j,k);
+
+                    Real feb = dphidn * ba * beb(i,j,k,n);
+                    rho += -vfrcinv*(-dh)*feb;
+
+                    Real feb_gamma = -phig_gamma/dg * ba * beb(i,j,k,n);
+                    gamma += vfrcinv*(-dh)*feb_gamma;
+                }
+
+                Real res = rhs(i,j,k,n) - (gamma*phi(i,j,k,n) - rho);
+                phi(i,j,k,n) += res/(gamma-delta);
             }
         }
-    });
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
