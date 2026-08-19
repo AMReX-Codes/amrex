@@ -26,9 +26,16 @@ void mlebndfdlap_grad_x_doit (int i, int j, int k, Array4<Real> const& px,
     } else if (dmsk(i,j,k) < 0 && dmsk(i+1,j,k) < 0) {
         px(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) / (Real(1.0) - Real(2.0) * ecx(i,j,k));
-    } else { //
-        px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) / (Real(1.0) + Real(2.0) * ecx(i,j,k));
+        // A centroid of 1 marks an uncut edge.  That happens when the EB is
+        // exactly aligned with the grid, so the node itself is on the boundary
+        // and the full edge length is used.
+        Real const h = (ecx(i,j,k) == Real(1.0)) ? Real(1.0)
+                     : Real(1.0) - Real(2.0) * ecx(i,j,k);
+        px(i,j,k) = dxi * (p(i+1,j,k) - phieb(i,j,k)) / h;
+    } else {
+        Real const h = (ecx(i,j,k) == Real(1.0)) ? Real(1.0)
+                     : Real(1.0) + Real(2.0) * ecx(i,j,k);
+        px(i,j,k) = dxi * (phieb(i+1,j,k) - p(i,j,k)) / h;
     }
 }
 
@@ -43,9 +50,16 @@ void mlebndfdlap_grad_y_doit (int i, int j, int k, Array4<Real> const& py,
     } else if (dmsk(i,j,k) < 0 && dmsk(i,j+1,k) < 0) {
         py(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) / (Real(1.0) - Real(2.0) * ecy(i,j,k));
-    } else { //
-        py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) / (Real(1.0) + Real(2.0) * ecy(i,j,k));
+        // A centroid of 1 marks an uncut edge.  That happens when the EB is
+        // exactly aligned with the grid, so the node itself is on the boundary
+        // and the full edge length is used.
+        Real const h = (ecy(i,j,k) == Real(1.0)) ? Real(1.0)
+                     : Real(1.0) - Real(2.0) * ecy(i,j,k);
+        py(i,j,k) = dyi * (p(i,j+1,k) - phieb(i,j,k)) / h;
+    } else {
+        Real const h = (ecy(i,j,k) == Real(1.0)) ? Real(1.0)
+                     : Real(1.0) + Real(2.0) * ecy(i,j,k);
+        py(i,j,k) = dyi * (phieb(i,j+1,k) - p(i,j,k)) / h;
     }
 }
 
@@ -61,9 +75,16 @@ void mlebndfdlap_grad_z_doit (int i, int j, int k, Array4<Real> const& pz,
     } else if (dmsk(i,j,k) < 0 && dmsk(i,j,k+1) < 0) {
         pz(i,j,k) = Real(0.0);
     } else if (dmsk(i,j,k) < 0) {
-        pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) / (Real(1.0) - Real(2.0) * ecz(i,j,k));
-    } else { //
-        pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) / (Real(1.0) + Real(2.0) * ecz(i,j,k));
+        // A centroid of 1 marks an uncut edge.  That happens when the EB is
+        // exactly aligned with the grid, so the node itself is on the boundary
+        // and the full edge length is used.
+        Real const h = (ecz(i,j,k) == Real(1.0)) ? Real(1.0)
+                     : Real(1.0) - Real(2.0) * ecz(i,j,k);
+        pz(i,j,k) = dzi * (p(i,j,k+1) - phieb(i,j,k)) / h;
+    } else {
+        Real const h = (ecz(i,j,k) == Real(1.0)) ? Real(1.0)
+                     : Real(1.0) + Real(2.0) * ecz(i,j,k);
+        pz(i,j,k) = dzi * (phieb(i,j,k+1) - p(i,j,k)) / h;
     }
 }
 #endif
