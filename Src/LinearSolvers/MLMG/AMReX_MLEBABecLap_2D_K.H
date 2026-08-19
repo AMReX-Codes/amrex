@@ -8,158 +8,161 @@
 namespace amrex {
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
-void mlebabeclap_adotx_centroid (Box const& box, Array4<Real> const& y,
+void mlebabeclap_adotx_centroid (int i, int j, int k, int n, Array4<Real> const& y,
                         Array4<Real const> const& x, Array4<Real const> const& a,
                         Array4<Real const> const& bX, Array4<Real const> const& bY,
-                        Array4<EBCellFlag const> const& flag,
-                        Array4<Real const> const& vfrc,
-                        Array4<Real const> const& apx, Array4<Real const> const& apy,
-                        Array4<Real const> const& fcx, Array4<Real const> const& fcy,
-                        Array4<Real const> const& ccent, Array4<Real const> const& ba,
-                        Array4<Real const> const& bcent, Array4<Real const> const& beb,
+                        EBData const& ebdata,
+                        Array4<Real const> const& beb,
                         Array4<Real const> const& phieb,
                         const int& domlo_x,    const int& domlo_y,
                         const int& domhi_x,    const int& domhi_y,
                         const bool& on_x_face, const bool& on_y_face,
                         bool is_eb_dirichlet, bool is_eb_inhomog,
                         GpuArray<Real,AMREX_SPACEDIM> const& dxinv,
-                        Real alpha, Real beta, int ncomp) noexcept
+                        Real alpha, Real beta) noexcept
 {
     Real dhx = beta*dxinv[0]*dxinv[0];
     Real dhy = beta*dxinv[1]*dxinv[1];
     Real dh  = beta*dxinv[0]*dxinv[1];
 
-    amrex::Loop(box, ncomp, [=] (int i, int j, int k, int n) noexcept
+    auto const& flag  = ebdata.get<EBData_t::cellflag>();
+    auto const& vfrc  = ebdata.get<EBData_t::volfrac>();
+    auto const& apx   = ebdata.get<EBData_t::apx>();
+    auto const& apy   = ebdata.get<EBData_t::apy>();
+    auto const& fcx   = ebdata.get<EBData_t::fcx>();
+    auto const& fcy   = ebdata.get<EBData_t::fcy>();
+    auto const& ccent = ebdata.get<EBData_t::centroid>();
+    auto const& ba    = ebdata.get<EBData_t::bndryarea>();
+    auto const& bcent = ebdata.get<EBData_t::bndrycent>();
+
+    if (flag(i,j,k).isCovered())
     {
-        if (flag(i,j,k).isCovered())
+        y(i,j,k,n) = Real(0.0);
+    }
+    else if (flag(i,j,k).isRegular() &&
+            ((flag(i-1,j  ,k).isRegular() && flag(i+1,j  ,k).isRegular() &&
+             flag(i  ,j-1,k).isRegular() && flag(i  ,j+1,k).isRegular()) ))
+    {
+        y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n)
+            - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
+                   - bX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
+            - dhy * (bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
+                   - bY(i,j  ,k,n)*(x(i,j  ,k,n) - x(i,j-1,k,n)));
+
+
+    }
+    else
+    {
+        Real kappa = vfrc(i,j,k);
+        Real apxm = apx(i,j,k);
+        Real apxp = apx(i+1,j,k);
+        Real apym = apy(i,j,k);
+        Real apyp = apy(i,j+1,k);
+
+        // First get EB-aware slope that doesn't know about extdir
+        bool needs_bdry_stencil = (i <= domlo_x) || (i >= domhi_x) ||
+                                  (j <= domlo_y) || (j >= domhi_y);
+
+        // if phi_on_centroid -- A second order least squares fit is used
+        // to approximate the slope on the high and low faces. Note that if
+        // any of the three cells --e.g., (i-1,j), (i,j), or (i-1,j)-- are
+        // cut, then the least squares fit is needed. This is a bit more than
+        // is actually needed for most cases but it will return the correct
+        // value in all cases.
+
+        Real fxm = bX(i,j,k,n) * (x(i,j,k,n)-x(i-1,j,k,n));
+        if ( (apxm != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i-1,j,k) != Real(1.0) || vfrc(i+1,j,k) != Real(1.0)) )
         {
-            y(i,j,k,n) = Real(0.0);
+            Real yloc_on_xface = fcx(i,j,k);
+
+            if(needs_bdry_stencil) {
+
+              fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                      yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
+                                                      on_x_face, domlo_x, domhi_x,
+                                                      on_y_face, domlo_y, domhi_y);
+
+            } else {
+              fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
+                                               yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
+            }
+            fxm *= bX(i,j,k,n);
         }
-        else if (flag(i,j,k).isRegular() &&
-                ((flag(i-1,j  ,k).isRegular() && flag(i+1,j  ,k).isRegular() &&
-                 flag(i  ,j-1,k).isRegular() && flag(i  ,j+1,k).isRegular()) ))
+
+        Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n)-x(i,j,k,n));
+        if ( (apxp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i+1,j,k) != Real(1.0) || vfrc(i-1,j,k) != Real(1.0)) ) {
+            Real yloc_on_xface = fcx(i+1,j,k,0);
+            if(needs_bdry_stencil) {
+              fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                      yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
+                                                      on_x_face, domlo_x, domhi_x,
+                                                      on_y_face, domlo_y, domhi_y);
+
+            } else {
+              fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,
+                                               yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
+            }
+            fxp *= bX(i+1,j,k,n);
+
+        }
+
+        Real fym = bY(i,j,k,n)*(x(i,j,k,n)-x(i,j-1,k,n));
+        if ( (apym != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j-1,k) != Real(1.0) || vfrc(i,j+1,k) != Real(1.0)) ) {
+            Real xloc_on_yface = fcy(i,j,k,0);
+
+            if(needs_bdry_stencil) {
+
+              fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                      xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
+                                                      on_x_face, domlo_x, domhi_x,
+                                                      on_y_face, domlo_y, domhi_y);
+
+            } else {
+              fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
+                                               xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
+            }
+            fym *= bY(i,j,k,n);
+        }
+
+        Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n)-x(i,j,k,n));
+        if ( (apyp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j+1,k) != Real(1.0) || vfrc(i,j-1,k) != Real(1.0)) ) {
+            Real xloc_on_yface = fcy(i,j+1,k,0);
+            if(needs_bdry_stencil) {
+              fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                      xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
+                                                      on_x_face, domlo_x, domhi_x,
+                                                      on_y_face, domlo_y, domhi_y);
+
+            } else {
+              fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,
+                                               xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
+            }
+            fyp *= bY(i,j+1,k,n);
+        }
+
+        Real feb = Real(0.0);
+        if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
         {
-            y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n)
-                - dhx * (bX(i+1,j,k,n)*(x(i+1,j,k,n) - x(i  ,j,k,n))
-                       - bX(i  ,j,k,n)*(x(i  ,j,k,n) - x(i-1,j,k,n)))
-                - dhy * (bY(i,j+1,k,n)*(x(i,j+1,k,n) - x(i,j  ,k,n))
-                       - bY(i,j  ,k,n)*(x(i,j  ,k,n) - x(i,j-1,k,n)));
+            Real dapx = (apxm-apxp)/dxinv[1];
+            Real dapy = (apym-apyp)/dxinv[0];
+            Real anorm = std::hypot(dapx,dapy);
+            Real anorminv = Real(1.0)/anorm;
+            Real anrmx = dapx * anorminv;
+            Real anrmy = dapy * anorminv;
 
 
+            feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
+                                                     anrmx,anrmy,is_eb_inhomog,
+                                                     on_x_face, domlo_x, domhi_x,
+                                                     on_y_face, domlo_y, domhi_y);
+
+            feb *= ba(i,j,k) * beb(i,j,k,n);
         }
-        else
-        {
-            Real kappa = vfrc(i,j,k);
-            Real apxm = apx(i,j,k);
-            Real apxp = apx(i+1,j,k);
-            Real apym = apy(i,j,k);
-            Real apyp = apy(i,j+1,k);
-
-            // First get EB-aware slope that doesn't know about extdir
-            bool needs_bdry_stencil = (i <= domlo_x) || (i >= domhi_x) ||
-                                      (j <= domlo_y) || (j >= domhi_y);
-
-            // if phi_on_centroid -- A second order least squares fit is used
-            // to approximate the slope on the high and low faces. Note that if
-            // any of the three cells --e.g., (i-1,j), (i,j), or (i-1,j)-- are
-            // cut, then the least squares fit is needed. This is a bit more than
-            // is actually needed for most cases but it will return the correct
-            // value in all cases.
-
-            Real fxm = bX(i,j,k,n) * (x(i,j,k,n)-x(i-1,j,k,n));
-            if ( (apxm != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i-1,j,k) != Real(1.0) || vfrc(i+1,j,k) != Real(1.0)) )
-            {
-                Real yloc_on_xface = fcx(i,j,k);
-
-                if(needs_bdry_stencil) {
-
-                  fxm = grad_x_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
-
-                } else {
-                  fxm = grad_x_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
-                                                   yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
-                }
-                fxm *= bX(i,j,k,n);
-            }
-
-            Real fxp = bX(i+1,j,k,n)*(x(i+1,j,k,n)-x(i,j,k,n));
-            if ( (apxp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i+1,j,k) != Real(1.0) || vfrc(i-1,j,k) != Real(1.0)) ) {
-                Real yloc_on_xface = fcx(i+1,j,k,0);
-                if(needs_bdry_stencil) {
-                  fxp = grad_x_of_phi_on_centroids_extdir(i+1,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          yloc_on_xface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
-
-                } else {
-                  fxp = grad_x_of_phi_on_centroids(i+1,j,k,n,x,phieb,flag,ccent,bcent,
-                                                   yloc_on_xface,is_eb_dirichlet,is_eb_inhomog);
-                }
-                fxp *= bX(i+1,j,k,n);
-
-            }
-
-            Real fym = bY(i,j,k,n)*(x(i,j,k,n)-x(i,j-1,k,n));
-            if ( (apym != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j-1,k) != Real(1.0) || vfrc(i,j+1,k) != Real(1.0)) ) {
-                Real xloc_on_yface = fcy(i,j,k,0);
-
-                if(needs_bdry_stencil) {
-
-                  fym = grad_y_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
-
-                } else {
-                  fym = grad_y_of_phi_on_centroids(i,j,k,n,x,phieb,flag,ccent,bcent,
-                                                   xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
-                }
-                fym *= bY(i,j,k,n);
-            }
-
-            Real fyp = bY(i,j+1,k,n)*(x(i,j+1,k,n)-x(i,j,k,n));
-            if ( (apyp != Real(0.0)) && (vfrc(i,j,k) != Real(1.0) || vfrc(i,j+1,k) != Real(1.0) || vfrc(i,j-1,k) != Real(1.0)) ) {
-                Real xloc_on_yface = fcy(i,j+1,k,0);
-                if(needs_bdry_stencil) {
-                  fyp = grad_y_of_phi_on_centroids_extdir(i,j+1,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                          xloc_on_yface,is_eb_dirichlet,is_eb_inhomog,
-                                                          on_x_face, domlo_x, domhi_x,
-                                                          on_y_face, domlo_y, domhi_y);
-
-                } else {
-                  fyp = grad_y_of_phi_on_centroids(i,j+1,k,n,x,phieb,flag,ccent,bcent,
-                                                   xloc_on_yface,is_eb_dirichlet,is_eb_inhomog);
-                }
-                fyp *= bY(i,j+1,k,n);
-            }
-
-            Real feb = Real(0.0);
-            if (is_eb_dirichlet && flag(i,j,k).isSingleValued())
-            {
-                Real dapx = (apxm-apxp)/dxinv[1];
-                Real dapy = (apym-apyp)/dxinv[0];
-                Real anorm = std::hypot(dapx,dapy);
-                Real anorminv = Real(1.0)/anorm;
-                Real anrmx = dapx * anorminv;
-                Real anrmy = dapy * anorminv;
 
 
-                feb = grad_eb_of_phi_on_centroids_extdir(i,j,k,n,x,phieb,flag,ccent,bcent,vfrc,
-                                                         anrmx,anrmy,is_eb_inhomog,
-                                                         on_x_face, domlo_x, domhi_x,
-                                                         on_y_face, domlo_y, domhi_y);
-
-                feb *= ba(i,j,k) * beb(i,j,k,n);
-            }
-
-
-            y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
-                (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - dh*feb);
-        }
-    });
+        y(i,j,k,n) = alpha*a(i,j,k)*x(i,j,k,n) + (Real(1.0)/kappa) *
+            (dhx*(apxm*fxm-apxp*fxp) + dhy*(apym*fym-apyp*fyp) - dh*feb);
+    }
 }
 
 AMREX_GPU_HOST_DEVICE AMREX_FORCE_INLINE
