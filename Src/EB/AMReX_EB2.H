@@ -144,6 +144,10 @@ int NumCoarsenOpt ();
 /**
  * \brief Build EB geometry from a GeometryShop \p gshop and a single AMR Geometry.
  *
+ * The fine-level generator is selected by the runtime parameter
+ * `eb2.geometry_method` (`legacy`, the default, or `marching_cubes`); see
+ * EB2::GeometryMethod and EB2::GetGeometryMethod().
+ *
  * \tparam G GeometryShop type (see EB2::GeometryShop helpers).
  * \param gshop  Construct describing the implicit surface.
  * \param geom   Finest-level Geometry.
@@ -203,8 +207,9 @@ Build (const G& gshop, Vector<Geometry> geom,
  * ParmParse namespace (notably `eb2.geom_type` along with its shape-specific parameters)
  * and instantiates the matching implicit function.  Supported values currently include
  * `all_regular`, `box`, `cylinder`, `plane`, `sphere`, `torus`, `parser`, and `stl`.
- * For STL input, runtime `eb2.stl_geometry_method` selects `legacy` (the default)
- * or the supported 3-D, cubic-cell, single-valued `marching_cubes` generator.
+ * For every geometry type, runtime `eb2.geometry_method` selects the `legacy`
+ * generator (the default) or the 3-D, cubic-cell, single-valued `marching_cubes`
+ * generator (see EB2::GetGeometryMethod).
  *
  * \param geom   Finest-level Geometry.
  * \param required_coarsening_level Number of coarse levels required by the application.
@@ -217,7 +222,7 @@ Build (const G& gshop, Vector<Geometry> geom,
  *        runtime `eb2.num_coarsen_opt`) before rebuilding at full resolution.
  * \param support_mvmc Whether to build experimental multi-valued multi-cut support. (Only honored when
  *        `eb2.geom_type` is `stl`; other geometries ignore it and emit a warning.
- *        It is incompatible with `eb2.stl_geometry_method=marching_cubes`.)
+ *        It is incompatible with `eb2.geometry_method=marching_cubes`.)
  */
 void Build (const Geometry& geom,
             int required_coarsening_level,

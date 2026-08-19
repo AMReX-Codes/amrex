@@ -6,11 +6,13 @@
 #include <AMReX_Math.H>
 #include <AMReX_Stack.H>
 
+#include <algorithm>
 #include <array>
 #include <cstring>
-#include <map>
+#include <iomanip>
 #include <sstream>
-#include <tuple>
+#include <unordered_map>
+#include <utility>
 
 // Reference for BVH: https://rmrsk.github.io/EBGeometry/Concepts.html#bounding-volume-hierarchies
 
@@ -24,8 +26,25 @@ namespace {
         Real y;
         Real z;
 
-        bool operator< (STLVertexKey const& rhs) const noexcept {
-            return std::tie(x,y,z) < std::tie(rhs.x,rhs.y,rhs.z);
+        bool operator== (STLVertexKey const& rhs) const noexcept {
+            return x == rhs.x && y == rhs.y && z == rhs.z;
+        }
+    };
+
+    struct STLVertexKeyHash {
+        std::size_t operator() (STLVertexKey const& key) const noexcept {
+            std::hash<Real> const h;
+            std::size_t seed = h(key.x);
+            seed ^= h(key.y) + std::size_t(0x9e3779b97f4a7c15ULL) + (seed << 6) + (seed >> 2);
+            seed ^= h(key.z) + std::size_t(0x9e3779b97f4a7c15ULL) + (seed << 6) + (seed >> 2);
+            return seed;
+        }
+    };
+
+    struct STLEdgeKeyHash {
+        std::size_t operator() (std::pair<int,int> const& key) const noexcept {
+            return (static_cast<std::size_t>(static_cast<unsigned>(key.first)) << 32)
+                ^ static_cast<std::size_t>(static_cast<unsigned>(key.second));
         }
     };
 
@@ -69,14 +88,22 @@ namespace {
         // facets after otherwise representable single-precision conversion.
         Real const area_tolerance = epsilon*epsilon*scale*scale;
 
-        std::map<STLVertexKey,int> vertex_ids;
-        std::map<std::pair<int,int>,std::pair<int,int>> edges;
+        // Vertices are welded only when their coordinates are bit-identical
+        // after scaling and centering; a file whose shared vertices differ in
+        // the last digit is reported as open below, with the coordinates.
+        std::unordered_map<STLVertexKey,int,STLVertexKeyHash> vertex_ids;
+        std::unordered_map<std::pair<int,int>,std::pair<int,int>,STLEdgeKeyHash> edges;
+        vertex_ids.reserve(triangles.size()*3);
+        edges.reserve(triangles.size()*3);
+        Vector<XDim3> vertex_coordinates;
+        vertex_coordinates.reserve(triangles.size()*3);
         int next_vertex_id = 0;
         auto vertex_id = [&] (XDim3 const& vertex) -> int {
             STLVertexKey const key{.x = vertex.x, .y = vertex.y, .z = vertex.z};
             auto [it,inserted] = vertex_ids.emplace(key,next_vertex_id);
             if (inserted) {
                 ++next_vertex_id;
+                vertex_coordinates.push_back(vertex);
             }
             return it->second;
         };
@@ -116,11 +143,18 @@ namespace {
 
         for (auto const& [edge,record] : edges) {
             if (record.first != 2 || record.second != 0) {
+                auto const& a = vertex_coordinates[edge.first];
+                auto const& b = vertex_coordinates[edge.second];
                 std::ostringstream message;
-                message << "Marching-cubes STL is open, nonmanifold, or "
-                        << "inconsistently oriented at canonical edge ("
-                        << edge.first << ',' << edge.second << "): incidence="
-                        << record.first << ", orientation_sum=" << record.second;
+                message << std::setprecision(std::numeric_limits<Real>::max_digits10)
+                        << "Marching-cubes STL is open, nonmanifold, or "
+                        << "inconsistently oriented at the edge from ("
+                        << a.x << ',' << a.y << ',' << a.z << ") to ("
+                        << b.x << ',' << b.y << ',' << b.z << "): incidence="
+                        << record.first << " (expected 2), orientation_sum="
+                        << record.second << " (expected 0).  Vertices are matched "
+                        << "exactly; repair or re-export the STL so shared vertices "
+                        << "have identical coordinates.";
                 amrex::Abort(message.str());
             }
         }
@@ -893,8 +927,22 @@ STLtools::build_bvh (Triangle* begin, Triangle* end, Gpu::PinnedVector<Node>& bv
         centmax.max(cent);
     }
     int max_dir = (centmax-centmin).maxDir(false);
-    std::sort(begin, end, [max_dir] (Triangle const& a, Triangle const& b) -> bool
-                              { return a.cent(max_dir) < b.cent(max_dir); });
+    {
+        // Sort by precomputed centroid keys.  Recomputing Triangle::cent()
+        // inside the comparator is not a strict weak ordering under
+        // fast-math (the sum can be re-associated differently at different
+        // call sites), which lets std::sort run out of bounds.
+        Vector<std::pair<Real,int>> keys(ntri);
+        for (int i = 0; i < ntri; ++i) {
+            keys[i] = std::make_pair(begin[i].cent(max_dir), i);
+        }
+        std::sort(keys.begin(), keys.end());
+        Vector<Triangle> sorted(ntri);
+        for (int i = 0; i < ntri; ++i) {
+            sorted[i] = begin[keys[i].second];
+        }
+        std::copy(sorted.begin(), sorted.end(), begin);
+    }
 
     int nsplits = std::min((ntri + (m_bvh_max_size-1)) / m_bvh_max_size, m_bvh_max_splits);
     int tsize = ntri / nsplits;

@@ -6,6 +6,28 @@
 
 namespace amrex::EB2 {
 
+RepairParameters
+GetRepairParameters ()
+{
+    RepairParameters p;
+#ifdef AMREX_USE_FLOAT
+    p.small_volfrac = 1.e-5_rt;
+#else
+    p.small_volfrac = 1.e-14;
+#endif
+    p.cover_multiple_cuts = false;
+    p.maxiter = 32;
+    {
+        ParmParse pp("eb2");
+        pp.queryAdd("small_volfrac", p.small_volfrac);
+        pp.queryAdd("cover_multiple_cuts", p.cover_multiple_cuts);
+        pp.queryAdd("maxiter", p.maxiter);
+    }
+    p.maxiter = std::min(100000, p.maxiter);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(p.maxiter > 0, "eb2.maxiter must be positive");
+    return p;
+}
+
 void
 Level::prepareForCoarsening (const Level& rhs, int max_grid_size, IntVect const& ngrow)
 {

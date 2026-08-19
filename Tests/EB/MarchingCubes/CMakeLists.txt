@@ -15,6 +15,23 @@ set(_input_files
     inputs.multilevel.rebuild.mc
     inputs.nodal.mc
     inputs.open-stl.mc
+    inputs.box.mc
+    inputs.box.nodal.mc
+    inputs.sphere.mc
+    inputs.sphere.legacy
+    inputs.sphere.rebuild.mc
+    inputs.parser.mc
+    inputs.api.mc
+    inputs.api.host.mc
+    inputs.api.multilevel.mc
+    inputs.box.periodic.mc
+    inputs.box.periodic.legacy
+    inputs.sphere.periodic.mc
+    inputs.box.crossing.mc
+    inputs.scale.mc
+    inputs.gyroid.mc
+    inputs.gyroid.nocover.mc
+    inputs.sphere.noncubic.mc
     cube.stl
     cubes.stl
     stanford_bunny.stl
@@ -60,6 +77,21 @@ add_mc_test_variant(EB_MarchingCubesCubes_3d inputs.cubes.mc)
 add_mc_test_variant(EB_MarchingCubesCubesLegacy_3d inputs.cubes.legacy)
 add_mc_test_variant(EB_MarchingCubesBunny_3d inputs.bunny.mc)
 add_mc_test_variant(EB_MarchingCubesBunnyLegacy_3d inputs.bunny.legacy)
+add_mc_test_variant(EB_MarchingCubesBox_3d inputs.box.mc)
+add_mc_test_variant(EB_MarchingCubesBoxNodal_3d inputs.box.nodal.mc)
+add_mc_test_variant(EB_MarchingCubesSphere_3d inputs.sphere.mc)
+add_mc_test_variant(EB_MarchingCubesSphereLegacy_3d inputs.sphere.legacy)
+add_mc_test_variant(EB_MarchingCubesSphereRebuild_3d inputs.sphere.rebuild.mc)
+add_mc_test_variant(EB_MarchingCubesParser_3d inputs.parser.mc)
+add_mc_test_variant(EB_MarchingCubesApi_3d inputs.api.mc)
+add_mc_test_variant(EB_MarchingCubesApiHost_3d inputs.api.host.mc)
+add_mc_test_variant(EB_MarchingCubesApiMultilevel_3d inputs.api.multilevel.mc)
+add_mc_test_variant(EB_MarchingCubesBoxPeriodic_3d inputs.box.periodic.mc)
+add_mc_test_variant(EB_MarchingCubesBoxPeriodicLegacy_3d inputs.box.periodic.legacy)
+add_mc_test_variant(EB_MarchingCubesSpherePeriodic_3d inputs.sphere.periodic.mc)
+add_mc_test_variant(EB_MarchingCubesBoxCrossing_3d inputs.box.crossing.mc)
+add_mc_test_variant(EB_MarchingCubesScaleInvariance_3d inputs.scale.mc)
+add_mc_test_variant(EB_MarchingCubesGyroid_3d inputs.gyroid.mc)
 
 function(add_expected_failure _test_name _inputs_filename _expected_regex)
     set(_test_prefix)
@@ -88,6 +120,10 @@ endfunction()
 
 add_expected_failure(EB_MarchingCubesRejectOpenSTL_3d
     inputs.open-stl.mc "STL is open, nonmanifold, or inconsistently oriented")
+add_expected_failure(EB_MarchingCubesRejectNoCover_3d
+    inputs.gyroid.nocover.mc "set eb2.cover_multiple_cuts=1")
+add_expected_failure(EB_MarchingCubesRejectNonCubic_3d
+    inputs.sphere.noncubic.mc "requires a 3D Cartesian grid with dx == dy == dz")
 
 unset(_sources)
 unset(_input_files)

@@ -2,10 +2,12 @@
 #include <AMReX_Arena.H>
 #include <AMReX_BLProfiler.H>
 #include <AMReX_Gpu.H>
+#include <AMReX_ParallelContext.H>
 #include <AMReX_ParallelDescriptor.H>
 
 #include <AMReX_EB2_C.H>
 #include <AMReX_MarchingCubes.H>
+#include <AMReX_MFIter.H>
 #include <AMReX_mc_jgt_table.H>
 
 #include <algorithm>
@@ -30,17 +32,38 @@ namespace {
 LookUpTable* h_table = nullptr;
 LookUpTable* d_table = nullptr;
 
+/**
+ * Sign of a*c - b*d with a scale-free tie break: the products have the units
+ * of the level set squared, so a tie is declared relative to their magnitude
+ * rather than against an absolute epsilon.  Returns -1, 0 (tie) or 1.  Shared
+ * by the MC33 face decider and the interior (tunnel) test so that both are
+ * invariant under scaling of the implicit function.
+ */
+AMREX_GPU_DEVICE AMREX_FORCE_INLINE
+int ambiguous_product_sign (Real a, Real c, Real b, Real d) noexcept
+{
+    Real const p = a*c;
+    Real const q = b*d;
+    Real const r = p - q;
+    Real const tol = Real(8.0)*std::numeric_limits<Real>::epsilon()*(std::abs(p)+std::abs(q));
+    if (std::abs(r) <= tol) { return 0; }
+    return (r > 0.0_rt) ? 1 : -1;
+}
+
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 bool four_crossing_fluid_is_connected (Real const* levelset) noexcept
 {
-    Real const q = levelset[0]*levelset[2] - levelset[1]*levelset[3];
-    if (std::abs(q) < std::numeric_limits<Real>::epsilon()) {
+    // The tie break is scale free (see ambiguous_product_sign); |a|+|b| is
+    // invariant under the index rotations/reversals neighboring cells apply
+    // to a shared face.
+    int const sign = ambiguous_product_sign(levelset[0], levelset[2], levelset[1], levelset[3]);
+    if (sign == 0) {
         // MC33's test_face tie break always selects the positive material.
         // Expressing the decision in material terms makes it invariant under
         // the rotations/reversals used by neighboring cells on a shared face.
         return true;
     }
-    return (levelset[0] > 0.0_rt) == (q > 0.0_rt);
+    return (levelset[0] > 0.0_rt) == (sign > 0);
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -151,13 +174,14 @@ bool face_is_rejected (Real a, Real b, Real c, Real d,
     return !fluid_connected;
 }
 
+//! Returns false when the face polygon is degenerate; the caller then routes
+//! the face into the nodal repair set.
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
-void cut_face_fraction (Real const* levelset, Real const* intersections,
+bool cut_face_fraction (Real const* levelset, Real const* intersections,
                         Real& area,
                         Real& centroid_x, Real& centroid_y,
                         bool has_resolved_decision,
-                        bool resolved_fluid_connected,
-                        int* error) noexcept
+                        bool resolved_fluid_connected) noexcept
 {
     // Safe sentinels for every early-error path.  The caller will reject the
     // geometry, but no downstream kernel may observe uninitialized storage.
@@ -199,7 +223,7 @@ void cut_face_fraction (Real const* levelset, Real const* intersections,
         area = (levelset[0] > 0.0_rt) ? 1.0_rt : 0.0_rt;
         centroid_x = 0.0_rt;
         centroid_y = 0.0_rt;
-        return;
+        return true;
     }
 
     if (crossing_count == 4) {
@@ -248,18 +272,16 @@ void cut_face_fraction (Real const* levelset, Real const* intersections,
         }
 
         if (fluid_area <= 0.0_rt || fluid_area >= 1.0_rt) {
-            Gpu::Atomic::AddNoRet(error, 1);
-            return;
+            return false;
         }
         area = fluid_area;
         centroid_x = fluid_moment_x/fluid_area - 0.5_rt;
         centroid_y = fluid_moment_y/fluid_area - 0.5_rt;
-        return;
+        return true;
     }
 
     if (crossing_count != 2 || polygon_size < 3) {
-        Gpu::Atomic::AddNoRet(error, 1);
-        return;
+        return false;
     }
 
     Real twice_area = 0.0_rt;
@@ -275,13 +297,13 @@ void cut_face_fraction (Real const* levelset, Real const* intersections,
     }
 
     if (twice_area <= 0.0_rt) {
-        Gpu::Atomic::AddNoRet(error, 1);
-        return;
+        return false;
     }
 
     area = 0.5_rt*twice_area;
     centroid_x = centroid_x_numerator/(3.0_rt*twice_area) - 0.5_rt;
     centroid_y = centroid_y_numerator/(3.0_rt*twice_area) - 0.5_rt;
+    return true;
 }
 
 AMREX_GPU_DEVICE AMREX_FORCE_INLINE
@@ -400,6 +422,14 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         case  7 :
         case 12 :
         case 13 :
+            // Lewiner's reference-edge shortcut: the interior test is taken on
+            // the plane through the reference edge with At = 0.  With that
+            // choice the tunnel alternatives 6.1.2, 7.4.2, 12.1.2 and 13.5.2
+            // are never selected (Bt >= 0 is equivalent to the face test that
+            // has already failed), so these cases always take the split
+            // tiling.  That is conservative for the EB builder: split cells
+            // hold two fluid corner groups and are rejected and repaired by
+            // mark_cells_for_cleanup, exactly as tunnel cells would be.
             switch( _case ) // NOLINT(bugprone-switch-missing-default-case)
             {
             case  6 : edge = lut->test6 [_config][2] ; break ;
@@ -511,12 +541,12 @@ void process_cube (std::int8_t ipass, LookUpTable const* lut, int i, int j, int 
         case  2 : return s>0 ;
         case  3 : return s>0 ;
         case  4 : return s>0 ;
-        case  5 : if( At * Ct - Bt * Dt <  FLT_EPSILON ) { return s>0 ; } break;
+        case  5 : if( ambiguous_product_sign(At,Ct,Bt,Dt) <= 0 ) { return s>0 ; } break;
         case  6 : return s>0 ;
         case  7 : return s<0 ;
         case  8 : return s>0 ;
         case  9 : return s>0 ;
-        case 10 : if( At * Ct - Bt * Dt >= FLT_EPSILON ) { return s>0 ; } break;
+        case 10 : if( ambiguous_product_sign(At,Ct,Bt,Dt) >= 0 ) { return s>0 ; } break;
         case 11 : return s<0 ;
         case 12 : return s>0 ;
         case 13 : return s<0 ;
@@ -958,11 +988,13 @@ void MCFab::defineEdgeIntersections (Box const& sdf_box)
     }
 }
 
-void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
+void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab, int* counters)
 {
     BL_PROFILE("marching_cubes");
 
-    AMREX_ALWAYS_ASSERT(sdf_fab.numPts() < Long(std::numeric_limits<int>::max()));
+    // The prefix sums below index vertices (up to 3 per node) and triangles
+    // (up to 12 per cell) with int, so bound the node count accordingly.
+    AMREX_ALWAYS_ASSERT(sdf_fab.numPts() < Long(std::numeric_limits<int>::max())/12);
 
     // Exact zeros belong to the covered side. This lets the cleanup loop move
     // nodes to ON without introducing a new positive fluid sample.
@@ -1028,16 +1060,21 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
                                     },
                                     [=] AMREX_GPU_DEVICE (int m, int ps) {
                                         auto [i,j,k] = n_bi(m);
+                                        // Component 1 holds the vertex index of the
+                                        // crossing on this edge, or -1 when the edge has
+                                        // no crossing.  The -1 sentinel is what
+                                        // add_c_vertex and the triangle assembly test.
                                         if (ex.contains(i,j,k)) {
-                                            ex(i,j,k,1) = ps;
-                                            if (ex(i,j,k,0)) { ++ps; }
+                                            if (ex(i,j,k,0)) { ex(i,j,k,1) = ps++; }
+                                            else             { ex(i,j,k,1) = -1;   }
                                         }
                                         if (ey.contains(i,j,k)) {
-                                            ey(i,j,k,1) = ps;
-                                            if (ey(i,j,k,0)) { ++ps; }
+                                            if (ey(i,j,k,0)) { ey(i,j,k,1) = ps++; }
+                                            else             { ey(i,j,k,1) = -1;   }
                                         }
                                         if (ez.contains(i,j,k)) {
-                                            ez(i,j,k,1) = ps;
+                                            if (ez(i,j,k,0)) { ez(i,j,k,1) = ps;   }
+                                            else             { ez(i,j,k,1) = -1;   }
                                         }
                                     },
                                     Scan::Type::exclusive, Scan::retSum);
@@ -1085,8 +1122,7 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     auto const& ntri = ntri_fab.array();
     GpuArray<int*,3> ptri{nullptr,nullptr,nullptr};
 
-    Gpu::DeviceScalar<int> error(0);
-    auto* perror = error.dataPtr();
+    int* const perror = counters + counter_invalid_triangles;
 
     BoxIndexer c_bi(cbox);
 
@@ -1106,10 +1142,6 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
                                          ntri(i,j,k,triangle_offset) = ps;
                                      },
                                      Scan::Type::exclusive, Scan::retSum);
-
-    if (error.dataValue() > 0) {
-        amrex::Abort("Marching Cubes: invalid triangle");
-    }
 
     int const edge_vertex_count = nvx;
     int nvx_c = Scan::PrefixSum<int>(int(cbox.numPts()),
@@ -1138,6 +1170,9 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     {
         int err = 0;
         process_cube(1,lut,i,j,k,sdf_c,ex_c,ey_c,ez_c,pvrtx,ntri,ptri,&err);
+        if (err != 0) {
+            Gpu::Atomic::AddNoRet(perror, 1);
+        }
     });
 
     // Shift vertices
@@ -1150,6 +1185,10 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
         pvrtx[2][m] = problo[2] + dx[2] * pvrtx[2][m];
     });
 
+    // The scratch edge fabs are destroyed on return, so wait for the kernels
+    // that read them.  Both passes accumulate into the same counter: an
+    // unknown MC33 face id in pass 0 or a triangle referencing an edge without
+    // a crossing in pass 1 are lookup-table invariants that the driver checks.
     Gpu::streamSynchronize();
 
     mc_fab.m_cell_data = std::move(ntri_fab);
@@ -1157,14 +1196,22 @@ void marching_cubes (Geometry const& geom, FArrayBox& sdf_fab, MCFab& mc_fab)
     mc_fab.m_vertices = std::move(vrtx);
 }
 
-int build_face_fractions (
+void build_face_fractions (
     Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
     FArrayBox& apx_fab, FArrayBox& apy_fab, FArrayBox& apz_fab,
-    FArrayBox& fcx_fab, FArrayBox& fcy_fab, FArrayBox& fcz_fab)
+    FArrayBox& fcx_fab, FArrayBox& fcy_fab, FArrayBox& fcz_fab,
+    IArrayBox& rejected_x_fab, IArrayBox& rejected_y_fab,
+    IArrayBox& rejected_z_fab, int* counters)
 {
     BL_PROFILE("MC::build_face_fractions");
 
     AMREX_ALWAYS_ASSERT(mc_fab.m_cell_data.box().contains(bx));
+    auto const rejected_x = rejected_x_fab.array();
+    auto const rejected_y = rejected_y_fab.array();
+    auto const rejected_z = rejected_z_fab.array();
+    Box const rejected_xbox = rejected_x_fab.box();
+    Box const rejected_ybox = rejected_y_fab.box();
+    Box const rejected_zbox = rejected_z_fab.box();
 
     auto const sdf = sdf_fab.const_array();
     auto const cell_data = mc_fab.m_cell_data.const_array();
@@ -1179,12 +1226,18 @@ int build_face_fractions (
     auto const fcy = fcy_fab.array();
     auto const fcz = fcz_fab.array();
 
-    Gpu::DeviceScalar<int> error_count(0);
-    int* const error = error_count.dataPtr();
+    // The two cells sharing a face resolved its MC33 ambiguity differently
+    // (an invariant violation, fatal in the driver), and degenerate face
+    // polygons that were marked in the rejected face arrays for nodal repair.
+    int* const error = counters + counter_face_decision_errors;
+    int* const degenerate = counters + counter_degenerate_faces;
 
     // Chombo's moment construction starts with boundary-face moments.  Build
     // those apertures from the same signed-distance edge intersections used
     // by marching cubes, so the six Cartesian patches and EB triangles close.
+    // Edges traversed against their storage direction use 1 - exact; the
+    // invalid_edge_intersection sentinel (-1) maps to 2, which
+    // edge_intersection_fraction also treats as "no exact crossing".
     ParallelFor(amrex::surroundingNodes(bx,0),
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
@@ -1198,9 +1251,13 @@ int build_face_fractions (
         };
         auto const decision = resolved_face_decision(
             cell_data, cell_box, error, i-1,j,k,1, i,j,k,3);
-        cut_face_fraction(face_levelset, intersections, apx(i,j,k),
-                          fcx(i,j,k,0), fcx(i,j,k,1),
-                          decision[0] != 0, decision[1] != 0, error);
+        bool const ok = cut_face_fraction(face_levelset, intersections, apx(i,j,k),
+                                          fcx(i,j,k,0), fcx(i,j,k,1),
+                                          decision[0] != 0, decision[1] != 0);
+        if (!ok && rejected_xbox.contains(i,j,k)) {
+            rejected_x(i,j,k) = 1;
+            Gpu::Atomic::AddNoRet(degenerate, 1);
+        }
     });
 
     ParallelFor(amrex::surroundingNodes(bx,1),
@@ -1216,9 +1273,13 @@ int build_face_fractions (
         };
         auto const decision = resolved_face_decision(
             cell_data, cell_box, error, i,j-1,k,2, i,j,k,0);
-        cut_face_fraction(face_levelset, intersections, apy(i,j,k),
-                          fcy(i,j,k,0), fcy(i,j,k,1),
-                          decision[0] != 0, decision[1] != 0, error);
+        bool const ok = cut_face_fraction(face_levelset, intersections, apy(i,j,k),
+                                          fcy(i,j,k,0), fcy(i,j,k,1),
+                                          decision[0] != 0, decision[1] != 0);
+        if (!ok && rejected_ybox.contains(i,j,k)) {
+            rejected_y(i,j,k) = 1;
+            Gpu::Atomic::AddNoRet(degenerate, 1);
+        }
     });
 
     ParallelFor(amrex::surroundingNodes(bx,2),
@@ -1234,12 +1295,15 @@ int build_face_fractions (
         };
         auto const decision = resolved_face_decision(
             cell_data, cell_box, error, i,j,k-1,5, i,j,k,4);
-        cut_face_fraction(face_levelset, intersections, apz(i,j,k),
-                          fcz(i,j,k,0), fcz(i,j,k,1),
-                          decision[0] != 0, decision[1] != 0, error);
+        bool const ok = cut_face_fraction(face_levelset, intersections, apz(i,j,k),
+                                          fcz(i,j,k,0), fcz(i,j,k,1),
+                                          decision[0] != 0, decision[1] != 0);
+        if (!ok && rejected_zbox.contains(i,j,k)) {
+            rejected_z(i,j,k) = 1;
+            Gpu::Atomic::AddNoRet(degenerate, 1);
+        }
     });
 
-    return error_count.dataValue();
 }
 
 void build_edge_centroids (
@@ -1321,12 +1385,12 @@ void build_edge_centroids (
     });
 }
 
-int build_cell_fractions (
+void build_cell_fractions (
     Box const& bx, Geometry const& geom, MCFab const& mc_fab,
     FArrayBox const& sdf_fab,
     FArrayBox& apx_fab, FArrayBox& apy_fab, FArrayBox& apz_fab,
     FArrayBox& vfrac_fab, FArrayBox& vcent_fab, FArrayBox& barea_fab,
-    FArrayBox& bcent_fab, FArrayBox& bnorm_fab)
+    FArrayBox& bcent_fab, FArrayBox& bnorm_fab, int* counters)
 {
     BL_PROFILE("MC::build_cell_fractions");
 
@@ -1361,12 +1425,13 @@ int build_cell_fractions (
     auto const* vert_z = mc_fab.m_vertices.z.data();
 
     auto const problo = geom.ProbLoArray();
-    // Area-vector closure, volume, centroid, and boundary-normal errors.
-    // Every quantity checked against tolerance is dimensionless.
-    Gpu::Buffer<int> error_count(4);
-    std::fill_n(error_count.hostData(), error_count.size(), 0);
-    error_count.copyToDeviceAsync();
-    int* const errors = error_count.data();
+    // Area-vector closure, volume, centroid, and boundary-normal errors in
+    // four consecutive counter slots.  Every quantity checked against
+    // tolerance is dimensionless.
+    static_assert(counter_volume_errors == counter_closure_errors + 1
+                  && counter_centroid_errors == counter_closure_errors + 2
+                  && counter_area_vector_errors == counter_closure_errors + 3);
+    int* const errors = counters + counter_closure_errors;
 
 #ifdef AMREX_USE_FLOAT
     constexpr Real tolerance = 2.e-5_rt;
@@ -1538,8 +1603,16 @@ int build_cell_fractions (
             if (eb_area <= tolerance) {
                 // The surface only touches this cell at a node or edge.  It
                 // has no measure inside the cell, so the fluid-side cell is
-                // regular rather than a zero-area cut cell.
+                // regular rather than a zero-area cut cell.  Write the full
+                // set of "no boundary in this cell" values explicitly in case
+                // a cut face still makes the cell single-valued downstream.
                 vfrac(i,j,k) = 1.0_rt;
+                barea(i,j,k) = 0.0_rt;
+                for (int d = 0; d < 3; ++d) {
+                    vcent(i,j,k,d) = 0.0_rt;
+                    bcent(i,j,k,d) = 0.0_rt;
+                    bnorm(i,j,k,d) = 0.0_rt;
+                }
                 return;
             }
             // The EB lies on one or more cell faces and this cell owns the
@@ -1614,19 +1687,6 @@ int build_cell_fractions (
         barea(i,j,k) = eb_area;
     });
 
-    error_count.copyToHost();
-    int result = 0;
-    for (int n = 0; n < 4; ++n) {
-        result += error_count.hostData()[n];
-    }
-    if (result != 0) {
-        AllPrint() << "Marching-cubes geometry errors: closure="
-                   << error_count.hostData()[0]
-                   << ", volume=" << error_count.hostData()[1]
-                   << ", centroid=" << error_count.hostData()[2]
-                   << ", area-vector=" << error_count.hostData()[3] << '\n';
-    }
-    return result;
 }
 
 int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
@@ -1737,9 +1797,9 @@ int build_cell_topology (Box const& bx, MCFab const& mc_fab, FArrayBox const& sd
     return error_count.dataValue();
 }
 
-int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
-                            IArrayBox& rejected_x_fab, IArrayBox& rejected_y_fab,
-                            IArrayBox& rejected_z_fab)
+void mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const& sdf_fab,
+                             IArrayBox& rejected_x_fab, IArrayBox& rejected_y_fab,
+                             IArrayBox& rejected_z_fab, int* counters)
 {
     BL_PROFILE("MC::mark_faces_for_cleanup");
 
@@ -1759,15 +1819,14 @@ int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const&
     auto const rejected_y = rejected_y_fab.array();
     auto const rejected_z = rejected_z_fab.array();
 
-    Gpu::DeviceScalar<int> rejection_count(0);
-    int* const count = rejection_count.dataPtr();
+    int* const count = counters + counter_face_rejections;
 
     ParallelFor(xbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         bool const rejected =
             face_is_rejected(sdf(i, j, k), sdf(i, j + 1, k), sdf(i, j + 1, k + 1), sdf(i, j, k + 1),
                              cell_data, cell_box, i - 1, j, k, 1, i, j, k, 3);
-        rejected_x(i, j, k) = rejected;
-        if (rejected) {
+        if (rejected && rejected_x(i, j, k) == 0) {
+            rejected_x(i, j, k) = 1;
             Gpu::Atomic::AddNoRet(count, 1);
         }
     });
@@ -1775,8 +1834,8 @@ int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const&
         bool const rejected =
             face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k), sdf(i + 1, j, k + 1), sdf(i, j, k + 1),
                              cell_data, cell_box, i, j - 1, k, 2, i, j, k, 0);
-        rejected_y(i, j, k) = rejected;
-        if (rejected) {
+        if (rejected && rejected_y(i, j, k) == 0) {
+            rejected_y(i, j, k) = 1;
             Gpu::Atomic::AddNoRet(count, 1);
         }
     });
@@ -1784,18 +1843,17 @@ int mark_faces_for_cleanup (Box const& bx, MCFab const& mc_fab, FArrayBox const&
         bool const rejected =
             face_is_rejected(sdf(i, j, k), sdf(i + 1, j, k), sdf(i + 1, j + 1, k), sdf(i, j + 1, k),
                              cell_data, cell_box, i, j, k - 1, 5, i, j, k, 4);
-        rejected_z(i, j, k) = rejected;
-        if (rejected) {
+        if (rejected && rejected_z(i, j, k) == 0) {
+            rejected_z(i, j, k) = 1;
             Gpu::Atomic::AddNoRet(count, 1);
         }
     });
 
-    return rejection_count.dataValue();
 }
 
-Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cells_fab,
+void zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cells_fab,
                              IArrayBox const& rejected_x_fab, IArrayBox const& rejected_y_fab,
-                             IArrayBox const& rejected_z_fab, FArrayBox& sdf_fab)
+                             IArrayBox const& rejected_z_fab, FArrayBox& sdf_fab, int* counters)
 {
     BL_PROFILE("MC::zero_nodes_for_cleanup");
 
@@ -1814,8 +1872,7 @@ Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
     auto const rejected_z = rejected_z_fab.const_array();
     auto const sdf = sdf_fab.array();
 
-    Gpu::DeviceScalar<Long> changed_count(static_cast<Long>(0));
-    Long* const changed = changed_count.dataPtr();
+    int* const changed = counters + counter_changed_nodes;
     ParallelFor(node_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         if (sdf(i, j, k) <= 0.0_rt) {
             return;
@@ -1846,15 +1903,14 @@ Long zero_nodes_for_cleanup (Box const& node_box, IArrayBox const& rejected_cell
         }
         if (rejected) {
             sdf(i, j, k) = 0.0_rt;
-            Gpu::Atomic::AddNoRet(changed, static_cast<Long>(1));
+            Gpu::Atomic::AddNoRet(changed, 1);
         }
     });
-
-    return changed_count.dataValue();
 }
 
-Long extend_domain_face_levelset (Box const& node_box, Box const& domain,
-                                  GpuArray<int, 3> const& is_periodic, FArrayBox& sdf_fab)
+void extend_domain_face_levelset (Box const& node_box, Box const& domain,
+                                  GpuArray<int, 3> const& is_periodic, FArrayBox& sdf_fab,
+                                  int* counters)
 {
     BL_PROFILE("MC::extend_domain_face_levelset");
 
@@ -1881,8 +1937,7 @@ Long extend_domain_face_levelset (Box const& node_box, Box const& domain,
     int const domhi_y = nodal_domain.bigEnd(1);
     int const domhi_z = nodal_domain.bigEnd(2);
 
-    Gpu::DeviceScalar<Long> changed_count(static_cast<Long>(0));
-    Long* const changed = changed_count.dataPtr();
+    int* const changed = counters + counter_extended_nodes;
     ParallelFor(node_box, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         int const ii = is_periodic[0] ? i : amrex::Clamp(i, domlo_x, domhi_x);
         int const jj = is_periodic[1] ? j : amrex::Clamp(j, domlo_y, domhi_y);
@@ -1892,13 +1947,17 @@ Long extend_domain_face_levelset (Box const& node_box, Box const& domain,
             return;
         }
         Real const extended_value = sdf(ii, jj, kk);
+        // A repaired (exact-zero) exterior node stays covered: re-extending a
+        // fluid value onto it would undo the repair and could keep the repair
+        // loop from converging.
+        if (sdf(i, j, k) == 0.0_rt && extended_value > 0.0_rt) {
+            return;
+        }
         if (sdf(i, j, k) != extended_value) {
             sdf(i, j, k) = extended_value;
-            Gpu::Atomic::AddNoRet(changed, static_cast<Long>(1));
+            Gpu::Atomic::AddNoRet(changed, 1);
         }
     });
-
-    return changed_count.dataValue();
 }
 
 void extend_domain_face_edge_intersections (Box const& domain,
@@ -1938,9 +1997,9 @@ void extend_domain_face_edge_intersections (Box const& domain,
     }
 }
 
-GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
-                                         FArrayBox const& sdf_fab, FArrayBox const& vfrac_fab,
-                                         Real small_volfrac, IArrayBox& rejected_fab)
+void mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
+                             FArrayBox const& sdf_fab, FArrayBox const& vfrac_fab,
+                             Real small_volfrac, IArrayBox& rejected_fab, int* counters)
 {
     BL_PROFILE("MC::mark_cells_for_cleanup");
 
@@ -1953,14 +2012,9 @@ GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
     auto const sdf = sdf_fab.const_array();
     auto const vfrac = vfrac_fab.const_array();
     auto const rejected = rejected_fab.array();
-    auto const* tri_v1 = mc_fab.m_triangles.v1.data();
-    auto const* tri_v2 = mc_fab.m_triangles.v2.data();
-    auto const* tri_v3 = mc_fab.m_triangles.v3.data();
 
-    Gpu::Buffer<int> rejection_count(2);
-    std::fill_n(rejection_count.hostData(), rejection_count.size(), 0);
-    rejection_count.copyToDeviceAsync();
-    int* const counts = rejection_count.data();
+    static_assert(counter_small_cell_rejections == counter_topology_rejections + 1);
+    int* const counts = counters + counter_topology_rejections;
 
     ParallelFor(bx, [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept {
         Real const cube[8] = {
@@ -1974,93 +2028,70 @@ GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
         }
 
         int const triangle_count = cell_data(i, j, k, CellDataComponent::triangle_count);
-        int const triangle_offset = cell_data(i, j, k, CellDataComponent::triangle_offset);
         bool const is_cut = nfluid > 0 && nfluid < 8;
         bool bad_topology = is_cut && triangle_count <= 0;
 
-        // Count positive-corner components connected by cube edges.
+        // Count the fluid corner groups of the cell.  Corners are joined along
+        // the 12 cube edges and across every ambiguous (four-crossing) face
+        // whose MC33 decision says the two diagonal fluid corners are
+        // connected: that decision is what the extracted surface and the face
+        // apertures already use, so a group counted here is exactly a fluid
+        // region that touches the cell faces.  Corner groups that MC33 joins
+        // only through the cell interior (the tunnel tilings 4.1.2/10.1.2 and
+        // the 7.3/10.2/12.2/13.x variants) are deliberately NOT merged: a
+        // single-valued EB cell may hold one face-connected fluid region only,
+        // so such cells are rejected and repaired.
         int corner_parent[8];
         for (int n = 0; n < 8; ++n) {
             corner_parent[n] = n;
         }
+        auto find_root = [&] (int n) {
+            while (corner_parent[n] != n) { n = corner_parent[n]; }
+            return n;
+        };
+        auto join = [&] (int a, int b) {
+            int const ra = find_root(a);
+            int const rb = find_root(b);
+            if (ra != rb) { corner_parent[rb] = ra; }
+        };
         constexpr int edge_lo[12] = {0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3};
         constexpr int edge_hi[12] = {1, 2, 3, 0, 5, 6, 7, 4, 4, 5, 6, 7};
         for (int n = 0; n < 12; ++n) {
-            int const lo = edge_lo[n];
-            int const hi = edge_hi[n];
-            if (fluid[lo] && fluid[hi]) {
-                int lo_root = lo;
-                int hi_root = hi;
-                while (corner_parent[lo_root] != lo_root) {
-                    lo_root = corner_parent[lo_root];
-                }
-                while (corner_parent[hi_root] != hi_root) {
-                    hi_root = corner_parent[hi_root];
-                }
-                if (lo_root != hi_root) {
-                    corner_parent[hi_root] = lo_root;
-                }
+            if (fluid[edge_lo[n]] && fluid[edge_hi[n]]) {
+                join(edge_lo[n], edge_hi[n]);
+            }
+        }
+        // MC33 face ids 1..6 in cube-corner order, matching test_face()'s
+        // A,B,C,D and the bits stored in m_cell_data.
+        constexpr int face_corner[6][4] = {{0, 4, 5, 1}, {1, 5, 6, 2}, {2, 6, 7, 3},
+                                           {3, 7, 4, 0}, {0, 3, 2, 1}, {4, 7, 6, 5}};
+        int const valid_mask = cell_data(i, j, k, CellDataComponent::face_decision_valid_mask);
+        int const connected_mask =
+            cell_data(i, j, k, CellDataComponent::face_fluid_connected_mask);
+        for (int f = 0; f < 6; ++f) {
+            int const c0 = face_corner[f][0];
+            int const c1 = face_corner[f][1];
+            int const c2 = face_corner[f][2];
+            int const c3 = face_corner[f][3];
+            if (!(fluid[c0] == fluid[c2] && fluid[c1] == fluid[c3] && fluid[c0] != fluid[c1])) {
+                continue; // not an ambiguous face
+            }
+            int const bit = 1 << f;
+            Real const face_levelset[4] = {cube[c0], cube[c1], cube[c2], cube[c3]};
+            bool const connected = ((valid_mask & bit) != 0)
+                ? ((connected_mask & bit) != 0)
+                : four_crossing_fluid_is_connected(face_levelset);
+            if (connected) {
+                if (fluid[c0]) { join(c0, c2); } else { join(c1, c3); }
             }
         }
         int fluid_components = 0;
         for (int n = 0; n < 8; ++n) {
             if (fluid[n]) {
-                int corner_root = n;
-                while (corner_parent[corner_root] != corner_root) {
-                    corner_root = corner_parent[corner_root];
-                }
-                fluid_components += corner_root == n;
+                fluid_components += find_root(n) == n;
             }
         }
-
-        // MC33's connected tilings join otherwise separated corner groups
-        // through the cell interior. Triangle-patch connectivity records that
-        // resolution without treating triangle count itself as topology.
-        constexpr int max_cell_triangles = 16;
-        int triangle_parent[max_cell_triangles];
-        int triangle_components = 0;
-        if (triangle_count > max_cell_triangles) {
-            bad_topology = true;
-        } else {
-            for (int n = 0; n < triangle_count; ++n) {
-                triangle_parent[n] = n;
-            }
-            for (int n = 0; n < triangle_count; ++n) {
-                int const mn = triangle_offset + n;
-                int const nv[3] = {tri_v1[mn], tri_v2[mn], tri_v3[mn]};
-                for (int m = n + 1; m < triangle_count; ++m) {
-                    int const mm = triangle_offset + m;
-                    int const mv[3] = {tri_v1[mm], tri_v2[mm], tri_v3[mm]};
-                    bool share_vertex = false;
-                    for (int const vertex_n : nv) {
-                        for (int const vertex_m : mv) {
-                            share_vertex = share_vertex || vertex_n == vertex_m;
-                        }
-                    }
-                    if (share_vertex) {
-                        int n_root = n;
-                        int m_root = m;
-                        while (triangle_parent[n_root] != n_root) {
-                            n_root = triangle_parent[n_root];
-                        }
-                        while (triangle_parent[m_root] != m_root) {
-                            m_root = triangle_parent[m_root];
-                        }
-                        if (n_root != m_root) {
-                            triangle_parent[m_root] = n_root;
-                        }
-                    }
-                }
-            }
-            for (int n = 0; n < triangle_count; ++n) {
-                int triangle_root = n;
-                while (triangle_parent[triangle_root] != triangle_root) {
-                    triangle_root = triangle_parent[triangle_root];
-                }
-                triangle_components += triangle_root == n;
-            }
-        }
-        bad_topology = bad_topology || (fluid_components > 1 && triangle_components > 1);
+        bad_topology = bad_topology || fluid_components > 1;
 
         // A negative sentinel means geometry construction rejected the closed
         // boundary. Cover it and let the next MC pass rebuild its neighbors.
@@ -2076,15 +2107,15 @@ GpuArray<int, 2> mark_cells_for_cleanup (Box const& bx, MCFab const& mc_fab,
         }
     });
 
-    rejection_count.copyToHost();
-    return {rejection_count.hostData()[0], rejection_count.hostData()[1]};
 }
 
-void write_stl (std::string const& filename, std::map<int, std::unique_ptr<MCFab>> const& mc_fabs,
-                BoxArray const& grids)
+void write_stl (std::string const& filename, LayoutData<MCFab> const& mc_fabs)
 {
-    int myproc = ParallelDescriptor::MyProc();
-    int nprocs = ParallelDescriptor::NProcs();
+    BoxArray const& grids = mc_fabs.boxArray();
+    // The EB may be built inside a ParallelContext sub-frame, so the token
+    // chain runs over the sub-communicator like the rest of the builder.
+    int const myproc = ParallelContext::MyProcSub();
+    int const nprocs = ParallelContext::NProcsSub();
 
     std::ofstream ofs;
 
@@ -2096,7 +2127,7 @@ void write_stl (std::string const& filename, std::map<int, std::unique_ptr<MCFab
 #ifdef AMREX_USE_MPI
     if (myproc > 0) {
         int foo = 0;
-        ParallelDescriptor::Recv(&foo, 1, myproc - 1, 100);
+        ParallelDescriptor::Recv(&foo, 1, myproc - 1, 100, ParallelContext::CommunicatorSub());
     }
 #endif
 
@@ -2107,8 +2138,10 @@ void write_stl (std::string const& filename, std::map<int, std::unique_ptr<MCFab
                                      "Could not open marching-cubes STL output " + filename);
     ofs << std::setprecision(std::numeric_limits<Real>::max_digits10);
 
-    for (auto const& [k, p] : mc_fabs) {
-        AMREX_ALWAYS_ASSERT(k >= 0 && k < grids.size() && p->m_cell_data.box().contains(grids[k]));
+    for (MFIter mfi(mc_fabs); mfi.isValid(); ++mfi) {
+        int const k = mfi.index();
+        MCFab const* p = &mc_fabs[mfi];
+        AMREX_ALWAYS_ASSERT(p->m_cell_data.box().contains(grids[k]));
         auto ntri = int(p->m_triangles.v1.size());
         amrex::ignore_unused(ntri);
 
@@ -2195,9 +2228,9 @@ void write_stl (std::string const& filename, std::map<int, std::unique_ptr<MCFab
 #ifdef AMREX_USE_MPI
     if (myproc < nprocs - 1) {
         int foo = 0;
-        ParallelDescriptor::Send(&foo, 1, myproc + 1, 100);
+        ParallelDescriptor::Send(&foo, 1, myproc + 1, 100, ParallelContext::CommunicatorSub());
     }
-    ParallelDescriptor::Barrier();
+    ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
 #endif
 }
 } // namespace amrex::MC

@@ -9,7 +9,7 @@ custom_stl_test = 1
 geometry.prob_lo = -2.4 -1.2 0.00
 geometry.prob_hi =  2.4  1.2 1.20
 
-eb2.stl_geometry_method = marching_cubes
+eb2.geometry_method = marching_cubes
 eb2.stl_file = cubes.stl
 eb2.small_volfrac = 1.e-6
 eb2.stl_scale = 1e-3

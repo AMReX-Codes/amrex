@@ -1,6 +1,7 @@
 #include <AMReX_EBToPVD.H>
 #include <AMReX_BLassert.H>
 #include <AMReX_Dim3.H>
+#include <AMReX_ParallelContext.H>
 
 #include <string>
 #include <sstream>
@@ -218,8 +219,8 @@ void EBToPVD::WriteEBVTP(const int myID) const
 
 void EBToPVD::WriteSTL (std::string const& filename) const
 {
-   int const myproc = ParallelDescriptor::MyProc();
-   int const nprocs = ParallelDescriptor::NProcs();
+   int const myproc = ParallelContext::MyProcSub();
+   int const nprocs = ParallelContext::NProcsSub();
    std::ofstream ofs;
 
    if (myproc == 0) {
@@ -230,7 +231,7 @@ void EBToPVD::WriteSTL (std::string const& filename) const
 #ifdef AMREX_USE_MPI
    if (myproc > 0) {
       int token = 0;
-      ParallelDescriptor::Recv(&token, 1, myproc-1, 101);
+      ParallelDescriptor::Recv(&token, 1, myproc-1, 101, ParallelContext::CommunicatorSub());
    }
 #endif
 
@@ -243,7 +244,8 @@ void EBToPVD::WriteSTL (std::string const& filename) const
 
    for (auto const& polygon : m_connectivity) {
       int const npoints = polygon[0];
-      AMREX_ALWAYS_ASSERT(npoints >= 3 && npoints <= 6);
+      AMREX_ALWAYS_ASSERT(npoints <= 6);
+      if (npoints < 3) { continue; } // no polygon to triangulate
       auto const& v1 = m_points[polygon[1]];
       for (int n = 2; n < npoints; ++n) {
          auto const& v2 = m_points[polygon[n]];
@@ -288,9 +290,9 @@ void EBToPVD::WriteSTL (std::string const& filename) const
 #ifdef AMREX_USE_MPI
    if (myproc < nprocs-1) {
       int token = 0;
-      ParallelDescriptor::Send(&token, 1, myproc+1, 101);
+      ParallelDescriptor::Send(&token, 1, myproc+1, 101, ParallelContext::CommunicatorSub());
    }
-   ParallelDescriptor::Barrier();
+   ParallelDescriptor::Barrier(ParallelContext::CommunicatorSub());
 #endif
 }
 

@@ -13,3 +13,6 @@ max_grid_size = 32
 eb2.stl_scale = 0.5
 
 algorithm_tests = 0
+# The STL faces lie on grid nodes, so cells owning a node-coincident EB patch
+# legitimately have unit volume and a nonzero boundary area.
+allow_full_volume_cut_cells = 1

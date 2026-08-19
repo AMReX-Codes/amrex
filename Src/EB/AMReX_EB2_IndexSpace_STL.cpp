@@ -12,14 +12,10 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
 {
     Gpu::LaunchSafeGuard lsg(true); // Always use GPU
 
-    std::string geometry_method("legacy");
-    ParmParse("eb2").query("stl_geometry_method",geometry_method);
-    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(
-        geometry_method == "legacy" || geometry_method == "marching_cubes",
-        "eb2.stl_geometry_method must be legacy or marching_cubes");
-
     STLtools stl_tools;
-    stl_tools.setUseMarchingCubes(geometry_method == "marching_cubes");
+    // The marching-cubes generator requires a watertight, consistently oriented
+    // STL; the flag enables that validation when the file is read.
+    stl_tools.setUseMarchingCubes(GetGeometryMethod() == GeometryMethod::marching_cubes);
     stl_tools.setBVHOptimization(bvh_optimization);
     stl_tools.read_stl_file(stl_file, stl_scale, stl_center, stl_reverse_normal);
 
@@ -38,7 +34,7 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
     m_ngrow.push_back(ngrow_finest);
     m_stllevel.reserve(max_coarsening_level+1);
     m_stllevel.emplace_back(this, stl_tools, geom, EB2::max_grid_size, ngrow_finest,
-                            extend_domain_face, num_coarsen_opt, support_mvmc);
+                            extend_domain_face, num_coarsen_opt, support_mvmc, true);
 
     AMREX_ALWAYS_ASSERT_WITH_MESSAGE(max_coarsening_level == 0 || support_mvmc == false,
                                      "We don't support multiple levels when multi-valued and multi-cut are enabled.");
@@ -66,7 +62,8 @@ IndexSpaceSTL::IndexSpaceSTL (const std::string& stl_file, Real stl_scale,
                     amrex::Abort("Failed to build required coarse EB level "+std::to_string(ilev));
                 } else {
                     m_stllevel.emplace_back(this, stl_tools, cgeom, EB2::max_grid_size, ng,
-                                            extend_domain_face, num_coarsen_opt-ilev, support_mvmc);
+                                            extend_domain_face, num_coarsen_opt-ilev, support_mvmc,
+                                            false);
                 }
             } else {
                 break;

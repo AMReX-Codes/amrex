@@ -22,7 +22,7 @@ namespace amrex
 {
 
 namespace MC {
-class MCFab;
+struct MCFab;
 }
 
 //! Utility class that loads STL meshes and samples them onto AMReX grids.
