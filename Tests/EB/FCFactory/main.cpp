@@ -127,7 +127,8 @@ void main_main()
     // Numerical accuracy validation - check volume for each FC factory
     Real dx = geom.CellSize(0), dy = geom.CellSize(1), dz = geom.CellSize(2);
     Real cell_volume = dx * dy * dz;
-    Real vol_analytical = (4.0/3.0) * M_PI * std::pow(sphere_radius, 3);
+    const Real pi = 4.0 * std::atan(1.0);
+    Real vol_analytical = (4.0/3.0) * pi * std::pow(sphere_radius, 3);
     const Real vol_tol = 0.05;  // 5% tolerance for 64^3 grid
 
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
