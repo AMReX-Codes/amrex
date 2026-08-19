@@ -147,7 +147,7 @@ namespace {
                                   F const& f)
     {
         // Reuse these reciprocals for every bounding box visited by this ray.
-        Real inv_direction[AMREX_SPACEDIM];
+        Real inv_direction[3];
         for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
             Real const direction = b[idim] - a[idim];
             inv_direction[idim] = (direction == 0.0_rt) ? 0.0_rt : 1.0_rt/direction;
