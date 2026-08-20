@@ -26,6 +26,28 @@ include_guard(GLOBAL)
 set(_amrex_cuda_archs_legacy FALSE)
 
 #
+# Is a normal (non-cache) variable of this name in effect, i.e. one that shadows the cache
+# entry? It is honored like any other user choice below, but it also reaches places AMReX
+# cannot correct, so remember it for the diagnostic at the end of this file.
+#
+set(_amrex_cuda_archs_shadow "")
+set(_amrex_cuda_archs_shadowed FALSE)
+if (DEFINED CMAKE_CUDA_ARCHITECTURES)
+   if (NOT DEFINED CACHE{CMAKE_CUDA_ARCHITECTURES})
+      set(_amrex_cuda_archs_shadowed TRUE)
+   else ()
+      get_property(_amrex_cuda_archs_cache_value CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
+      if (NOT CMAKE_CUDA_ARCHITECTURES STREQUAL _amrex_cuda_archs_cache_value)
+         set(_amrex_cuda_archs_shadowed TRUE)
+      endif ()
+      unset(_amrex_cuda_archs_cache_value)
+   endif ()
+   if (_amrex_cuda_archs_shadowed)
+      set(_amrex_cuda_archs_shadow "${CMAKE_CUDA_ARCHITECTURES}")
+   endif ()
+endif ()
+
+#
 # Hints that are set but empty ("export AMREX_CUDA_ARCH=", -DAMReX_CUDA_ARCH=) are treated
 # as not given: they satisfy DEFINED, but an empty architecture list is rejected by CMake
 # instead of falling back to the default selection below.
@@ -199,6 +221,28 @@ amrex_filter_cuda_archs(_amrex_cuda_archs FALSE)
 
 set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
    "CUDA architectures: 'native', 'all-major', or e.g. 80;90a (see CMake CUDA_ARCHITECTURES)" FORCE)
+
+# A toolchain file is read again in every project CMake configures on the side, in
+# particular in the compiler test projects of enable_language(CUDA) below. An unconditional
+# set(CMAKE_CUDA_ARCHITECTURES ...) in such a file therefore restores its own value there,
+# after the value CMake passes in, and AMReX cannot correct it - unlike the same assignment
+# in a parent project, which the normal variable below takes care of.
+if (_amrex_cuda_archs_shadowed AND CMAKE_TOOLCHAIN_FILE
+    AND NOT _amrex_cuda_archs_shadow STREQUAL _amrex_cuda_archs)
+   message(WARNING
+      "CMAKE_CUDA_ARCHITECTURES is set as a normal (non-cache) variable holding "
+      "'${_amrex_cuda_archs_shadow}', while AMReX is built for '${_amrex_cuda_archs}'. If "
+      "that assignment comes from the toolchain file (${CMAKE_TOOLCHAIN_FILE}), it also "
+      "applies to the compiler test projects CMake configures next, which read the "
+      "toolchain file again: those fail with e.g. \"nvcc fatal : Unsupported gpu "
+      "architecture\" whenever the CUDA compiler cannot build one of the requested "
+      "architectures, even though AMReX itself would use the value above. Request "
+      "architectures the compiler supports, or write them as a cache entry - "
+      "set(CMAKE_CUDA_ARCHITECTURES <archs> CACHE STRING \"\") - which lets AMReX's "
+      "selection take effect everywhere.")
+endif ()
+unset(_amrex_cuda_archs_shadow)
+unset(_amrex_cuda_archs_shadowed)
 
 # A normal variable of the same name - set by a parent project or by a toolchain file -
 # survives the cache write above (CMP0126 is NEW for the CMake 3.25 required here) and

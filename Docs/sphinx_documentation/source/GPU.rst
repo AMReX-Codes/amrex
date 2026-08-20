@@ -313,6 +313,14 @@ should therefore always be provided.
 
 .. note::
 
+   If a toolchain file selects the architectures, assign them to the cache
+   (``set(CMAKE_CUDA_ARCHITECTURES <archs> CACHE STRING "")``) rather than with a plain
+   ``set()``. CMake reads the toolchain file again in the compiler test projects it configures
+   on the side, so a plain assignment is restored there and AMReX's selection - dropping
+   unsupported architectures, resolving ``native`` - cannot take effect: those tests then fail
+   with, e.g., ``nvcc fatal : Unsupported gpu architecture``. AMReX prints a warning when it
+   detects this situation.
+
    The legacy ``-DAMReX_CUDA_ARCH`` option and the ``AMREX_CUDA_ARCH`` environment variable
    are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
    and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
