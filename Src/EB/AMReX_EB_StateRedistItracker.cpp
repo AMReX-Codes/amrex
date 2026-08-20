@@ -65,11 +65,6 @@ MakeITracker ( Box const& bx,
     {
        if (vfrac(i,j,k) > 0.0 && vfrac(i,j,k) < target_volfrac)
        {
-           // Variables for vfrac fallback - initialized here but only populated if needed
-           bool select_by_vfrac = false;
-           Real second_vfrac = Real(-1.0);
-           int second_idx = -1;
-
            Real apnorm, apnorm_inv;
            const Real dapx = apx(i+1,j  ,k  ) - apx(i,j,k);
            const Real dapy = apy(i  ,j+1,k  ) - apy(i,j,k);
@@ -122,6 +117,11 @@ MakeITracker ( Box const& bx,
            int ioff = imap[itracker(i,j,k,1)];
            int joff = jmap[itracker(i,j,k,1)];
 
+           // Variables for vfrac fallback
+           bool select_by_vfrac = false;
+           Real second_vfrac = Real(-1.0);
+           int second_idx = -1;
+           
            // Sanity check - if selected neighbor is covered, use vfrac fallback
            if (vfrac(i+ioff,j+joff,k) == 0.)
            {
