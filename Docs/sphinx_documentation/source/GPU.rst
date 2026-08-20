@@ -358,8 +358,9 @@ Device LTO is currently available only with the NVIDIA ``nvcc`` compiler; with a
 ``-x cuda`` compiler it is gracefully disabled with a warning. It only applies to device
 code: host code generation is unchanged. Because it is applied per architecture, device LTO
 also needs the architectures to be known at configure time: ``all`` and ``all-major`` are
-always expanded when it is on, and an unresolved ``native`` (no GPU visible) is an error
-rather than a build that quietly comes out without device LTO.
+always expanded when it is on, while an unresolved ``native`` (no GPU visible) and
+``CMAKE_CUDA_ARCHITECTURES=OFF`` are errors rather than builds that quietly come out without
+device LTO.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**

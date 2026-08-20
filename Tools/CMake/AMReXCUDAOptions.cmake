@@ -108,10 +108,12 @@ else ()
    message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
 endif ()
 
-# an unresolved "native" is left to the CUDA compiler, which picks the architecture of the
-# GPU it finds at build time: device LTO cannot be applied per architecture then, and the
-# build would quietly end up without it (nvcc reports "Ignoring -dlto option because no LTO
-# objects found" at the device link and produces a working, non-LTO library)
+# Device LTO is applied per architecture (code=lto_<NN>), so the architectures have to be
+# known here. Two ways they are not: an unresolved "native" is left to the CUDA compiler,
+# which picks the architecture of the GPU it finds at build time, and a false value asks
+# CMake for no architecture flags at all. Either way the build would quietly end up without
+# device LTO (nvcc reports "Ignoring -dlto option because no LTO objects found" at the
+# device link and produces a working, non-LTO library).
 if (AMReX_CUDA_LTO AND _amrex_cuda_archs STREQUAL "native")
    message(FATAL_ERROR
       "AMReX_CUDA_LTO needs the concrete architecture(s) behind 'native', which could not "
@@ -119,6 +121,14 @@ if (AMReX_CUDA_LTO AND _amrex_cuda_archs STREQUAL "native")
       "(${CMAKE_VERSION}) and CUDA compiler (${CMAKE_CUDA_COMPILER_ID} "
       "${CMAKE_CUDA_COMPILER_VERSION}) do not report one. Pass explicit architectures, "
       "e.g. -DCMAKE_CUDA_ARCHITECTURES=80, or turn off -DAMReX_CUDA_LTO=OFF.")
+elseif (AMReX_CUDA_LTO AND NOT _amrex_cuda_archs)
+   message(FATAL_ERROR
+      "AMReX_CUDA_LTO cannot be combined with CMAKE_CUDA_ARCHITECTURES=${_amrex_cuda_archs}, "
+      "which leaves the architecture flags to the caller: AMReX has no architecture to "
+      "request the device LTO code for, and cannot tell whether the flags passed from "
+      "outside carry it. Pass the architectures to build for, e.g. "
+      "-DCMAKE_CUDA_ARCHITECTURES=80, add the device LTO flags to the ones you pass "
+      "yourself, or turn off -DAMReX_CUDA_LTO=OFF.")
 endif ()
 
 # expanding an alias on an older CUDA toolkit can bring in architectures below the minimum
