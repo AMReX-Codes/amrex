@@ -48,7 +48,7 @@ void main_main()
     Vector<Real> sphere_center(AMREX_SPACEDIM, 0.5);
     int sphere_has_fluid_inside = 1;
     {
-        ParmParse pp("eb2");
+        ParmParse pp;
         pp.query("sphere_radius", sphere_radius);
         pp.queryarr("sphere_center", sphere_center);
         pp.query("sphere_has_fluid_inside", sphere_has_fluid_inside);
@@ -125,20 +125,27 @@ void main_main()
     }
 
     // Numerical accuracy validation - check volume for each FC factory
-    Real dx = geom.CellSize(0), dy = geom.CellSize(1), dz = geom.CellSize(2);
-    Real cell_volume = dx * dy * dz;
+    Real cell_volume = AMREX_D_TERM(geom.CellSize(0),*geom.CellSize(1),*geom.CellSize(2));
     const Real pi = std::numbers::pi_v<Real>;
-    Real vol_analytical = (4.0/3.0) * pi * std::pow(sphere_radius, 3);
-    const Real vol_tol = 0.05;  // 5% tolerance for 64^3 grid
+#if (AMREX_SPACEDIM == 3)
+    Real vol_analytical = Real(4.0/3.0) * pi * std::pow(sphere_radius, 3);
+#else
+    Real vol_analytical = pi * (sphere_radius*sphere_radius);
+#endif
+    Real vol_tol = Real(1.0e-3);
+    {
+        ParmParse pp;
+        pp.query("vol_tol", vol_tol);
+    }
 
     for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
         const MultiFab& volfrac_fc = fc_factories[dir]->getVolFrac();
-        Real vol_fluid = volfrac_fc.sum(0) * cell_volume;
+        Real vol_fluid = volfrac_fc.sum_unique(0) * cell_volume;
         Real vol_error = std::abs(vol_fluid - vol_analytical) / vol_analytical;
         if (vol_error > vol_tol) {
             ++nerrors;
-            amrex::Print() << "ERROR: dir=" << dir << " vol_error=" << vol_error*100
-                           << "% exceeds " << vol_tol*100 << "%\n";
+            amrex::Print() << "ERROR: dir=" << dir << " vol_error=" << vol_error
+                           << " exceeds " << vol_tol << "\n";
         }
     }
 
