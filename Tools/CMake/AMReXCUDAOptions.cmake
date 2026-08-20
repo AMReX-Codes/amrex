@@ -60,17 +60,23 @@ if (CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
       set(_amrex_cuda_archs_alias TRUE)
       message(STATUS "   CUDA architectures: native -> ${_amrex_cuda_archs}")
    else ()
-      # the local architecture could not be determined: CMAKE_CUDA_ARCHITECTURES_NATIVE
-      # holds an error message rather than an architecture
+      # The local architecture could not be determined: CMAKE_CUDA_ARCHITECTURES_NATIVE
+      # holds an error message rather than an architecture. Stop here rather than leave
+      # "native" to the CUDA compiler: nvcc does not fail on "-arch=native" without a
+      # visible GPU, it warns once per translation unit ("Cannot find valid GPU for
+      # '-arch=native', default arch is used") and silently falls back to its own default
+      # architecture, which is not necessarily one AMReX supports and in any case not the
+      # one that was meant. A library quietly built for the wrong GPU is worse than a
+      # configure step that says so.
       message(STATUS "   CUDA architectures: native (unresolved)")
-      message(WARNING
-         "CUDA architecture 'native' was requested, but no CUDA device was found at "
-         "configure time. Depending on the CMake and CUDA compiler version, configuration "
-         "stops right away with \"CUDA_ARCHITECTURES is set to native, but no NVIDIA GPU "
-         "was detected\", or the selection is left to the CUDA compiler and the build "
-         "fails unless a GPU is visible then. On machines without a GPU, e.g. HPC login "
-         "nodes or CI runners, pass an explicit architecture instead, such as "
-         "-DCMAKE_CUDA_ARCHITECTURES=80.")
+      message(FATAL_ERROR
+         "CUDA architecture 'native' was requested - it is the default - but no CUDA "
+         "device was detected at configure time, so there is no architecture to build "
+         "for. On machines without a visible GPU, e.g. HPC login nodes, CI runners or "
+         "container builds, pass the architecture explicitly with "
+         "-DCMAKE_CUDA_ARCHITECTURES=80 (or the CUDAARCHS environment variable). Note "
+         "that this also covers configuring on a login node and building on a GPU node: "
+         "'native' is resolved when CMake runs, not when the code is compiled.")
    endif ()
 elseif (CMAKE_CUDA_ARCHITECTURES MATCHES "^(all|all-major)$")
    # The CUDA compiler expands these itself, which is what we want it to do: CMake's

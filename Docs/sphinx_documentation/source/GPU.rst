@@ -307,10 +307,14 @@ CUDA 12), so that those are dropped instead of being built.
 If no architecture is specified, AMReX defaults to ``native``, which builds for the GPU(s)
 installed in the machine running CMake. If a GPU is visible at configuration time, CMake
 resolves ``native`` right away and the resulting architecture is printed, used for the build
-and exported to downstream projects. If no GPU is visible, AMReX prints a warning and leaves
-the selection to the CUDA compiler, i.e., the build fails later on unless a GPU is visible
-then. On machines without GPUs (e.g., HPC login nodes or CI runners) an explicit architecture
-should therefore always be provided.
+and exported to downstream projects. If no GPU is visible, configuration stops with an error.
+``native`` is resolved when CMake runs, not when the code is compiled, and leaving it to the
+CUDA compiler would not fail either: ``nvcc`` warns once per translation unit and silently
+falls back to its own default architecture, producing a library built for a GPU nobody asked
+for. On machines without a visible GPU (e.g., HPC login nodes, CI runners or container
+builds) an explicit architecture must therefore be provided, such as
+``-DCMAKE_CUDA_ARCHITECTURES=80``. This includes configuring on a login node and building on
+a GPU node.
 
 .. note::
 
@@ -359,9 +363,9 @@ Device LTO is currently available only with the NVIDIA ``nvcc`` compiler; with a
 ``-x cuda`` compiler it is gracefully disabled with a warning. It only applies to device
 code: host code generation is unchanged. Because it is applied per architecture, device LTO
 also needs the architectures to be known at configure time: ``all`` and ``all-major`` are
-always expanded when it is on, while an unresolved ``native`` (no GPU visible) and
-``CMAKE_CUDA_ARCHITECTURES=OFF`` are errors rather than builds that quietly come out without
-device LTO.
+always expanded when it is on, and ``CMAKE_CUDA_ARCHITECTURES=OFF`` is an error rather than a
+build that quietly comes out without device LTO. (An unresolved ``native`` is already an
+error regardless of this option, see above.)
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
