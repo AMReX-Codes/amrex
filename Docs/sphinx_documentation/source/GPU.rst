@@ -326,9 +326,10 @@ should therefore always be provided.
    are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
    and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
    precedence, i.e., they take precedence over ``CMAKE_CUDA_ARCHITECTURES``. The one exception
-   is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the ``cmake`` command line, which wins over
-   the deprecated hints and keeps doing so on the automatic re-configure steps of that build
-   directory, until the selection is changed again - by another
+   is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the ``cmake`` command line - or set as a
+   cache variable of a ``CMakePresets.json`` preset, which CMake records the same way - which
+   wins over the deprecated hints and keeps doing so on the automatic re-configure steps of
+   that build directory, until the selection is changed again - by another
    ``-DCMAKE_CUDA_ARCHITECTURES=...``, by a ``-DAMReX_CUDA_ARCH=...`` passed to a later
    configure step, or by editing the cache entry. Please migrate to the standard CMake variables.
    Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it remains the way to
@@ -348,7 +349,7 @@ should therefore always be provided.
    capability, dots are dropped (``8.0`` becomes ``80``) and a trailing ``+PTX`` is removed
    (the plain integer form of ``CMAKE_CUDA_ARCHITECTURES`` already embeds PTX). A
    whitespace-separated list is accepted as well, as in GNU Make builds (``"70 80"``), and a
-   hint that is set but empty counts as not set at all. None of these legacy spellings are
+   hint that is set but empty or blank counts as not set at all. None of these legacy spellings are
    accepted by ``CMAKE_CUDA_ARCHITECTURES`` itself, so use the values documented above when
    you migrate.
 

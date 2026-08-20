@@ -52,18 +52,20 @@ if (DEFINED CMAKE_CUDA_ARCHITECTURES)
 endif ()
 
 #
-# Hints that are set but empty ("export AMREX_CUDA_ARCH=", -DAMReX_CUDA_ARCH=) are treated
-# as not given: they satisfy DEFINED, but an empty architecture list is rejected by CMake
-# instead of falling back to the default selection below.
+# Hints that are set but blank ("export AMREX_CUDA_ARCH=", -DAMReX_CUDA_ARCH=, or nothing
+# but spaces) are treated as not given: they satisfy DEFINED, but an empty architecture list
+# is rejected by CMake instead of falling back to the default selection below - and the blank
+# would only be recognized as empty after the normalization further down, once it had already
+# been chosen over every other hint.
 #
-if (DEFINED AMReX_CUDA_ARCH AND AMReX_CUDA_ARCH STREQUAL "")
+if (DEFINED AMReX_CUDA_ARCH AND AMReX_CUDA_ARCH MATCHES "^[ \t\r\n]*$")
    unset(AMReX_CUDA_ARCH CACHE)
    unset(AMReX_CUDA_ARCH)
 endif ()
-if (DEFINED ENV{AMREX_CUDA_ARCH} AND "$ENV{AMREX_CUDA_ARCH}" STREQUAL "")
+if (DEFINED ENV{AMREX_CUDA_ARCH} AND "$ENV{AMREX_CUDA_ARCH}" MATCHES "^[ \t\r\n]*$")
    unset(ENV{AMREX_CUDA_ARCH})
 endif ()
-if (DEFINED ENV{CUDAARCHS} AND "$ENV{CUDAARCHS}" STREQUAL "")
+if (DEFINED ENV{CUDAARCHS} AND "$ENV{CUDAARCHS}" MATCHES "^[ \t\r\n]*$")
    unset(ENV{CUDAARCHS})
 endif ()
 
@@ -255,12 +257,18 @@ set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
    "CUDA architectures: 'native', 'all-major', or e.g. 80;90a (see CMake CUDA_ARCHITECTURES)" FORCE)
 
 # The architectures are selected again on every configure step, so a hint that is still in
-# place can replace what an earlier step chose - the deprecated AMREX_CUDA_ARCH environment
+# place can replace what an earlier step chose: the deprecated AMREX_CUDA_ARCH environment
 # variable outranks the CMAKE_CUDA_ARCHITECTURES cache entry, for instance, and is honored
 # again once the -DAMReX_CUDA_ARCH=... of that earlier step is gone. Nothing on this command
-# line asked for the change, so do not let the build directory change quietly. The
-# architectures a parent project preset before adding AMReX are reported separately above.
-if (_amrex_cuda_archs_had_cache AND _amrex_cuda_archs_given
+# line asked for the change, so do not let the build directory change quietly.
+#
+# Only a step that follows one of AMReX's own can tell: on a first configure the cache entry
+# holds whatever the caller supplied with it - an initial-cache script (-C), a toolchain file
+# or a parent project - and resolving that into the architectures AMReX builds for is not a
+# change of anything. The architectures a parent project preset before adding AMReX are
+# reported by their own message above.
+if (DEFINED CACHE{AMREX_CUDA_ARCHS_CONFIGURED} AND _amrex_cuda_archs_had_cache
+    AND _amrex_cuda_archs_given
     AND NOT _amrex_cuda_archs STREQUAL _amrex_cuda_archs_cached
     AND NOT _amrex_cuda_archs_cmdline_now AND NOT _amrex_cuda_arch_cmdline_now)
    message(WARNING
@@ -318,6 +326,11 @@ unset(_amrex_cuda_archs_shadow)
 # added afterwards: the architectures resolved here would be reported and exported, but the
 # build would use the unfiltered value. Let the resolved list win in AMReX's scope.
 set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}")
+
+# this build directory has been through the selection above, which the next configure step
+# needs to know to tell a changed selection from the value a first configure was handed
+set(AMREX_CUDA_ARCHS_CONFIGURED TRUE CACHE INTERNAL
+   "AMReX has resolved the CUDA architectures of this build directory")
 
 # see the "specified on the command line" check above; a value that a shadowing normal
 # variable supplied did not come from the command line and must not be remembered as if it did

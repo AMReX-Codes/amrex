@@ -291,8 +291,16 @@ endfunction ()
 #                unsupported entries is expected and only worth a status message
 #
 function (amrex_filter_cuda_archs _var _from_alias)
-   set(_ok)
-   set(_low)
+   # a false value (OFF, NO, 0) asks CMake for no architecture flags at all, so there is no
+   # architecture to check - and it must not be mistaken for an empty list further down
+   if (NOT ${_var})
+      return ()
+   endif ()
+
+   # defined and empty, so that the emptiness tests below compare their values and not
+   # their names (an unset variable makes if(<name> STREQUAL "") a literal comparison)
+   set(_ok "")
+   set(_low "")
    foreach (_arch IN LISTS ${_var})
       set(_supported TRUE)
       if (_arch MATCHES "^([0-9]+)")
@@ -307,8 +315,8 @@ function (amrex_filter_cuda_archs _var _from_alias)
       endif ()
    endforeach ()
 
-   if (_low)
-      if (NOT _ok)
+   if (NOT _low STREQUAL "")
+      if (_ok STREQUAL "")
          message(FATAL_ERROR
             "The requested CUDA architecture(s) ${_low} are not supported by AMReX, which "
             "requires compute capability 6.0 or higher. Set CMAKE_CUDA_ARCHITECTURES to a "

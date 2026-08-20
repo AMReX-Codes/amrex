@@ -28,6 +28,14 @@ if (AMReX_CUDA_LTO AND NOT AMReX_GPU_RDC)
       "(the default) or with -DAMReX_CUDA_LTO=OFF.")
 endif ()
 
+# Device LTO is nvcc's: for any other CUDA compiler CMake's check_ipo_supported reports it
+# as unsupported and AMReXParallelBackends turns AMReX_CUDA_LTO off with a warning, so its
+# requirements below must not fail the configure step of such a compiler instead.
+set(_amrex_cuda_device_lto FALSE)
+if (AMReX_CUDA_LTO AND CMAKE_CUDA_COMPILER_ID STREQUAL "NVIDIA")
+   set(_amrex_cuda_device_lto TRUE)
+endif ()
+
 # Resolve and report the target CUDA architecture(s). CMAKE_CUDA_ARCHITECTURES was set in
 # AMReXCUDAArchs.cmake (before enable_language, honoring the user's hints). The aliases
 # native/all/all-major are resolved by the CUDA compiler itself, so they are normally left
@@ -85,13 +93,13 @@ elseif (CMAKE_CUDA_ARCHITECTURES MATCHES "^(all|all-major)$")
    endforeach ()
    unset(_arch)
 
-   if (_amrex_alias_archs AND (AMReX_CUDA_LTO OR _amrex_alias_unsupported))
+   if (_amrex_alias_archs AND (_amrex_cuda_device_lto OR _amrex_alias_unsupported))
       # unlike "native", the expanded list keeps the "<NN>-real" entries: embedding PTX
       # for the newest major architecture only is what "all"/"all-major" mean
       set(_amrex_cuda_archs "${_amrex_alias_archs}")
       set(_amrex_cuda_archs_alias TRUE)
       message(STATUS "   CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES} -> ${_amrex_cuda_archs}")
-   elseif (AMReX_CUDA_LTO)
+   elseif (_amrex_cuda_device_lto)
       message(FATAL_ERROR
          "AMReX_CUDA_LTO needs the concrete architectures behind "
          "'${CMAKE_CUDA_ARCHITECTURES}', which neither the CUDA compiler "
@@ -114,14 +122,14 @@ endif ()
 # CMake for no architecture flags at all. Either way the build would quietly end up without
 # device LTO (nvcc reports "Ignoring -dlto option because no LTO objects found" at the
 # device link and produces a working, non-LTO library).
-if (AMReX_CUDA_LTO AND _amrex_cuda_archs STREQUAL "native")
+if (_amrex_cuda_device_lto AND _amrex_cuda_archs STREQUAL "native")
    message(FATAL_ERROR
       "AMReX_CUDA_LTO needs the concrete architecture(s) behind 'native', which could not "
       "be resolved at configure time: no CUDA device was detected, or this CMake "
       "(${CMAKE_VERSION}) and CUDA compiler (${CMAKE_CUDA_COMPILER_ID} "
       "${CMAKE_CUDA_COMPILER_VERSION}) do not report one. Pass explicit architectures, "
       "e.g. -DCMAKE_CUDA_ARCHITECTURES=80, or turn off -DAMReX_CUDA_LTO=OFF.")
-elseif (AMReX_CUDA_LTO AND NOT _amrex_cuda_archs)
+elseif (_amrex_cuda_device_lto AND NOT _amrex_cuda_archs)
    message(FATAL_ERROR
       "AMReX_CUDA_LTO cannot be combined with CMAKE_CUDA_ARCHITECTURES=${_amrex_cuda_archs}, "
       "which leaves the architecture flags to the caller: AMReX has no architecture to "
@@ -141,6 +149,8 @@ amrex_filter_cuda_archs(_amrex_cuda_archs ${_amrex_cuda_archs_alias})
 set(AMREX_CUDA_ARCHS "${_amrex_cuda_archs}" CACHE INTERNAL "CUDA archs AMReX is built for")
 unset(_amrex_cuda_archs)
 unset(_amrex_cuda_archs_alias)
+
+unset(_amrex_cuda_device_lto)
 
 option(AMReX_CUDA_FASTMATH "Enable CUDA fastmath" ON)  # Note: inconsistent with AMReX_FASTMATH defaults
 cuda_print_option( AMReX_CUDA_FASTMATH )
