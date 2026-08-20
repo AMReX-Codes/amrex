@@ -935,6 +935,21 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     auto& fc_facecent = m_fc_data[face_dir]->m_facecent_fc;
     auto& fc_edgecent = m_fc_data[face_dir]->m_edgecent_fc;
 
+    // Index types of the face-centered data:
+    //
+    //   cellflag / volfrac / centroid / bndry*   nodal in face_dir, i.e. (N,C,C) for face_dir=0,
+    //                                            (C,N,C) for 1, (C,C,N) for 2. These are the
+    //                                            staggered cells themselves.
+    //   areafrac[idim] / facecent[idim]          the cell-centered base grids, the same for
+    //                                            every idim.
+    //   edgecent[idim]                           set by which two directions the edge spans.
+    //
+    // areafrac and facecent are kept uniform on purpose. The cell-centered path gives each
+    // direction its own nodal index type (areafrac[0] is (N,C,C), areafrac[1] is (C,N,C), ...);
+    // carrying that over to a grid already staggered in face_dir would put three different index
+    // types in play at once for no real gain. Here all three are simply indexed by the staggered
+    // cell they belong to.
+
     // Define FC MultiFabs
     BoxArray fc_grids = amrex::convert(fc_base_grids, IntVect::TheDimensionVector(face_dir));
     const int ng = 3;
