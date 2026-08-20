@@ -84,6 +84,94 @@ EBDataCollection::EBDataCollection (const EB2::Level& a_level,
     }
 }
 
+EBDataCollection::EBDataCollection (const EB2::Level& a_level,
+                                    const Geometry& a_geom,
+                                    const BoxArray& a_ba_in,
+                                    const DistributionMapping& a_dm,
+                                    Vector<int> a_ngrow, EBSupport a_support,
+                                    int face_dir)
+    : m_ngrow(std::move(a_ngrow)),
+      m_support(a_support),
+      m_geom(a_geom),
+      m_is_fc(true),
+      m_face_dir(face_dir)
+{
+    AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
+    AMREX_ALWAYS_ASSERT_WITH_MESSAGE(a_level.hasFCData(face_dir),
+        "EBDataCollection: FC data not available for face_dir");
+
+    // For FC mode, we create new MultiFabs and fill from Level's FC data
+    const BoxArray& a_ba = amrex::convert(a_ba_in, IntVect::TheZeroVector());
+    const BoxArray& fc_grids = amrex::convert(a_ba, IntVect::TheDimensionVector(face_dir));
+
+    if (m_support >= EBSupport::basic)
+    {
+        AMREX_ALWAYS_ASSERT(!m_ngrow.empty());
+
+        m_cellflags = new FabArray<EBCellFlagFab>(fc_grids, a_dm, 1, m_ngrow[0], MFInfo(),
+                                                  DefaultFabFactory<EBCellFlagFab>());
+        a_level.fillEBCellFlagFC(*m_cellflags, face_dir, m_geom);
+
+        m_levelset = new MultiFab(amrex::convert(a_ba,IntVect::TheUnitVector()), a_dm,
+                                  1, m_ngrow[0], MFInfo(), FArrayBoxFactory());
+        // FC mode does not provide levelset - leave as default (levelset concept is CC)
+        m_levelset->setVal(0.0);
+    }
+
+    if (m_support >= EBSupport::volume)
+    {
+        AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 2) && (m_ngrow[1] <= m_ngrow[0]));
+
+        m_volfrac = new MultiFab(fc_grids, a_dm, 1, m_ngrow[1], MFInfo(), FArrayBoxFactory());
+        a_level.fillVolFracFC(*m_volfrac, face_dir, m_geom);
+
+        m_centroid = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, m_ngrow[1], *m_cellflags);
+        a_level.fillCentroidFC(*m_centroid, face_dir, m_geom);
+    }
+
+    if (m_support == EBSupport::full)
+    {
+        AMREX_ALWAYS_ASSERT((m_ngrow.size() >= 3) && (m_ngrow[2] <= m_ngrow[0]));
+
+        const int ng = m_ngrow[2];
+
+        m_bndrycent = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
+        a_level.fillBndryCentFC(*m_bndrycent, face_dir, m_geom);
+
+        m_bndryarea = new MultiCutFab(fc_grids, a_dm, 1, ng, *m_cellflags);
+        a_level.fillBndryAreaFC(*m_bndryarea, face_dir, m_geom);
+
+        m_bndrynorm = new MultiCutFab(fc_grids, a_dm, AMREX_SPACEDIM, ng, *m_cellflags);
+        a_level.fillBndryNormFC(*m_bndrynorm, face_dir, m_geom);
+
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            m_areafrac[idim] = new MultiCutFab(a_ba, a_dm, 1, m_ngrow[1]+1, *m_cellflags);
+            m_facecent[idim] = new MultiCutFab(a_ba, a_dm, AMREX_SPACEDIM-1, ng, *m_cellflags);
+            IntVect edge_type{1};
+            if (idim != face_dir) {
+                edge_type[face_dir] = 0;
+                edge_type[idim] = 0;
+            }
+            m_edgecent[idim] = new MultiCutFab(amrex::convert(a_ba, edge_type), a_dm,
+                                               1, ng, *m_cellflags);
+        }
+
+        a_level.fillAreaFracFC(m_areafrac, face_dir, m_geom);
+        a_level.fillFaceCentFC(m_facecent, face_dir, m_geom);
+        a_level.fillEdgeCentFC(m_edgecent, face_dir, m_geom);
+    }
+
+    if (! a_level.hasEBInfo()) {
+        m_cutcellmask = new iMultiFab(a_ba, a_dm, 1, 0, MFInfo(),
+                                      DefaultFabFactory<IArrayBox>());
+        a_level.fillCutCellMask(*m_cutcellmask, m_geom);
+    }
+
+    if (! a_level.isAllRegular()) {
+        extendDataOutsideDomain(a_level.nGrowVect());
+    }
+}
+
 void EBDataCollection::extendDataOutsideDomain (IntVect const& level_ng)
 {
     if (m_cellflags == nullptr) { return; }

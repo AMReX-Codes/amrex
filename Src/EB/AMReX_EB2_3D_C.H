@@ -324,7 +324,8 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                        Array4<Real const> const& ffcx, Array4<Real const> const& ffcy,
                        Array4<Real const> const& ffcz, Array4<Real const> const& fecx,
                        Array4<Real const> const& fecy, Array4<Real const> const& fecz,
-                       Array4<EBCellFlag const> const& fflag)
+                       Array4<EBCellFlag const> const& fflag,
+                       int face_dir)
 {
     using detail::coarsen_edge_cent;
 
@@ -346,6 +347,10 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
     int ii = i*2;
     int jj = j*2;
     int kk = k*2;
+    // Apply staggered offset if face_dir is specified
+    if (face_dir == 0) { ii-=1; }
+    if (face_dir == 1) { jj-=1; }
+    if (face_dir == 2) { kk-=1; }
 
     if (bx.contains(i,j,k))
     {

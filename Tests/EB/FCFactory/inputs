@@ -1,0 +1,8 @@
+n_cell = 64
+max_grid_size = 32
+
+sphere_radius = 0.25
+sphere_center = 0.5 0.5 0.5
+sphere_has_fluid_inside = 1
+
+vol_tol = 1.e-3
