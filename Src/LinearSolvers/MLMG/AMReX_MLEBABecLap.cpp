@@ -304,6 +304,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, const MultiFab& be
     if (phi_on_centroid) {
         m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
     }
+    m_needs_update = true;
 }
 
 void
@@ -367,6 +368,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Real beta)
     if (phi_on_centroid) {
         m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
     }
+    m_needs_update = true;
 }
 
 void
@@ -434,6 +436,7 @@ MLEBABecLap::setEBDirichlet (int amrlev, const MultiFab& phi, Vector<Real> const
     if (phi_on_centroid) {
         m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
     }
+    m_needs_update = true;
 }
 
 void
@@ -511,6 +514,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, const MultiFab& beta)
     if (phi_on_centroid) {
         m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
     }
+    m_needs_update = true;
 }
 
 void
@@ -574,6 +578,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Real beta)
     if (phi_on_centroid) {
         m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
     }
+    m_needs_update = true;
 }
 
 void
@@ -641,6 +646,7 @@ MLEBABecLap::setEBHomogDirichlet (int amrlev, Vector<Real> const& hv_beta)
     if (phi_on_centroid) {
         m_eb_phi[amrlev]->FillBoundary(m_geom[amrlev][0].periodicity());
     }
+    m_needs_update = true;
 }
 
 void
@@ -664,6 +670,17 @@ MLEBABecLap::averageDownCoeffs ()
             for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
                 m_b_coeffs[amrlev][mglev][idim].FillBoundary(m_geom[amrlev][mglev].periodicity());
             }
+        }
+    }
+}
+
+void
+MLEBABecLap::averageDownEBPhi ()
+{
+    if (m_eb_phi[0]) {
+        for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev) {
+            amrex::EB_average_down_boundaries(*m_eb_phi[amrlev], *m_eb_phi[amrlev-1],
+                                              mg_coarsen_ratio, 0);
         }
     }
 }
@@ -789,13 +806,7 @@ MLEBABecLap::prepareForSolve ()
     applyRobinBCTermsCoeffs();
 
     averageDownCoeffs();
-
-    if (m_eb_phi[0]) {
-        for (int amrlev = m_num_amr_levels-1; amrlev > 0; --amrlev) {
-            amrex::EB_average_down_boundaries(*m_eb_phi[amrlev], *m_eb_phi[amrlev-1],
-                                              mg_coarsen_ratio, 0);
-        }
-    }
+    averageDownEBPhi();
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);
@@ -1434,6 +1445,7 @@ MLEBABecLap::update ()
     applyRobinBCTermsCoeffs();
 
     averageDownCoeffs();
+    averageDownEBPhi();
 
     m_is_singular.clear();
     m_is_singular.resize(m_num_amr_levels, false);

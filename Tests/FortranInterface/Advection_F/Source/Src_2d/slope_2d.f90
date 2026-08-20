@@ -33,12 +33,12 @@ contains
        do i = lo(1)-1, hi(1)+1
           dlft = q(i  ,j) - q(i-1,j)
           drgt = q(i+1,j) - q(i  ,j)
-          dcen(i) = .5d0 * (dlft+drgt)
-          dsgn(i) = sign(1.d0, dcen(i))
-          if (dlft*drgt .ge. 0.d0) then
-             dlim(i) = 2.d0 * min( abs(dlft), abs(drgt) )
+          dcen(i) = .5_amrex_real * (dlft+drgt)
+          dsgn(i) = sign(1.0_amrex_real, dcen(i))
+          if (dlft*drgt .ge. 0.0_amrex_real) then
+             dlim(i) = 2.0_amrex_real * min( abs(dlft), abs(drgt) )
           else
-             dlim(i) = 0.d0
+             dlim(i) = 0.0_amrex_real
           endif
           df(i) = dsgn(i)*min( dlim(i), abs(dcen(i)) )
        end do
@@ -102,12 +102,12 @@ contains
        do i = lo(1)  , hi(1)
           dlft = q(i,j  ) - q(i,j-1)
           drgt = q(i,j+1) - q(i,j  )
-          dcen(i,j) = .5d0 * (dlft+drgt)
-          dsgn(i,j) = sign( 1.d0, dcen(i,j) )
-          if (dlft*drgt .ge. 0.d0) then
-             dlim(i,j) = 2.d0 * min( abs(dlft), abs(drgt) )
+          dcen(i,j) = .5_amrex_real * (dlft+drgt)
+          dsgn(i,j) = sign( 1.0_amrex_real, dcen(i,j) )
+          if (dlft*drgt .ge. 0.0_amrex_real) then
+             dlim(i,j) = 2.0_amrex_real * min( abs(dlft), abs(drgt) )
           else
-             dlim(i,j) = 0.d0
+             dlim(i,j) = 0.0_amrex_real
           endif
           df(i,j) = dsgn(i,j)*min( dlim(i,j),abs(dcen(i,j)) )
        end do

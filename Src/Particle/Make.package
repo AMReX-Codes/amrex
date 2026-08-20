@@ -39,6 +39,7 @@ CEXE_headers += AMReX_ParticleCommunication.H
 CEXE_sources += AMReX_ParticleCommunication.cpp
 
 CEXE_headers += AMReX_ParticleReduce.H
+CEXE_headers += AMReX_ParticleReduceSIMD.H
 
 CEXE_headers += AMReX_ParticleLocator.H
 CEXE_headers += AMReX_ParticleArray.H

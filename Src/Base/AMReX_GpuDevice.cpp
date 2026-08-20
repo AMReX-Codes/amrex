@@ -554,9 +554,14 @@ Device::initialize_gpu (bool minimal)
         sycl::platform platform(sycl::gpu_selector_v);
         auto const& gpu_devices = platform.get_devices();
         sycl_device = std::make_unique<sycl::device>(gpu_devices[device_id]);
+#if defined(SYCL_KHR_DEFAULT_CONTEXT)
+        sycl_context = std::make_unique<sycl::context>(platform.khr_get_default_context());
+#else
         sycl_context = std::make_unique<sycl::context>(*sycl_device, amrex_sycl_error_handler);
+#endif
         for (int i = 0; i < max_gpu_streams; ++i) {
             gpu_stream_pool[i].getStream().queue = new sycl::queue(*sycl_context, *sycl_device,
+                                         amrex_sycl_error_handler,
                                          sycl::property_list{sycl::property::queue::in_order{}});
         }
     }

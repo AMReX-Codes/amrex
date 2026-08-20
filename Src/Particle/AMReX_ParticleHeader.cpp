@@ -15,6 +15,8 @@ namespace amrex {
 void
 ParticleHeader::parse (std::istream& is)
 {
+    grids.clear();
+
     is >> version;
     AMREX_ASSERT(!version.empty());
 
@@ -76,6 +78,30 @@ ParticleHeader::parse (std::istream& is)
     is >> finest_level;
 }
 
+void
+ParticleHeader::parse_grid_table (std::istream& is)
+{
+    AMREX_ASSERT(finest_level >= 0);
+
+    // The number of grids of every level comes first, ...
+    Vector<int> ngrids(finest_level+1);
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        is >> ngrids[lev];
+        AMREX_ASSERT(ngrids[lev] > 0);
+    }
+
+    // ... followed by each level's table of (data file index, particle
+    // count, byte offset) entries, one entry per grid.
+    grids.clear();
+    grids.resize(finest_level+1);
+    for (int lev = 0; lev <= finest_level; ++lev) {
+        grids[lev].resize(ngrids[lev]);
+        for (auto& entry : grids[lev]) {
+            is >> entry.which >> entry.count >> entry.where;
+        }
+    }
+}
+
 ParticleHeader
 ParticleHeader::read (const std::string& dir, const std::string& file)
 {
@@ -101,6 +127,7 @@ ParticleHeader::read (const std::string& dir, const std::string& file)
 
     ParticleHeader header;
     header.parse(HdrFile);
+    header.parse_grid_table(HdrFile);
     return header;
 }
 

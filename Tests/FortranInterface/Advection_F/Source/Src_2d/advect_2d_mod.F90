@@ -151,7 +151,7 @@ contains
     velocity(1)%p => ux
     velocity(2)%p => uy
 
-    inv_dx = 1.0d0/dx
+    inv_dx = 1.0_amrex_real/dx
 
     do ipass = 1, 2
        do n = 1, np
@@ -159,10 +159,10 @@ contains
           length = (particles(n)%pos - plo)*inv_dx
 
           cc_cell = floor(length)
-          cell    = floor(length + 0.5d0)
+          cell    = floor(length + 0.5_amrex_real)
 
-          w_hi = length + 0.5d0 - cell
-          w_lo = 1.d0 - w_hi
+          w_hi = length + 0.5_amrex_real - cell
+          w_lo = 1.0_amrex_real - w_hi
 
           do d = 1, 2
              e_cell = cell
@@ -172,8 +172,8 @@ contains
              e_lo = w_lo
              e_hi(d) = length(d) - cc_cell(d)
 
-             e_hi = max(0.d0,min(1.d0,e_hi))
-             e_lo(d) = 1.d0 - e_hi(d)
+             e_hi = max(0.0_amrex_real,min(1.0_amrex_real,e_hi))
+             e_lo(d) = 1.0_amrex_real - e_hi(d)
 
              vel = e_lo(1)*e_lo(2)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1) + &
                    e_lo(1)*e_hi(2)*velocity(d)%p(e_cell(1)-1, e_cell(2)  ) + &
@@ -182,7 +182,7 @@ contains
 
              if (ipass == 1) then
                 particles(n)%vel(d) = particles(n)%pos(d)
-                particles(n)%pos(d) = particles(n)%pos(d) + 0.5d0*dt*vel
+                particles(n)%pos(d) = particles(n)%pos(d) + 0.5_amrex_real*dt*vel
              else
                 particles(n)%pos(d) = particles(n)%vel(d) + dt*vel
                 particles(n)%vel(d) = vel

@@ -8,6 +8,66 @@ foreach(D IN LISTS AMReX_SPACEDIM)
 
     setup_test(${D} _sources _input_files)
 
+
+    if (D EQUAL 3 AND AMReX_GPU_BACKEND STREQUAL NONE)
+      set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
+      set(_exe_name Test_Particles_Redistribute_${D}d)
+
+      file(COPY
+        inputs.rt.local_multilevel
+        inputs.rt.local_nomask
+        inputs.rt.local_nomask_uneven
+        DESTINATION ${_exe_dir})
+
+      if (AMReX_OMP)
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalMultiLevel
+          COMMAND           ${_exe_dir}/${_exe_name} inputs.rt.local_multilevel
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+        set_tests_properties(Particles_Redistribute_${D}d_LocalMultiLevel PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalNoMask
+          COMMAND           ${_exe_dir}/${_exe_name} inputs.rt.local_nomask
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+        set_tests_properties(Particles_Redistribute_${D}d_LocalNoMask PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+      elseif (AMReX_MPI)
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalMultiLevel
+          COMMAND           mpiexec -n 2 ${_exe_dir}/${_exe_name} inputs.rt.local_multilevel
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalNoMask
+          COMMAND           mpiexec -n 2 ${_exe_dir}/${_exe_name} inputs.rt.local_nomask
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+      else ()
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalMultiLevel
+          COMMAND           ${_exe_dir}/${_exe_name} inputs.rt.local_multilevel
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalNoMask
+          COMMAND           ${_exe_dir}/${_exe_name} inputs.rt.local_nomask
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+      endif ()
+
+      if (AMReX_MPI)
+        add_test(
+          NAME              Particles_Redistribute_${D}d_LocalNoMaskUnevenMPI
+          COMMAND           mpiexec -n 2 ${_exe_dir}/${_exe_name} inputs.rt.local_nomask_uneven
+          WORKING_DIRECTORY ${_exe_dir}
+        )
+        if (AMReX_OMP)
+          set_tests_properties(Particles_Redistribute_${D}d_LocalNoMaskUnevenMPI PROPERTIES ENVIRONMENT OMP_NUM_THREADS=2)
+        endif ()
+      endif ()
+    endif ()
+
     if (D EQUAL 3 AND NOT AMReX_GPU_BACKEND STREQUAL NONE)
       set(_exe_dir ${CMAKE_CURRENT_BINARY_DIR}/${D}d)
       set(_exe_name Test_Particles_Redistribute_${D}d)

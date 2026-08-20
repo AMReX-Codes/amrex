@@ -3,9 +3,10 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        continue()
     endif ()
 
-    if (AMReX_PARTICLES) # Particle currently does not work. Remove this block once the issue is resolved.
+    # This test always advects particles and therefore requires AMReX_PARTICLES.
+    if (NOT AMReX_PARTICLES)
        continue()
-    endif()
+    endif ()
 
     set(_sources advect_${D}d_mod.F90 compute_flux_${D}d.f90 slope_${D}d.f90 )
     list(TRANSFORM _sources PREPEND Src_${D}d/ )

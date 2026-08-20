@@ -9,6 +9,7 @@ project(AMReX-PlotfileTools
 set(_exe_names
    fboxinfo
    fcompare
+   fconvert
    fextract
    fextrema
    fgradient

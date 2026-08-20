@@ -43,8 +43,8 @@ public :
      * \param a_dmap        Distribution mappings.
      * \param a_info        LPInfo overrides.
      * \param a_factory     Optional nodal factories per level.
-     * \param a_const_sigma Uniform conductivity.  Zero means variable
-     *                      conductivity and setSigma() must be called.
+     * \param a_const_sigma Uniform conductivity.  Zero selects variable
+     *                      conductivity; setSigma() must then supply nonzero coefficients.
      */
     MLNodeLaplacian (const Vector<Geometry>& a_geom,
                      const Vector<BoxArray>& a_grids,
@@ -76,8 +76,8 @@ public :
      * \param a_dmap        Distribution mappings.
      * \param a_info        LPInfo overrides.
      * \param a_factory     Optional nodal factories per level.
-     * \param a_const_sigma Uniform conductivity.  Zero means variable
-     *                      conductivity and setSigma() must be called.
+     * \param a_const_sigma Uniform conductivity.  Zero selects variable
+     *                      conductivity; setSigma() must then supply nonzero coefficients.
      */
     void define (const Vector<Geometry>& a_geom,
                  const Vector<BoxArray>& a_grids,
@@ -109,14 +109,19 @@ public :
      *
      * \param t Minimum average magnitude allowed before rescaling.
      */
-    void setNormalizationThreshold (Real t) noexcept { m_normalization_threshold = t; }
+    void setNormalizationThreshold (Real t) noexcept {
+        if (m_normalization_threshold != t) {
+            m_normalization_threshold = t;
+            m_needs_update = true;
+        }
+    }
 
     /**
      * \brief Provide per-level conductivity (cell-centered MultiFab).
      * A multi-component input also triggers mapped-coordinate mode.
      *
      * \param amrlev AMR level receiving the coefficients.
-     * \param a_sigma Cell-centered conductivity MultiFab.
+     * \param a_sigma Cell-centered MultiFab containing nonzero conductivity coefficients.
      */
     void setSigma (int amrlev, const MultiFab& a_sigma);
 
@@ -151,14 +156,24 @@ public :
      *
      * \param flag True enables harmonic averaging.
      */
-    void setHarmonicAverage (bool flag) noexcept { m_use_harmonic_average = flag; }
+    void setHarmonicAverage (bool flag) noexcept {
+        if (m_use_harmonic_average != flag) {
+            m_use_harmonic_average = flag;
+            m_needs_update = true;
+        }
+    }
 
     /**
      * \brief Enable mapped-coordinate metrics (non-orthogonal grids).
      *
      * \param flag True enables mapped-coordinate support.
      */
-    void setMapped (bool flag) noexcept { m_use_mapped = flag; }
+    void setMapped (bool flag) noexcept {
+        if (m_use_mapped != flag) {
+            m_use_mapped = flag;
+            m_needs_update = true;
+        }
+    }
 
     /**
      * \brief Pick between sigma-weighted or RAP coarsening (ignored if `sigma` constant).
@@ -166,7 +181,12 @@ public :
      * \param cs Desired coarsening strategy enum.
      */
     void setCoarseningStrategy (CoarseningStrategy cs) noexcept {
-        if (m_const_sigma == Real(0.0)) { m_coarsening_strategy = cs; }
+        if (m_const_sigma == Real(0.0) && m_coarsening_strategy != cs) {
+            m_coarsening_strategy = cs;
+            m_masks_built = false;
+            m_precond_weight_mask.clear();
+            m_needs_update = true;
+        }
     }
 
     BottomSolver getDefaultBottomSolver () const final {
@@ -192,6 +212,10 @@ public :
 
     //! Finalize metric terms, sigma averages, and BC caches before solving.
     void prepareForSolve () final;
+    //! True if sigma-derived data need to be refreshed before reuse.
+    [[nodiscard]] bool needsUpdate () const final { return m_needs_update; }
+    //! Refresh sigma averages/stencils and clear the dirty flag.
+    void update () final;
     //! Apply the nodal Laplacian to \p in at (\p amrlev,\p mglev).
     void Fapply (int amrlev, int mglev, MultiFab& out, const MultiFab& in) const final;
     /**
@@ -339,6 +363,7 @@ private:
     bool m_use_gauss_seidel     = true;
     bool m_use_harmonic_average = false;
     bool m_use_mapped           = false;
+    bool m_needs_update         = true;
 
     void checkPoint (std::string const& file_name) const final;
 };

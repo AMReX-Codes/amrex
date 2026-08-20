@@ -58,12 +58,45 @@ int TinyProfiler::verbose = 0;
 double TinyProfiler::print_threshold = 1.;
 bool TinyProfiler::enabled = true;
 bool TinyProfiler::memprof_enabled = true;
-std::string TinyProfiler::output_file;
+std::string TinyProfiler::output_file{"stdout"};
 
 namespace {
     constexpr char mainregion[] = "main";
     bool finalized = false;
     bool memprof_finalized = false;
+    // Whether tiny_profiler.output_file has been read this Initialize/Finalize
+    // cycle. Re-armed in Initialize() so processes that cycle AMReX init/finalize
+    // multiple times (e.g. Jupyter notebooks) pick up an updated value each cycle.
+    bool output_file_read = false;
+
+    // Output-file values that select a stream (or no output) instead of naming
+    // an actual file
+    bool is_stream_name (std::string const& filename)
+    {
+        return filename.empty() || filename == "stdout" || filename == "stderr"
+            || filename == "/dev/null";
+    }
+
+    // Select the output stream for a profiling report: "" and "stdout" mean the
+    // default out stream of AMReX, "stderr" the default error stream, and
+    // "/dev/null" no output (nullptr). Otherwise, the named file is opened in
+    // append mode.
+    std::ostream* open_output_stream (std::string const& filename, std::ofstream& ofs)
+    {
+        std::ostream* os = nullptr;
+        if (filename.empty() || filename == "stdout") {
+            os = &(amrex::OutStream());
+        } else if (filename == "stderr") {
+            os = &(amrex::ErrorStream());
+        } else if (filename != "/dev/null") {
+            ofs.open(filename, std::ios_base::app);
+            if (!ofs.is_open()) {
+                amrex::Error("TinyProfiler failed to open "+filename);
+            }
+            os = static_cast<std::ostream*>(&ofs);
+        }
+        return os;
+    }
 }
 
 TinyProfiler::TinyProfiler (std::string funcname) noexcept
@@ -328,6 +361,12 @@ TinyProfiler::Initialize ()
         pp.queryAdd("enabled", enabled);
     }
 
+    // Re-arm the output-file read for this cycle and reset the cached value, so
+    // a new tiny_profiler.output_file is picked up across init/finalize cycles
+    // and a cycle that sets nothing falls back to the default (stdout).
+    output_file_read = false;
+    output_file = "stdout";
+
     if (!enabled) { return; }
 
     regionstack.emplace_back(mainregion);
@@ -389,19 +428,11 @@ TinyProfiler::Finalize (bool bFlushing)
     std::ofstream ofs;
     std::ostream* os = nullptr;
     if (ParallelDescriptor::IOProcessor()) {
-        auto const& ofile = get_output_file();
-        if (ofile.empty()) {
-            os = &(amrex::OutStream());
-        } else if (ofile != "/dev/null") {
-            ofs.open(ofile, std::ios_base::app);
-            if (!ofs.is_open()) {
-                amrex::Error("TinyProfiler failed to open "+ofile);
-            }
-            os = static_cast<std::ostream*>(&ofs);
-        }
+        os = open_output_stream(get_output_file(), ofs);
     }
 
     IOFormatSaver iofmtsaver(amrex::OutStream());
+    IOFormatSaver iofmtsaver_estream(amrex::ErrorStream());
 
     if (os)
     {
@@ -469,16 +500,7 @@ TinyProfiler::MemoryFinalize (bool bFlushing)
     std::ofstream ofs;
     std::ostream* os = nullptr;
     if (ParallelDescriptor::IOProcessor()) {
-        auto const& ofile = get_output_file();
-        if (ofile.empty()) {
-            os = &(amrex::OutStream());
-        } else if (ofile != "/dev/null") {
-            ofs.open(ofile, std::ios_base::app);
-            if (!ofs.is_open()) {
-                amrex::Error("TinyProfiler failed to open "+ofile);
-            }
-            os = static_cast<std::ostream*>(&ofs);
-        }
+        os = open_output_stream(get_output_file(), ofs);
     }
 
     PrintMemoryUsage(os, false);
@@ -1029,20 +1051,19 @@ TinyProfiler::PrintMemoryUsage (std::ostream* os, bool only_local) noexcept
 std::string const&
 TinyProfiler::get_output_file ()
 {
-    // Instead of reading it only once, we could try to read the parameter
-    // every time. But I am not sure how useful that might be.
-    static bool first = true;
-    if (first) {
-        first = false;
+    // Read the parameter once per Initialize/Finalize cycle. The guard is
+    // re-armed in Initialize(), so a value updated between cycles is honored.
+    // The guard also ensures the pre-existing file is removed at most once, so
+    // the timer and memory reports (both opened in append mode) coexist.
+    if (!output_file_read) {
+        output_file_read = true;
 
         amrex::ParmParse pp("tiny_profiler");
         pp.query("output_file", output_file);
 
         if (ParallelDescriptor::IOProcessor()) {
-            if (!output_file.empty() && output_file != "/dev/null") {
-                if (FileSystem::Exists(output_file)) {
-                    FileSystem::Remove(output_file);
-                }
+            if (!is_stream_name(output_file) && FileSystem::Exists(output_file)) {
+                FileSystem::Remove(output_file);
             }
         }
     }

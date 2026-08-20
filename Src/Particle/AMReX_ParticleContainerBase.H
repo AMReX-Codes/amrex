@@ -302,6 +302,8 @@ public:
 
 protected:
 
+    bool RedistributeMaskLooksCheap (int lev, IntVect nghost) const;
+
     void BuildRedistributeMask (int lev, IntVect nghost) const;
 
     void BuildRedistributeMask (int lev, int nghost=1) const
@@ -319,6 +321,11 @@ protected:
 
     mutable std::unique_ptr<iMultiFab> redistribute_mask_ptr;
     mutable IntVect redistribute_mask_nghost = IntVect(std::numeric_limits<int>::min());
+    mutable bool redistribute_mask_cost_cached = false;
+    mutable bool redistribute_mask_cost = false;
+    mutable IntVect redistribute_mask_cost_nghost = IntVect(std::numeric_limits<int>::min());
+    mutable BoxArray redistribute_mask_cost_ba;
+    mutable DistributionMapping redistribute_mask_cost_dmap;
     mutable amrex::Vector<int> neighbor_procs;
     mutable ParticleBufferMap m_buffer_map;
 

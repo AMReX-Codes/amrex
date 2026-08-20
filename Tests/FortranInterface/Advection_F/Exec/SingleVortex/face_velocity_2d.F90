@@ -22,7 +22,7 @@ contains
     integer :: i, j, plo(2), phi(2)
     real(amrex_real) :: x, y
     real(amrex_real), pointer, contiguous :: psi(:,:)
-    real(amrex_real), parameter :: M_PI = 3.141592653589793238462643383279502884197d0
+    real(amrex_real), parameter :: M_PI = 3.141592653589793238462643383279502884197_amrex_real
 
     plo(1) = min(vxlo(1)-1, vylo(1)-1)
     plo(2) = min(vxlo(2)-1, vylo(2)-1)
@@ -33,28 +33,28 @@ contains
 
     ! streamfunction psi
     do j = plo(2), phi(2)
-       y = (dble(j)+0.5d0)*dx(2) + prob_lo(2)
+       y = (real(j,amrex_real)+0.5_amrex_real)*dx(2) + prob_lo(2)
        do i = plo(1), phi(1)
-          x = (dble(i)+0.5d0)*dx(1) + prob_lo(1)
-          psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.d0) * (1.d0 / M_PI)
+          x = (real(i,amrex_real)+0.5_amrex_real)*dx(1) + prob_lo(1)
+          psi(i,j) =  sin(M_PI*x)**2 * sin(M_PI*y)**2 * cos (M_PI*time/2.0_amrex_real) * (1.0_amrex_real / M_PI)
        end do
     end do
 
     ! x velocity
     do j = vxlo(2), vxhi(2)
-       y = (dble(j)+0.5d0) * dx(2) + prob_lo(2)
+       y = (real(j,amrex_real)+0.5_amrex_real) * dx(2) + prob_lo(2)
        do i = vxlo(1), vxhi(1)
-          x = dble(i) * dx(1) + prob_lo(1)
-          vx(i,j) =  -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) * (0.25d0/dx(2))
+          x = real(i,amrex_real) * dx(1) + prob_lo(1)
+          vx(i,j) =  -( (psi(i,j+1)+psi(i-1,j+1)) - (psi(i,j-1)+psi(i-1,j-1)) ) * (0.25_amrex_real/dx(2))
        end do
     end do
 
     ! y velocity
     do j = vylo(2), vyhi(2)
-       y = dble(j) * dx(2) + prob_lo(2)
+       y = real(j,amrex_real) * dx(2) + prob_lo(2)
        do i = vylo(1), vyhi(1)
-          x = (dble(i)+0.5d0) * dx(1) + prob_lo(1)
-          vy(i,j) = ( (psi(i+1,j)+psi(i+1,j-1)) - (psi(i-1,j)+psi(i-1,j-1)) ) * (0.25d0/dx(1))
+          x = (real(i,amrex_real)+0.5_amrex_real) * dx(1) + prob_lo(1)
+          vy(i,j) = ( (psi(i+1,j)+psi(i+1,j-1)) - (psi(i-1,j)+psi(i-1,j-1)) ) * (0.25_amrex_real/dx(1))
        end do
     end do
 

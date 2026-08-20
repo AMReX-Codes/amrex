@@ -155,7 +155,7 @@ jobs:
     if: needs.check_changes.outputs.has_non_docs_changes == 'true'
     steps:
     - uses: actions/checkout@v7
-    - uses: Jimver/cuda-toolkit@v0.2.35
+    - uses: Jimver/cuda-toolkit@v0.2.36
       id: cuda-toolkit
       with:
         cuda: '12.6.1'

@@ -62,18 +62,17 @@ int main(int argc, char* argv[])
         Box domain = pf.probDomain(fine_level);
         auto dx_fine = pf.cellSize(fine_level);
         auto problo = pf.probLo();
-        auto probhi = pf.probHi();
 
         // compute the size of the radially-binned array -- we'll take the
         // vertical direction to be the dimensionality
 
-        int nbins = static_cast<int>(std::abs(probhi[dim-1] - problo[dim-1]) / dx_fine[dim-1]);
+        int nbins = domain.length(dim-1);
 
         // height coordinate
         Vector<Real> h(nbins);
 
         for (auto i = 0; i < nbins; i++) {
-            h[i] = (i + 0.5) * dx_fine[dim-1];
+            h[i] = problo[dim-1] + (i + 0.5) * dx_fine[dim-1];
         }
 
         // find variable indices
@@ -150,7 +149,9 @@ int main(int argc, char* argv[])
                                             height = problo[2] + static_cast<Real>(k+0.5)*dx_level[2];
                                         }
 
-                                        int index = static_cast<int>(height / dx_fine[dim-1]);
+                                        int index = static_cast<int>((height - problo[dim-1]) /
+                                                                     dx_fine[dim-1]);
+                                        AMREX_ASSERT(index >= 0 && index < nbins);
 
                                         // add to the bin, weighting by the size
 
@@ -197,7 +198,9 @@ int main(int argc, char* argv[])
                                         height = problo[2] + static_cast<Real>(k+0.5)*dx_level[2];
                                     }
 
-                                    int index = static_cast<int>(height / dx_fine[dim-1]);
+                                    int index = static_cast<int>((height - problo[dim-1]) /
+                                                                 dx_fine[dim-1]);
+                                    AMREX_ASSERT(index >= 0 && index < nbins);
 
                                     // add to the bin, weighting by the size
 

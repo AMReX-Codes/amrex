@@ -326,6 +326,8 @@ protected:
 
     //! Average coefficients down across all AMR and MG levels.
     void averageDownCoeffs ();
+    //! Average inhomogeneous EB Dirichlet values down across AMR levels.
+    void averageDownEBPhi ();
     //! Average coefficients from fine AMR level \p flev to coarse AMR level \p flev-1.
     void averageDownCoeffsToCoarseAmrLevel (int flev);
 

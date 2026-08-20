@@ -161,7 +161,7 @@ CreateDirectories (std::string const& path, mode_t mode, bool verbose)
         delete [] dir;
     }
 
-    if(retVal == false  || verbose == true) {
+    if(retVal == false && verbose == true) {
       for(auto & i : pathError) {
           amrex::AllPrint()<< "amrex::UtilCreateDirectory:: path errno:  "
                            << i.first << " :: "

@@ -3,6 +3,8 @@
 #include <AMReX_MultiFab.H>
 #include <AMReX_Particles.H>
 
+#include <algorithm>
+
 using namespace amrex;
 
 static constexpr int NSR = 6;
@@ -60,14 +62,19 @@ public:
         }
     }
 
-    void RedistributeLocal (bool remove_neg=true)
+    void RedistributeLocal (bool remove_neg=true,
+                            IntVect max_cells_moved=IntVect(1))
     {
         const int lev_min = 0;
         const int lev_max = finestLevel();
         const IntVect nGrow(0);
         const bool local = true;
-        const IntVect max_cells_moved(1);
         Redistribute(lev_min, lev_max, nGrow, local, max_cells_moved, remove_neg);
+    }
+
+    bool RedistributeMaskLooksCheapForTest (IntVect max_cells_moved) const
+    {
+        return RedistributeMaskLooksCheap(0, max_cells_moved);
     }
 
     void RedistributeGlobal (bool remove_neg=true)
@@ -351,18 +358,106 @@ struct TestParams
     int sort;
     int test_level_lost = 0;
     int stable_redistribute = 0;
+    IntVect max_cells_moved = IntVect(1);
+    int expected_mask_lookup = -1;
 };
 
 void testRedistribute();
+void testNeighborProcsCoarseToFine();
 
 int main (int argc, char* argv[])
 {
     amrex::Initialize(argc,argv);
 
     amrex::Print() << "Running redistribute test \n";
+    testNeighborProcsCoarseToFine();
     testRedistribute();
 
     amrex::Finalize();
+}
+
+// Regression test for GH-5570: computeNeighborProcs() must grow the search
+// box for a coarse source level using the *destination* level's refinement
+// factor (computeRefFac(0, lev)), not the source level's
+// (computeRefFac(0, src_lev)). Using the source level's factor under-grows
+// the box whenever src_lev < lev, so a fine grid that a coarse-level
+// particle could reach in max_cells_moved coarse cells can be missing from
+// the neighbor rank list used by local Redistribute -- silently dropping
+// particles that move across the coarse/fine boundary near a fine grid edge.
+//
+// This test builds a 2-level layout with a single level-0 (coarse) box on
+// rank 0 and a single level-1 (fine) box on rank 1, positioned so that the
+// fine box's edge is out of reach of the buggy (under-grown) search box but
+// within reach of the correctly-grown one. It requires >= 2 ranks to be
+// meaningful; with 1 rank the geometric setup is unchanged but there is no
+// "other rank" to go missing, so the test trivially passes.
+void testNeighborProcsCoarseToFine ()
+{
+    BL_PROFILE("testNeighborProcsCoarseToFine");
+
+    const int nprocs = ParallelDescriptor::NProcs();
+    if (nprocs < 2) {
+        amrex::Print() << "testNeighborProcsCoarseToFine: skipping, needs >= 2 ranks\n";
+        return;
+    }
+
+    // Level 0 domain: a single box, non-periodic in the x-direction so there
+    // is no periodic image to mask the bug. refRatio = 2 in all directions,
+    // so level 1's domain is twice as large in each direction.
+    const Box domain0(IntVect(AMREX_D_DECL(0,0,0)),
+                       IntVect(AMREX_D_DECL(23,7,7)));
+    const Box domain1 = amrex::refine(domain0, IntVect(2));
+
+    RealBox real_box(AMREX_D_DECL(0.0, 0.0, 0.0),
+                      AMREX_D_DECL(24.0, 8.0, 8.0));
+    int is_per[] = {AMREX_D_DECL(0,1,1)};
+
+    Vector<Geometry> geom(2);
+    geom[0].define(domain0, &real_box, CoordSys::cartesian, is_per);
+    geom[1].define(domain1, &real_box, CoordSys::cartesian, is_per);
+
+    // Level 0: a single "source" box A = [0,7] in x (owned by rank 0).
+    // Level 1: a single "target" box T = [20,23] in x (owned by rank 1).
+    //
+    // With max_cells_moved = ngrow = 3 (coarse cells):
+    //   refined image of A in level-1 index space spans x in [0,15].
+    //   correctly grown reach = computeRefFac(0, lev=1)*ngrow = 2*3 = 6
+    //     fine cells -> reach up to x=21, which overlaps T (starts at x=20).
+    //   buggy grown reach     = computeRefFac(0, src_lev=0)*ngrow = 1*3 = 3
+    //     fine cells -> reach only up to x=18, missing T entirely.
+    //
+    // So rank 1 (owner of T) must appear in rank 0's neighbor list; if the
+    // bug is present, it does not.
+    BoxArray ba0(Box(IntVect(AMREX_D_DECL(0,0,0)),
+                      IntVect(AMREX_D_DECL(7,7,7))));
+    BoxArray ba1(Box(IntVect(AMREX_D_DECL(20,0,0)),
+                      IntVect(AMREX_D_DECL(23,15,15))));
+
+    DistributionMapping dm0(Vector<int>{0});
+    DistributionMapping dm1(Vector<int>{1});
+
+    Vector<DistributionMapping> dmap{dm0, dm1};
+    Vector<BoxArray> ba{ba0, ba1};
+    Vector<IntVect> rr{IntVect(2)};
+
+    ParGDB gdb(geom, dmap, ba, rr);
+
+    const IntVect max_cells_moved(3);
+    const Vector<int> neighbor_procs = computeNeighborProcs(&gdb, max_cells_moved);
+
+    const int rank = ParallelDescriptor::MyProc();
+    if (rank == 0) {
+        const bool found_rank1 =
+            std::find(neighbor_procs.begin(), neighbor_procs.end(), 1)
+            != neighbor_procs.end();
+        AMREX_ALWAYS_ASSERT_WITH_MESSAGE(found_rank1,
+            "computeNeighborProcs() under-grew the coarse->fine search box "
+            "(GH-5570): the owner of the reachable fine-level grid is "
+            "missing from the neighbor process list.");
+    }
+    ParallelDescriptor::Barrier();
+
+    amrex::Print() << "testNeighborProcsCoarseToFine: pass\n";
 }
 
 void get_test_params(TestParams& params, const std::string& prefix)
@@ -382,6 +477,8 @@ void get_test_params(TestParams& params, const std::string& prefix)
     pp.query("num_runtime_int", num_runtime_int);
     pp.query("remove_negative", remove_negative);
     pp.query("stable_redistribute", params.stable_redistribute);
+    pp.query("max_cells_moved", params.max_cells_moved);
+    pp.query("expected_mask_lookup", params.expected_mask_lookup);
 
     params.sort = 0;
     pp.query("sort", params.sort);
@@ -436,6 +533,11 @@ void testRedistribute ()
     TestParticleContainer pc(geom, dm, ba, rr);
     pc.setStableRedistribute(params.stable_redistribute);
 
+    if (params.expected_mask_lookup >= 0) {
+        const bool mask_lookup = pc.RedistributeMaskLooksCheapForTest(params.max_cells_moved);
+        AMREX_ALWAYS_ASSERT(mask_lookup == static_cast<bool>(params.expected_mask_lookup));
+    }
+
     IntVect nppc(params.num_ppc);
 
     amrex::Print() << "About to initialize particles \n";
@@ -454,11 +556,11 @@ void testRedistribute ()
         if (!remove_negative) {
             auto old = pc.TotalNumberOfParticles();
             pc.negateEven();
-            pc.RedistributeLocal(false);
+            pc.RedistributeLocal(false, params.max_cells_moved);
             AMREX_ALWAYS_ASSERT(old == pc.TotalNumberOfParticles(false));
             pc.negateEven();
         }
-        pc.RedistributeLocal();
+        pc.RedistributeLocal(true, params.max_cells_moved);
         if (params.sort) { pc.SortParticlesByCell(); }
         pc.checkAnswer();
     }

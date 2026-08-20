@@ -26,7 +26,7 @@ subroutine advect(time, lo, hi, &
   implicit none
 
   integer, intent(in) :: lo(3), hi(3)
-  double precision, intent(in) :: dx(3), dt, time
+  real(amrex_real), intent(in) :: dx(3), dt, time
   integer, intent(in) :: ui_lo(3), ui_hi(3)
   integer, intent(in) :: uo_lo(3), uo_hi(3)
   integer, intent(in) :: vx_lo(3), vx_hi(3)
@@ -35,21 +35,21 @@ subroutine advect(time, lo, hi, &
   integer, intent(in) :: fx_lo(3), fx_hi(3)
   integer, intent(in) :: fy_lo(3), fy_hi(3)
   integer, intent(in) :: fz_lo(3), fz_hi(3)
-  double precision, intent(in   ) :: uin (ui_lo(1):ui_hi(1),ui_lo(2):ui_hi(2),ui_lo(3):ui_hi(3))
-  double precision, intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
-  double precision, intent(in   ) :: vx  (vx_lo(1):vx_hi(1),vx_lo(2):vx_hi(2),vx_lo(3):vx_hi(3))
-  double precision, intent(in   ) :: vy  (vy_lo(1):vy_hi(1),vy_lo(2):vy_hi(2),vy_lo(3):vy_hi(3))
-  double precision, intent(in   ) :: vz  (vz_lo(1):vz_hi(1),vz_lo(2):vz_hi(2),vz_lo(3):vz_hi(3))
-  double precision, intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
-  double precision, intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
-  double precision, intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
+  real(amrex_real), intent(in   ) :: uin (ui_lo(1):ui_hi(1),ui_lo(2):ui_hi(2),ui_lo(3):ui_hi(3))
+  real(amrex_real), intent(inout) :: uout(uo_lo(1):uo_hi(1),uo_lo(2):uo_hi(2),uo_lo(3):uo_hi(3))
+  real(amrex_real), intent(in   ) :: vx  (vx_lo(1):vx_hi(1),vx_lo(2):vx_hi(2),vx_lo(3):vx_hi(3))
+  real(amrex_real), intent(in   ) :: vy  (vy_lo(1):vy_hi(1),vy_lo(2):vy_hi(2),vy_lo(3):vy_hi(3))
+  real(amrex_real), intent(in   ) :: vz  (vz_lo(1):vz_hi(1),vz_lo(2):vz_hi(2),vz_lo(3):vz_hi(3))
+  real(amrex_real), intent(  out) :: flxx(fx_lo(1):fx_hi(1),fx_lo(2):fx_hi(2),fx_lo(3):fx_hi(3))
+  real(amrex_real), intent(  out) :: flxy(fy_lo(1):fy_hi(1),fy_lo(2):fy_hi(2),fy_lo(3):fy_hi(3))
+  real(amrex_real), intent(  out) :: flxz(fz_lo(1):fz_hi(1),fz_lo(2):fz_hi(2),fz_lo(3):fz_hi(3))
 
   integer :: i, j, k
   integer :: glo(3), ghi(3)
-  double precision :: dtdx(3), umax, vmax, wmax
+  real(amrex_real) :: dtdx(3), umax, vmax, wmax
 
   ! Some compiler may not support 'contiguous'.  Remove it in that case.
-  double precision, dimension(:,:,:), pointer, contiguous :: &
+  real(amrex_real), dimension(:,:,:), pointer, contiguous :: &
        phix, phix_y, phix_z, phiy, phiy_x, phiy_z, phiz, phiz_x, phiz_y, slope
 
   dtdx = dt/dx
@@ -162,8 +162,8 @@ subroutine advect_particles(particles, np, &
   integer,                    intent(in)            :: uylo(3), uyhi(3)
   integer,                    intent(in)            :: uzlo(3), uzhi(3)
   real(amrex_real), target,   intent(in)     :: ux(uxlo(1):uxhi(1),uxlo(2):uxhi(2),uxlo(3):uxhi(3))
-  real(amrex_real), target,   intent(in)     :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2),uxlo(3):uxhi(3))
-  real(amrex_real), target,   intent(in)     :: uz(uzlo(1):uzhi(1),uzlo(2):uzhi(2),uxlo(3):uxhi(3))
+  real(amrex_real), target,   intent(in)     :: uy(uylo(1):uyhi(1),uylo(2):uyhi(2),uylo(3):uyhi(3))
+  real(amrex_real), target,   intent(in)     :: uz(uzlo(1):uzhi(1),uzlo(2):uzhi(2),uzlo(3):uzhi(3))
   real(amrex_real),           intent(in)            :: dt
   real(amrex_real),           intent(in)            :: plo(3)
   real(amrex_real),           intent(in)            :: dx(3)
@@ -191,9 +191,9 @@ subroutine advect_particles(particles, np, &
 
   velocity(1)%p => ux
   velocity(2)%p => uy
-  velocity(3)%p => uy
+  velocity(3)%p => uz
 
-  inv_dx = 1.0d0/dx
+  inv_dx = 1.0_amrex_real/dx
 
   do ipass = 1, 2
      do n = 1, np
@@ -201,10 +201,10 @@ subroutine advect_particles(particles, np, &
         length = (particles(n)%pos - plo)*inv_dx
 
         cc_cell = floor(length)
-        cell    = floor(length + 0.5d0)
+        cell    = floor(length + 0.5_amrex_real)
 
-        w_hi = length + 0.5d0 - cell
-        w_lo = 1.d0 - w_hi
+        w_hi = length + 0.5_amrex_real - cell
+        w_lo = 1.0_amrex_real - w_hi
 
         ! x direction
         do d = 1, 3
@@ -215,8 +215,8 @@ subroutine advect_particles(particles, np, &
            e_lo = w_lo
            e_hi(d) = length(d) - cc_cell(d)
 
-           e_hi = max(0.d0,min(1.d0,e_hi))
-           e_lo(d) = 1.d0 - e_hi(d)
+           e_hi = max(0.0_amrex_real,min(1.0_amrex_real,e_hi))
+           e_lo(d) = 1.0_amrex_real - e_hi(d)
 
            vel = e_lo(1)*e_lo(2)*e_lo(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)-1) + &
                  e_lo(1)*e_lo(2)*e_hi(3)*velocity(d)%p(e_cell(1)-1, e_cell(2)-1, e_cell(3)  ) + &
@@ -229,7 +229,7 @@ subroutine advect_particles(particles, np, &
 
            if (ipass == 1) then
               particles(n)%vel(d) = particles(n)%pos(d)
-              particles(n)%pos(d) = particles(n)%pos(d) + 0.5d0*dt*vel
+              particles(n)%pos(d) = particles(n)%pos(d) + 0.5_amrex_real*dt*vel
            else
               particles(n)%pos(d) = particles(n)%vel(d) + dt*vel
               particles(n)%vel(d) = vel

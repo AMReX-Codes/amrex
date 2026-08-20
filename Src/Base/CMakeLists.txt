@@ -32,6 +32,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_parmparse_fi.cpp
        AMReX_ParmParse.H
        AMReX_Functional.H
+       AMReX_CompensatedSum.H
        AMReX_Stack.H
        AMReX_String.H
        AMReX_String.cpp
@@ -41,6 +42,7 @@ foreach(D IN LISTS AMReX_SPACEDIM)
        AMReX_FileSystem.cpp
        AMReX_ValLocPair.H
        AMReX_Reduce.H
+       AMReX_ReduceSIMD.H
        AMReX_Scan.H
        AMReX_Partition.H
        AMReX_Morton.H
