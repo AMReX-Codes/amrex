@@ -281,7 +281,7 @@ void addRegularCoarseLevels (int num_new_coarse_levels);
  *
  * Must be called after EB2::Build() has created the cell-centered EB geometry.
  */
-void BuildFC();
+void BuildFC ();
 
 }
 

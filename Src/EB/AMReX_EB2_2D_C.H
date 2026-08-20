@@ -108,7 +108,7 @@ int coarsen_from_fine (int i, int j, Box const& bx, int ngrow,
                        Array4<Real const> const& fapy, Array4<Real const> const& ffcx,
                        Array4<Real const> const& ffcy, Array4<Real const> const& fecx,
                        Array4<Real const> const& fecy, Array4<EBCellFlag const> const& fflag,
-                       int face_dir = -1)
+                       int face_dir)
 {
     const Box& gbx = amrex::grow(bx,ngrow);
     const Box& xbx = amrex::surroundingNodes(bx,0);

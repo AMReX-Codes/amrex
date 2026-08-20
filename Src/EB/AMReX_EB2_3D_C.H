@@ -325,7 +325,7 @@ int coarsen_from_fine (int i, int j, int k, Box const& bx, int ngrow,
                        Array4<Real const> const& ffcz, Array4<Real const> const& fecx,
                        Array4<Real const> const& fecy, Array4<Real const> const& fecz,
                        Array4<EBCellFlag const> const& fflag,
-                       int face_dir = -1)
+                       int face_dir)
 {
     using detail::coarsen_edge_cent;
 

@@ -310,7 +310,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                              AMREX_D_DECL(fapx,fapy,fapz),
                                              AMREX_D_DECL(ffcx,ffcy,ffcz),
                                              AMREX_D_DECL(fecx,fecy,fecz),
-                                             fflag);
+                                             fflag, -1);  // -1: no staggering, cell-centered coarsening
                 tile_error = std::max(tile_error,ierr);
             });
 
@@ -377,7 +377,7 @@ Level::coarsenFromFine (Level& fineLevel, bool fill_boundary)
                                              AMREX_D_DECL(fapx,fapy,fapz),
                                              AMREX_D_DECL(ffcx,ffcy,ffcz),
                                              AMREX_D_DECL(fecx[lidx],fecy[lidx],fecz[lidx]),
-                                             fflag);
+                                             fflag, -1);  // -1: no staggering, cell-centered coarsening
                 return {ierr};
             });
         }
