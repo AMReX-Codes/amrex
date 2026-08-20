@@ -1064,6 +1064,35 @@ Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
     AMREX_ASSERT(hasFCData(face_dir));
     vfrac.setVal(1.0);
     if (isAllRegular()) { return; }
+
+    // The covered region is masked BEFORE the ParallelCopy below, and is deliberately not
+    // shrunk. A face-centered cell straddles two cell-centered cells, so the ones on the
+    // covered/cut interface may still be cut; clearing them here and letting the copy write
+    // over them is correct, because the copy writes exactly where the face-centered data is
+    // valid - the nodal span of the cut boxes, which reaches the interface and no further.
+    BoxArray const& cov = m_fc_data[face_dir]->m_covered_grids_fc;
+    if (!cov.empty())
+    {
+        BoxArray cov_fc = amrex::convert(cov, vfrac.ixType());
+        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<std::pair<int,Box> > isects;
+        for (MFIter mfi(vfrac); mfi.isValid(); ++mfi)
+        {
+            auto const& fab = vfrac.array(mfi);
+            const Box& bx = mfi.fabbox();
+            for (const auto& iv : pshifts) {
+                cov_fc.intersections(bx+iv, isects);
+                for (const auto& is : isects) {
+                    Box const& ibox = is.second-iv;
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
+                    {
+                        fab(i,j,k) = 0.0;  // covered
+                    });
+                }
+            }
+        }
+    }
+
     vfrac.ParallelCopy(m_fc_data[face_dir]->m_volfrac_fc, 0, 0, 1, 0, vfrac.nGrow(), geom.periodicity());
 }
 
@@ -1075,6 +1104,37 @@ Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face
         areafrac[idim]->setVal(1.0);
     }
     if (isAllRegular()) { return; }
+    // The covered region is masked BEFORE the ParallelCopy below, and is deliberately not
+    // shrunk. A face-centered cell straddles two cell-centered cells, so the ones on the
+    // covered/cut interface may still be cut; clearing them here and letting the copy write
+    // over them is correct, because the copy writes exactly where the face-centered data is
+    // valid - the nodal span of the cut boxes, which reaches the interface and no further.
+    BoxArray const& cov = m_fc_data[face_dir]->m_covered_grids_fc;
+    if (!cov.empty())
+    {
+        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<std::pair<int,Box> > isects;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            // FC areafrac is cell-typed on the base grids, indexed by the staggered cell
+            BoxArray cov_fc = amrex::convert(cov, areafrac[idim]->ixType());
+            for (MFIter mfi(*areafrac[idim]); mfi.isValid(); ++mfi)
+            {
+                auto const& fab = areafrac[idim]->array(mfi);
+                const Box& bx = mfi.fabbox();
+                for (const auto& iv : pshifts) {
+                    cov_fc.intersections(bx+iv, isects);
+                    for (const auto& is : isects) {
+                        Box const& ibox = is.second-iv;
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
+                        {
+                            fab(i,j,k) = 0.0;  // covered
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         areafrac[idim]->ParallelCopy(m_fc_data[face_dir]->m_areafrac_fc[idim], 0, 0, 1, 0, areafrac[idim]->nGrow(), geom.periodicity());
     }
@@ -1184,6 +1244,36 @@ Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const 
         return;
     }
 
+    // The covered region is masked BEFORE the ParallelCopy below, and is deliberately not
+    // shrunk. A face-centered cell straddles two cell-centered cells, so the ones on the
+    // covered/cut interface may still be cut; clearing them here and letting the copy write
+    // over them is correct, because the copy writes exactly where the face-centered data is
+    // valid - the nodal span of the cut boxes, which reaches the interface and no further.
+    BoxArray const& cov = m_fc_data[face_dir]->m_covered_grids_fc;
+    if (!cov.empty())
+    {
+        EBCellFlag cov_val = EBCellFlag::TheDefaultCell();
+        cov_val.setCovered();
+        BoxArray cov_fc = amrex::convert(cov, cellflag.ixType());
+        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<std::pair<int,Box> > isects;
+        for (MFIter mfi(cellflag); mfi.isValid(); ++mfi)
+        {
+            auto const& a = cellflag.array(mfi);
+            const Box& bx = mfi.fabbox();
+            for (const auto& iv : pshifts) {
+                cov_fc.intersections(bx+iv, isects);
+                for (const auto& is : isects) {
+                    Box const& ibox = is.second-iv;
+                    AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
+                    {
+                        a(i,j,k) = cov_val;
+                    });
+                }
+            }
+        }
+    }
+
     cellflag.ParallelCopy(m_fc_data[face_dir]->m_cellflag_fc, 0, 0, 1, 0, cellflag.nGrow(), geom.periodicity());
 
     // Set FabType for each fab (similar to fillEBCellFlag)
@@ -1233,6 +1323,36 @@ Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face
         edgecent[idim]->setVal(0.0);
     }
     if (isAllRegular()) { return; }
+    // The covered region is masked BEFORE the ParallelCopy below, and is deliberately not
+    // shrunk. A face-centered cell straddles two cell-centered cells, so the ones on the
+    // covered/cut interface may still be cut; clearing them here and letting the copy write
+    // over them is correct, because the copy writes exactly where the face-centered data is
+    // valid - the nodal span of the cut boxes, which reaches the interface and no further.
+    BoxArray const& cov = m_fc_data[face_dir]->m_covered_grids_fc;
+    if (!cov.empty())
+    {
+        const std::vector<IntVect>& pshifts = geom.periodicity().shiftIntVect();
+        std::vector<std::pair<int,Box> > isects;
+        for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
+            BoxArray cov_fc = amrex::convert(cov, edgecent[idim]->ixType());
+            for (MFIter mfi(*edgecent[idim]); mfi.isValid(); ++mfi)
+            {
+                auto const& fab = edgecent[idim]->array(mfi);
+                const Box& bx = mfi.fabbox();
+                for (const auto& iv : pshifts) {
+                    cov_fc.intersections(bx+iv, isects);
+                    for (const auto& is : isects) {
+                        Box const& ibox = is.second-iv;
+                        AMREX_HOST_DEVICE_PARALLEL_FOR_3D(ibox, i, j, k,
+                        {
+                            fab(i,j,k) = Real(-1.0);  // covered edges
+                        });
+                    }
+                }
+            }
+        }
+    }
+
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         edgecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_edgecent_fc[idim], 0, 0, 1, 0, edgecent[idim]->nGrow(), geom.periodicity());
     }

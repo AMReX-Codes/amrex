@@ -156,6 +156,12 @@ public:
         Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
         Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
         Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
+        //! Covered region of the refined level, coarsened onto this level. The refined level is
+        //! transient, so it has to be captured here for the fill*FC functions to mask with.
+        //! Note this is NOT the same as Level::m_covered_grids: the refined level resolves the
+        //! body more finely, so its covered region is the larger one once coarsened, and it is
+        //! the one that matches where the face-centered data was actually computed.
+        BoxArray m_covered_grids_fc;
         bool m_built = false;
     };
 
@@ -859,6 +865,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     // The grids are coarsened from the refined level rather than taken from m_grids so that the
     // DistributionMapping stays compatible with the refined data we read below.
     const BoxArray fc_base_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
+    if (!refined_cc_level->m_covered_grids.empty()) {
+        m_fc_data[face_dir]->m_covered_grids_fc =
+            amrex::coarsen(refined_cc_level->m_covered_grids, 2);
+    }
     const DistributionMapping fc_dmap = refined_cc_level->m_dmap;
 
     // Face-centered data provides no level set, so nothing here coarsens one. The multi-cut check
