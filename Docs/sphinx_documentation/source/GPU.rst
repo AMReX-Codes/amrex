@@ -287,11 +287,14 @@ results in a larger library and longer build times. The special values ``native`
 default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and ``<NN>a``
 suffixes documented for CMake's
 `CUDA_ARCHITECTURES <https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html>`__
-target property, are supported. ``all`` and ``all-major`` are left to the CUDA compiler to
-expand, while ``native`` is resolved at configure time so that AMReX can report the
-architecture it builds for and export it to downstream projects. Architectures below compute
-capability 6.0 are not supported by AMReX and are dropped with a message; if nothing is
-left, configuration stops with an error.
+target property, are supported. ``all`` and ``all-major`` are normally left to the CUDA
+compiler to expand, while ``native`` is resolved at configure time so that AMReX can report
+the architecture it builds for and export it to downstream projects. Architectures below
+compute capability 6.0 are not supported by AMReX and are dropped with a message; if nothing
+is left, configuration stops with an error. Because ``all`` and ``all-major`` cover every
+architecture the CUDA toolkit supports, they are resolved at configure time as well if that
+toolkit still supports architectures below compute capability 6.0 (e.g., ``sm_50`` with
+CUDA 12), so that those are dropped instead of being built.
 
 .. highlight:: console
 

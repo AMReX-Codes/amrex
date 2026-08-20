@@ -204,6 +204,63 @@ endfunction ()
 
 
 #
+# Expand the CUDA architecture aliases "all" and "all-major" into the concrete
+# architectures they stand for, spelled the way the CUDA_ARCHITECTURES property does:
+# SASS code for every architecture and PTX for the newest one only.
+#
+# The architectures a toolkit supports are queried from the CUDA compiler itself, so that
+# the answer stays correct for a toolkit newer than the CMake release in use, whose
+# CMAKE_CUDA_ARCHITECTURES_ALL[_MAJOR] would list architectures the compiler has dropped
+# and miss the ones it added. Those variables are the fallback for a compiler that does not
+# answer the query (e.g. clang -x cuda), which is also the list CMake itself expands the
+# alias with in that case.
+#
+#   _alias  "all" or "all-major"
+#   _var    name of a variable that receives the architecture list in the caller; empty if
+#           neither the compiler nor CMake knows the architectures
+#
+function (amrex_expand_cuda_archs_alias _alias _var)
+   set(_archs)
+   execute_process(COMMAND ${CMAKE_CUDA_COMPILER} --list-gpu-arch
+      OUTPUT_VARIABLE _out RESULT_VARIABLE _rv
+      ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+   if (_rv EQUAL 0)
+      string(REGEX MATCHALL "compute_([0-9]+)" _archs "${_out}")
+      list(TRANSFORM _archs REPLACE "compute_" "")
+      # they are not printed in ascending order (e.g. 110 before 103 with CUDA 13.3), and
+      # both the earliest and the newest one are needed below
+      list(SORT _archs COMPARE NATURAL)
+   endif ()
+
+   if (_archs AND _alias STREQUAL "all-major")
+      # "all-major" covers every major architecture (minor revision 0) plus the earliest
+      # architecture the toolkit supports, which need not be a major one (sm_75 with CUDA 13)
+      list(GET _archs 0 _earliest)
+      set(_major "${_earliest}")
+      foreach (_arch IN LISTS _archs)
+         math(EXPR _minor "${_arch} % 10")
+         if (_minor EQUAL 0 AND NOT _arch STREQUAL _earliest)
+            list(APPEND _major "${_arch}")
+         endif ()
+      endforeach ()
+      set(_archs "${_major}")
+   endif ()
+
+   if (_archs)
+      list(POP_BACK _archs _newest)
+      list(TRANSFORM _archs APPEND "-real")
+      list(APPEND _archs "${_newest}")
+   elseif (_alias STREQUAL "all")
+      set(_archs "${CMAKE_CUDA_ARCHITECTURES_ALL}")
+   else ()
+      set(_archs "${CMAKE_CUDA_ARCHITECTURES_ALL_MAJOR}")
+   endif ()
+
+   set(${_var} "${_archs}" PARENT_SCOPE)
+endfunction ()
+
+
+#
 # Drop architectures below the minimum compute capability AMReX supports, as the deprecated
 # FindCUDA-based selection used to do. Without this an unsupported architecture fails much
 # later: in CMake's CUDA compiler detection, or deep inside the device code compilation of

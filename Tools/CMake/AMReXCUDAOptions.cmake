@@ -31,9 +31,10 @@ endif ()
 # Resolve and report the target CUDA architecture(s). CMAKE_CUDA_ARCHITECTURES was set in
 # AMReXCUDAArchs.cmake (before enable_language, honoring the user's hints). The aliases
 # native/all/all-major are resolved by the CUDA compiler itself, so they are normally left
-# alone here. "native" is the exception: CMake queries the local GPU during compiler
-# detection and reports the result in CMAKE_CUDA_ARCHITECTURES_NATIVE, which lets us report
-# the architecture, check it and export it to downstream projects instead of a placeholder.
+# alone here and only spelled out where AMReX has to know what they stand for. "native" is
+# always such a case: CMake queries the local GPU during compiler detection and reports the
+# result in CMAKE_CUDA_ARCHITECTURES_NATIVE, which lets us report the architecture, check it
+# and export it to downstream projects instead of a placeholder.
 set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
 set(_amrex_cuda_archs_alias FALSE)
 if (CMAKE_CUDA_ARCHITECTURES STREQUAL "native")
@@ -67,59 +68,42 @@ elseif (CMAKE_CUDA_ARCHITECTURES MATCHES "^(all|all-major)$")
    # The CUDA compiler expands these itself, which is what we want it to do: CMake's
    # CMAKE_CUDA_ARCHITECTURES_ALL[_MAJOR] describe the CUDA versions that CMake release
    # knew about, so with a CUDA toolkit newer than CMake they list architectures the
-   # compiler has since dropped and miss the ones it added. Device LTO is the one case
-   # that cannot use an alias, because it is applied per architecture (code=lto_<NN>).
-   if (NOT AMReX_CUDA_LTO)
-      message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
-   else ()
-      # only trust CMake's list if the CUDA compiler agrees that it can build all of it
-      set(_amrex_nvcc_archs)
-      execute_process(COMMAND ${CMAKE_CUDA_COMPILER} --list-gpu-arch
-         OUTPUT_VARIABLE _amrex_nvcc_arch_out RESULT_VARIABLE _amrex_nvcc_arch_rv
-         ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-      if (_amrex_nvcc_arch_rv EQUAL 0)
-         string(REGEX MATCHALL "compute_([0-9]+)" _amrex_nvcc_archs "${_amrex_nvcc_arch_out}")
-         list(TRANSFORM _amrex_nvcc_archs REPLACE "compute_" "")
-      endif ()
+   # compiler has since dropped and miss the ones it added. Two cases need the concrete
+   # architectures nevertheless: device LTO, which is applied per architecture
+   # (code=lto_<NN>), and a toolkit that still supports architectures below the compute
+   # capability AMReX requires (sm_50 with CUDA 12, where "all"/"all-major" would pull
+   # unsupported architectures into the build instead of dropping them).
+   amrex_expand_cuda_archs_alias(${CMAKE_CUDA_ARCHITECTURES} _amrex_alias_archs)
 
-      if (CMAKE_CUDA_ARCHITECTURES STREQUAL "all")
-         set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES_ALL}")
-      else ()
-         set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES_ALL_MAJOR}")
+   set(_amrex_alias_unsupported FALSE)
+   foreach (_arch IN LISTS _amrex_alias_archs)
+      if (_arch MATCHES "^([0-9]+)")
+         if (CMAKE_MATCH_1 LESS 60)
+            set(_amrex_alias_unsupported TRUE)
+         endif ()
       endif ()
+   endforeach ()
+   unset(_arch)
 
-      set(_amrex_cuda_archs_usable FALSE)
-      if (_amrex_nvcc_archs AND _amrex_cuda_archs)
-         set(_amrex_cuda_archs_usable TRUE)
-         foreach (_arch IN LISTS _amrex_cuda_archs)
-            string(REGEX MATCH "^[0-9]+" _arch_num "${_arch}")
-            if (NOT _arch_num IN_LIST _amrex_nvcc_archs)
-               set(_amrex_cuda_archs_usable FALSE)
-            endif ()
-         endforeach ()
-         unset(_arch)
-         unset(_arch_num)
-      endif ()
-
-      if (NOT _amrex_cuda_archs_usable)
-         message(FATAL_ERROR
-            "AMReX_CUDA_LTO needs the concrete architectures behind "
-            "'${CMAKE_CUDA_ARCHITECTURES}', but this CMake (${CMAKE_VERSION}) does not "
-            "describe them consistently with the CUDA compiler "
-            "(${CMAKE_CUDA_COMPILER_VERSION}). Pass explicit architectures, e.g. "
-            "-DCMAKE_CUDA_ARCHITECTURES=80, use a newer CMake, or turn off "
-            "-DAMReX_CUDA_LTO=OFF.")
-      endif ()
-
-      # unlike "native", the alias lists keep CMake's "<NN>-real" entries: embedding PTX
+   if (_amrex_alias_archs AND (AMReX_CUDA_LTO OR _amrex_alias_unsupported))
+      # unlike "native", the expanded list keeps the "<NN>-real" entries: embedding PTX
       # for the newest architecture only is what "all"/"all-major" mean
+      set(_amrex_cuda_archs "${_amrex_alias_archs}")
       set(_amrex_cuda_archs_alias TRUE)
       message(STATUS "   CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES} -> ${_amrex_cuda_archs}")
-      unset(_amrex_cuda_archs_usable)
-      unset(_amrex_nvcc_archs)
-      unset(_amrex_nvcc_arch_out)
-      unset(_amrex_nvcc_arch_rv)
+   elseif (AMReX_CUDA_LTO)
+      message(FATAL_ERROR
+         "AMReX_CUDA_LTO needs the concrete architectures behind "
+         "'${CMAKE_CUDA_ARCHITECTURES}', which neither the CUDA compiler "
+         "(${CMAKE_CUDA_COMPILER_ID} ${CMAKE_CUDA_COMPILER_VERSION}) nor this CMake "
+         "(${CMAKE_VERSION}) reports. Pass explicit architectures, e.g. "
+         "-DCMAKE_CUDA_ARCHITECTURES=80, or turn off -DAMReX_CUDA_LTO=OFF.")
+   else ()
+      message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
    endif ()
+
+   unset(_amrex_alias_archs)
+   unset(_amrex_alias_unsupported)
 else ()
    message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
 endif ()
