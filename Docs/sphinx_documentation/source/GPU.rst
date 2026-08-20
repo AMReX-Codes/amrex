@@ -287,7 +287,8 @@ results in a larger library and longer build times. The special values ``native`
 default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and ``<NN>a``
 suffixes documented for CMake's
 `CUDA_ARCHITECTURES <https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html>`__
-target property, are supported. ``all`` and ``all-major`` are normally left to the CUDA
+target property, are supported, as is ``OFF`` for packagers who pass the architecture flags
+themselves. ``all`` and ``all-major`` are normally left to the CUDA
 compiler to expand, while ``native`` is resolved at configure time so that AMReX can report
 the architecture it builds for and export it to downstream projects. Architectures below
 compute capability 6.0 are not supported by AMReX and are dropped with a message; if nothing

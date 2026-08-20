@@ -33,10 +33,14 @@ set(_amrex_cuda_archs_legacy FALSE)
 set(_amrex_cuda_archs_shadow "")
 set(_amrex_cuda_archs_shadowed FALSE)
 set(_amrex_cuda_archs_cached "")
+# whether there is a cache entry at all, which its value cannot answer: CMake also takes the
+# false values (CMAKE_CUDA_ARCHITECTURES=OFF, for packagers who pass the flags themselves)
+set(_amrex_cuda_archs_had_cache FALSE)
 if (DEFINED CMAKE_CUDA_ARCHITECTURES)
    if (NOT DEFINED CACHE{CMAKE_CUDA_ARCHITECTURES})
       set(_amrex_cuda_archs_shadowed TRUE)
    else ()
+      set(_amrex_cuda_archs_had_cache TRUE)
       get_property(_amrex_cuda_archs_cached CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
       if (NOT CMAKE_CUDA_ARCHITECTURES STREQUAL _amrex_cuda_archs_cached)
          set(_amrex_cuda_archs_shadowed TRUE)
@@ -256,7 +260,7 @@ set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
 # again once the -DAMReX_CUDA_ARCH=... of that earlier step is gone. Nothing on this command
 # line asked for the change, so do not let the build directory change quietly. The
 # architectures a parent project preset before adding AMReX are reported separately above.
-if (_amrex_cuda_archs_cached AND _amrex_cuda_archs_given
+if (_amrex_cuda_archs_had_cache AND _amrex_cuda_archs_given
     AND NOT _amrex_cuda_archs STREQUAL _amrex_cuda_archs_cached
     AND NOT _amrex_cuda_archs_cmdline_now AND NOT _amrex_cuda_arch_cmdline_now)
    message(WARNING
@@ -330,5 +334,6 @@ unset(_amrex_cuda_archs_given)
 unset(_amrex_cuda_archs_cmdline)
 unset(_amrex_cuda_archs_cmdline_now)
 unset(_amrex_cuda_archs_cached)
+unset(_amrex_cuda_archs_had_cache)
 unset(_amrex_cuda_archs_shadowed)
 unset(_amrex_cuda_arch_cmdline_now)
