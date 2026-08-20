@@ -121,7 +121,7 @@ MakeITracker ( Box const& bx,
            bool select_by_vfrac = false;
            Real second_vfrac = Real(-1.0);
            int second_idx = -1;
-           
+
            // Sanity check - if selected neighbor is covered, use vfrac fallback
            if (vfrac(i+ioff,j+joff,k) == 0.)
            {
