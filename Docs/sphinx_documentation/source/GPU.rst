@@ -260,7 +260,8 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_OBJDIR_AS_TEMPDIR |  Place intermediate files in object file folder | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_LTO               |  Enable CUDA link-time-optimization             | NO          | YES, NO         |
+   | AMReX_CUDA_LTO               |  Enable CUDA device link-time optimization      | NO          | YES, NO         |
+   |                              |  (requires AMReX_GPU_RDC)                       |             |                 |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_MAXREGCOUNT       |  Limits the number of CUDA registers available  | 255         | User-defined    |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -288,14 +289,9 @@ default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and `
 suffixes documented for CMake's
 `CUDA_ARCHITECTURES <https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html>`__
 target property, are supported, as is ``OFF`` for packagers who pass the architecture flags
-themselves. ``all`` and ``all-major`` are normally left to the CUDA
-compiler to expand, while ``native`` is resolved at configure time so that AMReX can report
-the architecture it builds for and export it to downstream projects. Architectures below
-compute capability 6.0 are not supported by AMReX and are dropped with a message; if nothing
-is left, configuration stops with an error. Because ``all`` and ``all-major`` cover every
-architecture the CUDA toolkit supports, they are resolved at configure time as well if that
-toolkit still supports architectures below compute capability 6.0 (e.g., ``sm_50`` with
-CUDA 12), so that those are dropped instead of being built.
+themselves. Architectures below compute capability 6.0 are not supported by AMReX; they are
+dropped with a message - including when they are part of what ``all`` or ``all-major`` stands
+for - and configuration stops with an error if nothing is left.
 
 .. highlight:: console
 
@@ -307,50 +303,32 @@ CUDA 12), so that those are dropped instead of being built.
 If no architecture is specified, AMReX defaults to ``native``, which builds for the GPU(s)
 installed in the machine running CMake. If a GPU is visible at configuration time, CMake
 resolves ``native`` right away and the resulting architecture is printed, used for the build
-and exported to downstream projects. If no GPU is visible, configuration stops with an error.
-``native`` is resolved when CMake runs, not when the code is compiled, and leaving it to the
-CUDA compiler would not fail either: ``nvcc`` warns once per translation unit and silently
-falls back to its own default architecture, producing a library built for a GPU nobody asked
-for. On machines without a visible GPU (e.g., HPC login nodes, CI runners or container
-builds) an explicit architecture must therefore be provided, such as
-``-DCMAKE_CUDA_ARCHITECTURES=80``. This includes configuring on a login node and building on
-a GPU node.
+and exported to downstream projects. If no GPU is visible, configuration stops with an error:
+``native`` is resolved when CMake runs, not when the code is compiled. On machines without a
+visible GPU (e.g., HPC login nodes, CI runners or container builds) an explicit architecture
+must therefore be provided, such as ``-DCMAKE_CUDA_ARCHITECTURES=80``. This includes
+configuring on a login node and building on a GPU node.
 
 .. note::
-
-   If a toolchain file selects the architectures, assign them to the cache
-   (``set(CMAKE_CUDA_ARCHITECTURES <archs> CACHE STRING "")``) rather than with a plain
-   ``set()``. CMake reads the toolchain file again in the compiler test projects it configures
-   on the side, so a plain assignment is restored there and AMReX's selection - dropping
-   unsupported architectures, resolving ``native`` - cannot take effect: those tests then fail
-   with, e.g., ``nvcc fatal : Unsupported gpu architecture``. AMReX prints a warning when it
-   detects this situation.
 
    The legacy ``-DAMReX_CUDA_ARCH`` option and the ``AMREX_CUDA_ARCH`` environment variable
    are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
    and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
-   precedence, i.e., they take precedence over ``CMAKE_CUDA_ARCHITECTURES``. The one exception
-   is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the ``cmake`` command line - or set as a
-   cache variable of a ``CMakePresets.json`` preset, which CMake records the same way - which
-   wins over the deprecated hints and keeps doing so on the automatic re-configure steps of
-   that build directory, until the selection is changed again - by another
-   ``-DCMAKE_CUDA_ARCHITECTURES=...``, by a ``-DAMReX_CUDA_ARCH=...`` passed to a later
-   configure step, or by editing the cache entry. Please migrate to the standard CMake variables.
-   Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it remains the way to
-   select architectures.
+   precedence over them. The exception is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the
+   ``cmake`` command line, which wins over the deprecated hints. Please migrate to the standard
+   CMake variables. Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it
+   remains the way to select architectures.
 
-   The ``AMReX_CUDA_ARCH`` cache entry is removed once it has been honored, so that it cannot
-   keep overriding later configure steps of the same build directory; a parent project that
-   sets it should not expect to read it back. A ``-DAMReX_CUDA_ARCH=...`` therefore applies to
-   the configure step it is passed to: if ``AMREX_CUDA_ARCH`` is also exported, that
-   environment variable is honored again on the next configure step of the same build
-   directory. AMReX warns whenever the architectures of a build directory change without being
-   requested on the command line; use ``-DCMAKE_CUDA_ARCHITECTURES=...`` to pin them.
+   The architectures are selected again on every configure step, so a hint that is still in
+   place - an exported ``AMREX_CUDA_ARCH``, for instance - can change what an earlier step
+   chose. AMReX warns when that happens; pass ``-DCMAKE_CUDA_ARCHITECTURES=...`` to pin the
+   choice for a build directory.
 
    Their historical values are translated for convenience: ``Auto`` becomes ``native``,
    ``All`` and ``Common`` become ``all`` and ``all-major``, generation names such as
    ``Volta``, ``Turing``, ``Ampere`` or ``Hopper`` become the corresponding compute
-   capability, dots are dropped (``8.0`` becomes ``80``) and a trailing ``+PTX`` is removed
+   capability (``Blackwell`` becomes both ``100`` and ``120``, the two families it spans),
+   dots are dropped (``8.0`` becomes ``80``) and a trailing ``+PTX`` is removed
    (the plain integer form of ``CMAKE_CUDA_ARCHITECTURES`` already embeds PTX). A
    whitespace-separated list is accepted as well, as in GNU Make builds (``"70 80"``), and a
    hint that is set but empty or blank counts as not set at all. None of these legacy spellings are
@@ -370,8 +348,8 @@ error regardless of this option, see above.)
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
 
-**Environment hints.** All of AMReX's CMake configuration can also be driven through standard
-CMake and compiler environment variables. These are especially handy on HPC systems and in CI,
+**Environment hints.** Compiler and architecture selection can also be driven through the
+standard CMake and compiler environment variables. These are especially handy on HPC systems and in CI,
 where they are typically exported in a job or module script before invoking ``cmake``.
 Example on a Cray/HPE machine:
 
@@ -381,7 +359,7 @@ Example on a Cray/HPE machine:
    # Note: also sometimes already set by a loaded module.
    export CRAY_ACCEL_TARGET=nvidia80
 
-   # overwrite the auto-detection to optimize CUDA compilation for A100
+   # overwrite the "native" default to optimize CUDA compilation for A100
    export CUDAARCHS=80
 
    # optimize CPU (host) microarchitecture for AMD EPYC 3rd Gen (Milan/Zen3)
@@ -425,12 +403,10 @@ in your CMake setup, simply enable the CUDA language before adding the AMReX sou
 
 .. note::
 
-   ``enable_language(CUDA)`` makes CMake store the CUDA compiler's default architecture in
-   ``CMAKE_CUDA_ARCHITECTURES`` when you did not select one yourself. AMReX ignores that
-   compiler default and applies its own selection (``native`` unless told otherwise). Your
-   own CUDA targets then depend on where they are created: targets added before
-   ``add_subdirectory`` keep the compiler default, targets added after it inherit AMReX's
-   selection. Select the architectures explicitly beforehand to avoid that asymmetry.
+   Select the architectures yourself before ``enable_language(CUDA)``, as shown above. If you
+   do not, your own CUDA targets are built for the CUDA compiler's default architecture when
+   they are created before ``add_subdirectory``, and for AMReX's selection when they are
+   created after it.
 
 
 
