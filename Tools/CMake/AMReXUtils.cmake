@@ -206,7 +206,7 @@ endfunction ()
 #
 # Expand the CUDA architecture aliases "all" and "all-major" into the concrete
 # architectures they stand for, spelled the way the CUDA_ARCHITECTURES property does:
-# SASS code for every architecture and PTX for the newest one only.
+# SASS code for every architecture and PTX for the newest major one only.
 #
 # The architectures a toolkit supports are queried from the CUDA compiler itself, so that
 # the answer stays correct for a toolkit newer than the CMake release in use, whose
@@ -227,8 +227,8 @@ function (amrex_expand_cuda_archs_alias _alias _var)
    if (_rv EQUAL 0)
       string(REGEX MATCHALL "compute_([0-9]+)" _archs "${_out}")
       list(TRANSFORM _archs REPLACE "compute_" "")
-      # they are not printed in ascending order (e.g. 110 before 103 with CUDA 13.3), and
-      # both the earliest and the newest one are needed below
+      # they are not printed in ascending order (e.g. 110 before 103 with CUDA 13.3), while
+      # the steps below pick the earliest and the newest ones out of the list
       list(SORT _archs COMPARE NATURAL)
    endif ()
 
@@ -247,9 +247,29 @@ function (amrex_expand_cuda_archs_alias _alias _var)
    endif ()
 
    if (_archs)
-      list(POP_BACK _archs _newest)
-      list(TRANSFORM _archs APPEND "-real")
-      list(APPEND _archs "${_newest}")
+      # SASS code for every architecture, and PTX for the newest major one, which is not
+      # necessarily the newest architecture: with CUDA 13 "all" builds SASS for sm_121 but
+      # embeds the PTX of compute_120
+      set(_ptx_arch)
+      foreach (_arch IN LISTS _archs)
+         math(EXPR _minor "${_arch} % 10")
+         if (_minor EQUAL 0)
+            set(_ptx_arch "${_arch}")
+         endif ()
+      endforeach ()
+      if (NOT _ptx_arch)
+         list(GET _archs -1 _ptx_arch)
+      endif ()
+
+      set(_spelled)
+      foreach (_arch IN LISTS _archs)
+         if (_arch STREQUAL _ptx_arch)
+            list(APPEND _spelled "${_arch}")
+         else ()
+            list(APPEND _spelled "${_arch}-real")
+         endif ()
+      endforeach ()
+      set(_archs "${_spelled}")
    elseif (_alias STREQUAL "all")
       set(_archs "${CMAKE_CUDA_ARCHITECTURES_ALL}")
    else ()

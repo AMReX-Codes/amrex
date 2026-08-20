@@ -87,7 +87,7 @@ elseif (CMAKE_CUDA_ARCHITECTURES MATCHES "^(all|all-major)$")
 
    if (_amrex_alias_archs AND (AMReX_CUDA_LTO OR _amrex_alias_unsupported))
       # unlike "native", the expanded list keeps the "<NN>-real" entries: embedding PTX
-      # for the newest architecture only is what "all"/"all-major" mean
+      # for the newest major architecture only is what "all"/"all-major" mean
       set(_amrex_cuda_archs "${_amrex_alias_archs}")
       set(_amrex_cuda_archs_alias TRUE)
       message(STATUS "   CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES} -> ${_amrex_cuda_archs}")
