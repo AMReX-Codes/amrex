@@ -194,30 +194,30 @@ MakeITracker ( Box const& bx,
                    // Original offset was in y-direction, so we will add to the x-direction
                    // Note that if we can't because it would go outside the domain, we don't
                    if (ioff == 0) {
-                   if (nx >= 0 && xdir_pls_ok)
-                   {
-                       itracker(i,j,k,2) = 5;
-                       itracker(i,j,k,0) += 1;
-                   }
-                   else if (nx <= 0 && xdir_mns_ok)
-                   {
-                       itracker(i,j,k,2) = 4;
-                       itracker(i,j,k,0) += 1;
-                   }
+                       if (nx >= 0 && xdir_pls_ok)
+                       {
+                           itracker(i,j,k,2) = 5;
+                           itracker(i,j,k,0) += 1;
+                       }
+                       else if (nx <= 0 && xdir_mns_ok)
+                       {
+                           itracker(i,j,k,2) = 4;
+                           itracker(i,j,k,0) += 1;
+                       }
 
-               // Original offset was in x-direction, so we will add to the y-direction
-               // Note that if we can't because it would go outside the domain, we don't
-               } else {
-                   if (ny >= 0 && ydir_pls_ok)
-                   {
-                       itracker(i,j,k,2) = 7;
-                       itracker(i,j,k,0) += 1;
-                   }
-                   else if (ny <= 0 && ydir_mns_ok)
-                   {
-                       itracker(i,j,k,2) = 2;
-                       itracker(i,j,k,0) += 1;
-                   }
+                   // Original offset was in x-direction, so we will add to the y-direction
+                   // Note that if we can't because it would go outside the domain, we don't
+                   } else {
+                       if (ny >= 0 && ydir_pls_ok)
+                       {
+                           itracker(i,j,k,2) = 7;
+                           itracker(i,j,k,0) += 1;
+                       }
+                       else if (ny <= 0 && ydir_mns_ok)
+                       {
+                           itracker(i,j,k,2) = 2;
+                           itracker(i,j,k,0) += 1;
+                       }
                    }
 
                    if (itracker(i,j,k,0) > 1)
@@ -557,43 +557,43 @@ MakeITracker ( Box const& bx,
                    // Original normal-based perpendicular selection logic
                    // Original offset was in x-direction
                    if (joff == 0 && koff == 0)
-               {
-                   if (nx_eq_ny) {
-                       itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
-                   } else if (nx_eq_nz) {
-                       itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
-                   } else if ( (std::abs(ny) > std::abs(nz)) ) {
-                       itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
-                   } else {
-                       itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
-                   }
+                   {
+                       if (nx_eq_ny) {
+                           itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                       } else if (nx_eq_nz) {
+                           itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                       } else if ( (std::abs(ny) > std::abs(nz)) ) {
+                           itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                       } else {
+                           itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                       }
 
-               // Original offset was in y-direction
-               } else if (ioff == 0 && koff == 0)
-               {
-                   if (nx_eq_ny) {
-                       itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
-                   } else if (ny_eq_nz) {
-                       itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
-                   } else if ( (std::abs(nx) > std::abs(nz)) ) {
-                       itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
-                   } else {
-                       itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
-                   }
+                   // Original offset was in y-direction
+                   } else if (ioff == 0 && koff == 0)
+                   {
+                       if (nx_eq_ny) {
+                           itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                       } else if (ny_eq_nz) {
+                           itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                       } else if ( (std::abs(nx) > std::abs(nz)) ) {
+                           itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                       } else {
+                           itracker(i,j,k,2) = (nz > 0) ? 22 : 13;
+                       }
 
-               // Original offset was in z-direction
-               } else if (ioff == 0 && joff == 0)
-               {
-                   if (nx_eq_nz) {
-                       itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
-                   } else if (ny_eq_nz) {
-                       itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
-                   } else if ( (std::abs(nx) > std::abs(ny)) ) {
-                       itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
-                   } else {
-                       itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                   // Original offset was in z-direction
+                   } else if (ioff == 0 && joff == 0)
+                   {
+                       if (nx_eq_nz) {
+                           itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                       } else if (ny_eq_nz) {
+                           itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                       } else if ( (std::abs(nx) > std::abs(ny)) ) {
+                           itracker(i,j,k,2) = (nx > 0) ? 5 : 4;
+                       } else {
+                           itracker(i,j,k,2) = (ny > 0) ? 7 : 2;
+                       }
                    }
-               }
 
                    // (i,j,k) merges with at least two cells now
                    itracker(i,j,k,0) += 1;
