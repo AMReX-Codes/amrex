@@ -108,6 +108,19 @@ else ()
    message(STATUS "   CUDA architectures: ${_amrex_cuda_archs}")
 endif ()
 
+# an unresolved "native" is left to the CUDA compiler, which picks the architecture of the
+# GPU it finds at build time: device LTO cannot be applied per architecture then, and the
+# build would quietly end up without it (nvcc reports "Ignoring -dlto option because no LTO
+# objects found" at the device link and produces a working, non-LTO library)
+if (AMReX_CUDA_LTO AND _amrex_cuda_archs STREQUAL "native")
+   message(FATAL_ERROR
+      "AMReX_CUDA_LTO needs the concrete architecture(s) behind 'native', which could not "
+      "be resolved at configure time: no CUDA device was detected, or this CMake "
+      "(${CMAKE_VERSION}) and CUDA compiler (${CMAKE_CUDA_COMPILER_ID} "
+      "${CMAKE_CUDA_COMPILER_VERSION}) do not report one. Pass explicit architectures, "
+      "e.g. -DCMAKE_CUDA_ARCHITECTURES=80, or turn off -DAMReX_CUDA_LTO=OFF.")
+endif ()
+
 # expanding an alias on an older CUDA toolkit can bring in architectures below the minimum
 # compute capability AMReX supports (explicit values were already checked in AMReXCUDAArchs)
 amrex_filter_cuda_archs(_amrex_cuda_archs ${_amrex_cuda_archs_alias})

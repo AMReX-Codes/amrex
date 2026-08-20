@@ -14,7 +14,8 @@ include_guard(GLOBAL)
 #
 # The legacy AMReX hints are still honored (with a deprecation warning), keeping their
 # historical precedence:
-#   0. -DCMAKE_CUDA_ARCHITECTURES=... given on the command line of this configure step
+#   0. -DCMAKE_CUDA_ARCHITECTURES=... given on the command line (and remembered for the
+#      automatic re-configure steps of that build directory)
 #   1. AMReX_CUDA_ARCH cache variable  (deprecated -> CMAKE_CUDA_ARCHITECTURES)
 #   2. AMREX_CUDA_ARCH  environment variable (deprecated -> CUDAARCHS)
 #   3. CMAKE_CUDA_ARCHITECTURES cache variable
@@ -23,6 +24,22 @@ include_guard(GLOBAL)
 #
 
 set(_amrex_cuda_archs_legacy FALSE)
+
+#
+# Hints that are set but empty ("export AMREX_CUDA_ARCH=", -DAMReX_CUDA_ARCH=) are treated
+# as not given: they satisfy DEFINED, but an empty architecture list is rejected by CMake
+# instead of falling back to the default selection below.
+#
+if (DEFINED AMReX_CUDA_ARCH AND AMReX_CUDA_ARCH STREQUAL "")
+   unset(AMReX_CUDA_ARCH CACHE)
+   unset(AMReX_CUDA_ARCH)
+endif ()
+if (DEFINED ENV{AMREX_CUDA_ARCH} AND "$ENV{AMREX_CUDA_ARCH}" STREQUAL "")
+   unset(ENV{AMREX_CUDA_ARCH})
+endif ()
+if (DEFINED ENV{CUDAARCHS} AND "$ENV{CUDAARCHS}" STREQUAL "")
+   unset(ENV{CUDAARCHS})
+endif ()
 
 #
 # Was CMAKE_CUDA_ARCHITECTURES chosen by the user (or by the parent project), or is it
@@ -41,6 +58,16 @@ if (DEFINED CMAKE_CUDA_ARCHITECTURES)
    if (_amrex_cuda_archs_help MATCHES "specified on the command line")
       # -DCMAKE_CUDA_ARCHITECTURES=... for this configure step: more explicit than the
       # deprecated AMReX hints, which may just be stale entries of an older build directory
+      set(_amrex_cuda_archs_cmdline TRUE)
+   elseif (DEFINED AMREX_CUDA_ARCHS_CMDLINE
+           AND CMAKE_CUDA_ARCHITECTURES STREQUAL AMREX_CUDA_ARCHS_CMDLINE)
+      # CMake marks an entry as "specified on the command line" only for the configure step
+      # -D... is passed to, and writing the resolved architectures back to the cache below
+      # replaces that help string anyway. Keep honoring the choice on the automatic
+      # re-configure steps that follow (a build system regenerates itself when a
+      # CMakeLists.txt changes), as long as the cache entry still holds what the command
+      # line resolved to. Passing a different -D value updates the marker, changing the
+      # entry by other means drops it, both at the end of this file.
       set(_amrex_cuda_archs_cmdline TRUE)
    elseif (CMAKE_CUDA_COMPILER_LOADED AND _amrex_cuda_archs_help STREQUAL "CUDA architectures")
       # CMake's own help string: either the compiler default stored by enable_language(CUDA)
@@ -67,7 +94,7 @@ endif ()
 if (_amrex_cuda_archs_cmdline AND (DEFINED AMReX_CUDA_ARCH OR DEFINED ENV{AMREX_CUDA_ARCH}))
    message(WARNING
       "Both CMAKE_CUDA_ARCHITECTURES and the deprecated AMReX_CUDA_ARCH/AMREX_CUDA_ARCH "
-      "were given; using the CMAKE_CUDA_ARCHITECTURES value passed on the command line "
+      "were given; using the CMAKE_CUDA_ARCHITECTURES value from the command line "
       "(${CMAKE_CUDA_ARCHITECTURES}).")
    set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
    # a leftover entry of a build directory configured with an older AMReX must not come
@@ -121,6 +148,11 @@ endif ()
 #   native / all / all-major / integers / <NN>a / -real / -virtual suffixes.
 #
 if (_amrex_cuda_archs_legacy)
+   # GNU Make builds take a whitespace-separated list (AMREX_CUDA_ARCH="70 80"), which CMake
+   # would see as a single architecture named "70 80"
+   string(STRIP "${_amrex_cuda_archs}" _amrex_cuda_archs)
+   string(REGEX REPLACE "[ \t\r\n]+" ";" _amrex_cuda_archs "${_amrex_cuda_archs}")
+
    set(_amrex_cuda_archs_norm)
    foreach (_arch IN LISTS _amrex_cuda_archs)
       # all values CUDA_ARCHITECTURES accepts are lower case
@@ -167,6 +199,21 @@ amrex_filter_cuda_archs(_amrex_cuda_archs FALSE)
 
 set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
    "CUDA architectures: 'native', 'all-major', or e.g. 80;90a (see CMake CUDA_ARCHITECTURES)" FORCE)
+
+# A normal variable of the same name - set by a parent project or by a toolchain file -
+# survives the cache write above (CMP0126 is NEW for the CMake 3.25 required here) and
+# shadows it for the rest of this scope, i.e. for enable_language(CUDA) and every target
+# added afterwards: the architectures resolved here would be reported and exported, but the
+# build would use the unfiltered value. Let the resolved list win in AMReX's scope.
+set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}")
+
+# see the "specified on the command line" check above
+if (_amrex_cuda_archs_cmdline)
+   set(AMREX_CUDA_ARCHS_CMDLINE "${_amrex_cuda_archs}" CACHE INTERNAL
+      "CMAKE_CUDA_ARCHITECTURES as it was resolved from the command line")
+else ()
+   unset(AMREX_CUDA_ARCHS_CMDLINE CACHE)
+endif ()
 
 unset(_amrex_cuda_archs)
 unset(_amrex_cuda_archs_legacy)

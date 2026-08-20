@@ -316,22 +316,31 @@ should therefore always be provided.
    The legacy ``-DAMReX_CUDA_ARCH`` option and the ``AMREX_CUDA_ARCH`` environment variable
    are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
    and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
-   precedence. Please migrate to the standard CMake variables. Note that ``AMREX_CUDA_ARCH``
-   is unaffected in GNU Make builds, where it remains the way to select architectures.
+   precedence, i.e., they take precedence over ``CMAKE_CUDA_ARCHITECTURES``. The one exception
+   is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the ``cmake`` command line, which wins over
+   the deprecated hints and keeps doing so on the automatic re-configure steps of that build
+   directory, until the value is changed again. Please migrate to the standard CMake variables.
+   Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it remains the way to
+   select architectures.
 
    Their historical values are translated for convenience: ``Auto`` becomes ``native``,
    ``All`` and ``Common`` become ``all`` and ``all-major``, generation names such as
    ``Volta``, ``Turing``, ``Ampere`` or ``Hopper`` become the corresponding compute
    capability, dots are dropped (``8.0`` becomes ``80``) and a trailing ``+PTX`` is removed
-   (the plain integer form of ``CMAKE_CUDA_ARCHITECTURES`` already embeds PTX). None of these
-   legacy spellings are accepted by ``CMAKE_CUDA_ARCHITECTURES`` itself, so use the values
-   documented above when you migrate.
+   (the plain integer form of ``CMAKE_CUDA_ARCHITECTURES`` already embeds PTX). A
+   whitespace-separated list is accepted as well, as in GNU Make builds (``"70 80"``), and a
+   hint that is set but empty counts as not set at all. None of these legacy spellings are
+   accepted by ``CMAKE_CUDA_ARCHITECTURES`` itself, so use the values documented above when
+   you migrate.
 
 Setting ``-DAMReX_CUDA_LTO=ON`` enables CUDA device link-time optimization. This requires
 relocatable device code, so it is an error to combine it with ``-DAMReX_GPU_RDC=OFF``.
 Device LTO is currently available only with the NVIDIA ``nvcc`` compiler; with a Clang
 ``-x cuda`` compiler it is gracefully disabled with a warning. It only applies to device
-code: host code generation is unchanged.
+code: host code generation is unchanged. Because it is applied per architecture, device LTO
+also needs the architectures to be known at configure time: ``all`` and ``all-major`` are
+always expanded when it is on, and an unresolved ``native`` (no GPU visible) is an error
+rather than a build that quietly comes out without device LTO.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
