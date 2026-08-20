@@ -831,7 +831,7 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     Geometry refined_geom = amrex::refine(m_geom, 2);
     transient_level = std::make_unique<GShopLevel<G>>(
         m_parent, gshop, refined_geom,
-        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0);
+        max_grid_size, m_ngrow[0] > 0 ? m_ngrow[0] : 4, true, 0); // xxxxx TODO: should we use IndexSpace's member variables extend_domain_face and num_crse_opt?
 
     if (!transient_level->isOK()) {
         amrex::Abort("GShopLevel::buildFCData: failed to build refined level");
@@ -842,14 +842,24 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     // STEP2: Check multi-cut error
     // **********************************************************************
 
-    // Consider delete m_levelset construction, because FC does not provide levelset.
+    // Everything below is local. m_grids, m_dmap and m_levelset describe the cell-centered
+    // level that the IndexSpace hands to every EBFArrayBoxFactory built from it, so building
+    // face-centered data must not touch them: overwriting m_grids would leave Level::boxArray()
+    // describing a different region than the cell-centered data it belongs to, and redefining
+    // m_levelset on those grids would silently change the level set that cell-centered
+    // factories created afterwards report.
+    //
+    // The grids are coarsened from the refined level rather than taken from m_grids so that the
+    // DistributionMapping stays compatible with the refined data we read below.
+    const BoxArray fc_base_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
+    const DistributionMapping fc_dmap = refined_cc_level->m_dmap;
 
-    // Coarsen grids from refined level to preserve DM compatibility
-    m_grids = amrex::coarsen(refined_cc_level->m_grids, 2);
-    m_dmap = refined_cc_level->m_dmap;
-
+    // Face-centered data provides no level set, so nothing here coarsens one. The multi-cut check
+    // below only needs an MFIter over the coarse boxes, walking alongside the refined level set
+    // that shares this DistributionMapping, so this MultiFab is declared without data.
     auto const& f_levelset = refined_cc_level->m_levelset;
-    m_levelset.define(amrex::convert(m_grids,IntVect::TheNodeVector()), m_dmap, 1, 0);
+    MultiFab crse_boxes(amrex::convert(fc_base_grids,IntVect::TheNodeVector()), fc_dmap, 1, 0,
+                        MFInfo{}.SetAlloc(false));
 
     int mvmc_error = 0;
 
@@ -858,18 +868,10 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 #ifdef AMREX_USE_OMP
 #pragma omp parallel reduction(max:mvmc_error)
 #endif
-        for (MFIter mfi(m_levelset,true); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_boxes,true); mfi.isValid(); ++mfi)
         {
             const Box& ccbx = mfi.tilebox(IntVect::TheCellVector());
-            const Box& ndbx = mfi.tilebox();
-            auto const& crse = m_levelset.array(mfi);
             auto const& fine = f_levelset.const_array(mfi);
-
-            amrex::LoopConcurrentOnCpu(ndbx,
-            [=] (int i, int j, int k) noexcept
-            {
-                crse(i,j,k) = fine(2*i,2*j,2*k);
-            });
 
             int tile_error = 0;
             amrex::LoopOnCpu(ccbx,
@@ -888,16 +890,14 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
         ReduceData<int> reduce_data(reduce_op);
         using ReduceTuple = typename decltype(reduce_data)::Type;
 
-        for (MFIter mfi(m_levelset); mfi.isValid(); ++mfi)
+        for (MFIter mfi(crse_boxes); mfi.isValid(); ++mfi)
         {
             const Box& ndbx = mfi.validbox();
             const Box& ccbx = amrex::enclosedCells(ndbx);
-            auto const& crse = m_levelset.array(mfi);
             auto const& fine = f_levelset.const_array(mfi);
             reduce_op.eval(ndbx, reduce_data,
             [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
             {
-                crse(i,j,k) = fine(2*i,2*j,2*k);
                 int ierror;
                 if (ccbx.contains(IntVect{AMREX_D_DECL(i,j,k)})) {
                     ierror = check_mvmc(i,j,k,fine);
@@ -936,24 +936,24 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
     auto& fc_edgecent = m_fc_data[face_dir]->m_edgecent_fc;
 
     // Define FC MultiFabs
-    BoxArray fc_grids = amrex::convert(m_grids, IntVect::TheDimensionVector(face_dir));
+    BoxArray fc_grids = amrex::convert(fc_base_grids, IntVect::TheDimensionVector(face_dir));
     const int ng = 3;
-    fc_cellflag.define(fc_grids, m_dmap, 1, ng);
-    fc_volfrac.define(fc_grids, m_dmap, 1, ng);
-    fc_centroid.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
-    fc_bndryarea.define(fc_grids, m_dmap, 1, ng);
-    fc_bndrycent.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
-    fc_bndrynorm.define(fc_grids, m_dmap, AMREX_SPACEDIM, ng);
+    fc_cellflag.define(fc_grids, fc_dmap, 1, ng);
+    fc_volfrac.define(fc_grids, fc_dmap, 1, ng);
+    fc_centroid.define(fc_grids, fc_dmap, AMREX_SPACEDIM, ng);
+    fc_bndryarea.define(fc_grids, fc_dmap, 1, ng);
+    fc_bndrycent.define(fc_grids, fc_dmap, AMREX_SPACEDIM, ng);
+    fc_bndrynorm.define(fc_grids, fc_dmap, AMREX_SPACEDIM, ng);
 
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        fc_areafrac[idim].define(m_grids, m_dmap, 1, ng);
-        fc_facecent[idim].define(m_grids, m_dmap, AMREX_SPACEDIM-1, ng);
+        fc_areafrac[idim].define(fc_base_grids, fc_dmap, 1, ng);
+        fc_facecent[idim].define(fc_base_grids, fc_dmap, AMREX_SPACEDIM-1, ng);
         IntVect edge_type{1};
         if (idim != face_dir) {
             edge_type[face_dir] = 0;
             edge_type[idim] = 0;
         }
-        fc_edgecent[idim].define(amrex::convert(m_grids, edge_type), m_dmap, 1, ng);
+        fc_edgecent[idim].define(amrex::convert(fc_base_grids, edge_type), fc_dmap, 1, ng);
     }
 
     // **********************************************************************
