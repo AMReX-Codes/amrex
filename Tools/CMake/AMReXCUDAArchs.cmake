@@ -23,6 +23,33 @@ include_guard(GLOBAL)
 
 set(_amrex_cuda_archs_legacy FALSE)
 
+#
+# Was CMAKE_CUDA_ARCHITECTURES chosen by the user (or by the parent project), or is it
+# merely the value CMake initialized from the compiler default? The latter happens when
+# AMReX is used as a subproject and the parent enables the CUDA language before adding
+# AMReX: CMP0104 NEW then already stored nvcc's default architecture in the cache (e.g.
+# sm_52 with CUDA 12.x, below the compute capability AMReX supports), which would silently
+# win over AMReX's own default. CMake writes that entry with its own help string, so the
+# two cases can be told apart; a value that came from CUDAARCHS is picked up below anyway.
+#
+set(_amrex_cuda_archs_given FALSE)
+if (DEFINED CMAKE_CUDA_ARCHITECTURES)
+   set(_amrex_cuda_archs_given TRUE)
+   if (CMAKE_CUDA_COMPILER_LOADED)
+      get_property(_amrex_cuda_archs_help CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY HELPSTRING)
+      if (_amrex_cuda_archs_help STREQUAL "CUDA architectures")
+         set(_amrex_cuda_archs_given FALSE)
+         message(STATUS
+            "The CUDA language was enabled before AMReX was added, so CMake preset "
+            "CMAKE_CUDA_ARCHITECTURES to the compiler default (${CMAKE_CUDA_ARCHITECTURES}); "
+            "applying AMReX's own architecture selection instead. Set "
+            "CMAKE_CUDA_ARCHITECTURES (or CUDAARCHS) before enable_language(CUDA) to "
+            "choose the architectures yourself.")
+      endif ()
+      unset(_amrex_cuda_archs_help)
+   endif ()
+endif ()
+
 if (DEFINED AMReX_CUDA_ARCH)
    message(WARNING
       "AMReX_CUDA_ARCH is deprecated for CMake builds; set the standard "
@@ -42,7 +69,7 @@ elseif (DEFINED ENV{AMREX_CUDA_ARCH})
       "(or -DCMAKE_CUDA_ARCHITECTURES=...).")
    set(_amrex_cuda_archs "$ENV{AMREX_CUDA_ARCH}")
    set(_amrex_cuda_archs_legacy TRUE)
-elseif (DEFINED CMAKE_CUDA_ARCHITECTURES)
+elseif (_amrex_cuda_archs_given)
    set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
 elseif (DEFINED ENV{CUDAARCHS})
    set(_amrex_cuda_archs "$ENV{CUDAARCHS}")
@@ -54,13 +81,15 @@ endif ()
 # Back-compatibility normalization, applied to the legacy hints only:
 #   - "Auto" (the historical default) -> "native"
 #   - "All" -> "all" and "Common" -> "all-major"
-#   - legacy NVIDIA generation names to their compute capability (e.g. Volta -> 70),
-#     as the deprecated FindCUDA helper used to accept via AMReX_CUDA_ARCH.
-#     GPU SASS code is forward-compatible
+#   - legacy NVIDIA generation names to their compute capability (e.g. Volta -> 70), as the
+#     deprecated FindCUDA helper used to accept via AMReX_CUDA_ARCH, with a "+Tegra" or
+#     "+Tesla" suffix dropped. GPU SASS code is forward-compatible
 #     across minor revisions of the same generation, so the major base value covers
 #     the whole family (e.g. 80 runs on 86/87). "Blackwell" is the exception: it
 #     spans two binary-incompatible families (data-center sm_100 and consumer
-#     sm_120), so it expands to both.
+#     sm_120), so it expands to both. The generations below AMReX's minimum are
+#     translated as well, only so that the compute capability check below can report them
+#     by number instead of letting CMake fail on an unrecognized string.
 #   - drop the "+PTX" suffix ("7.0+PTX" -> "70"): the plain integer form of
 #     CUDA_ARCHITECTURES already embeds PTX in addition to the SASS code
 #   - strip the decimal dot per entry ("8.0" -> "80", "7.5" -> "75")
@@ -74,10 +103,17 @@ if (_amrex_cuda_archs_legacy)
       # all values CUDA_ARCHITECTURES accepts are lower case
       string(TOLOWER "${_arch}" _arch)
       string(REGEX REPLACE "\\+ptx$" "" _arch "${_arch}")
+      string(REGEX REPLACE "\\+(tegra|tesla)$" "" _arch "${_arch}")
       if (_arch STREQUAL "auto")
          set(_arch "native")
       elseif (_arch STREQUAL "common")
          set(_arch "all-major")
+      elseif (_arch STREQUAL "fermi")
+         set(_arch "20")
+      elseif (_arch STREQUAL "kepler")
+         set(_arch "35")
+      elseif (_arch STREQUAL "maxwell")
+         set(_arch "50")
       elseif (_arch STREQUAL "pascal")
          set(_arch "60")
       elseif (_arch STREQUAL "volta")
@@ -86,7 +122,7 @@ if (_amrex_cuda_archs_legacy)
          set(_arch "75")
       elseif (_arch STREQUAL "ampere")
          set(_arch "80")
-      elseif (_arch STREQUAL "ada")
+      elseif (_arch STREQUAL "ada" OR _arch STREQUAL "lovelace")
          set(_arch "89")
       elseif (_arch STREQUAL "hopper")
          set(_arch "90")
@@ -102,8 +138,57 @@ if (_amrex_cuda_archs_legacy)
    unset(_amrex_cuda_archs_norm)
 endif ()
 
+#
+# Drop architectures below the minimum compute capability AMReX supports, as the deprecated
+# FindCUDA-based selection used to do. Without this an unsupported architecture fails much
+# later: in CMake's CUDA compiler detection, or deep inside the device code compilation of
+# the first source that uses e.g. atomicAdd(double*).
+#
+#   _var         name of a variable holding the architecture list; updated in the caller
+#   _from_alias  TRUE if the list came from expanding native/all/all-major, where dropping
+#                unsupported entries is expected and only worth a status message
+#
+function (amrex_filter_cuda_archs _var _from_alias)
+   set(_ok)
+   set(_low)
+   foreach (_arch IN LISTS ${_var})
+      set(_supported TRUE)
+      if (_arch MATCHES "^([0-9]+)")
+         if (CMAKE_MATCH_1 LESS 60)
+            set(_supported FALSE)
+         endif ()
+      endif ()
+      if (_supported)
+         list(APPEND _ok "${_arch}")
+      else ()
+         list(APPEND _low "${_arch}")
+      endif ()
+   endforeach ()
+
+   if (_low)
+      if (NOT _ok)
+         message(FATAL_ERROR
+            "The requested CUDA architecture(s) ${_low} are not supported by AMReX, which "
+            "requires compute capability 6.0 or higher. Set CMAKE_CUDA_ARCHITECTURES to a "
+            "supported architecture, e.g. -DCMAKE_CUDA_ARCHITECTURES=80.")
+      elseif (_from_alias)
+         message(STATUS "   ignoring CUDA architectures below 6.0: ${_low}")
+      else ()
+         message(WARNING
+            "Ignoring the requested CUDA architecture(s) ${_low}: AMReX requires compute "
+            "capability 6.0 or higher. Building for ${_ok}.")
+      endif ()
+      set(${_var} "${_ok}" PARENT_SCOPE)
+   endif ()
+endfunction ()
+
+# the aliases native/all/all-major are only resolved once the CUDA language is enabled,
+# so those are checked in AMReXCUDAOptions instead
+amrex_filter_cuda_archs(_amrex_cuda_archs FALSE)
+
 set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
    "CUDA architectures: 'native', 'all-major', or e.g. 80;90a (see CMake CUDA_ARCHITECTURES)" FORCE)
 
 unset(_amrex_cuda_archs)
 unset(_amrex_cuda_archs_legacy)
+unset(_amrex_cuda_archs_given)

@@ -287,7 +287,10 @@ results in a larger library and longer build times. The special values ``native`
 default), ``all`` and ``all-major``, as well as the ``-real``/``-virtual`` and ``<NN>a``
 suffixes documented for CMake's
 `CUDA_ARCHITECTURES <https://cmake.org/cmake/help/latest/prop_tgt/CUDA_ARCHITECTURES.html>`__
-target property, are supported.
+target property, are supported. AMReX expands ``native``, ``all`` and ``all-major`` to the
+concrete architectures they stand for, reports them at configure time and exports them to
+downstream projects. Architectures below compute capability 6.0 are not supported by AMReX
+and are dropped with a message; if nothing is left, configuration stops with an error.
 
 .. highlight:: console
 
@@ -372,11 +375,23 @@ in your CMake setup, simply enable the CUDA language before adding the AMReX sou
 
 ::
 
+   # Select the target architecture(s) before enabling the CUDA language,
+   # otherwise CMake picks the compiler default for your own targets
+   set(CMAKE_CUDA_ARCHITECTURES 80)
+
    # Enable CUDA in your CMake project
    enable_language(CUDA)
 
    # Include AMReX source directory ONLY AFTER enabling the CUDA language
    add_subdirectory(/path/to/amrex/source/dir)
+
+.. note::
+
+   ``enable_language(CUDA)`` makes CMake store the CUDA compiler's default architecture in
+   ``CMAKE_CUDA_ARCHITECTURES`` when you did not select one yourself. AMReX ignores that
+   compiler default and applies its own selection (``native`` unless told otherwise), but
+   your project's own CUDA targets keep it, so select the architectures explicitly
+   beforehand if you build CUDA code of your own.
 
 
 
