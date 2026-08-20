@@ -159,7 +159,7 @@ MakeITracker ( Box const& bx,
                }
 
                itracker(i,j,k,1) = first_idx;
-               
+
                ioff = imap[first_idx];
                joff = jmap[first_idx];
 
