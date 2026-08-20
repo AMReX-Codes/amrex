@@ -125,10 +125,10 @@ elseif (AMReX_CUDA_LTO AND NOT _amrex_cuda_archs)
    message(FATAL_ERROR
       "AMReX_CUDA_LTO cannot be combined with CMAKE_CUDA_ARCHITECTURES=${_amrex_cuda_archs}, "
       "which leaves the architecture flags to the caller: AMReX has no architecture to "
-      "request the device LTO code for, and cannot tell whether the flags passed from "
-      "outside carry it. Pass the architectures to build for, e.g. "
-      "-DCMAKE_CUDA_ARCHITECTURES=80, add the device LTO flags to the ones you pass "
-      "yourself, or turn off -DAMReX_CUDA_LTO=OFF.")
+      "request the device LTO code for. Pass the architectures to build for, e.g. "
+      "-DCMAKE_CUDA_ARCHITECTURES=80, or configure with -DAMReX_CUDA_LTO=OFF if you pass "
+      "the architecture and device LTO flags yourself - AMReX cannot tell whether flags "
+      "given from outside carry device LTO, so it does not switch this option on for them.")
 endif ()
 
 # expanding an alias on an older CUDA toolkit can bring in architectures below the minimum
