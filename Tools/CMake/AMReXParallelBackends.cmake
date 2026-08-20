@@ -111,12 +111,25 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
       else ()
          # INTERPROCEDURAL_OPTIMIZATION is a per-target, all-language property: it is what
          # makes CMake emit the CUDA "code=lto_XX" device code, but it would also turn on
-         # host LTO (e.g. -flto=auto -fno-fat-lto-objects) for C/C++/Fortran sources
-         # compiled for the host. That would silently change host code generation and
-         # break non-LTO downstream links against an installed static AMReX, so we make
-         # IPO a no-op for the host languages in this directory scope.
+         # host LTO (e.g. -flto=auto -fno-fat-lto-objects, an LTO-aware archiver) for the
+         # C/C++/Fortran sources compiled for the host. That would silently change host
+         # code generation and break non-LTO downstream links against an installed static
+         # AMReX, so we make IPO a complete no-op for the host languages in this directory
+         # scope: no flags, and "supported" so that the property does not reject a host
+         # compiler CMake has no IPO flags for (Cray, XL) in a CUDA-only LTO build.
+         if (CMAKE_INTERPROCEDURAL_OPTIMIZATION)
+            message(WARNING
+               "AMReX_CUDA_LTO applies to device code only: host link-time optimization "
+               "requested with CMAKE_INTERPROCEDURAL_OPTIMIZATION is not used for AMReX.")
+         endif ()
          foreach(_lang IN ITEMS C CXX Fortran)
             set(CMAKE_${_lang}_COMPILE_OPTIONS_IPO "")
+            set(_CMAKE_${_lang}_IPO_SUPPORTED_BY_CMAKE YES)
+            set(_CMAKE_${_lang}_IPO_MAY_BE_SUPPORTED_BY_COMPILER YES)
+            unset(CMAKE_${_lang}_LINK_OPTIONS_IPO)
+            unset(CMAKE_${_lang}_ARCHIVE_CREATE_IPO)
+            unset(CMAKE_${_lang}_ARCHIVE_APPEND_IPO)
+            unset(CMAKE_${_lang}_ARCHIVE_FINISH_IPO)
          endforeach()
          unset(_lang)
       endif ()

@@ -202,3 +202,47 @@ function (check_cuda_host_compiler)
    endif ()
 endfunction ()
 
+
+#
+# Drop architectures below the minimum compute capability AMReX supports, as the deprecated
+# FindCUDA-based selection used to do. Without this an unsupported architecture fails much
+# later: in CMake's CUDA compiler detection, or deep inside the device code compilation of
+# the first source that uses e.g. atomicAdd(double*).
+#
+#   _var         name of a variable holding the architecture list; updated in the caller
+#   _from_alias  TRUE if the list came from expanding native/all/all-major, where dropping
+#                unsupported entries is expected and only worth a status message
+#
+function (amrex_filter_cuda_archs _var _from_alias)
+   set(_ok)
+   set(_low)
+   foreach (_arch IN LISTS ${_var})
+      set(_supported TRUE)
+      if (_arch MATCHES "^([0-9]+)")
+         if (CMAKE_MATCH_1 LESS 60)
+            set(_supported FALSE)
+         endif ()
+      endif ()
+      if (_supported)
+         list(APPEND _ok "${_arch}")
+      else ()
+         list(APPEND _low "${_arch}")
+      endif ()
+   endforeach ()
+
+   if (_low)
+      if (NOT _ok)
+         message(FATAL_ERROR
+            "The requested CUDA architecture(s) ${_low} are not supported by AMReX, which "
+            "requires compute capability 6.0 or higher. Set CMAKE_CUDA_ARCHITECTURES to a "
+            "supported architecture, e.g. -DCMAKE_CUDA_ARCHITECTURES=80.")
+      elseif (_from_alias)
+         message(STATUS "   ignoring CUDA architectures below 6.0: ${_low}")
+      else ()
+         message(WARNING
+            "Ignoring the requested CUDA architecture(s) ${_low}: AMReX requires compute "
+            "capability 6.0 or higher. Building for ${_ok}.")
+      endif ()
+      set(${_var} "${_ok}" PARENT_SCOPE)
+   endif ()
+endfunction ()

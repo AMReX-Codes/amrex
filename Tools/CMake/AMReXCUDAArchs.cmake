@@ -14,6 +14,7 @@ include_guard(GLOBAL)
 #
 # The legacy AMReX hints are still honored (with a deprecation warning), keeping their
 # historical precedence:
+#   0. -DCMAKE_CUDA_ARCHITECTURES=... given on the command line of this configure step
 #   1. AMReX_CUDA_ARCH cache variable  (deprecated -> CMAKE_CUDA_ARCHITECTURES)
 #   2. AMREX_CUDA_ARCH  environment variable (deprecated -> CUDAARCHS)
 #   3. CMAKE_CUDA_ARCHITECTURES cache variable
@@ -33,11 +34,23 @@ set(_amrex_cuda_archs_legacy FALSE)
 # two cases can be told apart; a value that came from CUDAARCHS is picked up below anyway.
 #
 set(_amrex_cuda_archs_given FALSE)
+set(_amrex_cuda_archs_cmdline FALSE)
 if (DEFINED CMAKE_CUDA_ARCHITECTURES)
    set(_amrex_cuda_archs_given TRUE)
-   if (CMAKE_CUDA_COMPILER_LOADED)
-      get_property(_amrex_cuda_archs_help CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY HELPSTRING)
-      if (_amrex_cuda_archs_help STREQUAL "CUDA architectures")
+   get_property(_amrex_cuda_archs_help CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY HELPSTRING)
+   if (_amrex_cuda_archs_help MATCHES "specified on the command line")
+      # -DCMAKE_CUDA_ARCHITECTURES=... for this configure step: more explicit than the
+      # deprecated AMReX hints, which may just be stale entries of an older build directory
+      set(_amrex_cuda_archs_cmdline TRUE)
+   elseif (CMAKE_CUDA_COMPILER_LOADED AND _amrex_cuda_archs_help STREQUAL "CUDA architectures")
+      # CMake's own help string: either the compiler default stored by enable_language(CUDA)
+      # - which happens when a parent project enables CUDA before adding AMReX, and which
+      # AMReX must not mistake for a deliberate choice - or the value of CUDAARCHS, which
+      # is honored below anyway. A parent that set the variable after enable_language(CUDA)
+      # is recognized by its value differing from the cache entry.
+      get_property(_amrex_cuda_archs_cached CACHE CMAKE_CUDA_ARCHITECTURES PROPERTY VALUE)
+      if (CMAKE_CUDA_ARCHITECTURES STREQUAL _amrex_cuda_archs_cached
+          AND NOT CMAKE_CUDA_ARCHITECTURES STREQUAL "$ENV{CUDAARCHS}")
          set(_amrex_cuda_archs_given FALSE)
          message(STATUS
             "The CUDA language was enabled before AMReX was added, so CMake preset "
@@ -46,11 +59,21 @@ if (DEFINED CMAKE_CUDA_ARCHITECTURES)
             "CMAKE_CUDA_ARCHITECTURES (or CUDAARCHS) before enable_language(CUDA) to "
             "choose the architectures yourself.")
       endif ()
-      unset(_amrex_cuda_archs_help)
+      unset(_amrex_cuda_archs_cached)
    endif ()
+   unset(_amrex_cuda_archs_help)
 endif ()
 
-if (DEFINED AMReX_CUDA_ARCH)
+if (_amrex_cuda_archs_cmdline AND (DEFINED AMReX_CUDA_ARCH OR DEFINED ENV{AMREX_CUDA_ARCH}))
+   message(WARNING
+      "Both CMAKE_CUDA_ARCHITECTURES and the deprecated AMReX_CUDA_ARCH/AMREX_CUDA_ARCH "
+      "were given; using the CMAKE_CUDA_ARCHITECTURES value passed on the command line "
+      "(${CMAKE_CUDA_ARCHITECTURES}).")
+   set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
+   # a leftover entry of a build directory configured with an older AMReX must not come
+   # back on the next configure step
+   unset(AMReX_CUDA_ARCH CACHE)
+elseif (DEFINED AMReX_CUDA_ARCH)
    message(WARNING
       "AMReX_CUDA_ARCH is deprecated for CMake builds; set the standard "
       "CMAKE_CUDA_ARCHITECTURES instead (e.g. -DCMAKE_CUDA_ARCHITECTURES=80, or 'native'). "
@@ -138,50 +161,6 @@ if (_amrex_cuda_archs_legacy)
    unset(_amrex_cuda_archs_norm)
 endif ()
 
-#
-# Drop architectures below the minimum compute capability AMReX supports, as the deprecated
-# FindCUDA-based selection used to do. Without this an unsupported architecture fails much
-# later: in CMake's CUDA compiler detection, or deep inside the device code compilation of
-# the first source that uses e.g. atomicAdd(double*).
-#
-#   _var         name of a variable holding the architecture list; updated in the caller
-#   _from_alias  TRUE if the list came from expanding native/all/all-major, where dropping
-#                unsupported entries is expected and only worth a status message
-#
-function (amrex_filter_cuda_archs _var _from_alias)
-   set(_ok)
-   set(_low)
-   foreach (_arch IN LISTS ${_var})
-      set(_supported TRUE)
-      if (_arch MATCHES "^([0-9]+)")
-         if (CMAKE_MATCH_1 LESS 60)
-            set(_supported FALSE)
-         endif ()
-      endif ()
-      if (_supported)
-         list(APPEND _ok "${_arch}")
-      else ()
-         list(APPEND _low "${_arch}")
-      endif ()
-   endforeach ()
-
-   if (_low)
-      if (NOT _ok)
-         message(FATAL_ERROR
-            "The requested CUDA architecture(s) ${_low} are not supported by AMReX, which "
-            "requires compute capability 6.0 or higher. Set CMAKE_CUDA_ARCHITECTURES to a "
-            "supported architecture, e.g. -DCMAKE_CUDA_ARCHITECTURES=80.")
-      elseif (_from_alias)
-         message(STATUS "   ignoring CUDA architectures below 6.0: ${_low}")
-      else ()
-         message(WARNING
-            "Ignoring the requested CUDA architecture(s) ${_low}: AMReX requires compute "
-            "capability 6.0 or higher. Building for ${_ok}.")
-      endif ()
-      set(${_var} "${_ok}" PARENT_SCOPE)
-   endif ()
-endfunction ()
-
 # the aliases native/all/all-major are only resolved once the CUDA language is enabled,
 # so those are checked in AMReXCUDAOptions instead
 amrex_filter_cuda_archs(_amrex_cuda_archs FALSE)
@@ -192,3 +171,4 @@ set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
 unset(_amrex_cuda_archs)
 unset(_amrex_cuda_archs_legacy)
 unset(_amrex_cuda_archs_given)
+unset(_amrex_cuda_archs_cmdline)
