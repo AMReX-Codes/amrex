@@ -333,6 +333,14 @@ should therefore always be provided.
    Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it remains the way to
    select architectures.
 
+   The ``AMReX_CUDA_ARCH`` cache entry is removed once it has been honored, so that it cannot
+   keep overriding later configure steps of the same build directory; a parent project that
+   sets it should not expect to read it back. A ``-DAMReX_CUDA_ARCH=...`` therefore applies to
+   the configure step it is passed to: if ``AMREX_CUDA_ARCH`` is also exported, that
+   environment variable is honored again on the next configure step of the same build
+   directory. AMReX warns whenever the architectures of a build directory change without being
+   requested on the command line; use ``-DCMAKE_CUDA_ARCHITECTURES=...`` to pin them.
+
    Their historical values are translated for convenience: ``Auto`` becomes ``native``,
    ``All`` and ``Common`` become ``all`` and ``all-major``, generation names such as
    ``Volta``, ``Turing``, ``Ampere`` or ``Hopper`` become the corresponding compute

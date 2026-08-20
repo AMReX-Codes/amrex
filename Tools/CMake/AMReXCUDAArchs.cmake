@@ -133,8 +133,11 @@ if (_amrex_cuda_archs_cmdline AND (_amrex_cuda_archs_cmdline_now OR NOT _amrex_c
    # is then not the one the command line carries (reported by the diagnostic further down)
    if (_amrex_cuda_archs_shadowed)
       set(_amrex_cuda_archs_source "the CMAKE_CUDA_ARCHITECTURES value in effect")
-   else ()
+   elseif (_amrex_cuda_archs_cmdline_now)
       set(_amrex_cuda_archs_source "the CMAKE_CUDA_ARCHITECTURES value from the command line")
+   else ()
+      set(_amrex_cuda_archs_source
+          "the CMAKE_CUDA_ARCHITECTURES value this build directory remembers from its command line")
    endif ()
    message(WARNING
       "Both CMAKE_CUDA_ARCHITECTURES and the deprecated AMReX_CUDA_ARCH/AMREX_CUDA_ARCH "
@@ -246,6 +249,23 @@ amrex_filter_cuda_archs(_amrex_cuda_archs FALSE)
 
 set(CMAKE_CUDA_ARCHITECTURES "${_amrex_cuda_archs}" CACHE STRING
    "CUDA architectures: 'native', 'all-major', or e.g. 80;90a (see CMake CUDA_ARCHITECTURES)" FORCE)
+
+# The architectures are selected again on every configure step, so a hint that is still in
+# place can replace what an earlier step chose - the deprecated AMREX_CUDA_ARCH environment
+# variable outranks the CMAKE_CUDA_ARCHITECTURES cache entry, for instance, and is honored
+# again once the -DAMReX_CUDA_ARCH=... of that earlier step is gone. Nothing on this command
+# line asked for the change, so do not let the build directory change quietly. The
+# architectures a parent project preset before adding AMReX are reported separately above.
+if (_amrex_cuda_archs_cached AND _amrex_cuda_archs_given
+    AND NOT _amrex_cuda_archs STREQUAL _amrex_cuda_archs_cached
+    AND NOT _amrex_cuda_archs_cmdline_now AND NOT _amrex_cuda_arch_cmdline_now)
+   message(WARNING
+      "The CUDA architectures of this build directory change from "
+      "'${_amrex_cuda_archs_cached}' to '${_amrex_cuda_archs}', although none were requested "
+      "on this command line: they are selected again on every configure step, from the hints "
+      "that are still in place (see the messages above). Pass "
+      "-DCMAKE_CUDA_ARCHITECTURES=<archs> to pin the choice for this build directory.")
+endif ()
 
 # A normal (non-cache) variable shadows the cache entry, so it also hides a
 # -DCMAKE_CUDA_ARCHITECTURES=... of this configure step, which never becomes visible.
