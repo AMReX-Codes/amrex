@@ -295,11 +295,11 @@ endif()
 
 # CUDA architectures amrex was built for
 if (@AMReX_CUDA@)
-    set(AMREX_CUDA_ARCHS @AMREX_CUDA_ARCHS@ CACHE INTERNAL "CUDA archs AMReX is built for")
+    set(AMREX_CUDA_ARCHS "@AMREX_CUDA_ARCHS@" CACHE INTERNAL "CUDA archs AMReX is built for")
     foreach(D IN LISTS AMReX_SPACEDIM)
         set_target_properties(AMReX::amrex_${D}d
           PROPERTIES
-            CUDA_ARCHITECTURES ${AMREX_CUDA_ARCHS})
+            CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}")
     endforeach()
 endif ()
 

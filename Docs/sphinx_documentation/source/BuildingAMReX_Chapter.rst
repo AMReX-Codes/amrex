@@ -23,7 +23,7 @@ Fortran compiler that supports the Fortran 2003 standard, and a C
 compiler that supports the C99 standard.  Prerequisites for building
 with GNU Make include Python (>= 2.7, including 3) and standard tools
 available in any Unix-like environment (e.g., Perl and sed).  For
-building with CMake, the minimal requirement is version 3.18.
+building with CMake, the minimal requirement is version 3.25.
 
 The minimum toolchain versions we target for C++20 builds are:
 

@@ -79,13 +79,6 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
        if (AMReX_LINEAR_SOLVERS)
            target_link_libraries(amrex_${D}d PUBLIC CUDA::cusparse)
        endif ()
-
-       if(CMAKE_CUDA_COMPILER_VERSION VERSION_LESS 11.2)
-           # nvToolsExt: if tiny profiler or base profiler are on.
-           if (AMReX_TINY_PROFILE OR AMReX_BASE_PROFILE)
-               target_link_libraries(amrex_${D}d PUBLIC CUDA::nvToolsExt)
-           endif ()
-       endif ()
    endforeach()
 
    # Check cuda compiler and host compiler
@@ -107,20 +100,25 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
           )
   endforeach()
 
-   # The target architecture(s) were resolved into CMAKE_CUDA_ARCHITECTURES before
-   # enable_language(CUDA) (see AMReXCUDAArchs). Record them for export to downstream
-   # projects (AMReXConfig.cmake.in) and for dependent test/tutorial targets
-   # (setup_target_for_cuda_compilation).
-   set(AMREX_CUDA_ARCHS "${CMAKE_CUDA_ARCHITECTURES}" CACHE INTERNAL "CUDA archs AMReX is built for")
-
-   # Device link-time optimization (LTO). Requires relocatable device code
-   # (separable compilation)
+   # Device link-time optimization (LTO). The target architecture(s) AMReX is built for
+   # (AMREX_CUDA_ARCHS) were resolved in AMReXCUDAOptions.
    if (AMReX_CUDA_LTO)
       include(CheckIPOSupported)
       check_ipo_supported(LANGUAGES CUDA RESULT _amrex_cuda_ipo OUTPUT _amrex_cuda_ipo_msg)
       if (NOT _amrex_cuda_ipo)
          message(WARNING "AMReX_CUDA_LTO is ON but device LTO is not supported by this "
             "toolchain; disabling it.\n${_amrex_cuda_ipo_msg}")
+      else ()
+         # INTERPROCEDURAL_OPTIMIZATION is a per-target, all-language property: it is what
+         # makes CMake emit the CUDA "code=lto_XX" device code, but it would also turn on
+         # host LTO (e.g. -flto=auto -fno-fat-lto-objects) for C/C++/Fortran sources
+         # compiled for the host. That would silently change host code generation and
+         # break non-LTO downstream links against an installed static AMReX, so we make
+         # IPO a no-op for the host languages in this directory scope.
+         foreach(_lang IN ITEMS C CXX Fortran)
+            set(CMAKE_${_lang}_COMPILE_OPTIONS_IPO "")
+         endforeach()
+         unset(_lang)
       endif ()
       unset(_amrex_cuda_ipo_msg)
    endif ()
@@ -131,9 +129,11 @@ if ( AMReX_GPU_BACKEND STREQUAL "CUDA" )
           CUDA_ARCHITECTURES "${AMREX_CUDA_ARCHS}"
        )
        if (AMReX_CUDA_LTO AND _amrex_cuda_ipo)
+          # relocatable device code is required for device LTO and enforced in
+          # AMReXCUDAOptions; CUDA_SEPARABLE_COMPILATION itself is set from AMReX_GPU_RDC
+          # in setup_target_for_cuda_compilation
           set_target_properties(amrex_${D}d
              PROPERTIES
-             CUDA_SEPARABLE_COMPILATION ON
              INTERPROCEDURAL_OPTIMIZATION ON
           )
           # For a static AMReX, the CUDA device link happens in the user's target,

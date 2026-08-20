@@ -266,9 +266,9 @@ check the :ref:`table <tab:cmakecudavar>` below.
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_PTX_VERBOSE       |  Verbose code generation statistics in ptxas    | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_SHOW_CODELINES    |  Source information in PTX (optimizations: on)  | Auto        | YES, NO         |
+   | AMReX_CUDA_SHOW_CODELINES    |  Source information in PTX (optimizations: on)  | NO          | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
-   | AMReX_CUDA_SHOW_LINENUMBERS  |  Line-number information (optimizations: on)    | Auto        | YES, NO         |
+   | AMReX_CUDA_SHOW_LINENUMBERS  |  Line-number information (optimizations: on)    | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
    | AMReX_CUDA_WARN_CAPTURE_THIS |  Warn if a CUDA lambda captures a class' this   | YES         | YES, NO         |
    +------------------------------+-------------------------------------------------+-------------+-----------------+
@@ -297,21 +297,34 @@ target property, are supported.
 
 
 If no architecture is specified, AMReX defaults to ``native``, which builds for the GPU(s)
-installed in the machine running CMake. This requires a GPU to be visible at configuration
-time. On machines without GPUs (e.g., HPC login nodes or CI runners) an explicit architecture
-must be provided.
+installed in the machine running CMake. If a GPU is visible at configuration time, CMake
+resolves ``native`` right away and the resulting architecture is printed, used for the build
+and exported to downstream projects. If no GPU is visible, AMReX prints a warning and leaves
+the selection to the CUDA compiler, i.e., the build fails later on unless a GPU is visible
+then. On machines without GPUs (e.g., HPC login nodes or CI runners) an explicit architecture
+should therefore always be provided.
 
 .. note::
 
    The legacy ``-DAMReX_CUDA_ARCH`` option and the ``AMREX_CUDA_ARCH`` environment variable
    are deprecated but still honored (with a warning): they map to ``CMAKE_CUDA_ARCHITECTURES``
    and the standard ``CUDAARCHS`` environment variable, respectively, and keep their historical
-   precedence. Please migrate to the standard CMake variables.
+   precedence. Please migrate to the standard CMake variables. Note that ``AMREX_CUDA_ARCH``
+   is unaffected in GNU Make builds, where it remains the way to select architectures.
+
+   Their historical values are translated for convenience: ``Auto`` becomes ``native``,
+   ``All`` and ``Common`` become ``all`` and ``all-major``, generation names such as
+   ``Volta``, ``Turing``, ``Ampere`` or ``Hopper`` become the corresponding compute
+   capability, dots are dropped (``8.0`` becomes ``80``) and a trailing ``+PTX`` is removed
+   (the plain integer form of ``CMAKE_CUDA_ARCHITECTURES`` already embeds PTX). None of these
+   legacy spellings are accepted by ``CMAKE_CUDA_ARCHITECTURES`` itself, so use the values
+   documented above when you migrate.
 
 Setting ``-DAMReX_CUDA_LTO=ON`` enables CUDA device link-time optimization. This requires
-relocatable device code (``AMReX_GPU_RDC=ON``, the default). Device LTO is currently
-available only with the NVIDIA ``nvcc`` compiler; with a Clang ``-x cuda`` compiler it is
-gracefully disabled with a warning.
+relocatable device code, so it is an error to combine it with ``-DAMReX_GPU_RDC=OFF``.
+Device LTO is currently available only with the NVIDIA ``nvcc`` compiler; with a Clang
+``-x cuda`` compiler it is gracefully disabled with a warning. It only applies to device
+code: host code generation is unchanged.
 
 **Note that AMReX supports NVIDIA GPU architectures with compute capability 6.0 or higher and
 CUDA Toolkit version 12.2 or higher.**
