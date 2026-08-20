@@ -327,7 +327,9 @@ should therefore always be provided.
    precedence, i.e., they take precedence over ``CMAKE_CUDA_ARCHITECTURES``. The one exception
    is ``-DCMAKE_CUDA_ARCHITECTURES=...`` passed on the ``cmake`` command line, which wins over
    the deprecated hints and keeps doing so on the automatic re-configure steps of that build
-   directory, until the value is changed again. Please migrate to the standard CMake variables.
+   directory, until the selection is changed again - by another
+   ``-DCMAKE_CUDA_ARCHITECTURES=...``, by a ``-DAMReX_CUDA_ARCH=...`` passed to a later
+   configure step, or by editing the cache entry. Please migrate to the standard CMake variables.
    Note that ``AMREX_CUDA_ARCH`` is unaffected in GNU Make builds, where it remains the way to
    select architectures.
 
