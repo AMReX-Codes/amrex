@@ -129,10 +129,17 @@ endif ()
 
 if (_amrex_cuda_archs_cmdline AND (_amrex_cuda_archs_cmdline_now OR NOT _amrex_cuda_arch_cmdline_now)
     AND (DEFINED AMReX_CUDA_ARCH OR DEFINED ENV{AMREX_CUDA_ARCH}))
+   # a normal variable shadowing the cache entry supplies the value that is in effect, which
+   # is then not the one the command line carries (reported by the diagnostic further down)
+   if (_amrex_cuda_archs_shadowed)
+      set(_amrex_cuda_archs_source "the CMAKE_CUDA_ARCHITECTURES value in effect")
+   else ()
+      set(_amrex_cuda_archs_source "the CMAKE_CUDA_ARCHITECTURES value from the command line")
+   endif ()
    message(WARNING
       "Both CMAKE_CUDA_ARCHITECTURES and the deprecated AMReX_CUDA_ARCH/AMREX_CUDA_ARCH "
-      "were given; using the CMAKE_CUDA_ARCHITECTURES value from the command line "
-      "(${CMAKE_CUDA_ARCHITECTURES}).")
+      "were given; using ${_amrex_cuda_archs_source} (${CMAKE_CUDA_ARCHITECTURES}).")
+   unset(_amrex_cuda_archs_source)
    set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
    # a leftover entry of a build directory configured with an older AMReX must not come
    # back on the next configure step
@@ -145,6 +152,8 @@ elseif (DEFINED AMReX_CUDA_ARCH)
       "and is then removed from the cache.")
    set(_amrex_cuda_archs "${AMReX_CUDA_ARCH}")
    set(_amrex_cuda_archs_legacy TRUE)
+   # whatever the command line of an earlier configure step chose has just been replaced
+   set(_amrex_cuda_archs_cmdline FALSE)
    # Do not leave a stale cache entry behind: it would silently keep overriding
    # -DCMAKE_CUDA_ARCHITECTURES on every subsequent configure of this build directory,
    # without an option of that name being visible in the cache anymore.
@@ -156,6 +165,7 @@ elseif (DEFINED ENV{AMREX_CUDA_ARCH})
       "(or -DCMAKE_CUDA_ARCHITECTURES=...).")
    set(_amrex_cuda_archs "$ENV{AMREX_CUDA_ARCH}")
    set(_amrex_cuda_archs_legacy TRUE)
+   set(_amrex_cuda_archs_cmdline FALSE)
 elseif (_amrex_cuda_archs_given)
    set(_amrex_cuda_archs "${CMAKE_CUDA_ARCHITECTURES}")
 elseif (DEFINED ENV{CUDAARCHS})
