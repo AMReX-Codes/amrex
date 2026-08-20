@@ -1063,6 +1063,7 @@ Level::fillVolFracFC (MultiFab& vfrac, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
     vfrac.setVal(1.0);
+    if (isAllRegular()) { return; }
     vfrac.ParallelCopy(m_fc_data[face_dir]->m_volfrac_fc, 0, 0, 1, 0, vfrac.nGrow(), geom.periodicity());
 }
 
@@ -1073,6 +1074,7 @@ Level::fillAreaFracFC (Array<MultiFab*,AMREX_SPACEDIM> const& areafrac, int face
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         areafrac[idim]->setVal(1.0);
     }
+    if (isAllRegular()) { return; }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         areafrac[idim]->ParallelCopy(m_fc_data[face_dir]->m_areafrac_fc[idim], 0, 0, 1, 0, areafrac[idim]->nGrow(), geom.periodicity());
     }
@@ -1102,6 +1104,7 @@ Level::fillCentroidFC (MultiFab& centroid, int face_dir, const Geometry& geom) c
 {
     AMREX_ASSERT(hasFCData(face_dir));
     centroid.setVal(0.0);
+    if (isAllRegular()) { return; }
     centroid.ParallelCopy(m_fc_data[face_dir]->m_centroid_fc, 0, 0, AMREX_SPACEDIM, 0, centroid.nGrow(), geom.periodicity());
 }
 
@@ -1119,6 +1122,7 @@ Level::fillBndryAreaFC (MultiFab& bndryarea, int face_dir, const Geometry& geom)
 {
     AMREX_ASSERT(hasFCData(face_dir));
     bndryarea.setVal(0.0);
+    if (isAllRegular()) { return; }
     bndryarea.ParallelCopy(m_fc_data[face_dir]->m_bndryarea_fc, 0, 0, 1, 0, bndryarea.nGrow(), geom.periodicity());
 }
 
@@ -1135,7 +1139,8 @@ void
 Level::fillBndryCentFC (MultiFab& bndrycent, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
-    bndrycent.setVal(0.0);
+    bndrycent.setVal(-1.0);   // cell-centered convention: -1 where there is no boundary
+    if (isAllRegular()) { return; }
     bndrycent.ParallelCopy(m_fc_data[face_dir]->m_bndrycent_fc, 0, 0, AMREX_SPACEDIM, 0, bndrycent.nGrow(), geom.periodicity());
 }
 
@@ -1153,6 +1158,7 @@ Level::fillBndryNormFC (MultiFab& bndrynorm, int face_dir, const Geometry& geom)
 {
     AMREX_ASSERT(hasFCData(face_dir));
     bndrynorm.setVal(0.0);
+    if (isAllRegular()) { return; }
     bndrynorm.ParallelCopy(m_fc_data[face_dir]->m_bndrynorm_fc, 0, 0, AMREX_SPACEDIM, 0, bndrynorm.nGrow(), geom.periodicity());
 }
 
@@ -1169,6 +1175,15 @@ void
 Level::fillEBCellFlagFC (FabArray<EBCellFlagFab>& cellflag, int face_dir, const Geometry& geom) const
 {
     AMREX_ASSERT(hasFCData(face_dir));
+
+    if (isAllRegular()) {
+        cellflag.setVal(EBCellFlag::TheDefaultCell());
+        for (MFIter mfi(cellflag); mfi.isValid(); ++mfi) {
+            cellflag[mfi].setType(FabType::regular);
+        }
+        return;
+    }
+
     cellflag.ParallelCopy(m_fc_data[face_dir]->m_cellflag_fc, 0, 0, 1, 0, cellflag.nGrow(), geom.periodicity());
 
     // Set FabType for each fab (similar to fillEBCellFlag)
@@ -1185,6 +1200,7 @@ Level::fillFaceCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& facecent, int face
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         facecent[idim]->setVal(0.0);
     }
+    if (isAllRegular()) { return; }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         facecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_facecent_fc[idim], 0, 0, AMREX_SPACEDIM-1, 0, facecent[idim]->nGrow(), geom.periodicity());
     }
@@ -1216,6 +1232,7 @@ Level::fillEdgeCentFC (Array<MultiFab*,AMREX_SPACEDIM> const& edgecent, int face
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         edgecent[idim]->setVal(0.0);
     }
+    if (isAllRegular()) { return; }
     for (int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
         edgecent[idim]->ParallelCopy(m_fc_data[face_dir]->m_edgecent_fc[idim], 0, 0, 1, 0, edgecent[idim]->nGrow(), geom.periodicity());
     }

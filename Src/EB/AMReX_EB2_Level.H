@@ -810,14 +810,21 @@ GShopLevel<G>::buildFCData (G const& gshop, int face_dir, int max_grid_size)
 
     AMREX_ASSERT(face_dir >= 0 && face_dir < AMREX_SPACEDIM);
 
-    if (m_allregular) { return; }
-
     // Allocate FC data structure if needed
     if (!m_fc_data[face_dir]) {
         m_fc_data[face_dir] = std::make_unique<FCData>();
     }
 
     if (m_fc_data[face_dir]->m_built) { return; }
+
+    if (m_allregular) {
+        // An all-regular level carries no MultiFabs, and there is nothing to coarsen. Mark the
+        // face-centered data built anyway so that hasFCData() is true and a face-centered factory
+        // can be constructed: the fill*FC functions fill the regular values for such a level
+        // without reading anything, exactly as their cell-centered counterparts do.
+        m_fc_data[face_dir]->m_built = true;
+        return;
+    }
 
     // **********************************************************************
     // STEP1: Get or build the one-level-finer CC data
