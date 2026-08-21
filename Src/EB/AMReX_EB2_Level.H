@@ -156,11 +156,19 @@ public:
         Array<MultiFab,AMREX_SPACEDIM> m_areafrac_fc;
         Array<MultiFab,AMREX_SPACEDIM> m_facecent_fc;
         Array<MultiFab,AMREX_SPACEDIM> m_edgecent_fc;
-        //! Covered region of the refined level, coarsened onto this level. The refined level is
-        //! transient, so it has to be captured here for the fill*FC functions to mask with.
-        //! Note this is NOT the same as Level::m_covered_grids: the refined level resolves the
-        //! body more finely, so its covered region is the larger one once coarsened, and it is
-        //! the one that matches where the face-centered data was actually computed.
+        // Covered region of the refined level, coarsened onto this level. The refined level
+        // is transient, so this has to be captured while it exists. It is not the same as
+        // Level::m_covered_grids: the refined level resolves the body more finely, so once
+        // coarsened its covered region is the larger of the two, and it is the one that
+        // matches where the face-centered data was computed.
+        //
+        // The fill*FC functions apply it before their ParallelCopy, and deliberately do not
+        // shrink it first. A face-centered cell straddles two cell-centered cells, so the
+        // ones on the covered/cut interface may themselves be cut; clearing them here and
+        // letting the copy write over them is correct, because the copy writes exactly where
+        // the face-centered data is valid - the nodal span of the cut boxes, which reaches
+        // the interface and no further. Ordering does the shrinking, so no box has to be
+        // trimmed and two adjacent covered boxes need no special treatment.
         BoxArray m_covered_grids_fc;
         bool m_built = false;
     };

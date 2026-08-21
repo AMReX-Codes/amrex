@@ -149,6 +149,86 @@ void main_main()
         }
     }
 
+    // Covered regions. With eb2.max_grid_size small enough that whole boxes fall inside the
+    // body, the EB level has covered boxes, and the face-centered data must report them as
+    // covered rather than as regular fluid. A face-centered cell is covered exactly when both
+    // of the cell-centered cells it straddles are, so classify by the cell-centered flags
+    // rather than by the face-centered volume fraction - the failure being guarded against
+    // makes that volume fraction 1, which would hide the very cells at issue.
+    const auto& ccflag = cc_factory->getMultiEBCellFlagFab();
+    for (int dir = 0; dir < AMREX_SPACEDIM; ++dir) {
+        const MultiFab& volfrac_fc = fc_factories[dir]->getVolFrac();
+        const auto& ebflag = fc_factories[dir]->getMultiEBCellFlagFab();
+        auto const& afrac = fc_factories[dir]->getAreaFrac();
+        const IntVect fdir = IntVect::TheDimensionVector(dir);
+
+        ReduceOps<ReduceOpSum,ReduceOpSum,ReduceOpSum,ReduceOpSum> reduce_op;
+        ReduceData<int,int,int,int> reduce_data(reduce_op);
+        using ReduceTuple = typename ReduceData<int,int,int,int>::Type;
+
+        for (MFIter mfi(volfrac_fc); mfi.isValid(); ++mfi) {
+            auto const& vf    = volfrac_fc.const_array(mfi);
+            auto const& flag  = ebflag[mfi].const_array();
+            auto const& cflag = ccflag[mfi].const_array();
+            // the area fractions carry the cell-centered type, so enclosedCells of the
+            // face-centered valid box is exactly their valid range, and those indices are
+            // valid in the face-centered arrays too
+            const Box abx = amrex::enclosedCells(mfi.validbox());
+            const bool have_ap = afrac[0]->ok(mfi);
+            AMREX_D_TERM(auto const& apx = have_ap ? afrac[0]->const_array(mfi) : Array4<Real const>{};,
+                         auto const& apy = have_ap ? afrac[1]->const_array(mfi) : Array4<Real const>{};,
+                         auto const& apz = have_ap ? afrac[2]->const_array(mfi) : Array4<Real const>{};);
+
+            reduce_op.eval(abx, reduce_data,
+                [=] AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple {
+                    const IntVect iv{AMREX_D_DECL(i,j,k)};
+                    if (!(cflag(iv-fdir).isCovered() && cflag(iv).isCovered())) {
+                        return {0,0,0,0};
+                    }
+                    int nbad_vf   = (vf(i,j,k) != Real(0.0))     ? 1 : 0;
+                    int nbad_flag = (!flag(i,j,k).isCovered())   ? 1 : 0;
+                    int nbad_ap   = 0;
+                    if (have_ap) {
+                        if (AMREX_D_TERM(apx(i,j,k) != Real(0.0),
+                                      || apy(i,j,k) != Real(0.0),
+                                      || apz(i,j,k) != Real(0.0))) { nbad_ap = 1; }
+                    }
+                    return {1, nbad_vf, nbad_flag, nbad_ap};
+                });
+        }
+
+        auto rv = reduce_data.value();
+        int ncovered  = amrex::get<0>(rv);
+        int nbad_vf   = amrex::get<1>(rv);
+        int nbad_flag = amrex::get<2>(rv);
+        int nbad_ap   = amrex::get<3>(rv);
+        ParallelDescriptor::ReduceIntSum(ncovered);
+        ParallelDescriptor::ReduceIntSum(nbad_vf);
+        ParallelDescriptor::ReduceIntSum(nbad_flag);
+        ParallelDescriptor::ReduceIntSum(nbad_ap);
+
+        if (ncovered == 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " no covered cells; set eb2.max_grid_size "
+                           << "small enough that whole boxes fall inside the body\n";
+        }
+        if (nbad_vf > 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " " << nbad_vf << " of " << ncovered
+                           << " covered cells have a nonzero volume fraction\n";
+        }
+        if (nbad_flag > 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " " << nbad_flag << " of " << ncovered
+                           << " covered cells are not flagged covered\n";
+        }
+        if (nbad_ap > 0) {
+            ++nerrors;
+            amrex::Print() << "ERROR: dir=" << dir << " " << nbad_ap << " of " << ncovered
+                           << " covered cells have a nonzero area fraction\n";
+        }
+    }
+
     // Report
     if (nerrors > 0) {
         amrex::Print() << "FCFactory test FAILED with " << nerrors << " errors\n";
